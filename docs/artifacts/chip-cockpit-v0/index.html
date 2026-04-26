@@ -1308,44 +1308,68 @@
             <span class="alerts-panel__hint">CHIP scans repos, Figma, Storybook, Zeroheight every 14m. v1 will scan Slack and Jira too.</span>
           </header>
           <ul class="alerts-panel__list" role="list">
-            <li class="alerts-panel__row alerts-panel__row--critical">
+            <li class="alerts-panel__row alerts-panel__row--critical" data-alert-id="android-button-drift">
               <span class="alerts-panel__sev">CRIT</span>
               <span class="alerts-panel__what">
                 <strong>Android Button drift</strong> · 47 components committed without parity check
                 <span class="alerts-panel__meta">android-bella · last commit 2h ago · Android Lead</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Open BELLA-1267 in Jira, assign Android Lead, block landscape merge until parity check passes.
+                </p>
               </span>
               <span class="alerts-panel__action">
-                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="triage">Triage</button>
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
               </span>
             </li>
-            <li class="alerts-panel__row alerts-panel__row--warning">
+            <li class="alerts-panel__row alerts-panel__row--warning" data-alert-id="ios-focus-order">
               <span class="alerts-panel__sev">WARN</span>
               <span class="alerts-panel__what">
                 <strong>iOS focus-order divergence</strong> · Modal landscape variant
                 <span class="alerts-panel__meta">ios-bella · BELLA-1247 · iOS Lead · 2h ago</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Swap iOS focus order to match Web tab sequence in Modal landscape variant.
+                </p>
               </span>
               <span class="alerts-panel__action">
-                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="triage">Triage</button>
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
               </span>
             </li>
-            <li class="alerts-panel__row alerts-panel__row--warning">
+            <li class="alerts-panel__row alerts-panel__row--warning" data-alert-id="zh-card-stale">
               <span class="alerts-panel__sev">WARN</span>
               <span class="alerts-panel__what">
                 <strong>Zeroheight Card page stale</strong> · 6 days behind Storybook deploy
                 <span class="alerts-panel__meta">zeroheight · Card v2.14.3 not reflected in docs</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Regenerate Zeroheight Card page from Storybook v2.14.3 deploy.
+                </p>
               </span>
               <span class="alerts-panel__action">
-                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="triage">Triage</button>
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
               </span>
             </li>
-            <li class="alerts-panel__row alerts-panel__row--info">
+            <li class="alerts-panel__row alerts-panel__row--info" data-alert-id="amber-30-token">
               <span class="alerts-panel__sev">INFO</span>
               <span class="alerts-panel__what">
                 <strong>tokens.css edited</strong> · amber-30 darkened by 4% · not yet propagated to iOS / Android
                 <span class="alerts-panel__meta">bella/tokens · Elleta · 1d ago</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Propagate amber-30 token change to ios-bella/Tokens.swift and android-bella/tokens.kt; flag platform leads for review.
+                </p>
               </span>
               <span class="alerts-panel__action">
-                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="triage">Propagate</button>
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
               </span>
             </li>
           </ul>

@@ -2295,6 +2295,32 @@
     });
   });
 
+  // ============ Alerts panel — AI fix approval flow ============
+  var alertsPanelList = document.querySelector('.alerts-panel__list');
+  if (alertsPanelList) {
+    alertsPanelList.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-alert-action]');
+      if (!btn) return;
+      var row = btn.closest('.alerts-panel__row');
+      if (!row) return;
+      var action = btn.getAttribute('data-alert-action');
+      var titleEl = row.querySelector('strong');
+      var title = titleEl ? titleEl.textContent : 'Unknown alert';
+
+      if (action === 'approve') {
+        appendAuditEntry('Alert resolved (auto): ' + title + ' · CHIP applied recommended fix');
+        row.classList.add('alerts-panel__row--resolved');
+        row.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+      } else if (action === 'decline') {
+        appendAuditEntry('Alert declined: ' + title);
+        row.classList.add('alerts-panel__row--resolved');
+        row.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+      } else if (action === 'triage') {
+        console.log('[CHIP] Manual triage queued for: ' + title);
+      }
+    });
+  }
+
   var syncCadenceGrid = document.getElementById('sync-cadence-grid');
   if (syncCadenceGrid) {
     var html = '<span></span>';
