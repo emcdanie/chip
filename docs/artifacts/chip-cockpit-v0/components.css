@@ -332,8 +332,10 @@ body[data-phase="drift"] .surfaces { display: none; }
 /* ================================================================ */
 .primitive-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  align-items: start;        /* don't stretch primitive cards to match tallest neighbour */
   gap: var(--s5);
 }
+.primitive-grid > * { min-width: 0; }
 .primitive {
   background: var(--surface-elevated); border-radius: var(--r-lg);
   padding: var(--s6); border: 1px solid var(--border-subtle);
@@ -446,9 +448,11 @@ body[data-phase="drift"] .surfaces { display: none; }
 .map-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
+  align-items: start;        /* don't stretch detail panel to match SVG card */
   gap: var(--s5);
   margin-bottom: var(--s6);
 }
+.map-grid > * { min-width: 0; }
 
 /* SVG node interactivity */
 .map__node {
@@ -827,8 +831,10 @@ body[data-phase="approved"] .cockpit-action { display: none; }
 .friction-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
+  align-items: start;        /* don't stretch side panel to match list */
   gap: var(--s5);
 }
+.friction-grid > * { min-width: 0; }
 .friction__entry {
   cursor: pointer;
   width: 100%; text-align: left;
@@ -1203,10 +1209,12 @@ body:not([data-space="cockpit"]) .today-card { display: none; }
 .agent-card__chat {
   margin-top: var(--s4);
   display: flex; flex-direction: column; gap: var(--s4);
-  max-height: 340px;
+  max-height: 320px;
   overflow-y: auto;
+  /* Subtle inset so the scroll edge is legible */
+  padding-right: var(--s2);
 }
-.ask-turn { display: flex; flex-direction: column; gap: var(--s1); }
+.ask-turn { display: flex; flex-direction: column; gap: var(--s2); }
 .ask-turn__label {
   font-family: var(--font-mono); font-size: var(--fs-meta);
   letter-spacing: var(--ls-wider); color: var(--text-muted);
@@ -1216,12 +1224,39 @@ body:not([data-space="cockpit"]) .today-card { display: none; }
 .ask-turn__text--operator {
   font-family: var(--font-mono); font-size: var(--fs-label);
   color: var(--text); margin: 0;
+  overflow-wrap: anywhere; word-break: break-word;
 }
+/* Agent reply — body roman for legibility on long-form prose.
+   Italic display only made sense for one-line quips. */
 .ask-turn__text--agent {
-  font-family: var(--font-display); font-style: italic; font-size: var(--fs-base);
-  line-height: var(--lh-snug); color: var(--text); margin: 0;
-  padding-left: var(--s3);
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  color: var(--text);
+  margin: 0;
+  padding-left: var(--s4);
   border-left: 2px solid var(--sage);
+  overflow-wrap: anywhere; word-break: break-word;
+}
+.ask-turn__text--agent p { margin: 0 0 var(--s2) 0; }
+.ask-turn__text--agent p:last-child { margin-bottom: 0; }
+.ask-turn__text--agent strong { font-weight: var(--fw-bold); color: var(--text); }
+.ask-turn__text--agent em { font-style: italic; }
+.ask-turn__text--agent ul {
+  list-style: none; padding: 0; margin: var(--s2) 0;
+  display: flex; flex-direction: column; gap: var(--s1);
+}
+.ask-turn__text--agent li {
+  padding-left: var(--s4);
+  position: relative;
+  line-height: var(--lh-normal);
+}
+.ask-turn__text--agent li::before {
+  content: "→";
+  position: absolute; left: 0; top: 0;
+  color: var(--amber);
+  font-family: var(--font-mono);
 }
 .ask-skeleton {
   font-family: var(--font-mono); font-size: var(--fs-meta);
@@ -1235,6 +1270,9 @@ body:not([data-space="cockpit"]) .today-card { display: none; }
   color: var(--amber); margin: 0;
   padding-left: var(--s3);
   border-left: 2px solid var(--amber);
+  overflow-wrap: anywhere;     /* break long unbreakable tokens (request_ids, JSON) */
+  word-break: break-word;
+  max-width: 100%;
 }
 .ask-error__retry {
   appearance: none; background: transparent; border: 0;
@@ -1483,8 +1521,10 @@ body[data-density="compact"] .surfaces__row { padding: var(--s2) var(--s3); }
 .voices-map { margin-top: var(--s5); }
 .voices-map__grid {
   display: grid; grid-template-columns: 1fr 320px;
+  align-items: start;        /* don't stretch detail panel to match SVG */
   gap: var(--s5);
 }
+.voices-map__grid > * { min-width: 0; }
 .voices-map__svg {
   display: block; width: 100%; height: auto; max-height: 540px;
   background: var(--surface-elevated);
@@ -1718,9 +1758,12 @@ body[data-phase="loaded"] .mapek { display: none; }
 .cockpit-bento {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: max-content;       /* don't stretch rows to fill height */
+  align-items: start;                /* don't stretch cards to match tallest neighbour */
   gap: var(--s5);
   margin-bottom: var(--s6);
 }
+.cockpit-bento > *  { align-self: start; min-width: 0; }   /* prevent overflow + vertical stretch */
 .bento-hero-meter   { grid-column: 1 / 8; }
 .bento-hero-agent   { grid-column: 8 / 13; }
 .bento-stat         { grid-column: span 3; }
@@ -1735,6 +1778,7 @@ body[data-phase="loaded"] .mapek { display: none; }
   display: grid;
   grid-template-columns: 1fr 320px;
   grid-template-rows: auto auto;
+  align-items: start;        /* don't stretch detail panel/matrix to match SVG row */
   gap: var(--s5);
 }
 .space--map .map-grid .sync-cadence    { grid-column: 1; grid-row: 1; margin: 0; }
@@ -2108,9 +2152,22 @@ body:not([data-space="cockpit"]) .persist-strip { display: none !important; }
 /* Stage 18.1 — Hide stale Stage 8.1 parity-strip; persist-strip supersedes */
 .parity-strip { display: none !important; }
 
+/* Stage 18.2 — Bento responsive ladder
+   1300+  : full bento (7/5 hero + 4 stats × 3 + 2 halves)
+   ≤1300  : stats drop to 2-up (span 6) so "Friday 10:00" stops wrapping
+   ≤1100  : hero + halves stack full-width
+   ≤720   : everything stacks single-column                              */
+@media (max-width: 1300px) {
+  .bento-stat { grid-column: span 6; }
+}
 @media (max-width: 1100px) {
   .bento-hero-meter, .bento-hero-agent, .bento-half { grid-column: 1 / 13; }
-  .bento-stat { grid-column: span 6; }
+}
+@media (max-width: 720px) {
+  .cockpit-bento { grid-template-columns: 1fr; gap: var(--s4); }
+  .bento-hero-meter, .bento-hero-agent, .bento-stat,
+  .bento-banner, .bento-half, .bento-full { grid-column: 1 / -1; }
+  .content { padding: var(--s6) var(--s4); }
 }
 .cockpit-bento .meter-card,
 .cockpit-bento .agent-card,
@@ -2121,7 +2178,7 @@ body:not([data-space="cockpit"]) .persist-strip { display: none !important; }
 .cockpit-bento .upcoming-card,
 .cockpit-bento .diag {
   margin-bottom: 0;
-  height: 100%;
+  /* height: 100% removed — was forcing every card to match its tallest neighbour */
 }
 
 /* Stat cards */
@@ -2153,8 +2210,10 @@ body:not([data-space="cockpit"]) .persist-strip { display: none !important; }
 }
 .bento-stat__num {
   font-family: var(--font-display); font-weight: var(--fw-bold);
-  font-size: 36px; line-height: 1; color: var(--text);
+  font-size: clamp(26px, 2.4vw, 36px);   /* scales with viewport so "Friday 10:00" stops wrapping */
+  line-height: 1; color: var(--text);
   margin: 0;
+  overflow-wrap: anywhere;
 }
 .bento-stat__sub {
   font-family: var(--font-body); font-style: italic; font-size: var(--fs-sm);
@@ -2533,8 +2592,10 @@ body[data-inclusion="overridden"] .inclusion-explainer {
 .research-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
+  align-items: start;        /* don't stretch detail panel to match timeline */
   gap: var(--s5);
 }
+.research-grid > * { min-width: 0; }
 
 .research-detail {
   background: var(--surface-elevated);
@@ -2681,4 +2742,60 @@ body[data-inclusion="overridden"] .inclusion-explainer {
   }
   .timeline__entry { opacity: 1; transform: none; }
   .map__dot--drift { animation: none; }
+}
+
+/* ================================================================ */
+/* STAGE 18.3 — Cross-space audit fixes                              */
+/* CHIP-flagged: every two-column grid was stretching the shorter    */
+/* column and long unbroken strings (request_ids, JSON, URLs) were   */
+/* overflowing card edges. Patch covers all 6 spaces.                */
+/* ================================================================ */
+
+/* Long-string overflow guard for any text-heavy panels.
+   `anywhere` lets us break inside long tokens without affecting
+   normal word wrapping. */
+.research-detail,
+.research-detail *,
+.voices-map__detail,
+.voices-map__detail *,
+.friction__detail,
+.friction__detail *,
+.map-detail,
+.map-detail *,
+.timeline__entry,
+.timeline__entry *,
+.primitive,
+.primitive *,
+.ritual,
+.ritual *,
+.upcoming-card,
+.upcoming-card * {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* Tablet — narrow side panels stack their detail under the list */
+@media (max-width: 1100px) {
+  .friction-grid,
+  .map-grid,
+  .space--map .map-grid,
+  .voices-map__grid {
+    grid-template-columns: 1fr;
+  }
+  .space--map .map-grid .map-detail,
+  .space--map .map-grid .components-matrix,
+  .space--map .map-grid .sync-cadence {
+    grid-column: 1; grid-row: auto;
+  }
+}
+
+/* Phone — full single-column, tighter padding, no sticky sidebar */
+@media (max-width: 720px) {
+  .content { padding: var(--s6) var(--s4); }
+  .space__title { font-size: clamp(28px, 7vw, 40px); }
+  .research-toolbar { flex-wrap: wrap; gap: var(--s2); }
+  .primitive-grid { grid-template-columns: 1fr; }
+  .friction-aggregate__grid { grid-template-columns: repeat(2, 1fr); }
+  .sync-cadence__grid { font-size: var(--fs-meta); }
+  .ritual { grid-template-columns: 1fr; }
 }

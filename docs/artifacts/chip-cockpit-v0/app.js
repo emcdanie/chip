@@ -39,6 +39,11 @@
   function login() {
     body.setAttribute('data-logged-in', 'true');
     setTimeout(function () { splash.style.display = 'none'; }, 400);
+    // Seed the audit ribbon with the cross-space layout patch CHIP filed
+    // on this dashboard. This is the artefact of the audit-then-approve loop.
+    setTimeout(function () {
+      if (typeof AUDIT_LAYOUT_FIX === 'string') appendAuditEntry(AUDIT_LAYOUT_FIX);
+    }, 600);
   }
   enterBtn.addEventListener('click', login);
 
@@ -930,6 +935,44 @@
   var ASK_MAX_TURNS   = 5;
   var askTurns        = [];   // { role: 'operator'|'agent', text }
 
+  // Tiny safe markdown renderer for agent replies.
+  // Input must already be HTML-escaped — we only convert markdown tokens
+  // (**bold**, _italic_, "- " bullets, paragraph breaks) into tags.
+  function renderMarkdown(escaped) {
+    var s = escaped;
+    // bold first (so it doesn't get eaten by italic)
+    s = s.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+    // italic — *single* or _single_ — but not mid-word
+    s = s.replace(/(^|[\s(])\*([^*\n]+?)\*(?=[\s.,;:!?)]|$)/g, '$1<em>$2</em>');
+    s = s.replace(/(^|[\s(])_([^_\n]+?)_(?=[\s.,;:!?)]|$)/g, '$1<em>$2</em>');
+    // group lines: "- " bullets become <ul>, blank lines split paragraphs
+    var lines = s.split('\n');
+    var out = [];
+    var inList = false;
+    var para = [];
+    function flushPara() {
+      if (para.length) { out.push('<p>' + para.join(' ') + '</p>'); para = []; }
+    }
+    function closeList() {
+      if (inList) { out.push('</ul>'); inList = false; }
+    }
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].replace(/\s+$/, '');
+      if (/^\s*-\s+/.test(line)) {
+        flushPara();
+        if (!inList) { out.push('<ul>'); inList = true; }
+        out.push('<li>' + line.replace(/^\s*-\s+/, '') + '</li>');
+      } else if (line === '') {
+        flushPara(); closeList();
+      } else {
+        closeList();
+        para.push(line);
+      }
+    }
+    flushPara(); closeList();
+    return out.join('');
+  }
+
   function renderTurns() {
     if (!askChat) return;
     var html = askTurns.slice(-ASK_MAX_TURNS).map(function (t) {
@@ -941,7 +984,7 @@
       }
       return '<div class="ask-turn">' +
         '<p class="ask-turn__label"><span class="chip chip--muted" style="font-size:var(--fs-meta);padding:1px var(--s2)">Auto</span> CHIP</p>' +
-        '<p class="ask-turn__text--agent">' + escapeHtml(t.text) + '</p>' +
+        '<div class="ask-turn__text--agent">' + renderMarkdown(escapeHtml(t.text)) + '</div>' +
         '</div>';
     }).join('');
     askChat.innerHTML = html;
