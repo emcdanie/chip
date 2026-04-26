@@ -1473,6 +1473,127 @@
       avail: 25,
       metrics: [['Notion MCP', 'live · 47 sources reachable'], ['Slack', 'v1 planned'], ['Gmail', 'v1 planned'], ['Jira', 'v1 planned']],
     },
+    // Grandchildren — Component library
+    'comp-atoms': {
+      title: 'Atoms', meta: '6 components · button · card · input · chip · eyebrow · nav link',
+      chip: { label: 'Drift', cls: 'dep-node__chip--warning' },
+      desc: '6 atomic primitives. Button, Card, Input, Nav link drifting on Android. Chip and Eyebrow have minor letter-spacing divergence on iOS.',
+      updated: '2h ago', next: 'Friday 10:00 · Parity review',
+      spark: '0,30 30,28 60,26 90,28 120,30 150,32 180,30 200,28',
+      sparkColor: 'var(--amber)', avail: 66,
+      metrics: [['In spec', '2 / 6'], ['Drifting', '3 / 6'], ['Missing', '1 / 6 (Android)'], ['Linked', 'Component map']],
+    },
+    'comp-molecules': {
+      title: 'Molecules', meta: '3 components · modal · avatar · badge',
+      chip: { label: 'In sync', cls: 'dep-node__chip--healthy' },
+      desc: '3 molecule patterns. Modal, Avatar, Badge. Avatar is fully in spec across all platforms. Modal has a minor Android landscape gap.',
+      updated: '6h ago', next: 'Friday 10:00',
+      spark: '0,20 30,22 60,24 90,22 120,24 150,26 180,28 200,30',
+      sparkColor: 'var(--sage)', avail: 92,
+      metrics: [['In spec', '2.5 / 3'], ['Partial', 'Modal Android'], ['Avatar', '100% all platforms'], ['Badge', '87% avg']],
+    },
+    'comp-organisms': {
+      title: 'Organisms', meta: '3 components · AI Card · AI Diff · AI Meter',
+      chip: { label: 'In sync', cls: 'dep-node__chip--healthy' },
+      desc: 'AI-native surfaces. Web only at v0. iOS + Android planned for v1. Storybook stories partially complete.',
+      updated: '1h ago', next: 'v1 platform expansion',
+      spark: '0,40 30,38 60,36 90,34 120,32 150,30 180,32 200,34',
+      sparkColor: 'var(--sage)', avail: 95,
+      metrics: [['Web', '95% (3/3)'], ['iOS', 'v1 planned'], ['Android', 'v1 planned'], ['Storybook', '73%']],
+    },
+    // Grandchildren — Platform repos
+    'plat-web': {
+      title: 'Web · react-bella-web', meta: '100% in sync · main branch clean',
+      chip: { label: 'In sync', cls: 'dep-node__chip--healthy' },
+      desc: 'React implementation of BELLA. Storybook at 89 stories, CI green. All 47 components in spec.',
+      updated: '14m ago', next: 'Friday 14:00 · Deploy',
+      spark: '0,20 30,18 60,20 90,18 120,16 150,18 180,20 200,18',
+      sparkColor: 'var(--sage)', avail: 100,
+      metrics: [['Components', '47 / 47'], ['CI', 'green'], ['Last deploy', '14m ago'], ['Storybook', '89 stories']],
+    },
+    'plat-ios': {
+      title: 'iOS · ios-bella', meta: '49% drift · 23 components behind',
+      chip: { label: 'Drift', cls: 'dep-node__chip--warning' },
+      desc: 'Swift/UIKit implementation. 23 components drifting from master. Focus-order divergence flagged on Modal landscape variant.',
+      updated: '2h ago', next: 'Friday 14:00 · iOS Lead sync',
+      spark: '0,30 30,32 60,34 90,36 120,38 150,40 180,42 200,44',
+      sparkColor: 'var(--amber)', avail: 49,
+      metrics: [['In spec', '24 / 47'], ['Drifting', '23 / 47'], ['Critical', 'focus-order (Modal)'], ['Next sync', 'Friday']],
+    },
+    'plat-android': {
+      title: 'Android · android-bella', meta: '0% · 47 components behind master',
+      chip: { label: 'Critical', cls: 'dep-node__chip--critical' },
+      desc: 'Kotlin implementation. Landscape mode shipped without parity check — 47 components diverged. BELLA-1267 open.',
+      updated: '2h ago', next: 'Block until parity check',
+      spark: '0,50 30,52 60,54 90,56 120,58 150,56 180,54 200,52',
+      sparkColor: 'var(--rust)', avail: 0,
+      metrics: [['In spec', '0 / 47'], ['Critical alerts', '1'], ['JIRA ticket', 'BELLA-1267'], ['Blocked', 'landscape merge']],
+    },
+    // Grandchildren — Sources of truth
+    'src-figma': {
+      title: 'Figma', meta: 'master clean · library published',
+      chip: { label: 'In sync', cls: 'dep-node__chip--healthy' },
+      desc: 'Figma design library. Master branch clean. All tokens published. Component frames match Storybook.',
+      updated: '14m ago', next: 'Monday · Library review',
+      spark: '0,18 30,16 60,18 90,16 120,14 150,16 180,18 200,16',
+      sparkColor: 'var(--sage)', avail: 100,
+      metrics: [['Library', 'published'], ['Tokens', '138 in sync'], ['Components', '12 frames'], ['Last push', '14m ago']],
+    },
+    'src-storybook': {
+      title: 'Storybook', meta: '89 stories · CI green',
+      chip: { label: 'In sync', cls: 'dep-node__chip--healthy' },
+      desc: 'Storybook component library. 89 stories across 12 components. CI pipeline green. v2.14.3 deployed.',
+      updated: '2h ago', next: 'Continuous',
+      spark: '0,20 30,22 60,20 90,22 120,24 150,22 180,20 200,22',
+      sparkColor: 'var(--sage)', avail: 100,
+      metrics: [['Stories', '89 (12 components)'], ['CI', 'green'], ['Version', 'v2.14.3'], ['Deploy', '2h ago']],
+    },
+    'src-zeroheight': {
+      title: 'Zeroheight', meta: 'docs · 6d behind Storybook',
+      chip: { label: 'Stale', cls: 'dep-node__chip--warning' },
+      desc: 'ZeroHeight documentation. Card v2.14.3 not reflected — 6 pages out of date. Publish queue has 2 pending items.',
+      updated: '6d ago', next: 'Monday 09:00 · Publish queue',
+      spark: '0,30 30,32 60,34 90,36 120,38 150,40 180,42 200,44',
+      sparkColor: 'var(--amber)', avail: 76,
+      metrics: [['Pages', '3 of 15 stale'], ['Pending publish', '2'], ['Last sync', '6d ago'], ['Alert', 'Card v2.14.3 missing']],
+    },
+    // Grandchildren — Connected systems
+    'conn-notion': {
+      title: 'Notion', meta: 'live MCP · 47 sources reachable',
+      chip: { label: 'Live', cls: 'dep-node__chip--healthy' },
+      desc: 'Notion MCP wired to CHIP’s Cloud Managed Agent. 47 research library sources reachable via credential vault.',
+      updated: '14m ago', next: 'Continuous',
+      spark: '0,16 30,14 60,16 90,14 120,12 150,14 180,16 200,14',
+      sparkColor: 'var(--sage)', avail: 95,
+      metrics: [['Sources', '47 reachable'], ['MCP', 'credential vault'], ['Agent', 'Opus 4.7'], ['Latency', '~2s avg']],
+    },
+    'conn-slack': {
+      title: 'Slack', meta: 'v1 planned · same pattern as Notion',
+      chip: { label: 'Pending', cls: 'dep-node__chip--muted' },
+      desc: 'Slack MCP integration planned for v1. OAuth + credential vault, same pattern as Notion. Not yet wired.',
+      updated: '—', next: 'v1 engineering',
+      spark: '0,50 30,50 60,50 90,50 120,50 150,50 180,50 200,50',
+      sparkColor: 'var(--border)', avail: 0,
+      metrics: [['Status', 'planned'], ['Pattern', 'OAuth + vault'], ['ETA', 'v1'], ['Blocker', 'none']],
+    },
+    'conn-gmail': {
+      title: 'Gmail', meta: 'v1 planned',
+      chip: { label: 'Pending', cls: 'dep-node__chip--muted' },
+      desc: 'Gmail MCP planned for v1 — primarily for sending parity-report digests to platform leads.',
+      updated: '—', next: 'v1 engineering',
+      spark: '0,50 30,50 60,50 90,50 120,50 150,50 180,50 200,50',
+      sparkColor: 'var(--border)', avail: 0,
+      metrics: [['Status', 'planned'], ['Use case', 'digest reports'], ['ETA', 'v1'], ['Blocker', 'none']],
+    },
+    'conn-jira': {
+      title: 'Jira', meta: 'v1 planned',
+      chip: { label: 'Pending', cls: 'dep-node__chip--muted' },
+      desc: 'Jira MCP planned for v1 — auto-file parity tickets (e.g. BELLA-1267) directly from CHIP alert recommendations.',
+      updated: '—', next: 'v1 engineering',
+      spark: '0,50 30,50 60,50 90,50 120,50 150,50 180,50 200,50',
+      sparkColor: 'var(--border)', avail: 0,
+      metrics: [['Status', 'planned'], ['Use case', 'auto-file parity tickets'], ['ETA', 'v1'], ['Blocker', 'none']],
+    },
   };
 
   function selectDepNode(nodeId) {
@@ -1514,6 +1635,29 @@
   document.querySelectorAll('[data-dep-node]').forEach(function (node) {
     node.addEventListener('click', function () {
       selectDepNode(node.getAttribute('data-dep-node'));
+    });
+  });
+
+  // Grandchild space-link: clicking an atom/molecule/organism node navigates to Component map
+  document.querySelectorAll('[data-dep-space-link]').forEach(function (node) {
+    node.addEventListener('click', function (e) {
+      var target = node.getAttribute('data-dep-space-link');
+      if (target && typeof setSpace === 'function') {
+        e.stopPropagation();
+        setSpace(target);
+      }
+    });
+  });
+
+  // Alert dot click: navigate to Bridge and scroll to alerts panel
+  document.querySelectorAll('[data-alert-nav]').forEach(function (dot) {
+    dot.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (typeof setSpace === 'function') setSpace('cockpit');
+      setTimeout(function () {
+        var alertsEl = document.querySelector('.alerts-panel');
+        if (alertsEl) alertsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
     });
   });
 

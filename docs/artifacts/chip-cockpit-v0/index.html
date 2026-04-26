@@ -294,6 +294,80 @@
           </div>
         </article>
 
+        <!-- Alerts panel — moved from System map: "what needs attention now" is a Bridge question -->
+        <article class="card alerts-panel bento-full" aria-labelledby="alerts-eyebrow">
+          <header class="alerts-panel__header">
+            <p id="alerts-eyebrow" class="card__eyebrow">Alerts · 4 potential divergences flagged</p>
+            <span class="alerts-panel__hint">CHIP scans repos, Figma, Storybook, Zeroheight every 14m. v1 will scan Slack and Jira too.</span>
+          </header>
+          <ul class="alerts-panel__list" role="list">
+            <li class="alerts-panel__row alerts-panel__row--critical" data-alert-id="android-button-drift">
+              <span class="alerts-panel__sev">CRIT</span>
+              <span class="alerts-panel__what">
+                <strong>Android Button drift</strong> · 47 components committed without parity check
+                <span class="alerts-panel__meta">android-bella · last commit 2h ago · Android Lead</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Open BELLA-1267 in Jira, assign Android Lead, block landscape merge until parity check passes.
+                </p>
+              </span>
+              <span class="alerts-panel__action">
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
+              </span>
+            </li>
+            <li class="alerts-panel__row alerts-panel__row--warning" data-alert-id="ios-focus-order">
+              <span class="alerts-panel__sev">WARN</span>
+              <span class="alerts-panel__what">
+                <strong>iOS focus-order divergence</strong> · Modal landscape variant
+                <span class="alerts-panel__meta">ios-bella · BELLA-1247 · iOS Lead · 2h ago</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Swap iOS focus order to match Web tab sequence in Modal landscape variant.
+                </p>
+              </span>
+              <span class="alerts-panel__action">
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
+              </span>
+            </li>
+            <li class="alerts-panel__row alerts-panel__row--warning" data-alert-id="zh-card-stale">
+              <span class="alerts-panel__sev">WARN</span>
+              <span class="alerts-panel__what">
+                <strong>Zeroheight Card page stale</strong> · 6 days behind Storybook deploy
+                <span class="alerts-panel__meta">zeroheight · Card v2.14.3 not reflected in docs</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Regenerate Zeroheight Card page from Storybook v2.14.3 deploy.
+                </p>
+              </span>
+              <span class="alerts-panel__action">
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
+              </span>
+            </li>
+            <li class="alerts-panel__row alerts-panel__row--info" data-alert-id="amber-30-token">
+              <span class="alerts-panel__sev">INFO</span>
+              <span class="alerts-panel__what">
+                <strong>tokens.css edited</strong> · amber-30 darkened by 4% · not yet propagated to iOS / Android
+                <span class="alerts-panel__meta">bella/tokens · Elleta · 1d ago</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Propagate amber-30 token change to ios-bella/Tokens.swift and android-bella/tokens.kt; flag platform leads for review.
+                </p>
+              </span>
+              <span class="alerts-panel__action">
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
+              </span>
+            </li>
+          </ul>
+        </article>
+
         <!-- Stage 14.1 — 4 stat cards -->
         <button type="button" class="bento-stat" data-stat-target="diag-card">
           <p class="bento-stat__eyebrow">Pending</p>
@@ -1194,47 +1268,184 @@
             </div>
             <span class="dep-map__connector dep-map__connector--down" aria-hidden="true"></span>
 
-            <!-- Branches: 4 children of BELLA -->
+            <!-- Branches + grandchildren — 4 columns each with a vertical sub-tree -->
             <div class="dep-map__row dep-map__row--children">
-              <button type="button" class="dep-node" data-dep-node="components" data-dep-status="warning" role="treeitem">
-                <span class="dep-node__icon" aria-hidden="true">▦</span>
-                <span class="dep-node__body">
-                  <span class="dep-node__title">Component library</span>
-                  <span class="dep-node__meta">12 components</span>
-                </span>
-                <span class="dep-node__chip dep-node__chip--warning">Drift</span>
-                <span class="dep-node__pct">66%</span>
-              </button>
 
-              <button type="button" class="dep-node" data-dep-node="platforms" data-dep-status="critical" role="treeitem">
-                <span class="dep-node__icon" aria-hidden="true">⌬</span>
-                <span class="dep-node__body">
-                  <span class="dep-node__title">Platform repos</span>
-                  <span class="dep-node__meta">3 platforms</span>
-                </span>
-                <span class="dep-node__chip dep-node__chip--critical">Critical</span>
-                <span class="dep-node__pct">38%</span>
-              </button>
+              <!-- Branch 1: Component library -->
+              <div class="dep-branch" role="group" aria-label="Component library branch">
+                <button type="button" class="dep-node" data-dep-node="components" data-dep-status="warning" role="treeitem">
+                  <span class="dep-node__icon" aria-hidden="true">▦</span>
+                  <span class="dep-node__body">
+                    <span class="dep-node__title">Component library</span>
+                    <span class="dep-node__meta">12 components</span>
+                  </span>
+                  <span class="dep-node__chip dep-node__chip--warning">Drift</span>
+                  <span class="dep-node__pct">66%</span>
+                </button>
+                <div class="dep-grandchildren">
+                  <button type="button" class="dep-node dep-node--small" data-dep-node="comp-atoms" data-dep-space-link="component" role="treeitem" aria-label="Atoms — open Component map">
+                    <span class="dep-node__body">
+                      <span class="dep-node__title">Atoms</span>
+                      <span class="dep-node__meta">6 components</span>
+                    </span>
+                    <span class="dep-node__chip dep-node__chip--warning">Drift</span>
+                  </button>
+                  <button type="button" class="dep-node dep-node--small" data-dep-node="comp-molecules" data-dep-space-link="component" role="treeitem">
+                    <span class="dep-node__body">
+                      <span class="dep-node__title">Molecules</span>
+                      <span class="dep-node__meta">3 components</span>
+                    </span>
+                    <span class="dep-node__chip dep-node__chip--healthy">In sync</span>
+                  </button>
+                  <button type="button" class="dep-node dep-node--small" data-dep-node="comp-organisms" data-dep-space-link="component" role="treeitem">
+                    <span class="dep-node__body">
+                      <span class="dep-node__title">Organisms</span>
+                      <span class="dep-node__meta">3 components</span>
+                    </span>
+                    <span class="dep-node__chip dep-node__chip--healthy">In sync</span>
+                  </button>
+                </div>
+              </div>
 
-              <button type="button" class="dep-node" data-dep-node="sources" data-dep-status="warning" role="treeitem">
-                <span class="dep-node__icon" aria-hidden="true">⌭</span>
-                <span class="dep-node__body">
-                  <span class="dep-node__title">Sources of truth</span>
-                  <span class="dep-node__meta">Figma · Storybook · Zeroheight</span>
-                </span>
-                <span class="dep-node__chip dep-node__chip--warning">Stale</span>
-                <span class="dep-node__pct">76%</span>
-              </button>
+              <!-- Branch 2: Platform repos -->
+              <div class="dep-branch" role="group" aria-label="Platform repos branch">
+                <button type="button" class="dep-node" data-dep-node="platforms" data-dep-status="critical" role="treeitem">
+                  <span class="dep-node__icon" aria-hidden="true">⌬</span>
+                  <span class="dep-node__body">
+                    <span class="dep-node__title">Platform repos</span>
+                    <span class="dep-node__meta">3 platforms</span>
+                  </span>
+                  <span class="dep-node__chip dep-node__chip--critical">Critical</span>
+                  <span class="dep-node__pct">38%</span>
+                </button>
+                <div class="dep-grandchildren">
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="plat-web" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Web</span>
+                        <span class="dep-node__meta">react-bella-web</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--healthy">In sync</span>
+                    </button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="plat-ios" data-dep-alert="warn" title="Alert: iOS focus-order divergence · Modal landscape variant" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">iOS</span>
+                        <span class="dep-node__meta">ios-bella · 49%</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--warning">Drift</span>
+                    </button>
+                    <button type="button" class="dep-alert-dot dep-alert-dot--warn" data-alert-nav="cockpit" aria-label="Alert: iOS focus-order divergence — view in Bridge" title="iOS focus-order divergence · click to view alert in Bridge">⚠</button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="plat-android" data-dep-alert="crit" title="Alert: Android Button drift · 47 components without parity check" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Android</span>
+                        <span class="dep-node__meta">android-bella · 0%</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--critical">Critical</span>
+                    </button>
+                    <button type="button" class="dep-alert-dot dep-alert-dot--crit" data-alert-nav="cockpit" aria-label="Alert: Android Button drift — view in Bridge" title="Android Button drift · click to view alert in Bridge">⚠</button>
+                  </div>
+                </div>
+              </div>
 
-              <button type="button" class="dep-node" data-dep-node="connected" data-dep-status="healthy" role="treeitem">
-                <span class="dep-node__icon" aria-hidden="true">⌖</span>
-                <span class="dep-node__body">
-                  <span class="dep-node__title">Connected systems</span>
-                  <span class="dep-node__meta">Notion live · Slack/Gmail v1</span>
-                </span>
-                <span class="dep-node__chip dep-node__chip--healthy">Healthy</span>
-                <span class="dep-node__pct">25%</span>
-              </button>
+              <!-- Branch 3: Sources of truth -->
+              <div class="dep-branch" role="group" aria-label="Sources of truth branch">
+                <button type="button" class="dep-node" data-dep-node="sources" data-dep-status="warning" role="treeitem">
+                  <span class="dep-node__icon" aria-hidden="true">⌭</span>
+                  <span class="dep-node__body">
+                    <span class="dep-node__title">Sources of truth</span>
+                    <span class="dep-node__meta">Figma · Storybook · Zeroheight</span>
+                  </span>
+                  <span class="dep-node__chip dep-node__chip--warning">Stale</span>
+                  <span class="dep-node__pct">76%</span>
+                </button>
+                <div class="dep-grandchildren">
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="src-figma" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Figma</span>
+                        <span class="dep-node__meta">master clean</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--healthy">In sync</span>
+                    </button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="src-storybook" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Storybook</span>
+                        <span class="dep-node__meta">89 stories</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--healthy">In sync</span>
+                    </button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="src-zeroheight" data-dep-alert="warn" title="Alert: Zeroheight Card page stale · 6 days behind" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Zeroheight</span>
+                        <span class="dep-node__meta">docs · 6d stale</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--warning">Stale</span>
+                    </button>
+                    <button type="button" class="dep-alert-dot dep-alert-dot--warn" data-alert-nav="cockpit" aria-label="Alert: Zeroheight Card page stale — view in Bridge" title="Zeroheight Card page stale · click to view alert in Bridge">⚠</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Branch 4: Connected systems -->
+              <div class="dep-branch" role="group" aria-label="Connected systems branch">
+                <button type="button" class="dep-node" data-dep-node="connected" data-dep-status="healthy" role="treeitem">
+                  <span class="dep-node__icon" aria-hidden="true">⌖</span>
+                  <span class="dep-node__body">
+                    <span class="dep-node__title">Connected systems</span>
+                    <span class="dep-node__meta">Notion live · Slack/Gmail v1</span>
+                  </span>
+                  <span class="dep-node__chip dep-node__chip--healthy">Healthy</span>
+                  <span class="dep-node__pct">25%</span>
+                </button>
+                <div class="dep-grandchildren">
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="conn-notion" data-dep-alert="info" title="Info: tokens.css amber-30 edited · not yet propagated" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Notion</span>
+                        <span class="dep-node__meta">live MCP</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--healthy">Live</span>
+                    </button>
+                    <button type="button" class="dep-alert-dot dep-alert-dot--info" data-alert-nav="cockpit" aria-label="Info: tokens.css edited — view in Bridge" title="tokens.css amber-30 edited · click to view in Bridge">ℹ</button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="conn-slack" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Slack</span>
+                        <span class="dep-node__meta">v1 planned</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--muted">Pending</span>
+                    </button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="conn-gmail" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Gmail</span>
+                        <span class="dep-node__meta">v1 planned</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--muted">Pending</span>
+                    </button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="conn-jira" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Jira</span>
+                        <span class="dep-node__meta">v1 planned</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--muted">Pending</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             <p class="dep-map__hint">
@@ -1297,80 +1508,6 @@
             </footer>
           </aside>
         </div>
-
-        <!-- Stage 18.14 — Divergence alerts (live signal, kept below the tree) -->
-        <article class="card alerts-panel" aria-labelledby="alerts-eyebrow">
-          <header class="alerts-panel__header">
-            <p id="alerts-eyebrow" class="card__eyebrow">Alerts · 4 potential divergences flagged</p>
-            <span class="alerts-panel__hint">CHIP scans repos, Figma, Storybook, Zeroheight every 14m. v1 will scan Slack and Jira too.</span>
-          </header>
-          <ul class="alerts-panel__list" role="list">
-            <li class="alerts-panel__row alerts-panel__row--critical" data-alert-id="android-button-drift">
-              <span class="alerts-panel__sev">CRIT</span>
-              <span class="alerts-panel__what">
-                <strong>Android Button drift</strong> · 47 components committed without parity check
-                <span class="alerts-panel__meta">android-bella · last commit 2h ago · Android Lead</span>
-                <p class="alerts-panel__rec">
-                  <span class="alerts-panel__rec-label">CHIP recommends</span>
-                  Open BELLA-1267 in Jira, assign Android Lead, block landscape merge until parity check passes.
-                </p>
-              </span>
-              <span class="alerts-panel__action">
-                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
-                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
-                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
-              </span>
-            </li>
-            <li class="alerts-panel__row alerts-panel__row--warning" data-alert-id="ios-focus-order">
-              <span class="alerts-panel__sev">WARN</span>
-              <span class="alerts-panel__what">
-                <strong>iOS focus-order divergence</strong> · Modal landscape variant
-                <span class="alerts-panel__meta">ios-bella · BELLA-1247 · iOS Lead · 2h ago</span>
-                <p class="alerts-panel__rec">
-                  <span class="alerts-panel__rec-label">CHIP recommends</span>
-                  Swap iOS focus order to match Web tab sequence in Modal landscape variant.
-                </p>
-              </span>
-              <span class="alerts-panel__action">
-                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
-                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
-                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
-              </span>
-            </li>
-            <li class="alerts-panel__row alerts-panel__row--warning" data-alert-id="zh-card-stale">
-              <span class="alerts-panel__sev">WARN</span>
-              <span class="alerts-panel__what">
-                <strong>Zeroheight Card page stale</strong> · 6 days behind Storybook deploy
-                <span class="alerts-panel__meta">zeroheight · Card v2.14.3 not reflected in docs</span>
-                <p class="alerts-panel__rec">
-                  <span class="alerts-panel__rec-label">CHIP recommends</span>
-                  Regenerate Zeroheight Card page from Storybook v2.14.3 deploy.
-                </p>
-              </span>
-              <span class="alerts-panel__action">
-                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
-                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
-                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
-              </span>
-            </li>
-            <li class="alerts-panel__row alerts-panel__row--info" data-alert-id="amber-30-token">
-              <span class="alerts-panel__sev">INFO</span>
-              <span class="alerts-panel__what">
-                <strong>tokens.css edited</strong> · amber-30 darkened by 4% · not yet propagated to iOS / Android
-                <span class="alerts-panel__meta">bella/tokens · Elleta · 1d ago</span>
-                <p class="alerts-panel__rec">
-                  <span class="alerts-panel__rec-label">CHIP recommends</span>
-                  Propagate amber-30 token change to ios-bella/Tokens.swift and android-bella/tokens.kt; flag platform leads for review.
-                </p>
-              </span>
-              <span class="alerts-panel__action">
-                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
-                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
-                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
-              </span>
-            </li>
-          </ul>
-        </article>
 
         <!-- Stage 18.14 — Infrastructure status board (replaces decorative atomic rings) -->
         <article class="card infra-board" aria-labelledby="infra-eyebrow">

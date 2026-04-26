@@ -4300,3 +4300,115 @@ body[data-action-state="modified"]  #approve-row { display: none; }
 /* Linked surfaces */
 .cmap-links__row { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .cmap-links__btn { text-decoration: none; }
+
+/* ================================================================ */
+/* DEP-MAP TIER 2 — grandchild branches                             */
+/* ================================================================ */
+/* Branch wrapper: parent node + vertical grandchild list */
+.dep-branch {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  min-width: 0;
+}
+
+/* Grandchildren container: left-border connector + vertical stack */
+.dep-grandchildren {
+  position: relative;
+  margin-top: var(--s2);
+  padding-left: var(--s4);
+  border-left: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+/* Vertical drop from parent bottom to grandchildren left border */
+.dep-grandchildren::before {
+  content: '';
+  position: absolute;
+  top: calc(-1 * var(--s2));
+  left: 0;
+  width: 1px;
+  height: var(--s2);
+  background: var(--border-subtle);
+}
+
+/* Each grandchild row: button + optional alert dot sibling */
+.dep-gc-wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Horizontal connector from left border to each grandchild */
+.dep-grandchildren .dep-node--small::before,
+.dep-grandchildren .dep-gc-wrap::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: calc(-1 * var(--s4));
+  width: var(--s4);
+  height: 1px;
+  background: var(--border-subtle);
+  pointer-events: none;
+}
+.dep-grandchildren .dep-node--small::before { display: none; } /* suppressed: use wrap::before instead */
+
+/* Small grandchild node card */
+.dep-node--small {
+  flex: 1;
+  padding: var(--s2) var(--s3);
+  font-size: var(--fs-meta);
+  gap: var(--s2);
+}
+.dep-node--small .dep-node__icon { display: none; }
+.dep-node--small .dep-node__title {
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere; word-break: break-word;
+}
+.dep-node--small .dep-node__meta {
+  overflow-wrap: anywhere; word-break: break-word;
+}
+.dep-node--small .dep-node__pct { font-size: var(--fs-meta); min-width: 32px; }
+/* Suppress the vertical connector stub inherited from .dep-node::before */
+.dep-node--small::before { display: none !important; }
+
+/* Alert dot — sibling button to the grandchild node */
+.dep-alert-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  border: 1px solid transparent;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform var(--dur-fast) var(--ease-std);
+  flex-shrink: 0;
+  line-height: 1;
+  padding: 0;
+  font-family: var(--font-body);
+}
+.dep-alert-dot:hover { transform: scale(1.2); }
+.dep-alert-dot--crit { background: color-mix(in srgb, var(--rust) 20%, transparent); color: var(--rust); border-color: color-mix(in srgb, var(--rust) 40%, transparent); }
+.dep-alert-dot--warn { background: var(--amber-15); color: var(--amber-hover); border-color: var(--amber-35); }
+.dep-alert-dot--info { background: var(--steel-15); color: var(--steel); border-color: var(--steel-35); }
+
+/* Responsive: 4-col at >1280px, 2-col at ≤1280px, 1-col at ≤800px */
+@media (max-width: 1280px) {
+  .dep-map__row--children { grid-template-columns: repeat(2, 1fr); }
+  .dep-map__row--children::before { display: none; }
+}
+@media (max-width: 800px) {
+  .dep-map__row--children { grid-template-columns: 1fr; }
+}
+
+/* Alerts panel in Bridge bento spans full width */
+.alerts-panel.bento-full { grid-column: 1 / -1; margin-bottom: 0; }
