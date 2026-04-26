@@ -27,7 +27,7 @@
   var meterCurrent = 38;   // initial parity (Tier 1.2)
 
   var SPACE_TITLES = {
-    cockpit: 'Cockpit',
+    cockpit: 'Bridge',
     research: 'Research library',
     friction: 'Friction log',
     bella: 'AI-native BELLA',
@@ -1476,7 +1476,7 @@
   function buildPaletteIndex() {
     paletteIndex = [];
     var spaceList = [
-      { id: 'cockpit',  label: 'Cockpit',          chip: 'live', icon: '◉' },
+      { id: 'cockpit',  label: 'Bridge',           chip: 'live', icon: '◉' },
       { id: 'research', label: 'Research library', chip: '47',   icon: '◈' },
       { id: 'friction', label: 'Friction log',     chip: '3',    icon: '◊' },
       { id: 'bella',    label: 'AI-native BELLA',  chip: '6',    icon: '◇' },
