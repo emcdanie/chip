@@ -121,9 +121,7 @@ async function createSession() {
 
   const body = { agent: AGENT_ID, environment_id: environmentId };
   if (VAULT_ID) {
-    // Best guess at the API shape — if Anthropic returns a 400 here we'll see
-    // the exact field hint in the error message and adjust.
-    body.credentials = [{ name: 'notion-token', vault_id: VAULT_ID }];
+    body.vault_ids = [VAULT_ID];
   }
 
   const res = await fetch(`${API_BASE}/v1/sessions`, {
