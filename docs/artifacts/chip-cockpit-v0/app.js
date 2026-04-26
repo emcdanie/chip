@@ -2170,6 +2170,118 @@
     { id: 'aiMeter', name: 'AI Meter', level: 'organism', sub: 'AI surface',            composedFrom: ['Card','Chip'],         composesInto: [] },
   ];
 
+  // Per-component detail data (desc, scores, rec, variants, history, usedBy, friction count)
+  var BELLA_DETAIL = {
+    button: {
+      desc: 'Primary interactive element. Owns the focus ring contract and the loading state across platforms.',
+      scores: { web:100, ios:100, android:62, figma:100, storybook:100 },
+      rec: 'Android Button is 38% behind — focus ring contrast 4.2:1 vs WCAG 4.5:1 minimum. File BELLA-1268.',
+      auditMsg: 'Button · Android parity fix queued · 38% gap · Operator: Elleta',
+      variants: ['primary','secondary','ghost','destructive','loading','disabled'],
+      history: [['2h ago','Button v3.1.2','Web Lead','focus ring contrast audit'],['3d ago','Button v3.1.1','iOS Lead','loading state token fix'],['1w ago','Button v3.1.0','Design Lead','destructive variant added']],
+      usedBy: ['Modal','Badge'], friction: 1,
+    },
+    card: {
+      desc: 'The base layout primitive. Holds content, surface, and elevation. Every elevated component composes from Card.',
+      scores: { web:100, ios:100, android:62, figma:100, storybook:100 },
+      rec: 'Regenerate Android Card.kt from Figma source — 38% gap traces to landscape variant not propagated.',
+      auditMsg: 'Card · Android parity fix queued · 38% gap · Operator: Elleta',
+      variants: ['default','elevated','interactive','focus','selected','disabled'],
+      history: [['2h ago','Card v2.14.3','Web Lead','landscape variant added'],['1d ago','Card v2.14.2','Web Lead','focus state revision'],['5d ago','Card v2.14.1','iOS Lead','padding token swap']],
+      usedBy: ['Modal','Avatar','AI Card','AI Diff','AI Meter'], friction: 2,
+    },
+    input: {
+      desc: 'Text input. Owns the validation state contract and the label/placeholder contract.',
+      scores: { web:100, ios:71, android:0, figma:100, storybook:64 },
+      rec: 'Android Input not implemented · iOS validation missing for landscape mode · Storybook stories incomplete.',
+      auditMsg: 'Input · cross-platform parity fix queued · Operator: Elleta',
+      variants: ['default','focused','error','success','disabled','readonly'],
+      history: [['3d ago','Input v1.4.1','Web Lead','error state token'],['1w ago','Input v1.4.0','iOS Lead','iOS validation partial'],['2w ago','Input v1.3.8','Web Lead','label animation']],
+      usedBy: ['forms (post-v0)'], friction: 3,
+    },
+    chip: {
+      desc: 'Small status/category indicator. Scales from meta to label sizes. The most-shipped atom in BELLA.',
+      scores: { web:100, ios:100, android:100, figma:100, storybook:100 },
+      rec: '',
+      auditMsg: '',
+      variants: ['info','success','warning','accent','muted'],
+      history: [['1d ago','Chip v2.1.3','Android Lead','android touch target fix'],['3d ago','Chip v2.1.2','Web Lead','muted variant'],['5d ago','Chip v2.1.1','iOS Lead','letter-spacing sync']],
+      usedBy: ['Badge','AI Meter'], friction: 0,
+    },
+    eyebrow: {
+      desc: 'Uppercase mono label above titles. Sets context before the heading.',
+      scores: { web:100, ios:76, android:76, figma:100, storybook:100 },
+      rec: 'iOS + Android letter-spacing diverges 6px from Web spec. Token --ls-wider applied inconsistently.',
+      auditMsg: 'Eyebrow · letter-spacing fix queued · Operator: Elleta',
+      variants: ['default','muted'],
+      history: [['4d ago','Eyebrow v1.2.1','iOS Lead','spacing partial fix'],['1w ago','Eyebrow v1.2.0','Web Lead','muted variant'],['2w ago','Eyebrow v1.1.9','Android Lead','initial android port']],
+      usedBy: ['card headers'], friction: 1,
+    },
+    navLink: {
+      desc: 'Sidebar / topbar link. Owns the active-state contract and the disabled state.',
+      scores: { web:100, ios:71, android:0, figma:100, storybook:64 },
+      rec: 'Android Nav link missing entirely · iOS active-state contrast 3.8:1 vs 4.5:1 minimum.',
+      auditMsg: 'Nav link · cross-platform parity fix queued · Operator: Elleta',
+      variants: ['default','active','disabled'],
+      history: [['1d ago','Nav link v1.1.2','iOS Lead','active state token'],['4d ago','Nav link v1.1.1','Web Lead','focus ring'],['1w ago','Nav link v1.1.0','Web Lead','initial release']],
+      usedBy: ['topbar','sidebar'], friction: 2,
+    },
+    modal: {
+      desc: 'Overlay dialog. Composes Button + Card into a focus-trapped surface. Owns the escape-key contract.',
+      scores: { web:100, ios:100, android:62, figma:100, storybook:100 },
+      rec: 'Android Modal landscape variant missing — same gap as Card. Block modal flows on Android landscape.',
+      auditMsg: 'Modal · Android landscape fix queued · Operator: Elleta',
+      variants: ['default','small','large','full-screen','loading','error'],
+      history: [['6h ago','Modal v1.8.3','Web Lead','focus trap fix'],['2d ago','Modal v1.8.2','iOS Lead','swipe-to-close'],['1w ago','Modal v1.8.1','Android Lead','partial android port']],
+      usedBy: ['AI Card'], friction: 1,
+    },
+    avatar: {
+      desc: 'Identity component. Renders user image or initials with presence indicator. Fully in spec.',
+      scores: { web:100, ios:100, android:100, figma:100, storybook:100 },
+      rec: '',
+      auditMsg: '',
+      variants: ['xs','sm','md','lg','xl','with-presence','with-badge'],
+      history: [['2d ago','Avatar v2.0.1','iOS Lead','presence token'],['5d ago','Avatar v2.0.0','Web Lead','xl size added'],['2w ago','Avatar v1.9.4','Android Lead','presence sync']],
+      usedBy: ['AI Card'], friction: 0,
+    },
+    badge: {
+      desc: 'Status indicator composing Chip into a dismissible label. Bridges semantic state to visual signal.',
+      scores: { web:100, ios:100, android:62, figma:100, storybook:100 },
+      rec: 'Android Badge dismiss gesture not implemented — 38% gap maps to interaction contract.',
+      auditMsg: 'Badge · Android dismiss fix queued · Operator: Elleta',
+      variants: ['info','success','warning','critical','dismissible'],
+      history: [['1d ago','Badge v1.3.2','Web Lead','dismissible animation'],['3d ago','Badge v1.3.1','iOS Lead','haptic on dismiss'],['1w ago','Badge v1.3.0','Web Lead','critical variant']],
+      usedBy: ['AI Card','AI Diff'], friction: 1,
+    },
+    aiCard: {
+      desc: "CHIP's primary response surface. Composes Modal + Avatar + Badge into an agent-native card with proposal flow.",
+      scores: { web:95, ios:null, android:null, figma:100, storybook:73 },
+      rec: 'iOS + Android not yet implemented. Storybook missing 3 of 5 AI states. Priority for v1.',
+      auditMsg: 'AI Card · platform expansion queued · Operator: Elleta',
+      variants: ['proposal','approved','declined','loading','error'],
+      history: [['1h ago','AI Card v0.4.1','Web Lead','approve animation'],['1d ago','AI Card v0.4.0','Web Lead','decline state'],['3d ago','AI Card v0.3.8','Web Lead','loading skeleton']],
+      usedBy: [], friction: 2,
+    },
+    aiDiff: {
+      desc: 'Token-level diff surface. Renders before/after comparison of design decisions CHIP proposes to operators.',
+      scores: { web:95, ios:null, android:null, figma:100, storybook:73 },
+      rec: 'iOS + Android not yet implemented. Platform-leads contacted — planned for Q3.',
+      auditMsg: 'AI Diff · platform expansion queued · Operator: Elleta',
+      variants: ['token-diff','variant-diff','platform-diff'],
+      history: [['2d ago','AI Diff v0.2.3','Web Lead','platform filter'],['4d ago','AI Diff v0.2.2','Web Lead','color keys'],['1w ago','AI Diff v0.2.1','Web Lead','initial release']],
+      usedBy: [], friction: 1,
+    },
+    aiMeter: {
+      desc: 'Parity gauge. Renders platform alignment score as a compact arc that drives operator attention.',
+      scores: { web:95, ios:null, android:null, figma:100, storybook:73 },
+      rec: 'iOS + Android not yet implemented. Arc animation relies on CSS custom properties — test before platform port.',
+      auditMsg: 'AI Meter · platform expansion queued · Operator: Elleta',
+      variants: ['compact','expanded','critical','healthy'],
+      history: [['3h ago','AI Meter v0.3.1','Web Lead','arc animation'],['2d ago','AI Meter v0.3.0','Web Lead','critical state'],['5d ago','AI Meter v0.2.8','Web Lead','token bind']],
+      usedBy: [], friction: 0,
+    },
+  };
+
   // Flat edge list derived from composedFrom (from → to direction = atom→molecule→organism)
   var BELLA_EDGES = [];
   BELLA_NODES.forEach(function(node) {
@@ -2359,36 +2471,160 @@
     return best;
   }
 
+  function cmapParityRow(platform, score) {
+    var label, color, pct;
+    if (score === null || score === undefined) {
+      label = 'N/A'; color = 'var(--border)'; pct = 0;
+      var tip = platform + ' · not applicable';
+      return '<div class="cmap-parity__row" title="' + escapeHtml(tip) + '">' +
+        '<span class="cmap-parity__plat">' + escapeHtml(platform) + '</span>' +
+        '<div class="cmap-parity__track"><span class="cmap-parity__fill" style="width:0;background:' + color + '"></span></div>' +
+        '<span class="cmap-parity__score">—</span>' +
+        '<span class="cmap-parity__status cmap-parity__status--na">N/A</span></div>';
+    }
+    if (score === 0) {
+      label = 'Missing'; color = 'var(--rust)';
+      var tip2 = '0% ' + platform + ' · not implemented';
+      return '<div class="cmap-parity__row" title="' + escapeHtml(tip2) + '">' +
+        '<span class="cmap-parity__plat">' + escapeHtml(platform) + '</span>' +
+        '<div class="cmap-parity__track"><span class="cmap-parity__fill" style="width:0;background:' + color + '"></span></div>' +
+        '<span class="cmap-parity__score">0</span>' +
+        '<span class="cmap-parity__status cmap-parity__status--missing">Missing</span></div>';
+    }
+    if (score < 90) {
+      label = 'Drift'; color = 'var(--amber)';
+      var gap = 90 - score;
+      var tip3 = score + '% ' + platform + ' · drift threshold 90 · ' + gap + '% behind master';
+      return '<div class="cmap-parity__row" title="' + escapeHtml(tip3) + '">' +
+        '<span class="cmap-parity__plat">' + escapeHtml(platform) + '</span>' +
+        '<div class="cmap-parity__track"><span class="cmap-parity__fill" style="width:' + score + '%;background:' + color + '"></span></div>' +
+        '<span class="cmap-parity__score">' + score + '</span>' +
+        '<span class="cmap-parity__status cmap-parity__status--drift">Drift</span></div>';
+    }
+    var tip4 = score + '% ' + platform + ' · in spec';
+    return '<div class="cmap-parity__row" title="' + escapeHtml(tip4) + '">' +
+      '<span class="cmap-parity__plat">' + escapeHtml(platform) + '</span>' +
+      '<div class="cmap-parity__track"><span class="cmap-parity__fill" style="width:' + score + '%;background:var(--sage)"></span></div>' +
+      '<span class="cmap-parity__score">' + score + '</span>' +
+      '<span class="cmap-parity__status cmap-parity__status--sync">In sync</span></div>';
+  }
+
   function cmapShowDetail(node) {
     var panel = document.getElementById('cmap-rings-detail');
     var body  = document.getElementById('cmap-rings-detail-body');
     if (!panel || !body) return;
     panel.hidden = false;
 
-    var meta = LEVEL_C[node.level];
-    var levelLabel = node.level.charAt(0).toUpperCase() + node.level.slice(1);
-    // Remove trailing 's' for badge (Atoms→Atom)
-    var tierSingular = meta.label.slice(0, -1);
+    var meta       = LEVEL_C[node.level];
+    var tierSingular = meta.label.slice(0, -1); // "Atoms" → "Atom"
+    var det        = BELLA_DETAIL[node.id] || {};
+    var scores     = det.scores || {};
 
-    var fromChips = node.composedFrom.map(function(name) {
-      var n2 = BELLA_NODES.find(function(n) { return n.name === name; });
-      var col = n2 ? LEVEL_C[n2.level].color : CC.inkMuted;
-      return '<span class="cmap-rings-detail__chip" style="background:' + col + '18;border:1px solid ' + col + '35;color:' + col + '">' + escapeHtml(name) + '</span>';
-    }).join('');
-
-    var intoChips = node.composesInto.map(function(name) {
-      var n2 = BELLA_NODES.find(function(n) { return n.name === name; });
-      var col = n2 ? LEVEL_C[n2.level].color : CC.inkMuted;
-      return '<span class="cmap-rings-detail__chip" style="background:' + col + '18;border:1px solid ' + col + '35;color:' + col + '">' + escapeHtml(name) + '</span>';
-    }).join('');
-
+    // 1–3: badge + name + subtype
     var html = '<span class="cmap-rings-detail__badge" style="background:' + meta.color + '18;border:1px solid ' + meta.color + '35;color:' + meta.color + '">' +
         '<span class="cmap-rings-detail__dot" style="background:' + meta.color + '"></span>' + escapeHtml(tierSingular.toUpperCase()) + '</span>' +
       '<h3 class="cmap-rings-detail__name">' + escapeHtml(node.name) + '</h3>' +
       '<p class="cmap-rings-detail__sub">' + escapeHtml(node.sub) + '</p>';
-    if (fromChips) html += '<div class="cmap-rings-detail__section"><p class="cmap-rings-detail__label">Composed from</p><div class="cmap-rings-detail__chips">' + fromChips + '</div></div>';
-    if (intoChips) html += '<div class="cmap-rings-detail__section"><p class="cmap-rings-detail__label">Composes into</p><div class="cmap-rings-detail__chips">' + intoChips + '</div></div>';
+
+    // 4: description
+    if (det.desc) {
+      html += '<p class="cmap-rings-detail__desc">' + escapeHtml(det.desc) + '</p>';
+    }
+
+    // 5: parity strip
+    html += '<div class="cmap-rings-detail__section">' +
+      '<p class="cmap-rings-detail__label">Platform parity</p>' +
+      '<div class="cmap-parity">' +
+        cmapParityRow('Web',       scores.web) +
+        cmapParityRow('iOS',       scores.ios) +
+        cmapParityRow('Android',   scores.android) +
+        cmapParityRow('Figma',     scores.figma) +
+        cmapParityRow('Storybook', scores.storybook) +
+      '</div></div>';
+
+    // 6: CHIP recommendation (only when drift exists)
+    var hasDrift = Object.values ? Object.values(scores).some(function(v) { return v !== null && v < 90; })
+      : ['web','ios','android','figma','storybook'].some(function(k) { return scores[k] !== null && scores[k] !== undefined && scores[k] < 90; });
+    if (det.rec && hasDrift) {
+      html += '<div class="cmap-rings-detail__section cmap-rec-wrap" id="cmap-rec-' + escapeHtml(node.id) + '">' +
+        '<p class="cmap-detail__rec-label">CHIP recommends</p>' +
+        '<p class="cmap-detail__rec">' + escapeHtml(det.rec) + '</p>' +
+        '<div class="cmap-detail__cta">' +
+          '<button class="btn btn--sm btn--primary" data-cmap-approve="' + escapeHtml(det.auditMsg || node.name + ' · parity fix queued · Operator: Elleta') + '" data-cmap-recid="cmap-rec-' + escapeHtml(node.id) + '">Approve fix</button>' +
+          '<button class="btn btn--sm btn--neutral" data-cmap-decline data-cmap-recid="cmap-rec-' + escapeHtml(node.id) + '">Decline</button>' +
+        '</div></div>';
+    }
+
+    // 7: variants
+    if (det.variants && det.variants.length) {
+      var varChips = det.variants.map(function(v) {
+        return '<span class="cmap-rings-detail__chip" style="background:var(--surface);border:1px solid var(--border);color:var(--text-2)">' + escapeHtml(v) + '</span>';
+      }).join('');
+      html += '<div class="cmap-rings-detail__section"><p class="cmap-rings-detail__label">Variants</p><div class="cmap-rings-detail__chips">' + varChips + '</div></div>';
+    }
+
+    // 8: edit history
+    if (det.history && det.history.length) {
+      var histRows = det.history.map(function(h) {
+        return '<div class="cmap-history__entry">' +
+          '<span class="cmap-history__when">' + escapeHtml(h[0]) + '</span>' +
+          '<span class="cmap-history__ver">' + escapeHtml(h[1]) + '</span>' +
+          '<span class="cmap-history__who">' + escapeHtml(h[2]) + '</span>' +
+          '<span class="cmap-history__what">' + escapeHtml(h[3]) + '</span>' +
+          '</div>';
+      }).join('');
+      html += '<div class="cmap-rings-detail__section"><p class="cmap-rings-detail__label">Edit history</p><div class="cmap-history">' + histRows + '</div></div>';
+    }
+
+    // 9: used by (composesInto from node data + usedBy from detail)
+    var usedByAll = (node.composesInto || []).concat(det.usedBy || []).filter(function(v, i, a) { return a.indexOf(v) === i; });
+    if (usedByAll.length) {
+      var usedChips = usedByAll.map(function(name) {
+        var n2 = BELLA_NODES.find(function(n) { return n.name === name; });
+        var col = n2 ? LEVEL_C[n2.level].color : CC.inkMuted;
+        return '<span class="cmap-rings-detail__chip" style="background:' + col + '18;border:1px solid ' + col + '35;color:' + col + '">' + escapeHtml(name) + '</span>';
+      }).join('');
+      html += '<div class="cmap-rings-detail__section"><p class="cmap-rings-detail__label">Used by</p><div class="cmap-rings-detail__chips">' + usedChips + '</div></div>';
+    }
+
+    // 10: linked surfaces
+    var frictionLabel = det.friction ? 'Friction log entries (' + det.friction + ')' : 'Friction log';
+    html += '<div class="cmap-rings-detail__section cmap-links">' +
+      '<p class="cmap-rings-detail__label">Linked surfaces</p>' +
+      '<div class="cmap-links__row">' +
+        '<a href="#" class="btn btn--sm btn--neutral cmap-links__btn">Open in Figma</a>' +
+        '<a href="#" class="btn btn--sm btn--neutral cmap-links__btn">Open in Storybook</a>' +
+        '<a href="#" class="btn btn--sm btn--neutral cmap-links__btn">Zeroheight docs</a>' +
+        (det.friction ? '<a href="#" class="btn btn--sm btn--neutral cmap-links__btn">' + escapeHtml(frictionLabel) + '</a>' : '') +
+      '</div></div>';
+
     body.innerHTML = html;
+
+    // Wire approve / decline buttons
+    body.addEventListener('click', function handler(e) {
+      var approveBtn = e.target.closest('[data-cmap-approve]');
+      var declineBtn = e.target.closest('[data-cmap-decline]');
+      if (approveBtn) {
+        var msg = approveBtn.getAttribute('data-cmap-approve');
+        var recId = approveBtn.getAttribute('data-cmap-recid');
+        appendAuditEntry(msg);
+        var recWrap = document.getElementById(recId);
+        if (recWrap) recWrap.classList.add('cmap-rec-wrap--resolved');
+        approveBtn.disabled = true;
+        var dec = body.querySelector('[data-cmap-decline]');
+        if (dec) dec.disabled = true;
+      }
+      if (declineBtn) {
+        var recId2 = declineBtn.getAttribute('data-cmap-recid');
+        var recWrap2 = document.getElementById(recId2);
+        if (recWrap2) recWrap2.classList.add('cmap-rec-wrap--resolved');
+        declineBtn.disabled = true;
+        var app = body.querySelector('[data-cmap-approve]');
+        if (app) app.disabled = true;
+      }
+      // Remove this one-shot handler after action
+      if (approveBtn || declineBtn) body.removeEventListener('click', handler);
+    });
   }
 
   // Init canvas
@@ -2442,8 +2678,9 @@
     var ro = new ResizeObserver(function() { resize(); });
     ro.observe(wrap);
 
-    // Wheel — zoom
+    // Wheel — zoom only when Shift or Cmd held; otherwise let page scroll
     canvas.addEventListener('wheel', function(e) {
+      if (!e.shiftKey && !e.metaKey) return;
       e.preventDefault();
       var f = e.deltaY > 0 ? 0.92 : 1.08;
       cam.z = Math.max(0.25, Math.min(4, cam.z * f));
