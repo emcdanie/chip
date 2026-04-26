@@ -110,20 +110,35 @@ async function ensureEnvironment() {
 
 // ─── Sessions ─────────────────────────────────────────────────────────────────
 
+// Vault ID for the Notion credential — set CHIP_VAULT_ID in server/.env.
+// The console's session-create attaches the notion-token credential automatically;
+// when we create sessions via the API we have to attach it explicitly so the
+// Notion MCP server can authenticate and expose its tools.
+const VAULT_ID = process.env.CHIP_VAULT_ID;
+
 async function createSession() {
   const environmentId = await ensureEnvironment();
+
+  const body = { agent: AGENT_ID, environment_id: environmentId };
+  if (VAULT_ID) {
+    // Best guess at the API shape — if Anthropic returns a 400 here we'll see
+    // the exact field hint in the error message and adjust.
+    body.credentials = [{ name: 'notion-token', vault_id: VAULT_ID }];
+  }
+
   const res = await fetch(`${API_BASE}/v1/sessions`, {
     method:  'POST',
     headers: apiHeaders(),
-    body:    JSON.stringify({ agent: AGENT_ID, environment_id: environmentId }),
+    body:    JSON.stringify(body),
   });
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Session create failed (${res.status}): ${safeMsg(body)}`);
+    const respBody = await res.text();
+    throw new Error(`Session create failed (${res.status}): ${safeMsg(respBody)}`);
   }
   const data = await res.json();
   const id = data.id || data.session_id;
   if (!id) throw new Error('Session create succeeded but returned no id');
+  console.log(`[CHIP] Created session: ${id}${VAULT_ID ? ' · credential bound' : ' · no credential'}`);
   return id;
 }
 

@@ -1258,6 +1258,62 @@ body:not([data-space="cockpit"]) .today-card { display: none; }
   color: var(--amber);
   font-family: var(--font-mono);
 }
+.ask-turn__text--agent a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--amber);
+  text-underline-offset: 2px;
+}
+.ask-turn__text--agent a:hover {
+  color: var(--amber);
+}
+.ask-turn__text--agent code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-sm);
+  padding: 1px 4px;
+}
+.ask-turn__text--agent .md-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--s3) 0;
+  font-size: var(--fs-meta);
+  line-height: var(--lh-snug);
+}
+.ask-turn__text--agent .md-table th,
+.ask-turn__text--agent .md-table td {
+  text-align: left;
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+.ask-turn__text--agent .md-table th {
+  font-family: var(--font-mono);
+  font-weight: var(--fw-med);
+  letter-spacing: var(--ls-wide);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.ask-turn__text--agent .md-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.ask-turn__text--agent blockquote {
+  margin: var(--s2) 0;
+  padding: var(--s2) var(--s4);
+  border-left: 2px solid var(--amber);
+  color: var(--text);
+  font-style: italic;
+  background: var(--surface-elevated);
+}
+.ask-turn__text--agent .md-h {
+  font-family: var(--font-display);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-bold);
+  margin: var(--s3) 0 var(--s2) 0;
+  color: var(--text);
+}
 .ask-skeleton {
   font-family: var(--font-mono); font-size: var(--fs-meta);
   color: var(--text-muted); letter-spacing: var(--ls-wide);

@@ -937,31 +937,94 @@
 
   // Tiny safe markdown renderer for agent replies.
   // Input must already be HTML-escaped — we only convert markdown tokens
-  // (**bold**, _italic_, "- " bullets, paragraph breaks) into tags.
-  function renderMarkdown(escaped) {
-    var s = escaped;
-    // bold first (so it doesn't get eaten by italic)
+  // (**bold**, _italic_, `code`, [link](url), tables, "- " bullets,
+  // paragraph breaks) into tags.
+  function isSafeUrl(url) {
+    return /^(https?:|mailto:)/i.test(url);
+  }
+  function applyInline(s) {
+    // bold first so it doesn't get eaten by italic
     s = s.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+    // inline code `text`
+    s = s.replace(/`([^`\n]+?)`/g, '<code>$1</code>');
+    // markdown links [text](url) — only allow http/https/mailto schemes
+    s = s.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, function (_m, text, url) {
+      if (!isSafeUrl(url)) return text;   // strip unsafe links, keep text
+      return '<a href="' + url + '" target="_blank" rel="noopener">' + text + '</a>';
+    });
     // italic — *single* or _single_ — but not mid-word
     s = s.replace(/(^|[\s(])\*([^*\n]+?)\*(?=[\s.,;:!?)]|$)/g, '$1<em>$2</em>');
     s = s.replace(/(^|[\s(])_([^_\n]+?)_(?=[\s.,;:!?)]|$)/g, '$1<em>$2</em>');
-    // group lines: "- " bullets become <ul>, blank lines split paragraphs
-    var lines = s.split('\n');
+    return s;
+  }
+  function renderMarkdown(escaped) {
+    var lines = escaped.split('\n');
     var out = [];
     var inList = false;
     var para = [];
     function flushPara() {
-      if (para.length) { out.push('<p>' + para.join(' ') + '</p>'); para = []; }
+      if (para.length) { out.push('<p>' + applyInline(para.join(' ')) + '</p>'); para = []; }
     }
     function closeList() {
       if (inList) { out.push('</ul>'); inList = false; }
     }
+    function isTableRow(line) { return /^\s*\|.*\|\s*$/.test(line); }
+    function isTableSep(line) { return /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?\s*$/.test(line); }
+    function splitRow(line) {
+      // strip leading/trailing pipe, split on pipe, trim each cell
+      var trimmed = line.replace(/^\s*\|/, '').replace(/\|\s*$/, '');
+      return trimmed.split('|').map(function (c) { return c.trim(); });
+    }
+
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].replace(/\s+$/, '');
+
+      // Table — header row + separator + body rows
+      if (isTableRow(line) && i + 1 < lines.length && isTableSep(lines[i + 1])) {
+        flushPara(); closeList();
+        var headerCells = splitRow(line);
+        var bodyRows = [];
+        var j = i + 2;
+        while (j < lines.length && isTableRow(lines[j])) {
+          bodyRows.push(splitRow(lines[j]));
+          j++;
+        }
+        var thead = '<thead><tr>' + headerCells.map(function (c) {
+          return '<th>' + applyInline(c) + '</th>';
+        }).join('') + '</tr></thead>';
+        var tbody = '<tbody>' + bodyRows.map(function (row) {
+          return '<tr>' + row.map(function (c) {
+            return '<td>' + applyInline(c) + '</td>';
+          }).join('') + '</tr>';
+        }).join('') + '</tbody>';
+        out.push('<table class="md-table">' + thead + tbody + '</table>');
+        i = j - 1;
+        continue;
+      }
+
+      // Blockquote — collect consecutive "> " lines into a single <blockquote>
+      if (/^\s*>\s?/.test(line)) {
+        flushPara(); closeList();
+        var quoteLines = [];
+        while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+          quoteLines.push(lines[i].replace(/^\s*>\s?/, ''));
+          i++;
+        }
+        i--;
+        out.push('<blockquote>' + applyInline(quoteLines.join(' ')) + '</blockquote>');
+        continue;
+      }
+      // Markdown headings (# H1, ## H2, ### H3)
+      var h = line.match(/^\s*(#{1,3})\s+(.*)$/);
+      if (h) {
+        flushPara(); closeList();
+        out.push('<h' + h[1].length + ' class="md-h">' + applyInline(h[2]) + '</h' + h[1].length + '>');
+        continue;
+      }
       if (/^\s*-\s+/.test(line)) {
         flushPara();
         if (!inList) { out.push('<ul>'); inList = true; }
-        out.push('<li>' + line.replace(/^\s*-\s+/, '') + '</li>');
+        out.push('<li>' + applyInline(line.replace(/^\s*-\s+/, '')) + '</li>');
       } else if (line === '') {
         flushPara(); closeList();
       } else {
@@ -983,7 +1046,10 @@
           '</div>';
       }
       return '<div class="ask-turn">' +
-        '<p class="ask-turn__label"><span class="chip chip--muted" style="font-size:var(--fs-meta);padding:1px var(--s2)">Auto</span> CHIP</p>' +
+        '<p class="ask-turn__label">' +
+          '<span class="chip chip--muted" style="font-size:var(--fs-meta);padding:1px var(--s2)">Auto</span>' +
+          '<span>CHIP</span>' +
+        '</p>' +
         '<div class="ask-turn__text--agent">' + renderMarkdown(escapeHtml(t.text)) + '</div>' +
         '</div>';
     }).join('');
