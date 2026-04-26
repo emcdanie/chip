@@ -1020,34 +1020,31 @@
           <p class="space__subtitle">Atoms are single-purpose primitives. Molecules compose atoms into functional patterns. Organisms are AI-native surfaces — born when the agent needed new vocabulary. Parity gaps at any level propagate upward.</p>
         </header>
 
-        <div class="cmap-grid">
-          <div class="cmap-lanes">
-            <section class="cmap-lane" aria-labelledby="cmap-atoms-title">
-              <header class="cmap-lane__header">
-                <h2 class="cmap-lane__title" id="cmap-atoms-title">Atoms</h2>
-                <span class="cmap-lane__count">6 components</span>
-              </header>
-              <div class="cmap-lane__cards" id="cmap-atoms" role="list"></div>
-            </section>
-            <section class="cmap-lane" aria-labelledby="cmap-molecules-title">
-              <header class="cmap-lane__header">
-                <h2 class="cmap-lane__title" id="cmap-molecules-title">Molecules</h2>
-                <span class="cmap-lane__count">3 components</span>
-              </header>
-              <div class="cmap-lane__cards" id="cmap-molecules" role="list"></div>
-            </section>
-            <section class="cmap-lane" aria-labelledby="cmap-organisms-title">
-              <header class="cmap-lane__header">
-                <h2 class="cmap-lane__title" id="cmap-organisms-title">Organisms</h2>
-                <span class="cmap-lane__count">3 components</span>
-              </header>
-              <div class="cmap-lane__cards" id="cmap-organisms" role="list"></div>
-            </section>
+        <!-- Concentric rings canvas -->
+        <div class="cmap-canvas-wrap" id="cmap-canvas-wrap">
+          <canvas id="cmap-canvas" aria-label="BELLA atomic design concentric rings" role="img"></canvas>
+
+          <!-- HUD — top left -->
+          <div class="cmap-hud" id="cmap-hud" aria-hidden="true">
+            <div class="cmap-hud__card">
+              <p class="cmap-hud__eyebrow">CHIP · BELLA System Map</p>
+              <p class="cmap-hud__count">12 components across 3 atomic levels</p>
+              <div class="cmap-hud__legend" id="cmap-legend"></div>
+            </div>
+            <div class="cmap-controls">
+              <button type="button" class="cmap-ctrl-btn" id="cmap-recenter">⊕ Recenter</button>
+              <button type="button" class="cmap-ctrl-btn cmap-ctrl-btn--icon" id="cmap-zoom-in" aria-label="Zoom in">+</button>
+              <button type="button" class="cmap-ctrl-btn cmap-ctrl-btn--icon" id="cmap-zoom-out" aria-label="Zoom out">−</button>
+            </div>
           </div>
 
-          <aside class="cmap-detail" id="cmap-detail" aria-live="polite" aria-label="Selected component detail">
-            <p class="cmap-detail__empty" id="cmap-detail-empty">Select a component to inspect.</p>
-            <div id="cmap-detail-content" hidden></div>
+          <!-- Hint — bottom center -->
+          <p class="cmap-hint" aria-hidden="true">Scroll to zoom · Drag to pan · Click a node to inspect</p>
+
+          <!-- Detail panel — right side, shown on node select -->
+          <aside class="cmap-rings-detail" id="cmap-rings-detail" hidden aria-live="polite" aria-label="Component detail">
+            <button type="button" class="cmap-rings-detail__close" id="cmap-rings-close" aria-label="Close detail">×</button>
+            <div id="cmap-rings-detail-body"></div>
           </aside>
         </div>
 

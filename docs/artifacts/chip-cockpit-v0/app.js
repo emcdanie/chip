@@ -2152,146 +2152,383 @@
     'Figma':     ['sync','sync','sync','sync','sync','sync','sync'],
     'Storybook': ['sync','sparse','sync','sync','sparse','sync','sync']
   };
-  // ============ Component Map space ============
-  var CMAP_SCORES = {
-    button:  { web: 100, ios: 100, android: 62 },
-    card:    { web: 100, ios: 100, android: 62 },
-    input:   { web: 100, ios: 71,  android: 0  },
-    chip:    { web: 100, ios: 100, android: 100 },
-    eyebrow: { web: 100, ios: 76,  android: 76  },
-    navLink: { web: 100, ios: 71,  android: 0   },
-    modal:   { web: 100, ios: 100, android: 62  },
-    avatar:  { web: 100, ios: 100, android: 100 },
-    badge:   { web: 100, ios: 100, android: 62  },
-    aiCard:  { web: 95,  ios: null, android: null },
-    aiDiff:  { web: 95,  ios: null, android: null },
-    aiMeter: { web: 95,  ios: null, android: null },
-  };
-  var CMAP_LANES = [
-    { id: 'atoms',     label: 'Atoms',     level: 'atom',
-      ids: ['button','card','input','chip','eyebrow','navLink'] },
-    { id: 'molecules', label: 'Molecules', level: 'molecule',
-      ids: ['modal','avatar','badge'] },
-    { id: 'organisms', label: 'Organisms', level: 'organism',
-      ids: ['aiCard','aiDiff','aiMeter'] },
+  // ============ Component Map — Concentric Rings Canvas ============
+
+  // BELLA component data with composition relationships
+  var BELLA_NODES = [
+    { id: 'button',  name: 'Button',   level: 'atom',     sub: 'Action primitive',      composedFrom: [],                      composesInto: [] },
+    { id: 'card',    name: 'Card',     level: 'atom',     sub: 'Layout primitive',      composedFrom: [],                      composesInto: [] },
+    { id: 'input',   name: 'Input',    level: 'atom',     sub: 'Form primitive',        composedFrom: [],                      composesInto: [] },
+    { id: 'chip',    name: 'Chip',     level: 'atom',     sub: 'Tag primitive',         composedFrom: [],                      composesInto: [] },
+    { id: 'eyebrow', name: 'Eyebrow',  level: 'atom',     sub: 'Typography primitive',  composedFrom: [],                      composesInto: [] },
+    { id: 'navLink', name: 'Nav link', level: 'atom',     sub: 'Navigation primitive',  composedFrom: [],                      composesInto: [] },
+    { id: 'modal',   name: 'Modal',    level: 'molecule', sub: 'Overlay pattern',       composedFrom: ['Button','Card'],       composesInto: ['AI Card'] },
+    { id: 'avatar',  name: 'Avatar',   level: 'molecule', sub: 'Identity pattern',      composedFrom: ['Card'],                composesInto: ['AI Card'] },
+    { id: 'badge',   name: 'Badge',    level: 'molecule', sub: 'Status pattern',        composedFrom: ['Chip'],                composesInto: ['AI Card','AI Diff'] },
+    { id: 'aiCard',  name: 'AI Card',  level: 'organism', sub: 'AI surface',            composedFrom: ['Modal','Avatar','Badge'], composesInto: [] },
+    { id: 'aiDiff',  name: 'AI Diff',  level: 'organism', sub: 'AI surface',            composedFrom: ['Card','Badge'],        composesInto: [] },
+    { id: 'aiMeter', name: 'AI Meter', level: 'organism', sub: 'AI surface',            composedFrom: ['Card','Chip'],         composesInto: [] },
   ];
 
-  var cmapLevelOf = {};
-  CMAP_LANES.forEach(function(lane) {
-    lane.ids.forEach(function(id) { cmapLevelOf[id] = lane.level; });
+  // Flat edge list derived from composedFrom (from → to direction = atom→molecule→organism)
+  var BELLA_EDGES = [];
+  BELLA_NODES.forEach(function(node) {
+    node.composedFrom.forEach(function(parentName) {
+      BELLA_EDGES.push({ from: parentName, to: node.name });
+    });
   });
 
-  function cmapBarRow(platform, score) {
-    if (score === null || score === undefined) {
-      return '<div class="cmap-card__bar-row">' +
-        '<span class="cmap-card__platform">' + platform + '</span>' +
-        '<div class="cmap-card__track"><span class="cmap-card__fill" style="width:0"></span></div>' +
-        '<span class="cmap-card__pct cmap-card__pct--na">—</span></div>';
-    }
-    var fill = score >= 90 ? 'var(--sage)' : score >= 60 ? 'var(--amber)' : 'var(--rust)';
-    return '<div class="cmap-card__bar-row">' +
-      '<span class="cmap-card__platform">' + platform + '</span>' +
-      '<div class="cmap-card__track"><span class="cmap-card__fill" style="width:' + score + '%;background:' + fill + '"></span></div>' +
-      '<span class="cmap-card__pct">' + score + '</span></div>';
-  }
+  // Resolved CSS variable values for canvas drawing (Canvas2D ignores CSS vars)
+  var CC = {
+    bg:       '#F7F4EF',
+    surface:  '#F0EBE3',
+    ink:      '#111111',
+    inkMuted: '#888880',
+    amber:    '#C4956A',
+    dusk:     '#7B6E8F',
+    sage:     '#4A7C6F',
+    amberBg:  'rgba(196,149,106,0.10)',
+    duskBg:   'rgba(123,110,143,0.10)',
+    sageBg:   'rgba(74,124,111,0.10)',
+    border:   'rgba(17,17,17,0.10)',
+  };
+  var LEVEL_C = {
+    atom:     { color: CC.amber, bg: CC.amberBg, label: 'Atoms' },
+    molecule: { color: CC.dusk,  bg: CC.duskBg,  label: 'Molecules' },
+    organism: { color: CC.sage,  bg: CC.sageBg,  label: 'Organisms' },
+  };
+  var RING_R = [110, 200, 290]; // radii for atom / molecule / organism rings
+  var LEVEL_ORDER = ['atom', 'molecule', 'organism'];
 
-  function buildCmapCard(id) {
-    var scores = CMAP_SCORES[id] || { web: 0, ios: 0, android: 0 };
-    var data = COMPONENT_DATA[id] || { title: id, rows: [] };
-    var name = data.title.split(' · ')[0];
-    var vals = [scores.web, scores.ios, scores.android].filter(function(v) { return v !== null && v !== undefined; });
-    var min = vals.length ? Math.min.apply(null, vals) : 0;
-    var avg = vals.length ? Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length) : 0;
-    var statusLabel, statusCls;
-    if (scores.ios === null || scores.android === null) {
-      statusLabel = 'Web only'; statusCls = 'dep-node__chip--muted';
-    } else if (min < 60) {
-      statusLabel = 'Critical'; statusCls = 'dep-node__chip--critical';
-    } else if (min < 90) {
-      statusLabel = 'Drift'; statusCls = 'dep-node__chip--warning';
-    } else {
-      statusLabel = 'In sync'; statusCls = 'dep-node__chip--healthy';
-    }
-    var level = cmapLevelOf[id] || 'atom';
-    var levelLabel = level.charAt(0).toUpperCase() + level.slice(1);
-    return '<article class="cmap-card" data-cmp="' + id + '" role="button" tabindex="0" aria-label="' + escapeHtml(name) + ', ' + avg + '% avg">' +
-      '<header class="cmap-card__head"><span class="cmap-card__name">' + escapeHtml(name) + '</span>' +
-      '<span class="dep-node__chip ' + statusCls + '">' + statusLabel + '</span></header>' +
-      '<span class="cmap-level cmap-level--' + level + '"><span class="cmap-level__dot"></span>' + levelLabel + '</span>' +
-      '<div class="cmap-card__bars">' +
-        cmapBarRow('Web', scores.web) +
-        cmapBarRow('iOS', scores.ios) +
-        cmapBarRow('Drd', scores.android) +
-      '</div>' +
-      '<footer class="cmap-card__foot"><span class="cmap-card__avg">' + avg + '% avg</span></footer>' +
-    '</article>';
-  }
-
-  function selectCmapCard(id) {
-    document.querySelectorAll('.cmap-card--selected').forEach(function(c) { c.classList.remove('cmap-card--selected'); });
-    var card = document.querySelector('.cmap-card[data-cmp="' + id + '"]');
-    if (card) card.classList.add('cmap-card--selected');
-
-    var empty   = document.getElementById('cmap-detail-empty');
-    var content = document.getElementById('cmap-detail-content');
-    if (!content) return;
-
-    var scores = CMAP_SCORES[id]; var data = COMPONENT_DATA[id];
-    if (!scores || !data) return;
-    if (empty) empty.hidden = true;
-    content.hidden = false;
-
-    var name = data.title.split(' · ')[0];
-    var type = data.title.split(' · ')[1] || '';
-    var rowMap = {};
-    (data.rows || []).forEach(function(r) { rowMap[r[0]] = r[1]; });
-    var vals = [scores.web, scores.ios, scores.android].filter(function(v) { return v !== null && v !== undefined; });
-    var avg = vals.length ? Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length) : 0;
-    var barColor = avg >= 90 ? 'var(--sage)' : avg >= 60 ? 'var(--amber)' : 'var(--rust)';
-
-    var html = '<header class="dep-map__detail-head">' +
-      '<h3 class="dep-map__detail-title">' + escapeHtml(name) + '</h3>' +
-      '<button type="button" class="dep-map__detail-close" id="cmap-close-btn" aria-label="Close">×</button></header>' +
-      '<p class="dep-map__detail-meta">' + escapeHtml(type) + '</p>';
-    if (rowMap['Open issues'])
-      html += '<section class="dep-map__detail-section"><p class="dep-map__detail-label">Open issues</p><p class="dep-map__detail-desc">' + escapeHtml(rowMap['Open issues']) + '</p></section>';
-    html += '<section class="dep-map__detail-section">' +
-      '<p class="dep-map__detail-label">Overall availability <span class="dep-map__detail-availpct">' + avg + '%</span></p>' +
-      '<div class="dep-map__detail-bar"><span class="dep-map__detail-bar-fill" style="width:' + avg + '%;background:' + barColor + '"></span></div></section>';
-    html += '<section class="dep-map__detail-section"><p class="dep-map__detail-label">Key metrics</p><dl class="dep-map__detail-metrics">';
-    if (rowMap['Versions'])    html += '<div><dt>Versions</dt><dd>' + escapeHtml(rowMap['Versions']) + '</dd></div>';
-    if (rowMap['Used in'])     html += '<div><dt>Used in</dt><dd>' + escapeHtml(rowMap['Used in']) + '</dd></div>';
-    if (rowMap['Last update']) html += '<div><dt>Last update</dt><dd>' + escapeHtml(rowMap['Last update']) + '</dd></div>';
-    html += '</dl></section>';
-    content.innerHTML = html;
-
-    var closeBtn = document.getElementById('cmap-close-btn');
-    if (closeBtn) closeBtn.addEventListener('click', function() {
-      content.hidden = true;
-      if (empty) empty.hidden = false;
-      document.querySelectorAll('.cmap-card--selected').forEach(function(c) { c.classList.remove('cmap-card--selected'); });
-    });
-  }
-
-  CMAP_LANES.forEach(function(lane) {
-    var el = document.getElementById('cmap-' + lane.id);
-    if (!el) return;
-    el.innerHTML = lane.ids.map(buildCmapCard).join('');
-    el.querySelectorAll('.cmap-card').forEach(function(card) {
-      var id = card.getAttribute('data-cmp');
-      card.addEventListener('click', function() { selectCmapCard(id); });
-      card.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCmapCard(id); }
+  function cmapLayoutNodes() {
+    var nodes = [];
+    LEVEL_ORDER.forEach(function(level, li) {
+      var group = BELLA_NODES.filter(function(n) { return n.level === level; });
+      var r = RING_R[li];
+      group.forEach(function(comp, i) {
+        var angle = (i / group.length) * Math.PI * 2 - Math.PI / 2;
+        nodes.push({ id: comp.id, name: comp.name, level: level, sub: comp.sub,
+          composedFrom: comp.composedFrom, composesInto: comp.composesInto,
+          x: Math.cos(angle) * r, y: Math.sin(angle) * r, r: 10 });
       });
     });
-  });
+    return nodes;
+  }
 
-  // Matrix rows in Component map space → wire to selectCmapCard
+  function cmapDraw(ctx, nodes, w, h, cam, hovered, selected) {
+    var dpr = window.devicePixelRatio || 1;
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = CC.bg;
+    ctx.fillRect(0, 0, w, h);
+
+    var cx = w / 2 + cam.x * cam.z;
+    var cy = h / 2 + cam.y * cam.z;
+    ctx.translate(cx, cy);
+    ctx.scale(cam.z, cam.z);
+
+    // Draw rings
+    LEVEL_ORDER.forEach(function(level, li) {
+      var meta = LEVEL_C[level];
+      var r = RING_R[li];
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.strokeStyle = meta.color;
+      ctx.globalAlpha = 0.12;
+      ctx.lineWidth = 52 / cam.z;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      ctx.save();
+      ctx.fillStyle = meta.color;
+      ctx.globalAlpha = 0.35;
+      ctx.font = 'bold ' + Math.max(9, 11 / cam.z) + 'px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(meta.label.toUpperCase(), 0, -r - 28 / cam.z);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    });
+
+    // Build name→node lookup for edges
+    var nodeByName = {};
+    nodes.forEach(function(n) { nodeByName[n.name] = n; });
+
+    // Determine connected set
+    var activeId = selected ? selected.id : (hovered ? hovered.id : null);
+    var connected = {};
+    var activeEdgeSet = {};
+    if (activeId) {
+      connected[activeId] = true;
+      var activeName = (selected || hovered).name;
+      BELLA_EDGES.forEach(function(e, i) {
+        if (e.from === activeName || e.to === activeName) {
+          connected[e.from] = true;
+          connected[e.to] = true;
+          activeEdgeSet[i] = true;
+        }
+      });
+    }
+
+    // Draw edges
+    BELLA_EDGES.forEach(function(e, i) {
+      var fn = nodeByName[e.from], tn = nodeByName[e.to];
+      if (!fn || !tn) return;
+      var isActive = activeEdgeSet[i];
+      ctx.beginPath();
+      var mx = (fn.x + tn.x) / 2, my = (fn.y + tn.y) / 2;
+      var dist = Math.hypot(tn.x - fn.x, tn.y - fn.y) || 1;
+      var off = dist * 0.15;
+      var px = -(tn.y - fn.y) / dist * off, py = (tn.x - fn.x) / dist * off;
+      ctx.moveTo(fn.x, fn.y);
+      ctx.quadraticCurveTo(mx + px, my + py, tn.x, tn.y);
+      if (isActive) {
+        ctx.strokeStyle = LEVEL_C[tn.level].color;
+        ctx.globalAlpha = 0.65;
+        ctx.lineWidth = 2 / cam.z;
+      } else {
+        ctx.strokeStyle = CC.border;
+        ctx.globalAlpha = activeId ? 0.05 : 0.18;
+        ctx.lineWidth = 1 / cam.z;
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    });
+
+    // Draw nodes
+    nodes.forEach(function(node) {
+      var meta = LEVEL_C[node.level];
+      var isHov = hovered && hovered.id === node.id;
+      var isSel = selected && selected.id === node.id;
+      var isConn = connected[node.name];
+      var dimmed = activeId && !isConn;
+      var scale = isHov ? 1.35 : isSel ? 1.2 : 1;
+      var dr = node.r * scale;
+
+      ctx.globalAlpha = dimmed ? 0.15 : 1;
+
+      if (isHov || isSel) {
+        var glow = ctx.createRadialGradient(node.x, node.y, dr, node.x, node.y, dr * 3);
+        glow.addColorStop(0, meta.color + '30');
+        glow.addColorStop(1, meta.color + '00');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, dr * 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, dr, 0, Math.PI * 2);
+      var fg = ctx.createRadialGradient(node.x - dr * 0.3, node.y - dr * 0.3, 0, node.x, node.y, dr);
+      fg.addColorStop(0, 'rgba(255,255,255,0.92)');
+      fg.addColorStop(1, meta.bg);
+      ctx.fillStyle = fg;
+      ctx.fill();
+      ctx.strokeStyle = (isSel || isHov) ? meta.color : meta.color + '66';
+      ctx.lineWidth = (isSel || isHov ? 2.5 : 1.2) / cam.z;
+      ctx.stroke();
+
+      if (cam.z > 0.55 || isHov || isSel || isConn) {
+        ctx.fillStyle = (isSel || isHov) ? meta.color : CC.ink;
+        var fs = Math.max(9, Math.min(11, 10 / cam.z));
+        ctx.font = (isSel || isHov ? 'bold ' : '') + fs + 'px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(node.name, node.x, node.y + dr + 4 / cam.z);
+      }
+      ctx.globalAlpha = 1;
+    });
+
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(0, 0, 4 / cam.z, 0, Math.PI * 2);
+    ctx.fillStyle = CC.amber + '50';
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function cmapHitTest(mx, my, nodes, w, h, cam) {
+    var cx = w / 2 + cam.x * cam.z, cy = h / 2 + cam.y * cam.z;
+    var wx = (mx - cx) / cam.z, wy = (my - cy) / cam.z;
+    var best = null, bestD = Infinity;
+    nodes.forEach(function(n) {
+      var d = Math.hypot(n.x - wx, n.y - wy);
+      if (d < n.r * 2 && d < bestD) { best = n; bestD = d; }
+    });
+    return best;
+  }
+
+  function cmapShowDetail(node) {
+    var panel = document.getElementById('cmap-rings-detail');
+    var body  = document.getElementById('cmap-rings-detail-body');
+    if (!panel || !body) return;
+    panel.hidden = false;
+
+    var meta = LEVEL_C[node.level];
+    var levelLabel = node.level.charAt(0).toUpperCase() + node.level.slice(1);
+    // Remove trailing 's' for badge (Atoms→Atom)
+    var tierSingular = meta.label.slice(0, -1);
+
+    var fromChips = node.composedFrom.map(function(name) {
+      var n2 = BELLA_NODES.find(function(n) { return n.name === name; });
+      var col = n2 ? LEVEL_C[n2.level].color : CC.inkMuted;
+      return '<span class="cmap-rings-detail__chip" style="background:' + col + '18;border:1px solid ' + col + '35;color:' + col + '">' + escapeHtml(name) + '</span>';
+    }).join('');
+
+    var intoChips = node.composesInto.map(function(name) {
+      var n2 = BELLA_NODES.find(function(n) { return n.name === name; });
+      var col = n2 ? LEVEL_C[n2.level].color : CC.inkMuted;
+      return '<span class="cmap-rings-detail__chip" style="background:' + col + '18;border:1px solid ' + col + '35;color:' + col + '">' + escapeHtml(name) + '</span>';
+    }).join('');
+
+    var html = '<span class="cmap-rings-detail__badge" style="background:' + meta.color + '18;border:1px solid ' + meta.color + '35;color:' + meta.color + '">' +
+        '<span class="cmap-rings-detail__dot" style="background:' + meta.color + '"></span>' + escapeHtml(tierSingular.toUpperCase()) + '</span>' +
+      '<h3 class="cmap-rings-detail__name">' + escapeHtml(node.name) + '</h3>' +
+      '<p class="cmap-rings-detail__sub">' + escapeHtml(node.sub) + '</p>';
+    if (fromChips) html += '<div class="cmap-rings-detail__section"><p class="cmap-rings-detail__label">Composed from</p><div class="cmap-rings-detail__chips">' + fromChips + '</div></div>';
+    if (intoChips) html += '<div class="cmap-rings-detail__section"><p class="cmap-rings-detail__label">Composes into</p><div class="cmap-rings-detail__chips">' + intoChips + '</div></div>';
+    body.innerHTML = html;
+  }
+
+  // Init canvas
+  (function initCmapCanvas() {
+    var wrap    = document.getElementById('cmap-canvas-wrap');
+    var canvas  = document.getElementById('cmap-canvas');
+    if (!wrap || !canvas) return;
+
+    var ctx = canvas.getContext('2d');
+    var nodes = cmapLayoutNodes();
+    var cam = { x: 0, y: 0, z: 0.85 };
+    var hovered = null, selected = null;
+    var drag = null;
+    var raf = null;
+
+    // Build HUD legend
+    var legendEl = document.getElementById('cmap-legend');
+    if (legendEl) {
+      legendEl.innerHTML = LEVEL_ORDER.map(function(level) {
+        var count = BELLA_NODES.filter(function(n) { return n.level === level; }).length;
+        var meta = LEVEL_C[level];
+        return '<div class="cmap-hud__legend-item">' +
+          '<span class="cmap-hud__dot" style="background:' + meta.color + '"></span>' +
+          '<span style="font-weight:700">' + meta.label + '</span>' +
+          '<span style="color:' + CC.inkMuted + '">' + count + '</span>' +
+          '</div>';
+      }).join('');
+    }
+
+    function resize() {
+      var dpr = window.devicePixelRatio || 1;
+      var w = wrap.clientWidth, h = wrap.clientHeight;
+      canvas.width  = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width  = w + 'px';
+      canvas.style.height = h + 'px';
+    }
+
+    function render() {
+      // Only draw when the space is active and wrap has real dimensions
+      if (document.body.getAttribute('data-space') === 'component' && wrap.clientWidth > 0) {
+        var w = wrap.clientWidth, h = wrap.clientHeight;
+        cmapDraw(ctx, nodes, w, h, cam, hovered, selected);
+      }
+      raf = requestAnimationFrame(render);
+    }
+
+    resize();
+    render();
+
+    var ro = new ResizeObserver(function() { resize(); });
+    ro.observe(wrap);
+
+    // Wheel — zoom
+    canvas.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      var f = e.deltaY > 0 ? 0.92 : 1.08;
+      cam.z = Math.max(0.25, Math.min(4, cam.z * f));
+    }, { passive: false });
+
+    // Mouse — drag + hover + click
+    canvas.addEventListener('mousedown', function(e) {
+      drag = { sx: e.clientX, sy: e.clientY, cx: cam.x, cy: cam.y };
+    });
+    canvas.addEventListener('mousemove', function(e) {
+      var rect = canvas.getBoundingClientRect();
+      var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      if (drag) {
+        cam.x = drag.cx + (e.clientX - drag.sx) / cam.z;
+        cam.y = drag.cy + (e.clientY - drag.sy) / cam.z;
+      } else {
+        var w = wrap.clientWidth, h = wrap.clientHeight;
+        hovered = cmapHitTest(mx, my, nodes, w, h, cam);
+        canvas.style.cursor = hovered ? 'pointer' : 'grab';
+      }
+    });
+    canvas.addEventListener('mouseup', function(e) {
+      if (drag) {
+        var moved = Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy);
+        if (moved < 5) {
+          var rect = canvas.getBoundingClientRect();
+          var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+          var w = wrap.clientWidth, h = wrap.clientHeight;
+          var hit = cmapHitTest(mx, my, nodes, w, h, cam);
+          selected = hit;
+          if (hit) { cmapShowDetail(hit); }
+          else {
+            var panel = document.getElementById('cmap-rings-detail');
+            if (panel) panel.hidden = true;
+          }
+          // Sync matrix selection
+          document.querySelectorAll('.space--component .components-matrix__row').forEach(function(r) {
+            r.classList.toggle('components-matrix__row--selected', hit && r.getAttribute('data-component') === hit.id);
+          });
+        }
+        drag = null;
+      }
+    });
+    canvas.addEventListener('mouseleave', function() { drag = null; hovered = null; });
+
+    // Close detail panel
+    var closeBtn = document.getElementById('cmap-rings-close');
+    if (closeBtn) closeBtn.addEventListener('click', function() {
+      selected = null;
+      var panel = document.getElementById('cmap-rings-detail');
+      if (panel) panel.hidden = true;
+      document.querySelectorAll('.space--component .components-matrix__row').forEach(function(r) { r.classList.remove('components-matrix__row--selected'); });
+    });
+
+    // Controls
+    var recenterBtn = document.getElementById('cmap-recenter');
+    if (recenterBtn) recenterBtn.addEventListener('click', function() { cam.x = 0; cam.y = 0; cam.z = 0.85; });
+    var zoomIn = document.getElementById('cmap-zoom-in');
+    if (zoomIn) zoomIn.addEventListener('click', function() { cam.z = Math.min(4, cam.z * 1.3); });
+    var zoomOut = document.getElementById('cmap-zoom-out');
+    if (zoomOut) zoomOut.addEventListener('click', function() { cam.z = Math.max(0.25, cam.z * 0.7); });
+
+    // Touch support — pan only
+    var touch0 = null;
+    canvas.addEventListener('touchstart', function(e) { touch0 = { sx: e.touches[0].clientX, sy: e.touches[0].clientY, cx: cam.x, cy: cam.y }; }, { passive: true });
+    canvas.addEventListener('touchmove', function(e) {
+      if (!touch0) return;
+      cam.x = touch0.cx + (e.touches[0].clientX - touch0.sx) / cam.z;
+      cam.y = touch0.cy + (e.touches[0].clientY - touch0.sy) / cam.z;
+    }, { passive: true });
+    canvas.addEventListener('touchend', function() { touch0 = null; });
+  })();
+
+  // Matrix rows in Component map → highlight ring node on click
   document.querySelectorAll('.space--component .components-matrix__row').forEach(function(r) {
-    var id = r.getAttribute('data-component');
-    r.addEventListener('click', function() { selectCmapCard(id); });
+    r.addEventListener('click', function() {
+      var id = r.getAttribute('data-component');
+      document.querySelectorAll('.space--component .components-matrix__row').forEach(function(row) {
+        row.classList.toggle('components-matrix__row--selected', row.getAttribute('data-component') === id);
+      });
+      var node = BELLA_NODES.find(function(n) { return n.id === id; });
+      if (node) cmapShowDetail(node);
+    });
     r.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCmapCard(id); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); r.click(); }
     });
   });
 
