@@ -30,6 +30,7 @@
 
 # Server — secrets and build artifacts never committed
 /server/.env
+/server/.chip-env-id
 /server/node_modules/
 
 # OS noise
