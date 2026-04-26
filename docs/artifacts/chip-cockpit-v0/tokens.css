@@ -92,7 +92,7 @@
   /* layout */
   --sidebar-w: 240px;
   --topbar-h: 56px;
-  --max-w: 1100px;
+  --max-w: none;          /* let content fill available width — page padding lives on .content */
 }
 
 [data-theme="dark"] {

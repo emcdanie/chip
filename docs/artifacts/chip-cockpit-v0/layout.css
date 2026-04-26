@@ -191,7 +191,7 @@ body[data-logged-in="true"] .splash {
 
 /* content */
 .content {
-  padding: var(--s4);             /* 16px on all sides — applies to every space */
+  padding: var(--s6);             /* 24px on all sides — applies to every space */
   max-width: var(--max-w); width: 100%; margin: 0 auto;
   min-width: 0; flex: 1;
 }
@@ -200,10 +200,27 @@ body[data-space="cockpit"]   .space--cockpit   { display: block; }
 body[data-space="research"]  .space--research  { display: block; }
 body[data-space="friction"]  .space--friction  { display: block; }
 body[data-space="bella"]     .space--bella     { display: block; }
+body[data-space="cmap"]      .space--cmap      { display: block; }
 body[data-space="map"]       .space--map       { display: block; }
 body[data-space="steward"]   .space--steward   { display: block; }
 
-.space__header { margin-bottom: var(--s4); }
+.space__header { margin-bottom: var(--s6); }
+/* Stage 18.13 — header with right-aligned action buttons (cockpit) */
+.space__header--with-actions {
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: var(--s6);
+  align-items: end;            /* CTAs sit at the title's baseline */
+}
+.space__header__main { min-width: 0; }
+.space__header__actions {
+  display: flex; gap: var(--s3);
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .space__header--with-actions { grid-template-columns: 1fr; }
+  .space__header__actions { justify-content: flex-start; }
+}
 .space__eyebrow {
   font-family: var(--font-mono); font-size: var(--fs-label); font-weight: var(--fw-med);
   letter-spacing: var(--ls-wider); color: var(--text-2);

@@ -31,6 +31,7 @@
     research: 'Research library',
     friction: 'Friction log',
     bella: 'AI-native BELLA',
+    cmap: 'Component map',
     map: 'System map',
     steward: 'Coming up'
   };
@@ -1408,6 +1409,119 @@
     });
   }
 
+  // ============ Stage 18.15 — PRISM-style dependency tree ============
+  // Click any tree node → detail side panel populates with description,
+  // metrics, last update / next review, sparkline, availability bar.
+  var DEP_NODE_DATA = {
+    bella: {
+      title: 'BELLA design system',
+      meta:  'Web · iOS · Android · live',
+      chip:  { label: 'Healthy',  cls: 'dep-node__chip--healthy'  },
+      desc:  'The full design system: tokens, primitives, patterns, and platform implementations. CHIP watches every surface for divergence and surfaces it here.',
+      updated: '14m ago',
+      next:    'Friday 10:00',
+      spark: '0,40 30,38 60,32 90,30 120,28 150,22 180,18 200,12',
+      sparkColor: 'var(--sage)',
+      avail: 38,
+      metrics: [['Components', '12'], ['In sync', '1 / 3 platforms'], ['Open alerts', '4'], ['Audit entries today', '1']],
+    },
+    components: {
+      title: 'Component library',
+      meta:  '12 components · atoms / molecules / organisms',
+      chip:  { label: 'Drift', cls: 'dep-node__chip--warning' },
+      desc:  'Atomic-design layers. Drift detected on iOS and Android implementations of Button, Card, Input, Modal, Badge, and Nav link.',
+      updated: '14m ago',
+      next:    'Friday 10:00 · Parity review',
+      spark: '0,28 30,30 60,32 90,28 120,30 150,32 180,34 200,36',
+      sparkColor: 'var(--amber)',
+      avail: 66,
+      metrics: [['Atoms', '6 · 4 drifting'], ['Molecules', '3 · 1 drifting'], ['Organisms', '3 · all in sync'], ['Critical', '0']],
+    },
+    platforms: {
+      title: 'Platform repos',
+      meta:  'react-bella-web · ios-bella · android-bella',
+      chip:  { label: 'Critical', cls: 'dep-node__chip--critical' },
+      desc:  'Three platform implementations of BELLA. Web is in sync. iOS is 23 components behind master. Android is 47 components behind — landscape mode shipped without parity check.',
+      updated: '2h ago',
+      next:    'Friday 14:00 · Parity sync',
+      spark: '0,18 30,22 60,28 90,32 120,36 150,40 180,44 200,48',
+      sparkColor: 'var(--rust)',
+      avail: 38,
+      metrics: [['Web', '47 / 47 in sync'], ['iOS', '23 / 47'], ['Android', '0 / 47'], ['Open critical', '1']],
+    },
+    sources: {
+      title: 'Sources of truth',
+      meta:  'Figma · Storybook · Zeroheight',
+      chip:  { label: 'Stale', cls: 'dep-node__chip--warning' },
+      desc:  'Canonical references. Figma library and Storybook are in sync. Zeroheight docs are 6 days behind the latest Storybook deploy — Card v2.14.3 not reflected.',
+      updated: '6 days ago',
+      next:    'Monday 09:00 · Publish queue',
+      spark: '0,30 30,28 60,30 90,32 120,30 150,34 180,40 200,44',
+      sparkColor: 'var(--amber)',
+      avail: 76,
+      metrics: [['Figma', 'master clean'], ['Storybook', '89 stories · 2h ago'], ['Zeroheight', '3 pages out of date'], ['Pending publish', '2']],
+    },
+    connected: {
+      title: 'Connected systems',
+      meta:  'Notion live · Slack / Gmail / Jira pending v1',
+      chip:  { label: 'Healthy', cls: 'dep-node__chip--healthy' },
+      desc:  'External MCP integrations. Notion is fully wired to the Cloud Managed Agent and returns real research-library queries. Slack, Gmail, Jira are post-submission engineering — same pattern, OAuth + credential vault.',
+      updated: '14m ago',
+      next:    'v1 wiring',
+      spark: '0,36 30,34 60,32 90,30 120,28 150,26 180,24 200,22',
+      sparkColor: 'var(--sage)',
+      avail: 25,
+      metrics: [['Notion MCP', 'live · 47 sources reachable'], ['Slack', 'v1 planned'], ['Gmail', 'v1 planned'], ['Jira', 'v1 planned']],
+    },
+  };
+
+  function selectDepNode(nodeId) {
+    var data = DEP_NODE_DATA[nodeId];
+    if (!data) return;
+    // Visual state
+    document.querySelectorAll('.dep-node').forEach(function (n) {
+      n.classList.remove('dep-node--active');
+      n.setAttribute('aria-selected', 'false');
+    });
+    var btn = document.querySelector('[data-dep-node="' + nodeId + '"]');
+    if (btn) { btn.classList.add('dep-node--active'); btn.setAttribute('aria-selected', 'true'); }
+
+    // Populate detail
+    var $ = function (id) { return document.getElementById(id); };
+    if ($('dep-detail-title'))    $('dep-detail-title').textContent    = data.title;
+    if ($('dep-detail-meta'))     $('dep-detail-meta').textContent     = data.meta;
+    if ($('dep-detail-chip'))     {
+      var chip = $('dep-detail-chip');
+      chip.className = 'dep-node__chip ' + data.chip.cls;
+      chip.textContent = data.chip.label;
+    }
+    if ($('dep-detail-desc'))     $('dep-detail-desc').textContent     = data.desc;
+    if ($('dep-detail-updated'))  $('dep-detail-updated').textContent  = data.updated;
+    if ($('dep-detail-next'))     $('dep-detail-next').textContent     = data.next;
+    if ($('dep-detail-avail-pct'))$('dep-detail-avail-pct').textContent= data.avail + '%';
+    if ($('dep-detail-bar-fill')) $('dep-detail-bar-fill').style.width = data.avail + '%';
+    if ($('dep-detail-spark')) {
+      $('dep-detail-spark').innerHTML =
+        '<polyline points="' + data.spark + '" fill="none" stroke="' + data.sparkColor + '" stroke-width="2" />';
+    }
+    if ($('dep-detail-metrics')) {
+      $('dep-detail-metrics').innerHTML = data.metrics.map(function (m) {
+        return '<div><dt>' + escapeHtml(m[0]) + '</dt><dd>' + escapeHtml(m[1]) + '</dd></div>';
+      }).join('');
+    }
+  }
+
+  document.querySelectorAll('[data-dep-node]').forEach(function (node) {
+    node.addEventListener('click', function () {
+      selectDepNode(node.getAttribute('data-dep-node'));
+    });
+  });
+
+  // Default-select root on load so the detail isn't empty
+  if (document.querySelector('[data-dep-node="bella"]')) {
+    selectDepNode('bella');
+  }
+
   // ============ Stage 18.7 — Inbox compose + audit ============
   // Reply opens an inline composition panel with a prefilled draft.
   // Defer / Done write audit entries and visually mark the row.
@@ -2038,6 +2152,129 @@
     'Figma':     ['sync','sync','sync','sync','sync','sync','sync'],
     'Storybook': ['sync','sparse','sync','sync','sparse','sync','sync']
   };
+  // ============ Component Map space ============
+  var CMAP_SCORES = {
+    button:  { web: 100, ios: 100, android: 62 },
+    card:    { web: 100, ios: 100, android: 62 },
+    input:   { web: 100, ios: 71,  android: 0  },
+    chip:    { web: 100, ios: 100, android: 100 },
+    eyebrow: { web: 100, ios: 76,  android: 76  },
+    navLink: { web: 100, ios: 71,  android: 0   },
+    modal:   { web: 100, ios: 100, android: 62  },
+    avatar:  { web: 100, ios: 100, android: 100 },
+    badge:   { web: 100, ios: 100, android: 62  },
+    aiCard:  { web: 95,  ios: null, android: null },
+    aiDiff:  { web: 95,  ios: null, android: null },
+    aiMeter: { web: 95,  ios: null, android: null },
+  };
+  var CMAP_LANES = [
+    { id: 'atoms',     label: 'Atoms',     ids: ['button','chip','eyebrow','navLink','badge','avatar'] },
+    { id: 'molecules', label: 'Molecules', ids: ['card','input','modal'] },
+    { id: 'organisms', label: 'Organisms', ids: ['aiCard','aiDiff','aiMeter'] },
+  ];
+
+  function cmapBarRow(platform, score) {
+    if (score === null || score === undefined) {
+      return '<div class="cmap-card__bar-row">' +
+        '<span class="cmap-card__platform">' + platform + '</span>' +
+        '<div class="cmap-card__track"><span class="cmap-card__fill" style="width:0"></span></div>' +
+        '<span class="cmap-card__pct cmap-card__pct--na">—</span></div>';
+    }
+    var fill = score >= 90 ? 'var(--sage)' : score >= 60 ? 'var(--amber)' : 'var(--rust)';
+    return '<div class="cmap-card__bar-row">' +
+      '<span class="cmap-card__platform">' + platform + '</span>' +
+      '<div class="cmap-card__track"><span class="cmap-card__fill" style="width:' + score + '%;background:' + fill + '"></span></div>' +
+      '<span class="cmap-card__pct">' + score + '</span></div>';
+  }
+
+  function buildCmapCard(id) {
+    var scores = CMAP_SCORES[id] || { web: 0, ios: 0, android: 0 };
+    var data = COMPONENT_DATA[id] || { title: id, rows: [] };
+    var name = data.title.split(' · ')[0];
+    var vals = [scores.web, scores.ios, scores.android].filter(function(v) { return v !== null && v !== undefined; });
+    var min = vals.length ? Math.min.apply(null, vals) : 0;
+    var avg = vals.length ? Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length) : 0;
+    var statusLabel, statusCls;
+    if (scores.ios === null || scores.android === null) {
+      statusLabel = 'Web only'; statusCls = 'dep-node__chip--muted';
+    } else if (min < 60) {
+      statusLabel = 'Critical'; statusCls = 'dep-node__chip--critical';
+    } else if (min < 90) {
+      statusLabel = 'Drift'; statusCls = 'dep-node__chip--warning';
+    } else {
+      statusLabel = 'In sync'; statusCls = 'dep-node__chip--healthy';
+    }
+    return '<article class="cmap-card" data-cmp="' + id + '" role="button" tabindex="0" aria-label="' + escapeHtml(name) + ', ' + avg + '% avg">' +
+      '<header class="cmap-card__head"><span class="cmap-card__name">' + escapeHtml(name) + '</span>' +
+      '<span class="dep-node__chip ' + statusCls + '">' + statusLabel + '</span></header>' +
+      '<div class="cmap-card__bars">' +
+        cmapBarRow('Web', scores.web) +
+        cmapBarRow('iOS', scores.ios) +
+        cmapBarRow('Drd', scores.android) +
+      '</div>' +
+      '<footer class="cmap-card__foot"><span class="cmap-card__avg">' + avg + '% avg</span></footer>' +
+    '</article>';
+  }
+
+  function selectCmapCard(id) {
+    document.querySelectorAll('.cmap-card--selected').forEach(function(c) { c.classList.remove('cmap-card--selected'); });
+    var card = document.querySelector('.cmap-card[data-cmp="' + id + '"]');
+    if (card) card.classList.add('cmap-card--selected');
+
+    var empty   = document.getElementById('cmap-detail-empty');
+    var content = document.getElementById('cmap-detail-content');
+    if (!content) return;
+
+    var scores = CMAP_SCORES[id]; var data = COMPONENT_DATA[id];
+    if (!scores || !data) return;
+    if (empty) empty.hidden = true;
+    content.hidden = false;
+
+    var name = data.title.split(' · ')[0];
+    var type = data.title.split(' · ')[1] || '';
+    var rowMap = {};
+    (data.rows || []).forEach(function(r) { rowMap[r[0]] = r[1]; });
+    var vals = [scores.web, scores.ios, scores.android].filter(function(v) { return v !== null && v !== undefined; });
+    var avg = vals.length ? Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length) : 0;
+    var barColor = avg >= 90 ? 'var(--sage)' : avg >= 60 ? 'var(--amber)' : 'var(--rust)';
+
+    var html = '<header class="dep-map__detail-head">' +
+      '<h3 class="dep-map__detail-title">' + escapeHtml(name) + '</h3>' +
+      '<button type="button" class="dep-map__detail-close" id="cmap-close-btn" aria-label="Close">×</button></header>' +
+      '<p class="dep-map__detail-meta">' + escapeHtml(type) + '</p>';
+    if (rowMap['Open issues'])
+      html += '<section class="dep-map__detail-section"><p class="dep-map__detail-label">Open issues</p><p class="dep-map__detail-desc">' + escapeHtml(rowMap['Open issues']) + '</p></section>';
+    html += '<section class="dep-map__detail-section">' +
+      '<p class="dep-map__detail-label">Overall availability <span class="dep-map__detail-availpct">' + avg + '%</span></p>' +
+      '<div class="dep-map__detail-bar"><span class="dep-map__detail-bar-fill" style="width:' + avg + '%;background:' + barColor + '"></span></div></section>';
+    html += '<section class="dep-map__detail-section"><p class="dep-map__detail-label">Key metrics</p><dl class="dep-map__detail-metrics">';
+    if (rowMap['Versions'])    html += '<div><dt>Versions</dt><dd>' + escapeHtml(rowMap['Versions']) + '</dd></div>';
+    if (rowMap['Used in'])     html += '<div><dt>Used in</dt><dd>' + escapeHtml(rowMap['Used in']) + '</dd></div>';
+    if (rowMap['Last update']) html += '<div><dt>Last update</dt><dd>' + escapeHtml(rowMap['Last update']) + '</dd></div>';
+    html += '</dl></section>';
+    content.innerHTML = html;
+
+    var closeBtn = document.getElementById('cmap-close-btn');
+    if (closeBtn) closeBtn.addEventListener('click', function() {
+      content.hidden = true;
+      if (empty) empty.hidden = false;
+      document.querySelectorAll('.cmap-card--selected').forEach(function(c) { c.classList.remove('cmap-card--selected'); });
+    });
+  }
+
+  CMAP_LANES.forEach(function(lane) {
+    var el = document.getElementById('cmap-' + lane.id);
+    if (!el) return;
+    el.innerHTML = lane.ids.map(buildCmapCard).join('');
+    el.querySelectorAll('.cmap-card').forEach(function(card) {
+      var id = card.getAttribute('data-cmp');
+      card.addEventListener('click', function() { selectCmapCard(id); });
+      card.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCmapCard(id); }
+      });
+    });
+  });
+
   var syncCadenceGrid = document.getElementById('sync-cadence-grid');
   if (syncCadenceGrid) {
     var html = '<span></span>';
@@ -2087,6 +2324,7 @@
       { id: 'research', label: 'Research library', chip: '47',   icon: '◈' },
       { id: 'friction', label: 'Friction log',     chip: '3',    icon: '◊' },
       { id: 'bella',    label: 'AI-native BELLA',  chip: '6',    icon: '◇' },
+      { id: 'cmap',     label: 'Component map',    chip: '12',   icon: '◇' },
       { id: 'map',      label: 'System map',       chip: 'v0',   icon: '△' },
       { id: 'steward',  label: 'Coming up',        chip: '6',    icon: '◯' }
     ];
