@@ -1,0 +1,111 @@
+/* ================================================================
+   TOKENS (BELLA primitives + semantic + governance, cockpit-scoped)
+   Restored shadow-soft / shadow-layered from ~/DEV/bella/tokens/bella.css.
+   ================================================================ */
+:root {
+  color-scheme: light;
+
+  /* primitives */
+  --ink: #0F1117;
+  --parchment: #F7F4EF;
+  --amber: #C4956A;
+  --amber-hover: #B68457;            /* BELLA hex fallback — flag for component.json PR */
+  --slate: #1A1D27;
+  --steel: #6495C5;
+  --dusk: #7B6E8F;
+  --sage: #4A7C6F;
+  --linen: #E8E4DC;
+  --pink: #E8A5C4;                   /* friction "pink" — wishlist accent */
+  --rust: #C46A6A;                   /* stale state in system map; cockpit-local */
+  --n50: #FBFAF7; --n100: #F0EDE8;
+  --n400: #999; --n500: #666; --n600: #525252; --n700: #333; --n900: #111;
+
+  /* alphas — Tier 1.8: chips bumped 15% → 35% */
+  --amber-15: #C4956A26; --amber-30: #C4956A4D; --amber-35: #C4956A59;
+  --steel-15: #6495C526; --steel-30: #6495C54D; --steel-35: #6495C559;
+  --sage-15:  #4A7C6F26; --sage-30:  #4A7C6F4D; --sage-35:  #4A7C6F59;
+  --dusk-15:  #7B6E8F26; --dusk-30:  #7B6E8F4D; --dusk-35:  #7B6E8F59;
+  --ink-6:    #0F111710;
+
+  /* spacing */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px;
+  --s6:24px; --s8:32px; --s10:40px; --s12:48px; --s16:64px;
+
+  /* radii */
+  --r-sm:4px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-2xl:20px; --r-full:999px;
+
+  /* fonts — Tier 1.4 */
+  --font-display: 'Fraunces', Charter, Cambria, Georgia, serif;
+  --font-body:    'Atkinson Hyperlegible', 'Avenir Next', Avenir, system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* sizes — Tier 1.6 floor 14px for labels; 13px reserved for meta */
+  --fs-meta:  13px;   /* timestamps, commit hashes, audit, footer */
+  --fs-label: 14px;   /* chips, eyebrows, buttons, nav, surface rows */
+  --fs-sm:    15px;   /* tagline, small body — bumped from 14 (Tier 1.9) */
+  --fs-base:  17px;   /* body — bumped from 16 (Tier 1.9) */
+  --fs-lg:    18px;
+  --fs-xl:    20px;
+  --fs-2xl:   24px;
+  --fs-3xl:   32px;
+
+  /* weights — Tier 1.9: body weight 500 (Atkinson 500 still reads as normal) */
+  --fw-reg:   400;
+  --fw-med:   500;
+  --fw-body:  500;
+  --fw-bold:  700;
+  --fw-black: 800;
+
+  /* tracking — Tier 1.5: relaxed since labels are sentence case */
+  --ls-tight: -0.02em;
+  --ls-wide:  0.02em;
+  --ls-wider: 0.04em;
+  --lh-tight: 1.1; --lh-snug: 1.3; --lh-normal: 1.6;
+
+  /* motion */
+  --dur-fast:150ms; --dur-normal:250ms; --dur-slow:400ms;
+  --ease-std:  cubic-bezier(0.4,0,0.2,1);
+  --ease-emph: cubic-bezier(0.34,1.56,0.64,1);
+
+  /* shadows — Tier 1.10 (layered restored from BELLA bella.css) */
+  --shadow-soft:    0 1px 2px #2C18100A, 0 10px 30px #2C18100F, 0 24px 60px #2C18100A;
+  --shadow-layered: 0 1px 2px #2C18100D, 0 12px 40px #2C181014, 0 28px 80px #2C18100F, inset 0 1px 0 #FFFFFFE6;
+  --shadow-card:    0 4px 12px rgba(15,17,23,0.08);
+  --shadow-floating:0 12px 32px rgba(15,17,23,0.12);
+
+  /* semantic — light */
+  --bg: #F7F4EF;
+  --surface: #F0EDE8;
+  --surface-elevated: #FBFAF7;
+  --surface-inverse: #1A1D27;
+  --text: #111;
+  --text-2: #525252;
+  --text-muted: #5C5A54;            /* Tier 1.7: was #999 — passes AA at 14px */
+  --text-inverse: #F7F4EF;
+  --border: #E8E4DC;
+  --border-subtle: #0F111710;
+  --border-strong: #333;
+  --accent: #C4956A;
+  --accent-subtle: #C4956A26;
+  --accent-border: #C4956A4D;
+
+  /* layout */
+  --sidebar-w: 240px;
+  --topbar-h: 56px;
+  --max-w: 1100px;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F1117;
+  --surface: #1A1D27;
+  --surface-elevated: #242833;
+  --surface-inverse: #F7F4EF;
+  --text: #F7F4EF;
+  --text-2: #B8B4AC;
+  --text-muted: #9C9890;            /* Tier 1.7: was #7A7770 */
+  --text-inverse: #111;
+  --border: #F7F4EF10;
+  --border-subtle: #2A2D37;
+  --border-strong: #F7F4EF;
+}

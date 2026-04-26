@@ -1,0 +1,35 @@
+# Path 1 — public submission contains only the cockpit artifact + README + LICENSE.
+# Planning docs, transcripts, research, and archived artifacts stay local.
+
+# Top-level planning + handoff
+/HANDOFF.md
+
+# Planning + research docs
+/docs/CHIP-*.md
+/docs/archive/
+/docs/best-practices-*.md
+/docs/jam-session-*.md
+/docs/raw-materials.md
+/docs/research/
+/docs/smashing-conf-*.md
+/docs/source-*.md
+/docs/transcripts/
+/docs/pitch/
+
+# Older artifacts (problem canvas / mvp matrix / command center) — superseded by chip-cockpit-v0
+/docs/artifacts/chip-command-center/
+/docs/artifacts/chip-mvp-matrix/
+/docs/artifacts/chip-problem-canvas/
+
+# Pre-Stage-6 backup of the cockpit artifact
+/docs/artifacts/chip-cockpit-v0/index.html.preStage6.bak
+
+# Internal setup notes + Claude Code local settings
+/setup/
+/.claude/
+
+# OS noise
+.DS_Store
+*.swp
+*.swo
+Thumbs.db
