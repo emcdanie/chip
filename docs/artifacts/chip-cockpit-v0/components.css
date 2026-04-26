@@ -1348,6 +1348,9 @@ body:not([data-space="cockpit"]) .today-card { display: none; }
 .surfaces__sort[data-sort-dir="desc"]::after { content: " ▼"; color: var(--amber); }
 
 /* 11.4 / 11.5 — view toggles + tables */
+/* Toggle swap fix: explicit display rules override the UA-sheet [hidden]:display:none */
+.friction-grid[hidden]  { display: none; }
+.research-grid[hidden]  { display: none; }
 .view-toggle, .research-toolbar__view {
   appearance: none;
 }
