@@ -3,18 +3,17 @@ require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 
+const path = require('path');
+
 const app = express();
 app.use(express.json());
 
-// Allow file:// origins (browser sends "null") and any http://localhost:* origin
-app.use(cors({
-  origin: function (origin, cb) {
-    if (!origin || origin === 'null' || /^http:\/\/localhost(:\d+)?$/.test(origin)) {
-      return cb(null, true);
-    }
-    cb(new Error('CORS: origin not allowed'));
-  },
-}));
+// Reflect every origin including null (file:// sends "null" as the Origin header).
+// This server is local-only so open CORS is fine — nothing reachable from the internet.
+app.use(cors({ origin: true, credentials: false }));
+
+// Serve the cockpit from / so http://localhost:3000 works as an alternative to file://
+app.use(express.static(path.join(__dirname, '../docs/artifacts/chip-cockpit-v0')));
 
 const API_KEY   = process.env.ANTHROPIC_API_KEY;
 const AGENT_ID  = process.env.CHIP_AGENT_ID;
