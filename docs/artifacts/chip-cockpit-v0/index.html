@@ -327,7 +327,7 @@
             </div>
           </section>
 
-          <div class="approve-row">
+          <div class="approve-row" id="approve-row">
             <div class="approve-row__chips">
               <span class="chip chip--info">Confidence 0.95</span>
               <span class="chip chip--accent">Propose roadmap · Await approval</span>
@@ -340,6 +340,46 @@
               <button type="button" class="btn btn--primary" id="btn-approve" aria-keyshortcuts="A Meta+Shift+A">Approve</button>
             </div>
           </div>
+
+          <!-- Stage 18.5 — action feedback panels: every action visible -->
+          <section class="action-fb" id="action-fb" hidden aria-live="polite">
+            <!-- Reject form -->
+            <form class="action-fb__form" id="reject-form" hidden>
+              <p class="action-fb__eyebrow">Reject roadmap · reason required</p>
+              <h3 class="action-fb__headline">Why are you rejecting this proposal?</h3>
+              <textarea class="action-fb__textarea" id="reject-reason" rows="3"
+                placeholder="e.g., iOS squad is in the middle of a release branch — defer until next sprint."
+                aria-label="Rejection reason" required></textarea>
+              <div class="action-fb__row">
+                <button type="button" class="btn" data-action-cancel>Cancel</button>
+                <button type="submit" class="btn btn--primary">Confirm rejection</button>
+              </div>
+            </form>
+
+            <!-- Modify form -->
+            <form class="action-fb__form" id="modify-form" hidden>
+              <p class="action-fb__eyebrow">Modify roadmap · note your constraints</p>
+              <h3 class="action-fb__headline">What needs to change?</h3>
+              <textarea class="action-fb__textarea" id="modify-notes" rows="3"
+                placeholder="e.g., split into Web-only first, hold iOS until landscape variants are signed off."
+                aria-label="Modification notes" required></textarea>
+              <div class="action-fb__row">
+                <button type="button" class="btn" data-action-cancel>Cancel</button>
+                <button type="submit" class="btn btn--primary">Save changes &amp; re-propose</button>
+              </div>
+            </form>
+
+            <!-- Confirmation panel — populated by JS -->
+            <div class="action-fb__confirm" id="action-fb-confirm" hidden>
+              <p class="action-fb__eyebrow" id="action-fb-eyebrow"></p>
+              <h3 class="action-fb__headline" id="action-fb-headline"></h3>
+              <ul class="action-fb__list" id="action-fb-list"></ul>
+              <p class="action-fb__note" id="action-fb-note"></p>
+              <div class="action-fb__row">
+                <button type="button" class="btn" id="action-fb-reset">Reset demo</button>
+              </div>
+            </div>
+          </section>
 
           <details class="inclusion-issues" id="inclusion-issues">
             <summary>3 inclusion issues</summary>

@@ -147,19 +147,159 @@
     updateApproveAvailability();
   }
 
+  // ============ Stage 18.5 — Action feedback panels ============
+  // Approve / Reject / Modify each open an inline feedback panel.
+  // Approve  → confirmation summary of what just happened.
+  // Reject   → form for the rejection reason → confirmation.
+  // Modify   → form for change notes → confirmation.
+  // Every action writes a timestamped audit-ribbon entry.
+  var actionFb        = document.getElementById('action-fb');
+  var rejectForm      = document.getElementById('reject-form');
+  var modifyForm      = document.getElementById('modify-form');
+  var fbConfirm       = document.getElementById('action-fb-confirm');
+  var fbEyebrow       = document.getElementById('action-fb-eyebrow');
+  var fbHeadline      = document.getElementById('action-fb-headline');
+  var fbList          = document.getElementById('action-fb-list');
+  var fbNote          = document.getElementById('action-fb-note');
+  var fbReset         = document.getElementById('action-fb-reset');
+  var rejectReasonEl  = document.getElementById('reject-reason');
+  var modifyNotesEl   = document.getElementById('modify-notes');
+
+  function nowHHMM() {
+    var d = new Date();
+    return d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0') + ' ' +
+      String(d.getHours()).padStart(2,'0') + ':' +
+      String(d.getMinutes()).padStart(2,'0');
+  }
+
+  function hideAllFbForms() {
+    if (rejectForm) rejectForm.hidden = true;
+    if (modifyForm) modifyForm.hidden = true;
+    if (fbConfirm)  fbConfirm.hidden  = true;
+  }
+  function closeFb() {
+    body.removeAttribute('data-action-state');
+    actionFb.hidden = true;
+    actionFb.removeAttribute('data-state');
+    hideAllFbForms();
+  }
+
+  function showFbConfirm(state, eyebrow, headline, items, note) {
+    hideAllFbForms();
+    actionFb.hidden = false;
+    actionFb.setAttribute('data-state', state);
+    body.setAttribute('data-action-state', state);
+    fbEyebrow.textContent = eyebrow;
+    fbHeadline.textContent = headline;
+    fbList.innerHTML = '';
+    items.forEach(function (item) {
+      var li = document.createElement('li');
+      if (state === 'rejected') li.className = 'action-fb__list-item--rejected';
+      else if (state === 'modified') li.className = 'action-fb__list-item--modify';
+      li.textContent = item;
+      fbList.appendChild(li);
+    });
+    if (note) { fbNote.textContent = note; fbNote.hidden = false; }
+    else      { fbNote.hidden = true; }
+    fbConfirm.hidden = false;
+    actionFb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
   function approve() {
     if (body.getAttribute('data-phase') !== 'drift') return;
     if (btnApprove.disabled) return;
-    setPhase('approved');
+    setPhase('approved');                                  // existing phase machine + audit ribbon
+    var ts = nowHHMM();
+    showFbConfirm(
+      'approved',
+      ts + ' · Approved by Elleta · Trust: Junior',
+      'Roadmap approved. CHIP is filing the work.',
+      [
+        '23 Jira tickets templated and filed (BELLA-1234 → BELLA-1256)',
+        '3 dev leads notified — Web Lead, iOS Lead, Android Lead',
+        'Storybook update queued — 47 components on next deploy',
+        'Audit ribbon entry written below'
+      ],
+      'auto-merge withheld pending platform CI green; CHIP will report back when the parity meter clears 90%.'
+    );
   }
-  function modify()  { if (body.getAttribute('data-phase') === 'drift') console.log('[CHIP] modify requested — no-op in v0'); }
 
-  btnDrift.addEventListener('click', function () { setPhase('drift'); });
-  btnReset.addEventListener('click', function () { setPhase('loaded'); });
+  function openReject() {
+    if (body.getAttribute('data-phase') !== 'drift') return;
+    body.setAttribute('data-action-state', 'rejecting');
+    actionFb.hidden = false;
+    actionFb.removeAttribute('data-state');
+    hideAllFbForms();
+    rejectForm.hidden = false;
+    if (rejectReasonEl) { rejectReasonEl.value = ''; rejectReasonEl.focus(); }
+    actionFb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function openModify() {
+    if (body.getAttribute('data-phase') !== 'drift') return;
+    body.setAttribute('data-action-state', 'modifying');
+    actionFb.hidden = false;
+    actionFb.removeAttribute('data-state');
+    hideAllFbForms();
+    modifyForm.hidden = false;
+    if (modifyNotesEl) { modifyNotesEl.value = ''; modifyNotesEl.focus(); }
+    actionFb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function submitReject(e) {
+    e.preventDefault();
+    var reason = (rejectReasonEl && rejectReasonEl.value || '').trim();
+    if (!reason) { rejectReasonEl.focus(); return; }
+    var ts = nowHHMM();
+    appendAuditEntry(ts + ' · Roadmap rejected · reason recorded · Operator: Elleta');
+    showFbConfirm(
+      'rejected',
+      ts + ' · Rejected by Elleta',
+      'Proposal rejected. CHIP will re-evaluate.',
+      [
+        'No tickets filed, no leads notified',
+        'Reason captured in the audit ribbon below',
+        'CHIP will hold landscape rollout pending re-analysis'
+      ],
+      reason
+    );
+  }
+
+  function submitModify(e) {
+    e.preventDefault();
+    var notes = (modifyNotesEl && modifyNotesEl.value || '').trim();
+    if (!notes) { modifyNotesEl.focus(); return; }
+    var ts = nowHHMM();
+    appendAuditEntry(ts + ' · Roadmap modified · constraints noted · Operator: Elleta');
+    showFbConfirm(
+      'modified',
+      ts + ' · Modified by Elleta',
+      'Constraints noted. CHIP will re-propose with these guardrails.',
+      [
+        'Original proposal paused',
+        'Modification notes captured in audit ribbon',
+        'CHIP will re-run analysis and surface a revised roadmap'
+      ],
+      notes
+    );
+  }
+
+  btnDrift.addEventListener('click', function () { setPhase('drift'); closeFb(); });
+  btnReset.addEventListener('click', function () { setPhase('loaded'); closeFb(); });
   btnApprove.addEventListener('click', approve);
-  btnReject.addEventListener('click', function () { setPhase('loaded'); });
-  btnModify.addEventListener('click', modify);
+  btnReject.addEventListener('click', openReject);
+  btnModify.addEventListener('click', openModify);
   btnExpand.addEventListener('click', function () { console.log('[CHIP] full roadmap requested'); });
+
+  if (rejectForm) rejectForm.addEventListener('submit', submitReject);
+  if (modifyForm) modifyForm.addEventListener('submit', submitModify);
+  if (fbReset)    fbReset.addEventListener('click', function () { setPhase('loaded'); closeFb(); });
+  // Cancel buttons in the forms
+  document.querySelectorAll('[data-action-cancel]').forEach(function (btn) {
+    btn.addEventListener('click', function () { closeFb(); });
+  });
 
   // ============ Stage 5 — MAPE-K loop indicator ============
   var mapekPhases = document.querySelectorAll('[data-phase-marker]');
@@ -237,8 +377,8 @@
     if (phase !== 'drift' || space !== 'cockpit') return;
     var k = e.key.toLowerCase();
     if (k === 'a')      { e.preventDefault(); approve(); }
-    else if (k === 'r') { e.preventDefault(); setPhase('loaded'); }
-    else if (k === 'm') { e.preventDefault(); modify(); }
+    else if (k === 'r') { e.preventDefault(); openReject(); }
+    else if (k === 'm') { e.preventDefault(); openModify(); }
   });
 
   // ============ Stage 4 — System Map deepening ============
@@ -1685,8 +1825,8 @@
     });
     var actions = [
       { primary: 'Approve current proposal', kbd: 'A',     run: function () { approve(); } },
-      { primary: 'Reject',                   kbd: 'R',     run: function () { setPhase('loaded'); } },
-      { primary: 'Modify',                   kbd: 'M',     run: function () { modify(); } },
+      { primary: 'Reject',                   kbd: 'R',     run: function () { openReject(); } },
+      { primary: 'Modify',                   kbd: 'M',     run: function () { openModify(); } },
       { primary: 'Open audit',               kbd: '',      run: function () { setSpace('cockpit'); setPhase('drift'); } },
       { primary: 'Reset demo',               kbd: '',      run: function () { setPhase('loaded'); } },
       { primary: 'Toggle theme',             kbd: '',      run: function () { setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); } },

@@ -92,27 +92,41 @@ body[data-phase="drift"] .priorities,
 body[data-phase="approved"] .priorities { display: none; }
 .priorities__list {
   list-style: none; padding: 0; margin: 0;
-  display: grid;
-  grid-template-columns: minmax(170px, 1fr) minmax(140px, max-content) minmax(220px, 2fr);
-  column-gap: var(--s4); row-gap: var(--s2);
+  display: flex; flex-direction: column;
+  gap: var(--s2);
 }
+/* Stage 18.4 — stack title + detail on the left, chip floats right */
 .priorities__row {
-  display: grid; grid-template-columns: subgrid;
-  grid-column: 1 / -1; align-items: center;
-  padding: var(--s2) var(--s3);
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-template-rows: auto auto;
+  column-gap: var(--s4);
+  row-gap: 2px;
+  align-items: center;
+  padding: var(--s3);
   border-radius: var(--r-md);
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-std);
+  border-bottom: 1px solid var(--border-subtle);
 }
+.priorities__row:last-child { border-bottom: 0; }
 .priorities__row:hover { background: var(--surface); }
 .priorities__name {
+  grid-column: 1; grid-row: 1;
   font-family: var(--font-body); font-size: var(--fs-base); font-weight: var(--fw-med);
   color: var(--text);
 }
 .priorities__detail {
+  grid-column: 1; grid-row: 2;
   font-family: var(--font-mono); font-size: var(--fs-meta);
   color: var(--text-muted); letter-spacing: var(--ls-wide);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  white-space: normal; overflow: visible; text-overflow: clip;
+  min-width: 0;
+}
+.priorities__row .chip {
+  grid-column: 2; grid-row: 1 / span 2;
+  align-self: center;
+  white-space: nowrap;
 }
 
 /* meter */
@@ -2801,6 +2815,102 @@ body[data-inclusion="overridden"] .inclusion-explainer {
 }
 
 /* ================================================================ */
+/* STAGE 18.5 — Action feedback panels (Approve / Reject / Modify)  */
+/* Every action on an expert dashboard leaves a visible trace.       */
+/* Vitaly's expert-user pattern: confirmation summarises what was    */
+/* acted on, with a link back to the audit trail.                    */
+/* ================================================================ */
+.action-fb {
+  margin-top: var(--s5);
+  padding: var(--s6);
+  background: var(--surface-elevated);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--amber);
+}
+.action-fb[hidden] { display: none; }
+.action-fb__eyebrow {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  font-weight: var(--fw-med); letter-spacing: var(--ls-wider);
+  color: var(--text-muted);
+  margin: 0 0 var(--s2) 0;
+}
+.action-fb__headline {
+  font-family: var(--font-display); font-size: var(--fs-lg); font-weight: var(--fw-bold);
+  color: var(--text);
+  margin: 0 0 var(--s4) 0;
+  line-height: var(--lh-tight);
+}
+.action-fb__textarea {
+  width: 100%;
+  font-family: var(--font-body); font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  padding: var(--s3) var(--s4);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color var(--dur-fast) var(--ease-std);
+}
+.action-fb__textarea:focus {
+  outline: none;
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px var(--amber-15);
+}
+.action-fb__row {
+  display: flex;
+  gap: var(--s3);
+  margin-top: var(--s4);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.action-fb__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--s3) 0;
+  display: flex; flex-direction: column;
+  gap: var(--s2);
+}
+.action-fb__list li {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  letter-spacing: var(--ls-wide);
+  color: var(--text);
+  padding-left: var(--s5);
+  position: relative;
+  line-height: var(--lh-snug);
+}
+.action-fb__list li::before {
+  content: "✓";
+  position: absolute; left: 0; top: 0;
+  color: var(--sage);
+  font-weight: var(--fw-bold);
+}
+.action-fb__list li.action-fb__list-item--rejected::before { content: "✗"; color: var(--amber); }
+.action-fb__list li.action-fb__list-item--modify::before   { content: "✎"; color: var(--steel); }
+.action-fb__note {
+  font-style: italic;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  margin: var(--s3) 0 0 0;
+  padding: var(--s3) var(--s4);
+  background: var(--bg);
+  border-left: 2px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow-wrap: anywhere;
+}
+.action-fb[data-state="approved"] { border-left-color: var(--sage); }
+.action-fb[data-state="rejected"] { border-left-color: var(--amber); }
+.action-fb[data-state="modified"] { border-left-color: var(--steel); }
+/* When a feedback panel is open, hide the approve-row */
+body[data-action-state="rejecting"] #approve-row,
+body[data-action-state="modifying"] #approve-row,
+body[data-action-state="approved"]  #approve-row,
+body[data-action-state="rejected"]  #approve-row,
+body[data-action-state="modified"]  #approve-row { display: none; }
+
+/* ================================================================ */
 /* STAGE 18.3 — Cross-space audit fixes                              */
 /* CHIP-flagged: every two-column grid was stretching the shorter    */
 /* column and long unbroken strings (request_ids, JSON, URLs) were   */
@@ -2842,6 +2952,16 @@ body[data-inclusion="overridden"] .inclusion-explainer {
   .space--map .map-grid .components-matrix,
   .space--map .map-grid .sync-cadence {
     grid-column: 1; grid-row: auto;
+  }
+  /* Disable sticky positioning when the layout stacks — otherwise the
+     detail panel pins over the matrix and sync-cadence below it. */
+  .map-detail,
+  .research-detail,
+  .voices-map__detail,
+  .friction__detail {
+    position: static;
+    max-height: none;
+    top: auto;
   }
 }
 
