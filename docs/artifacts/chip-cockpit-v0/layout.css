@@ -191,7 +191,7 @@ body[data-logged-in="true"] .splash {
 
 /* content */
 .content {
-  padding: var(--s10) var(--s8);
+  padding: var(--s4);             /* 16px on all sides — applies to every space */
   max-width: var(--max-w); width: 100%; margin: 0 auto;
   min-width: 0; flex: 1;
 }
@@ -203,7 +203,7 @@ body[data-space="bella"]     .space--bella     { display: block; }
 body[data-space="map"]       .space--map       { display: block; }
 body[data-space="steward"]   .space--steward   { display: block; }
 
-.space__header { margin-bottom: var(--s8); }
+.space__header { margin-bottom: var(--s4); }
 .space__eyebrow {
   font-family: var(--font-mono); font-size: var(--fs-label); font-weight: var(--fw-med);
   letter-spacing: var(--ls-wider); color: var(--text-2);

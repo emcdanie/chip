@@ -121,6 +121,46 @@
   //           delta pill "−56% since landscape shipped" appears, audit logs
   // approved: meter projects toward 94 (roadmap accepted, return to parity),
   //           resolved variant shows, audit logs again, fill becomes sage
+  // Stage 18.6 — per-platform parity targets, drift→approved transition
+  function updateParityBreakdown(phase) {
+    var rows = document.querySelectorAll('.parity-breakdown__row');
+    rows.forEach(function (row) {
+      var fill = row.querySelector('.parity-breakdown__fill');
+      var count = row.querySelector('.parity-breakdown__count');
+      var chip = row.querySelector('.parity-breakdown__chip');
+      var platform = row.getAttribute('data-platform');
+      var p, c, label, cls;
+      if (phase === 'approved') {
+        p = 100; c = '47 / 47'; label = 'In sync'; cls = 'chip--success';
+      } else {
+        if (platform === 'web')      { p = 100; c = '47 / 47'; label = 'In sync'; cls = 'chip--success'; }
+        else if (platform === 'ios') { p = 49;  c = '23 / 47'; label = 'Drift';   cls = 'chip--accent';  }
+        else                         { p = 0;   c = '0 / 47';  label = 'Drift';   cls = 'chip--accent';  }
+      }
+      if (fill)  fill.style.setProperty('--p', p);
+      if (count) count.textContent = c;
+      if (chip) {
+        chip.classList.remove('chip--success', 'chip--accent', 'chip--info', 'chip--muted');
+        chip.classList.add(cls);
+        chip.textContent = label;
+      }
+    });
+    // Components-in-spec summary numbers
+    var summary = document.querySelector('.parity-summary');
+    if (summary) {
+      var nums = summary.querySelectorAll('.parity-summary__num');
+      if (phase === 'approved') {
+        if (nums[0]) nums[0].textContent = '47';
+        if (nums[1]) nums[1].textContent = '0';
+        if (nums[2]) nums[2].textContent = '0';
+      } else {
+        if (nums[0]) nums[0].textContent = '12';
+        if (nums[1]) nums[1].textContent = '24';
+        if (nums[2]) nums[2].textContent = '11';
+      }
+    }
+  }
+
   function setPhase(phase) {
     var prev = body.getAttribute('data-phase');
     if (phase === prev) return;
@@ -145,6 +185,18 @@
       setTimeout(function () { setMapek('knowledge'); }, 800);
     }
     updateApproveAvailability();
+    updateParityBreakdown(phase);
+
+    // Stage 18.6 — when entering drift, scroll the proposal into view so the
+    // operator doesn't have to hunt for it.
+    if (phase === 'drift') {
+      setTimeout(function () {
+        var diag = document.getElementById('diag-card') || document.querySelector('.diag');
+        if (diag && diag.scrollIntoView) {
+          diag.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 80);
+    }
   }
 
   // ============ Stage 18.5 — Action feedback panels ============
@@ -1176,8 +1228,33 @@
     return out.join('');
   }
 
+  function updateChatControls() {
+    var ctrls = document.getElementById('ask-controls');
+    var meta = document.getElementById('ask-meta');
+    if (!ctrls) return;
+    var hasTurns = askTurns.length > 0;
+    ctrls.hidden = !hasTurns;
+    if (meta) {
+      var sid = '';
+      try { sid = localStorage.getItem(ASK_SESSION_KEY) || ''; } catch (_) {}
+      meta.textContent = sid ? 'Session ' + sid.slice(0, 12) + '…' : '';
+    }
+  }
+
+  function resetChat() {
+    askTurns = [];
+    try { localStorage.removeItem(ASK_SESSION_KEY); } catch (_) {}
+    if (askChat) askChat.innerHTML = '';
+    updateChatControls();
+    if (agentAskInput) { agentAskInput.disabled = false; agentAskInput.focus(); }
+    appendAuditEntry(nowTs() + ' · New conversation started · session cleared · Operator: Elleta');
+  }
+  var btnNewChat = document.getElementById('btn-new-chat');
+  if (btnNewChat) btnNewChat.addEventListener('click', resetChat);
+
   function renderTurns() {
     if (!askChat) return;
+    updateChatControls();
     var html = askTurns.slice(-ASK_MAX_TURNS).map(function (t) {
       if (t.role === 'operator') {
         return '<div class="ask-turn">' +
@@ -1227,19 +1304,64 @@
     });
   }
 
+  // Stage 18.8 — gather the visible cockpit state and prepend it to the
+  // user message as a [cockpit state] block. The agent uses it to ground
+  // answers to "what needs my attention" / "what's blocked" / etc. without
+  // requiring live Jira/Slack/Storybook MCPs.
+  function gatherCockpitState() {
+    var parity = document.getElementById('meter-value-text');
+    var phaseAttr = document.body.getAttribute('data-phase') || 'loaded';
+    var auditCount = document.querySelectorAll('#audit-log .audit__entry').length;
+    var rows = document.querySelectorAll('.parity-breakdown__row');
+    var platforms = [];
+    rows.forEach(function (r) {
+      var label = r.querySelector('.parity-breakdown__label');
+      var count = r.querySelector('.parity-breakdown__count');
+      var chip  = r.querySelector('.parity-breakdown__chip');
+      if (label && count && chip) {
+        platforms.push(label.textContent.trim() + ' ' + count.textContent.trim() + ' (' + chip.textContent.trim() + ')');
+      }
+    });
+    var space = document.body.getAttribute('data-space') || 'cockpit';
+    return {
+      space:        space,
+      phase:        phaseAttr,
+      parity:       parity ? parity.textContent.trim() : null,
+      platforms:    platforms,
+      audit_count:  auditCount,
+    };
+  }
+  function buildAskMessage(userMessage) {
+    var s = gatherCockpitState();
+    var ctx = '[cockpit state · for grounding · do not echo verbatim]\n' +
+      '- Space: ' + s.space + '\n' +
+      '- Phase: ' + s.phase + ' (' +
+        (s.phase === 'drift' ? 'audit open, awaiting approval' :
+         s.phase === 'approved' ? 'roadmap approved, work filed' :
+         'monitoring') + ')\n' +
+      '- Parity: ' + (s.parity || 'unknown') + '\n' +
+      (s.platforms.length ? '- Platforms: ' + s.platforms.join(' · ') + '\n' : '') +
+      '- Audit entries today: ' + s.audit_count + '\n' +
+      '- Pending: 1 proposal awaiting approval, 3 inbox replies, 3 events today, 6 items in Coming up\n\n' +
+      'Operator question:\n' + userMessage;
+    return ctx;
+  }
+
   function doAsk(message) {
     var sessionId;
     try { sessionId = localStorage.getItem(ASK_SESSION_KEY) || undefined; } catch (_) {}
 
     if (agentAskInput) agentAskInput.disabled = true;
-    askTurns.push({ role: 'operator', text: message });
+    askTurns.push({ role: 'operator', text: message });   // operator sees their original question
     renderTurns();
     showSkeleton();
+
+    var payloadMessage = buildAskMessage(message);
 
     fetch('http://localhost:3000/ask', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ message: message, sessionId: sessionId }),
+      body:    JSON.stringify({ message: payloadMessage, sessionId: sessionId }),
     })
     .then(function (res) { return res.json(); })
     .then(function (data) {
@@ -1273,15 +1395,151 @@
     });
   }
 
-  // ============ Stage 10.3/10.4 — log inbox + today actions ============
+  // ============ Stage 18.7 — Inbox compose + audit ============
+  // Reply opens an inline composition panel with a prefilled draft.
+  // Defer / Done write audit entries and visually mark the row.
+  // In v1 these route through Slack / Gmail MCP servers the same way
+  // Notion does — for now they record the operator's intent and decision
+  // path through the cockpit.
+  function getRowMeta(row) {
+    var src = row.querySelector('.inbox-card__source');
+    var quote = row.querySelector('.inbox-card__quote');
+    var meta = row.querySelector('.inbox-card__meta');
+    return {
+      source:  src ? src.textContent.trim() : 'Inbox',
+      quote:   quote ? quote.textContent.trim().replace(/^"|"$/g, '') : '',
+      meta:    meta ? meta.textContent.trim() : '',
+    };
+  }
+
+  function draftFor(rowMeta) {
+    // Minimal heuristic: if it's a question, draft a direct answer template;
+    // otherwise acknowledge + propose a next step.
+    var q = rowMeta.quote;
+    if (/[?]\s*$/.test(q)) {
+      // Question — propose a yes/no/sync framing
+      if (/sync/i.test(q))   return 'Yes — Friday at 14:00 works. I\'ll bring the focus-ring fix; can you bring the iOS focus order audit?';
+      if (/shipping/i.test(q)) return 'Modal landscape variant: shipping next sprint. Holding this sprint until the iOS focus-order parity is signed off — should land in BELLA-1247.';
+      if (/good\?/i.test(q)) return 'Good on Web and iOS, Android still missing 47 components. Component freeze for Q3 is fine if Android catches up by parity review (Friday 10:00).';
+    }
+    return 'Acknowledged — looking now. Will reply with a concrete next step within 30 min.';
+  }
+
+  function nowTs() {
+    var d = new Date();
+    return d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0') + ' ' +
+      String(d.getHours()).padStart(2,'0') + ':' +
+      String(d.getMinutes()).padStart(2,'0');
+  }
+
+  function closeCompose(row) {
+    var cmp = row.querySelector('[data-compose]');
+    if (cmp) { cmp.hidden = true; cmp.innerHTML = ''; }
+    row.removeAttribute('data-row-state');
+  }
+
+  function openReply(row) {
+    var cmp = row.querySelector('[data-compose]');
+    if (!cmp) return;
+    var meta = getRowMeta(row);
+    var draft = draftFor(meta);
+    var channel = meta.source.split('·')[0].trim();      // "Slack · #ds-leads" → "Slack"
+    cmp.hidden = false;
+    cmp.innerHTML =
+      '<form class="compose" data-compose-form>' +
+        '<p class="compose__eyebrow">Reply via ' + escapeHtml(channel) +
+          ' <span class="chip chip--muted" style="font-size:var(--fs-meta);padding:1px var(--s2)">v1 routes through MCP</span></p>' +
+        '<textarea class="compose__textarea" rows="3" required>' + escapeHtml(draft) + '</textarea>' +
+        '<div class="compose__row">' +
+          '<button type="button" class="btn btn--sm btn--neutral" data-compose-cancel>Cancel</button>' +
+          '<button type="submit" class="btn btn--sm btn--primary">Send</button>' +
+        '</div>' +
+      '</form>';
+    row.setAttribute('data-row-state', 'composing');
+    var ta = cmp.querySelector('textarea');
+    if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+
+    cmp.querySelector('[data-compose-cancel]').addEventListener('click', function () {
+      closeCompose(row);
+    });
+    cmp.querySelector('[data-compose-form]').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var sent = (ta && ta.value || '').trim();
+      if (!sent) return;
+      var ts = nowTs();
+      appendAuditEntry(ts + ' · Reply drafted via ' + channel + ' · ready to send when MCP wired · Operator: Elleta');
+      // Replace compose form with a sent confirmation
+      cmp.innerHTML =
+        '<div class="compose compose--sent">' +
+          '<p class="compose__eyebrow">' + escapeHtml(ts) + ' · Drafted via ' + escapeHtml(channel) + '</p>' +
+          '<p class="compose__sent-headline">Reply queued. CHIP will send it once the ' + escapeHtml(channel) + ' MCP is connected.</p>' +
+          '<blockquote class="compose__sent-body">' + escapeHtml(sent) + '</blockquote>' +
+          '<p class="compose__sent-note">Audit entry written below. Reply state recorded; mark Done when delivered.</p>' +
+        '</div>';
+      row.setAttribute('data-row-state', 'sent');
+    });
+  }
+
+  function defer(row) {
+    var meta = getRowMeta(row);
+    var channel = meta.source.split('·')[0].trim();
+    var ts = nowTs();
+    appendAuditEntry(ts + ' · Deferred ' + channel + ' reply · re-surface tomorrow 09:00 · Operator: Elleta');
+    var cmp = row.querySelector('[data-compose]');
+    if (cmp) {
+      cmp.hidden = false;
+      cmp.innerHTML =
+        '<div class="compose compose--deferred">' +
+          '<p class="compose__eyebrow">' + escapeHtml(ts) + ' · Deferred</p>' +
+          '<p class="compose__sent-headline">Re-surface tomorrow 09:00. CHIP will remind you.</p>' +
+        '</div>';
+    }
+    row.setAttribute('data-row-state', 'deferred');
+  }
+
+  function markDone(row) {
+    var meta = getRowMeta(row);
+    var channel = meta.source.split('·')[0].trim();
+    var ts = nowTs();
+    appendAuditEntry(ts + ' · Marked done · ' + channel + ' · no reply needed · Operator: Elleta');
+    var cmp = row.querySelector('[data-compose]');
+    if (cmp) {
+      cmp.hidden = false;
+      cmp.innerHTML =
+        '<div class="compose compose--done">' +
+          '<p class="compose__eyebrow">' + escapeHtml(ts) + ' · Done</p>' +
+          '<p class="compose__sent-headline">Marked complete. No outbound reply.</p>' +
+        '</div>';
+    }
+    row.setAttribute('data-row-state', 'done');
+  }
+
   document.querySelectorAll('[data-inbox-action]').forEach(function (b) {
     b.addEventListener('click', function () {
-      console.log('[CHIP] inbox action:', b.getAttribute('data-inbox-action'));
+      var row = b.closest('.inbox-card__row');
+      if (!row) return;
+      var action = b.getAttribute('data-inbox-action');
+      if (action === 'reply')      openReply(row);
+      else if (action === 'defer') defer(row);
+      else if (action === 'done')  markDone(row);
     });
   });
+
+  // ============ Today card · Open events ============
   document.querySelectorAll('.today-card__open').forEach(function (b) {
     b.addEventListener('click', function () {
-      console.log('[CHIP] open event from today card');
+      var title = b.getAttribute('data-event-title') || 'event';
+      var time = b.getAttribute('data-event-time') || '';
+      var atts = b.getAttribute('data-event-attendees') || '';
+      var ts = nowTs();
+      appendAuditEntry(ts + ' · Opened "' + title + '" (' + time + ') · ' + atts + ' · Operator: Elleta');
+      // Briefly mark the button state for visual feedback
+      var orig = b.textContent;
+      b.textContent = 'Opened ✓';
+      b.disabled = true;
+      setTimeout(function () { b.textContent = orig; b.disabled = false; }, 1400);
     });
   });
 
@@ -2010,14 +2268,55 @@
     }
   });
 
-  // ============ Stage 14.7 — Stat card click → scroll + pulse ============
+  // ============ Stage 18.9 — Stat card click → meaningful action ============
+  // Pending     → open the audit (drift phase) so the proposal is visible
+  // Inbox       → jump to pending replies, open all three reply drafts
+  // Today       → jump to today's events
+  // Coming up   → jump to Coming up surface in this week
+  // Each writes an audit-ribbon entry so the operator sees the click recorded.
   document.querySelectorAll('[data-stat-target]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var target = document.getElementById(btn.getAttribute('data-stat-target'));
-      if (!target) return;
-      target.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'center' });
-      target.classList.add('bento-stat--pulse');
-      setTimeout(function () { target.classList.remove('bento-stat--pulse'); }, 700);
+      var key = btn.getAttribute('data-stat-target');
+      var target = document.getElementById(key);
+      var ts = nowTs();
+
+      if (key === 'diag-card') {
+        // Pending → ensure audit is open so the proposal is visible
+        if (body.getAttribute('data-phase') !== 'drift') {
+          setPhase('drift');     // setPhase already handles scroll-into-view
+        } else if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        appendAuditEntry(ts + ' · Opened pending proposal · landscape mode roadmap · Operator: Elleta');
+      }
+      else if (key === 'inbox-card') {
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Open reply drafts for all rows that aren't already in a state
+        document.querySelectorAll('.inbox-card__row').forEach(function (row) {
+          if (!row.getAttribute('data-row-state')) {
+            // Defer call so scroll completes first; visually clearer
+            setTimeout(function () { openReply(row); }, 250);
+          }
+        });
+        appendAuditEntry(ts + ' · Opened inbox · 3 reply drafts prepared · Operator: Elleta');
+      }
+      else if (key === 'today-card') {
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        appendAuditEntry(ts + ' · Opened today · 3 events surfaced · next at 10:00 · Operator: Elleta');
+      }
+      else if (key === 'upcoming-card') {
+        setSpace('steward');     // jump to the dedicated Coming up space — full calendar view
+        appendAuditEntry(ts + ' · Opened Coming up · 6 rituals scheduled this week · Operator: Elleta');
+      }
+      else if (target) {
+        target.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'center' });
+      }
+
+      // Pulse the target for visual confirmation
+      if (target) {
+        target.classList.add('bento-stat--pulse');
+        setTimeout(function () { target.classList.remove('bento-stat--pulse'); }, 700);
+      }
     });
   });
 

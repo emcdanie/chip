@@ -205,6 +205,53 @@
             </div>
             <div class="meter__bar"><span class="meter__fill"></span></div>
           </div>
+
+          <!-- Stage 18.6 — Parity breakdown: per-platform coverage + components-in-spec counts -->
+          <ul class="parity-breakdown" id="parity-breakdown">
+            <li class="parity-breakdown__row" data-platform="web">
+              <span class="parity-breakdown__label">Web</span>
+              <span class="parity-breakdown__bar" aria-hidden="true">
+                <span class="parity-breakdown__fill" style="--p:100"></span>
+              </span>
+              <span class="parity-breakdown__count">47 / 47</span>
+              <span class="parity-breakdown__chip chip chip--success">In sync</span>
+            </li>
+            <li class="parity-breakdown__row" data-platform="ios">
+              <span class="parity-breakdown__label">iOS</span>
+              <span class="parity-breakdown__bar" aria-hidden="true">
+                <span class="parity-breakdown__fill" style="--p:49"></span>
+              </span>
+              <span class="parity-breakdown__count">23 / 47</span>
+              <span class="parity-breakdown__chip chip chip--accent">Drift</span>
+            </li>
+            <li class="parity-breakdown__row" data-platform="android">
+              <span class="parity-breakdown__label">Android</span>
+              <span class="parity-breakdown__bar" aria-hidden="true">
+                <span class="parity-breakdown__fill" style="--p:0"></span>
+              </span>
+              <span class="parity-breakdown__count">0 / 47</span>
+              <span class="parity-breakdown__chip chip chip--accent">Drift</span>
+            </li>
+          </ul>
+
+          <dl class="parity-summary">
+            <div class="parity-summary__item">
+              <dt>Components in spec</dt>
+              <dd><span class="parity-summary__num">12</span> <span class="parity-summary__total">/ 47</span></dd>
+            </div>
+            <div class="parity-summary__item">
+              <dt>Needs attention</dt>
+              <dd><span class="parity-summary__num parity-summary__num--warn">24</span></dd>
+            </div>
+            <div class="parity-summary__item">
+              <dt>Critical</dt>
+              <dd><span class="parity-summary__num parity-summary__num--crit">11</span></dd>
+            </div>
+            <div class="parity-summary__item">
+              <dt>Last sync</dt>
+              <dd>14m ago</dd>
+            </div>
+          </dl>
         </article>
 
         <!-- Stage 10.2 — Agent card (persistent CHIP presence) -->
@@ -227,6 +274,10 @@
             Report generation is v1. The simulation is real.
           </div>
           <div class="agent-card__chat" id="ask-chat" aria-live="polite" aria-atomic="false"></div>
+          <div class="agent-card__chat-controls" id="ask-controls" hidden>
+            <button type="button" id="btn-new-chat" class="agent-card__new-chat">New conversation</button>
+            <span class="agent-card__chat-meta" id="ask-meta"></span>
+          </div>
         </article>
 
         <!-- Stage 14.1 — 4 stat cards -->
@@ -399,8 +450,10 @@
           </p>
         </article>
 
-        <!-- Tier 2.2 — top-3 priorities (bento half) -->
-        <article class="priorities bento-half" aria-labelledby="priorities-eyebrow">
+        <!-- Stage 18.11 — Half cards in 2-column masonry wrapper (true column-pack) -->
+        <div class="cockpit-halves bento-full">
+        <!-- Tier 2.2 — top-3 priorities -->
+        <article class="priorities" aria-labelledby="priorities-eyebrow">
           <p id="priorities-eyebrow" class="card__eyebrow">Today</p>
           <ul class="priorities__list" role="list">
             <li class="priorities__row" tabindex="0">
@@ -421,8 +474,8 @@
           </ul>
         </article>
 
-        <!-- Stage 10.3 — Inbox glance -->
-        <article class="card inbox-card bento-half" aria-labelledby="inbox-eyebrow">
+        <!-- Stage 10.3 — Inbox glance (column-count's natural fill puts this in col 1 with priorities) -->
+        <article class="card inbox-card" id="inbox-card" aria-labelledby="inbox-eyebrow">
           <p id="inbox-eyebrow" class="card__eyebrow">Inbox · 3 awaiting reply</p>
           <h3 class="card__headline">Pending replies across email, Slack, Linear.</h3>
           <ul class="inbox-card__list" role="list">
@@ -433,10 +486,11 @@
                 <p class="inbox-card__meta">14m ago · BELLA-landscape-thread</p>
               </div>
               <div class="inbox-card__actions">
-                <button type="button" class="chip chip--info inbox-card__chip" data-inbox-action="reply">Reply</button>
-                <button type="button" class="chip chip--muted inbox-card__chip" data-inbox-action="defer">Defer</button>
-                <button type="button" class="chip chip--success inbox-card__chip" data-inbox-action="done">Done</button>
+                <button type="button" class="btn btn--sm btn--info inbox-card__chip" data-inbox-action="reply">Reply</button>
+                <button type="button" class="btn btn--sm btn--neutral inbox-card__chip" data-inbox-action="defer">Defer</button>
+                <button type="button" class="btn btn--sm btn--success inbox-card__chip" data-inbox-action="done">Done</button>
               </div>
+              <div class="inbox-card__compose" data-compose hidden></div>
             </li>
             <li class="inbox-card__row">
               <div class="inbox-card__body">
@@ -445,10 +499,11 @@
                 <p class="inbox-card__meta">2h ago · iOS Lead</p>
               </div>
               <div class="inbox-card__actions">
-                <button type="button" class="chip chip--info inbox-card__chip" data-inbox-action="reply">Reply</button>
-                <button type="button" class="chip chip--muted inbox-card__chip" data-inbox-action="defer">Defer</button>
-                <button type="button" class="chip chip--success inbox-card__chip" data-inbox-action="done">Done</button>
+                <button type="button" class="btn btn--sm btn--info inbox-card__chip" data-inbox-action="reply">Reply</button>
+                <button type="button" class="btn btn--sm btn--neutral inbox-card__chip" data-inbox-action="defer">Defer</button>
+                <button type="button" class="btn btn--sm btn--success inbox-card__chip" data-inbox-action="done">Done</button>
               </div>
+              <div class="inbox-card__compose" data-compose hidden></div>
             </li>
             <li class="inbox-card__row">
               <div class="inbox-card__body">
@@ -457,33 +512,43 @@
                 <p class="inbox-card__meta">yesterday · BELLA project</p>
               </div>
               <div class="inbox-card__actions">
-                <button type="button" class="chip chip--info inbox-card__chip" data-inbox-action="reply">Reply</button>
-                <button type="button" class="chip chip--muted inbox-card__chip" data-inbox-action="defer">Defer</button>
-                <button type="button" class="chip chip--success inbox-card__chip" data-inbox-action="done">Done</button>
+                <button type="button" class="btn btn--sm btn--info inbox-card__chip" data-inbox-action="reply">Reply</button>
+                <button type="button" class="btn btn--sm btn--neutral inbox-card__chip" data-inbox-action="defer">Defer</button>
+                <button type="button" class="btn btn--sm btn--success inbox-card__chip" data-inbox-action="done">Done</button>
               </div>
+              <div class="inbox-card__compose" data-compose hidden></div>
             </li>
           </ul>
         </article>
 
-        <!-- Stage 10.4 — Today calendar glance -->
-        <article class="card today-card bento-half" aria-labelledby="today-eyebrow">
+        <!-- Stage 10.4 — Today calendar glance (column 2 first tile) -->
+        <article class="card today-card" id="today-card" aria-labelledby="today-eyebrow">
           <p id="today-eyebrow" class="card__eyebrow">Today · 3 events</p>
           <h3 class="card__headline">Saturday April 25 · DS leads sync at 10:00.</h3>
           <ul class="today-card__list" role="list">
             <li class="today-card__row">
               <span class="today-card__time">10:00 — 11:30</span>
               <span class="today-card__title">DS leads sync</span>
-              <button type="button" class="chip chip--muted today-card__open">Open</button>
+              <button type="button" class="btn btn--sm btn--neutral today-card__open"
+                data-event-title="DS leads sync"
+                data-event-time="10:00 — 11:30"
+                data-event-attendees="Web Lead, iOS Lead, Android Lead">Open</button>
             </li>
             <li class="today-card__row">
               <span class="today-card__time">13:30 — 14:00</span>
               <span class="today-card__title">1:1 with Web Lead</span>
-              <button type="button" class="chip chip--muted today-card__open">Open</button>
+              <button type="button" class="btn btn--sm btn--neutral today-card__open"
+                data-event-title="1:1 with Web Lead"
+                data-event-time="13:30 — 14:00"
+                data-event-attendees="Web Lead">Open</button>
             </li>
             <li class="today-card__row">
               <span class="today-card__time">16:00 — 17:00</span>
               <span class="today-card__title">Friday review prep</span>
-              <button type="button" class="chip chip--muted today-card__open">Open</button>
+              <button type="button" class="btn btn--sm btn--neutral today-card__open"
+                data-event-title="Friday review prep"
+                data-event-time="16:00 — 17:00"
+                data-event-attendees="solo · 14 tickets to triage">Open</button>
             </li>
           </ul>
           <p class="today-card__next-label">Next — tomorrow</p>
@@ -491,13 +556,16 @@
             <li class="today-card__row today-card__row--next">
               <span class="today-card__time">09:00 — 09:30</span>
               <span class="today-card__title">Quick standup</span>
-              <button type="button" class="chip chip--muted today-card__open">Open</button>
+              <button type="button" class="btn btn--sm btn--neutral today-card__open"
+                data-event-title="Quick standup"
+                data-event-time="09:00 — 09:30 · tomorrow"
+                data-event-attendees="full DS team">Open</button>
             </li>
           </ul>
         </article>
 
-        <!-- Stage 14.2 — Coming up preview (bento half) -->
-        <article class="card upcoming-card bento-half" id="upcoming-card" aria-labelledby="upcoming-eyebrow">
+        <!-- Stage 14.2 — Coming up preview (column 2 second tile) -->
+        <article class="card upcoming-card" id="upcoming-card" aria-labelledby="upcoming-eyebrow">
           <p id="upcoming-eyebrow" class="card__eyebrow">Coming up · 3 surface in your cockpit this week</p>
           <ul class="upcoming-card__list" role="list">
             <li class="upcoming-card__row">
@@ -515,6 +583,7 @@
           </ul>
           <button type="button" class="upcoming-card__more" id="upcoming-card-more">→ See all 6 in Coming up</button>
         </article>
+        </div><!-- /.cockpit-halves -->
 
         <!-- Stage 10.5 — surfaces shelf with compact-mode toggle -->
         <article class="card surfaces surfaces--compact bento-full" aria-labelledby="surfaces-eyebrow">
@@ -1105,6 +1174,92 @@
           <h1 class="space__title" id="steward-title">Coming up</h1>
           <p class="space__subtitle">Reviews CHIP will bring to your cockpit. Each row is a future moment of attention.</p>
         </header>
+
+        <!-- Stage 18.10 — Visual week calendar -->
+        <section class="rituals-cal" aria-label="This week's rituals">
+          <header class="rituals-cal__header">
+            <p class="rituals-cal__eyebrow">This week · 6 rituals scheduled</p>
+            <p class="rituals-cal__title">April 26 — May 2, 2026</p>
+          </header>
+          <ol class="rituals-cal__week" role="list">
+            <li class="rituals-cal__day rituals-cal__day--today">
+              <p class="rituals-cal__dow">Sun</p>
+              <p class="rituals-cal__date">26</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item rituals-cal__item--maintenance" data-ritual-jump="miseenplace">
+                  <span class="rituals-cal__time">18:00</span>
+                  <span class="rituals-cal__title">Mise en place</span>
+                  <span class="rituals-cal__detail">sweep stale entries</span>
+                </li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day">
+              <p class="rituals-cal__dow">Mon</p>
+              <p class="rituals-cal__date">27</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item" data-ritual-jump="publish">
+                  <span class="rituals-cal__time">09:00</span>
+                  <span class="rituals-cal__title">Publish queue</span>
+                  <span class="rituals-cal__detail">elleta.design · 2 pages</span>
+                </li>
+                <li class="rituals-cal__item" data-ritual-jump="subscriptions">
+                  <span class="rituals-cal__time">11:00</span>
+                  <span class="rituals-cal__title">Subscription sweep</span>
+                  <span class="rituals-cal__detail">1 idle tool flagged</span>
+                </li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day">
+              <p class="rituals-cal__dow">Tue</p>
+              <p class="rituals-cal__date">28</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item rituals-cal__item--empty">—</li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day">
+              <p class="rituals-cal__dow">Wed</p>
+              <p class="rituals-cal__date">29</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item" data-ritual-jump="friction">
+                  <span class="rituals-cal__time">10:00</span>
+                  <span class="rituals-cal__title">Friction triage</span>
+                  <span class="rituals-cal__detail">3 open notes</span>
+                </li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day">
+              <p class="rituals-cal__dow">Thu</p>
+              <p class="rituals-cal__date">30</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item rituals-cal__item--empty">—</li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day rituals-cal__day--anchor">
+              <p class="rituals-cal__dow">Fri</p>
+              <p class="rituals-cal__date">1</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item rituals-cal__item--anchor" data-ritual-jump="parity">
+                  <span class="rituals-cal__time">10:00</span>
+                  <span class="rituals-cal__title">Parity review</span>
+                  <span class="rituals-cal__detail">23 components · all platforms</span>
+                </li>
+                <li class="rituals-cal__item" data-ritual-jump="research">
+                  <span class="rituals-cal__time">14:00</span>
+                  <span class="rituals-cal__title">Research digest</span>
+                  <span class="rituals-cal__detail">3 new sources</span>
+                </li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day">
+              <p class="rituals-cal__dow">Sat</p>
+              <p class="rituals-cal__date">2</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item rituals-cal__item--empty">—</li>
+              </ul>
+            </li>
+          </ol>
+          <p class="rituals-cal__footnote">Click any tile to jump to its detail below.</p>
+        </section>
 
         <ul class="rituals">
           <li class="ritual" data-ritual="parity" tabindex="0" role="button" aria-expanded="false">

@@ -68,17 +68,51 @@
   min-height: 44px;
   font-family: var(--font-mono); font-size: var(--fs-label); font-weight: var(--fw-bold);
   letter-spacing: var(--ls-wide);
-  transition: background var(--dur-fast) var(--ease-std);
+  transition: background var(--dur-fast) var(--ease-std), border-color var(--dur-fast) var(--ease-std);
+  cursor: pointer;
 }
 .btn:hover:not(:disabled) { background: var(--amber-15); }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .btn--primary { background: var(--amber); color: var(--ink); }       /* AGENTS.md: ink-on-amber AAA — keep */
 .btn--primary:hover { background: var(--amber-hover); }
 
+/* Stage 18.7 — compact button variants for inline actions
+   (inbox row, Reply / Defer / Done) — same family as the
+   Reject/Modify/Approve buttons in the proposal, just denser. */
+.btn--sm {
+  min-height: 32px;
+  padding: var(--s1) var(--s3);
+  font-size: var(--fs-meta);
+  border-radius: var(--r-sm);
+}
+.btn--neutral {
+  border-color: var(--border);
+  color: var(--text-2);
+}
+.btn--neutral:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.btn--success {
+  border-color: var(--sage);
+  color: var(--text);
+}
+.btn--success:hover:not(:disabled) {
+  background: var(--sage-15, rgba(120, 158, 120, 0.15));
+}
+.btn--info {
+  border-color: var(--steel);
+  color: var(--text);
+}
+.btn--info:hover:not(:disabled) {
+  background: var(--steel-15, rgba(132, 161, 184, 0.15));
+}
+
 /* ================================================================ */
 /* COCKPIT SPACE — cross-platform reframe (Tier 1.2)                 */
 /* ================================================================ */
-.triggers { display: flex; gap: var(--s3); justify-content: flex-end; margin-bottom: var(--s6); }
+.triggers { display: flex; gap: var(--s3); justify-content: flex-end; margin-bottom: var(--s4); }
 
 /* Tier 2.2 — top-3 priorities card */
 .priorities {
@@ -135,7 +169,7 @@ body[data-phase="approved"] .priorities { display: none; }
   border-radius: var(--r-xl);
   box-shadow: var(--shadow-soft);
   padding: var(--s8);
-  margin-bottom: var(--s6);
+  margin-bottom: var(--s4);          /* 16px — outside-bento usage */
 }
 .meter-card__subject {
   font-size: var(--fs-sm); color: var(--text-2); margin: 0 0 var(--s6) 0;
@@ -176,6 +210,104 @@ body[data-phase="approved"] .meter__delta {
   transition: background var(--dur-normal) var(--ease-std);
 }
 body[data-phase="approved"] .meter__fill { background: var(--sage); }   /* roadmap accepted → sage */
+
+/* Stage 18.6 — Parity breakdown: per-platform coverage rows */
+.parity-breakdown {
+  list-style: none; padding: 0; margin: var(--s5) 0 0 0;
+  display: flex; flex-direction: column;
+  gap: var(--s3);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--s5);
+}
+.parity-breakdown__row {
+  display: grid;
+  grid-template-columns: 80px 1fr max-content max-content;
+  gap: var(--s3);
+  align-items: center;
+}
+.parity-breakdown__label {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  font-weight: var(--fw-med); letter-spacing: var(--ls-wide);
+  color: var(--text);
+}
+.parity-breakdown__bar {
+  display: block; height: 6px;
+  background: var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+.parity-breakdown__fill {
+  display: block; height: 100%;
+  width: calc(var(--p, 0) * 1%);
+  background: var(--sage);
+  border-radius: inherit;
+  transition: width var(--dur-slow) var(--ease-std), background var(--dur-normal) var(--ease-std);
+}
+.parity-breakdown__row[data-platform="ios"] .parity-breakdown__fill,
+.parity-breakdown__row[data-platform="android"] .parity-breakdown__fill {
+  background: var(--amber);
+}
+body[data-phase="approved"] .parity-breakdown__row[data-platform="ios"] .parity-breakdown__fill,
+body[data-phase="approved"] .parity-breakdown__row[data-platform="android"] .parity-breakdown__fill {
+  background: var(--sage);
+}
+.parity-breakdown__count {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  letter-spacing: var(--ls-wide);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.parity-breakdown__chip {
+  font-size: var(--fs-meta);
+  white-space: nowrap;
+}
+
+/* Parity summary — components-in-spec counts + last sync */
+.parity-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s4);
+  margin: var(--s5) 0 0 0;
+  padding-top: var(--s5);
+  border-top: 1px solid var(--border-subtle);
+}
+.parity-summary__item {
+  margin: 0;
+  display: flex; flex-direction: column;
+  gap: var(--s1);
+}
+.parity-summary__item dt {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  font-weight: var(--fw-med); letter-spacing: var(--ls-wider);
+  color: var(--text-muted);
+  margin: 0;
+}
+.parity-summary__item dd {
+  font-family: var(--font-display); font-weight: var(--fw-bold);
+  color: var(--text);
+  margin: 0;
+  font-size: var(--fs-base);
+}
+.parity-summary__num {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  line-height: 1;
+}
+.parity-summary__num--warn { color: var(--amber); }
+.parity-summary__num--crit { color: var(--ink); }
+.parity-summary__total {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  color: var(--text-muted);
+  font-weight: var(--fw-body);
+}
+@media (max-width: 720px) {
+  .parity-summary { grid-template-columns: repeat(2, 1fr); }
+  .parity-breakdown__row {
+    grid-template-columns: 60px 1fr max-content;
+  }
+  .parity-breakdown__chip { display: none; }
+}
 
 /* diag — Tier 1.10 layered shadow on drift */
 .diag {
@@ -243,7 +375,7 @@ body[data-phase="approved"] .diag__expand { display: none; }
 .diag__expand:hover { color: var(--text); }
 
 /* surfaces shelf */
-.surfaces { margin-top: var(--s6); }
+.surfaces { margin-top: var(--s4); }   /* 16px gap from halves above */
 body[data-phase="drift"] .surfaces { display: none; }
 .surfaces__list {
   list-style: none; padding: 0; margin: 0;
@@ -346,8 +478,8 @@ body[data-phase="drift"] .surfaces { display: none; }
 /* ================================================================ */
 .primitive-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  align-items: start;        /* don't stretch primitive cards to match tallest neighbour */
-  gap: var(--s5);
+  align-items: start;
+  gap: var(--s4);            /* 16px — page-wide standard */
 }
 .primitive-grid > * { min-width: 0; }
 .primitive {
@@ -462,9 +594,9 @@ body[data-phase="drift"] .surfaces { display: none; }
 .map-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
-  align-items: start;        /* don't stretch detail panel to match SVG card */
-  gap: var(--s5);
-  margin-bottom: var(--s6);
+  align-items: start;
+  gap: var(--s4);            /* 16px — page-wide standard */
+  margin-bottom: var(--s4);
 }
 .map-grid > * { min-width: 0; }
 
@@ -845,8 +977,8 @@ body[data-phase="approved"] .cockpit-action { display: none; }
 .friction-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
-  align-items: start;        /* don't stretch side panel to match list */
-  gap: var(--s5);
+  align-items: start;
+  gap: var(--s4);            /* 16px — page-wide standard */
 }
 .friction-grid > * { min-width: 0; }
 .friction__entry {
@@ -1219,6 +1351,38 @@ body:not([data-space="cockpit"]) .today-card { display: none; }
 .toast--visible { opacity: 1; transform: translateY(0); }
 .agent-card__input:disabled { opacity: 0.55; cursor: not-allowed; }
 
+/* Stage 18.8 — chat controls (New conversation + session meta) */
+.agent-card__chat-controls {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--border-subtle);
+  gap: var(--s3);
+}
+.agent-card__chat-controls[hidden] { display: none; }
+.agent-card__new-chat {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  letter-spacing: var(--ls-wide);
+  padding: var(--s1) var(--s3);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
+}
+.agent-card__new-chat:hover {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.agent-card__chat-meta {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  letter-spacing: var(--ls-wide);
+  color: var(--text-muted);
+}
+
 /* Ask CHIP chat thread */
 .agent-card__chat {
   margin-top: var(--s4);
@@ -1383,6 +1547,92 @@ body:not([data-space="cockpit"]) .today-card { display: none; }
 }
 .inbox-card__chip {
   appearance: none; cursor: pointer; font: inherit;
+}
+
+/* Stage 18.7 — Inline reply composition panel
+   Reply opens a draft + textarea inside the inbox row.
+   Send currently records intent in the audit ribbon; v1 routes
+   through Slack / Gmail MCP servers with the same architecture
+   we use for Notion. */
+.inbox-card__compose[hidden] { display: none; }
+.inbox-card__compose {
+  flex-basis: 100%;       /* take a new flex line under body+actions */
+  width: 100%;
+  margin-top: var(--s3);
+}
+.compose {
+  background: var(--bg);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--steel);
+  border-radius: var(--r-md);
+  padding: var(--s4) var(--s5);
+}
+.compose--sent     { border-left-color: var(--sage); }
+.compose--deferred { border-left-color: var(--steel); }
+.compose--done     { border-left-color: var(--sage); }
+.compose__eyebrow {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  font-weight: var(--fw-med); letter-spacing: var(--ls-wider);
+  color: var(--text-muted);
+  margin: 0 0 var(--s3) 0;
+  display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap;
+}
+.compose__textarea {
+  width: 100%;
+  font-family: var(--font-body); font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  padding: var(--s3) var(--s4);
+  background: var(--surface-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  resize: vertical;
+  min-height: 72px;
+  transition: border-color var(--dur-fast) var(--ease-std);
+}
+.compose__textarea:focus {
+  outline: none;
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px var(--amber-15);
+}
+.compose__row {
+  display: flex; gap: var(--s2);
+  margin-top: var(--s3);
+  justify-content: flex-end;
+}
+.compose__sent-headline {
+  font-family: var(--font-display); font-weight: var(--fw-bold);
+  font-size: var(--fs-base);
+  color: var(--text);
+  margin: 0 0 var(--s2) 0;
+}
+.compose__sent-body {
+  margin: 0 0 var(--s2) 0;
+  padding: var(--s2) var(--s4);
+  background: var(--surface-elevated);
+  border-left: 2px solid var(--sage);
+  border-radius: var(--r-sm);
+  font-family: var(--font-body); font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  color: var(--text);
+  font-style: italic;
+}
+.compose__sent-note {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  color: var(--text-muted);
+  margin: 0;
+}
+/* Visually fade the inbox row's action buttons once a state is set */
+.inbox-card__row[data-row-state="sent"] .inbox-card__actions,
+.inbox-card__row[data-row-state="deferred"] .inbox-card__actions,
+.inbox-card__row[data-row-state="done"] .inbox-card__actions,
+.inbox-card__row[data-row-state="composing"] .inbox-card__actions {
+  opacity: 0.4;
+  pointer-events: none;
+}
+/* Allow inbox-card__row to expand and hold the compose panel */
+.inbox-card__row {
+  flex-wrap: wrap;
 }
 
 /* 10.4 Today card */
@@ -1591,8 +1841,8 @@ body[data-density="compact"] .surfaces__row { padding: var(--s2) var(--s3); }
 .voices-map { margin-top: var(--s5); }
 .voices-map__grid {
   display: grid; grid-template-columns: 1fr 320px;
-  align-items: start;        /* don't stretch detail panel to match SVG */
-  gap: var(--s5);
+  align-items: start;
+  gap: var(--s4);            /* 16px — page-wide standard */
 }
 .voices-map__grid > * { min-width: 0; }
 .voices-map__svg {
@@ -1824,14 +2074,40 @@ body[data-phase="loaded"] .mapek { display: none; }
 /* 14.5 Audit chip — formatted in JS to avoid stripped whitespace */
 .audit-count-chip[hidden] { display: none !important; }
 
+/* Stage 18.11 — Half-cards 2×2 grid
+   Source order: priorities, inbox-card, today-card, upcoming-card
+   Renders as:
+     Row 1:  priorities  | inbox-card        (Today list  | Pending replies)
+     Row 2:  today-card  | upcoming-card     (Saturday    | Coming up)
+   align-items: stretch ensures each row's cards match heights — short cards
+   fill the gap rather than leaving empty space. */
+.cockpit-halves {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s4);                /* 16px between cards */
+  align-items: stretch;
+  margin-bottom: var(--s4);      /* 16px before Watching */
+}
+.cockpit-halves > * {
+  margin: 0;
+  min-width: 0;
+  align-self: stretch;           /* force equal heights even if a parent rule said start */
+  height: 100%;                  /* belt + suspenders */
+  display: flex;
+  flex-direction: column;
+}
+@media (max-width: 1100px) {
+  .cockpit-halves { grid-template-columns: 1fr; }
+}
+
 /* 14.1 Cockpit bento layout */
 .cockpit-bento {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  grid-auto-rows: max-content;       /* don't stretch rows to fill height */
-  align-items: start;                /* don't stretch cards to match tallest neighbour */
-  gap: var(--s5);
-  margin-bottom: var(--s6);
+  grid-auto-rows: max-content;
+  align-items: start;
+  gap: var(--s4);                    /* 16px between cards */
+  margin-bottom: var(--s4);          /* 16px before halves */
 }
 .cockpit-bento > *  { align-self: start; min-width: 0; }   /* prevent overflow + vertical stretch */
 .bento-hero-meter   { grid-column: 1 / 8; }
@@ -2099,7 +2375,7 @@ body[data-phase="loaded"] .mapek { display: none; }
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,17,23,0.06));
   padding: var(--s3) var(--s8);
   display: none;
-  margin: 0 calc(-1 * var(--s8)) var(--s5);
+  margin: 0 calc(-1 * var(--s8)) var(--s4);   /* 16px gap below */
 }
 body[data-phase="drift"] .persist-strip,
 body[data-phase="approved"] .persist-strip {
@@ -2266,6 +2542,27 @@ body:not([data-space="cockpit"]) .persist-strip { display: none !important; }
   border: 1px solid transparent;
 }
 .bento-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-layered); }
+/* Stage 18.9 — visible click affordance */
+.bento-stat { position: relative; }
+.bento-stat::after {
+  content: "Open →";
+  position: absolute;
+  right: var(--s5);
+  bottom: var(--s4);
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--ls-wide);
+  color: var(--text-muted);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity var(--dur-fast) var(--ease-std), transform var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
+}
+.bento-stat:hover::after,
+.bento-stat:focus-visible::after {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--amber);
+}
 .bento-stat:focus-visible { outline: 2px solid var(--border-strong); outline-offset: 2px; }
 .bento-stat--pulse { animation: bentoPulse 600ms var(--ease-std); }
 @keyframes bentoPulse {
@@ -2662,8 +2959,8 @@ body[data-inclusion="overridden"] .inclusion-explainer {
 .research-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
-  align-items: start;        /* don't stretch detail panel to match timeline */
-  gap: var(--s5);
+  align-items: start;
+  gap: var(--s4);            /* 16px — page-wide standard */
 }
 .research-grid > * { min-width: 0; }
 
