@@ -6,6 +6,24 @@ Submission to **Built with Opus 4.7: a Claude Code hackathon** (April 21–26, 2
 
 CHIP is the cockpit a design-systems lead opens before approving any cross-platform change. The agent watches every surface — repos, Figma, Storybook, docs, ticket queues, dev-lead channels — and proposes a roadmap when parity slips. The operator approves, edits, or rejects. Tickets file themselves. Audit logs itself.
 
+## Run with live agent + Notion
+
+Ask CHIP is wired to a **Cloud Managed Agent** with a connected Notion MCP. When the local proxy is running, questions typed into Ask CHIP query Elleta's actual Notion workspace in real time.
+
+**What you need:** Node 18+, an Anthropic API key, a Notion account.
+
+**Condensed setup** (full steps in `server/SETUP.md`):
+
+1. Create a Notion internal integration at **notion.so/profile/integrations**. Copy the token. Share your Research library, Friction log, and ritual pages with the integration.
+2. At **console.anthropic.com → Managed Agents → New Agent**: paste the system prompt from `server/AGENT_PROMPT.md`, attach the Notion MCP server with the token in the credential vault, copy the agent ID.
+3. `cd server && cp .env.example .env` — fill in `ANTHROPIC_API_KEY` and `CHIP_AGENT_ID`.
+4. `npm install && npm start` — proxy runs on port 3000.
+5. Open the cockpit. Type into Ask CHIP. The reply is live.
+
+The Notion token never touches the repo — it lives in Anthropic's credential vault attached to the agent.
+
+---
+
 ## Run it
 
 No build step. No server. Open the HTML file in a modern browser:
@@ -73,7 +91,7 @@ Splash → press <kbd>Enter</kbd> or click *Enter cockpit*.
 **Mocked (for v0; live integration is v1):**
 - All inbox / calendar / Coming-up / friction-correlation data is plausible synthetic content.
 - Jira ticket numbers, Storybook story counts, Figma URIs, Zeroheight links don't resolve.
-- The "Ask CHIP" input logs to console and toasts; no LLM call.
+- The "Ask CHIP" input calls a real Cloud Managed Agent when `server/` is running (see "Run with live agent + Notion" above). Falls back to an inline error message when the proxy is offline.
 - "Generate impact report" toasts; no PDF.
 
 ## Structure

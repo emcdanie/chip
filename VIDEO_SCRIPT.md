@@ -68,11 +68,11 @@ Tone: spare, declarative, JARVIS-adjacent. Don't oversell. The work has to do th
 
 ---
 
-### Pod 8 — 2:20–2:40 · Palette + lineage
+### Pod 8 — 2:20–2:40 · Live agent + Notion
 
-> "Cmd+K from anywhere. Fifty surfaces indexed in one keystroke. And at the bottom: the lineage. Maggie Appleton's daemon. Projects By IF's trust patterns. Shape of AI's vocabulary. Wattenberger's embeddings. Wroblewski's structured search. Vitaly's expert-user dashboard. Every named pattern is in the prototype."
+> "Ask CHIP — wired to a Cloud Managed Agent with my Notion as a connected MCP. I type: 'what's in my research library.' The reply isn't a mock — the agent queries my actual Notion live. The same library you just saw, pulled in real time."
 
-**Screen:** Press <kbd>⌘K</kbd>. Palette opens at 12vh. Type `appleton` — Maggie Appleton entry surfaces. Press Esc. Switch back to Bridge. Scroll all the way down to the lineage citation, just above the audit ribbon.
+**Screen:** Switch to Bridge. Click the Ask CHIP input. Type `what's in my research library`. Press Enter. "Thinking…" skeleton appears. Wait for the sage-bordered agent reply to render below the input. Hold on the live response.
 
 ---
 

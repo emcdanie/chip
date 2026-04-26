@@ -920,23 +920,107 @@
     };
   }
 
-  // ============ Stage 10.2 — Agent ask form ============
-  var agentAsk = document.getElementById('agent-ask');
+  // ============ Stage 10.2 — Agent ask form (Cloud Managed Agent) ============
+  var agentAsk      = document.getElementById('agent-ask');
   var agentAskInput = document.getElementById('agent-ask-input');
-  var askToast = document.getElementById('ask-toast');
+  var askToast      = document.getElementById('ask-toast');
+  var askChat       = document.getElementById('ask-chat');
+
+  var ASK_SESSION_KEY = 'chip:askSessionId';
+  var ASK_MAX_TURNS   = 5;
+  var askTurns        = [];   // { role: 'operator'|'agent', text }
+
+  function renderTurns() {
+    if (!askChat) return;
+    var html = askTurns.slice(-ASK_MAX_TURNS).map(function (t) {
+      if (t.role === 'operator') {
+        return '<div class="ask-turn">' +
+          '<p class="ask-turn__label">You</p>' +
+          '<p class="ask-turn__text--operator">' + escapeHtml(t.text) + '</p>' +
+          '</div>';
+      }
+      return '<div class="ask-turn">' +
+        '<p class="ask-turn__label"><span class="chip chip--muted" style="font-size:var(--fs-meta);padding:1px var(--s2)">Auto</span> CHIP</p>' +
+        '<p class="ask-turn__text--agent">' + escapeHtml(t.text) + '</p>' +
+        '</div>';
+    }).join('');
+    askChat.innerHTML = html;
+    askChat.scrollTop = askChat.scrollHeight;
+  }
+
+  function showSkeleton() {
+    if (!askChat) return;
+    var el = document.createElement('p');
+    el.className = 'ask-skeleton';
+    el.id = 'ask-skeleton';
+    el.textContent = 'Thinking…';
+    askChat.appendChild(el);
+    askChat.scrollTop = askChat.scrollHeight;
+  }
+
+  function removeSkeleton() {
+    var el = document.getElementById('ask-skeleton');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  function showError(msg, retryFn) {
+    if (!askChat) return;
+    var id = 'ask-err-' + Date.now();
+    var p = document.createElement('p');
+    p.className = 'ask-error';
+    p.id = id;
+    p.innerHTML = escapeHtml(msg) +
+      ' <button type="button" class="ask-error__retry">Retry</button>';
+    askChat.appendChild(p);
+    p.querySelector('.ask-error__retry').addEventListener('click', function () {
+      if (p.parentNode) p.parentNode.removeChild(p);
+      if (retryFn) retryFn();
+    });
+  }
+
+  function doAsk(message) {
+    var sessionId;
+    try { sessionId = localStorage.getItem(ASK_SESSION_KEY) || undefined; } catch (_) {}
+
+    if (agentAskInput) agentAskInput.disabled = true;
+    askTurns.push({ role: 'operator', text: message });
+    renderTurns();
+    showSkeleton();
+
+    fetch('http://localhost:3000/ask', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ message: message, sessionId: sessionId }),
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      removeSkeleton();
+      if (data.error) {
+        showError(data.error, function () { doAsk(message); });
+      } else {
+        askTurns.push({ role: 'agent', text: data.reply });
+        try { if (data.sessionId) localStorage.setItem(ASK_SESSION_KEY, data.sessionId); } catch (_) {}
+        renderTurns();
+      }
+      if (agentAskInput) { agentAskInput.disabled = false; agentAskInput.focus(); }
+    })
+    .catch(function () {
+      removeSkeleton();
+      showError(
+        'Agent server not running. Start with: cd server && npm start.',
+        function () { doAsk(message); }
+      );
+      if (agentAskInput) { agentAskInput.disabled = false; agentAskInput.focus(); }
+    });
+  }
+
   if (agentAsk) {
     agentAsk.addEventListener('submit', function (e) {
       e.preventDefault();
-      console.log('[CHIP] Ask:', agentAskInput && agentAskInput.value);
-      if (agentAskInput) agentAskInput.value = '';
-      if (askToast) {
-        askToast.hidden = false;
-        askToast.classList.add('toast--visible');
-        setTimeout(function () {
-          askToast.classList.remove('toast--visible');
-          setTimeout(function () { askToast.hidden = true; }, 250);
-        }, 2200);
-      }
+      var msg = agentAskInput && agentAskInput.value.trim();
+      if (!msg) return;
+      agentAskInput.value = '';
+      doAsk(msg);
     });
   }
 

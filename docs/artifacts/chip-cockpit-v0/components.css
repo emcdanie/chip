@@ -1197,6 +1197,50 @@ body:not([data-space="cockpit"]) .today-card { display: none; }
   transition: opacity var(--dur-normal) var(--ease-std), transform var(--dur-normal) var(--ease-std);
 }
 .toast--visible { opacity: 1; transform: translateY(0); }
+.agent-card__input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Ask CHIP chat thread */
+.agent-card__chat {
+  margin-top: var(--s4);
+  display: flex; flex-direction: column; gap: var(--s4);
+  max-height: 340px;
+  overflow-y: auto;
+}
+.ask-turn { display: flex; flex-direction: column; gap: var(--s1); }
+.ask-turn__label {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  letter-spacing: var(--ls-wider); color: var(--text-muted);
+  display: flex; align-items: center; gap: var(--s2);
+  margin: 0;
+}
+.ask-turn__text--operator {
+  font-family: var(--font-mono); font-size: var(--fs-label);
+  color: var(--text); margin: 0;
+}
+.ask-turn__text--agent {
+  font-family: var(--font-display); font-style: italic; font-size: var(--fs-base);
+  line-height: var(--lh-snug); color: var(--text); margin: 0;
+  padding-left: var(--s3);
+  border-left: 2px solid var(--sage);
+}
+.ask-skeleton {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  color: var(--text-muted); letter-spacing: var(--ls-wide);
+  margin: 0; padding-left: var(--s3);
+  border-left: 2px solid var(--border);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.ask-error {
+  font-family: var(--font-mono); font-size: var(--fs-meta);
+  color: var(--amber); margin: 0;
+  padding-left: var(--s3);
+  border-left: 2px solid var(--amber);
+}
+.ask-error__retry {
+  appearance: none; background: transparent; border: 0;
+  font: inherit; color: var(--amber); cursor: pointer;
+  text-decoration: underline; padding: 0; margin-left: var(--s2);
+}
 
 /* 10.3 Inbox glance */
 .inbox-card__list {

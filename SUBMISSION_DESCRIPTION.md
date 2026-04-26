@@ -8,10 +8,10 @@ I'm a design systems engineer. Self-employed. Single mom. I run BELLA — my own
 
 Most design system assistants answer questions. **CHIP intervenes at the moment decisions are made.**
 
-The demo: I open the Bridge, see the parity meter at 38% and an agent card watching every surface. I click Open audit. CHIP surfaces a roadmap with confidence, trust level, an inclusion check, and Vitaly's "before you approve" readiness checklist. I press A. Twenty-three tickets file themselves. Three dev leads notified. The audit logs it. The system map then shows an atomic-ring view of every component with what-if simulation and AI insights per surface.
+The demo: I open the Bridge, see the parity meter at 38% and an agent card watching every surface. I click Open audit. CHIP surfaces a roadmap with confidence, trust level, an inclusion check, and Vitaly's "before you approve" readiness checklist. I press A. Twenty-three tickets file themselves. Three dev leads notified. The audit logs it. The system map then shows an atomic-ring view of every component with what-if simulation and AI insights per surface. Ask CHIP is backed by a Cloud Managed Agent with Notion MCP — research library, live.
 
 Lineage: Maggie Appleton's daemon · Projects By IF's trust patterns · Shape of AI's vocabulary · Amelia Wattenberger's embeddings · Luke Wroblewski's structured search · Vitaly Friedman's expert-user dashboards.
 
-Built BY Opus 4.7 across 18 feature stages — two Claude instances running in parallel, coordinating through a single HANDOFF log. The build process is the thesis.
+Built BY Opus 4.7 across 18 feature stages — two Claude instances in parallel, one HANDOFF log. The build process is the thesis.
 
 ---

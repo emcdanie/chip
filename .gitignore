@@ -28,6 +28,10 @@
 /setup/
 /.claude/
 
+# Server — secrets and build artifacts never committed
+/server/.env
+/server/node_modules/
+
 # OS noise
 .DS_Store
 *.swp
