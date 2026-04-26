@@ -1385,6 +1385,19 @@
     });
   }
 
+  // Stage 18.13 — predefined suggestion chips: clicking one fills the input
+  // with the canonical question and submits it. Operator can edit if they
+  // want — clicking just kicks off the ask.
+  document.querySelectorAll('.agent-card__suggestion').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var q = b.getAttribute('data-suggestion');
+      if (!q || !agentAskInput) return;
+      agentAskInput.value = q;
+      // submit via the form so the existing handler runs
+      if (agentAsk) agentAsk.dispatchEvent(new Event('submit', { cancelable: true }));
+    });
+  });
+
   if (agentAsk) {
     agentAsk.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -2031,10 +2044,13 @@
     ['S','M','T','W','T','F','S'].forEach(function (d) {
       html += '<span class="sync-cadence__day-label">' + d + '</span>';
     });
+    var SYNC_DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var SYNC_LABELS = { sync: 'In sync', sparse: 'Sparse — some activity', silent: 'Silent — no activity detected' };
     Object.keys(SYNC_CADENCE).forEach(function (label) {
       html += '<span class="sync-cadence__row-label">' + escapeHtml(label) + '</span>';
-      SYNC_CADENCE[label].forEach(function (state) {
-        html += '<span class="sync-cadence__cell"><span class="sync-cadence__dot sync-cadence__dot--' + state + '"></span></span>';
+      SYNC_CADENCE[label].forEach(function (state, i) {
+        var tip = SYNC_DAYS[i] + ' · ' + escapeHtml(label) + ' · ' + (SYNC_LABELS[state] || state);
+        html += '<span class="sync-cadence__cell" title="' + tip + '"><span class="sync-cadence__dot sync-cadence__dot--' + state + '"></span></span>';
       });
     });
     syncCadenceGrid.innerHTML = html;
@@ -2326,10 +2342,10 @@
 
   // ============ Stage 14.6 — Atomic rings system map ============
   var atomicRingsEl = document.getElementById('atomic-rings');
-  // RING_ASSIGN: which ring each component sits on
+  // RING_ASSIGN: atoms = single-purpose primitives, molecules = composed, organisms = AI-native
   var RING_ASSIGN = {
-    button: 'atoms', card: 'atoms', input: 'atoms', chip: 'atoms', eyebrow: 'atoms',
-    navLink: 'atoms', modal: 'atoms', avatar: 'atoms', badge: 'atoms',
+    button: 'atoms', chip: 'atoms', eyebrow: 'atoms', navLink: 'atoms', badge: 'atoms', avatar: 'atoms',
+    card: 'molecules', input: 'molecules', modal: 'molecules',
     aiCard: 'organisms', aiDiff: 'organisms', aiMeter: 'organisms'
   };
   var RING_LAYOUT = {
@@ -2372,8 +2388,8 @@
       var label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       label.setAttribute('class', 'atomic-rings__zone-label');
       label.setAttribute('x', cx);
-      label.setAttribute('y', cy - RING_LAYOUT[ring].r - 6);
-      label.textContent = ring;
+      label.setAttribute('y', cy - RING_LAYOUT[ring].r - 10);
+      label.textContent = ring.toUpperCase();
       svg.appendChild(label);
     });
     // Tokens core
@@ -2440,7 +2456,7 @@
       ring.setAttribute('cx', p.x); ring.setAttribute('cy', p.y); ring.setAttribute('r', '16');
       var bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       bg.setAttribute('class', 'atomic-rings__node-bg');
-      bg.setAttribute('cx', p.x); bg.setAttribute('cy', p.y); bg.setAttribute('r', '10');
+      bg.setAttribute('cx', p.x); bg.setAttribute('cy', p.y); bg.setAttribute('r', '13');
       bg.setAttribute('style', 'fill:' + fill);
       var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       t.setAttribute('class', 'atomic-rings__node-label');
