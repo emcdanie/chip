@@ -31,7 +31,7 @@
     research: 'Research library',
     friction: 'Friction log',
     bella: 'AI-native BELLA',
-    cmap: 'Component map',
+    component: 'Component map',
     map: 'System map',
     steward: 'Coming up'
   };
@@ -2168,10 +2168,18 @@
     aiMeter: { web: 95,  ios: null, android: null },
   };
   var CMAP_LANES = [
-    { id: 'atoms',     label: 'Atoms',     ids: ['button','chip','eyebrow','navLink','badge','avatar'] },
-    { id: 'molecules', label: 'Molecules', ids: ['card','input','modal'] },
-    { id: 'organisms', label: 'Organisms', ids: ['aiCard','aiDiff','aiMeter'] },
+    { id: 'atoms',     label: 'Atoms',     level: 'atom',
+      ids: ['button','card','input','chip','eyebrow','navLink'] },
+    { id: 'molecules', label: 'Molecules', level: 'molecule',
+      ids: ['modal','avatar','badge'] },
+    { id: 'organisms', label: 'Organisms', level: 'organism',
+      ids: ['aiCard','aiDiff','aiMeter'] },
   ];
+
+  var cmapLevelOf = {};
+  CMAP_LANES.forEach(function(lane) {
+    lane.ids.forEach(function(id) { cmapLevelOf[id] = lane.level; });
+  });
 
   function cmapBarRow(platform, score) {
     if (score === null || score === undefined) {
@@ -2204,9 +2212,12 @@
     } else {
       statusLabel = 'In sync'; statusCls = 'dep-node__chip--healthy';
     }
+    var level = cmapLevelOf[id] || 'atom';
+    var levelLabel = level.charAt(0).toUpperCase() + level.slice(1);
     return '<article class="cmap-card" data-cmp="' + id + '" role="button" tabindex="0" aria-label="' + escapeHtml(name) + ', ' + avg + '% avg">' +
       '<header class="cmap-card__head"><span class="cmap-card__name">' + escapeHtml(name) + '</span>' +
       '<span class="dep-node__chip ' + statusCls + '">' + statusLabel + '</span></header>' +
+      '<span class="cmap-level cmap-level--' + level + '"><span class="cmap-level__dot"></span>' + levelLabel + '</span>' +
       '<div class="cmap-card__bars">' +
         cmapBarRow('Web', scores.web) +
         cmapBarRow('iOS', scores.ios) +
@@ -2275,6 +2286,15 @@
     });
   });
 
+  // Matrix rows in Component map space → wire to selectCmapCard
+  document.querySelectorAll('.space--component .components-matrix__row').forEach(function(r) {
+    var id = r.getAttribute('data-component');
+    r.addEventListener('click', function() { selectCmapCard(id); });
+    r.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCmapCard(id); }
+    });
+  });
+
   var syncCadenceGrid = document.getElementById('sync-cadence-grid');
   if (syncCadenceGrid) {
     var html = '<span></span>';
@@ -2324,7 +2344,7 @@
       { id: 'research', label: 'Research library', chip: '47',   icon: '◈' },
       { id: 'friction', label: 'Friction log',     chip: '3',    icon: '◊' },
       { id: 'bella',    label: 'AI-native BELLA',  chip: '6',    icon: '◇' },
-      { id: 'cmap',     label: 'Component map',    chip: '12',   icon: '◇' },
+      { id: 'component', label: 'Component map',   chip: '12',   icon: '◇' },
       { id: 'map',      label: 'System map',       chip: 'v0',   icon: '△' },
       { id: 'steward',  label: 'Coming up',        chip: '6',    icon: '◯' }
     ];

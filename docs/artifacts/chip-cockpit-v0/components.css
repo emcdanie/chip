@@ -3944,6 +3944,21 @@ body[data-action-state="modified"]  #approve-row { display: none; }
 .cmap-card__avg {
   font-family: var(--font-mono); font-size: var(--fs-meta); color: var(--text-muted);
 }
+/* Atomic-level eyebrow pill (Brad-Frost pattern) */
+.cmap-level {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); font-size: var(--fs-meta); font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-wide);
+  padding: 1px 6px; border-radius: var(--r-sm);
+  margin-bottom: var(--s3);
+}
+.cmap-level__dot {
+  width: 6px; height: 6px; border-radius: var(--r-full);
+  background: currentColor; flex-shrink: 0;
+}
+.cmap-level--atom     { background: var(--amber-15); border: 1px solid var(--amber-35); color: var(--amber); }
+.cmap-level--molecule { background: var(--steel-15); border: 1px solid var(--steel-35); color: var(--steel); }
+.cmap-level--organism { background: var(--sage-15);  border: 1px solid var(--sage-35);  color: var(--sage); }
 /* Component map detail panel — same visual pattern as dep-map__detail */
 .cmap-detail {
   background: var(--surface-elevated);

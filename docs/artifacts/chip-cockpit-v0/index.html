@@ -63,7 +63,7 @@
           <span class="side__link__label">AI-native BELLA</span>
           <span class="side__link__chip">6</span>
         </button>
-        <button type="button" class="side__link" data-space-target="cmap">
+        <button type="button" class="side__link" data-space-target="component">
           <span class="side__link__icon">◇</span>
           <span class="side__link__label">Component map</span>
           <span class="side__link__chip">12</span>
@@ -1013,10 +1013,10 @@
       </section>
 
       <!-- ======== COMPONENT MAP SPACE ======== -->
-      <section class="space space--cmap" aria-labelledby="cmap-title">
+      <section class="space space--component" aria-labelledby="component-title">
         <header class="space__header">
-          <p class="space__eyebrow">Atomic design · 12 components</p>
-          <h1 class="space__title" id="cmap-title">The components, every variant CHIP can see.</h1>
+          <p class="space__eyebrow">Atomic design · 12 components · BELLA</p>
+          <h1 class="space__title" id="component-title">The components, every variant CHIP can see.</h1>
           <p class="space__subtitle">Atoms are single-purpose primitives. Molecules compose atoms into functional patterns. Organisms are AI-native surfaces — born when the agent needed new vocabulary. Parity gaps at any level propagate upward.</p>
         </header>
 
@@ -1050,6 +1050,126 @@
             <div id="cmap-detail-content" hidden></div>
           </aside>
         </div>
+
+        <!-- Components matrix table (moved from System map) -->
+        <article class="card components-matrix" aria-labelledby="components-matrix-eyebrow" style="margin-top:var(--s6)">
+          <p id="components-matrix-eyebrow" class="card__eyebrow">Components · Platform parity matrix</p>
+          <div class="matrix-filter">
+            <label class="matrix-filter__label" for="matrix-filter-input">Filter:</label>
+            <input type="search" id="matrix-filter-input" class="matrix-filter__input"
+              placeholder="Type to filter (component, platform, status)…"
+              autocomplete="off" aria-label="Filter components" />
+            <span class="matrix-filter__count" id="matrix-filter-count" aria-live="polite"></span>
+            <button type="button" class="matrix-view-toggle" id="matrix-view-toggle" aria-pressed="false">Heatmap</button>
+          </div>
+          <ul class="components-matrix__list" role="list">
+            <li class="components-matrix__head" role="row">
+              <button type="button" class="components-matrix__sort" data-sort-col="0" aria-label="Sort by component">Component</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="1" aria-label="Sort by Web">Web</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="2" aria-label="Sort by iOS">iOS</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="3" aria-label="Sort by Android">Android</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="4" aria-label="Sort by Figma">Figma</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="5" aria-label="Sort by Storybook">Storybook</button>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="button" data-type="component" aria-label="Button — Web 100, iOS 100, Android 62, Figma 100, Storybook 100">
+              <span class="components-matrix__name">Button</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">62</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="card" data-type="component" aria-label="Card — Web 100, iOS 100, Android 62, Figma 100, Storybook 100">
+              <span class="components-matrix__name">Card</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">62</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="input" data-type="component" aria-label="Input — Web 100, iOS 71, Android 0, Figma 100, Storybook 64">
+              <span class="components-matrix__name">Input</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">71</span>
+              <span class="components-matrix__cell components-matrix__cell--missing" aria-hidden="true">0</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">64</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="chip" data-type="component" aria-label="Chip — Web 100, iOS 100, Android 100, Figma 100, Storybook 100">
+              <span class="components-matrix__name">Chip</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="eyebrow" data-type="component" aria-label="Eyebrow — Web 100, iOS 76, Android 76, Figma 100, Storybook 100">
+              <span class="components-matrix__name">Eyebrow</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">76</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">76</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="navLink" data-type="component" aria-label="Nav link — Web 100, iOS 71, Android 0, Figma 100, Storybook 64">
+              <span class="components-matrix__name">Nav link</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">71</span>
+              <span class="components-matrix__cell components-matrix__cell--missing" aria-hidden="true">0</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">64</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="modal" data-type="component" aria-label="Modal — Web 100, iOS 100, Android 62, Figma 100, Storybook 100">
+              <span class="components-matrix__name">Modal</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">62</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="avatar" data-type="component" aria-label="Avatar — Web 100, iOS 100, Android 100, Figma 100, Storybook 100">
+              <span class="components-matrix__name">Avatar</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="badge" data-type="component" aria-label="Badge — Web 100, iOS 100, Android 62, Figma 100, Storybook 100">
+              <span class="components-matrix__name">Badge</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">62</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="aiCard" data-type="ai-primitive" aria-label="AI Card — Web 95, iOS not applicable, Android not applicable, Figma 100, Storybook 73">
+              <span class="components-matrix__name">AI Card</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">95</span>
+              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
+              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">73</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="aiDiff" data-type="ai-primitive" aria-label="AI Diff — Web 95, iOS not applicable, Android not applicable, Figma 100, Storybook 73">
+              <span class="components-matrix__name">AI Diff</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">95</span>
+              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
+              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">73</span>
+            </li>
+            <li class="components-matrix__row" tabindex="0" role="button" data-component="aiMeter" data-type="ai-primitive" aria-label="AI Meter — Web 95, iOS not applicable, Android not applicable, Figma 100, Storybook 73">
+              <span class="components-matrix__name">AI Meter</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">95</span>
+              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
+              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
+              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
+              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">73</span>
+            </li>
+          </ul>
+          <p class="components-matrix__legend">0–59 critical · 60–89 attention · 90–100 in spec · — not applicable · Tokens layer underpins every component above. Drift surfaces here within 14m of any platform commit.</p>
+        </article>
       </section>
 
       <!-- ======== SYSTEM MAP SPACE (Tier 2.4 + Stage 4) ======== -->

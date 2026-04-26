@@ -200,7 +200,7 @@ body[data-space="cockpit"]   .space--cockpit   { display: block; }
 body[data-space="research"]  .space--research  { display: block; }
 body[data-space="friction"]  .space--friction  { display: block; }
 body[data-space="bella"]     .space--bella     { display: block; }
-body[data-space="cmap"]      .space--cmap      { display: block; }
+body[data-space="component"]  .space--component  { display: block; }
 body[data-space="map"]       .space--map       { display: block; }
 body[data-space="steward"]   .space--steward   { display: block; }
 
