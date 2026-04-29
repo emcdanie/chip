@@ -19,7 +19,7 @@ Step-by-step. Run top to bottom. Estimated total time: **45–60 minutes** for a
 ## 1. Open the Bridge (1 min)
 
 ```sh
-open ~/DEV/chip/docs/artifacts/chip-cockpit-v0/index.html
+open ~/DEV/chip/docs/artifacts/chip-bridge-v0/index.html
 ```
 
 - [ ] Splash renders: *"Morning, Elleta."*
@@ -67,7 +67,7 @@ open ~/DEV/chip/docs/artifacts/chip-cockpit-v0/index.html
 **If QuickTime:**
 1. *File → Save*. Pick desktop, name it `chip-demo.mp4`.
 2. Go to **youtube.com/upload**. Sign in.
-3. Drag the file. Title: *"CHIP — Cockpit for agentic design systems"*. Visibility: **Unlisted** (not Private — judges need the link to work).
+3. Drag the file. Title: *"CHIP — Bridge for agentic design systems"*. Visibility: **Unlisted** (not Private — judges need the link to work).
 4. Wait for processing (3–8 min).
 5. Click *Share* → *Copy link*. URL is `https://youtu.be/<id>`.
 6. Test in an incognito window before submitting.
@@ -91,7 +91,7 @@ open ~/DEV/chip/docs/artifacts/chip-cockpit-v0/index.html
 
 ## 6. After submitting (5 min)
 
-- [ ] Confirm the GitHub repo is public and reachable in incognito: `https://github.com/emcdanie/chip` should show README + LICENSE + the `docs/artifacts/chip-cockpit-v0/` folder.
+- [ ] Confirm the GitHub repo is public and reachable in incognito: `https://github.com/emcdanie/chip` should show README + LICENSE + the `docs/artifacts/chip-bridge-v0/` folder.
 - [ ] Confirm the video link plays in incognito.
 - [ ] Tell whoever's been holding space for you that you submitted.
 - [ ] Eat. Drink water. Don't open the laptop again tonight.
@@ -102,7 +102,7 @@ open ~/DEV/chip/docs/artifacts/chip-cockpit-v0/index.html
 
 | Symptom | Fix |
 |---|---|
-| Bridge doesn't open | `open ~/DEV/chip/docs/artifacts/chip-cockpit-v0/index.html` from a fresh terminal. If still broken: `git -C ~/DEV/chip log -1` to confirm the commit; the Bridge lives in that commit. |
+| Bridge doesn't open | `open ~/DEV/chip/docs/artifacts/chip-bridge-v0/index.html` from a fresh terminal. If still broken: `git -C ~/DEV/chip log -1` to confirm the commit; the Bridge lives in that commit. |
 | Splash stuck on dark / broken layout | DevTools console: `localStorage.clear()`; refresh. |
 | GitHub URL 404s | The repo isn't pushed yet. Run: `git -C ~/DEV/chip remote add origin git@github.com:emcdanie/chip.git && git -C ~/DEV/chip push -u origin main`. Confirm public visibility on the GitHub repo settings page. |
 | Demo flow doesn't reach Approve | Press <kbd>A</kbd> at the diag banner. If A doesn't fire, click the green Approve button directly. |

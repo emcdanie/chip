@@ -83,7 +83,7 @@ Verify: `curl http://localhost:3000/health` should return `{"ok":true,...}`.
 
 ## Step 5 — Test Ask CHIP
 
-1. Open the CHIP cockpit: `open ~/DEV/chip/docs/artifacts/chip-cockpit-v0/index.html`
+1. Open the CHIP bridge: `open ~/DEV/chip/docs/artifacts/chip-bridge-v0/index.html`
 2. Dismiss the splash → Enter Bridge
 3. In the **Agent card**, type a question in the Ask CHIP input:
    - `what's in my research library`

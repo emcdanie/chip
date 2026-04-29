@@ -12,8 +12,8 @@ app.use(express.json());
 // This server is local-only so open CORS is fine.
 app.use(cors({ origin: true, credentials: false }));
 
-// Serve the cockpit from / so http://localhost:3000 works alongside file://
-app.use(express.static(path.join(__dirname, '../docs/artifacts/chip-cockpit-v0')));
+// Serve the bridge from / so http://localhost:3000 works alongside file://
+app.use(express.static(path.join(__dirname, '../docs/artifacts/chip-bridge-v0')));
 
 const API_KEY   = process.env.ANTHROPIC_API_KEY;
 const AGENT_ID  = process.env.CHIP_AGENT_ID;

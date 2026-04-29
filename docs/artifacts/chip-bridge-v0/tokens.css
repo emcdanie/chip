@@ -1,5 +1,5 @@
 /* ================================================================
-   TOKENS (BELLA primitives + semantic + governance, cockpit-scoped)
+   TOKENS (BELLA primitives + semantic + governance, bridge-scoped)
    Restored shadow-soft / shadow-layered from ~/DEV/bella/tokens/bella.css.
    ================================================================ */
 :root {
@@ -16,7 +16,7 @@
   --sage: #4A7C6F;
   --linen: #E8E4DC;
   --pink: #E8A5C4;                   /* friction "pink" — wishlist accent */
-  --rust: #C46A6A;                   /* stale state in system map; cockpit-local */
+  --rust: #C46A6A;                   /* stale state in system map; bridge-local */
   --n50: #FBFAF7; --n100: #F0EDE8;
   --n400: #999; --n500: #666; --n600: #525252; --n700: #333; --n900: #111;
 

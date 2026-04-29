@@ -85,7 +85,7 @@ var COMPONENT_DATA = {
     ['Type', 'Surface'],
     ['Variants', 'default · elevated · glass · featured · inverse'],
     ['Versions', 'Web 2.14.3 · iOS 1.8.0 · Android 1.4.0'],
-    ['Used in', 'Cockpit space · Friction entries · BELLA primitives · Steward rituals'],
+    ['Used in', 'Bridge space · Friction entries · BELLA primitives · Steward rituals'],
     ['Defined in', 'figma://BELLA/Card · github.com/elleta/react-bella-web/Card · github.com/elleta/bella-ios/Card · github.com/elleta/bella-android/Card'],
     ['Last update', '2d ago · landscape elevation tokens (Web only)'],
     ['Open issues', '2 — Android landscape elevations missing']
@@ -112,7 +112,7 @@ var COMPONENT_DATA = {
     ['Type', 'Identity'],
     ['Variants', 'accent · muted'],
     ['Versions', 'Web 2.14.3 · iOS 1.7.5 · Android 1.4.0'],
-    ['Used in', 'Cockpit headers · Card headers · Sidebar sections · Audit ribbon'],
+    ['Used in', 'Bridge headers · Card headers · Sidebar sections · Audit ribbon'],
     ['Defined in', 'figma://BELLA/Eyebrow · github.com/elleta/react-bella-web/Eyebrow · github.com/elleta/bella-ios/Eyebrow · github.com/elleta/bella-android/Eyebrow'],
     ['Last update', '2d ago · sentence case migration (all platforms)'],
     ['Open issues', '2 — iOS spacing token drift, Android letter-spacing']
@@ -157,9 +157,9 @@ var COMPONENT_DATA = {
     ['Type', 'Surface · agentic'],
     ['Variants', 'proposal · resolved'],
     ['Versions', 'Web 2.14.3 · iOS — not started · Android — not started'],
-    ['Used in', 'Cockpit space proposals · Inbox cards (Stage 5)'],
+    ['Used in', 'Bridge space proposals · Inbox cards (Stage 5)'],
     ['Defined in', 'figma://BELLA/AI-Card · github.com/elleta/react-bella-web/AICard'],
-    ['Last update', '14m ago · drafted in cockpit v0'],
+    ['Last update', '14m ago · drafted in bridge v0'],
     ['Open issues', '6 — iOS + Android primitives not yet started']
   ] },
   aiDiff: { title: 'AI DIFF · Inline change preview', rows: [
@@ -175,7 +175,7 @@ var COMPONENT_DATA = {
     ['Type', 'Measure · agentic'],
     ['Variants', 'parity · on-spec · velocity'],
     ['Versions', 'Web 2.14.3 · iOS — not started · Android — not started'],
-    ['Used in', 'Cockpit space · System map (Stage 6)'],
+    ['Used in', 'Bridge space · System map (Stage 6)'],
     ['Defined in', 'figma://BELLA/AI-Meter · github.com/elleta/react-bella-web/AIMeter'],
     ['Last update', '14m ago · drift→approve color flip'],
     ['Open issues', '5 — mobile typography for 72px hero number']
@@ -360,7 +360,7 @@ var FRICTION_DATA = {
     eyebrow: 'Open · 2026-04-24',
     title: 'The sidebar is too wide — and it just stays open.',
     related: [
-      'Cockpit space — sidebar nav rail width',
+      'Bridge space — sidebar nav rail width',
       'Friction triage ritual (Wed 10:00)',
       'Cowork tool category'
     ],
@@ -375,7 +375,7 @@ var FRICTION_DATA = {
     title: '"Show in Finder" is an ejection seat.',
     related: [
       'Cowork tool category',
-      'No related Cockpit element'
+      'No related Bridge element'
     ],
     rows: [
       ['Status', 'Open · awaiting design review'],
@@ -387,7 +387,7 @@ var FRICTION_DATA = {
     eyebrow: 'Resolved · 2026-04-24',
     title: 'Dark mode had invisible button text.',
     related: [
-      'Cockpit theme toggle',
+      'Bridge theme toggle',
       'Hotfix 2d.5 (commit cdd396d)',
       'BELLA component.dark token PR'
     ],
@@ -416,7 +416,7 @@ var FRICTION_DATA = {
     eyebrow: 'Resolved · 2026-04-18',
     title: 'The four-click approval dance.',
     related: [
-      'Cockpit approve flow',
+      'Bridge approve flow',
       'Stage 2e single-key approve',
       'A keyboard shortcut'
     ],
@@ -424,7 +424,7 @@ var FRICTION_DATA = {
       ['Status', 'Resolved'],
       ['Resolved by', 'Stage 2e · single-key approve'],
       ['Shortcut', 'Press A in drift phase'],
-      ['Touched', 'Cockpit diag card · approve row']
+      ['Touched', 'Bridge diag card · approve row']
     ]
   },
   pink: {

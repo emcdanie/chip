@@ -118,7 +118,7 @@
 }
 
 /* ================================================================ */
-/* COCKPIT SPACE — cross-platform reframe (Tier 1.2)                 */
+/* BRIDGE SPACE — cross-platform reframe (Tier 1.2)                 */
 /* ================================================================ */
 .triggers { display: flex; gap: var(--s3); justify-content: flex-end; margin-bottom: var(--s6); }
 
@@ -840,7 +840,7 @@ body[data-phase="drift"] .surfaces { display: none; }
 .timeline__entry { position: relative; z-index: 1; }
 
 /* ================================================================ */
-/* STAGE 8 — Cockpit clarity, reframes, filters                      */
+/* STAGE 8 — Bridge clarity, reframes, filters                      */
 /* ================================================================ */
 
 /* 8.1 Sticky parity strip */
@@ -884,16 +884,16 @@ body[data-phase="drift"] .surfaces { display: none; }
 .parity-strip__icon { font-weight: var(--fw-bold); }
 .parity-strip__icon--sync  { color: var(--sage); }
 .parity-strip__icon--drift { color: var(--amber); }
-body:not([data-space="cockpit"]) .parity-strip { display: none; }
+body:not([data-space="bridge"]) .parity-strip { display: none; }
 
-/* 8.2 Cockpit action line */
-.cockpit-action {
+/* 8.2 Bridge action line */
+.bridge-action {
   margin: var(--s3) 0 0 0;
   font-family: var(--font-mono); font-size: var(--fs-label);
   color: var(--text-2); letter-spacing: var(--ls-wide);
   max-width: 62ch;
 }
-body[data-phase="approved"] .cockpit-action { display: none; }
+body[data-phase="approved"] .bridge-action { display: none; }
 
 /* 8.3 Coming up rituals — tighter row geometry now that they read as sentences */
 .ritual { grid-template-columns: 140px 1fr; }
@@ -1305,9 +1305,9 @@ body[data-motion="reduced"] *::after {
 /* STAGE 10 — Agent + Inbox + Today + surfaces compact + audit chip  */
 /* ================================================================ */
 
-body:not([data-space="cockpit"]) .agent-card,
-body:not([data-space="cockpit"]) .inbox-card,
-body:not([data-space="cockpit"]) .today-card { display: none; }
+body:not([data-space="bridge"]) .agent-card,
+body:not([data-space="bridge"]) .inbox-card,
+body:not([data-space="bridge"]) .today-card { display: none; }
 
 /* 10.2 Agent card */
 .agent-card {
@@ -2135,14 +2135,14 @@ body[data-phase="loaded"] .mapek { display: none; }
      Row 2:  today-card  | upcoming-card     (Saturday    | Coming up)
    align-items: stretch ensures each row's cards match heights — short cards
    fill the gap rather than leaving empty space. */
-.cockpit-halves {
+.bridge-halves {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--s6);                /* 24px between cards */
   align-items: stretch;
   margin-bottom: var(--s6);      /* 24px before Watching */
 }
-.cockpit-halves > * {
+.bridge-halves > * {
   margin: 0;
   min-width: 0;
   align-self: stretch;           /* force equal heights even if a parent rule said start */
@@ -2151,11 +2151,11 @@ body[data-phase="loaded"] .mapek { display: none; }
   flex-direction: column;
 }
 @media (max-width: 1100px) {
-  .cockpit-halves { grid-template-columns: 1fr; }
+  .bridge-halves { grid-template-columns: 1fr; }
 }
 
-/* 14.1 Cockpit bento layout */
-.cockpit-bento {
+/* 14.1 Bridge bento layout */
+.bridge-bento {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   grid-auto-rows: max-content;
@@ -2168,7 +2168,7 @@ body[data-phase="loaded"] .mapek { display: none; }
 .bento-hero-agent { align-self: stretch; }
 .bento-hero-meter,
 .bento-hero-agent { display: flex; flex-direction: column; }
-.cockpit-bento > *  { align-self: start; min-width: 0; }   /* prevent overflow + vertical stretch */
+.bridge-bento > *  { align-self: start; min-width: 0; }   /* prevent overflow + vertical stretch */
 .bento-hero-meter   { grid-column: 1 / 8; }
 .bento-hero-agent   { grid-column: 8 / 13; }
 .bento-stat         { grid-column: span 3; }
@@ -2441,7 +2441,7 @@ body[data-phase="drift"] .persist-strip,
 body[data-phase="approved"] .persist-strip {
   display: block;
 }
-body:not([data-space="cockpit"]) .persist-strip { display: none !important; }
+body:not([data-space="bridge"]) .persist-strip { display: none !important; }
 .persist-strip__row1, .persist-strip__row2 {
   display: flex; gap: var(--s4); align-items: center; flex-wrap: wrap;
   font-family: var(--font-mono); font-size: var(--fs-meta);
@@ -2570,19 +2570,19 @@ body:not([data-space="cockpit"]) .persist-strip { display: none !important; }
   .bento-hero-meter, .bento-hero-agent, .bento-half { grid-column: 1 / 13; }
 }
 @media (max-width: 720px) {
-  .cockpit-bento { grid-template-columns: 1fr; gap: var(--s4); }
+  .bridge-bento { grid-template-columns: 1fr; gap: var(--s4); }
   .bento-hero-meter, .bento-hero-agent, .bento-stat,
   .bento-banner, .bento-half, .bento-full { grid-column: 1 / -1; }
   .content { padding: var(--s6) var(--s4); }
 }
-.cockpit-bento .meter-card,
-.cockpit-bento .agent-card,
-.cockpit-bento .priorities,
-.cockpit-bento .inbox-card,
-.cockpit-bento .today-card,
-.cockpit-bento .surfaces,
-.cockpit-bento .upcoming-card,
-.cockpit-bento .diag {
+.bridge-bento .meter-card,
+.bridge-bento .agent-card,
+.bridge-bento .priorities,
+.bridge-bento .inbox-card,
+.bridge-bento .today-card,
+.bridge-bento .surfaces,
+.bridge-bento .upcoming-card,
+.bridge-bento .diag {
   margin-bottom: 0;
   /* height: 100% removed — was forcing every card to match its tallest neighbour */
 }
@@ -2648,7 +2648,7 @@ body:not([data-space="cockpit"]) .persist-strip { display: none !important; }
   margin: 0;
 }
 
-/* Coming up preview card on cockpit */
+/* Coming up preview card on bridge */
 .upcoming-card {
   background: var(--surface-elevated);
   border-radius: var(--r-xl);
@@ -2683,7 +2683,7 @@ body:not([data-space="cockpit"]) .persist-strip { display: none !important; }
 .upcoming-card__more:hover { color: var(--amber); }
 
 /* Banner-style diag during drift */
-body[data-phase="drift"] .cockpit-bento .diag.bento-banner {
+body[data-phase="drift"] .bridge-bento .diag.bento-banner {
   border-left: 4px solid var(--amber);
 }
 
@@ -2855,19 +2855,19 @@ body[data-phase="drift"] .cockpit-bento .diag.bento-banner {
   .timeline__line { transition: none; }
 }
 
-/* 7.6 — Lineage citation, visible only on cockpit space */
-.cockpit-lineage {
+/* 7.6 — Lineage citation, visible only on bridge space */
+.bridge-lineage {
   display: none;
   margin: var(--s10) 0 0 0;
   font-family: var(--font-mono); font-size: var(--fs-meta);
   color: var(--text-muted); letter-spacing: var(--ls-wide);
   font-style: italic;
 }
-.cockpit-lineage em {
+.bridge-lineage em {
   font-style: italic;
   color: var(--text-2);
 }
-body[data-space="cockpit"] .cockpit-lineage { display: block; }
+body[data-space="bridge"] .bridge-lineage { display: block; }
 
 @media (max-width: 900px) {
   .map-grid { grid-template-columns: 1fr; }

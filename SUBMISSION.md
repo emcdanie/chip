@@ -34,7 +34,7 @@ The dashboard runs the loop on itself. The loop closed.
 **Agent**: configured at `console.anthropic.com/agents`. Named `chip-bridge`. Model = Claude Opus 4.7. JARVIS-inflected system prompt that defines CHIP's role and forces a `notion_search` call before answering questions about saved sources. Notion MCP wired in via OAuth + Anthropic's credential vault.
 
 **Flow when you Ask CHIP**:
-1. JS captures the message, prepends cockpit state (parity %, phase, audit count) for grounding
+1. JS captures the message, prepends bridge state (parity %, phase, audit count) for grounding
 2. POSTs to `localhost:3000/ask`
 3. Proxy creates/reuses a session against the Managed Agents API
 4. Posts the message as a `user.message` event
@@ -50,7 +50,7 @@ The dashboard runs the loop on itself. The loop closed.
 - **Model**: Claude Opus 4.7 via Cloud Managed Agents API (`managed-agents-2026-04-01` beta)
 - **MCP**: Notion MCP server (OAuth, credential vault) for live research library queries
 - **Frontend**: Hand-built HTML/CSS/JS — no framework, no bundler. Six spaces, one operator.
-- **Backend**: Express proxy on localhost serving the cockpit and brokering the agent session
+- **Backend**: Express proxy on localhost serving the bridge and brokering the agent session
 - **Persistence**: localStorage for session continuity across turns
 
 ---

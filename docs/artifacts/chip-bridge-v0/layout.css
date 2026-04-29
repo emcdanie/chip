@@ -196,7 +196,7 @@ body[data-logged-in="true"] .splash {
   min-width: 0; flex: 1;
 }
 .space { display: none; }
-body[data-space="cockpit"]   .space--cockpit   { display: block; }
+body[data-space="bridge"]   .space--bridge   { display: block; }
 body[data-space="research"]  .space--research  { display: block; }
 body[data-space="friction"]  .space--friction  { display: block; }
 body[data-space="bella"]     .space--bella     { display: block; }
@@ -205,7 +205,7 @@ body[data-space="map"]       .space--map       { display: block; }
 body[data-space="steward"]   .space--steward   { display: block; }
 
 .space__header { margin-bottom: var(--s6); }
-/* Stage 18.13 — header with right-aligned action buttons (cockpit) */
+/* Stage 18.13 — header with right-aligned action buttons (bridge) */
 .space__header--with-actions {
   display: grid;
   grid-template-columns: 1fr max-content;

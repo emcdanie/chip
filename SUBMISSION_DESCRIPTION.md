@@ -1,4 +1,4 @@
-# CHIP — Cockpit for agentic design systems
+# CHIP — Bridge for agentic design systems
 
 *Submission description for cerebralvalley.ai/e/built-with-4-7-hackathon. Paste verbatim.*
 

@@ -27,7 +27,7 @@
   var meterCurrent = 38;   // initial parity (Tier 1.2)
 
   var SPACE_TITLES = {
-    cockpit: 'Bridge',
+    bridge: 'Bridge',
     research: 'Research library',
     friction: 'Friction log',
     bella: 'AI-native BELLA',
@@ -423,11 +423,11 @@
     var space = body.getAttribute('data-space');
 
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
-      if (phase === 'drift' && space === 'cockpit') { e.preventDefault(); approve(); }
+      if (phase === 'drift' && space === 'bridge') { e.preventDefault(); approve(); }
       return;
     }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (phase !== 'drift' || space !== 'cockpit') return;
+    if (phase !== 'drift' || space !== 'bridge') return;
     var k = e.key.toLowerCase();
     if (k === 'a')      { e.preventDefault(); approve(); }
     else if (k === 'r') { e.preventDefault(); openReject(); }
@@ -969,7 +969,7 @@
         ['Reviewable at', 'Friday review · Wed 10:00 friction triage']
       ];
     }
-    return [['Source', 'Cockpit']];
+    return [['Source', 'Bridge']];
   }
   function decorateAuditEntry(li) {
     if (!li || li.classList.contains('audit__empty')) return;
@@ -1305,11 +1305,11 @@
     });
   }
 
-  // Stage 18.8 — gather the visible cockpit state and prepend it to the
-  // user message as a [cockpit state] block. The agent uses it to ground
+  // Stage 18.8 — gather the visible bridge state and prepend it to the
+  // user message as a [bridge state] block. The agent uses it to ground
   // answers to "what needs my attention" / "what's blocked" / etc. without
   // requiring live Jira/Slack/Storybook MCPs.
-  function gatherCockpitState() {
+  function gatherBridgeState() {
     var parity = document.getElementById('meter-value-text');
     var phaseAttr = document.body.getAttribute('data-phase') || 'loaded';
     var auditCount = document.querySelectorAll('#audit-log .audit__entry').length;
@@ -1323,7 +1323,7 @@
         platforms.push(label.textContent.trim() + ' ' + count.textContent.trim() + ' (' + chip.textContent.trim() + ')');
       }
     });
-    var space = document.body.getAttribute('data-space') || 'cockpit';
+    var space = document.body.getAttribute('data-space') || 'bridge';
     return {
       space:        space,
       phase:        phaseAttr,
@@ -1333,8 +1333,8 @@
     };
   }
   function buildAskMessage(userMessage) {
-    var s = gatherCockpitState();
-    var ctx = '[cockpit state · for grounding · do not echo verbatim]\n' +
+    var s = gatherBridgeState();
+    var ctx = '[bridge state · for grounding · do not echo verbatim]\n' +
       '- Space: ' + s.space + '\n' +
       '- Phase: ' + s.phase + ' (' +
         (s.phase === 'drift' ? 'audit open, awaiting approval' :
@@ -1653,7 +1653,7 @@
   document.querySelectorAll('[data-alert-nav]').forEach(function (dot) {
     dot.addEventListener('click', function (e) {
       e.stopPropagation();
-      if (typeof setSpace === 'function') setSpace('cockpit');
+      if (typeof setSpace === 'function') setSpace('bridge');
       setTimeout(function () {
         var alertsEl = document.querySelector('.alerts-panel');
         if (alertsEl) alertsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1671,7 +1671,7 @@
   // Defer / Done write audit entries and visually mark the row.
   // In v1 these route through Slack / Gmail MCP servers the same way
   // Notion does — for now they record the operator's intent and decision
-  // path through the cockpit.
+  // path through the bridge.
   function getRowMeta(row) {
     var src = row.querySelector('.inbox-card__source');
     var quote = row.querySelector('.inbox-card__quote');
@@ -1875,7 +1875,7 @@
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       // Stage 13 palette overrides this; only run if palette doesn't exist yet
       if (!document.getElementById('palette-modal')) {
-        if (agentAskInput && body.getAttribute('data-space') === 'cockpit') {
+        if (agentAskInput && body.getAttribute('data-space') === 'bridge') {
           e.preventDefault();
           agentAskInput.focus();
         }
@@ -2072,9 +2072,9 @@
   var FRICTION_LABEL = {
     sidebar:  { date: '2026-04-24', status: 'Open',     source: 'Cowork',       headline: 'The sidebar is too wide — and it just stays open.' },
     finder:   { date: '2026-04-24', status: 'Open',     source: 'Cowork',       headline: '"Show in Finder" is an ejection seat.' },
-    darkmode: { date: '2026-04-24', status: 'Resolved', source: 'CHIP cockpit', headline: 'Dark mode had invisible button text.' },
+    darkmode: { date: '2026-04-24', status: 'Resolved', source: 'CHIP bridge', headline: 'Dark mode had invisible button text.' },
     coparent: { date: '2026-04-22', status: 'Open',     source: 'Notion',       headline: 'Conversations with my co-parent should render as meetings.' },
-    approval: { date: '2026-04-18', status: 'Resolved', source: 'CHIP cockpit', headline: 'The four-click approval dance.' },
+    approval: { date: '2026-04-18', status: 'Resolved', source: 'CHIP bridge', headline: 'The four-click approval dance.' },
     pink:     { date: '2026-04-15', status: 'Wishlist', source: 'CHIP',         headline: 'One day I want it to be pink.' }
   };
   function renderFrictionTable() {
@@ -2984,7 +2984,7 @@
   function buildPaletteIndex() {
     paletteIndex = [];
     var spaceList = [
-      { id: 'cockpit',  label: 'Bridge',           chip: 'live', icon: '◉' },
+      { id: 'bridge',  label: 'Bridge',           chip: 'live', icon: '◉' },
       { id: 'research', label: 'Research library', chip: '47',   icon: '◈' },
       { id: 'friction', label: 'Friction log',     chip: '3',    icon: '◊' },
       { id: 'bella',    label: 'AI-native BELLA',  chip: '6',    icon: '◇' },
@@ -3003,7 +3003,7 @@
       { primary: 'Approve current proposal', kbd: 'A',     run: function () { approve(); } },
       { primary: 'Reject',                   kbd: 'R',     run: function () { openReject(); } },
       { primary: 'Modify',                   kbd: 'M',     run: function () { openModify(); } },
-      { primary: 'Open audit',               kbd: '',      run: function () { setSpace('cockpit'); setPhase('drift'); } },
+      { primary: 'Open audit',               kbd: '',      run: function () { setSpace('bridge'); setPhase('drift'); } },
       { primary: 'Reset demo',               kbd: '',      run: function () { setPhase('loaded'); } },
       { primary: 'Toggle theme',             kbd: '',      run: function () { setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); } },
       { primary: 'Open settings',            kbd: ',',     run: function () { openModal('settings'); } },
@@ -3059,7 +3059,7 @@
       var text = (summary ? summary.textContent : li.textContent) || '';
       paletteIndex.push({ type: 'audit', icon: '·', primary: text, secondary: 'Audit',
         run: function () {
-          setSpace('cockpit');
+          setSpace('bridge');
           setTimeout(function () {
             li.scrollIntoView({ block: 'center', behavior: reducedMotion.matches ? 'auto' : 'smooth' });
             li.setAttribute('aria-expanded', 'true');
@@ -3480,7 +3480,7 @@
       friction: []
     },
     eyebrow: {
-      dependents: ['Cockpit headers · Card headers · Sidebar sections · Audit ribbon'],
+      dependents: ['Bridge headers · Card headers · Sidebar sections · Audit ribbon'],
       external: ['Storybook · 2 stories', 'Figma · master/Eyebrow'],
       tickets: ['BELLA-1219 · iOS Eyebrow spacing token drift · in flight'],
       friction: []
@@ -3510,7 +3510,7 @@
       friction: []
     },
     aiCard: {
-      dependents: ['Composes Button + Card + Chip + Eyebrow', 'Cockpit proposals · Inbox cards (Stage 5)'],
+      dependents: ['Composes Button + Card + Chip + Eyebrow', 'Bridge proposals · Inbox cards (Stage 5)'],
       external: ['Storybook · 1 story', 'Figma · master/AI-Card'],
       tickets: ['BELLA-1259 · iOS AI Card not started · v1 candidate', 'BELLA-1260 · Android AI Card not started · v1 candidate'],
       friction: []
@@ -3522,7 +3522,7 @@
       friction: []
     },
     aiMeter: {
-      dependents: ['Cockpit parity meter', 'System map (Stage 6 candidate)'],
+      dependents: ['Bridge parity meter', 'System map (Stage 6 candidate)'],
       external: ['Storybook · 1 story', 'Figma · master/AI-Meter'],
       tickets: ['BELLA-1264 · Mobile typography for 72px hero · drafted'],
       friction: []
@@ -3650,7 +3650,7 @@
       past: ['2026-04-19 · 6 entries · 2 promoted to lineage', '2026-04-12 · 4 entries · 1 promoted', '2026-04-05 · 5 entries · all reviewed']
     },
     publish: {
-      surface: 'Preview · 2 pages awaiting approval on elleta.design — "Cockpit case study" and "BELLA palette rationale".',
+      surface: 'Preview · 2 pages awaiting approval on elleta.design — "Bridge case study" and "BELLA palette rationale".',
       prepped: ['Drafts reviewed · both passed inclusion check', 'Friction note · "Show in Finder ejection seat" referenced', 'Last publish · 2026-04-21 · 3 pages'],
       past: ['2026-04-21 · 3 pages published', '2026-04-14 · 2 pages published', '2026-04-07 · 1 page published']
     },
@@ -3694,11 +3694,11 @@
     if (d.past && d.past.length) {
       html += '<div class="ritual-expand__section"><p class="ritual-expand__label">Past iterations</p><ul class="ritual-expand__list">' + d.past.map(function (p) { return '<li>' + escapeHtml(p) + '</li>'; }).join('') + '</ul></div>';
     }
-    html += '<button type="button" class="ritual-expand__open" data-ritual-open="' + rid + '">→ Open in Cockpit when ritual fires</button>';
+    html += '<button type="button" class="ritual-expand__open" data-ritual-open="' + rid + '">→ Open in Bridge when ritual fires</button>';
     html += '</div>';
     btn.insertAdjacentHTML('afterend', html);
     var openBtn = document.querySelector('[data-ritual-open="' + rid + '"]');
-    if (openBtn) openBtn.addEventListener('click', function () { setSpace('cockpit'); });
+    if (openBtn) openBtn.addEventListener('click', function () { setSpace('bridge'); });
   }
   ritualBtns.forEach(function (b) {
     b.addEventListener('click', function () { selectRitual(b.getAttribute('data-ritual')); });

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CHIP — Cockpit for agentic design systems</title>
+  <title>CHIP — Bridge for agentic design systems</title>
 
 
   <!-- Tier 1.4 fonts (Fraunces + Atkinson Hyperlegible + IBM Plex Mono) -->
@@ -17,13 +17,13 @@
   <link rel="stylesheet" href="components.css">
 </head>
 
-<body data-phase="loaded" data-space="cockpit" data-logged-in="false" data-inclusion="pass">
+<body data-phase="loaded" data-space="bridge" data-logged-in="false" data-inclusion="pass">
 
 <!-- ============ LOGIN SPLASH (Tier 2.1: JARVIS briefing) ============ -->
 <div class="splash" id="splash" role="dialog" aria-labelledby="splash-welcome" aria-modal="true">
   <div class="splash__card">
     <p class="splash__wordmark">CHIP</p>
-    <p class="splash__tagline">Cockpit for agentic design systems</p>
+    <p class="splash__tagline">Bridge for agentic design systems</p>
     <div class="splash__avatar" aria-hidden="true">E</div>
     <h1 id="splash-welcome" class="splash__welcome">Morning, Elleta.</h1>
     <p class="splash__brief">
@@ -43,7 +43,7 @@
     <div class="side__section">
       <p class="side__eyebrow">Spaces</p>
       <nav class="side__nav">
-        <button type="button" class="side__link" data-space-target="cockpit" aria-current="page">
+        <button type="button" class="side__link" data-space-target="bridge" aria-current="page">
           <span class="side__link__icon">◉</span>
           <span class="side__link__label">Bridge</span>
           <span class="side__link__chip">live</span>
@@ -132,8 +132,8 @@
     <!-- content -->
     <main class="content">
 
-      <!-- ======== COCKPIT SPACE — Cross-platform landscape audit ======== -->
-      <section class="space space--cockpit" aria-labelledby="cockpit-title">
+      <!-- ======== BRIDGE SPACE — Cross-platform landscape audit ======== -->
+      <section class="space space--bridge" aria-labelledby="bridge-title">
         <div class="mapek" id="mapek" aria-label="MAPE-K loop status">
           <span class="mapek__phase mapek__phase--active" data-phase-marker="monitor">
             <span class="mapek__dot" aria-hidden="true"></span>Monitor
@@ -159,11 +159,11 @@
         <header class="space__header space__header--with-actions">
           <div class="space__header__main">
             <p class="space__eyebrow">Cross-platform · Landscape audit</p>
-            <h1 class="space__title" id="cockpit-title">BELLA parity is 38% across Web, iOS, Android.</h1>
+            <h1 class="space__title" id="bridge-title">BELLA parity is 38% across Web, iOS, Android.</h1>
             <p class="space__subtitle">Three platform squads, three priorities. The roadmap below is a proposal — review and approve to file the tickets and notify the leads.</p>
-            <p class="cockpit-action" id="cockpit-action">Action — review the roadmap below, press Approve to file 23 Jira tickets and notify Web/iOS/Android leads.</p>
+            <p class="bridge-action" id="bridge-action">Action — review the roadmap below, press Approve to file 23 Jira tickets and notify Web/iOS/Android leads.</p>
           </div>
-          <div class="space__header__actions" id="cockpit-header-actions">
+          <div class="space__header__actions" id="bridge-header-actions">
             <button type="button" class="btn" id="btn-drift">Open audit</button>
             <button type="button" class="btn" id="btn-reset" disabled>Reset demo</button>
           </div>
@@ -198,8 +198,8 @@
           </div>
         </aside>
 
-        <!-- Stage 14.1 Cockpit bento layout -->
-        <div class="cockpit-bento">
+        <!-- Stage 14.1 Bridge bento layout -->
+        <div class="bridge-bento">
 
         <article class="meter-card bento-hero-meter">
           <p class="card__eyebrow">Parity</p>
@@ -278,7 +278,7 @@
           </form>
           <!-- Stage 18.13 — Vitaly-style predefined prompts -->
           <div class="agent-card__suggestions" id="agent-suggestions" role="list" aria-label="Suggested prompts">
-            <button type="button" class="agent-card__suggestion" data-suggestion="What needs my attention right now? Use my BELLA cockpit state to ground the answer.">What needs my attention</button>
+            <button type="button" class="agent-card__suggestion" data-suggestion="What needs my attention right now? Use my BELLA bridge state to ground the answer.">What needs my attention</button>
             <button type="button" class="agent-card__suggestion" data-suggestion="Search my Notion for what Vitaly Friedman says about expert dashboards. Quote a line from the page.">What does Vitaly say about dashboards</button>
             <button type="button" class="agent-card__suggestion" data-suggestion="Walk me through BELLA's cross-platform parity gaps. Name the platform, name the component, name the next step.">Walk me through the parity gaps</button>
             <button type="button" class="agent-card__suggestion" data-suggestion="Search my Notion for Brad Frost's atomic agentic systems work. Summarize his governance argument.">Brad Frost on governance</button>
@@ -539,7 +539,7 @@
         </article>
 
         <!-- Stage 18.11 — Half cards in 2-column masonry wrapper (true column-pack) -->
-        <div class="cockpit-halves bento-full">
+        <div class="bridge-halves bento-full">
         <!-- Tier 2.2 — top-3 priorities -->
         <article class="priorities" aria-labelledby="priorities-eyebrow">
           <p id="priorities-eyebrow" class="card__eyebrow">Today</p>
@@ -654,7 +654,7 @@
 
         <!-- Stage 14.2 — Coming up preview (column 2 second tile) -->
         <article class="card upcoming-card" id="upcoming-card" aria-labelledby="upcoming-eyebrow">
-          <p id="upcoming-eyebrow" class="card__eyebrow">Coming up · 3 surface in your cockpit this week</p>
+          <p id="upcoming-eyebrow" class="card__eyebrow">Coming up · 3 surface in your bridge this week</p>
           <ul class="upcoming-card__list" role="list">
             <li class="upcoming-card__row">
               <span class="upcoming-card__when">Fri 10:00</span>
@@ -671,7 +671,7 @@
           </ul>
           <button type="button" class="upcoming-card__more" id="upcoming-card-more">→ See all 6 in Coming up</button>
         </article>
-        </div><!-- /.cockpit-halves -->
+        </div><!-- /.bridge-halves -->
 
         <!-- Stage 10.5 — surfaces shelf with compact-mode toggle -->
         <article class="card surfaces surfaces--compact bento-full" aria-labelledby="surfaces-eyebrow">
@@ -698,7 +698,7 @@
           </ul>
         </article>
 
-        </div><!-- /.cockpit-bento -->
+        </div><!-- /.bridge-bento -->
       </section>
 
       <!-- ======== RESEARCH SPACE ======== -->
@@ -967,7 +967,7 @@
             <div class="friction__meta">
               <span class="friction__date">2026-04-24</span>
               <span class="chip chip--success">Resolved</span>
-              <span class="chip chip--muted">CHIP cockpit</span>
+              <span class="chip chip--muted">CHIP bridge</span>
             </div>
             <h3 class="friction__headline">Dark mode had invisible button text.</h3>
             <p class="friction__body">BELLA's <code>[data-theme="dark"]</code> block only flipped semantic tokens. Component foregrounds stayed at <code>#111</code>. SIMULATE DRIFT rendered as an amber box with no label inside.</p>
@@ -986,7 +986,7 @@
             <div class="friction__meta">
               <span class="friction__date">2026-04-18</span>
               <span class="chip chip--success">Resolved</span>
-              <span class="chip chip--muted">CHIP cockpit</span>
+              <span class="chip chip--muted">CHIP bridge</span>
             </div>
             <h3 class="friction__headline">The four-click approval dance.</h3>
             <p class="friction__body">Old flow: click to open proposal, scroll, click diff, click approve, click confirm. Four clicks to say yes. One decision should be one key.</p>
@@ -1336,7 +1336,7 @@
                       </span>
                       <span class="dep-node__chip dep-node__chip--warning">Drift</span>
                     </button>
-                    <button type="button" class="dep-alert-dot dep-alert-dot--warn" data-alert-nav="cockpit" aria-label="Alert: iOS focus-order divergence — view in Bridge" title="iOS focus-order divergence · click to view alert in Bridge">⚠</button>
+                    <button type="button" class="dep-alert-dot dep-alert-dot--warn" data-alert-nav="bridge" aria-label="Alert: iOS focus-order divergence — view in Bridge" title="iOS focus-order divergence · click to view alert in Bridge">⚠</button>
                   </div>
                   <div class="dep-gc-wrap">
                     <button type="button" class="dep-node dep-node--small" data-dep-node="plat-android" data-dep-alert="crit" title="Alert: Android Button drift · 47 components without parity check" role="treeitem">
@@ -1346,7 +1346,7 @@
                       </span>
                       <span class="dep-node__chip dep-node__chip--critical">Critical</span>
                     </button>
-                    <button type="button" class="dep-alert-dot dep-alert-dot--crit" data-alert-nav="cockpit" aria-label="Alert: Android Button drift — view in Bridge" title="Android Button drift · click to view alert in Bridge">⚠</button>
+                    <button type="button" class="dep-alert-dot dep-alert-dot--crit" data-alert-nav="bridge" aria-label="Alert: Android Button drift — view in Bridge" title="Android Button drift · click to view alert in Bridge">⚠</button>
                   </div>
                 </div>
               </div>
@@ -1389,7 +1389,7 @@
                       </span>
                       <span class="dep-node__chip dep-node__chip--warning">Stale</span>
                     </button>
-                    <button type="button" class="dep-alert-dot dep-alert-dot--warn" data-alert-nav="cockpit" aria-label="Alert: Zeroheight Card page stale — view in Bridge" title="Zeroheight Card page stale · click to view alert in Bridge">⚠</button>
+                    <button type="button" class="dep-alert-dot dep-alert-dot--warn" data-alert-nav="bridge" aria-label="Alert: Zeroheight Card page stale — view in Bridge" title="Zeroheight Card page stale · click to view alert in Bridge">⚠</button>
                   </div>
                 </div>
               </div>
@@ -1414,7 +1414,7 @@
                       </span>
                       <span class="dep-node__chip dep-node__chip--healthy">Live</span>
                     </button>
-                    <button type="button" class="dep-alert-dot dep-alert-dot--info" data-alert-nav="cockpit" aria-label="Info: tokens.css edited — view in Bridge" title="tokens.css amber-30 edited · click to view in Bridge">ℹ</button>
+                    <button type="button" class="dep-alert-dot dep-alert-dot--info" data-alert-nav="bridge" aria-label="Info: tokens.css edited — view in Bridge" title="tokens.css amber-30 edited · click to view in Bridge">ℹ</button>
                   </div>
                   <div class="dep-gc-wrap">
                     <button type="button" class="dep-node dep-node--small" data-dep-node="conn-slack" role="treeitem">
@@ -1629,7 +1629,7 @@
         <header class="space__header">
           <p class="space__eyebrow">Coming up · Reviews CHIP will surface</p>
           <h1 class="space__title" id="steward-title">Coming up</h1>
-          <p class="space__subtitle">Reviews CHIP will bring to your cockpit. Each row is a future moment of attention.</p>
+          <p class="space__subtitle">Reviews CHIP will bring to your bridge. Each row is a future moment of attention.</p>
         </header>
 
         <!-- Stage 18.10 — Visual week calendar -->
@@ -1747,8 +1747,8 @@
         <p class="rituals__empty" hidden>Nothing on the calendar. Add a ritual to begin.</p>
       </section>
 
-      <!-- Tier 7.6 — lineage citation; visible only on cockpit space -->
-      <p class="cockpit-lineage">
+      <!-- Tier 7.6 — lineage citation; visible only on bridge space -->
+      <p class="bridge-lineage">
         In the lineage of <em>Maggie Appleton</em>'s daemon · <em>Projects By IF</em>'s trust patterns · <em>Shape of AI</em>'s vocabulary · <em>Amelia Wattenberger</em>'s embeddings · <em>Luke Wroblewski</em>'s structured search · <em>Vitaly Friedman</em>'s expert-user dashboards.
       </p>
 
@@ -1839,19 +1839,19 @@
   <div class="modal__panel">
     <h2 class="modal__title" id="modal-about-title">About CHIP</h2>
     <div class="modal__body about">
-      <p class="about__headline">Cockpit for agentic design systems.</p>
+      <p class="about__headline">Bridge for agentic design systems.</p>
       <p class="about__tagline">Most design system assistants answer questions. We intervene at the moment decisions are made.</p>
 
       <p class="about__section-label">What it is</p>
       <p class="about__body">
-        CHIP is the cockpit a design-systems lead opens when their system has drifted across platforms. The agent watches every surface — repos, Figma, Storybook, docs, ticket queues, dev-lead channels — and proposes a roadmap when parity slips. The operator approves, edits, or rejects. Tickets file themselves. Audit logs itself.
+        CHIP is the bridge a design-systems lead opens when their system has drifted across platforms. The agent watches every surface — repos, Figma, Storybook, docs, ticket queues, dev-lead channels — and proposes a roadmap when parity slips. The operator approves, edits, or rejects. Tickets file themselves. Audit logs itself.
       </p>
 
       <dl class="about__meta">
         <dt>Brain</dt><dd>Claude Opus 4.7</dd>
         <dt>Skin</dt><dd>BELLA — Elleta's personal design system</dd>
         <dt>Built for</dt><dd>Built with Opus 4.7 hackathon · 2026-04-24 → 2026-04-26</dd>
-        <dt>Operator</dt><dd>Elleta · self-employed AI design systems engineer · single mom · this cockpit was built for me, by me</dd>
+        <dt>Operator</dt><dd>Elleta · self-employed AI design systems engineer · single mom · this bridge was built for me, by me</dd>
       </dl>
 
       <p class="about__section-label">Inspiration</p>
