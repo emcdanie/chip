@@ -1089,7 +1089,7 @@
       <!-- ======== COMPONENT MAP SPACE ======== -->
       <section class="space space--component" aria-labelledby="component-title">
         <header class="space__header">
-          <p class="space__eyebrow">Atomic design · 12 components · BELLA</p>
+          <p class="space__eyebrow">Atomic design · <span data-bella-count>18</span> components · BELLA</p>
           <h1 class="space__title" id="component-title">The components, every variant CHIP can see.</h1>
           <p class="space__subtitle">Atoms are single-purpose primitives. Molecules compose atoms into functional patterns. Organisms are AI-native surfaces — born when the agent needed new vocabulary. Parity gaps at any level propagate upward.</p>
         </header>
@@ -1102,7 +1102,7 @@
           <div class="cmap-hud" id="cmap-hud" aria-hidden="true">
             <div class="cmap-hud__card">
               <p class="cmap-hud__eyebrow">CHIP · BELLA System Map</p>
-              <p class="cmap-hud__count">12 components across 3 atomic levels</p>
+              <p class="cmap-hud__count"><span data-bella-count>18</span> components across 3 atomic levels</p>
               <div class="cmap-hud__legend" id="cmap-legend"></div>
             </div>
             <div class="cmap-controls">
@@ -1124,11 +1124,11 @@
 
         <!-- Components matrix table (moved from System map) -->
         <article class="card components-matrix" aria-labelledby="components-matrix-eyebrow" style="margin-top:var(--s6)">
-          <p id="components-matrix-eyebrow" class="card__eyebrow">Components · Platform parity matrix</p>
+          <p id="components-matrix-eyebrow" class="card__eyebrow">Components · BELLA health matrix</p>
           <div class="matrix-filter">
             <label class="matrix-filter__label" for="matrix-filter-input">Filter:</label>
             <input type="search" id="matrix-filter-input" class="matrix-filter__input"
-              placeholder="Type to filter (component, platform, status)…"
+              placeholder="Type to filter (component, check, status)…"
               autocomplete="off" aria-label="Filter components" />
             <span class="matrix-filter__count" id="matrix-filter-count" aria-live="polite"></span>
             <button type="button" class="matrix-view-toggle" id="matrix-view-toggle" aria-pressed="false">Heatmap</button>
@@ -1136,110 +1136,14 @@
           <ul class="components-matrix__list" role="list">
             <li class="components-matrix__head" role="row">
               <button type="button" class="components-matrix__sort" data-sort-col="0" aria-label="Sort by component">Component</button>
-              <button type="button" class="components-matrix__sort" data-sort-col="1" aria-label="Sort by Web">Web</button>
-              <button type="button" class="components-matrix__sort" data-sort-col="2" aria-label="Sort by iOS">iOS</button>
-              <button type="button" class="components-matrix__sort" data-sort-col="3" aria-label="Sort by Android">Android</button>
-              <button type="button" class="components-matrix__sort" data-sort-col="4" aria-label="Sort by Figma">Figma</button>
-              <button type="button" class="components-matrix__sort" data-sort-col="5" aria-label="Sort by Storybook">Storybook</button>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="button" data-type="component" aria-label="Button — Web 100, iOS 100, Android 62, Figma 100, Storybook 100">
-              <span class="components-matrix__name">Button</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">62</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="card" data-type="component" aria-label="Card — Web 100, iOS 100, Android 62, Figma 100, Storybook 100">
-              <span class="components-matrix__name">Card</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">62</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="input" data-type="component" aria-label="Input — Web 100, iOS 71, Android 0, Figma 100, Storybook 64">
-              <span class="components-matrix__name">Input</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">71</span>
-              <span class="components-matrix__cell components-matrix__cell--missing" aria-hidden="true">0</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">64</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="chip" data-type="component" aria-label="Chip — Web 100, iOS 100, Android 100, Figma 100, Storybook 100">
-              <span class="components-matrix__name">Chip</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="eyebrow" data-type="component" aria-label="Eyebrow — Web 100, iOS 76, Android 76, Figma 100, Storybook 100">
-              <span class="components-matrix__name">Eyebrow</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">76</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">76</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="navLink" data-type="component" aria-label="Nav link — Web 100, iOS 71, Android 0, Figma 100, Storybook 64">
-              <span class="components-matrix__name">Nav link</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">71</span>
-              <span class="components-matrix__cell components-matrix__cell--missing" aria-hidden="true">0</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">64</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="modal" data-type="component" aria-label="Modal — Web 100, iOS 100, Android 62, Figma 100, Storybook 100">
-              <span class="components-matrix__name">Modal</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">62</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="avatar" data-type="component" aria-label="Avatar — Web 100, iOS 100, Android 100, Figma 100, Storybook 100">
-              <span class="components-matrix__name">Avatar</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="badge" data-type="component" aria-label="Badge — Web 100, iOS 100, Android 62, Figma 100, Storybook 100">
-              <span class="components-matrix__name">Badge</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">62</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="aiCard" data-type="ai-primitive" aria-label="AI Card — Web 95, iOS not applicable, Android not applicable, Figma 100, Storybook 73">
-              <span class="components-matrix__name">AI Card</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">95</span>
-              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
-              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">73</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="aiDiff" data-type="ai-primitive" aria-label="AI Diff — Web 95, iOS not applicable, Android not applicable, Figma 100, Storybook 73">
-              <span class="components-matrix__name">AI Diff</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">95</span>
-              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
-              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">73</span>
-            </li>
-            <li class="components-matrix__row" tabindex="0" role="button" data-component="aiMeter" data-type="ai-primitive" aria-label="AI Meter — Web 95, iOS not applicable, Android not applicable, Figma 100, Storybook 73">
-              <span class="components-matrix__name">AI Meter</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">95</span>
-              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
-              <span class="components-matrix__cell components-matrix__cell--na" aria-hidden="true">—</span>
-              <span class="components-matrix__cell components-matrix__cell--sync" aria-hidden="true">100</span>
-              <span class="components-matrix__cell components-matrix__cell--drift" aria-hidden="true">73</span>
+              <button type="button" class="components-matrix__sort" data-sort-col="1" aria-label="Sort by Story">Story</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="2" aria-label="Sort by Docs">Docs</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="3" aria-label="Sort by Contract">Contract</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="4" aria-label="Sort by Contrast">Contrast</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="5" aria-label="Sort by Tokens">Tokens</button>
             </li>
           </ul>
-          <p class="components-matrix__legend">0–59 critical · 60–89 attention · 90–100 in spec · — not applicable · Tokens layer underpins every component above. Drift surfaces here within 14m of any platform commit.</p>
+          <p class="components-matrix__legend" id="components-matrix-legend">pass · fail · — not covered by a check. Tokens = custom properties the component reads. Source: data/bella.json (npm run sync:bella).</p>
         </article>
       </section>
 
@@ -1260,7 +1164,7 @@
                 <span class="dep-node__icon" aria-hidden="true">◆</span>
                 <span class="dep-node__body">
                   <span class="dep-node__title">BELLA design system</span>
-                  <span class="dep-node__meta">Web · iOS · Android · live</span>
+                  <span class="dep-node__meta">Web · live</span>
                 </span>
                 <span class="dep-node__chip dep-node__chip--healthy">Healthy</span>
                 <span class="dep-node__pct">38%</span>
@@ -1277,7 +1181,7 @@
                   <span class="dep-node__icon" aria-hidden="true">▦</span>
                   <span class="dep-node__body">
                     <span class="dep-node__title">Component library</span>
-                    <span class="dep-node__meta">12 components</span>
+                    <span class="dep-node__meta"><span data-bella-count>18</span> components</span>
                   </span>
                   <span class="dep-node__chip dep-node__chip--warning">Drift</span>
                   <span class="dep-node__pct">66%</span>
@@ -1313,40 +1217,19 @@
                   <span class="dep-node__icon" aria-hidden="true">⌬</span>
                   <span class="dep-node__body">
                     <span class="dep-node__title">Platform repos</span>
-                    <span class="dep-node__meta">3 platforms</span>
+                    <span class="dep-node__meta">1 platform · web</span>
                   </span>
-                  <span class="dep-node__chip dep-node__chip--critical">Critical</span>
-                  <span class="dep-node__pct">38%</span>
+                  <span class="dep-node__chip dep-node__chip--healthy" id="dep-platforms-chip">Web only</span>
                 </button>
                 <div class="dep-grandchildren">
                   <div class="dep-gc-wrap">
                     <button type="button" class="dep-node dep-node--small" data-dep-node="plat-web" role="treeitem">
                       <span class="dep-node__body">
                         <span class="dep-node__title">Web</span>
-                        <span class="dep-node__meta">react-bella-web</span>
+                        <span class="dep-node__meta" id="dep-web-meta">bella · React</span>
                       </span>
-                      <span class="dep-node__chip dep-node__chip--healthy">In sync</span>
+                      <span class="dep-node__chip dep-node__chip--healthy">Real data</span>
                     </button>
-                  </div>
-                  <div class="dep-gc-wrap">
-                    <button type="button" class="dep-node dep-node--small" data-dep-node="plat-ios" data-dep-alert="warn" title="Alert: iOS focus-order divergence · Modal landscape variant" role="treeitem">
-                      <span class="dep-node__body">
-                        <span class="dep-node__title">iOS</span>
-                        <span class="dep-node__meta">ios-bella · 49%</span>
-                      </span>
-                      <span class="dep-node__chip dep-node__chip--warning">Drift</span>
-                    </button>
-                    <button type="button" class="dep-alert-dot dep-alert-dot--warn" data-alert-nav="bridge" aria-label="Alert: iOS focus-order divergence — view in Bridge" title="iOS focus-order divergence · click to view alert in Bridge">⚠</button>
-                  </div>
-                  <div class="dep-gc-wrap">
-                    <button type="button" class="dep-node dep-node--small" data-dep-node="plat-android" data-dep-alert="crit" title="Alert: Android Button drift · 47 components without parity check" role="treeitem">
-                      <span class="dep-node__body">
-                        <span class="dep-node__title">Android</span>
-                        <span class="dep-node__meta">android-bella · 0%</span>
-                      </span>
-                      <span class="dep-node__chip dep-node__chip--critical">Critical</span>
-                    </button>
-                    <button type="button" class="dep-alert-dot dep-alert-dot--crit" data-alert-nav="bridge" aria-label="Alert: Android Button drift — view in Bridge" title="Android Button drift · click to view alert in Bridge">⚠</button>
                   </div>
                 </div>
               </div>
@@ -1460,7 +1343,7 @@
               <h3 class="dep-map__detail-title" id="dep-detail-title">BELLA design system</h3>
               <button type="button" class="dep-map__detail-close" id="dep-detail-close" aria-label="Close detail">×</button>
             </header>
-            <p class="dep-map__detail-meta" id="dep-detail-meta">Web · iOS · Android · live</p>
+            <p class="dep-map__detail-meta" id="dep-detail-meta">Web · live</p>
             <span class="dep-node__chip dep-node__chip--healthy" id="dep-detail-chip">Healthy</span>
 
             <section class="dep-map__detail-section">
@@ -1555,22 +1438,6 @@
               <span class="infra-board__when">14m ago · CI green</span>
               <span class="infra-board__div">—</span>
               <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Open</button></span>
-            </li>
-            <li class="infra-board__row" data-status="drift">
-              <span class="infra-board__name"><strong>iOS repo</strong></span>
-              <span class="infra-board__source">ios-bella · main</span>
-              <span class="infra-board__chip"><span class="chip chip--accent">Drift</span></span>
-              <span class="infra-board__when">2h ago</span>
-              <span class="infra-board__div"><span class="infra-board__div-num">23</span> components behind</span>
-              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Triage</button></span>
-            </li>
-            <li class="infra-board__row" data-status="drift">
-              <span class="infra-board__name"><strong>Android repo</strong></span>
-              <span class="infra-board__source">android-bella · main</span>
-              <span class="infra-board__chip"><span class="chip chip--accent">Drift</span></span>
-              <span class="infra-board__when">1d ago</span>
-              <span class="infra-board__div"><span class="infra-board__div-num">47</span> components behind</span>
-              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Triage</button></span>
             </li>
             <li class="infra-board__row" data-status="sync">
               <span class="infra-board__name"><strong>Jira backlog</strong></span>
@@ -1896,6 +1763,7 @@
 </div>
 
 <!-- Stage 6 split — data.js loads first; app.js IIFE reads its globals -->
+<script src="../../../data/bella.js" defer></script>
 <script src="data.js" defer></script>
 <script src="app.js" defer></script>
 </body>

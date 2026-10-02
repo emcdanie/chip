@@ -14,6 +14,8 @@ app.use(cors({ origin: true, credentials: false }));
 
 // Serve the bridge from / so http://localhost:3000 works alongside file://
 app.use(express.static(path.join(__dirname, '../docs/artifacts/chip-bridge-v0')));
+// Real BELLA data from scripts/sync-bella.mjs; the bridge loads ../../../data/bella.js
+app.use('/data', express.static(path.join(__dirname, '../data')));
 
 const API_KEY   = process.env.ANTHROPIC_API_KEY;
 const AGENT_ID  = process.env.CHIP_AGENT_ID;

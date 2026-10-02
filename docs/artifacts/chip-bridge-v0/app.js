@@ -437,6 +437,43 @@
   // ============ Stage 4 — System Map deepening ============
   var mapSection       = document.querySelector('.space--map');
   var mapDetailEmpty   = document.getElementById('map-detail-empty');
+  // ============ chip-2.0 — real BELLA data (data/bella.js, npm run sync:bella) ============
+  var BELLA = window.BELLA || { components: [], stations: [], source: {} };
+  var BELLA_BY_ID = {};
+  BELLA.components.forEach(function (c) { BELLA_BY_ID[c.id] = c; });
+  function bellaChecks(c) {
+    // [label, 'pass' | 'fail' | 'na'] per check shown in the matrix
+    var ct = c.health.contract.status, cs = c.health.contrast.status;
+    return [
+      ['Story',    c.hasStory ? 'pass' : 'fail'],
+      ['Docs',     c.hasDocs ? 'pass' : 'fail'],
+      ['Contract', ct === 'pass' ? 'pass' : ct === 'fail' ? 'fail' : 'na'],
+      ['Contrast', cs === 'pass' ? 'pass' : cs === 'fail' ? 'fail' : 'na']
+    ];
+  }
+  (function renderBellaMatrix() {
+    var list = document.querySelector('.components-matrix__list');
+    if (!list) return;
+    var CELL = { pass: 'sync', fail: 'missing', na: 'na' };
+    var html = '';
+    BELLA.components.forEach(function (c) {
+      var checks = bellaChecks(c);
+      var aria = c.name + ' — ' + checks.map(function (k) { return k[0] + ' ' + (k[1] === 'na' ? 'not covered' : k[1]); }).join(', ') + ', ' + c.tokens.count + ' tokens';
+      html += '<li class="components-matrix__row" tabindex="0" role="button" data-component="' + c.id + '" data-type="component" aria-label="' + aria + '">' +
+        '<span class="components-matrix__name">' + c.name + '</span>';
+      checks.forEach(function (k) {
+        html += '<span class="components-matrix__cell components-matrix__cell--' + CELL[k[1]] + '"' +
+          (k[1] === 'na' ? '' : ' data-score="' + (k[1] === 'pass' ? 100 : 0) + '"') +
+          ' aria-hidden="true">' + (k[1] === 'na' ? '—' : k[1]) + '</span>';
+      });
+      html += '<span class="components-matrix__cell" aria-hidden="true">' + c.tokens.count + '</span></li>';
+    });
+    list.insertAdjacentHTML('beforeend', html);
+    var navChip = document.querySelector('[data-space-target="component"] .side__link__chip');
+    if (navChip) navChip.textContent = String(BELLA.components.length);
+    document.querySelectorAll('[data-bella-count]').forEach(function (el) { el.textContent = String(BELLA.components.length); });
+  })();
+
   var mapDetailContent = document.getElementById('map-detail-content');
   var mapNodes         = document.querySelectorAll('.map__node');
   var mapEdges         = document.querySelectorAll('.map__edge-group');
@@ -676,7 +713,7 @@
   // ============ Stage 7.3 — components matrix filter chips ============
   var matrixFilters = { platform: 'all', status: 'all', type: 'all' };
   var matrixRowsForFilter = document.querySelectorAll('.components-matrix__row[data-component]');
-  var PLATFORM_INDEX = { web: 0, ios: 1, android: 2, figma: 3, storybook: 4 };
+  var PLATFORM_INDEX = { story: 0, docs: 1, contract: 2, contrast: 3 };
 
   function applyMatrixFilters() {
     matrixRowsForFilter.forEach(function (row) {
@@ -734,11 +771,11 @@
   // ============ Stage 8.7 — Components matrix single-input filter ============
   var matrixFilterInput = document.getElementById('matrix-filter-input');
   var matrixFilterCount = document.getElementById('matrix-filter-count');
-  var PLATFORM_NAMES = ['web', 'ios', 'android', 'figma', 'storybook'];
+  var PLATFORM_NAMES = ['story', 'docs', 'contract', 'contrast'];
   var STATUS_TERMS = {
     'in spec': 'sync', 'spec': 'sync',
     'attention': 'drift', 'drift': 'drift',
-    'critical': 'missing', 'missing': 'missing',
+    'critical': 'missing', 'missing': 'missing', 'fail': 'missing', 'pass': 'sync',
     'sync': 'sync', 'in sync': 'sync'
   };
   function applyMatrixFilter() {
@@ -1413,42 +1450,6 @@
   // Click any tree node → detail side panel populates with description,
   // metrics, last update / next review, sparkline, availability bar.
   var DEP_NODE_DATA = {
-    bella: {
-      title: 'BELLA design system',
-      meta:  'Web · iOS · Android · live',
-      chip:  { label: 'Healthy',  cls: 'dep-node__chip--healthy'  },
-      desc:  'The full design system: tokens, primitives, patterns, and platform implementations. CHIP watches every surface for divergence and surfaces it here.',
-      updated: '14m ago',
-      next:    'Friday 10:00',
-      spark: '0,40 30,38 60,32 90,30 120,28 150,22 180,18 200,12',
-      sparkColor: 'var(--sage)',
-      avail: 38,
-      metrics: [['Components', '12'], ['In sync', '1 / 3 platforms'], ['Open alerts', '4'], ['Audit entries today', '1']],
-    },
-    components: {
-      title: 'Component library',
-      meta:  '12 components · atoms / molecules / organisms',
-      chip:  { label: 'Drift', cls: 'dep-node__chip--warning' },
-      desc:  'Atomic-design layers. Drift detected on iOS and Android implementations of Button, Card, Input, Modal, Badge, and Nav link.',
-      updated: '14m ago',
-      next:    'Friday 10:00 · Parity review',
-      spark: '0,28 30,30 60,32 90,28 120,30 150,32 180,34 200,36',
-      sparkColor: 'var(--amber)',
-      avail: 66,
-      metrics: [['Atoms', '6 · 4 drifting'], ['Molecules', '3 · 1 drifting'], ['Organisms', '3 · all in sync'], ['Critical', '0']],
-    },
-    platforms: {
-      title: 'Platform repos',
-      meta:  'react-bella-web · ios-bella · android-bella',
-      chip:  { label: 'Critical', cls: 'dep-node__chip--critical' },
-      desc:  'Three platform implementations of BELLA. Web is in sync. iOS is 23 components behind master. Android is 47 components behind — landscape mode shipped without parity check.',
-      updated: '2h ago',
-      next:    'Friday 14:00 · Parity sync',
-      spark: '0,18 30,22 60,28 90,32 120,36 150,40 180,44 200,48',
-      sparkColor: 'var(--rust)',
-      avail: 38,
-      metrics: [['Web', '47 / 47 in sync'], ['iOS', '23 / 47'], ['Android', '0 / 47'], ['Open critical', '1']],
-    },
     sources: {
       title: 'Sources of truth',
       meta:  'Figma · Storybook · Zeroheight',
@@ -1474,61 +1475,7 @@
       metrics: [['Notion MCP', 'live · 47 sources reachable'], ['Slack', 'v1 planned'], ['Gmail', 'v1 planned'], ['Jira', 'v1 planned']],
     },
     // Grandchildren — Component library
-    'comp-atoms': {
-      title: 'Atoms', meta: '6 components · button · card · input · chip · eyebrow · nav link',
-      chip: { label: 'Drift', cls: 'dep-node__chip--warning' },
-      desc: '6 atomic primitives. Button, Card, Input, Nav link drifting on Android. Chip and Eyebrow have minor letter-spacing divergence on iOS.',
-      updated: '2h ago', next: 'Friday 10:00 · Parity review',
-      spark: '0,30 30,28 60,26 90,28 120,30 150,32 180,30 200,28',
-      sparkColor: 'var(--amber)', avail: 66,
-      metrics: [['In spec', '2 / 6'], ['Drifting', '3 / 6'], ['Missing', '1 / 6 (Android)'], ['Linked', 'Component map']],
-    },
-    'comp-molecules': {
-      title: 'Molecules', meta: '3 components · modal · avatar · badge',
-      chip: { label: 'In sync', cls: 'dep-node__chip--healthy' },
-      desc: '3 molecule patterns. Modal, Avatar, Badge. Avatar is fully in spec across all platforms. Modal has a minor Android landscape gap.',
-      updated: '6h ago', next: 'Friday 10:00',
-      spark: '0,20 30,22 60,24 90,22 120,24 150,26 180,28 200,30',
-      sparkColor: 'var(--sage)', avail: 92,
-      metrics: [['In spec', '2.5 / 3'], ['Partial', 'Modal Android'], ['Avatar', '100% all platforms'], ['Badge', '87% avg']],
-    },
-    'comp-organisms': {
-      title: 'Organisms', meta: '3 components · AI Card · AI Diff · AI Meter',
-      chip: { label: 'In sync', cls: 'dep-node__chip--healthy' },
-      desc: 'AI-native surfaces. Web only at v0. iOS + Android planned for v1. Storybook stories partially complete.',
-      updated: '1h ago', next: 'v1 platform expansion',
-      spark: '0,40 30,38 60,36 90,34 120,32 150,30 180,32 200,34',
-      sparkColor: 'var(--sage)', avail: 95,
-      metrics: [['Web', '95% (3/3)'], ['iOS', 'v1 planned'], ['Android', 'v1 planned'], ['Storybook', '73%']],
-    },
     // Grandchildren — Platform repos
-    'plat-web': {
-      title: 'Web · react-bella-web', meta: '100% in sync · main branch clean',
-      chip: { label: 'In sync', cls: 'dep-node__chip--healthy' },
-      desc: 'React implementation of BELLA. Storybook at 89 stories, CI green. All 47 components in spec.',
-      updated: '14m ago', next: 'Friday 14:00 · Deploy',
-      spark: '0,20 30,18 60,20 90,18 120,16 150,18 180,20 200,18',
-      sparkColor: 'var(--sage)', avail: 100,
-      metrics: [['Components', '47 / 47'], ['CI', 'green'], ['Last deploy', '14m ago'], ['Storybook', '89 stories']],
-    },
-    'plat-ios': {
-      title: 'iOS · ios-bella', meta: '49% drift · 23 components behind',
-      chip: { label: 'Drift', cls: 'dep-node__chip--warning' },
-      desc: 'Swift/UIKit implementation. 23 components drifting from master. Focus-order divergence flagged on Modal landscape variant.',
-      updated: '2h ago', next: 'Friday 14:00 · iOS Lead sync',
-      spark: '0,30 30,32 60,34 90,36 120,38 150,40 180,42 200,44',
-      sparkColor: 'var(--amber)', avail: 49,
-      metrics: [['In spec', '24 / 47'], ['Drifting', '23 / 47'], ['Critical', 'focus-order (Modal)'], ['Next sync', 'Friday']],
-    },
-    'plat-android': {
-      title: 'Android · android-bella', meta: '0% · 47 components behind master',
-      chip: { label: 'Critical', cls: 'dep-node__chip--critical' },
-      desc: 'Kotlin implementation. Landscape mode shipped without parity check — 47 components diverged. BELLA-1267 open.',
-      updated: '2h ago', next: 'Block until parity check',
-      spark: '0,50 30,52 60,54 90,56 120,58 150,56 180,54 200,52',
-      sparkColor: 'var(--rust)', avail: 0,
-      metrics: [['In spec', '0 / 47'], ['Critical alerts', '1'], ['JIRA ticket', 'BELLA-1267'], ['Blocked', 'landscape merge']],
-    },
     // Grandchildren — Sources of truth
     'src-figma': {
       title: 'Figma', meta: 'master clean · library published',
@@ -1595,6 +1542,71 @@
       metrics: [['Status', 'planned'], ['Use case', 'auto-file parity tickets'], ['ETA', 'v1'], ['Blocker', 'none']],
     },
   };
+  // chip-2.0: entries backed by data/bella.json (no invented percentages)
+  (function () {
+    var comps = BELLA.components, total = comps.length;
+    function n(fn) { return comps.filter(fn).length; }
+    var failing = n(function (c) { return bellaChecks(c).some(function (k) { return k[1] === 'fail'; }); });
+    var chip = failing ? { label: failing + ' failing', cls: 'dep-node__chip--warning' } : { label: 'Gate green', cls: 'dep-node__chip--healthy' };
+    var src = 'bella@' + (BELLA.source.commit || '?') + ' · v' + (BELLA.source.version || '?');
+    function tier(level, label) {
+      var depth = { atom: function (d) { return d === 0; }, molecule: function (d) { return d === 1; }, organism: function (d) { return d >= 2; } }[level];
+      var group = comps.filter(function (c) { return depth(c.compositionDepth); });
+      return {
+        title: label, meta: group.length + ' components · by import depth',
+        chip: (function (f) { return f ? { label: f + ' failing', cls: 'dep-node__chip--warning' } : { label: group.length ? 'Gate green' : 'Empty', cls: 'dep-node__chip--healthy' }; })(
+          group.filter(function (c) { return bellaChecks(c).some(function (k) { return k[1] === 'fail'; }); }).length),
+        desc: group.length ? group.map(function (x) { return x.name; }).join(', ') + '.' : 'No BELLA component sits at this depth yet.',
+        updated: BELLA.source.committedAt || '', next: 'npm run sync:bella',
+        metrics: [['Components', String(group.length)], ['Source', src]]
+      };
+    }
+    DEP_NODE_DATA.bella = {
+      title: 'BELLA design system', meta: 'Web · live',
+      chip: chip,
+      desc: 'Tokens and ' + total + ' React components, read from the BELLA repo by sync:bella and checked by BELLA\'s own gate scripts.',
+      updated: BELLA.source.committedAt || '', next: 'npm run sync:bella',
+      metrics: [['Components', String(total)], ['Contrast pairs', BELLA.gates && BELLA.gates.contrastPairs.ok ? 'OK' : 'FAIL'],
+                ['Contract parity', BELLA.gates && BELLA.gates.contractParity.ok ? 'OK' : 'FAIL'], ['Source', src]]
+    };
+    DEP_NODE_DATA.components = {
+      title: 'Component library', meta: total + ' components · atoms / molecules / organisms',
+      chip: chip,
+      desc: 'Rings by real composition: a component that imports no other BELLA component is an atom; one that imports atoms is a molecule.',
+      updated: BELLA.source.committedAt || '', next: 'npm run sync:bella',
+      metrics: [['With story', n(function (c) { return c.hasStory; }) + ' / ' + total], ['With docs', n(function (c) { return c.hasDocs; }) + ' / ' + total],
+                ['With contract', n(function (c) { return c.hasContract; }) + ' / ' + total], ['Failing a check', String(failing)]]
+    };
+    DEP_NODE_DATA.platforms = {
+      title: 'Platform repos', meta: 'bella (React, web)',
+      chip: { label: 'Web only', cls: 'dep-node__chip--healthy' },
+      desc: 'BELLA ships one platform today: React on the web. No native implementations exist, so there is no cross-platform parity to measure.',
+      updated: BELLA.source.committedAt || '', next: 'npm run sync:bella',
+      metrics: [['Web', total + ' components'], ['Source', src]]
+    };
+    DEP_NODE_DATA['plat-web'] = {
+      title: 'Web · bella', meta: src,
+      chip: chip,
+      desc: 'React implementation of BELLA, read from ~/DEV/bella.',
+      updated: BELLA.source.committedAt || '', next: 'npm run sync:bella',
+      metrics: [['Components', String(total)], ['Visual audit', 'not run (TODO)']]
+    };
+    DEP_NODE_DATA['comp-atoms'] = tier('atom', 'Atoms');
+    DEP_NODE_DATA['comp-molecules'] = tier('molecule', 'Molecules');
+    DEP_NODE_DATA['comp-organisms'] = tier('organism', 'Organisms');
+    // the tree buttons are static markup: point the real-data nodes at these entries
+    ['bella', 'components', 'comp-atoms', 'comp-molecules', 'comp-organisms'].forEach(function (key) {
+      var btn = document.querySelector('[data-dep-node="' + key + '"]');
+      var d = DEP_NODE_DATA[key];
+      if (!btn || !d) return;
+      var meta = btn.querySelector('.dep-node__meta');
+      var c = btn.querySelector('.dep-node__chip');
+      var pctEl = btn.querySelector('.dep-node__pct');
+      if (meta) meta.textContent = d.meta;
+      if (c) { c.className = 'dep-node__chip ' + d.chip.cls; c.textContent = d.chip.label; }
+      if (pctEl) pctEl.remove();
+    });
+  })();
 
   function selectDepNode(nodeId) {
     var data = DEP_NODE_DATA[nodeId];
@@ -1619,11 +1631,12 @@
     if ($('dep-detail-desc'))     $('dep-detail-desc').textContent     = data.desc;
     if ($('dep-detail-updated'))  $('dep-detail-updated').textContent  = data.updated;
     if ($('dep-detail-next'))     $('dep-detail-next').textContent     = data.next;
-    if ($('dep-detail-avail-pct'))$('dep-detail-avail-pct').textContent= data.avail + '%';
-    if ($('dep-detail-bar-fill')) $('dep-detail-bar-fill').style.width = data.avail + '%';
+    var hasAvail = typeof data.avail === 'number';
+    if ($('dep-detail-avail-pct'))$('dep-detail-avail-pct').textContent= hasAvail ? data.avail + '%' : '—';
+    if ($('dep-detail-bar-fill')) $('dep-detail-bar-fill').style.width = hasAvail ? data.avail + '%' : '0';
     if ($('dep-detail-spark')) {
-      $('dep-detail-spark').innerHTML =
-        '<polyline points="' + data.spark + '" fill="none" stroke="' + data.sparkColor + '" stroke-width="2" />';
+      $('dep-detail-spark').innerHTML = data.spark ?
+        '<polyline points="' + data.spark + '" fill="none" stroke="' + data.sparkColor + '" stroke-width="2" />' : '';
     }
     if ($('dep-detail-metrics')) {
       $('dep-detail-metrics').innerHTML = data.metrics.map(function (m) {
@@ -1896,7 +1909,7 @@
     var c = row.querySelectorAll('.components-matrix__cell')[colIdx - 1];
     if (!c) return -1;
     if (c.classList.contains('components-matrix__cell--na')) return -1;
-    var v = parseFloat(c.textContent);
+    var v = parseFloat(c.hasAttribute('data-score') ? c.getAttribute('data-score') : c.textContent);
     return isNaN(v) ? -1 : v;
   }
   function applyMatrixSort(col, dir) {
@@ -2291,140 +2304,32 @@
   // ============ Stage 12.4 — Sync cadence ============
   var SYNC_CADENCE = {
     'Web':       ['sync','sync','sync','sync','sync','sync','sync'],
-    'iOS':       ['silent','sparse','sparse','silent','sparse','silent','silent'],
-    'Android':   ['silent','silent','silent','silent','silent','silent','silent'],
     'Figma':     ['sync','sync','sync','sync','sync','sync','sync'],
     'Storybook': ['sync','sparse','sync','sync','sparse','sync','sync']
   };
   // ============ Component Map — Concentric Rings Canvas ============
 
   // BELLA component data with composition relationships
-  var BELLA_NODES = [
-    { id: 'button',  name: 'Button',   level: 'atom',     sub: 'Action primitive',      composedFrom: [],                      composesInto: [] },
-    { id: 'card',    name: 'Card',     level: 'atom',     sub: 'Layout primitive',      composedFrom: [],                      composesInto: [] },
-    { id: 'input',   name: 'Input',    level: 'atom',     sub: 'Form primitive',        composedFrom: [],                      composesInto: [] },
-    { id: 'chip',    name: 'Chip',     level: 'atom',     sub: 'Tag primitive',         composedFrom: [],                      composesInto: [] },
-    { id: 'eyebrow', name: 'Eyebrow',  level: 'atom',     sub: 'Typography primitive',  composedFrom: [],                      composesInto: [] },
-    { id: 'navLink', name: 'Nav link', level: 'atom',     sub: 'Navigation primitive',  composedFrom: [],                      composesInto: [] },
-    { id: 'modal',   name: 'Modal',    level: 'molecule', sub: 'Overlay pattern',       composedFrom: ['Button','Card'],       composesInto: ['AI Card'] },
-    { id: 'avatar',  name: 'Avatar',   level: 'molecule', sub: 'Identity pattern',      composedFrom: ['Card'],                composesInto: ['AI Card'] },
-    { id: 'badge',   name: 'Badge',    level: 'molecule', sub: 'Status pattern',        composedFrom: ['Chip'],                composesInto: ['AI Card','AI Diff'] },
-    { id: 'aiCard',  name: 'AI Card',  level: 'organism', sub: 'AI surface',            composedFrom: ['Modal','Avatar','Badge'], composesInto: [] },
-    { id: 'aiDiff',  name: 'AI Diff',  level: 'organism', sub: 'AI surface',            composedFrom: ['Card','Badge'],        composesInto: [] },
-    { id: 'aiMeter', name: 'AI Meter', level: 'organism', sub: 'AI surface',            composedFrom: ['Card','Chip'],         composesInto: [] },
-  ];
+  // Ring = composition depth from real imports: 0 atom, 1 molecule, 2+ organism
+  var BELLA_NODES = BELLA.components.map(function (c) {
+    return { id: c.id, name: c.name,
+      level: c.compositionDepth === 0 ? 'atom' : c.compositionDepth === 1 ? 'molecule' : 'organism',
+      sub: c.composedFrom.length ? 'Composes ' + c.composedFrom.join(', ') : 'Imports no BELLA component',
+      composedFrom: c.composedFrom, composesInto: c.composesInto };
+  });
 
-  // Per-component detail data (desc, scores, rec, variants, history, usedBy, friction count)
-  var BELLA_DETAIL = {
-    button: {
-      desc: 'Primary interactive element. Owns the focus ring contract and the loading state across platforms.',
-      scores: { web:100, ios:100, android:62, figma:100, storybook:100 },
-      rec: 'Android Button is 38% behind — focus ring contrast 4.2:1 vs WCAG 4.5:1 minimum. File BELLA-1268.',
-      auditMsg: 'Button · Android parity fix queued · 38% gap · Operator: Elleta',
-      variants: ['primary','secondary','ghost','destructive','loading','disabled'],
-      history: [['2h ago','Button v3.1.2','Web Lead','focus ring contrast audit'],['3d ago','Button v3.1.1','iOS Lead','loading state token fix'],['1w ago','Button v3.1.0','Design Lead','destructive variant added']],
-      usedBy: ['Modal','Badge'], friction: 1,
-    },
-    card: {
-      desc: 'The base layout primitive. Holds content, surface, and elevation. Every elevated component composes from Card.',
-      scores: { web:100, ios:100, android:62, figma:100, storybook:100 },
-      rec: 'Regenerate Android Card.kt from Figma source — 38% gap traces to landscape variant not propagated.',
-      auditMsg: 'Card · Android parity fix queued · 38% gap · Operator: Elleta',
-      variants: ['default','elevated','interactive','focus','selected','disabled'],
-      history: [['2h ago','Card v2.14.3','Web Lead','landscape variant added'],['1d ago','Card v2.14.2','Web Lead','focus state revision'],['5d ago','Card v2.14.1','iOS Lead','padding token swap']],
-      usedBy: ['Modal','Avatar','AI Card','AI Diff','AI Meter'], friction: 2,
-    },
-    input: {
-      desc: 'Text input. Owns the validation state contract and the label/placeholder contract.',
-      scores: { web:100, ios:71, android:0, figma:100, storybook:64 },
-      rec: 'Android Input not implemented · iOS validation missing for landscape mode · Storybook stories incomplete.',
-      auditMsg: 'Input · cross-platform parity fix queued · Operator: Elleta',
-      variants: ['default','focused','error','success','disabled','readonly'],
-      history: [['3d ago','Input v1.4.1','Web Lead','error state token'],['1w ago','Input v1.4.0','iOS Lead','iOS validation partial'],['2w ago','Input v1.3.8','Web Lead','label animation']],
-      usedBy: ['forms (post-v0)'], friction: 3,
-    },
-    chip: {
-      desc: 'Small status/category indicator. Scales from meta to label sizes. The most-shipped atom in BELLA.',
-      scores: { web:100, ios:100, android:100, figma:100, storybook:100 },
-      rec: '',
-      auditMsg: '',
-      variants: ['info','success','warning','accent','muted'],
-      history: [['1d ago','Chip v2.1.3','Android Lead','android touch target fix'],['3d ago','Chip v2.1.2','Web Lead','muted variant'],['5d ago','Chip v2.1.1','iOS Lead','letter-spacing sync']],
-      usedBy: ['Badge','AI Meter'], friction: 0,
-    },
-    eyebrow: {
-      desc: 'Uppercase mono label above titles. Sets context before the heading.',
-      scores: { web:100, ios:76, android:76, figma:100, storybook:100 },
-      rec: 'iOS + Android letter-spacing diverges 6px from Web spec. Token --ls-wider applied inconsistently.',
-      auditMsg: 'Eyebrow · letter-spacing fix queued · Operator: Elleta',
-      variants: ['default','muted'],
-      history: [['4d ago','Eyebrow v1.2.1','iOS Lead','spacing partial fix'],['1w ago','Eyebrow v1.2.0','Web Lead','muted variant'],['2w ago','Eyebrow v1.1.9','Android Lead','initial android port']],
-      usedBy: ['card headers'], friction: 1,
-    },
-    navLink: {
-      desc: 'Sidebar / topbar link. Owns the active-state contract and the disabled state.',
-      scores: { web:100, ios:71, android:0, figma:100, storybook:64 },
-      rec: 'Android Nav link missing entirely · iOS active-state contrast 3.8:1 vs 4.5:1 minimum.',
-      auditMsg: 'Nav link · cross-platform parity fix queued · Operator: Elleta',
-      variants: ['default','active','disabled'],
-      history: [['1d ago','Nav link v1.1.2','iOS Lead','active state token'],['4d ago','Nav link v1.1.1','Web Lead','focus ring'],['1w ago','Nav link v1.1.0','Web Lead','initial release']],
-      usedBy: ['topbar','sidebar'], friction: 2,
-    },
-    modal: {
-      desc: 'Overlay dialog. Composes Button + Card into a focus-trapped surface. Owns the escape-key contract.',
-      scores: { web:100, ios:100, android:62, figma:100, storybook:100 },
-      rec: 'Android Modal landscape variant missing — same gap as Card. Block modal flows on Android landscape.',
-      auditMsg: 'Modal · Android landscape fix queued · Operator: Elleta',
-      variants: ['default','small','large','full-screen','loading','error'],
-      history: [['6h ago','Modal v1.8.3','Web Lead','focus trap fix'],['2d ago','Modal v1.8.2','iOS Lead','swipe-to-close'],['1w ago','Modal v1.8.1','Android Lead','partial android port']],
-      usedBy: ['AI Card'], friction: 1,
-    },
-    avatar: {
-      desc: 'Identity component. Renders user image or initials with presence indicator. Fully in spec.',
-      scores: { web:100, ios:100, android:100, figma:100, storybook:100 },
-      rec: '',
-      auditMsg: '',
-      variants: ['xs','sm','md','lg','xl','with-presence','with-badge'],
-      history: [['2d ago','Avatar v2.0.1','iOS Lead','presence token'],['5d ago','Avatar v2.0.0','Web Lead','xl size added'],['2w ago','Avatar v1.9.4','Android Lead','presence sync']],
-      usedBy: ['AI Card'], friction: 0,
-    },
-    badge: {
-      desc: 'Status indicator composing Chip into a dismissible label. Bridges semantic state to visual signal.',
-      scores: { web:100, ios:100, android:62, figma:100, storybook:100 },
-      rec: 'Android Badge dismiss gesture not implemented — 38% gap maps to interaction contract.',
-      auditMsg: 'Badge · Android dismiss fix queued · Operator: Elleta',
-      variants: ['info','success','warning','critical','dismissible'],
-      history: [['1d ago','Badge v1.3.2','Web Lead','dismissible animation'],['3d ago','Badge v1.3.1','iOS Lead','haptic on dismiss'],['1w ago','Badge v1.3.0','Web Lead','critical variant']],
-      usedBy: ['AI Card','AI Diff'], friction: 1,
-    },
-    aiCard: {
-      desc: "CHIP's primary response surface. Composes Modal + Avatar + Badge into an agent-native card with proposal flow.",
-      scores: { web:95, ios:null, android:null, figma:100, storybook:73 },
-      rec: 'iOS + Android not yet implemented. Storybook missing 3 of 5 AI states. Priority for v1.',
-      auditMsg: 'AI Card · platform expansion queued · Operator: Elleta',
-      variants: ['proposal','approved','declined','loading','error'],
-      history: [['1h ago','AI Card v0.4.1','Web Lead','approve animation'],['1d ago','AI Card v0.4.0','Web Lead','decline state'],['3d ago','AI Card v0.3.8','Web Lead','loading skeleton']],
-      usedBy: [], friction: 2,
-    },
-    aiDiff: {
-      desc: 'Token-level diff surface. Renders before/after comparison of design decisions CHIP proposes to operators.',
-      scores: { web:95, ios:null, android:null, figma:100, storybook:73 },
-      rec: 'iOS + Android not yet implemented. Platform-leads contacted — planned for Q3.',
-      auditMsg: 'AI Diff · platform expansion queued · Operator: Elleta',
-      variants: ['token-diff','variant-diff','platform-diff'],
-      history: [['2d ago','AI Diff v0.2.3','Web Lead','platform filter'],['4d ago','AI Diff v0.2.2','Web Lead','color keys'],['1w ago','AI Diff v0.2.1','Web Lead','initial release']],
-      usedBy: [], friction: 1,
-    },
-    aiMeter: {
-      desc: 'Parity gauge. Renders platform alignment score as a compact arc that drives operator attention.',
-      scores: { web:95, ios:null, android:null, figma:100, storybook:73 },
-      rec: 'iOS + Android not yet implemented. Arc animation relies on CSS custom properties — test before platform port.',
-      auditMsg: 'AI Meter · platform expansion queued · Operator: Elleta',
-      variants: ['compact','expanded','critical','healthy'],
-      history: [['3h ago','AI Meter v0.3.1','Web Lead','arc animation'],['2d ago','AI Meter v0.3.0','Web Lead','critical state'],['5d ago','AI Meter v0.2.8','Web Lead','token bind']],
-      usedBy: [], friction: 0,
-    },
-  };
+  // Per-component detail from data/bella.json: description, health checks, variants
+  var BELLA_DETAIL = {};
+  BELLA.components.forEach(function (c) {
+    var issues = c.health.contract.issues.concat(c.health.contrast.failing.map(function (l) { return 'Contrast: ' + l; }));
+    BELLA_DETAIL[c.id] = {
+      desc: c.description || '',
+      checks: bellaChecks(c),
+      rec: issues.length ? issues.join(' · ') : '',
+      auditMsg: c.name + ' · fix queued · Operator: Elleta',
+      variants: c.variants, history: [], usedBy: [], friction: 0
+    };
+  });
 
   // Flat edge list derived from composedFrom (from → to direction = atom→molecule→organism)
   var BELLA_EDGES = [];
@@ -2615,42 +2520,14 @@
     return best;
   }
 
-  function cmapParityRow(platform, score) {
-    var label, color, pct;
-    if (score === null || score === undefined) {
-      label = 'N/A'; color = 'var(--border)'; pct = 0;
-      var tip = platform + ' · not applicable';
-      return '<div class="cmap-parity__row" title="' + escapeHtml(tip) + '">' +
-        '<span class="cmap-parity__plat">' + escapeHtml(platform) + '</span>' +
-        '<div class="cmap-parity__track"><span class="cmap-parity__fill" style="width:0;background:' + color + '"></span></div>' +
-        '<span class="cmap-parity__score">—</span>' +
-        '<span class="cmap-parity__status cmap-parity__status--na">N/A</span></div>';
-    }
-    if (score === 0) {
-      label = 'Missing'; color = 'var(--rust)';
-      var tip2 = '0% ' + platform + ' · not implemented';
-      return '<div class="cmap-parity__row" title="' + escapeHtml(tip2) + '">' +
-        '<span class="cmap-parity__plat">' + escapeHtml(platform) + '</span>' +
-        '<div class="cmap-parity__track"><span class="cmap-parity__fill" style="width:0;background:' + color + '"></span></div>' +
-        '<span class="cmap-parity__score">0</span>' +
-        '<span class="cmap-parity__status cmap-parity__status--missing">Missing</span></div>';
-    }
-    if (score < 90) {
-      label = 'Drift'; color = 'var(--amber)';
-      var gap = 90 - score;
-      var tip3 = score + '% ' + platform + ' · drift threshold 90 · ' + gap + '% behind master';
-      return '<div class="cmap-parity__row" title="' + escapeHtml(tip3) + '">' +
-        '<span class="cmap-parity__plat">' + escapeHtml(platform) + '</span>' +
-        '<div class="cmap-parity__track"><span class="cmap-parity__fill" style="width:' + score + '%;background:' + color + '"></span></div>' +
-        '<span class="cmap-parity__score">' + score + '</span>' +
-        '<span class="cmap-parity__status cmap-parity__status--drift">Drift</span></div>';
-    }
-    var tip4 = score + '% ' + platform + ' · in spec';
-    return '<div class="cmap-parity__row" title="' + escapeHtml(tip4) + '">' +
-      '<span class="cmap-parity__plat">' + escapeHtml(platform) + '</span>' +
-      '<div class="cmap-parity__track"><span class="cmap-parity__fill" style="width:' + score + '%;background:var(--sage)"></span></div>' +
-      '<span class="cmap-parity__score">' + score + '</span>' +
-      '<span class="cmap-parity__status cmap-parity__status--sync">In sync</span></div>';
+  function cmapParityRow(label, status) {
+    var map = { pass: ['In spec', 'sync', 'var(--sage)', 100], fail: ['Fail', 'missing', 'var(--rust)', 100], na: ['Not covered', 'na', 'var(--border)', 0] };
+    var m = map[status] || map.na;
+    return '<div class="cmap-parity__row" title="' + escapeHtml(label + ' · ' + m[0]) + '">' +
+      '<span class="cmap-parity__plat">' + escapeHtml(label) + '</span>' +
+      '<div class="cmap-parity__track"><span class="cmap-parity__fill" style="width:' + m[3] + '%;background:' + m[2] + '"></span></div>' +
+      '<span class="cmap-parity__score">' + (status === 'na' ? '—' : status) + '</span>' +
+      '<span class="cmap-parity__status cmap-parity__status--' + m[1] + '">' + m[0] + '</span></div>';
   }
 
   function cmapShowDetail(node) {
@@ -2662,7 +2539,7 @@
     var meta       = LEVEL_C[node.level];
     var tierSingular = meta.label.slice(0, -1); // "Atoms" → "Atom"
     var det        = BELLA_DETAIL[node.id] || {};
-    var scores     = det.scores || {};
+    var checks     = det.checks || [];
 
     // 1–3: badge + name + subtype
     var html = '<span class="cmap-rings-detail__badge" style="background:' + meta.color + '18;border:1px solid ' + meta.color + '35;color:' + meta.color + '">' +
@@ -2675,20 +2552,14 @@
       html += '<p class="cmap-rings-detail__desc">' + escapeHtml(det.desc) + '</p>';
     }
 
-    // 5: parity strip
+    // 5: health checks (BELLA gate scripts, via sync:bella)
     html += '<div class="cmap-rings-detail__section">' +
-      '<p class="cmap-rings-detail__label">Platform parity</p>' +
-      '<div class="cmap-parity">' +
-        cmapParityRow('Web',       scores.web) +
-        cmapParityRow('iOS',       scores.ios) +
-        cmapParityRow('Android',   scores.android) +
-        cmapParityRow('Figma',     scores.figma) +
-        cmapParityRow('Storybook', scores.storybook) +
+      '<p class="cmap-rings-detail__label">Health · bella@' + escapeHtml(BELLA.source.commit || '?') + '</p>' +
+      '<div class="cmap-parity">' + checks.map(function (k) { return cmapParityRow(k[0], k[1]); }).join('') +
       '</div></div>';
 
     // 6: CHIP recommendation (only when drift exists)
-    var hasDrift = Object.values ? Object.values(scores).some(function(v) { return v !== null && v < 90; })
-      : ['web','ios','android','figma','storybook'].some(function(k) { return scores[k] !== null && scores[k] !== undefined && scores[k] < 90; });
+    var hasDrift = checks.some(function (k) { return k[1] === 'fail'; });
     if (det.rec && hasDrift) {
       html += '<div class="cmap-rings-detail__section cmap-rec-wrap" id="cmap-rec-' + escapeHtml(node.id) + '">' +
         '<p class="cmap-detail__rec-label">CHIP recommends</p>' +
@@ -3245,11 +3116,10 @@
   // ============ Stage 14.6 — Atomic rings system map ============
   var atomicRingsEl = document.getElementById('atomic-rings');
   // RING_ASSIGN: atoms = single-purpose primitives, molecules = composed, organisms = AI-native
-  var RING_ASSIGN = {
-    button: 'atoms', chip: 'atoms', eyebrow: 'atoms', navLink: 'atoms', badge: 'atoms', avatar: 'atoms',
-    card: 'molecules', input: 'molecules', modal: 'molecules',
-    aiCard: 'organisms', aiDiff: 'organisms', aiMeter: 'organisms'
-  };
+  var RING_ASSIGN = {};
+  BELLA.components.forEach(function (c) {
+    RING_ASSIGN[c.id] = c.compositionDepth === 0 ? 'atoms' : c.compositionDepth === 1 ? 'molecules' : 'organisms';
+  });
   var RING_LAYOUT = {
     atoms:     { r: 130 },
     molecules: { r: 230 },
@@ -3262,8 +3132,8 @@
     var cells = row.querySelectorAll('.components-matrix__cell');
     var sum = 0, count = 0;
     cells.forEach(function (c) {
-      if (c.classList.contains('components-matrix__cell--na')) return;
-      var v = parseFloat(c.textContent);
+      if (!c.hasAttribute('data-score')) return;
+      var v = parseFloat(c.getAttribute('data-score'));
       if (!isNaN(v)) { sum += v; count++; }
     });
     return count ? sum / count : 50;
@@ -3320,14 +3190,11 @@
         positions[id] = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
       });
     });
-    // Edges (component dependencies — synthesize plausible relations)
-    var EDGES = [
-      ['button','card'], ['button','modal'], ['button','aiCard'],
-      ['card','aiCard'], ['chip','aiCard'], ['eyebrow','aiCard'],
-      ['button','aiDiff'], ['eyebrow','aiDiff'],
-      ['chip','aiMeter'], ['eyebrow','aiMeter'],
-      ['input','modal'], ['avatar','aiCard'], ['badge','navLink']
-    ];
+    // Edges: real imports between BELLA components (composedFrom)
+    var EDGES = [];
+    BELLA.components.forEach(function (c) {
+      c.composedFrom.forEach(function (n) { EDGES.push([n.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase(), c.id]); });
+    });
     EDGES.forEach(function (pair) {
       var a = positions[pair[0]], b = positions[pair[1]];
       if (!a || !b) return;
@@ -3422,12 +3289,12 @@
       if (!match && (q.indexOf('miss') !== -1 || q.indexOf('critical') !== -1) && bucket === 'missing') match = true;
       if (!match && (q.indexOf('spec') !== -1 || q.indexOf('sync') !== -1) && bucket === 'sync') match = true;
       // Platform: check if row has drift on that platform
-      ['web','ios','android','figma','storybook'].forEach(function (plat) {
+      ['story','docs','contract','contrast'].forEach(function (plat) {
         if (q.indexOf(plat) !== -1) {
           var row = document.querySelector('[data-component="' + id + '"]');
           if (row) {
             var cells = row.querySelectorAll('.components-matrix__cell');
-            var idx = ['web','ios','android','figma','storybook'].indexOf(plat);
+            var idx = ['story','docs','contract','contrast'].indexOf(plat);
             var c = cells[idx];
             if (c && (c.classList.contains('components-matrix__cell--drift') || c.classList.contains('components-matrix__cell--missing'))) match = true;
           }
@@ -3454,114 +3321,22 @@
   });
 
   // ============ Stage 15.2-15.4 — Implications / Why / Changes ============
-  var IMPLICATIONS = {
-    button: {
-      dependents: ['Card uses Button (3 places)', 'Modal uses Button (footer actions)', 'AI Card uses Button (approve row)'],
-      external: ['Storybook · 4 stories will need re-snapshot', 'Figma · master/Button component set', 'Zeroheight · Button page (last edited 6 days ago — STALE)'],
-      tickets: ['BELLA-1247 · iOS Button landscape variant · in flight', 'BELLA-1233 · Component freeze for Q3 release · awaiting'],
-      friction: ['"Dark mode had invisible button text" · Resolved · 2026-04-24', '"The four-click approval dance" · Resolved · 2026-04-18 (mentions Button)']
-    },
-    card: {
-      dependents: ['AI Card extends Card', 'Friction entries use Card', 'Steward rituals use Card'],
-      external: ['Storybook · 2 stories', 'Figma · master/Card', 'Zeroheight · Card page'],
-      tickets: ['BELLA-1252 · Card landscape elevation tokens · drafted'],
-      friction: []
-    },
-    input: {
-      dependents: ['Friction compose · Search bars · Login splash'],
-      external: ['Storybook · 1 story', 'Figma · master/Input'],
-      tickets: ['BELLA-1241 · Android Input port · not started'],
-      friction: []
-    },
-    chip: {
-      dependents: ['Surfaces shelf · Approve row · Friction meta · Steward rituals · System map'],
-      external: ['Storybook · 5 stories', 'Figma · master/Chip'],
-      tickets: [],
-      friction: []
-    },
-    eyebrow: {
-      dependents: ['Bridge headers · Card headers · Sidebar sections · Audit ribbon'],
-      external: ['Storybook · 2 stories', 'Figma · master/Eyebrow'],
-      tickets: ['BELLA-1219 · iOS Eyebrow spacing token drift · in flight'],
-      friction: []
-    },
-    navLink: {
-      dependents: ['Sidebar nav · Topbar crumb · Footer'],
-      external: ['Storybook · 1 story', 'Figma · master/Nav-link'],
-      tickets: ['BELLA-1228 · Android NavLink port · awaiting'],
-      friction: []
-    },
-    modal: {
-      dependents: ['Approve confirmations · Settings dialogs · Onboarding sheets'],
-      external: ['Storybook · 3 stories', 'Figma · master/Modal'],
-      tickets: ['BELLA-1244 · Android landscape backdrop sizing · in flight'],
-      friction: []
-    },
-    avatar: {
-      dependents: ['Topbar · Splash · Friction meta'],
-      external: ['Storybook · 1 story', 'Figma · master/Avatar'],
-      tickets: [],
-      friction: []
-    },
-    badge: {
-      dependents: ['Sidebar chips · Topbar notifications · Friction meta'],
-      external: ['Storybook · 2 stories', 'Figma · master/Badge'],
-      tickets: ['BELLA-1235 · Android landscape positioning · drafted'],
-      friction: []
-    },
-    aiCard: {
-      dependents: ['Composes Button + Card + Chip + Eyebrow', 'Bridge proposals · Inbox cards (Stage 5)'],
-      external: ['Storybook · 1 story', 'Figma · master/AI-Card'],
-      tickets: ['BELLA-1259 · iOS AI Card not started · v1 candidate', 'BELLA-1260 · Android AI Card not started · v1 candidate'],
-      friction: []
-    },
-    aiDiff: {
-      dependents: ['AI Card embeds AI Diff', 'Roadmap proposals'],
-      external: ['Storybook · 1 story', 'Figma · master/AI-Diff'],
-      tickets: ['BELLA-1262 · Mobile AI Diff geometry undefined · drafted'],
-      friction: []
-    },
-    aiMeter: {
-      dependents: ['Bridge parity meter', 'System map (Stage 6 candidate)'],
-      external: ['Storybook · 1 story', 'Figma · master/AI-Meter'],
-      tickets: ['BELLA-1264 · Mobile typography for 72px hero · drafted'],
-      friction: []
-    }
-  };
-  var WHY_DRIFT = {
-    button:  { ios: 'Landscape variant pending. iOS Lead targeting next sprint (BELLA-1247). Tracked in Coming up: Friday parity review.',
-               android: 'Component partial. Android squad working on navigation primitives this sprint. Estimated Q3.' },
-    card:    { android: 'Landscape elevation tokens not yet ported. BELLA-1252 drafted, awaiting design approval.' },
-    input:   { ios: 'Landscape preview pending. iOS Lead landscape variant partial (BELLA-1241).',
-               android: 'Component not started on Android. Squad scope blocked.' },
-    eyebrow: { ios: 'Letter-spacing token drift detected. BELLA-1219 in flight.',
-               android: 'Letter-spacing migration pending.' },
-    navLink: { ios: 'Active-state amber underline missing. BELLA-1228 awaiting.',
-               android: 'Component not started on Android.' },
-    modal:   { android: 'Landscape backdrop sizing issue. BELLA-1244 in flight.' },
-    badge:   { android: 'Landscape positioning issue. BELLA-1235 drafted.' },
-    aiCard:  { ios: 'iOS primitive not started. v1 candidate.',
-               android: 'Android primitive not started. v1 candidate.',
-               storybook: 'Storybook coverage drift; needs landscape preview snapshot.' },
-    aiDiff:  { ios: 'iOS primitive not started.', android: 'Android primitive not started.',
-               storybook: 'Mobile diff geometry undefined; story drafted.' },
-    aiMeter: { ios: 'iOS primitive not started.', android: 'Android primitive not started.',
-               storybook: 'Mobile typography pending for 72px hero.' }
-  };
-  var CHANGES = {
-    button: [
-      { time: '2026-04-26 14:03', summary: 'Landscape variant added (Web only)', meta: 'Web Lead · BELLA-1247 · pending review' },
-      { time: '2026-04-22 09:14', summary: 'Token migration: semantic/light → semantic/light.json', meta: 'Elleta · commit cdd396d · stage 2d.5' },
-      { time: '2026-04-18 16:30', summary: 'Accessibility focus-ring fix · WCAG AA contrast', meta: 'Web Lead · commit 8f2a9b1 · BELLA-1198' },
-      { time: '2026-04-12 11:00', summary: 'Variant renamed: secondary → outline', meta: 'iOS Lead · commit 4d12c84 · breaking change' }
-    ]
-  };
+  var IMPLICATIONS = {};
+  var WHY_DRIFT = {};
+  BELLA.components.forEach(function (c) {
+    IMPLICATIONS[c.id] = {
+      dependents: c.composesInto.map(function (n) { return n + ' imports ' + c.name; }),
+      external: [c.hasStory ? 'Storybook · has stories' : 'Storybook · no story', c.inDsds ? 'DSDS · component entry' : 'DSDS · no entry'],
+      tickets: [], friction: []
+    };
+    var why = {};
+    if (c.health.contract.issues.length) why.contract = c.health.contract.issues.join(' · ');
+    if (c.health.contrast.failing.length) why.contrast = c.health.contrast.failing.join(' · ');
+    if (Object.keys(why).length) WHY_DRIFT[c.id] = why;
+  });
+  var CHANGES = {};
   function defaultChanges(id) {
-    return [
-      { time: '2026-04-26 14:03', summary: 'Latest landscape audit · ' + (COMPONENT_DATA[id] ? COMPONENT_DATA[id].title.split(' · ')[0] : id), meta: 'Web Lead · cross-platform review' },
-      { time: '2026-04-22 09:14', summary: 'Token migration sweep', meta: 'Elleta · commit cdd396d · stage 2d.5' },
-      { time: '2026-04-18 16:30', summary: 'Accessibility audit', meta: 'Web Lead · commit 8f2a9b1' }
-    ];
+    return BELLA.source.commit ? [{ time: BELLA.source.committedAt, summary: 'Synced from bella@' + BELLA.source.commit, meta: 'npm run sync:bella' }] : [];
   }
   function whyDriftHtml(id) {
     var w = WHY_DRIFT[id]; if (!w) return '';
@@ -3770,7 +3545,7 @@
     // Platforms checkboxes (chips)
     html += '<p class="sim__col-label">Platforms affected</p>';
     html += '<div class="sim__platforms" data-sim-group="platforms">';
-    [['Web', true],['iOS', true],['Android', false],['Figma', true],['Storybook', true]].forEach(function (p) {
+    [['Web', true],['Figma', true],['Storybook', true]].forEach(function (p) {
       html += '<button type="button" class="chip ' + (p[1] ? 'chip--info' : 'chip--muted') + ' sim__plat" data-sim-platform="' + p[0] + '" aria-pressed="' + p[1] + '">' + p[0] + '</button>';
     });
     html += '</div>';
@@ -3800,7 +3575,7 @@
       hours: 16,
       complexity: 'High',
       timeline: '2 sprints',
-      platforms: { Web: true, iOS: true, Android: false, Figma: true, Storybook: true }
+      platforms: { Web: true, Figma: true, Storybook: true }
     };
     function complexityFactor() {
       return ({Low:5, Medium:2, High:-3, Breaking:-10})[state.complexity] || 0;

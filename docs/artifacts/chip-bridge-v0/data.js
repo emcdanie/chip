@@ -7,38 +7,18 @@ var AUDIT_INCLUSION_OVERRIDE = '2026-04-26 13:51 · Inclusion override · 3 issu
 var AUDIT_APPROVED           = '2026-04-26 14:03 · Roadmap approved (Trust: Junior) · 23 Jira tickets filed · 3 dev leads notified · auto-merge withheld';
 var AUDIT_LAYOUT_FIX         = '2026-04-26 18:24 · Layout audit · 6 spaces scanned · 7 grid containers patched (align-items: start) · long-string overflow guarded · 1100/720 breakpoints added · Operator: Elleta · Trust: Senior';
 
-// ---- System map node data (7 nodes) ----
+// ---- System map node data (5 nodes) ----
 var NODE_DATA = {
   web: { title: 'WEB · react-bella-web v2.14.3', rows: [
     ['Squad', 'Web Lead + 3 engineers'],
     ['Last commit', '14m ago · main · CI passing'],
-    ['Components', '47 / 47 landscape ready'],
     ['Storybook', '89 stories · 95% coverage'],
     ['Figma sync', 'In sync · pulled 14m ago'],
     ['Drift', 'None'],
     ['Tickets', '0 open · 12 closed this sprint']
   ] },
-  ios: { title: 'iOS · bella-ios v1.8.0', rows: [
-    ['Squad', 'iOS Lead + 2 engineers'],
-    ['Last commit', '2d ago · main · CI passing'],
-    ['Components', '23 / 47 landscape — partial'],
-    ['Storybook', '24 stories'],
-    ['Figma sync', 'Drift · 23 components behind'],
-    ['Drift', 'Detected — landscape variant'],
-    ['Tickets', '11 open · awaiting prioritization']
-  ] },
-  android: { title: 'ANDROID · bella-android v1.4.2', rows: [
-    ['Squad', 'Android Lead + 2 engineers'],
-    ['Last commit', '6d ago · main · CI passing'],
-    ['Components', '0 / 47 landscape — critical'],
-    ['Storybook', '12 stories partial'],
-    ['Figma sync', 'Drift · 47 components behind'],
-    ['Drift', 'Critical — landscape rollout not started'],
-    ['Tickets', '8 open · roadmap blocked']
-  ] },
   figma: { title: 'FIGMA · BELLA · master', rows: [
     ['Role', 'Source-of-truth'],
-    ['Component sets', '47'],
     ['Last edit', '14m ago · Elleta'],
     ['Token sync', 'Tokens Studio v2.11.5 Pro'],
     ['Branches', 'master clean · 0 open branches'],
@@ -46,8 +26,6 @@ var NODE_DATA = {
   ] },
   storybook: { title: 'STORYBOOK · bella.storybook.io', rows: [
     ['Stories Web', '89 · 95% coverage'],
-    ['Stories iOS', '24 · partial'],
-    ['Stories Android', '12 · partial'],
     ['Deploy', 'Auto-deployed on merge'],
     ['Last deploy', '2h ago · main'],
     ['Visual regression', 'Chromatic · 4 baselines pending']
@@ -70,117 +48,24 @@ var NODE_DATA = {
   ] }
 };
 
-// ---- Components matrix data (12 components) ----
-var COMPONENT_DATA = {
-  button: { title: 'BUTTON · Primary action component', rows: [
-    ['Type', 'Action'],
-    ['Variants', 'primary · secondary · ghost'],
-    ['Versions', 'Web 2.14.3 · iOS 1.8.0 · Android 1.4.0'],
-    ['Used in', 'Login splash · Approve row · Demo triggers · Friction entries · Compose drafts'],
-    ['Defined in', 'figma://BELLA/Button · github.com/elleta/react-bella-web/Button · github.com/elleta/bella-ios/Button · github.com/elleta/bella-android/Button'],
-    ['Last update', '14m ago · landscape variant added (Web only)'],
-    ['Open issues', '3 — Android landscape missing · iOS landscape partial']
-  ] },
-  card: { title: 'CARD · Surface container', rows: [
-    ['Type', 'Surface'],
-    ['Variants', 'default · elevated · glass · featured · inverse'],
-    ['Versions', 'Web 2.14.3 · iOS 1.8.0 · Android 1.4.0'],
-    ['Used in', 'Bridge space · Friction entries · BELLA primitives · Steward rituals'],
-    ['Defined in', 'figma://BELLA/Card · github.com/elleta/react-bella-web/Card · github.com/elleta/bella-ios/Card · github.com/elleta/bella-android/Card'],
-    ['Last update', '2d ago · landscape elevation tokens (Web only)'],
-    ['Open issues', '2 — Android landscape elevations missing']
-  ] },
-  input: { title: 'INPUT · Text entry', rows: [
-    ['Type', 'Form'],
-    ['Variants', 'default · search'],
-    ['Versions', 'Web 2.14.3 · iOS 1.7.2 · Android — missing'],
-    ['Used in', 'Friction compose · Search bars · Settings'],
-    ['Defined in', 'figma://BELLA/Input · github.com/elleta/react-bella-web/Input · github.com/elleta/bella-ios/Input'],
-    ['Last update', '6d ago · landscape preview pending'],
-    ['Open issues', '5 — Android port not started, iOS landscape partial']
-  ] },
-  chip: { title: 'CHIP · Inline tag', rows: [
-    ['Type', 'Identity'],
-    ['Variants', 'info · accent · muted · success · dusk'],
-    ['Versions', 'Web 2.14.3 · iOS 1.8.0 · Android 1.4.2'],
-    ['Used in', 'Surfaces shelf · Approve row · Friction meta · Steward · System map'],
-    ['Defined in', 'figma://BELLA/Chip · github.com/elleta/react-bella-web/Chip · github.com/elleta/bella-ios/Chip · github.com/elleta/bella-android/Chip'],
-    ['Last update', '14m ago · saturation bumped to 35% (all platforms)'],
-    ['Open issues', '0']
-  ] },
-  eyebrow: { title: 'EYEBROW · Section label', rows: [
-    ['Type', 'Identity'],
-    ['Variants', 'accent · muted'],
-    ['Versions', 'Web 2.14.3 · iOS 1.7.5 · Android 1.4.0'],
-    ['Used in', 'Bridge headers · Card headers · Sidebar sections · Audit ribbon'],
-    ['Defined in', 'figma://BELLA/Eyebrow · github.com/elleta/react-bella-web/Eyebrow · github.com/elleta/bella-ios/Eyebrow · github.com/elleta/bella-android/Eyebrow'],
-    ['Last update', '2d ago · sentence case migration (all platforms)'],
-    ['Open issues', '2 — iOS spacing token drift, Android letter-spacing']
-  ] },
-  navLink: { title: 'NAV LINK · Top-level navigation', rows: [
-    ['Type', 'Action'],
-    ['Variants', 'default · active'],
-    ['Versions', 'Web 2.14.3 · iOS 1.7.2 · Android — missing'],
-    ['Used in', 'Sidebar · Topbar crumb · Footer'],
-    ['Defined in', 'figma://BELLA/Nav-link · github.com/elleta/react-bella-web/NavLink · github.com/elleta/bella-ios/NavLink'],
-    ['Last update', '7d ago'],
-    ['Open issues', '4 — Android port not started, iOS active-state amber missing']
-  ] },
-  modal: { title: 'MODAL · Blocking dialog', rows: [
-    ['Type', 'Surface'],
-    ['Variants', 'default'],
-    ['Versions', 'Web 2.14.3 · iOS 1.8.0 · Android 1.4.0'],
-    ['Used in', 'Approve confirmations · Settings dialogs · Onboarding sheets'],
-    ['Defined in', 'figma://BELLA/Modal · github.com/elleta/react-bella-web/Modal · github.com/elleta/bella-ios/Modal · github.com/elleta/bella-android/Modal'],
-    ['Last update', '3d ago · backdrop blur token (all platforms)'],
-    ['Open issues', '1 — Android landscape backdrop sizing']
-  ] },
-  avatar: { title: 'AVATAR · Identity badge', rows: [
-    ['Type', 'Identity'],
-    ['Variants', 'initials · image · placeholder'],
-    ['Versions', 'Web 2.14.3 · iOS 1.8.0 · Android 1.4.2'],
-    ['Used in', 'Topbar · Splash · Friction meta'],
-    ['Defined in', 'figma://BELLA/Avatar · github.com/elleta/react-bella-web/Avatar · github.com/elleta/bella-ios/Avatar · github.com/elleta/bella-android/Avatar'],
-    ['Last update', '14m ago · landscape proportions verified'],
-    ['Open issues', '0']
-  ] },
-  badge: { title: 'BADGE · Numeric indicator', rows: [
-    ['Type', 'Identity'],
-    ['Variants', 'count · dot · alert'],
-    ['Versions', 'Web 2.14.3 · iOS 1.8.0 · Android 1.4.0'],
-    ['Used in', 'Sidebar chips · Topbar notifications · Friction meta'],
-    ['Defined in', 'figma://BELLA/Badge · github.com/elleta/react-bella-web/Badge · github.com/elleta/bella-ios/Badge · github.com/elleta/bella-android/Badge'],
-    ['Last update', '5d ago · saturation bumped to 35%'],
-    ['Open issues', '2 — Android landscape positioning']
-  ] },
-  aiCard: { title: 'AI CARD · Agentic proposal surface', rows: [
-    ['Type', 'Surface · agentic'],
-    ['Variants', 'proposal · resolved'],
-    ['Versions', 'Web 2.14.3 · iOS — not started · Android — not started'],
-    ['Used in', 'Bridge space proposals · Inbox cards (Stage 5)'],
-    ['Defined in', 'figma://BELLA/AI-Card · github.com/elleta/react-bella-web/AICard'],
-    ['Last update', '14m ago · drafted in bridge v0'],
-    ['Open issues', '6 — iOS + Android primitives not yet started']
-  ] },
-  aiDiff: { title: 'AI DIFF · Inline change preview', rows: [
-    ['Type', 'Diff · agentic'],
-    ['Variants', 'collapsed · expanded · resolved'],
-    ['Versions', 'Web 2.14.3 · iOS — not started · Android — not started'],
-    ['Used in', 'AI Card embeds · Roadmap proposals'],
-    ['Defined in', 'figma://BELLA/AI-Diff · github.com/elleta/react-bella-web/AIDiff'],
-    ['Last update', '14m ago · cross-platform table variant added'],
-    ['Open issues', '6 — mobile diff geometry undefined']
-  ] },
-  aiMeter: { title: 'AI METER · Drift-state indicator', rows: [
-    ['Type', 'Measure · agentic'],
-    ['Variants', 'parity · on-spec · velocity'],
-    ['Versions', 'Web 2.14.3 · iOS — not started · Android — not started'],
-    ['Used in', 'Bridge space · System map (Stage 6)'],
-    ['Defined in', 'figma://BELLA/AI-Meter · github.com/elleta/react-bella-web/AIMeter'],
-    ['Last update', '14m ago · drift→approve color flip'],
-    ['Open issues', '5 — mobile typography for 72px hero number']
-  ] }
-};
+// ---- Components matrix data: real BELLA, from data/bella.js (npm run sync:bella) ----
+var COMPONENT_DATA = {};
+(window.BELLA ? window.BELLA.components : []).forEach(function (c) {
+  var h = c.health;
+  COMPONENT_DATA[c.id] = { title: c.name.toUpperCase() + ' · ' + (c.composedFrom.length ? 'composes ' + c.composedFrom.join(', ') : 'primitive'), rows: [
+    ['Description', c.description || 'none in the manifest'],
+    ['Variants', c.variants.length ? c.variants.join(' · ') : 'none declared'],
+    ['Props', c.props.length ? c.props.join(' · ') : 'none in the manifest'],
+    ['Story', c.hasStory ? 'yes' : 'no'],
+    ['Docs', c.hasDocs ? 'yes' : 'no'],
+    ['DSDS entry', c.inDsds ? 'yes' : 'no'],
+    ['Contract parity', h.contract.status + (h.contract.issues.length ? ' · ' + h.contract.issues.join(' · ') : '')],
+    ['Contrast', h.contrast.status + ' · ' + h.contrast.pairs + ' pairs touch its tokens'],
+    ['Tokens', c.tokens.count + ' (' + c.tokens.component + ' component)'],
+    ['Used by', c.composesInto.length ? c.composesInto.join(' · ') : 'no BELLA component'],
+    ['Defined in', 'bella/src/components/' + c.name + '/' + c.name + '.tsx']
+  ] };
+});
 
 // ---- Research library data (7 entries) ----
 var RESEARCH_DATA = {

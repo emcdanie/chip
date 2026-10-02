@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev":   "node --watch server.js"
+    "dev":   "node --watch server.js",
+    "sync:bella": "node ../scripts/sync-bella.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
