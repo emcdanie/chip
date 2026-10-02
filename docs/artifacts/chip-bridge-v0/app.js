@@ -1306,10 +1306,21 @@
           '<span>CHIP</span>' +
         '</p>' +
         '<div class="ask-turn__text--agent">' + renderMarkdown(escapeHtml(t.text)) + '</div>' +
+        sourcesHtml(t.sources) +
         '</div>';
     }).join('');
     askChat.innerHTML = html;
     askChat.scrollTop = askChat.scrollHeight;
+  }
+
+  function sourcesHtml(sources) {
+    if (!sources || !sources.length) return '';
+    return '<p class="ask-turn__label">Sources</p><ul class="ask-turn__sources">' + sources.map(function (src) {
+      var label = escapeHtml(src.title);
+      return '<li>' + (src.url
+        ? '<a href="' + escapeHtml(src.url) + '" target="_blank" rel="noopener">' + label + '</a>'
+        : label + ' <span class="ask-turn__source-path">' + escapeHtml(src.path || '') + '</span>') + '</li>';
+    }).join('') + '</ul>';
   }
 
   function showSkeleton() {
@@ -1342,49 +1353,6 @@
     });
   }
 
-  // Stage 18.8 — gather the visible bridge state and prepend it to the
-  // user message as a [bridge state] block. The agent uses it to ground
-  // answers to "what needs my attention" / "what's blocked" / etc. without
-  // requiring live Jira/Slack/Storybook MCPs.
-  function gatherBridgeState() {
-    var parity = document.getElementById('meter-value-text');
-    var phaseAttr = document.body.getAttribute('data-phase') || 'loaded';
-    var auditCount = document.querySelectorAll('#audit-log .audit__entry').length;
-    var rows = document.querySelectorAll('.parity-breakdown__row');
-    var platforms = [];
-    rows.forEach(function (r) {
-      var label = r.querySelector('.parity-breakdown__label');
-      var count = r.querySelector('.parity-breakdown__count');
-      var chip  = r.querySelector('.parity-breakdown__chip');
-      if (label && count && chip) {
-        platforms.push(label.textContent.trim() + ' ' + count.textContent.trim() + ' (' + chip.textContent.trim() + ')');
-      }
-    });
-    var space = document.body.getAttribute('data-space') || 'bridge';
-    return {
-      space:        space,
-      phase:        phaseAttr,
-      parity:       parity ? parity.textContent.trim() : null,
-      platforms:    platforms,
-      audit_count:  auditCount,
-    };
-  }
-  function buildAskMessage(userMessage) {
-    var s = gatherBridgeState();
-    var ctx = '[bridge state · for grounding · do not echo verbatim]\n' +
-      '- Space: ' + s.space + '\n' +
-      '- Phase: ' + s.phase + ' (' +
-        (s.phase === 'drift' ? 'audit open, awaiting approval' :
-         s.phase === 'approved' ? 'roadmap approved, work filed' :
-         'monitoring') + ')\n' +
-      '- Parity: ' + (s.parity || 'unknown') + '\n' +
-      (s.platforms.length ? '- Platforms: ' + s.platforms.join(' · ') + '\n' : '') +
-      '- Audit entries today: ' + s.audit_count + '\n' +
-      '- Pending: 1 proposal awaiting approval, 3 inbox replies, 3 events today, 6 items in Coming up\n\n' +
-      'Operator question:\n' + userMessage;
-    return ctx;
-  }
-
   function doAsk(message) {
     var sessionId;
     try { sessionId = localStorage.getItem(ASK_SESSION_KEY) || undefined; } catch (_) {}
@@ -1394,12 +1362,19 @@
     renderTurns();
     showSkeleton();
 
-    var payloadMessage = buildAskMessage(message);
+    // Same-origin: the server that served the bridge answers /ask, so the port
+    // lives only in server/lib/config.mjs. Opened from file://, there is no server.
+    if (location.protocol === 'file:') {
+      removeSkeleton();
+      showError('Ask CHIP needs the local server. Run npm start, then open the URL it prints.', function () { doAsk(message); });
+      if (agentAskInput) agentAskInput.disabled = false;
+      return;
+    }
 
-    fetch('http://localhost:3000/ask', {
+    fetch('/ask', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ message: payloadMessage, sessionId: sessionId }),
+      body:    JSON.stringify({ message: message, sessionId: sessionId }),
     })
     .then(function (res) { return res.json(); })
     .then(function (data) {
@@ -1407,7 +1382,7 @@
       if (data.error) {
         showError(data.error, function () { doAsk(message); });
       } else {
-        askTurns.push({ role: 'agent', text: data.reply });
+        askTurns.push({ role: 'agent', text: data.reply, sources: data.sources || [] });
         try { if (data.sessionId) localStorage.setItem(ASK_SESSION_KEY, data.sessionId); } catch (_) {}
         renderTurns();
       }
@@ -1416,7 +1391,7 @@
     .catch(function () {
       removeSkeleton();
       showError(
-        'Agent server not running. Start with: cd server && npm start.',
+        'CHIP server not running. Start it with npm start.',
         function () { doAsk(message); }
       );
       if (agentAskInput) { agentAskInput.disabled = false; agentAskInput.focus(); }

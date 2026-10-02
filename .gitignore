@@ -31,7 +31,12 @@
 # Server — secrets and build artifacts never committed
 /server/.env
 /server/.chip-env-id
+/node_modules/
 /server/node_modules/
+
+# Local search: synced Notion pages and the embedding index never leave this machine
+/data/notion/
+/data/index/
 
 # OS noise
 .DS_Store

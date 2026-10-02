@@ -1461,6 +1461,16 @@ body:not([data-space="bridge"]) .today-card { display: none; }
   border-left: 2px solid var(--sage);
   overflow-wrap: anywhere; word-break: break-word;
 }
+/* chip-2.0: retrieved sources under each reply */
+.ask-turn__sources {
+  list-style: none; margin: 0; padding-left: var(--s4);
+  display: flex; flex-direction: column; gap: var(--s1);
+  font-size: var(--fs-meta); color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.ask-turn__sources a { color: var(--text); }
+.ask-turn__source-path { font-family: var(--font-mono); color: var(--text-muted); }
+.demo-label { align-self: flex-start; width: fit-content; }
 .ask-turn__text--agent p { margin: 0 0 var(--s2) 0; }
 .ask-turn__text--agent p:last-child { margin-bottom: 0; }
 .ask-turn__text--agent strong { font-weight: var(--fw-bold); color: var(--text); }
