@@ -21,13 +21,16 @@ const commands = {
   async ask() {
     const q = rest.join(' ').trim();
     if (!q) throw new Error('usage: chip ask "your question"');
-    const { ask } = await import('../server/lib/ask.mjs');
+    const { askStream } = await import('../server/lib/ask.mjs');
     const t = Date.now();
-    const { reply, sources } = await ask(q);
-    console.log(reply + '\n');
-    console.log('Sources:');
+    let first = null, sources = [];
+    for await (const ev of askStream(q)) {
+      if (ev.type === 'sources') sources = ev.sources;
+      if (ev.type === 'token') { first ??= Date.now(); process.stdout.write(ev.text); }
+    }
+    console.log('\n\nSources:');
     for (const s of sources) console.log(`  - ${s.title} · ${s.url || s.path}`);
-    console.log(`\n(${((Date.now() - t) / 1000).toFixed(1)}s · ${CHIP_MODEL})`);
+    console.log(`\n(first words ${(((first ?? Date.now()) - t) / 1000).toFixed(1)}s · total ${((Date.now() - t) / 1000).toFixed(1)}s · ${CHIP_MODEL})`);
   },
 
   async sync() {

@@ -4,7 +4,8 @@ import express from 'express';
 import cors from 'cors';
 import { join } from 'node:path';
 import { ROOT, PORT, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL } from './lib/config.mjs';
-import { ask } from './lib/ask.mjs';
+import { ask, askStream } from './lib/ask.mjs';
+import { warm } from './lib/llm.js';
 import { loadIndex } from './lib/index.mjs';
 
 const app = express();
@@ -24,10 +25,23 @@ app.get('/health', (_req, res) => {
 });
 
 // Contract: { message, sessionId } -> { reply, sessionId, sources: [{ title, url | path }] }
+// With { stream: true }: NDJSON lines, { type: 'sources' } then { type: 'token', text }
+// pieces, then { type: 'done', reply, sessionId, sources } (or { type: 'error' }).
 app.post('/ask', async (req, res) => {
-  const { message, sessionId } = req.body || {};
+  const { message, sessionId, stream } = req.body || {};
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ error: 'message is required' });
+  }
+  if (stream) {
+    res.setHeader('content-type', 'application/x-ndjson; charset=utf-8');
+    res.setHeader('cache-control', 'no-cache');
+    try {
+      for await (const ev of askStream(message.trim(), sessionId)) res.write(JSON.stringify(ev) + '\n');
+    } catch (err) {
+      console.error('[CHIP server]', err.message);
+      res.write(JSON.stringify({ type: 'error', error: err.message }) + '\n');
+    }
+    return res.end();
   }
   try {
     res.json(await ask(message.trim(), sessionId));
@@ -37,6 +51,10 @@ app.post('/ask', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+// Bound to localhost: nothing on the network can reach /ask.
+app.listen(PORT, '127.0.0.1', () => {
   console.log(`[CHIP] http://localhost:${PORT} · model ${CHIP_MODEL} · embeddings ${CHIP_EMBED_MODEL} · ${OLLAMA_URL}`);
+  const t = Date.now();
+  warm().then(() => console.log(`[CHIP] models warm (${((Date.now() - t) / 1000).toFixed(1)}s)`))
+    .catch((err) => console.error('[CHIP] warm-up failed:', err.message));
 });

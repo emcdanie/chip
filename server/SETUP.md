@@ -1,107 +1,66 @@
-# CHIP Agent Server — Setup
+# CHIP setup
 
-Five steps. ~15 minutes. You need: your Anthropic API key, a Notion account, and Node 18+.
+About 15 minutes. Everything runs locally.
 
----
+## 1. Ollama and the models
 
-## Step 1 — Create a Notion integration
-
-1. Go to **notion.so/profile/integrations** → **New integration**
-2. Name it `CHIP`. Keep **Internal** type. Click Save.
-3. Copy the **Internal Integration Secret** (starts with `secret_`). This is your `NOTION_API_TOKEN`.
-
-### Share pages with the integration
-
-For each Notion page CHIP should be able to read, open the page → click **…** (top right) → **Connections** → find `CHIP` → confirm.
-
-Recommended pages to share:
-- Research library (or your DS research database)
-- Friction log
-- Rituals / cadence notes
-- Any other pages you want Ask CHIP to surface
-
----
-
-## Step 2 — Create the Cloud Managed Agent
-
-1. Go to **console.anthropic.com** → **Managed Agents** → **New Agent**
-2. Set the model to **Claude Opus 4.7** (or the most capable available)
-3. Paste the system prompt from `server/AGENT_PROMPT.md` (the block between the `---` delimiters)
-
-### Attach the Notion MCP server
-
-4. In the agent config, find **MCP Servers** or **Tools** → **Add MCP Server**
-5. Select **Notion** from the available integrations
-6. When prompted for credentials, paste your `NOTION_API_TOKEN` from Step 1
-7. The token goes into the **credential vault** — it stays on Anthropic's infra, never in your repo
-
-### Copy the agent ID
-
-8. After saving, find the agent's **ID** on its settings page (format: `agt_...`)
-9. This is your `CHIP_AGENT_ID`
-
----
-
-## Step 3 — Configure the local proxy
+Install Ollama from ollama.com, start it (the app, or `ollama serve`), then:
 
 ```sh
-cd ~/DEV/chip/server
-cp .env.example .env
+ollama pull qwen3:8b
+ollama pull nomic-embed-text
 ```
 
-Open `.env` and fill in:
+`qwen3:8b` answers questions (thinking mode off). `nomic-embed-text` turns your docs into vectors for search. On a 32 GB Apple Silicon Mac both stay loaded together comfortably.
 
-```
-ANTHROPIC_API_KEY=sk-ant-...          # your existing Anthropic API key
-CHIP_AGENT_ID=agt_...                 # from Step 2
-NOTION_API_TOKEN=secret_...           # from Step 1 (for reference; used in vault, not the server)
-```
-
-The `NOTION_API_TOKEN` line in `.env` is reference-only. The server does not use it — the token lives in Anthropic's credential vault attached to the agent. You can leave it blank if you prefer.
-
----
-
-## Step 4 — Install and start
+## 2. Install CHIP
 
 ```sh
-cd ~/DEV/chip/server
+cd ~/DEV/chip
 npm install
-npm start
+cp server/.env.example server/.env
+npm link        # makes `chip` available everywhere; undo with `npm unlink -g chip`
 ```
 
-Expected output:
+## 3. Notion (optional)
 
+1. Go to notion.so/profile/integrations, create an **Internal** integration named `CHIP`, read access only.
+2. Copy the secret into `server/.env` as `NOTION_API_TOKEN`.
+3. Share pages with it: open a page, **…** → **Connections** → `CHIP`. Sharing a parent page shares its children.
+
+`chip sync` writes each shared page to `data/notion/<slug>.md`. The next sync skips pages that haven't changed. Pages you stop sharing are removed. `data/notion/` and `data/index/` are gitignored; Notion content never gets committed.
+
+## 4. Sync and run
+
+```sh
+chip sync     # first Notion pull is slow (minutes for hundreds of pages); later ones take seconds
+chip status   # check models, index, last sync
+npm start     # http://localhost:3000
 ```
-[CHIP] Agent proxy → http://localhost:3000
-[CHIP] API key     : sk-ant-ap…
-[CHIP] Agent ID    : agt_012345…
-```
 
-Verify: `curl http://localhost:3000/health` should return `{"ok":true,...}`.
+## Settings (`server/.env`)
 
----
+| Key | Default | What it does |
+|---|---|---|
+| `NOTION_API_TOKEN` | none | Notion integration secret |
+| `CHIP_MODEL` | `qwen3:8b` | chat model |
+| `CHIP_EMBED_MODEL` | `nomic-embed-text` | embedding model (changing it re-embeds everything) |
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama API |
+| `PORT` | `3000` | server port (the only place it is set) |
+| `CHIP_KEEP_ALIVE` | `30m` | how long Ollama keeps the model loaded |
+| `CHIP_NUM_CTX` | `4096` | context window cap |
+| `CHIP_CONTEXT_WORDS` | `450` | words of retrieved sources sent per question |
+| `BELLA_DIR` | `~/DEV/bella` | where BELLA lives |
 
-## Step 5 — Test Ask CHIP
-
-1. Open the CHIP bridge: `open ~/DEV/chip/docs/artifacts/chip-bridge-v0/index.html`
-2. Dismiss the splash → Enter Bridge
-3. In the **Agent card**, type a question in the Ask CHIP input:
-   - `what's in my research library`
-   - `any friction notes about navigation`
-   - `what rituals do I have coming up`
-4. Press Enter. A "Thinking…" skeleton appears, then the live agent reply renders below the input with a sage left border.
-
-Conversation continues across reloads — session ID is stored in `localStorage` as `chip:askSessionId`.
-
----
+**Speed vs. depth.** The model reads prompts at roughly 200 tokens a second on an M1 Max, so the wait before the first word grows with `CHIP_CONTEXT_WORDS`. 450 keeps it near 3 seconds; raising it gives answers more material to work with and takes longer to start.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| "Agent server not running" in the UI | `npm start` in `server/` |
-| `ANTHROPIC_API_KEY not set` | Check `server/.env` — key must start with `sk-ant-` |
-| `CHIP_AGENT_ID not set` | Check `server/.env` — ID starts with `agt_` |
-| `Session create failed (404)` | Agent ID is wrong or agent was deleted at console.anthropic.com |
-| Agent replies but Notion data is missing | The Notion integration isn't connected to the agent, or the relevant pages haven't been shared with the integration |
-| CORS error in browser console | The proxy must be running on port 3000; check `PORT` in `.env` |
+| `Ollama not reachable` | Start Ollama (`ollama serve`) or check `OLLAMA_URL` |
+| `model … not found` | `ollama pull` the model named in the error |
+| `No index yet` | Run `chip sync` |
+| `NOTION_API_TOKEN not set` | Add it to `server/.env`, or ignore: Notion is optional |
+| A Notion page is missing | Share it (or a parent) with the `CHIP` integration, then `chip sync` |
+| Ask CHIP says the server isn't running | `npm start`, then open http://localhost:3000 (not the HTML file) |

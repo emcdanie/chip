@@ -1,4 +1,4 @@
-// Local search: chunk markdown (~500 words, small overlap), embed with the
+// Local search: chunk markdown (~150 words, small overlap; small chunks keep the prompt short), embed with the
 // local model, store in data/index/chunks.json, cosine top-k.
 // Re-embeds only chunks whose text changed (keyed by hash), so a re-index
 // with nothing new is fast.
@@ -8,8 +8,8 @@ import { createHash } from 'node:crypto';
 import { ROOT, BELLA_DIR, NOTION_DIR, INDEX_FILE, BELLA_JSON, CHIP_EMBED_MODEL } from './config.mjs';
 import { embed } from './llm.js';
 
-const CHUNK_WORDS = 500;
-const OVERLAP_WORDS = 60;
+const CHUNK_WORDS = 150;
+const OVERLAP_WORDS = 25;
 
 // ---- sources -------------------------------------------------------------
 function frontMatter(md) {

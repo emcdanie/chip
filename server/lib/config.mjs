@@ -14,6 +14,12 @@ export const PORT = Number(env.PORT || 3000);
 export const OLLAMA_URL = (env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
 export const CHIP_MODEL = env.CHIP_MODEL || 'qwen3:8b';
 export const CHIP_EMBED_MODEL = env.CHIP_EMBED_MODEL || 'nomic-embed-text';
+// Speed: keep the model resident, cap the context window, cap retrieved words.
+// Prompt evaluation runs ~210 tokens/s on an M1 Max with qwen3:8b, so time to
+// first word grows with the context sent; CHIP_CONTEXT_WORDS is the main knob.
+export const CHIP_KEEP_ALIVE = env.CHIP_KEEP_ALIVE || '30m';
+export const CHIP_NUM_CTX = Number(env.CHIP_NUM_CTX || 4096);
+export const CHIP_CONTEXT_WORDS = Number(env.CHIP_CONTEXT_WORDS || 450);
 export const NOTION_API_TOKEN = env.NOTION_API_TOKEN || '';
 export const BELLA_DIR = env.BELLA_DIR || join(homedir(), 'DEV', 'bella');
 

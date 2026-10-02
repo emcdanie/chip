@@ -4,10 +4,11 @@
 // Notion is now synced into the index, so retrieval replaces tool calls.
 import { randomUUID } from 'node:crypto';
 import { search } from './index.mjs';
-import { chat } from './llm.js';
+import { chat, chatStream } from './llm.js';
+import { CHIP_CONTEXT_WORDS } from './config.mjs';
 
 const TOP_K = 6;
-const HISTORY_TURNS = 6; // messages kept per session (user + assistant)
+const HISTORY_TURNS = 4; // messages kept per session (user + assistant); short keeps the prompt fast
 
 const SYSTEM = `You are CHIP, a design systems assistant for Elleta, who runs the BELLA design system.
 
@@ -34,19 +35,45 @@ function sourceList(chunks) {
   return [...seen.values()];
 }
 
-export async function ask(message, sessionId) {
+// Fill the word budget with the top chunks in rank order; the last one may be
+// cut. Only chunks actually sent to the model are reported as sources.
+function fitBudget(chunks) {
+  const picked = [];
+  let left = CHIP_CONTEXT_WORDS;
+  for (const c of chunks) {
+    if (left <= 40) break;
+    const words = c.text.split(/\s+/);
+    picked.push({ ...c, text: words.slice(0, left).join(' ') });
+    left -= Math.min(words.length, left);
+  }
+  return picked;
+}
+
+async function prepare(message, sessionId) {
   const id = sessionId || randomUUID();
   const history = sessions.get(id) || [];
+  const chunks = fitBudget(await search(message, TOP_K));
+  const context = chunks.map((c) => `Source: ${c.title}\n${c.text}`).join('\n\n---\n\n');
+  const messages = [{ role: 'system', content: SYSTEM }, ...history,
+    { role: 'user', content: `Sources:\n\n${context}\n\n===\n\nQuestion: ${message}` }];
+  const remember = (reply) => // history keeps the bare question, not the sources
+    sessions.set(id, [...history, { role: 'user', content: message }, { role: 'assistant', content: reply }].slice(-HISTORY_TURNS));
+  return { id, messages, sources: sourceList(chunks), remember };
+}
 
-  const chunks = await search(message, TOP_K);
-  const context = chunks
-    .map((c) => `Source: ${c.title}\n${c.text}`)
-    .join('\n\n---\n\n');
+export async function ask(message, sessionId) {
+  const { id, messages, sources, remember } = await prepare(message, sessionId);
+  const reply = await chat(messages);
+  remember(reply);
+  return { reply, sessionId: id, sources };
+}
 
-  const user = `Sources:\n\n${context}\n\n===\n\nQuestion: ${message}`;
-  const reply = await chat([{ role: 'system', content: SYSTEM }, ...history, { role: 'user', content: user }]);
-
-  // history keeps the bare question, not the retrieved sources, to stay small
-  sessions.set(id, [...history, { role: 'user', content: message }, { role: 'assistant', content: reply }].slice(-HISTORY_TURNS));
-  return { reply, sessionId: id, sources: sourceList(chunks) };
+// Streaming: { type: 'sources' } first, then { type: 'token' } pieces, then { type: 'done' }.
+export async function* askStream(message, sessionId) {
+  const { id, messages, sources, remember } = await prepare(message, sessionId);
+  yield { type: 'sources', sources, sessionId: id };
+  let reply = '';
+  for await (const text of chatStream(messages)) { reply += text; yield { type: 'token', text }; }
+  remember(reply.trim());
+  yield { type: 'done', reply: reply.trim(), sessionId: id, sources };
 }

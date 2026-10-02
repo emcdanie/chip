@@ -1371,22 +1371,50 @@
       return;
     }
 
+    // Streamed: NDJSON events (sources, token…, done). Text renders as it arrives.
+    var turn = null;
+    function done() { if (agentAskInput) { agentAskInput.disabled = false; agentAskInput.focus(); } }
+    function handle(ev) {
+      if (ev.type === 'sources') {
+        removeSkeleton();
+        turn = { role: 'agent', text: '', sources: ev.sources || [] };
+        askTurns.push(turn);
+        try { if (ev.sessionId) localStorage.setItem(ASK_SESSION_KEY, ev.sessionId); } catch (_) {}
+        renderTurns();
+      } else if (ev.type === 'token' && turn) {
+        turn.text += ev.text;
+        renderTurns();
+      } else if (ev.type === 'done' && turn) {
+        turn.text = ev.reply;
+        renderTurns();
+      } else if (ev.type === 'error') {
+        removeSkeleton();
+        showError(ev.error, function () { doAsk(message); });
+      }
+    }
     fetch('/ask', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ message: message, sessionId: sessionId }),
+      body:    JSON.stringify({ message: message, sessionId: sessionId, stream: true }),
     })
-    .then(function (res) { return res.json(); })
-    .then(function (data) {
-      removeSkeleton();
-      if (data.error) {
-        showError(data.error, function () { doAsk(message); });
-      } else {
-        askTurns.push({ role: 'agent', text: data.reply, sources: data.sources || [] });
-        try { if (data.sessionId) localStorage.setItem(ASK_SESSION_KEY, data.sessionId); } catch (_) {}
-        renderTurns();
+    .then(function (res) {
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) { done(); return; }
+          buf += decoder.decode(r.value, { stream: true });
+          var nl;
+          while ((nl = buf.indexOf('\n')) >= 0) {
+            var line = buf.slice(0, nl).trim();
+            buf = buf.slice(nl + 1);
+            if (line) handle(JSON.parse(line));
+          }
+          return pump();
+        });
       }
-      if (agentAskInput) { agentAskInput.disabled = false; agentAskInput.focus(); }
+      return pump();
     })
     .catch(function () {
       removeSkeleton();
@@ -1394,7 +1422,7 @@
         'CHIP server not running. Start it with npm start.',
         function () { doAsk(message); }
       );
-      if (agentAskInput) { agentAskInput.disabled = false; agentAskInput.focus(); }
+      done();
     });
   }
 
