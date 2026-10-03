@@ -17,6 +17,7 @@ import { logUsage, claudeToday, usageWeek } from './lib/usage.mjs';
 import { CHIP_CLAUDE_DAILY } from './lib/config.mjs';
 import * as bellaWork from './lib/bella-work.mjs';
 import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
+import { specOf } from './lib/spec-lint.mjs';
 
 const app = express();
 app.use(express.json());
@@ -196,6 +197,11 @@ app.post('/bella-doc-pr', async (req, res) => {
   } catch (e) {
     fail(res, e);
   }
+});
+app.get('/bella-spec/:id', (req, res) => {
+  const c = bellaComponent(String(req.params.id));
+  if (!c) return res.status(404).json({ error: 'No such component' });
+  res.json(specOf(c));
 });
 app.get('/bella-history/:id', (req, res) => {
   try {

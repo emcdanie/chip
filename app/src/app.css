@@ -2100,3 +2100,14 @@ body {
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+.spec-section {
+  display: grid;
+  gap: var(--layout-gutter);
+}
+
+.spec-card {
+  display: grid;
+  gap: var(--layout-stack-md);
+  align-content: start;
+}

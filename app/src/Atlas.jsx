@@ -20,7 +20,7 @@ import SegmentedControl from '@bella/components/SegmentedControl/SegmentedContro
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import AtlasDocs from './AtlasDocs.jsx';
 import AtlasHistory from './AtlasHistory.jsx';
-import { SpecStage } from './AtlasSpec.jsx';
+import { SpecStage, SpecSection } from './AtlasSpec.jsx';
 import { Badges, VisMenu, canSee, settingsOf } from './visibility.jsx';
 import { SPECIMENS, VARIANTS } from './specimens.jsx';
 import { layout, targetsOf } from './anatomy.js';
@@ -741,7 +741,8 @@ function specimenHeight() {
 
 export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary = true, trySignal, onTryUsed, role = 'admin', vis = { components: {} }, setVis = () => {} }) {
   const reduced = useReducedMotion();
-  const [mode, setMode] = useState('anatomy'); // anatomy | exploded | try (no anatomy: specimen | try)
+  const [mode, setMode] = useState('anatomy'); // anatomy | exploded | try | spec (no anatomy: specimen | try | spec)
+  const [sendOpen, setSendOpen] = useState(false); // Send spec to Figma: the preview
   const [hl, setHl] = useState(null);
   const [toast, setToast] = useState('');
   const [zoom, setZoom] = useState(1);
@@ -872,7 +873,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
       />
 
       <nav className="on-page" aria-label="On this page">
-        {[['specimen', 'Specimen'], ['examples', 'Examples'], ['documentation', 'Documentation'], ['tokens', 'Tokens'], ['history', 'History'], ['gate', 'What the gate caught']].map(([id, label]) => (
+        {[['specimen', 'Specimen'], ['examples', 'Examples'], ['spec', 'Spec'], ['documentation', 'Documentation'], ['tokens', 'Tokens'], ['history', 'History'], ['gate', 'What the gate caught']].map(([id, label]) => (
           <Link key={id} href={`#${id}`}>
             {label}
           </Link>
@@ -921,6 +922,10 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
             </div>
           </Card>
         )}
+      </Section>
+
+      <Section id="spec" heading="Spec" lede="Generated from code: BELLA's props, its contract and the rendered component. Code is the source of truth.">
+        <SpecSection c={c} onSend={setSendOpen} sendOpen={sendOpen} />
       </Section>
 
       <Section id="documentation" heading="Documentation" lede="Guidance, the contract and the rules agents follow, from BELLA. A change goes through a branch, the gate and a draft pull request.">

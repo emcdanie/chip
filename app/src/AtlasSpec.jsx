@@ -6,6 +6,9 @@
 // corner with a leader.
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { SPECIMENS } from './specimens.jsx';
+import Card from '@bella/components/Card/Card';
+import Columns from '@bella/components/Columns/Columns';
+import Button from '@bella/components/Button/Button';
 import { Token } from './Atlas.jsx';
 
 const px = (v) => Math.round(parseFloat(v) * 10) / 10;
@@ -127,5 +130,137 @@ export function SpecStage({ c, overrides }) {
       ) : null}
       <p className="label">Measured from the rendered BELLA {c.name} in this theme, not typed in.</p>
     </>
+  );
+}
+
+/* ---------- the Spec section ---------- */
+// Nathan Curtis's anatomy (Analysis of Variants): elements are root
+// (container), label (text) and icon (instance); a fill, shadow or focus
+// outline is a style of an element, not an element of its own
+const ROLE = {
+  box: ['root', 'container'],
+  fill: ['root', 'style: fills'],
+  shadow: ['root', 'style: effects'],
+  ring: ['root', 'style: focus outline'],
+  content: ['label', 'text'],
+  label: ['label', 'text'],
+  icon: ['icon', 'instance'],
+};
+const unquote = (v) => (v == null ? null : String(v).replace(/'/g, ''));
+
+function keyboardOf(c) {
+  const r = (c.rendersAs ?? '').toLowerCase();
+  if (/\bbutton\b/.test(r) && /anchor|link/.test(r)) return 'Tab reaches it; Enter and Space press it (Enter only when it renders as a link).';
+  if (/\bbutton\b/.test(r)) return 'Tab reaches it; Enter and Space press it.';
+  if (/anchor|link/.test(r)) return 'Tab reaches it; Enter follows it.';
+  if (/select/.test(r)) return 'The native select: Tab reaches it, arrows choose, the platform opens the list.';
+  if (/input|textarea/.test(r)) return 'Tab reaches it; type to enter a value.';
+  return 'See the contract notes below.';
+}
+
+export function SpecSection({ c, figmaNames = null, onSend, sendOpen }) {
+  const [spec, setSpec] = React.useState(null);
+  React.useEffect(() => {
+    setSpec(null);
+    fetch(`/bella-spec/${c.id}`)
+      .then((r) => r.json())
+      .then(setSpec)
+      .catch(() => setSpec({ props: null, note: "The CHIP server didn't answer." }));
+  }, [c.id]);
+  const ring = (t) => getComputedStyle(document.documentElement).getPropertyValue(t).trim();
+  return (
+    <div className="spec-section">
+      <Card innerClassName="spec-card">
+        <h3 className="card-title">Properties</h3>
+        {spec?.props ? (
+          <div className="table-scroll">
+            <table className="tok-table spec-props">
+              <caption className="sr-only">{c.name} props: values, default and the Figma name</caption>
+              <thead>
+                <tr><th scope="col">Prop</th><th scope="col">Values</th><th scope="col">Default</th><th scope="col">Figma name</th></tr>
+              </thead>
+              <tbody>
+                {spec.props.map((p) => (
+                  <tr key={p.name}>
+                    <td className="mono">{p.name}{p.required ? ' *' : ''}</td>
+                    <td>{unquote(p.values).split(' | ').join(' · ')}</td>
+                    <td>{unquote(p.default) ?? 'none'}</td>
+                    <td>{figmaNames ? figmaNames[p.name] ?? <span className="label">not in Figma</span> : <span className="label">Figma not read</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="label">{spec ? spec.note : 'Reading the props…'}</p>
+        )}
+        <p className="label">Values and defaults from BELLA's docgen manifest for {c.name}.tsx; * is required.</p>
+      </Card>
+      <Columns count={2}>
+        <Card innerClassName="spec-card">
+          <h3 className="card-title">Anatomy</h3>
+          {c.parts.length ? (
+            <div className="table-scroll">
+              <table className="tok-table">
+                <caption className="sr-only">{c.name} anatomy: each part, its element and token</caption>
+                <thead>
+                  <tr><th scope="col">Part</th><th scope="col">Element</th><th scope="col">Token</th></tr>
+                </thead>
+                <tbody>
+                  {c.parts.map((p) => {
+                    const [el, kind] = ROLE[p.kind] ?? ['root', p.kind];
+                    return (
+                      <tr key={p.key}>
+                        <td>{p.n} · {p.title}</td>
+                        <td><span className="mono">{el}</span> <span className="label">{kind}</span></td>
+                        <td className="mono"><Token name={p.token} /></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="label">No anatomy recorded for {c.name} yet.</p>
+          )}
+          <p className="label">Element names follow Nathan Curtis: root, label, icon; fills, shadows and the focus outline are styles of an element.</p>
+        </Card>
+        <Card innerClassName="spec-card">
+          <h3 className="card-title">Accessibility</h3>
+          <dl className="facts">
+            <div><dt>Renders as</dt><dd>{c.rendersAs ?? 'not in the contract'}</dd></div>
+            <div><dt>Keyboard</dt><dd>{keyboardOf(c)}</dd></div>
+            <div><dt>Focus</dt><dd>{ring('--ring-focus-width')} ring, {ring('--ring-focus-offset')} offset, focus-visible only</dd></div>
+            <div><dt>Target</dt><dd>{c.minTarget ? `${c.minTarget.value} minimum` : 'not a control'}</dd></div>
+          </dl>
+          {c.a11y ? <p className="label">{c.a11y}</p> : null}
+        </Card>
+      </Columns>
+      <Card innerClassName="spec-card">
+        <div className="card-row">
+          <h3 className="card-title">Send the spec to Figma</h3>
+          {!sendOpen ? (
+            <Button variant="secondary" onClick={() => onSend(true)}>
+              Send spec to Figma
+            </Button>
+          ) : null}
+        </div>
+        {sendOpen ? (
+          <>
+            <p>
+              It would make one frame, <span className="mono">{c.name} · Spec</span>, beside the {c.name} component set in the BELLA file: the redlines, the properties, the anatomy and the accessibility notes.
+            </p>
+            <p className="doc-blocked">Writes are off: preview only. CHIP reads Figma but doesn't change it.</p>
+            <div className="doc-actions">
+              <Button variant="secondary" onClick={() => onSend(false)}>
+                Close the preview
+              </Button>
+            </div>
+          </>
+        ) : (
+          <p className="label">Builds the spec as a frame next to the component in Figma. Writes are off, so it shows a preview.</p>
+        )}
+      </Card>
+    </div>
   );
 }
