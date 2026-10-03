@@ -105,7 +105,7 @@ function proposalOf(t) {
   return [`## ${t.q}`, '', `${t.path === 'data' ? 'From BELLA data' : 'From your docs'} (${t.page ?? 'CHIP'})`, '', body, '', ...(src.length ? ['Sources:', ...src] : [])].join('\n');
 }
 
-function AskTurn({ t, bella, page, claudeOk, onOpenAtlas, onSandbox, onSave, onCompare, onIncludePrivate, notify }) {
+function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onSave, onCompare, onIncludePrivate, notify }) {
   // no chip for the component you are already looking at
   const here = page?.match(/^Atlas · (\w+)$/)?.[1];
   const names = (t.components ?? []).filter((n) => n !== here);
@@ -220,6 +220,12 @@ function AskTurn({ t, bella, page, claudeOk, onOpenAtlas, onSandbox, onSave, onC
           <p className="meta">
             First words {t.first?.toFixed(1) ?? '–'} s · total {t.total.toFixed(1)} s · best match {t.top?.toFixed(2)}
           </p>
+          {claudeOk && budget ? (
+            <p className="meta">
+              Auto sent {budget.used} of {budget.limit} questions to Claude today.
+              {/* TODO(04 context savings): add "≈ tokens kept local today" once 04's ledger exists */}
+            </p>
+          ) : null}
         </details>
       ) : null}
     </li>
@@ -580,6 +586,7 @@ export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onS
               bella={bella}
               page={page}
               claudeOk={claudeOk}
+              budget={budget}
               onOpenAtlas={onOpenAtlas}
               onSandbox={onSandbox}
               onSave={obi.save}
@@ -595,7 +602,6 @@ export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onS
 
       <p className="obi-status">
         <span>{picked === 'auto' ? `Auto · local ${health?.model ?? ''}`.trim() : pickedModel?.label ?? 'Model offline'}</span>
-        {claudeOk && budget ? <span>Auto's Claude today {budget.used} of {budget.limit}</span> : null}
         <span>{health ? `${health.chunks.toLocaleString('en')} chunks` : 'No index'}</span>
         <span>BELLA @ {bella?.source.commit ?? '…'}</span>
       </p>
