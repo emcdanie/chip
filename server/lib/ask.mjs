@@ -77,8 +77,10 @@ function fitBudget(chunks) {
 // Notion pages are Elleta's own workspace: they stay off the cloud unless she
 // says yes for this session. Nothing in the index is marked public yet, so
 // every Notion source counts as private (privacy first).
-// Cowork exports count as private too.
-const isPrivate = (c) => (c.path || '').startsWith('data/notion/') || (c.path || '').startsWith('docs/reference/cowork/') || /notion\.(so|com)/.test(c.url || '');
+const isPrivate = (c) => (c.path || '').startsWith('data/notion/') || /notion\.(so|com)/.test(c.url || '');
+// Cowork exports (the context pack among them) never go to the cloud, not
+// even with the yes for Notion: they are local answers' background only.
+const isLocalOnly = (c) => (c.path || '').startsWith('docs/reference/cowork/');
 
 // page: what the user is looking at ("Atlas · Button"). The question is
 // searched on its own; the page joins (as a second search, merged, and as a
@@ -106,10 +108,14 @@ async function retrieve(query, k, page, withPage) {
 }
 async function prepare(message, sessionId, page, { cloud = false, includePrivate = false } = {}) {
   const id = sessionId || randomUUID();
-  const history = sessions.get(id) || [];
+  // a cloud model never sees turns a local model answered: those may quote
+  // the context pack or private sources. Pairs are stored with their place.
+  const history = (sessions.get(id) || []).filter((m) => !cloud || m.place !== 'local').map(({ role, content }) => ({ role, content }));
+  const stored = sessions.get(id) || [];
   const withPage = pointsAt(message, page);
-  let found = await retrieve(message, TOP_K * (cloud && !includePrivate ? 3 : 1), page, withPage);
+  let found = await retrieve(message, TOP_K * (cloud ? 3 : 1), page, withPage);
   let heldBack = 0;
+  if (cloud) found = found.filter((c) => !isLocalOnly(c));
   if (cloud && !includePrivate) {
     heldBack = found.filter(isPrivate).length;
     found = found.filter((c) => !isPrivate(c));
@@ -125,8 +131,9 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const where = withPage ? `The user is looking at: ${page}.\n\n` : '';
   const turns = [...history, { role: 'user', content: `Sources:\n\n${context}\n\n===\n\n${where}Question: ${message}` }];
   const messages = [{ role: 'system', content: withPack(SYSTEM) }, ...turns]; // non-streamed path is local only
-  const remember = (reply) => // history keeps the bare question, not the sources
-    sessions.set(id, [...history, { role: 'user', content: message }, { role: 'assistant', content: reply }].slice(-HISTORY_TURNS));
+  // history keeps the bare question, not the sources, and where it was answered
+  const remember = (reply, place = 'local') =>
+    sessions.set(id, [...stored, { role: 'user', content: message, place }, { role: 'assistant', content: reply, place }].slice(-HISTORY_TURNS));
   return { id, top, heldBack, messages, turns, sources: [...nums.values()], remember };
 }
 
@@ -188,6 +195,6 @@ export async function* askStream(message, sessionId, page, opts = {}) {
       yield { type: 'token', text };
     }
   }
-  remember(reply.trim());
+  remember(reply.trim(), provider.place);
   yield { type: 'done', reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }

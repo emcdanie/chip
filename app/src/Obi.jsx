@@ -483,10 +483,13 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
     const id = Date.now() + Math.random();
     setTurns((ts) => [...ts, { id, kind: 'tool', q }]);
     try {
-      const u = await (await fetch('/usage')).json();
-      patch(id, () => ({ lines: usageLines(u) }));
+      const res = await fetch('/usage');
+      const u = res.ok ? await res.json() : null;
+      if (!Array.isArray(u?.days)) throw new Error('bad ledger');
+      const lines = usageLines(u);
+      patch(id, () => ({ lines }));
     } catch {
-      patch(id, () => ({ error: 'The CHIP server is not answering on 127.0.0.1:3100.' }));
+      patch(id, () => ({ error: 'The usage ledger could not be read (is the CHIP server running?).' }));
     }
   }
 

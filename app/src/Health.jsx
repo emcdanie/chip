@@ -65,11 +65,11 @@ function Usage({ onRun }) {
   const [u, setU] = useState(null);
   useEffect(() => {
     fetch('/usage')
-      .then((r) => r.json())
-      .then(setU)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => (Array.isArray(d?.days) ? setU(d) : setU(false)))
       .catch(() => setU(false));
   }, []);
-  if (u === false) return <p className="label">The CHIP server is not answering, so there is no usage to show.</p>;
+  if (u === false) return <p className="label">The usage ledger could not be read (is the CHIP server running?).</p>;
   if (!u) return <p className="label">Reading the usage ledger…</p>;
   const f = usageFigures(u);
   const days = `answers kept local per day, last 7 days: ${u.days.join(', ')}`;

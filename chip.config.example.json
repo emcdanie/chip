@@ -76,13 +76,15 @@
           "args": [
             "--short",
             "--branch"
-          ]
+          ],
+          "kind": "read"
         },
         "log": {
           "args": [
             "--oneline"
           ],
-          "pattern": "^-n[0-9]{1,3}$"
+          "pattern": "^-n[0-9]{1,3}$",
+          "kind": "read"
         }
       },
       "allow": [

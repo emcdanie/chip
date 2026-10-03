@@ -18,7 +18,8 @@ function entries() {
   if (!existsSync(FILE)) return [];
   return readFileSync(FILE, 'utf8').split('\n').filter(Boolean).flatMap((l) => {
     try {
-      return [JSON.parse(l)];
+      const e = JSON.parse(l);
+      return e && typeof e === 'object' && typeof e.at === 'string' ? [e] : []; // a damaged line is skipped
     } catch {
       return [];
     }
@@ -69,8 +70,14 @@ function pricing() {
 /** The last 7 days: answers by route, tokens kept local, value at API rates,
  *  share that never left the laptop, a daily series and tool calls. */
 export function usageWeek(now = Date.now()) {
+  // the last 7 calendar days, today included (local dates)
   const DAY = 24 * 3600 * 1000;
-  const since = now - 7 * DAY;
+  const midnight = (t) => {
+    const d = new Date(t);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  };
+  const since = midnight(now) - 6 * DAY;
   const routes = { data: 0, local: 0, cloud: 0 };
   const tools = {};
   let promptLocal = 0, outputLocal = 0, cloudTokens = 0, uncounted = 0;
@@ -84,6 +91,7 @@ export function usageWeek(now = Date.now()) {
       continue;
     }
     if (e.type !== 'ask' && e.type !== 'data') continue;
+    if (e.weak) continue; // no answer was made
     routes[place] = (routes[place] ?? 0) + 1;
     if (place === 'local' && e.prompt == null && !e.weak) uncounted += 1; // logged before tokens were counted
     if (place === 'local') {
@@ -91,7 +99,7 @@ export function usageWeek(now = Date.now()) {
       outputLocal += e.output ?? 0;
     }
     if (place === 'cloud') cloudTokens += (e.prompt ?? 0) + (e.output ?? 0);
-    if (place !== 'cloud') days[Math.min(6, Math.floor((t - since) / DAY))] += 1;
+    if (place !== 'cloud') days[Math.min(6, Math.max(0, Math.round((midnight(t) - since) / DAY)))] += 1;
   }
   const answers = routes.data + routes.local + routes.cloud;
   const p = pricing();

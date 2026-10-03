@@ -27,7 +27,7 @@ export class CliServer {
       server: this.cfg.name,
       name: sub,
       description: `${this.cfg.command} ${sub}${rule.args?.length ? ` (allowed: ${rule.args.join(' ')})` : ''}`,
-      kind: rule.kind ?? 'read',
+      kind: rule.kind ?? 'write', // a subcommand reads only when the config says so
     }));
   }
 

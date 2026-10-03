@@ -264,9 +264,11 @@ function parseJson(text) {
 /** A short plain answer for a tool's output (or its error). */
 export function summarizeTool({ server, tool, text = '', error = null }) {
   if (error) {
-    const j = parseJson(error);
+    const p = parseJson(error);
+    const j = p && typeof p === 'object' && !Array.isArray(p) ? p : null;
+    const str = (v) => (v == null ? null : typeof v === 'string' ? v : JSON.stringify(v));
     // the Desktop Bridge advice is shown as its own line under the answer
-    const msg = j ? [j.error, /Desktop Bridge/i.test(j.message ?? '') ? null : j.message].filter(Boolean).join('. ') : error;
+    const msg = (j ? [str(j.error), /Desktop Bridge/i.test(str(j.message) ?? '') ? null : str(j.message)].filter(Boolean).join('. ') : '') || String(error);
     return `${server} could not do that: ${msg.replace(/^\[[\w-]+\]\s*/, '').replace(NODE_ID, '').replace(/\s+/g, ' ').trim()}`;
   }
   const out = text.trim();
