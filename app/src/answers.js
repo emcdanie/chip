@@ -227,6 +227,10 @@ export function toolRouteFor(q) {
   const url = q.match(/https?:\/\/(?:www\.)?figma\.com\/(?:design|file|proto|board)\/[^\s]+/i)?.[0];
   const mentionsFigma = /\bfigma\b/i.test(q) || Boolean(url);
   if (!mentionsFigma) return null;
+  // a page question reads the document root (0:0), never the selection
+  if (/\bpages?\b/i.test(q) && !url?.includes('node-id')) {
+    return { server: 'figma', tool: 'get_metadata', args: { nodeId: '0:0' }, label: 'pages of the open file', why: 'a question about pages reads the whole document' };
+  }
   if (url) {
     const node = new URL(url).searchParams.get('node-id');
     if (node) return { server: 'figma', tool: 'get_metadata', args: { nodeId: node.replace('-', ':') }, label: 'the frame in the link', why: 'the question has a Figma link with a node' };
@@ -262,7 +266,7 @@ function parseJson(text) {
 }
 
 /** A short plain answer for a tool's output (or its error). */
-export function summarizeTool({ server, tool, text = '', error = null }) {
+export function summarizeTool({ server, tool, text = '', error = null, q = '' }) {
   if (error) {
     const p = parseJson(error);
     const j = p && typeof p === 'object' && !Array.isArray(p) ? p : null;
@@ -288,6 +292,12 @@ export function summarizeTool({ server, tool, text = '', error = null }) {
     const w = top[0].match(/width="([\d.]+)"/)?.[1];
     const h = top[0].match(/height="([\d.]+)"/)?.[1];
     const size = w && h && +w > 0 ? ` (${Math.round(w)} × ${Math.round(h)})` : '';
+    if (top[1] === 'document') {
+      const pages = kids.filter((n) => !/^-+$/.test(n.trim()));
+      return `The open file has ${plural(pages.length, 'page')}: ${listOf(pages)}.`;
+    }
+    // asked for pages, got a node: say so, never answer a different question
+    if (/\bpages?\b/i.test(q)) return 'Figma gave me your selection, not the page list. Deselect everything and ask again.';
     const kind = top[1] === 'canvas' ? 'page' : top[1];
     return `${top[2]} is a ${kind}${size}${kids.length ? ` with ${plural(kids.length, 'layer')}: ${listOf(kids)}` : ''}.`;
   }
