@@ -11,6 +11,7 @@ import Connectors from './Connectors.jsx';
 import Docs from './Docs.jsx';
 import { useObi, OneInput, ObiPanel } from './Obi.jsx';
 import { useTheme, THEMES } from './theme.js';
+import { ROLES, useRole, useVisibility } from './visibility.jsx';
 
 const WORKSPACES = [
   { id: 'health', label: 'Health' },
@@ -77,6 +78,9 @@ const store = (key, value) => {
 
 export default function App() {
   const [theme, setTheme] = useTheme();
+  // simulated until CHIP is hosted: who you are viewing as, and what each role may see
+  const [role, setRole] = useRole();
+  const [vis, setVis] = useVisibility();
   const start = routeOf(window.location.hash) ?? { ws: 'health' };
   const [ws, setWs] = useState(start.ws);
   const [atlasId, setAtlasId] = useState(start.ws === 'atlas' ? start.id ?? 'button' : 'button');
@@ -318,6 +322,7 @@ export default function App() {
                 </ActionChip>
               ) : null}
             </div>
+            <Select label="View as" value={role} onChange={setRole} options={ROLES} className="theme-select view-as" />
             <Select label="Theme" value={theme} onChange={setTheme} options={THEMES} className="theme-select" />
           </>
         )}
@@ -340,7 +345,7 @@ export default function App() {
             <div {...tabPanelProps('ws', 'connectors', ws === 'connectors')}>{ws === 'connectors' ? <Connectors narrow={narrow} /> : null}</div>
             <div {...tabPanelProps('ws', 'atlas', ws === 'atlas')}>
               {ws === 'atlas' ? (
-                <Atlas c={atlas} bella={bella} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={!narrow} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} />
+                <Atlas c={atlas} bella={bella} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={!narrow} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} role={role} vis={vis} setVis={setVis} />
               ) : null}
             </div>
           </main>
@@ -408,7 +413,8 @@ export default function App() {
               groups={[{ label: 'Workspace', items: WORKSPACES.map((w) => ({ href: `#/${w.id}`, label: w.label, current: ws === w.id })) }, ...(ws === 'health' ? healthGroups : [])]}
               onNavigate={onNavigate}
             />
-            {ws === 'atlas' && bella ? <Library bella={bella} current={atlasId} onOpen={openAtlas} /> : null}
+            {ws === 'atlas' && bella ? <Library bella={bella} current={atlasId} onOpen={openAtlas} vis={vis} role={role} /> : null}
+            <Select label="View as" value={role} onChange={setRole} options={ROLES} />
             <Select label="Theme" value={theme} onChange={setTheme} options={THEMES} />
             {sourceLine}
           </div>

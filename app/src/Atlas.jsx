@@ -16,6 +16,11 @@ import NavList from '@bella/components/NavList/NavList';
 import Button from '@bella/components/Button/Button';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
+import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import FilterChip from '@bella/components/FilterChip/FilterChip';
+import AtlasDocs from './AtlasDocs.jsx';
+import AtlasHistory from './AtlasHistory.jsx';
+import { Badges, VisMenu, canSee, settingsOf } from './visibility.jsx';
 import { SPECIMENS, VARIANTS } from './specimens.jsx';
 import { layout, targetsOf } from './anatomy.js';
 import { forceAttr, installForcedStates } from './forcedStates.js';
@@ -353,26 +358,33 @@ const NO_CONTRACT = 'Missing a contract';
 const complete = (c) => c.hasStory && c.hasDocs;
 const statusText = (c) => (complete(c) ? 'Story and docs present' : !c.hasStory ? 'Missing story' : 'Missing docs');
 
-export function Library({ bella, current, onOpen }) {
+export function Library({ bella, current, onOpen, vis = { components: {} }, role = 'admin' }) {
+  // three dots, each with its words: filled (story and docs), half (In progress), hollow (something missing)
+  const dotOf = (c) => (settingsOf(vis, c).status === 'in-progress' ? 'half' : complete(c) ? 'ok' : 'gap');
+  const words = { ok: 'Story and docs present', half: 'In progress', gap: null };
+  const shown = bella.components.filter((c) => canSee(role, settingsOf(vis, c).visibleTo));
   const by = {};
-  for (const c of bella.components) (by[c.category ?? NO_CONTRACT] ??= []).push(c);
+  for (const c of shown) (by[c.category ?? NO_CONTRACT] ??= []).push(c);
   const groups = [...CATEGORIES, NO_CONTRACT].filter((g) => by[g]).map((g) => ({
     label: g,
-    items: by[g].map((c) => ({
-      href: `#/atlas/${c.id}`,
-      label: c.name,
-      current: c.id === current,
-      // the dot: filled when story and docs are present, a hollow ring when
-      // something is missing; the shape carries it, the hidden words say it
-      badge: (
-        <>
-          <span className={`dot ${complete(c) ? 'dot--ok' : 'dot--gap'}`} title={statusText(c)} aria-hidden="true" />
-          <span className="sr-only">{statusText(c)}</span>
-        </>
-      ),
-    })),
+    items: by[g].map((c) => {
+      const d = dotOf(c);
+      const text = words[d] ?? statusText(c);
+      return {
+        href: `#/atlas/${c.id}`,
+        label: c.name,
+        current: c.id === current,
+        badge: (
+          <>
+            <span className={`dot dot--${d}`} title={text} aria-hidden="true" />
+            <span className="sr-only">{text}</span>
+          </>
+        ),
+      };
+    }),
   }));
-  const gaps = bella.components.filter((c) => !complete(c)).length;
+  const gaps = shown.filter((c) => dotOf(c) === 'gap').length;
+  const half = shown.filter((c) => dotOf(c) === 'half').length;
   return (
     <div className="library">
       <NavList
@@ -388,7 +400,10 @@ export function Library({ bella, current, onOpen }) {
               <span className="dot dot--ok" aria-hidden="true" /> Has a story and docs
             </p>
             <p className="label">
-              <span className="dot dot--gap" aria-hidden="true" /> Something missing ({gaps} of {bella.components.length})
+              <span className="dot dot--half" aria-hidden="true" /> In progress ({half})
+            </p>
+            <p className="label">
+              <span className="dot dot--gap" aria-hidden="true" /> Something missing ({gaps} of {shown.length})
             </p>
           </div>
         }
@@ -502,41 +517,6 @@ function Findings({ c }) {
   );
 }
 
-// what the contract promises; with no contract, the empty state says where to add one
-function Contract({ c }) {
-  if (!c.hasContract) {
-    return (
-      <Card innerClassName="contract-card">
-        <div className="empty">
-          <p className="card-title">No contract yet</p>
-          <p className="label">Add one for {c.name} to tokens/component.json in BELLA.</p>
-          <Link href={REPO_FILE} external>Open the contract file</Link>
-        </div>
-      </Card>
-    );
-  }
-  return (
-    <Card innerClassName="contract-card">
-      <dl className="facts">
-        <div><dt>Props</dt><dd className="props">{c.props.map((p) => <span key={p} className="mono">{p}</span>)}</dd></div>
-        <div><dt>Variants</dt><dd>{c.variants.length ? c.variants.join(', ') : 'None'}</dd></div>
-        <div><dt>States</dt><dd>{c.states.length ? c.states.join(', ') : 'Not recorded'}</dd></div>
-        {c.rendersAs ? <div><dt>Renders as</dt><dd>{c.rendersAs}</dd></div> : null}
-      </dl>
-      <Columns count={2}>
-        <div className="contract-list">
-          <p className="label">Use it for</p>
-          <ul>{c.usage.map((u) => <li key={u}>{u}</li>)}</ul>
-        </div>
-        <div className="contract-list">
-          <p className="label">Don't</p>
-          <ul>{c.dont.map((d) => <li key={d}>{d}</li>)}</ul>
-        </div>
-      </Columns>
-    </Card>
-  );
-}
-
 /* ---------- the Facts card ---------- */
 // open or closed per section, remembered in this browser
 const FACTS_KEY = 'chip-facts-open';
@@ -559,19 +539,48 @@ function useSections() {
   return [open, set];
 }
 
-function Facts({ c, notes, canTry, trying, onTry, notify }) {
+// How others do it: cited findings from the design-systems MCP, fetched when opened
+function Others({ c }) {
+  const [r, setR] = useState(null);
+  useEffect(() => {
+    setR(null);
+    fetch(`/compare/${c.id}`)
+      .then((x) => x.json())
+      .then(setR)
+      .catch(() => setR({ error: "The CHIP server didn't answer." }));
+  }, [c.id]);
+  if (!r) return <p className="label">Asking the design-systems server…</p>;
+  if (r.error) return <p className="label">{r.error}</p>;
+  if (!r.findings.length) return <p className="label">The design-systems server has nothing on {c.name} yet.</p>;
+  return (
+    <div className="others">
+      {r.findings.map((f) => (
+        <div key={f.url} className="finding">
+          <p>
+            <b>{f.system ?? new URL(f.url).hostname.replace(/^www\./, '')}.</b> {f.summary}
+          </p>
+          <Link href={f.url} external>
+            {f.title}
+          </Link>
+        </div>
+      ))}
+      {r.differs ? (
+        <p className="differs">
+          <b>BELLA differs:</b> {r.differs}
+        </p>
+      ) : null}
+      <p className="label">From the design-systems MCP, read only.</p>
+    </div>
+  );
+}
+
+function Facts({ c, notes, role, vis, setVis }) {
   const tip = sentences(c.restNote, 2);
+  // a tip is for people: an internal audit note is not one
+  const humanTip = tip && !/audit|data-bella|asserts|invariant/i.test(tip) ? tip : null;
   const [open, setOpen] = useSections();
   const [checksOpen, setChecksOpen] = useState(null); // this visit only
   useEffect(() => setChecksOpen(null), [c.id]);
-  async function copy(t) {
-    try {
-      await navigator.clipboard.writeText(`var(${t})`);
-      notify(`Copied var(${t})`);
-    } catch {
-      notify(`Could not copy ${t}`);
-    }
-  }
   const pass = (ok, word = ok ? 'pass' : 'fail') => <StatusPill variant={ok ? 'success' : 'neutral'}>{word}</StatusPill>;
   const mine = notes.filter((n) => n.component === c.name);
   const checks = [
@@ -586,46 +595,65 @@ function Facts({ c, notes, canTry, trying, onTry, notify }) {
   // a section's default when this browser has no memory of it
   const isOpen = (k, dflt) => open[k] ?? dflt;
   const factsSummary = [`${c.variants.length || 'no'} variant${c.variants.length === 1 ? '' : 's'}`, c.minTarget ? `${c.minTarget.value} min` : null].filter(Boolean).join(' · ');
+  // each section: hidden for roles below its Visible to; badges and a ⋯ menu for editors
+  const section = (key, title, summary, body, openProps) => {
+    const st = settingsOf(vis, c, key);
+    if (!canSee(role, st.visibleTo)) return null;
+    return (
+      <div className="facts-sec" key={key}>
+        <Disclosure
+          title={title}
+          summary={
+            <>
+              {summary}
+              <Badges role={role} settings={st} />
+            </>
+          }
+          {...openProps}
+        >
+          {body}
+        </Disclosure>
+        <VisMenu role={role} label={title} settings={st} onChange={(ch) => setVis({ component: c.id, section: key, ...ch })} />
+      </div>
+    );
+  };
+  const remembered = (k, dflt) => ({ open: isOpen(k, dflt), onToggle: (v) => setOpen(k, v) });
   return (
     <Card innerClassName="facts-card">
       <div className="facts-stack" role="group" aria-label={`${c.name} facts`}>
-        <Disclosure title="Facts" summary={factsSummary} open={isOpen('facts', true)} onToggle={(v) => setOpen('facts', v)}>
+        {section(
+          'facts',
+          'Facts',
+          factsSummary,
           <dl className="facts">
             <div><dt>Variants</dt><dd>{c.variants.length ? c.variants.join(', ') : 'None'}</dd></div>
             {c.shapes?.length ? <div><dt>Shape</dt><dd>{c.shapes.join(' · ')}</dd></div> : null}
             {c.rendersAs ? <div><dt>Renders as</dt><dd>{c.rendersAs}</dd></div> : null}
             <div><dt>States</dt><dd>{c.states.length ? c.states.join(', ') : 'Not recorded'}</dd></div>
             <div><dt>Min height</dt><dd>{c.minTarget ? c.minTarget.value : 'Not a control'}</dd></div>
-          </dl>
-        </Disclosure>
-        <Disclosure
-          title="Checks"
-          summary={failing ? <StatusPill variant="neutral">{failing} failing</StatusPill> : `${checks.length} of ${checks.length} pass`}
-          // never remembered: Checks opens exactly when something fails
-          open={checksOpen ?? failing > 0}
-          onToggle={setChecksOpen}
-        >
+          </dl>,
+          remembered('facts', true)
+        )}
+        {section(
+          'checks',
+          'Checks',
+          failing ? `${failing} failing` : `${checks.length} of ${checks.length} pass`,
           <ul className="gate-list">
             {checks.map((x) => (
               <li key={x.label}>
                 {pass(x.ok, x.word)} {x.label}
               </li>
             ))}
-          </ul>
-        </Disclosure>
-        {tip ? (
-          <Disclosure title="Did you know" open={isOpen('tip', false)} onToggle={(v) => setOpen('tip', v)}>
-            <p className="tip-text">{tip}</p>
-          </Disclosure>
-        ) : null}
-        {canTry ? (
-          // opening it swaps the stage into the sandbox; closing puts the anatomy back
-          <Disclosure title="Try a change" summary={trying ? 'On the stage' : null} open={trying} onToggle={(v) => v !== trying && onTry(v)}>
-            <p className="label">The stage is the sandbox now: change a token and watch the checks.</p>
-          </Disclosure>
-        ) : null}
-        <Disclosure title="Notes" summary={mine.length ? `${mine.length} note${mine.length === 1 ? '' : 's'}` : 'None'} open={isOpen('notes', false)} onToggle={(v) => setOpen('notes', v)}>
-          {mine.length ? (
+          </ul>,
+          // never remembered: Checks opens exactly when something fails
+          { open: checksOpen ?? failing > 0, onToggle: setChecksOpen }
+        )}
+        {humanTip ? section('tip', 'Did you know', null, <p className="tip-text">{humanTip}</p>, remembered('tip', false)) : null}
+        {section(
+          'notes',
+          'Notes',
+          mine.length ? `${mine.length} note${mine.length === 1 ? '' : 's'}` : 'None',
+          mine.length ? (
             <ul className="note-list">
               {[...mine].reverse().map((n) => (
                 <li key={n.at}>
@@ -639,18 +667,69 @@ function Facts({ c, notes, canTry, trying, onTry, notify }) {
             </ul>
           ) : (
             <p className="label">No notes yet. Save one from an OBI answer.</p>
-          )}
-        </Disclosure>
-        <Disclosure title="Tokens" summary={String(c.tokens.count)} open={isOpen('tokens', false)} onToggle={(v) => setOpen('tokens', v)}>
-          <ul className="token-rows">
-            {c.tokens.list.map((t) => (
-              <li key={t}>
-                <span className="legend-token"><Token name={t} /></span>
-                <ActionChip onClick={() => copy(t)} ariaLabel={`Copy ${t}`}>Copy</ActionChip>
-              </li>
-            ))}
-          </ul>
-        </Disclosure>
+          ),
+          remembered('notes', false)
+        )}
+        {section('others', 'How others do it', 'cited', isOpen('others', false) ? <Others c={c} /> : null, remembered('others', false))}
+      </div>
+    </Card>
+  );
+}
+
+// Tokens: read, don't copy (§9). Each part's token and its value in this
+// theme, read live from the page; selecting a row shows the part on the stage.
+function Tokens({ c, theme, hl, setHl, notify }) {
+  const [, force] = useState(0);
+  useEffect(() => force((n) => n + 1), [theme]);
+  const value = (t) => getComputedStyle(document.documentElement).getPropertyValue(t).trim();
+  const swatch = (v) => /^(#|rgb)/.test(v) && !v.includes(' 0 ') ? <span className="swatch" style={{ background: v }} aria-hidden="true" /> : null;
+  async function copyAll() {
+    const css = `:root {\n${c.tokens.list.map((t) => `  ${t}: ${value(t)};`).join('\n')}\n}`;
+    try {
+      await navigator.clipboard.writeText(css);
+      notify(`Copied ${c.tokens.list.length} tokens as CSS`);
+    } catch {
+      notify('Could not copy');
+    }
+  }
+  const row = (t, part) => {
+    const v = value(t);
+    return (
+      <tr key={`${part?.key ?? ''}${t}`} data-picked={part && hl === part.key ? '' : undefined}>
+        <td>{part ? (
+          <FilterChip size="compact" pressed={hl === part.key} onClick={() => setHl(hl === part.key ? null : part.key)} ariaLabel={`Show ${part.title} on the stage`}>
+            {part.n} · {part.title}
+          </FilterChip>
+        ) : null}</td>
+        <td className="mono"><Token name={t} /></td>
+        <td>{swatch(v)}<span className="mono">{v || 'not set'}</span></td>
+      </tr>
+    );
+  };
+  return (
+    <Card innerClassName="tokens-card">
+      <div className="table-scroll">
+        <table className="tok-table">
+          <caption className="sr-only">{c.name} tokens and their values in this theme</caption>
+          <thead>
+            <tr><th scope="col">Part</th><th scope="col">Token</th><th scope="col">Value in this theme</th></tr>
+          </thead>
+          <tbody>{c.parts.length ? c.parts.map((p) => row(p.token, p)) : <tr><td colSpan={3} className="label">No anatomy parts yet; every token is listed below.</td></tr>}</tbody>
+        </table>
+      </div>
+      <Disclosure title={`All ${c.tokens.count} tokens`} summary="read only">
+        <div className="table-scroll">
+          <table className="tok-table">
+            <caption className="sr-only">Every token {c.name} reads</caption>
+            <thead>
+              <tr><th scope="col">Part</th><th scope="col">Token</th><th scope="col">Value in this theme</th></tr>
+            </thead>
+            <tbody>{c.tokens.list.map((t) => row(t, null))}</tbody>
+          </table>
+        </div>
+      </Disclosure>
+      <div className="doc-actions">
+        <ActionChip onClick={copyAll}>Copy all as CSS</ActionChip>
       </div>
     </Card>
   );
@@ -662,10 +741,9 @@ function specimenHeight() {
   return el ? el.offsetHeight : null;
 }
 
-export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary = true, trySignal, onTryUsed }) {
+export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary = true, trySignal, onTryUsed, role = 'admin', vis = { components: {} }, setVis = () => {} }) {
   const reduced = useReducedMotion();
-  const [exploded, setExploded] = useState(false);
-  const [mode, setMode] = useState('anatomy'); // or 'try'
+  const [mode, setMode] = useState('anatomy'); // anatomy | exploded | try (no anatomy: specimen | try)
   const [hl, setHl] = useState(null);
   const [toast, setToast] = useState('');
   const [zoom, setZoom] = useState(1);
@@ -683,9 +761,8 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
 
   useEffect(() => installForcedStates(), []);
   useEffect(() => {
-    setExploded(false);
     setHl(null);
-    setMode('anatomy');
+    setMode(c?.parts?.length ? 'anatomy' : 'specimen');
     setHeights({ base: null, now: null });
   }, [c?.id]);
   // "Try in sandbox" from OBI
@@ -713,6 +790,14 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
   if (!c || !bella) return <p className="loading">Loading BELLA…</p>;
   const Render = SPECIMENS[c.name];
   const showExplode = parts.length > 0 && !reduced;
+  const settings = settingsOf(vis, c);
+  // the stage's views: anatomy and exploded need parts; exploded needs motion
+  const modes = [
+    ...(parts.length ? [{ value: 'anatomy', label: 'Anatomy' }] : [{ value: 'specimen', label: 'Specimen' }]),
+    ...(showExplode ? [{ value: 'exploded', label: 'Exploded' }] : []),
+    ...(Object.keys(baseOf(c)).length ? [{ value: 'try', label: 'Try a change' }] : []),
+  ];
+  const view = modes.some((m) => m.value === mode) ? mode : modes[0].value;
   const canTry = Object.keys(baseOf(c)).length > 0;
   const order = [...CATEGORIES, NO_CONTRACT].flatMap((g) => bella.components.filter((o) => (o.category ?? NO_CONTRACT) === g));
   const number = String(order.findIndex((o) => o.id === c.id) + 1).padStart(3, '0');
@@ -737,14 +822,42 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
     }
   }
 
+  const stageNote =
+    view === 'try'
+      ? 'Drag across a mark: the check flips as you go.'
+      : view === 'exploded'
+        ? 'Drag to turn the layers; select a part to show its state.'
+        : parts.length
+          ? `${parts.length} parts, bottom layer first. Hover a part to see it; select it to show its state.${reduced ? ' Exploded is off while reduced motion is on.' : ''}`
+          : null;
+
+  // hidden from this role: the page says so instead of showing it
+  if (!canSee(role, settings.visibleTo)) {
+    const hidden = (
+      <>
+        <PageHeader meta={`Specimen No. ${number} · ${c.category ?? NO_CONTRACT}`} title={c.name} />
+        <Card>
+          <p className="card-title">Not shown to viewers</p>
+          <p className="label">This page is visible to {settings.visibleTo} only. View as an Editor or Admin to see it.</p>
+        </Card>
+      </>
+    );
+    return <div className="atlas">{showLibrary ? <SidebarLayout aside={<Library bella={bella} current={c.id} onOpen={onOpen} vis={vis} role={role} />} asideLabel="Components">{hidden}</SidebarLayout> : hidden}</div>;
+  }
+
   const content = (
     <>
       <PageHeader
-        meta={`Specimen No. ${number} · ${c.category ?? NO_CONTRACT}`}
+        meta={
+          <>
+            Specimen No. {number} · {c.category ?? NO_CONTRACT} <Badges role={role} settings={settings} />
+          </>
+        }
         title={c.name}
         lede={c.description || null}
         actions={
           <>
+            <VisMenu role={role} label={c.name} settings={settings} onChange={(ch) => setVis({ component: c.id, ...ch })} />
             <Button variant="secondary" onClick={copyImport} ariaLabel={`Copy the import line for ${c.name}`}>
               Copy import
             </Button>
@@ -757,48 +870,42 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
         }
       />
 
-      <div className="stage-row">
+      <nav className="on-page" aria-label="On this page">
+        {[['specimen', 'Specimen'], ['examples', 'Examples'], ['documentation', 'Documentation'], ['tokens', 'Tokens'], ['history', 'History'], ['gate', 'What the gate caught']].map(([id, label]) => (
+          <Link key={id} href={`#${id}`}>
+            {label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="stage-row" id="specimen">
         <Columns split="wide-start">
           <Card innerClassName="specimen-card">
-            {mode === 'try' ? (
-              <Sandbox bella={bella} c={c} draft={draft} setDraft={setDraft} heights={heights} theme={theme} notify={setToast} onReset={() => setMode('anatomy')}>
+            <div className="stage-top">
+              {modes.length > 1 ? <SegmentedControl label="Stage" value={view} onChange={setMode} options={modes} /> : null}
+              {stageNote ? <p className="label">{stageNote}</p> : null}
+            </div>
+            {view === 'try' ? (
+              <Sandbox bella={bella} c={c} draft={draft} setDraft={setDraft} heights={heights} theme={theme} notify={setToast}>
                 {plainStage}
               </Sandbox>
+            ) : view === 'exploded' ? (
+              <Exploded name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} overrides={overrides} />
+            ) : parts.length ? (
+              <Anatomy name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} setZoom={setZoom} overrides={overrides}>
+                <Legend name={c.name} parts={parts} hl={hl} setHl={setHl} />
+              </Anatomy>
             ) : (
               <>
-                {parts.length ? (
-                  exploded && showExplode ? (
-                    <Exploded name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} overrides={overrides} />
-                  ) : (
-                    <Anatomy name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} setZoom={setZoom} overrides={overrides}>
-                      <Legend name={c.name} parts={parts} hl={hl} setHl={setHl} />
-                    </Anatomy>
-                  )
-                ) : (
-                  <>
-                    {plainStage}
-                    <div className="empty">
-                      <p className="card-title">No anatomy yet</p>
-                      <p className="label">Add anatomy to {c.name}'s contract in BELLA ({c.anatomySource}) and its parts appear here, numbered on the stage.</p>
-                    </div>
-                  </>
-                )}
-                {parts.length ? (
-                  <div className="stage-bar">
-                    {showExplode ? (
-                      <Button variant="secondary" onClick={() => setExploded((x) => !x)}>
-                        {exploded ? 'Put back' : 'Explode'}
-                      </Button>
-                    ) : null}
-                    <p className="label">
-                      {showExplode ? `${parts.length} parts, bottom layer first. Hover a part to see it; select it to show its state.` : 'Explode is off while reduced motion is on.'}
-                    </p>
-                  </div>
-                ) : null}
+                {plainStage}
+                <div className="empty">
+                  <p className="card-title">No anatomy yet</p>
+                  <p className="label">Add anatomy to {c.name}'s contract in BELLA ({c.anatomySource}) and its parts appear here, numbered on the stage. Until then the page is a Draft.</p>
+                </div>
               </>
             )}
           </Card>
-          <Facts c={c} notes={notes} canTry={canTry} trying={mode === 'try'} onTry={(on) => setMode(on ? 'try' : 'anatomy')} notify={setToast} />
+          <Facts c={c} notes={notes} role={role} vis={vis} setVis={setVis} />
         </Columns>
       </div>
 
@@ -813,8 +920,16 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
         )}
       </Section>
 
-      <Section id="contract" heading="Contract" lede="What BELLA promises about this component, read from its contract.">
-        <Contract c={c} />
+      <Section id="documentation" heading="Documentation" lede="Guidance, the contract and the rules agents follow, from BELLA. A change goes through a branch, the gate and a draft pull request.">
+        <AtlasDocs c={c} role={role} notify={setToast} />
+      </Section>
+
+      <Section id="tokens" heading="Tokens" lede="What each part reads, and its value in this theme. Read only.">
+        <Tokens c={c} theme={theme} hl={hl} setHl={(k) => { setHl(k); if (k && parts.length && view !== 'anatomy') setMode('anatomy'); }} notify={setToast} />
+      </Section>
+
+      <Section id="history" heading="History" lede="From BELLA's git log of this component's files, newest first.">
+        <AtlasHistory c={c} />
       </Section>
 
       <Section id="gate" heading="What the gate caught">
@@ -826,7 +941,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
   return (
     <div className="atlas">
       {showLibrary ? (
-        <SidebarLayout aside={<Library bella={bella} current={c.id} onOpen={onOpen} />} asideLabel="Components">
+        <SidebarLayout aside={<Library bella={bella} current={c.id} onOpen={onOpen} vis={vis} role={role} />} asideLabel="Components">
           {content}
         </SidebarLayout>
       ) : (

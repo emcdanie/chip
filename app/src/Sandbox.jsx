@@ -1,12 +1,16 @@
-// Contract sandbox: try a change to a component's contract slots and see the
-// checks re-run in the browser. Local state only: nothing is written to BELLA.
-// Slots, resolved values and token usage come from data/bella.json.
-import React from 'react';
-import Input from '@bella/components/Input/Input';
+// Try a change (Atlas v4): a slider per tunable contract slot, with marks
+// where a rule lives, and the checks re-run in the browser as you drag.
+// Force state and Slow motion show the states you can't hold with a mouse.
+// Local state only: nothing is written to BELLA. Slots, resolved values and
+// token usage come from data/bella.json.
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import Select from '@bella/components/Select/Select';
-import Button from '@bella/components/Button/Button';
+import Slider from '@bella/components/Slider/Slider';
+import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import FilterChip from '@bella/components/FilterChip/FilterChip';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
+import { forceAttr } from './forcedStates.js';
 
 const BELLA_FLOOR = 44; // BELLA's touch target (WCAG 2.5.5 Enhanced)
 const WCAG_MIN = 24; // WCAG 2.5.8 Target Size (Minimum), AA
@@ -209,10 +213,46 @@ function proposal(bella, c, draft, before, after, theme) {
   ].join('\n');
 }
 
+// one slider per numeric slot: its range, and the marks where a rule lives
+const SLIDERS = {
+  minHeight: { label: 'Min height', min: 16, max: 64, marks: [{ value: WCAG_MIN, label: 'WCAG 2.5.8' }, { value: BELLA_FLOOR, label: 'BELLA floor' }] },
+  paddingY: { label: 'Padding, top and bottom', min: 0, max: 24 },
+  paddingX: { label: 'Padding, sides', min: 0, max: 40 },
+  ringWidth: { label: 'Ring width', min: 0, max: 6, marks: [{ value: 2, label: 'visible minimum' }] },
+  ringOffset: { label: 'Ring offset', min: 0, max: 6 },
+};
+const STATES = [
+  { value: 'rest', label: 'Rest' },
+  { value: 'hover', label: 'Hover' },
+  { value: 'focus', label: 'Focus' },
+  { value: 'active', label: 'Press' },
+  { value: 'disabled', label: 'Disabled' },
+];
+
 export default function Sandbox({ bella, c, draft, setDraft, heights, theme, notify, children, onReset }) {
   const s = c.sandbox ?? {};
   const base = baseOf(c);
   const slots = Object.keys(base);
+  const [state, setState] = useState('rest');
+  const [slow, setSlow] = useState(false);
+  const stage = useRef(null);
+  // hold the specimen in a state the mouse can't (the same attributes the anatomy uses)
+  useLayoutEffect(() => {
+    const el = stage.current?.querySelector('[data-bella-component]');
+    if (!el) return;
+    for (const a of ['data-force-hover', 'data-force-focus', 'data-force-active']) el.removeAttribute(a);
+    if (el.hasAttribute('data-was-disabled')) {
+      el.disabled = false;
+      el.removeAttribute('data-was-disabled');
+    }
+    if (state === 'disabled') {
+      el.setAttribute('data-was-disabled', '');
+      el.disabled = true;
+      return;
+    }
+    const f = forceAttr(state === 'rest' ? null : state);
+    if (f) el.setAttribute(f[0], f[1]);
+  });
   if (!slots.length) {
     return (
       <section className="sandbox">
@@ -225,29 +265,25 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
   const changed = Object.keys(overridesOf(c, draft)).length > 0;
   const blast = blastOf(bella, c, draft);
   const set = (k) => (v) => setDraft((d) => ({ ...d, [k]: v }));
-  // the 32px demo moves min height and block padding together, so the box
-  // really renders at 32px: the content height is what the base measured
-  // minus its own block padding
-  const demo =
-    s.minHeight && s.paddingY && heights.base
-      ? Math.max(0, Math.round((32 - (heights.base - 2 * parseFloat(base.paddingY))) / 2))
-      : null;
+  const passing = (r) => r.checks.filter((k) => k.pass).length;
   const colours = (slot) => [
     { value: slot.token, label: `${slot.token} (contract)` },
     ...Object.keys(bella.palette)
       .filter((t) => t !== slot.token)
       .map((t) => ({ value: t, label: t })),
   ];
-  const num = (k, label) =>
+  const slider = (k) =>
     s[k] ? (
-      <Input
+      <Slider
         key={k}
-        label={label}
-        value={draft[k] ?? ''}
-        onChange={set(k)}
-        hint={`${s[k].token}, in px`}
-        error={Number.isFinite(parseFloat(draft[k])) ? undefined : 'Enter a number of pixels'}
-        autoComplete="off"
+        label={SLIDERS[k].label}
+        unit="px"
+        min={SLIDERS[k].min}
+        max={SLIDERS[k].max}
+        value={Number(draft[k]) || 0}
+        onChange={(v) => set(k)(String(v))}
+        marks={SLIDERS[k].marks}
+        hint={draft[k] !== base[k] ? `${s[k].token} · was ${base[k]}px in the contract` : s[k].token}
       />
     ) : null;
 
@@ -263,67 +299,55 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
 
   return (
     <section className="sandbox" aria-label={`Try a change to ${c.name}`}>
-      <p className="label">Local only. Nothing is written to BELLA.</p>
-      <div className="sandbox-grid">
-        <div className="sandbox-fields">
-          {num('minHeight', 'Min height')}
-          {num('paddingY', 'Padding Y')}
-          {num('paddingX', 'Padding X')}
-          {s.label ? <Select label="Label colour" value={draft.label} onChange={set('label')} options={colours(s.label)} /> : null}
-          {s.background ? <Select label="Background" value={draft.background} onChange={set('background')} options={colours(s.background)} /> : null}
-          {num('ringWidth', 'Ring width')}
-          {num('ringOffset', 'Ring offset')}
-        </div>
+      <div className={`sandbox-stage${slow ? ' slow-motion' : ''}`} ref={stage}>
+        {children}
+      </div>
+      <div className="sandbox-row">
+        <SegmentedControl label="Force state" value={state} onChange={setState} options={STATES} />
+        <FilterChip pressed={slow} onClick={() => setSlow((x) => !x)}>
+          Slow motion
+        </FilterChip>
+      </div>
+      <div className="sandbox-fields">
+        {Object.keys(SLIDERS).map(slider)}
+        {s.label ? <Select label="Label colour" value={draft.label} onChange={set('label')} options={colours(s.label)} /> : null}
+        {s.background ? <Select label="Background" value={draft.background} onChange={set('background')} options={colours(s.background)} /> : null}
+      </div>
 
-        <div className="sandbox-specimen">{children}</div>
-
-        <div className="sandbox-score" aria-live="polite">
-          <p className="score-line">
-            Accessibility <b className="num">{before.accessibility ?? 'n/a'}</b> → <b className="num">{after.accessibility ?? 'n/a'}</b>
+      <div className="sandbox-score" aria-live="polite">
+        <p className="score-line">
+          <b>
+            Checks {passing(before)} of {before.checks.length} → {passing(after)} of {after.checks.length}
+          </b>{' '}
+          · accessibility {before.accessibility ?? 'n/a'} → {after.accessibility ?? 'n/a'}
+        </p>
+        <ul className="checks">
+          {after.checks.map((k) => (
+            <li key={k.key}>
+              <StatusPill variant={k.pass ? 'success' : 'neutral'}>{k.pass ? 'pass' : 'fail'}</StatusPill>
+              <span className="check-rule">{k.rule}</span>
+            </li>
+          ))}
+        </ul>
+        {changed ? (
+          <p className="label">
+            Blast radius: {blast.tokens.join(', ')} reaches {blast.names.length} component{blast.names.length === 1 ? '' : 's'}: {blast.names.join(', ')}
           </p>
-          <ul className="checks">
-            {after.checks.map((k) => {
-              const b = before.checks.find((x) => x.key === k.key);
-              return (
-                <li key={k.key}>
-                  <span className="check-name">{k.name}</span>
-                  <span className="num">
-                    {b?.score ?? 'n/a'} → {k.score ?? 'n/a'}
-                  </span>
-                  <StatusPill variant={k.pass ? 'success' : 'neutral'}>{k.pass ? 'pass' : 'fail'}</StatusPill>
-                  <span className="check-rule">{k.rule}</span>
-                </li>
-              );
-            })}
-          </ul>
-          {changed ? (
-            <p className="blast">
-              <span className="check-name">Blast radius</span>{' '}
-              {blast.tokens.join(', ')} reaches {blast.names.length} component{blast.names.length === 1 ? '' : 's'}: {blast.names.join(', ')}
-            </p>
-          ) : null}
-          <p className="label">Score per check: contrast ÷ 7:1, target ÷ 44px, ring width ÷ 2px and contrast ÷ 3:1, each capped at 100.</p>
-        </div>
+        ) : null}
       </div>
 
       <div className="sandbox-actions">
-        {demo != null ? (
-          <ActionChip onClick={() => setDraft({ ...draft, minHeight: '32', paddingY: String(demo) })}>Try a 32px target</ActionChip>
-        ) : null}
-        {/* Reset puts the draft back; in Atlas it also returns the stage to the anatomy */}
-        <Button
-          variant="secondary"
+        <ActionChip
           onClick={() => {
             setDraft(base);
+            setState('rest');
             onReset?.();
           }}
-          disabled={!changed && !onReset}
         >
           Reset
-        </Button>
-        <ActionChip onClick={copy} disabled={!changed}>
-          Copy as proposal
         </ActionChip>
+        {changed ? <ActionChip onClick={copy}>Copy as proposal</ActionChip> : null}
+        <p className="label">Local only. Nothing is written to BELLA.</p>
       </div>
     </section>
   );
