@@ -91,6 +91,23 @@
         "read"
       ],
       "note": "The CLI adapter's test tool: git status and git log only."
+    },
+    {
+      "name": "design-systems",
+      "kind": "mcp",
+      "transport": "http",
+      "url": "https://design-systems-mcp.southleft.com/mcp",
+      "allow": [
+        "read"
+      ],
+      "readTools": [
+        "search_design_knowledge",
+        "search_chunks",
+        "browse_by_category",
+        "browse_by_tag",
+        "get_all_tags"
+      ],
+      "note": "Southleft's open design-systems knowledge base (Atlas: How others do it). Read only."
     }
   ],
   "notesDir": "~/DEV/obi-notes"

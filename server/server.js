@@ -15,6 +15,8 @@ import { listAll } from './providers/index.mjs';
 import * as host from './host/registry.js';
 import { logUsage, claudeToday, usageWeek } from './lib/usage.mjs';
 import { CHIP_CLAUDE_DAILY } from './lib/config.mjs';
+import * as bellaWork from './lib/bella-work.mjs';
+import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
 
 const app = express();
 app.use(express.json());
@@ -142,6 +144,72 @@ app.post('/host/confirm', async (req, res) => {
 app.post('/host/cancel', (req, res) => {
   if (!sameApp(req, res)) return;
   res.json(host.cancel(String(req.body?.id ?? ''), session(req)));
+});
+
+// Atlas v4: visibility (simulated roles), How others do it, the component's
+// Documentation and History from BELLA, and the guarded review flow.
+const bellaComponent = (id) => JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8')).components.find((c) => c.id === id);
+const fail = (res, e) => res.status(400).json({ error: e.message });
+app.get('/visibility', (req, res) => res.json(readVisibility()));
+app.put('/visibility', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(setVisibility(req.body ?? {}));
+  } catch (e) {
+    fail(res, e);
+  }
+});
+app.get('/compare/:id', async (req, res) => {
+  const c = bellaComponent(String(req.params.id));
+  if (!c) return res.status(404).json({ error: 'No such component' });
+  res.json(await compare(c));
+});
+app.get('/bella-doc/:id', (req, res) => {
+  try {
+    res.json(bellaWork.readDoc(String(req.params.id)));
+  } catch (e) {
+    fail(res, e);
+  }
+});
+app.post('/bella-doc/:id/propose', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(bellaWork.propose(String(req.params.id), req.body ?? {}));
+  } catch (e) {
+    fail(res, e);
+  }
+});
+app.get('/bella-doc-job/:job', (req, res) => res.json(bellaWork.jobOf(String(req.params.job)) ?? { error: 'No such job' }));
+app.post('/bella-doc-discard', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(bellaWork.discard(String(req.body?.branch ?? '')));
+  } catch (e) {
+    fail(res, e);
+  }
+});
+// without { confirm: true } this is a dry run: the preview and the exact commands, nothing runs
+app.post('/bella-doc-pr', async (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(await bellaWork.pullRequest({ branch: String(req.body?.branch ?? ''), confirm: req.body?.confirm === true, dryRun: req.body?.dryRun !== false }));
+  } catch (e) {
+    fail(res, e);
+  }
+});
+app.get('/bella-history/:id', (req, res) => {
+  try {
+    res.json(bellaWork.history(String(req.params.id)));
+  } catch (e) {
+    fail(res, e);
+  }
+});
+app.get('/bella-baseline', (req, res) => {
+  try {
+    res.type('png').send(bellaWork.baseline(String(req.query.rev ?? ''), String(req.query.path ?? '')));
+  } catch (e) {
+    res.status(404).end();
+  }
 });
 
 // GET /docs: every indexed source once, { title, path | url }, for the jump palette.
