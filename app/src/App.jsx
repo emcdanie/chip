@@ -19,6 +19,7 @@ const WORKSPACES = [
 const HEALTH_SECTIONS = [
   { href: '#overview', label: 'Overview' },
   { href: '#readiness', label: 'Readiness map' },
+  { href: '#failures', label: 'Open failures' },
   { href: '#components', label: 'Components' },
 ];
 

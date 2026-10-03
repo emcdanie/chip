@@ -7,6 +7,7 @@ import ScoreStrip, { ScoreLegend } from '@bella/components/ScoreStrip/ScoreStrip
 import DataTable from '@bella/components/DataTable/DataTable';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
+import Link from '@bella/components/Link/Link';
 
 function Pill({ ok, word }) {
   return <StatusPill variant={ok ? 'success' : 'info'}>{word}</StatusPill>;
@@ -90,7 +91,8 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
                 CHIP<span className="chip-dot" aria-hidden="true" />
               </p>
               <p className="hero-intro">
-                Your design system, measured: {bella.counts.components} components, {failures.length} open failures,{' '}
+                Your design system, measured: {bella.counts.components} components,{' '}
+                {failures.length ? <Link href="#failures">{failures.length} open failures</Link> : 'no open failures'},{' '}
                 {health ? `${health.chunks.toLocaleString('en')} chunks of your docs` : 'your docs'} indexed for OBI.
               </p>
             </div>
@@ -153,6 +155,24 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
           </div>
         </Card>
       </section>
+
+      {failures.length ? (
+        <section id="failures" aria-labelledby="failures-h" className="block">
+          <h2 id="failures-h" className="block-title">Open failures</h2>
+          <DataTable
+            columns={[
+              { key: 'name', label: 'Component' },
+              { key: 'issue', label: 'What fails' },
+            ]}
+            rows={failures.map((f, i) => {
+              const at = f.indexOf(': ');
+              return { id: i, name: f.slice(0, at), issue: f.slice(at + 2) };
+            })}
+            rowKey="id"
+            caption={`${failures.length} open failures`}
+          />
+        </section>
+      ) : null}
 
       <section id="components" aria-labelledby="components-h" className="block">
         <h2 id="components-h" className="block-title">Components</h2>
