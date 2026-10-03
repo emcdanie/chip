@@ -5,7 +5,9 @@ import { readdirSync, readFileSync, writeFileSync, existsSync, statSync, mkdirSy
 import { join } from 'node:path';
 import { NOTES_DIR, INBOX_DIR } from './config.mjs';
 
-export const STATUSES = ['draft', 'active', 'done'];
+// the same words components use where they mean the same thing
+export const STATUSES = ['draft', 'in-progress', 'done'];
+const statusOf = (s) => (s === 'active' ? 'in-progress' : STATUSES.includes(s) ? s : 'draft'); // "active" was the old word
 const LOOP = { 'loop-next': ['next.md', 'Next task (inbox)'], 'loop-report': ['report.md', 'Last report (inbox)'] };
 const ID = /^[a-z0-9][a-z0-9-]{0,80}$/;
 
@@ -41,7 +43,7 @@ function noteEntry(file) {
     title: meta.title || firstHeading(body) || file,
     tags: meta.tags,
     date: meta.date || null,
-    status: STATUSES.includes(meta.status) ? meta.status : 'draft',
+    status: statusOf(meta.status),
     kind: meta.kind || 'note',
     localOnly: meta.local === 'only',
     editable: true,
@@ -56,7 +58,7 @@ function loopEntry(id) {
   const path = join(INBOX_DIR, file);
   if (!existsSync(path)) return null;
   const body = readFileSync(path, 'utf8');
-  return { id, group: 'Loop', title: firstHeading(body) || title, tags: ['loop'], date: null, status: 'active', kind: 'loop', editable: false, updated: statSync(path).mtime.toISOString(), excerpt: excerpt(body), body };
+  return { id, group: 'Loop', title: firstHeading(body) || title, tags: ['loop'], date: null, status: 'in-progress', kind: 'loop', editable: false, updated: statSync(path).mtime.toISOString(), excerpt: excerpt(body), body };
 }
 
 // newest change first
@@ -76,9 +78,14 @@ export function listDocs() {
 }
 
 export function readDoc(id) {
-  if (LOOP[id]) return loopEntry(id);
-  if (!ID.test(id) || !existsSync(join(NOTES_DIR, `${id}.md`))) return null;
-  return noteEntry(`${id}.md`);
+  const d = LOOP[id] ? loopEntry(id) : ID.test(id) && existsSync(join(NOTES_DIR, `${id}.md`)) ? noteEntry(`${id}.md`) : null;
+  if (!d) return null;
+  // Linked from: notes whose text names this one (its title or its id)
+  const linkedFrom = noteFiles()
+    .map(noteEntry)
+    .filter((o) => o.id !== d.id && (o.body.includes(d.id) || (d.title.length > 8 && o.body.includes(d.title))))
+    .map((o) => ({ id: o.id, title: o.title }));
+  return { ...d, linkedFrom };
 }
 
 const slug = (s) => oneLine(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'note';
@@ -93,7 +100,7 @@ export function saveDoc({ id, title, tags = [], status = 'draft', kind = 'note',
   const date = prev?.date ?? new Date().toISOString().slice(0, 10);
   let file = id ? `${id}.md` : `${date}-${slug(title)}.md`;
   for (let n = 2; !id && existsSync(join(NOTES_DIR, file)); n++) file = `${date}-${slug(title)}-${n}.md`;
-  const meta = { title, tags: (Array.isArray(tags) ? tags : String(tags).split(',')).map(oneLine).filter(Boolean).slice(0, 12), date, status: STATUSES.includes(status) ? status : 'draft', kind: prev?.kind ?? kind, localOnly: Boolean(prev?.localOnly || localOnly) }; // once local only, always
+  const meta = { title, tags: (Array.isArray(tags) ? tags : String(tags).split(',')).map(oneLine).filter(Boolean).slice(0, 12), date, status: statusOf(status), kind: prev?.kind ?? kind, localOnly: Boolean(prev?.localOnly || localOnly) }; // once local only, always
   writeFileSync(join(NOTES_DIR, file), serialize(meta, String(body).slice(0, 200000)));
   return noteEntry(file);
 }

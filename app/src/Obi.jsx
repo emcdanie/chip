@@ -557,7 +557,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
       const res = await fetch('/obi-docs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(doc) });
       const r = await res.json();
       if (!res.ok) throw new Error(r.error ?? 'Not saved');
-      patch(id, () => ({ message: `Saved to Docs: ${r.title}.`, docId: r.id }));
+      patch(id, () => ({ message: `Saved to Docs: ${r.title}${/[.?!…]$/.test(r.title) ? '' : '.'}`, docId: r.id }));
       onDocSaved?.();
     } catch (e) {
       patch(id, () => ({ error: `Not saved: ${e.message}` }));
@@ -641,7 +641,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
       const titleOf = (t) => (t.split('\n')[0].length > 70 ? `${t.split('\n')[0].slice(0, 70).replace(/\s+\S*$/, '')}…` : t.split('\n')[0]);
       const needsText = { note: 'Write the note after /note.', plan: 'Name the goal after /plan.', decision: 'Say what was decided after /decision.' };
       if (needsText[word] && !arg) setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: needsText[word] }]);
-      else if (word === 'note') saveToDocs(text, { title: titleOf(arg), body: arg, kind: 'note', tags: ['note'], status: 'active' });
+      else if (word === 'note') saveToDocs(text, { title: titleOf(arg), body: arg, kind: 'note', tags: ['note'], status: 'in-progress' });
       else if (word === 'plan') saveToDocs(text, { title: `Plan: ${titleOf(arg)}`, body: `## Goal\n${arg}\n\n## Steps\n- First step\n\n## Risks\n- None named yet`, kind: 'plan', tags: ['plan'], status: 'draft' });
       else if (word === 'decision') saveToDocs(text, { title: `Decision: ${titleOf(arg)}`, body: `## Decision\n${arg}\n\n## Why\n- Not written yet\n\n## Context\nPage: ${page ?? 'CHIP'}`, kind: 'decision', tags: ['decision'], status: 'done' });
       else if (word === 'handoff') {
@@ -685,7 +685,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
 
   // an answer built on Cowork sources stays local only as a doc too
   const saveAsDoc = (t) =>
-    saveToDocs(`Save as doc: ${t.q}`, { title: titleCase(t.q), body: proposalOf(t), kind: 'answer', tags: ['answer'], status: 'active', localOnly: (t.sources ?? []).some((s) => s.localOnly || s.path?.startsWith('docs/reference/cowork/')) });
+    saveToDocs(`Save as doc: ${t.q}`, { title: titleCase(t.q), body: proposalOf(t), kind: 'answer', tags: ['answer'], status: 'in-progress', localOnly: (t.sources ?? []).some((s) => s.localOnly || s.path?.startsWith('docs/reference/cowork/')) });
   return { turns, busy, send, save, saveAsDoc, history, compare, includeAndRetry, confirmTool: (t) => settle(t, true), cancelTool: (t) => settle(t, false) };
 }
 

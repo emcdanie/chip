@@ -1633,10 +1633,20 @@ body {
 }
 
 /* ---------- Docs ---------- */
+/* Docs fills the content column (no reading-page cap) */
+.view.docs {
+  max-width: none;
+  gap: var(--spacing-6);
+}
+
+.docs-head {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
 .docs-grid {
   display: grid;
   gap: var(--spacing-5);
-  margin-block-start: var(--spacing-6);
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
@@ -1645,6 +1655,69 @@ body {
   .docs-grid {
     grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
   }
+
+  /* the list sticks under the bar with its own scroll */
+  .docs-list {
+    position: sticky;
+    top: calc(var(--topbar-h, 0rem) + var(--spacing-4));
+    max-block-size: calc(100dvh - var(--topbar-h, 0rem) - var(--dock-h, 0rem) - var(--spacing-8));
+    overflow-y: auto;
+  }
+}
+
+/* reader and rail: the rail joins at 1200 */
+.doc-view {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 75rem) {
+  .doc-view:has(.doc-rail) {
+    grid-template-columns: minmax(0, 1fr) calc(var(--spacing-20) * 3);
+    column-gap: var(--spacing-8);
+  }
+}
+
+.doc-body {
+  max-inline-size: 70ch;
+}
+
+.doc-rail {
+  display: grid;
+  gap: var(--spacing-4);
+  align-content: start;
+  justify-items: start;
+}
+
+@media (min-width: 75rem) {
+  .doc-rail {
+    padding-inline-start: var(--spacing-5);
+    border-inline-start: var(--border-width-thin) solid var(--color-semantic-border);
+  }
+}
+
+.doc-links {
+  margin: var(--spacing-1) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+/* the search icon sits inside the field, at its start */
+.docs-search {
+  position: relative;
+}
+
+.docs-search-icon {
+  position: absolute;
+  inset-inline-start: var(--spacing-3);
+  inset-block-end: calc((var(--component-input-min-height) - var(--spacing-4)) / 2);
+  color: var(--color-semantic-text-secondary);
+  pointer-events: none;
+}
+
+.docs-search input {
+  padding-inline-start: var(--spacing-10);
 }
 
 .docs-list,
@@ -1662,6 +1735,10 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-2);
+}
+
+.docs-tags {
+  gap: var(--spacing-1) var(--spacing-2);
 }
 
 .doc-meta {
@@ -1705,4 +1782,25 @@ body {
 
 .rich-h:first-child {
   margin-block-start: 0;
+}
+
+.doc-reader {
+  display: grid;
+  gap: var(--spacing-5);
+  align-content: start;
+}
+
+/* status, type and date show once: under the title, or in the rail beside */
+.doc-rail-facts {
+  display: none;
+}
+
+@media (min-width: 75rem) {
+  .doc-view:has(.doc-rail) .doc-meta--inline {
+    display: none;
+  }
+
+  .doc-view:has(.doc-rail) .doc-rail-facts {
+    display: grid;
+  }
 }

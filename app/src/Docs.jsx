@@ -12,9 +12,14 @@ import Button from '@bella/components/Button/Button';
 import Tag from '@bella/components/Tag/Tag';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import Link from '@bella/components/Link/Link';
+import Icon from '@bella/components/Icon/Icon';
 import { Rich } from './Obi.jsx';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
+// Draft · In progress · Done: the words components use too
+const STATUS_LABEL = { draft: 'Draft', 'in-progress': 'In progress', done: 'Done' };
+const statusLabel = (s) => STATUS_LABEL[s] ?? s;
+const kindLabel = (k) => (k === 'loop' ? 'Inbox' : k[0].toUpperCase() + k.slice(1));
 const when = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '');
 
 function Editor({ doc, statuses, onSaved, onCancel }) {
@@ -45,7 +50,7 @@ function Editor({ doc, statuses, onSaved, onCancel }) {
       <div className="doc-edit-fields">
         <Input label="Title" value={title} onChange={setTitle} error={error ?? undefined} required />
         <Input label="Tags" hint="Comma separated" value={tags} onChange={setTags} />
-        <SegmentedControl label="Status" value={status} onChange={setStatus} options={statuses.map((s) => ({ value: s, label: s[0].toUpperCase() + s.slice(1) }))} />
+        <SegmentedControl label="Status" value={status} onChange={setStatus} options={statuses.map((s) => ({ value: s, label: statusLabel(s) }))} />
       </div>
       <div className="doc-edit-split">
         <Input label="Markdown" value={body} onChange={setBody} multiline className="doc-textarea" />
@@ -66,7 +71,7 @@ function Editor({ doc, statuses, onSaved, onCancel }) {
 
 export default function Docs({ docId, version = 0, narrow }) {
   const [list, setList] = useState(null);
-  const [statuses, setStatuses] = useState(['draft', 'active', 'done']);
+  const [statuses, setStatuses] = useState(['draft', 'in-progress', 'done']);
   const [folder, setFolder] = useState('');
   const [doc, setDoc] = useState(null);
   const [q, setQ] = useState('');
@@ -121,20 +126,23 @@ export default function Docs({ docId, version = 0, narrow }) {
 
   return (
     <div className="view docs">
-      <header className="spec-head">
-        <p className="label">Docs · {folder || 'notes folder'}, never committed</p>
-        <Heading tier="page" as="h1">
-          Notes, plans and handoffs
+      <header className="docs-head">
+        <Heading tier="section" as="h1">
+          Docs
         </Heading>
+        <p className="label">Notes, plans, decisions and handoffs · {folder || 'notes folder'}, never committed</p>
       </header>
       {error ? <p role="alert">{error}</p> : null}
       <div className="docs-grid">
         {showList ? (
           <section className="atlas-card docs-list" aria-label="All docs">
-            <Input label="Search docs" value={q} onChange={setQ} type="text" />
-            <SegmentedControl label="Status" value={status} onChange={setStatus} options={[{ value: 'all', label: 'All' }, ...statuses.map((s) => ({ value: s, label: s[0].toUpperCase() + s.slice(1) }))]} />
+            <div className="docs-search">
+              <Icon name="Search" size="sm" className="docs-search-icon" />
+              <Input label="Search docs" value={q} onChange={setQ} type="text" placeholder="Search notes, plans, decisions…" />
+            </div>
+            <SegmentedControl label="Status" value={status} onChange={setStatus} options={[{ value: 'all', label: 'All' }, ...statuses.map((s) => ({ value: s, label: statusLabel(s) }))]} />
             {tags.length ? (
-              <div className="docs-tags" role="group" aria-label="Tags">
+              <div className="docs-tags" role="group" aria-label="Filter by tag">
                 {tags.map((t) => (
                   <FilterChip key={t} pressed={tag === t} onClick={() => setTag(tag === t ? null : t)}>
                     {t}
@@ -158,24 +166,57 @@ export default function Docs({ docId, version = 0, narrow }) {
               <Editor doc={doc} statuses={statuses} onSaved={saved} onCancel={() => setEditing(null)} />
             ) : doc ? (
               <>
-                <header className="doc-head">
-                  <h2 className="facts-name">{doc.title}</h2>
-                  <p className="doc-meta">
-                    <StatusPill variant={doc.status === 'done' ? 'success' : 'info'}>{doc.status}</StatusPill>
-                    {doc.tags.map((t) => (
-                      <Tag key={t}>{t}</Tag>
-                    ))}
-                    <span className="label">{doc.group === 'Loop' ? `inbox · updated ${when(doc.updated)}` : `${doc.kind} · ${when(doc.date)}`}</span>
-                  </p>
-                </header>
-                <Rich text={doc.body} />
-                {doc.editable ? (
-                  <div className="doc-actions">
-                    <ActionChip onClick={() => setEditing('edit')}>Edit</ActionChip>
+                <div className="doc-reader">
+                  <header className="doc-head">
+                    <h2 className="facts-name">{doc.title}</h2>
+                    {/* status once, then type and date */}
+                    <p className="doc-meta doc-meta--inline">
+                      <StatusPill variant={doc.status === 'done' ? 'success' : 'info'}>{statusLabel(doc.status)}</StatusPill>
+                      <span className="label">
+                        {kindLabel(doc.kind)} · {doc.group === 'Loop' ? `updated ${when(doc.updated)}` : when(doc.date)}
+                      </span>
+                    </p>
+                  </header>
+                  <div className="doc-body">
+                    <Rich text={doc.body} />
                   </div>
-                ) : (
-                  <p className="label">Read only: the relay writes this file.</p>
-                )}
+                </div>
+                <aside className="doc-rail" aria-label="About this doc">
+                  <dl className="facts doc-rail-facts">
+                    <div><dt>Status</dt><dd>{statusLabel(doc.status)}</dd></div>
+                    <div><dt>Type</dt><dd>{kindLabel(doc.kind)}</dd></div>
+                    <div><dt>Date</dt><dd>{doc.group === 'Loop' ? when(doc.updated) : when(doc.date) || 'None'}</dd></div>
+                    {doc.tags.filter((t) => t !== doc.kind).length ? (
+                      <div>
+                        <dt>Tags</dt>
+                        <dd className="doc-meta">
+                          {doc.tags.filter((t) => t !== doc.kind).map((t) => (
+                            <Tag key={t}>{t}</Tag>
+                          ))}
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                  <div>
+                    <p className="label">Linked from</p>
+                    {doc.linkedFrom?.length ? (
+                      <ul className="doc-links">
+                        {doc.linkedFrom.map((l) => (
+                          <li key={l.id}>
+                            <Link href={`#/docs/${l.id}`}>{l.title}</Link>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="label">No other doc mentions this one.</p>
+                    )}
+                  </div>
+                  {doc.editable ? (
+                    <ActionChip onClick={() => setEditing('edit')}>Edit</ActionChip>
+                  ) : (
+                    <p className="label">Read only: the relay writes this file.</p>
+                  )}
+                </aside>
               </>
             ) : (
               <p className="label">{list?.length ? 'Pick a doc, or start a new one.' : 'No docs yet. Save one from OBI with /note, or start one here.'}</p>
