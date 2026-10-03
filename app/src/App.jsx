@@ -8,12 +8,14 @@ import SegmentedControl from '@bella/components/SegmentedControl/SegmentedContro
 import Health from './Health.jsx';
 import Ask from './Ask.jsx';
 import Specimen from './Specimen.jsx';
+import Terminal from './Terminal.jsx';
 import { useTheme } from './theme.js';
 
 const WORKSPACES = [
   { id: 'health', label: 'Health' },
   { id: 'ask', label: 'Ask' },
   { id: 'specimen', label: 'Specimen' },
+  { id: 'terminal', label: 'Terminal' },
 ];
 
 const SECTIONS = {
@@ -26,9 +28,10 @@ const SECTIONS = {
     { href: '#ask-form', label: 'New question' },
     { href: '#answers', label: 'This session' },
   ],
+  terminal: [{ href: '#main', label: 'Commands' }],
 };
 
-const WS_KEYS = { Digit1: 'health', Digit2: 'ask', Digit3: 'specimen' };
+const WS_KEYS = { Digit1: 'health', Digit2: 'ask', Digit3: 'specimen', Digit4: 'terminal' };
 
 function failuresOf(bella) {
   const out = [];
@@ -181,7 +184,10 @@ export default function App() {
             <Ask pending={pending} prefill={prefill} />
           </div>
           <div {...tabPanelProps('ws', 'specimen', ws === 'specimen')}>
-            {ws === 'specimen' ? <Specimen c={specimen} onAsk={askAbout} /> : null}
+            {ws === 'specimen' ? <Specimen c={specimen} onAsk={askAbout} bella={bella} theme={theme} /> : null}
+          </div>
+          <div {...tabPanelProps('ws', 'terminal', ws === 'terminal')}>
+            <Terminal />
           </div>
         </main>
       </div>

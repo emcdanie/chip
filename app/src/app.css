@@ -650,6 +650,77 @@ body {
   justify-items: start;
 }
 
+/* contract sandbox: local state only */
+.sandbox-fields {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.sandbox-fields select {
+  max-inline-size: 100%;
+}
+
+.sandbox-score {
+  display: grid;
+  gap: var(--spacing-3);
+}
+
+.score-line {
+  margin: 0;
+  font-size: var(--typography-font-size-lg);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.checks {
+  display: grid;
+  gap: var(--spacing-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checks li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--spacing-1) var(--spacing-3);
+  align-items: center;
+}
+
+.checks .num {
+  text-align: right;
+}
+
+.check-name {
+  margin: 0;
+  font-size: var(--typography-font-size-base);
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.check-rule {
+  grid-column: 1 / -1;
+  color: var(--color-semantic-text-secondary);
+}
+
+.blast {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+.blast p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sandbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
 .toast {
   position: fixed;
   inset-block-end: var(--spacing-6);
@@ -672,4 +743,56 @@ body {
   .card {
     transition: none;
   }
+}
+
+/* terminal: the four chip commands, streamed */
+.terminal {
+  display: grid;
+  gap: var(--spacing-6);
+}
+
+.term-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-5);
+  align-items: end;
+}
+
+.term-cmd {
+  display: grid;
+  gap: var(--spacing-2);
+  justify-items: start;
+}
+
+.term-ask {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  align-items: end;
+  flex: 1 1 calc(var(--spacing-20) * 5);
+}
+
+.term-ask > :first-child {
+  flex: 1 1 calc(var(--spacing-20) * 3);
+}
+
+.term-out {
+  margin: 0;
+  min-block-size: calc(var(--spacing-20) * 4);
+  max-block-size: calc(var(--spacing-20) * 7);
+  overflow: auto;
+  padding: var(--spacing-5);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-thin) solid var(--color-semantic-border);
+  background: var(--color-semantic-surface-inset);
+  color: var(--color-semantic-text-primary);
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-base);
+  line-height: var(--typography-line-height-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.term-prompt {
+  font-weight: var(--typography-font-weight-bold);
 }

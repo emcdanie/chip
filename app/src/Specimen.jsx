@@ -6,6 +6,7 @@ import Link from '@bella/components/Link/Link';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import { SPECIMENS } from './specimens.jsx';
 import { layout, targetsOf } from './anatomy.js';
+import Sandbox, { baseOf, overridesOf } from './Sandbox.jsx';
 
 const REPO_FILE = 'https://github.com/emcdanie/bella/blob/main/tokens/component.json';
 
@@ -25,7 +26,7 @@ function useReducedMotion() {
 /* ---------- Study B: numbered anatomy at rest ---------- */
 const area = (z) => (z.right - z.left) * (z.bottom - z.top);
 
-function Anatomy({ name, parts, hl, setHl, zoom, setZoom }) {
+function Anatomy({ name, parts, hl, setHl, zoom, setZoom, overrides }) {
   const frame = useRef(null);
   const [geo, setGeo] = useState(null);
   const Render = SPECIMENS[name];
@@ -47,13 +48,13 @@ function Anatomy({ name, parts, hl, setHl, zoom, setZoom }) {
     ro.observe(frame.current);
     document.fonts?.ready.then(measure);
     return () => ro.disconnect();
-  }, [measure, name, zoom]);
+  }, [measure, name, zoom, overrides]);
 
   return (
     <div className="anatomy">
       <div className="stage">
         <div className="spec-frame" ref={frame}>
-          <div className="spec-render" inert aria-hidden="true" style={{ zoom }}>
+          <div className="spec-render" inert aria-hidden="true" style={{ zoom, ...overrides }}>
             {Render ? <Render /> : null}
           </div>
           {geo ? (
@@ -117,6 +118,7 @@ function Legend({ name, parts, hl, setHl }) {
             <b>{p.title}</b>
             <small>
               {p.detail} · {p.token}
+              {p.trigger ? ` · on ${p.trigger}` : ''}
             </small>
           </button>
         </li>
@@ -128,7 +130,7 @@ function Legend({ name, parts, hl, setHl }) {
 /* ---------- Study D: exploded layers, flat labels ---------- */
 const OPEN = { rx: 56, rz: -22 };
 
-function Exploded({ name, parts, hl, setHl, zoom }) {
+function Exploded({ name, parts, hl, setHl, zoom, overrides }) {
   const stage = useRef(null);
   const rig = useRef(null);
   const lines = useRef(null);
@@ -253,7 +255,7 @@ function Exploded({ name, parts, hl, setHl, zoom }) {
             data-hl={hl === p.key || undefined}
             style={{ transform: rot.open ? `translateZ(calc(${i - mid} * var(--spacing-20)))` : 'none' }}
           >
-            <div className="card-layer" style={{ zoom }}>
+            <div className="card-layer" style={{ zoom, ...overrides }}>
               {Render ? <Render /> : null}
             </div>
             <span className="card-anchor" />
@@ -275,7 +277,10 @@ function Exploded({ name, parts, hl, setHl, zoom }) {
             >
               <span className="n">{p.n}</span>
               <b>{p.title}</b>
-              <small>{p.token}</small>
+              <small>
+                {p.token}
+                {p.trigger ? ` · on ${p.trigger}` : ''}
+              </small>
             </button>
           </li>
         ))}
@@ -291,7 +296,7 @@ function Pill({ status }) {
   return <StatusPill variant={pass ? 'success' : 'info'}>{word}</StatusPill>;
 }
 
-function Panel({ c, parts, hl, onAsk, notify }) {
+function Panel({ c, parts, hl, onAsk, notify, sandbox }) {
   const focusable = c.states.includes('focus');
   const selected = parts.find((p) => p.key === hl);
   const token = selected?.token ?? c.tokens.list[0];
@@ -353,6 +358,8 @@ function Panel({ c, parts, hl, onAsk, notify }) {
         </dl>
       </section>
 
+      {sandbox}
+
       <section aria-labelledby="actions-h" className="actions">
         <h2 id="actions-h" className="panel-title">Actions</h2>
         <Button variant="secondary" onClick={copy}>Copy token</Button>
@@ -365,18 +372,47 @@ function Panel({ c, parts, hl, onAsk, notify }) {
 }
 
 /* ---------- the view ---------- */
-export default function Specimen({ c, onAsk }) {
+// the rendered specimen's height, in its own (unzoomed) pixels
+function specimenHeight() {
+  const el = document.querySelector('.specimen .spec-render [data-bella-component], .specimen .card-layer [data-bella-component]');
+  if (!el) return null;
+  const zoom = parseFloat(el.closest('[style]')?.style.zoom) || 1;
+  return el.getBoundingClientRect().height / zoom;
+}
+
+export default function Specimen({ c, onAsk, bella, theme }) {
   const reduced = useReducedMotion();
   const [exploded, setExploded] = useState(false);
   const [hl, setHl] = useState(null);
   const [toast, setToast] = useState('');
   const [zoom, setZoom] = useState(1);
+  // the draft belongs to one component; a stale one is never applied
+  const [drafted, setDrafted] = useState({ id: null, v: {} });
+  const draft = c && drafted.id === c.id ? drafted.v : c ? baseOf(c) : {};
+  const setDraft = useCallback(
+    (fn) => setDrafted((d) => ({ id: c.id, v: typeof fn === 'function' ? fn(d.id === c.id ? d.v : baseOf(c)) : fn })),
+    [c]
+  );
+  const [heights, setHeights] = useState({ base: null, now: null });
   const parts = c?.parts ?? [];
+  const overrides = c ? overridesOf(c, draft) : {};
+  const changed = Object.keys(overrides).length > 0;
 
   useEffect(() => {
     setExploded(false);
     setHl(null);
+    setHeights({ base: null, now: null });
   }, [c?.id]);
+
+  // measure after every render that can move the specimen; the base height is
+  // whatever it measures with no change applied
+  useLayoutEffect(() => {
+    const h = specimenHeight();
+    setHeights((o) => {
+      const base = changed ? o.base : h;
+      return o.base === base && o.now === h ? o : { base, now: h };
+    });
+  });
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(''), 3000);
@@ -409,16 +445,16 @@ export default function Specimen({ c, onAsk }) {
               </div>
             ) : null}
             {exploded && showExplode ? (
-              <Exploded name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} />
+              <Exploded name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} overrides={overrides} />
             ) : (
-              <Anatomy name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} setZoom={setZoom} />
+              <Anatomy name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} setZoom={setZoom} overrides={overrides} />
             )}
           </>
         ) : (
           <div className="anatomy">
             <div className="stage">
               <div className="spec-frame spec-frame--plain">
-                <div className="spec-render" inert aria-hidden="true">
+                <div className="spec-render" inert aria-hidden="true" style={overrides}>
                   {Render ? <Render /> : null}
                 </div>
               </div>
@@ -432,7 +468,18 @@ export default function Specimen({ c, onAsk }) {
         )}
       </div>
 
-      <Panel c={c} parts={parts} hl={hl} onAsk={onAsk} notify={setToast} />
+      <Panel
+        c={c}
+        parts={parts}
+        hl={hl}
+        onAsk={onAsk}
+        notify={setToast}
+        sandbox={
+          bella ? (
+            <Sandbox bella={bella} c={c} draft={draft} setDraft={setDraft} heights={heights} theme={theme} notify={setToast} />
+          ) : null
+        }
+      />
 
       <p className="toast" role="status" aria-live="polite" data-show={toast ? '' : undefined}>
         {toast}

@@ -27,7 +27,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     fs: { allow: [resolve(here, '..'), BELLA] },
-    proxy: { '/ask': SERVER, '/health': SERVER, '/data': SERVER },
+    proxy: { '/ask': SERVER, '/cmd': SERVER, '/health': SERVER, '/data': SERVER },
   },
   build: { outDir: resolve(here, 'dist'), emptyOutDir: true },
 });

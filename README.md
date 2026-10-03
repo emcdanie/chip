@@ -24,7 +24,8 @@ npm install
 cp server/.env.example server/.env   # add NOTION_API_TOKEN if you use Notion
 npm link                             # puts `chip` on your PATH
 chip sync                            # BELLA + Notion + search index
-npm start                            # bridge + Ask CHIP at http://localhost:3000
+npm run app:build                    # app → app/dist (npm run app: dev server on 127.0.0.1:5173)
+npm start                            # server + built app at http://localhost:3000
 ```
 
 The server binds to localhost only and warms both models on start, so the first question doesn't wait for a model load.
@@ -44,19 +45,22 @@ The server binds to localhost only and warms both models on start, so the first 
 
 **Real:** BELLA's components, health checks (contrast pairs, contract parity) and readiness scores in the Component map and System map; Ask CHIP answers and sources; the terminal commands. Stations without an automated source show "self-assessed" and no score; CHIP never invents one.
 
-**Demo:** the Bridge space's parity meter, proposal, alerts and inbox are the April 2026 hackathon scenario (47 components, iOS/Android parity). They carry a "Demo scenario · synthetic data" label. BELLA is web only; there is no iOS or Android data.
+**Demo:** the archived v0 bridge's parity meter, proposal, alerts and inbox are the April 2026 hackathon scenario (47 components, iOS/Android parity). They carry a "Demo scenario · synthetic data" label. BELLA is web only; there is no iOS or Android data.
 
 ## Where things live
 
 ```
 bin/chip.mjs                 terminal commands
-server/server.js             serves the bridge, POST /ask (JSON or streamed NDJSON)
+server/server.js             serves app/dist, POST /ask (JSON or streamed NDJSON), POST /cmd (ask, sync, audit, status only)
+app/                         the CHIP app: Health, Ask, Specimen, Terminal, on BELLA components
 server/lib/                  config, local model (Ollama), search index, ask
 scripts/sync-bella.mjs       BELLA → data/bella.json (+ data/bella.js for the bridge)
 scripts/sync-notion.mjs      Notion → data/notion/*.md (local only, gitignored)
 data/index/chunks.json       embeddings (local only, gitignored)
-docs/artifacts/chip-bridge-v0/   the bridge UI (static HTML/CSS/JS)
+docs/archive/chip-bridge-v0/ the v0 bridge UI (static HTML/CSS/JS), archived
 ```
+
+**Moved (3 Oct 2026):** the v0 bridge went from `docs/artifacts/chip-bridge-v0/` to `docs/archive/chip-bridge-v0/`. The app in `app/` covers what it did; the server now serves `app/dist` at `/`. The bridge still opens from its folder and still reads `data/bella.js`.
 
 ## Lineage
 

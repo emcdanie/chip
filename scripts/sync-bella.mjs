@@ -140,6 +140,7 @@ const components = names.map((name) => {
     token: p.token,
     value: { light: resolve(lightVars, p.token), dark: resolve(darkVars, p.token) },
     kind: p.kind,
+    trigger: p.trigger ?? null,
     target: p.target,
     zone: p.zone,
     z: i,
@@ -147,6 +148,31 @@ const components = names.map((name) => {
     anchor: null,
   }));
   const minTarget = tokens.find((t) => /^--component-.*min-height$/.test(t));
+
+  // Contract slots the Specimen sandbox may change, for the first variant
+  // (or the unvariant block). A slot exists only when the component's own
+  // source reads that token; nothing is guessed.
+  const v = contract?.variants?.[0];
+  const slot = (...suffixes) => {
+    for (const sfx of suffixes) {
+      for (const t of [v && `--component-${key}-${v}-${sfx}`, `--component-${key}-default-${sfx}`, `--component-${key}-${sfx}`]) {
+        if (t && tokens.includes(t)) return { token: t, light: resolve(lightVars, t), dark: resolve(darkVars, t) };
+      }
+    }
+    return null;
+  };
+  const background = slot('fill-hi', 'background');
+  const sandbox = {
+    minHeight: slot('min-height'),
+    paddingY: slot('padding-y'),
+    paddingX: slot('padding-x'),
+    label: slot('foreground'),
+    background,
+    // a gradient plate: its second stop follows the background slot
+    backgroundPair: background?.token.endsWith('-fill-hi') ? slot('fill-lo') : null,
+    ringWidth: tokens.includes('--ring-focus-width') ? { token: '--ring-focus-width', light: resolve(lightVars, '--ring-focus-width'), dark: resolve(darkVars, '--ring-focus-width') } : null,
+    ringOffset: tokens.includes('--ring-focus-offset') ? { token: '--ring-focus-offset', light: resolve(lightVars, '--ring-focus-offset'), dark: resolve(darkVars, '--ring-focus-offset') } : null,
+  };
 
   return {
     id: key,
@@ -162,6 +188,7 @@ const components = names.map((name) => {
     states: contract?.states ?? [],
     a11y: contract?.a11y ?? null,
     minTarget: minTarget ? { token: minTarget, value: resolve(lightVars, minTarget) } : null,
+    sandbox,
     parts,
     anatomySource: `tokens/component.json → component.${key}.$extensions.bella.anatomy`,
     storyUrl: man?.id ? `${STORYBOOK}?path=/docs/${man.id}--docs` : null,
@@ -210,6 +237,11 @@ const checked = new Set((parityRun.stdout.match(/checked (.+)/)?.[1] ?? '').spli
 const exempt = (parityRun.stdout.match(/\(exempt\): (.+)/)?.[1] ?? '').split(', ').filter((s) => s && s !== 'none');
 const parityFailures = {};
 for (const m of parityRun.stderr.matchAll(/^\s{2}([a-z-]+): (.+)$/gm)) (parityFailures[m[1]] ??= []).push(m[2]);
+
+// token -> components that reach it (directly or through var() chains): the
+// sandbox's blast radius
+const tokenUsage = {};
+for (const c of components) for (const t of c._closure) (tokenUsage[t] ??= []).push(c.name);
 
 for (const c of components) {
   const covering = pairs.filter((p) => c._closure.has(p.fg) || c._closure.has(p.bg));
@@ -275,6 +307,17 @@ const out = {
     visual: { ok: null, note: 'TODO: audit:visual skipped (slow)' },
   },
   stations,
+  // semantic colours, resolved per theme, for the sandbox's token pickers and
+  // its live contrast maths; ground is what the focus ring sits on
+  palette: Object.fromEntries(
+    Object.keys(lightVars).filter((t) => t.startsWith('--color-semantic-'))
+      .map((t) => [t, { light: resolve(lightVars, t), dark: resolve(darkVars, t) }])
+  ),
+  ring: {
+    color: { token: '--ring-focus-color', light: resolve(lightVars, '--ring-focus-color'), dark: resolve(darkVars, '--ring-focus-color') },
+    ground: { token: '--color-semantic-background', light: resolve(lightVars, '--color-semantic-background'), dark: resolve(darkVars, '--color-semantic-background') },
+  },
+  tokenUsage,
   components,
 };
 
