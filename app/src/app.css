@@ -107,27 +107,62 @@ body {
   white-space: nowrap;
 }
 
-.connector-grid {
+/* Connectors: one full-width Card row per server */
+.connector-rows {
   display: grid;
-  gap: var(--spacing-5);
-  margin-block-start: var(--spacing-6);
-}
-
-.connector-grid {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: var(--layout-gutter);
 }
 
 .connector {
   display: grid;
-  gap: var(--spacing-3);
+  gap: var(--layout-stack-md);
   align-content: start;
+}
+
+.connector > p {
+  max-inline-size: var(--layout-measure-body);
 }
 
 .connector-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-3);
+  gap: var(--layout-stack-sm) var(--layout-stack-md);
+}
+
+.connector-spacer {
+  flex: 1;
+}
+
+/* label over value, side by side across the row; label beside value when narrow */
+.row-dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--spacing-20) * 2)), 1fr));
+  gap: var(--layout-stack-md) var(--layout-gutter);
+}
+
+.row-dl > div {
+  display: grid;
+  gap: var(--spacing-1);
+  align-content: start;
+}
+
+.row-dl dt {
+  color: var(--color-semantic-text-secondary);
+}
+
+.row-dl dd {
+  margin: 0;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+@container (max-width: 30rem) {
+  .row-dl > div {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--layout-stack-md);
+  }
 }
 
 .tool-rows,
@@ -246,32 +281,6 @@ body {
   }
 }
 
-.view {
-  display: grid;
-  gap: var(--spacing-12);
-  max-width: calc(var(--spacing-20) * 12);
-}
-
-.block {
-  display: grid;
-  gap: var(--spacing-4);
-  scroll-margin-top: var(--spacing-8);
-}
-
-.block-title {
-  margin: 0;
-  font-size: var(--typography-font-size-xl);
-  font-weight: var(--typography-font-weight-medium);
-  letter-spacing: var(--typography-letter-spacing-title);
-  line-height: var(--typography-line-height-snug);
-}
-
-.block-lead {
-  margin: 0;
-  max-width: 65ch;
-  color: var(--color-semantic-text-secondary);
-}
-
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(calc(var(--spacing-16) * 2), 1fr));
@@ -336,15 +345,6 @@ body {
 /* ---------- Atlas (v8 layout in the v3 shell) ---------- */
 .atlas {
   min-width: 0;
-}
-
-/* Docs and Connectors' local card, until they move to BELLA Card */
-.atlas-card {
-  min-width: 0;
-  padding: var(--spacing-5);
-  border-radius: var(--radius-card);
-  background: var(--color-semantic-surface-card);
-  border: var(--border-width-thin) solid var(--color-semantic-border-faint);
 }
 
 /* the specimen beside its facts, then the sections: one section space */
