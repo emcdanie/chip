@@ -256,7 +256,7 @@ export default function App() {
         <main id="main" className="main" tabIndex={-1}>
           {offline ? (
             <p className="offline" role="alert">
-              The CHIP server is not answering on 127.0.0.1:3000. Start it with npm start.
+              The CHIP server is not answering on 127.0.0.1:3100. Start it with npm start.
             </p>
           ) : null}
           <div {...tabPanelProps('ws', 'health', ws === 'health')}>

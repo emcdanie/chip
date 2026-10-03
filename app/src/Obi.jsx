@@ -295,7 +295,7 @@ export default function Obi({ bella, health, page, queued, onOpenAtlas, onSandbo
         }
       }
     } catch (err) {
-      patch(id, () => ({ path: 'error', text: /fetch/i.test(err.message) ? 'The CHIP server is not answering on 127.0.0.1:3000. Start it with npm start.' : err.message }));
+      patch(id, () => ({ path: 'error', text: /fetch/i.test(err.message) ? 'The CHIP server is not answering on 127.0.0.1:3100. Start it with npm start.' : err.message }));
     } finally {
       setBusy(false);
     }
@@ -326,7 +326,7 @@ export default function Obi({ bella, health, page, queued, onOpenAtlas, onSandbo
       const m = text.match(/\[exit (\S+)\]\s*$/);
       patch(id, () => ({ exit: m ? (Number.isNaN(+m[1]) ? 1 : +m[1]) : 1 }));
     } catch {
-      patch(id, () => ({ text: 'chip: the CHIP server is not answering on 127.0.0.1:3000.', exit: 1 }));
+      patch(id, () => ({ text: 'chip: the CHIP server is not answering on 127.0.0.1:3100.', exit: 1 }));
     } finally {
       setBusy(false);
     }

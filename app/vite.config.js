@@ -8,7 +8,7 @@ import { resolve } from 'node:path';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const BELLA = resolve(here, '../../bella');
-const SERVER = 'http://127.0.0.1:3000';
+const SERVER = 'http://127.0.0.1:3100';
 
 export default defineConfig({
   root: here,

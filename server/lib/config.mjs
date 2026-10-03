@@ -10,7 +10,8 @@ export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 dotenv.config({ path: join(ROOT, 'server', '.env'), quiet: true });
 
 const env = process.env;
-export const PORT = Number(env.PORT || 3000);
+// 3100, not 3000: the portfolio's Next dev server owns 3000 (2026-10-03)
+export const PORT = Number(env.PORT || 3100);
 export const OLLAMA_URL = (env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
 export const CHIP_MODEL = env.CHIP_MODEL || 'qwen3:8b';
 export const CHIP_EMBED_MODEL = env.CHIP_EMBED_MODEL || 'nomic-embed-text';

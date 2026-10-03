@@ -25,7 +25,7 @@ cp server/.env.example server/.env   # add NOTION_API_TOKEN if you use Notion
 npm link                             # puts `chip` on your PATH
 chip sync                            # BELLA + Notion + search index
 npm run app:build                    # app → app/dist (npm run app: dev server on 127.0.0.1:5173)
-npm start                            # server + built app at http://localhost:3000
+npm start                            # server + built app at http://localhost:3100
 ```
 
 The server binds to localhost only and warms both models on start, so the first question doesn't wait for a model load.

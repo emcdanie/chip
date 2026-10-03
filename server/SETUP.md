@@ -35,7 +35,7 @@ npm link        # makes `chip` available everywhere; undo with `npm unlink -g ch
 ```sh
 chip sync     # first Notion pull is slow (minutes for hundreds of pages); later ones take seconds
 chip status   # check models, index, last sync
-npm start     # http://localhost:3000
+npm start     # http://localhost:3100
 ```
 
 ## Settings (`server/.env`)
@@ -46,7 +46,7 @@ npm start     # http://localhost:3000
 | `CHIP_MODEL` | `qwen3:8b` | chat model |
 | `CHIP_EMBED_MODEL` | `nomic-embed-text` | embedding model (changing it re-embeds everything) |
 | `OLLAMA_URL` | `http://localhost:11434` | Ollama API |
-| `PORT` | `3000` | server port (the only place it is set) |
+| `PORT` | `3100` | server port (the only place it is set) |
 | `CHIP_KEEP_ALIVE` | `30m` | how long Ollama keeps the model loaded |
 | `CHIP_NUM_CTX` | `4096` | context window cap |
 | `CHIP_CONTEXT_WORDS` | `450` | words of retrieved sources sent per question |
@@ -63,4 +63,4 @@ npm start     # http://localhost:3000
 | `No index yet` | Run `chip sync` |
 | `NOTION_API_TOKEN not set` | Add it to `server/.env`, or ignore: Notion is optional |
 | A Notion page is missing | Share it (or a parent) with the `CHIP` integration, then `chip sync` |
-| Ask CHIP says the server isn't running | `npm start`, then open http://localhost:3000 (not the HTML file) |
+| Ask CHIP says the server isn't running | `npm start`, then open http://localhost:3100 (not the HTML file) |
