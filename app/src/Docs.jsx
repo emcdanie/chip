@@ -1,13 +1,16 @@
 // Docs: OBI's private notes (~/DEV/obi-notes, outside the repo) and the
-// relay's inbox under "Loop". A list with search, tag and status filters; a
-// read view; an edit mode with a live preview. BELLA components only.
+// relay's inbox under "Loop", on the Library/reader template (layout
+// foundation): the list beside the page, the doc's page header and its
+// reader at 70ch, the About this doc rail. An edit mode with a live preview.
+// BELLA components only.
 import React, { useEffect, useMemo, useState } from 'react';
-import Heading from '@bella/components/Heading/Heading';
+import PageHeader from '@bella/components/PageHeader/PageHeader';
+import SidebarLayout from '@bella/components/SidebarLayout/SidebarLayout';
+import Card from '@bella/components/Card/Card';
 import Input from '@bella/components/Input/Input';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import NavList from '@bella/components/NavList/NavList';
-import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import Tag from '@bella/components/Tag/Tag';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
@@ -63,7 +66,9 @@ function Editor({ doc, statuses, onSaved, onCancel }) {
         <Button variant="primary" onClick={save} disabled={saving}>
           {saving ? 'Saving' : 'Save'}
         </Button>
-        <ActionChip onClick={onCancel}>Cancel</ActionChip>
+        <Button variant="secondary" onClick={onCancel}>
+          Cancel
+        </Button>
       </div>
     </div>
   );
@@ -121,109 +126,147 @@ export default function Docs({ docId, version = 0, narrow }) {
     else window.location.hash = `#/docs/${d.id}`;
   };
 
+  // below 832px the list and the doc take turns
   const showList = !narrow || (!docId && editing !== 'new');
-  const showDoc = !narrow || docId || editing === 'new';
+  const docMeta = doc ? `Docs · ${kindLabel(doc.kind)} · ${doc.group === 'Loop' ? `updated ${when(doc.updated)}` : when(doc.date) || 'no date'}` : null;
 
-  return (
-    <div className="view docs">
-      <header className="docs-head">
-        <Heading tier="section" as="h1">
-          Docs
-        </Heading>
-        <p className="label">Notes, plans, decisions and handoffs · {folder || 'notes folder'}, never committed</p>
-      </header>
-      {error ? <p role="alert">{error}</p> : null}
-      <div className="docs-grid">
-        {showList ? (
-          <section className="atlas-card docs-list" aria-label="All docs">
-            <div className="docs-search">
-              <Icon name="Search" size="sm" className="docs-search-icon" />
-              <Input label="Search docs" value={q} onChange={setQ} type="text" placeholder="Search notes, plans, decisions…" />
-            </div>
-            <SegmentedControl label="Status" value={status} onChange={setStatus} options={[{ value: 'all', label: 'All' }, ...statuses.map((s) => ({ value: s, label: statusLabel(s) }))]} />
-            {tags.length ? (
-              <div className="docs-tags" role="group" aria-label="Filter by tag">
-                {tags.map((t) => (
-                  <FilterChip key={t} pressed={tag === t} onClick={() => setTag(tag === t ? null : t)}>
-                    {t}
-                  </FilterChip>
-                ))}
-              </div>
-            ) : null}
-            {list && !groups.length ? <p className="label">No docs match.</p> : null}
-            {groups.length ? <NavList label="Docs" groups={groups} /> : null}
-            <div className="doc-actions">
-              <ActionChip onClick={() => setEditing('new')}>New doc</ActionChip>
-            </div>
-          </section>
-        ) : null}
-        {showDoc ? (
-          <section className="atlas-card doc-view" aria-label={doc ? doc.title : 'Doc'}>
-            {narrow && (docId || editing) ? <Link href="#/docs">All docs</Link> : null}
-            {editing === 'new' ? (
-              <Editor statuses={statuses} onSaved={saved} onCancel={() => setEditing(null)} />
-            ) : doc && editing === 'edit' ? (
-              <Editor doc={doc} statuses={statuses} onSaved={saved} onCancel={() => setEditing(null)} />
-            ) : doc ? (
-              <>
-                <div className="doc-reader">
-                  <header className="doc-head">
-                    <h2 className="facts-name">{doc.title}</h2>
-                    {/* status once, then type and date */}
-                    <p className="doc-meta doc-meta--inline">
-                      <StatusPill variant={doc.status === 'done' ? 'success' : 'info'}>{statusLabel(doc.status)}</StatusPill>
-                      <span className="label">
-                        {kindLabel(doc.kind)} · {doc.group === 'Loop' ? `updated ${when(doc.updated)}` : when(doc.date)}
-                      </span>
-                    </p>
-                  </header>
-                  <div className="doc-body">
-                    <Rich text={doc.body} />
-                  </div>
-                </div>
-                <aside className="doc-rail" aria-label="About this doc">
-                  <dl className="facts doc-rail-facts">
-                    <div><dt>Status</dt><dd>{statusLabel(doc.status)}</dd></div>
-                    <div><dt>Type</dt><dd>{kindLabel(doc.kind)}</dd></div>
-                    <div><dt>Date</dt><dd>{doc.group === 'Loop' ? when(doc.updated) : when(doc.date) || 'None'}</dd></div>
-                    {doc.tags.filter((t) => t !== doc.kind).length ? (
-                      <div>
-                        <dt>Tags</dt>
-                        <dd className="doc-meta">
-                          {doc.tags.filter((t) => t !== doc.kind).map((t) => (
-                            <Tag key={t}>{t}</Tag>
-                          ))}
-                        </dd>
-                      </div>
-                    ) : null}
-                  </dl>
-                  <div>
-                    <p className="label">Linked from</p>
-                    {doc.linkedFrom?.length ? (
-                      <ul className="doc-links">
-                        {doc.linkedFrom.map((l) => (
-                          <li key={l.id}>
-                            <Link href={`#/docs/${l.id}`}>{l.title}</Link>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="label">No other doc mentions this one.</p>
-                    )}
-                  </div>
-                  {doc.editable ? (
-                    <ActionChip onClick={() => setEditing('edit')}>Edit</ActionChip>
-                  ) : (
-                    <p className="label">Read only: the relay writes this file.</p>
-                  )}
-                </aside>
-              </>
-            ) : (
-              <p className="label">{list?.length ? 'Pick a doc, or start a new one.' : 'No docs yet. Save one from OBI with /note, or start one here.'}</p>
-            )}
-          </section>
-        ) : null}
+  const listPanel = (
+    <div className="docs-list">
+      <div className="docs-search">
+        <Icon name="Search" size="sm" className="docs-search-icon" />
+        <Input label="Search docs" value={q} onChange={setQ} type="text" placeholder="Search notes, plans, decisions…" />
       </div>
+      <SegmentedControl label="Status" value={status} onChange={setStatus} options={[{ value: 'all', label: 'All' }, ...statuses.map((s) => ({ value: s, label: statusLabel(s) }))]} />
+      {tags.length ? (
+        <div className="docs-tags" role="group" aria-label="Filter by tag">
+          {tags.map((t) => (
+            <FilterChip key={t} size="compact" pressed={tag === t} onClick={() => setTag(tag === t ? null : t)}>
+              {t}
+            </FilterChip>
+          ))}
+        </div>
+      ) : null}
+      {list && !groups.length ? <p className="label">No docs match.</p> : null}
+      {groups.length ? <NavList label="Docs" groups={groups} /> : null}
+      <div className="doc-actions">
+        <Button variant="secondary" onClick={() => setEditing('new')}>
+          New doc
+        </Button>
+      </div>
+    </div>
+  );
+
+  const rail = doc && !editing ? (
+    <Card innerClassName="doc-rail">
+      <p className="card-title">About this doc</p>
+      <dl className="facts">
+        <div><dt>Status</dt><dd><StatusPill variant={doc.status === 'done' ? 'success' : 'info'}>{statusLabel(doc.status)}</StatusPill></dd></div>
+        <div><dt>Type</dt><dd>{kindLabel(doc.kind)}</dd></div>
+        <div><dt>Date</dt><dd>{doc.group === 'Loop' ? when(doc.updated) : when(doc.date) || 'None'}</dd></div>
+        {doc.tags.filter((t) => t !== doc.kind).length ? (
+          <div>
+            <dt>Tags</dt>
+            <dd className="doc-meta">
+              {doc.tags.filter((t) => t !== doc.kind).map((t) => (
+                <Tag key={t}>{t}</Tag>
+              ))}
+            </dd>
+          </div>
+        ) : null}
+        <div>
+          <dt>Linked from</dt>
+          <dd>
+            {doc.linkedFrom?.length ? (
+              <ul className="doc-links">
+                {doc.linkedFrom.map((l) => (
+                  <li key={l.id}>
+                    <Link href={`#/docs/${l.id}`}>{l.title}</Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              'No other doc mentions this one.'
+            )}
+          </dd>
+        </div>
+      </dl>
+      {doc.editable ? null : <p className="label">Read only: the relay writes this file.</p>}
+    </Card>
+  ) : null;
+
+  const page =
+    editing === 'new' ? (
+      <>
+        <PageHeader meta="Docs" title="New doc" />
+        <Editor statuses={statuses} onSaved={saved} onCancel={() => setEditing(null)} />
+      </>
+    ) : doc && editing === 'edit' ? (
+      <>
+        <PageHeader meta={docMeta} title={`Edit · ${doc.title}`} />
+        <Editor doc={doc} statuses={statuses} onSaved={saved} onCancel={() => setEditing(null)} />
+      </>
+    ) : doc ? (
+      <>
+        <PageHeader
+          meta={docMeta}
+          title={doc.title}
+          actions={
+            doc.editable ? (
+              <Button variant="secondary" onClick={() => setEditing('edit')}>
+                Edit
+              </Button>
+            ) : null
+          }
+        />
+        <article className="doc-body">
+          <Rich text={doc.body} />
+        </article>
+      </>
+    ) : (
+      <>
+        <PageHeader meta={`Notes, plans, decisions and handoffs · ${folder || 'notes folder'}, never committed`} title="Docs" lede="Everything OBI saved and everything you wrote, searchable here and by OBI." />
+        <Card innerClassName="doc-empty">
+          <div className="empty">
+            <p className="card-title">{list?.length ? 'Pick a doc, or start a new one' : 'No docs yet'}</p>
+            <p className="label">
+              {list?.length
+                ? `${list.length} docs: ${list.filter((d) => d.status === 'in-progress').length} in progress, ${list.filter((d) => d.status === 'done').length} done.`
+                : 'Save one from OBI with /note, or start one here.'}
+            </p>
+            <Button variant="secondary" onClick={() => setEditing('new')}>
+              New doc
+            </Button>
+          </div>
+        </Card>
+      </>
+    );
+
+  if (error) return <p role="alert">{error}</p>;
+  if (narrow) {
+    return (
+      <div className="docs">
+        {showList ? (
+          <>
+            <PageHeader meta={`Notes, plans, decisions and handoffs · ${folder || 'notes folder'}, never committed`} title="Docs" />
+            {listPanel}
+          </>
+        ) : (
+          <>
+            <p className="docs-back">
+              <Link href="#/docs">All docs</Link>
+            </p>
+            {page}
+            {rail ? <div className="docs-rail-narrow">{rail}</div> : null}
+          </>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="docs">
+      <SidebarLayout aside={listPanel} asideLabel="All docs" rail={rail} railLabel="About this doc">
+        {page}
+      </SidebarLayout>
     </div>
   );
 }

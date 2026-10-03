@@ -1471,66 +1471,24 @@ body {
 }
 
 /* ---------- Docs ---------- */
-/* Docs fills the content column (no reading-page cap) */
-.view.docs {
-  max-width: none;
-  gap: var(--spacing-6);
-}
-
-.docs-head {
-  display: grid;
-  gap: var(--spacing-1);
-}
-
-.docs-grid {
-  display: grid;
-  gap: var(--spacing-5);
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-}
-
-@media (min-width: 64rem) {
-  .docs-grid {
-    grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
-  }
-
-  /* the list sticks under the bar with its own scroll */
-  .docs-list {
-    position: sticky;
-    top: calc(var(--header-height) + var(--spacing-4));
-    max-block-size: calc(100dvh - var(--header-height) - var(--dock-height, 0px) - var(--spacing-8));
-    overflow-y: auto;
-  }
-}
-
-/* reader and rail: the rail joins at 1200 */
-.doc-view {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-@media (min-width: 75rem) {
-  .doc-view:has(.doc-rail) {
-    grid-template-columns: minmax(0, 1fr) calc(var(--spacing-20) * 3);
-    column-gap: var(--spacing-8);
-  }
-}
-
+/* the reader holds to the body measure; the rail is a Card beside it */
 .doc-body {
-  max-inline-size: 70ch;
+  max-inline-size: var(--layout-measure-body);
 }
 
-.doc-rail {
+.doc-rail,
+.doc-empty {
   display: grid;
-  gap: var(--spacing-4);
+  gap: var(--layout-stack-md);
   align-content: start;
-  justify-items: start;
 }
 
-@media (min-width: 75rem) {
-  .doc-rail {
-    padding-inline-start: var(--spacing-5);
-    border-inline-start: var(--border-width-thin) solid var(--color-semantic-border);
-  }
+.docs-back {
+  margin: 0 0 var(--layout-stack-md);
+}
+
+.docs-rail-narrow {
+  margin-block-start: var(--component-section-space);
 }
 
 .doc-links {
@@ -1558,10 +1516,9 @@ body {
   padding-inline-start: var(--spacing-10);
 }
 
-.docs-list,
-.doc-view {
+.docs-list {
   display: grid;
-  gap: var(--spacing-4);
+  gap: var(--layout-stack-md);
   align-content: start;
   min-inline-size: 0;
 }
@@ -1620,27 +1577,6 @@ body {
 
 .rich-h:first-child {
   margin-block-start: 0;
-}
-
-.doc-reader {
-  display: grid;
-  gap: var(--spacing-5);
-  align-content: start;
-}
-
-/* status, type and date show once: under the title, or in the rail beside */
-.doc-rail-facts {
-  display: none;
-}
-
-@media (min-width: 75rem) {
-  .doc-view:has(.doc-rail) .doc-meta--inline {
-    display: none;
-  }
-
-  .doc-view:has(.doc-rail) .doc-rail-facts {
-    display: grid;
-  }
 }
 
 /* the Facts card: a stack of open/close sections, fits 1440 x 900 closed */
