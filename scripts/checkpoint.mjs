@@ -124,7 +124,16 @@ if (chromium) {
         // and a full-page capture gets the whole page
         const fit = await page.evaluate(() => {
           const main = document.querySelector('.main');
-          const bottom = Math.max(...[...main.querySelectorAll('*')].map((e) => e.getBoundingClientRect().bottom + scrollY));
+          // content inside a deliberate inner scroller (the sticky library, a
+          // capped table) scrolls there, and a closed section's content is not
+          // shown (Chrome still reports boxes for it); everything else must sit
+          // in the document
+          const scroller = (e) => /(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight + 1;
+          const inScroller = (e) => {
+            for (let a = e.parentElement; a && a !== main; a = a.parentElement) if (scroller(a)) return true;
+            return false;
+          };
+          const bottom = Math.max(...[...main.querySelectorAll('*')].filter((e) => !inScroller(e) && e.getClientRects().length && !e.closest('details:not([open]) > :not(summary)')).map((e) => e.getBoundingClientRect().bottom + scrollY));
           return { doc: document.documentElement.scrollHeight, bottom: Math.round(bottom), inner: [...main.querySelectorAll('*')].filter((e) => /(auto|scroll|hidden)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight + 40 && e.clientHeight > innerHeight * 0.6).length };
         });
         await page.screenshot({ path: join(OUT, `atlas-button-full-${w}-${theme}.png`), fullPage: true });

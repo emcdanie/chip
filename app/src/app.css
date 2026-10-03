@@ -1206,7 +1206,8 @@ body {
 
 .toast {
   position: fixed;
-  inset-block-end: var(--spacing-6);
+  z-index: 4; /* above the fixed OBI dock */
+  inset-block-end: calc(var(--dock-h, 0rem) + var(--spacing-6));
   inset-inline-end: var(--spacing-6);
   margin: 0;
   padding: var(--spacing-3) var(--spacing-5);

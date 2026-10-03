@@ -80,10 +80,12 @@ export function listDocs() {
 export function readDoc(id) {
   const d = LOOP[id] ? loopEntry(id) : ID.test(id) && existsSync(join(NOTES_DIR, `${id}.md`)) ? noteEntry(`${id}.md`) : null;
   if (!d) return null;
-  // Linked from: notes whose text names this one (its title or its id)
+  // Linked from: notes whose text names this one (its title, or its id as a
+  // whole word: plan-2 does not link plan)
+  const idRe = new RegExp(`(^|[^\\w-])${d.id.replace(/[-]/g, '\\-')}(?![\\w-])`);
   const linkedFrom = noteFiles()
     .map(noteEntry)
-    .filter((o) => o.id !== d.id && (o.body.includes(d.id) || (d.title.length > 8 && o.body.includes(d.title))))
+    .filter((o) => o.id !== d.id && (idRe.test(o.body) || (d.title.length > 8 && o.body.includes(d.title))))
     .map((o) => ({ id: o.id, title: o.title }));
   return { ...d, linkedFrom };
 }

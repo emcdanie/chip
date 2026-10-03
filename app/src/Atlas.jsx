@@ -509,6 +509,8 @@ function Facts({ c, notes, canTry, trying, onTry, notify }) {
   const first = sentences(c.description, 1);
   const tip = sentences(c.restNote, 2);
   const [open, setOpen] = useSections();
+  const [checksOpen, setChecksOpen] = useState(null); // this visit only
+  useEffect(() => setChecksOpen(null), [c.id]);
   async function copy(t) {
     try {
       await navigator.clipboard.writeText(`var(${t})`);
@@ -521,7 +523,8 @@ function Facts({ c, notes, canTry, trying, onTry, notify }) {
   const mine = notes.filter((n) => n.component === c.name);
   const checks = [
     { ok: c.health.contrast.status !== 'fail', word: c.health.contrast.status === 'not-covered' ? 'n/a' : undefined, label: `Contrast${c.health.contrast.pairs ? ` · ${c.health.contrast.pairs} pairs` : ''}` },
-    { ok: c.health.contract.status === 'pass', word: c.health.contract.status === 'no-contract' ? 'none' : undefined, label: 'Contract parity' },
+    // unchecked is not a failure: the gate did not run that check
+    { ok: ['pass', 'unchecked'].includes(c.health.contract.status), word: c.health.contract.status === 'no-contract' ? 'none' : c.health.contract.status === 'unchecked' ? 'n/a' : undefined, label: 'Contract parity' },
     { ok: complete(c), label: 'Story and docs present' },
     { ok: c.inDsds, label: 'DSDS entry' },
     ...(c.minTarget ? [{ ok: parseFloat(c.minTarget.value) >= 44, word: c.minTarget.value, label: 'Touch target minimum' }] : []),
@@ -547,8 +550,9 @@ function Facts({ c, notes, canTry, trying, onTry, notify }) {
         <Disclosure
           title="Checks"
           summary={failing ? <StatusPill variant="info">{failing} failing</StatusPill> : `${checks.length} of ${checks.length} pass`}
-          open={isOpen('checks', failing > 0)}
-          onToggle={(v) => setOpen('checks', v)}
+          // never remembered: Checks opens exactly when something fails
+          open={checksOpen ?? failing > 0}
+          onToggle={setChecksOpen}
         >
           <ul className="gate-list">
             {checks.map((x) => (
