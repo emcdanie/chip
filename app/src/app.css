@@ -1055,11 +1055,20 @@ body {
   list-style: none;
 }
 
-.checks li {
+.checks li,
+.gate-list li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: var(--spacing-1) var(--spacing-3);
+  align-items: baseline;
+}
+
+/* inline pills, never stretched into bars */
+.check-pills {
+  display: inline-flex;
   align-items: center;
+  gap: var(--spacing-1);
+  justify-self: start;
 }
 
 .checks .num {
@@ -1629,7 +1638,15 @@ body {
   gap: var(--spacing-1);
 }
 
-.sandbox-colour [data-bella-component='select'],
+/* left-aligned like the slider rows: label above, the select full width, the token under */
+.sandbox-colour [data-bella-component='select'] {
+  display: grid;
+  justify-items: stretch;
+  justify-content: stretch;
+  inline-size: 100%;
+}
+
+.sandbox-colour [data-bella-component='select'] > span,
 .sandbox-colour select {
   inline-size: 100%;
 }

@@ -24,7 +24,7 @@ import { Badges, VisMenu, canSee, settingsOf } from './visibility.jsx';
 import { SPECIMENS, VARIANTS } from './specimens.jsx';
 import { layout, targetsOf } from './anatomy.js';
 import { forceAttr, installForcedStates } from './forcedStates.js';
-import Sandbox, { baseOf, overridesOf } from './Sandbox.jsx';
+import Sandbox, { baseOf, checkSet, overridesOf } from './Sandbox.jsx';
 
 const REPO_FILE = 'https://github.com/emcdanie/bella/blob/main/tokens/component.json';
 
@@ -574,7 +574,7 @@ function Others({ c }) {
   );
 }
 
-function Facts({ c, notes, role, vis, setVis, trial = null }) {
+function Facts({ c, bella, theme, notes, role, vis, setVis, trial = null }) {
   const tip = sentences(c.restNote, 2);
   // a tip is for people: an internal audit note is not one
   const humanTip = tip && !/audit|data-bella|asserts|invariant/i.test(tip) ? tip : null;
@@ -583,21 +583,8 @@ function Facts({ c, notes, role, vis, setVis, trial = null }) {
   useEffect(() => setChecksOpen(null), [c.id]);
   const pass = (ok, word = ok ? 'pass' : 'fail') => <StatusPill variant={ok ? 'success' : 'neutral'}>{word}</StatusPill>;
   const mine = notes.filter((n) => n.component === c.name);
-  const checks = [
-    { ok: c.health.contrast.status !== 'fail', word: c.health.contrast.status === 'not-covered' ? 'n/a' : undefined, label: `Contrast${c.health.contrast.pairs ? ` · ${c.health.contrast.pairs} pairs` : ''}` },
-    // unchecked is not a failure: the gate did not run that check
-    { ok: ['pass', 'unchecked'].includes(c.health.contract.status), word: c.health.contract.status === 'no-contract' ? 'none' : c.health.contract.status === 'unchecked' ? 'n/a' : undefined, label: 'Contract parity' },
-    { ok: complete(c), label: 'Story and docs present' },
-    { ok: c.inDsds, label: 'DSDS entry' },
-    ...(c.minTarget
-      ? [
-          trial?.minHeight != null
-            ? // while trying a change, the target check reads the slider, not the contract
-              { ok: trial.minHeight >= 44, word: `${trial.minHeight}px`, label: trial.minHeight >= 44 ? 'Touch target minimum (your change)' : `Min height ${trial.minHeight}px is under BELLA's 44px floor` }
-            : { ok: parseFloat(c.minTarget.value) >= 44, word: c.minTarget.value, label: 'Touch target minimum' },
-        ]
-      : []),
-  ];
+  // the same rows Try a change shows; while trying, they read your change
+  const checks = checkSet(bella, c, trial?.draft ?? null, trial?.height ?? null, theme);
   const failing = checks.filter((x) => !x.ok).length;
   // a section's default when this browser has no memory of it
   const isOpen = (k, dflt) => open[k] ?? dflt;
@@ -647,8 +634,11 @@ function Facts({ c, notes, role, vis, setVis, trial = null }) {
           `${checks.length - failing} of ${checks.length} pass${trial ? ' with your change' : ''}`,
           <ul className="gate-list">
             {checks.map((x) => (
-              <li key={x.label}>
-                {pass(x.ok, x.word)} {x.label}
+              <li key={x.key}>
+                {pass(x.ok, x.na ? 'n/a' : undefined)}
+                <span>
+                  <b>{x.label}.</b> {x.text}
+                </span>
               </li>
             ))}
           </ul>,
@@ -912,7 +902,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
               </>
             )}
           </Card>
-          <Facts c={c} notes={notes} role={role} vis={vis} setVis={setVis} trial={view === 'try' && draft.minHeight != null ? { minHeight: Number(draft.minHeight) } : null} />
+          <Facts c={c} notes={notes} role={role} vis={vis} setVis={setVis} bella={bella} theme={theme} trial={view === 'try' ? { draft, height: heights.now } : null} />
         </Columns>
       </div>
 

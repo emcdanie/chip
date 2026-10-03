@@ -173,14 +173,20 @@ if (chromium) {
           const facts = page.locator('[aria-label="Button facts"]');
           await minH.fill('40');
           await page.waitForTimeout(300);
-          const at40 = { summary: /4 of 5 pass/.test(await facts.innerText()), reason: await facts.getByText("Min height 40px is under BELLA's 44px floor").count() };
+          const count = async () => (await facts.innerText()).match(/(\d+) of (\d+) pass/)?.slice(1).map(Number) ?? [0, -1];
+          const [p40, n40] = await count();
+          const at40 = { summary: p40 === n40 - 1, reason: await facts.getByText(/Min height 40px is under BELLA's 44px floor/).count() };
+          // the Try panel lists the same rows with the same counts
+          const panel = (await page.locator('.sandbox-score').innerText()).match(/→ (\d+) of (\d+) pass/)?.slice(1).map(Number) ?? [];
+          const same = panel[0] === p40 && panel[1] === n40;
           await minH.fill('44');
           await page.waitForTimeout(300);
-          const at44 = /5 of 5 pass/.test(await facts.innerText());
+          const [p44, n44] = await count();
+          const at44 = p44 === n44;
           await page.locator('.sandbox-colour').first().scrollIntoViewIfNeeded();
           await check('atlas-try');
-          const ok = at40.summary && at40.reason > 0 && at44;
-          log(`   ${theme} ${w} try a change: 40px -> ${at40.summary ? '4 of 5' : 'NOT 4 of 5'}${at40.reason ? ' with the reason' : ' NO REASON'}; 44px -> ${at44 ? '5 of 5' : 'NOT 5 of 5'}`);
+          const ok = at40.summary && at40.reason > 0 && at44 && same;
+          log(`   ${theme} ${w} try a change: 40px -> ${p40} of ${n40}${at40.reason ? ' with the reason' : ' NO REASON'}${same ? ', Try panel agrees' : ', TRY PANEL DIFFERS'}; 44px -> ${p44} of ${n44}`);
           if (!ok) failures.push(`${theme} ${w} try a change does not flip the touch target check`);
           await page.locator('#specimen').getByRole('button', { name: 'Anatomy' }).click();
         }

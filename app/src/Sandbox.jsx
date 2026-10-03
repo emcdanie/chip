@@ -172,6 +172,50 @@ export function checksOf(bella, c, draft, height, theme) {
   return { checks, accessibility };
 }
 
+/* ---------- one check set, for Facts and Try a change ---------- */
+const storyAndDocs = (c) => c.hasStory && c.hasDocs;
+
+/**
+ * The component's checks, the same list in Facts and in Try a change. With
+ * no draft they read the contract and BELLA's gate; with a draft the
+ * contrast, touch target and focus ring rows read the change instead.
+ * Each row: { key, label, ok, text }.
+ */
+export function checkSet(bella, c, draft, height, theme) {
+  const base = baseOf(c);
+  const live = draft ? checksOf(bella, c, draft, height, theme).checks : [];
+  const changed = (k) => draft && draft[k] !== undefined && draft[k] !== base[k];
+  const of = (k) => live.find((x) => x.key === k);
+  const rows = [];
+  // contrast: the gate's pairs, or the computed pair when a colour changed
+  if (draft && (changed('label') || changed('background')) && of('contrast')) {
+    const k = of('contrast');
+    rows.push({ key: 'contrast', label: 'Contrast', ok: k.pass, text: k.rule });
+  } else {
+    const st = c.health.contrast.status;
+    rows.push({ key: 'contrast', label: 'Contrast', ok: st !== 'fail', na: st === 'not-covered', text: st === 'fail' ? `Failing pairs: ${c.health.contrast.failing.join('; ')}` : st === 'not-covered' ? 'No contrast pairs declared' : `${c.health.contrast.pairs} pairs pass` });
+  }
+  const parity = c.health.contract.status;
+  rows.push({ key: 'parity', label: 'Contract parity', ok: ['pass', 'unchecked'].includes(parity), na: parity === 'unchecked', text: parity === 'no-contract' ? 'No contract' : parity === 'fail' ? c.health.contract.issues.join('; ') : 'Props match the contract' });
+  rows.push({ key: 'docs', label: 'Story and docs', ok: storyAndDocs(c), text: storyAndDocs(c) ? 'Both present' : !c.hasStory ? 'No story' : 'No docs description' });
+  rows.push({ key: 'dsds', label: 'DSDS entry', ok: c.inDsds, text: c.inDsds ? 'Present' : 'Missing' });
+  if (c.minTarget) {
+    if (draft && changed('minHeight') && of('target')) {
+      const k = of('target');
+      rows.push({ key: 'target', label: 'Touch target', ok: k.pass, text: k.rule });
+    } else {
+      const v = parseFloat(c.minTarget.value);
+      rows.push({ key: 'target', label: 'Touch target', ok: v >= BELLA_FLOOR, text: `Min height ${c.minTarget.value}${v >= BELLA_FLOOR ? ` meets BELLA's ${BELLA_FLOOR}px floor` : ` is under BELLA's ${BELLA_FLOOR}px floor`}` });
+    }
+  }
+  // the focus ring: only components whose contract has a ring slot
+  if (c.sandbox?.ringWidth) {
+    const k = checksOf(bella, c, draft ?? base, height, theme).checks.find((x) => x.key === 'ring');
+    if (k) rows.push({ key: 'ring', label: 'Focus ring', ok: k.pass, text: k.rule });
+  }
+  return rows;
+}
+
 /* ---------- the panel section ---------- */
 function blastOf(bella, c, draft) {
   const tokens = Object.keys(overridesOf(c, draft));
@@ -266,7 +310,9 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
   const changed = Object.keys(overridesOf(c, draft)).length > 0;
   const blast = blastOf(bella, c, draft);
   const set = (k) => (v) => setDraft((d) => ({ ...d, [k]: v }));
-  const passing = (r) => r.checks.filter((k) => k.pass).length;
+  const rowsBefore = checkSet(bella, c, null, heights.base, theme);
+  const rowsAfter = checkSet(bella, c, draft, heights.now, theme);
+  const passing = (rows) => rows.filter((k) => k.ok).length;
   // short option names so the menu never cuts one off; the full token shows under it
   const short = (t) => t.replace(/^--color-semantic-/, '').replace(new RegExp(`^--component-${c.id}-`), '').replace(/^--/, '');
   const colours = (slot) => [
@@ -329,17 +375,29 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
       <div className="sandbox-score" aria-live="polite">
         <p className="score-line">
           <b>
-            Checks {passing(before)} of {before.checks.length} → {passing(after)} of {after.checks.length}
-          </b>{' '}
-          · accessibility {before.accessibility ?? 'n/a'} → {after.accessibility ?? 'n/a'}
+            Checks {passing(rowsBefore)} of {rowsBefore.length} → {passing(rowsAfter)} of {rowsAfter.length} pass
+          </b>
         </p>
         <ul className="checks">
-          {after.checks.map((k) => (
-            <li key={k.key}>
-              <StatusPill variant={k.pass ? 'success' : 'neutral'}>{k.pass ? 'pass' : 'fail'}</StatusPill>
-              <span className="check-rule">{k.rule}</span>
-            </li>
-          ))}
+          {rowsAfter.map((k) => {
+            const b = rowsBefore.find((x) => x.key === k.key);
+            return (
+              <li key={k.key}>
+                <span className="check-pills">
+                  {b && b.ok !== k.ok ? (
+                    <>
+                      <StatusPill variant={b.ok ? 'success' : 'neutral'}>{b.ok ? 'pass' : 'fail'}</StatusPill>
+                      <span aria-hidden="true">→</span>
+                    </>
+                  ) : null}
+                  <StatusPill variant={k.ok ? 'success' : 'neutral'}>{k.ok ? 'pass' : 'fail'}</StatusPill>
+                </span>
+                <span>
+                  <b>{k.label}.</b> {k.text}
+                </span>
+              </li>
+            );
+          })}
         </ul>
         {changed ? (
           <p className="label">
