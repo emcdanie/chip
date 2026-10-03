@@ -643,7 +643,15 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
           <Heading tier="section" as="h1" id="specimen-h">
             {c.name}
           </Heading>
-          {c.description ? <p className="desc-2">{c.description}</p> : null}
+          {c.description ? (
+            // two lines, then More expands it in place
+            <details className="desc-more">
+              <summary>
+                <span className="desc-2">{c.description}</span>
+                <span className="more">More</span>
+              </summary>
+            </details>
+          ) : null}
 
           {mode === 'try' ? (
             <Sandbox bella={bella} c={c} draft={draft} setDraft={setDraft} heights={heights} theme={theme} notify={setToast} onReset={() => setMode('anatomy')}>

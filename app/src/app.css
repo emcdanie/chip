@@ -378,6 +378,40 @@ body {
   overflow: hidden;
 }
 
+.more {
+  font-size: var(--typography-font-size-sm);
+  color: var(--color-semantic-text-primary);
+  text-decoration: underline;
+  text-underline-offset: var(--component-link-default-underline-offset);
+}
+
+.desc-more summary {
+  display: grid;
+  gap: var(--spacing-1);
+  justify-items: start;
+  cursor: pointer;
+  list-style: none;
+}
+
+.desc-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.desc-more summary:focus-visible {
+  outline: var(--ring-focus-width) solid var(--ring-focus-color);
+  outline-offset: var(--ring-focus-offset);
+}
+
+.desc-more[open] .desc-2 {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.desc-more[open] .more {
+  display: none;
+}
+
 .stage-bar {
   display: flex;
   flex-wrap: wrap;
