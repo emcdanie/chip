@@ -201,7 +201,7 @@ export default function App() {
 
   // Health shows its own sections; the component list belongs to Atlas
   const groups = [];
-  if (ws === 'health') groups.push({ label: 'On this page', items: HEALTH_SECTIONS });
+  if (ws === 'health') groups.push({ label: 'On this page', items: HEALTH_SECTIONS.filter((x) => x.href !== '#failures' || failures.length) });
   const byCat = {};
   for (const c of ws === 'atlas' ? bella?.components ?? [] : []) (byCat[c.category ?? NO_CONTRACT] ??= []).push(c);
   for (const cat of [...CATEGORIES, NO_CONTRACT]) {
