@@ -706,7 +706,7 @@ function Tokens({ c, theme, hl, setHl, notify }) {
   };
   return (
     <Card innerClassName="tokens-card">
-      <div className="table-scroll">
+      <div className="table-scroll" tabIndex={0} role="region" aria-label={`${c.name} tokens`}>
         <table className="tok-table">
           <caption className="sr-only">{c.name} tokens and their values in this theme</caption>
           <thead>
@@ -716,7 +716,7 @@ function Tokens({ c, theme, hl, setHl, notify }) {
         </table>
       </div>
       <Disclosure title={`All ${c.tokens.count} tokens`} summary="read only">
-        <div className="table-scroll">
+        <div className="table-scroll" tabIndex={0} role="region" aria-label={`${c.name} all tokens`}>
           <table className="tok-table">
             <caption className="sr-only">Every token {c.name} reads</caption>
             <thead>

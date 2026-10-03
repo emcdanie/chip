@@ -173,7 +173,7 @@ export function SpecSection({ c, figmaNames = null, onSend, sendOpen }) {
       <Card innerClassName="spec-card">
         <h3 className="card-title">Properties</h3>
         {spec?.props ? (
-          <div className="table-scroll">
+          <div className="table-scroll" tabIndex={0} role="region" aria-label={`${c.name} props`}>
             <table className="tok-table spec-props">
               <caption className="sr-only">{c.name} props: values, default and the Figma name</caption>
               <thead>
@@ -200,7 +200,7 @@ export function SpecSection({ c, figmaNames = null, onSend, sendOpen }) {
         <Card innerClassName="spec-card">
           <h3 className="card-title">Anatomy</h3>
           {c.parts.length ? (
-            <div className="table-scroll">
+            <div className="table-scroll" tabIndex={0} role="region" aria-label={`${c.name} anatomy`}>
               <table className="tok-table">
                 <caption className="sr-only">{c.name} anatomy: each part, its element and token</caption>
                 <thead>

@@ -1881,6 +1881,12 @@ body {
   overflow-x: auto;
 }
 
+/* a table that scrolls sideways takes focus, so the keyboard can scroll it */
+.table-scroll:focus-visible {
+  outline: var(--ring-focus-width) solid var(--ring-focus-color);
+  outline-offset: var(--ring-focus-offset);
+}
+
 .tok-table {
   inline-size: 100%;
   border-collapse: collapse;
