@@ -116,6 +116,16 @@ if (chromium) {
               const st = getComputedStyle(e);
               if ((st.textOverflow === 'ellipsis' || st.webkitLineClamp !== 'none') && (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1)) out.push(e.textContent.trim().slice(0, 40));
             }
+            // a select shows its chosen option in a box the browser cuts off without an ellipsis
+            const cv = document.createElement('canvas').getContext('2d');
+            for (const sel of document.querySelectorAll('select')) {
+              if (!shown(sel) || !sel.options[sel.selectedIndex]) continue;
+              const st = getComputedStyle(sel);
+              cv.font = `${st.fontWeight} ${st.fontSize} ${st.fontFamily}`;
+              const room = sel.clientWidth - parseFloat(st.paddingLeft) - parseFloat(st.paddingRight);
+              const text = sel.options[sel.selectedIndex].text;
+              if (cv.measureText(text).width > room + 1) out.push(`select: ${text.slice(0, 40)}`);
+            }
             const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
             for (let n; (n = tw.nextNode()); ) if (/\S…\S/.test(n.textContent) && n.parentElement && shown(n.parentElement)) out.push(n.textContent.trim().slice(0, 40));
             return out;
@@ -167,6 +177,8 @@ if (chromium) {
           await minH.fill('44');
           await page.waitForTimeout(300);
           const at44 = /5 of 5 pass/.test(await facts.innerText());
+          await page.locator('.sandbox-colour').first().scrollIntoViewIfNeeded();
+          await check('atlas-try');
           const ok = at40.summary && at40.reason > 0 && at44;
           log(`   ${theme} ${w} try a change: 40px -> ${at40.summary ? '4 of 5' : 'NOT 4 of 5'}${at40.reason ? ' with the reason' : ' NO REASON'}; 44px -> ${at44 ? '5 of 5' : 'NOT 5 of 5'}`);
           if (!ok) failures.push(`${theme} ${w} try a change does not flip the touch target check`);

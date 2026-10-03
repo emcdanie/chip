@@ -1622,6 +1622,18 @@ body {
   min-inline-size: 0;
 }
 
+/* a colour picker takes the full row: its select fills it, the full token sits under it */
+.sandbox-colour {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+.sandbox-colour [data-bella-component='select'],
+.sandbox-colour select {
+  inline-size: 100%;
+}
+
 .view-as > span:first-child {
   position: static;
   width: auto;

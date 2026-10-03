@@ -11,6 +11,7 @@ import FilterChip from '@bella/components/FilterChip/FilterChip';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import { forceAttr } from './forcedStates.js';
+import { Token } from './Atlas.jsx';
 
 const BELLA_FLOOR = 44; // BELLA's touch target (WCAG 2.5.5 Enhanced)
 const WCAG_MIN = 24; // WCAG 2.5.8 Target Size (Minimum), AA
@@ -266,12 +267,23 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
   const blast = blastOf(bella, c, draft);
   const set = (k) => (v) => setDraft((d) => ({ ...d, [k]: v }));
   const passing = (r) => r.checks.filter((k) => k.pass).length;
+  // short option names so the menu never cuts one off; the full token shows under it
+  const short = (t) => t.replace(/^--color-semantic-/, '').replace(new RegExp(`^--component-${c.id}-`), '').replace(/^--/, '');
   const colours = (slot) => [
-    { value: slot.token, label: `${slot.token} (contract)` },
+    { value: slot.token, label: `${short(slot.token)} (contract)` },
     ...Object.keys(bella.palette)
       .filter((t) => t !== slot.token)
-      .map((t) => ({ value: t, label: t })),
+      .map((t) => ({ value: t, label: short(t) })),
   ];
+  const colour = (k, label) =>
+    s[k] ? (
+      <div className="sandbox-colour">
+        <Select label={label} value={draft[k]} onChange={set(k)} options={colours(s[k])} />
+        <p className="label mono">
+          <Token name={draft[k]} />
+        </p>
+      </div>
+    ) : null;
   const slider = (k) =>
     s[k] ? (
       <Slider
@@ -310,8 +322,8 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
       </div>
       <div className="sandbox-fields">
         {Object.keys(SLIDERS).map(slider)}
-        {s.label ? <Select label="Label colour" value={draft.label} onChange={set('label')} options={colours(s.label)} /> : null}
-        {s.background ? <Select label="Background" value={draft.background} onChange={set('background')} options={colours(s.background)} /> : null}
+        {colour('label', 'Label colour')}
+        {colour('background', 'Background')}
       </div>
 
       <div className="sandbox-score" aria-live="polite">
