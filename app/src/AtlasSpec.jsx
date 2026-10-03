@@ -24,6 +24,7 @@ function measure(frame) {
   const doc = getComputedStyle(document.documentElement);
   const zoom = root.offsetWidth ? r.width / root.offsetWidth : 1;
   return {
+    fw: fr.width,
     x: r.left - fr.left,
     y: r.top - fr.top,
     w: r.width,
@@ -56,6 +57,8 @@ export function SpecStage({ c, overrides }) {
   }, [update, c.id]);
   const s = c.sandbox ?? {};
   const z = m?.zoom ?? 1;
+  // a narrow card: tags go under the box instead of beside it
+  const narrow = m ? m.fw - (m.x + m.w) < 150 : false;
   return (
     <>
       <div className="stage spec-stage" aria-label={`${c.name} with its measurements`}>
@@ -64,25 +67,25 @@ export function SpecStage({ c, overrides }) {
             {Render ? <Render /> : null}
           </div>
           {m ? (
-            <div className="redlines" aria-hidden="true">
+            <div className="redlines" aria-hidden="true" data-narrow={narrow || undefined}>
               {/* padding bands: where each value is measured */}
               {m.pl ? <span className="rl-band" style={{ left: m.x, top: m.y, width: m.pl * z, height: m.h }} /> : null}
               {m.pr ? <span className="rl-band" style={{ left: m.x + m.w - m.pr * z, top: m.y, width: m.pr * z, height: m.h }} /> : null}
               {m.pt ? <span className="rl-band" style={{ left: m.x + m.pl * z, top: m.y, width: m.w - (m.pl + m.pr) * z, height: m.pt * z }} /> : null}
               {m.pb ? <span className="rl-band" style={{ left: m.x + m.pl * z, top: m.y + m.h - m.pb * z, width: m.w - (m.pl + m.pr) * z, height: m.pb * z }} /> : null}
-              {/* side padding: labels outside, leaders into the band */}
-              {m.pl ? <span className="rl-tag rl-tag--left" style={{ left: m.x - 8, top: m.y + m.h / 2 }}>{m.pl}px</span> : null}
-              {m.pr ? <span className="rl-tag rl-tag--right" style={{ left: m.x + m.w + 8, top: m.y + m.h / 2 }}>{m.pr}px</span> : null}
+              {/* side padding: beside the box when there is room, under each band when the card is narrow */}
+              {m.pl ? <span className={`rl-tag ${narrow ? 'rl-tag--below' : 'rl-tag--left'}`} style={narrow ? { left: m.x + (m.pl * z) / 2, top: m.y + m.h + 6 } : { left: m.x - 8, top: m.y + m.h / 2 }}>{m.pl}px</span> : null}
+              {m.pr ? <span className={`rl-tag ${narrow ? 'rl-tag--below' : 'rl-tag--right'}`} style={narrow ? { left: m.x + m.w - (m.pr * z) / 2, top: m.y + m.h + 6 } : { left: m.x + m.w + 8, top: m.y + m.h / 2 }}>{m.pr}px</span> : null}
               {/* top and bottom padding: above and below */}
               {m.pt ? <span className="rl-tag rl-tag--above" style={{ left: m.x + m.w / 2, top: m.y - 8 }}>{m.pt}px</span> : null}
-              {m.pb ? <span className="rl-tag rl-tag--below" style={{ left: m.x + m.w / 2, top: m.y + m.h + 8 }}>{m.pb}px</span> : null}
-              {/* min height: a bracket on the right, beyond the side tag */}
-              <span className="rl-vline" style={{ left: m.x + m.w + 64, top: m.y, height: m.h }} />
-              <span className="rl-tag rl-tag--right" style={{ left: m.x + m.w + 72, top: m.y + m.h / 2 }}>
+              {m.pb ? <span className="rl-tag rl-tag--below" style={{ left: m.x + m.w / 2, top: m.y + m.h + (narrow ? 6 : 8) }}>{m.pb}px</span> : null}
+              {/* min height: a bracket on the right, beyond the side tag; its tag goes under it when the right side is tight */}
+              <span className="rl-vline" style={{ left: m.x + m.w + (narrow ? 14 : 56), top: m.y, height: m.h }} />
+              <span className={`rl-tag ${narrow ? 'rl-tag--below' : 'rl-tag--right'}`} style={narrow ? { left: m.x + m.w + 15, top: m.y + m.h + 30 } : { left: m.x + m.w + 64, top: m.y + m.h / 2 }}>
                 {m.minH ? `${m.minH}px min` : `${m.height}px`}
               </span>
-              {/* radius: a leader from the top-left corner */}
-              {m.radius ? (
+              {/* radius: a leader from the top-left corner, only when there is room for it (the legend always lists it) */}
+              {m.radius && m.x >= 110 ? (
                 <>
                   <span className="rl-leader" style={{ left: m.x - 40 + m.radius * z * 0.3, top: m.y + m.radius * z * 0.3 }} />
                   <span className="rl-tag rl-tag--corner" style={{ left: m.x - 32, top: m.y - 32 }}>radius {m.radius}px</span>
