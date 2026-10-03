@@ -179,3 +179,32 @@ export function routeFor(q, models, budget) {
 export function soundsUnsure(text) {
   return /nothing in my sources covers|not sure|i don'?t know|unclear from the sources|cannot find|can'?t find/i.test(text ?? '');
 }
+
+/* ---------- citations: one marker per sentence, one per run ---------- */
+// Models over-cite ("… [2]. … [2]. … [2][3]."). Per paragraph or list item:
+// a sentence keeps its first marker only, and a run of sentences citing the
+// same source keeps one marker, at the end of the run. Works on any
+// provider's text, as it streams.
+export function tidyCitations(text) {
+  if (!text) return text;
+  return text
+    .split('\n')
+    .map((line) => {
+      const lead = line.match(/^\s*(?:[-*] |#+\s*)?/)[0];
+      const body = line.slice(lead.length);
+      const sentences = body.split(/(?<=[.!?])\s+/);
+      const marks = sentences.map((s) => {
+        const m = s.match(/\[(\d+)\]/);
+        return m ? m[1] : null;
+      });
+      const out = sentences.map((s, i) => {
+        let plain = s.replace(/\s*\[\d+\]/g, '').replace(/\s+([.,;:!?])/g, '$1');
+        const n = marks[i];
+        // drop the marker when the next sentence cites the same source
+        if (!n || marks[i + 1] === n) return plain;
+        return /[.!?:;]$/.test(plain) ? plain.replace(/([.!?:;]+)$/, ` [${n}]$1`) : `${plain} [${n}]`;
+      });
+      return lead + out.join(' ');
+    })
+    .join('\n');
+}

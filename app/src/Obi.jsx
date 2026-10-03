@@ -11,7 +11,7 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import DataTable from '@bella/components/DataTable/DataTable';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Combobox from '@bella/components/Combobox/Combobox';
-import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure } from './answers.js';
+import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations } from './answers.js';
 import Select from '@bella/components/Select/Select';
 
 const COMMANDS = [
@@ -100,7 +100,7 @@ function Rich({ text, sources }) {
 const rowText = (data, r) => data.columns.map((c) => r[c.key]).join(' · ');
 
 function proposalOf(t) {
-  const body = t.data ? [t.data.title, '', ...t.data.rows.map((r) => `- ${rowText(t.data, r)}`)].join('\n') : t.text;
+  const body = t.data ? [t.data.title, '', ...t.data.rows.map((r) => `- ${rowText(t.data, r)}`)].join('\n') : tidyCitations(t.text);
   const src = (t.sources ?? []).map((s) => `[${s.n}] ${s.title} · ${s.url ?? s.path}`);
   return [`## ${t.q}`, '', `${t.path === 'data' ? 'From BELLA data' : 'From your docs'} (${t.page ?? 'CHIP'})`, '', body, '', ...(src.length ? ['Sources:', ...src] : [])].join('\n');
 }
@@ -183,7 +183,7 @@ function AskTurn({ t, bella, page, claudeOk, onOpenAtlas, onSandbox, onSave, onC
               <ActionChip onClick={() => onIncludePrivate(t)}>Include them this session</ActionChip>
             </p>
           ) : null}
-          {t.text ? <Rich text={t.text} sources={t.sources} /> : <p className="meta">Reading your sources…</p>}
+          {t.text ? <Rich text={tidyCitations(t.text)} sources={t.sources} /> : <p className="meta">Reading your sources…</p>}
           {t.cutOff ? <p className="turn-note">This answer stopped part way ({t.cutOff}).</p> : null}
           {done && t.place === 'local' && claudeOk && soundsUnsure(t.text) ? (
             <p className="turn-escalate">
