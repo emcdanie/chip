@@ -4,7 +4,8 @@
 // Notion is now synced into the index, so retrieval replaces tool calls.
 import { randomUUID } from 'node:crypto';
 import { search } from './index.mjs';
-import { chat, chatStream } from './llm.js';
+import { chat } from './llm.js';
+import { resolve, providers } from '../providers/index.mjs';
 import { CHIP_CONTEXT_WORDS } from './config.mjs';
 
 const TOP_K = 6;
@@ -60,25 +61,37 @@ function fitBudget(chunks) {
   return picked;
 }
 
+// Notion pages are Elleta's own workspace: they stay off the cloud unless she
+// says yes for this session. Nothing in the index is marked public yet, so
+// every Notion source counts as private (privacy first).
+const isPrivate = (c) => (c.path || '').startsWith('data/notion/') || /notion\.(so|com)/.test(c.url || '');
+
 // page: what the user is looking at ("Atlas · Button"); it biases retrieval
-// and tells the model what "here" and "this" mean.
-async function prepare(message, sessionId, page) {
+// and tells the model what "here" and "this" mean. cloud + includePrivate
+// decide whether private sources may go to a cloud model.
+async function prepare(message, sessionId, page, { cloud = false, includePrivate = false } = {}) {
   const id = sessionId || randomUUID();
   const history = sessions.get(id) || [];
-  const found = await search(page ? `${message} (${page})` : message, TOP_K);
+  let found = await search(page ? `${message} (${page})` : message, TOP_K * (cloud && !includePrivate ? 3 : 1));
+  let heldBack = 0;
+  if (cloud && !includePrivate) {
+    heldBack = found.filter(isPrivate).length;
+    found = found.filter((c) => !isPrivate(c));
+  }
+  found = found.slice(0, TOP_K);
   const top = found[0]?.score ?? 0;
   if (top < WEAK_SCORE) {
-    return { id, weak: true, top, closest: [...numbered(found.slice(0, 3)).values()] };
+    return { id, weak: true, top, heldBack, closest: [...numbered(found.slice(0, 3)).values()] };
   }
   const chunks = fitBudget(found);
   const nums = numbered(chunks);
   const context = chunks.map((c) => `[${nums.get(keyOf(c)).n}] ${c.title}\n${c.text}`).join('\n\n---\n\n');
   const where = page ? `The user is looking at: ${page}.\n\n` : '';
-  const messages = [{ role: 'system', content: SYSTEM }, ...history,
-    { role: 'user', content: `Sources:\n\n${context}\n\n===\n\n${where}Question: ${message}` }];
+  const turns = [...history, { role: 'user', content: `Sources:\n\n${context}\n\n===\n\n${where}Question: ${message}` }];
+  const messages = [{ role: 'system', content: SYSTEM }, ...turns];
   const remember = (reply) => // history keeps the bare question, not the sources
     sessions.set(id, [...history, { role: 'user', content: message }, { role: 'assistant', content: reply }].slice(-HISTORY_TURNS));
-  return { id, top, messages, sources: [...nums.values()], remember };
+  return { id, top, heldBack, messages, turns, sources: [...nums.values()], remember };
 }
 
 export async function ask(message, sessionId, page) {
@@ -90,18 +103,53 @@ export async function ask(message, sessionId, page) {
   return { reply, sessionId: id, sources };
 }
 
-// Streaming: { type: 'sources' } first, then { type: 'token' } pieces, then
-// { type: 'done' }. A weak best match yields one { type: 'weak', closest }.
-export async function* askStream(message, sessionId, page) {
-  const prep = await prepare(message, sessionId, page);
+// Streaming: { type: 'provider' } (who answers), { type: 'private' } when
+// Notion sources were held back from the cloud, { type: 'sources' }, then
+// { type: 'token' } pieces and { type: 'done' }. A weak best match yields one
+// { type: 'weak', closest } and no model call. If Claude cannot answer, a
+// { type: 'fallback', reason } precedes the local model's answer.
+// opts: { provider: 'local:<model>' | 'claude', includePrivate }
+export async function* askStream(message, sessionId, page, opts = {}) {
+  let { provider, model } = resolve(opts.provider);
+  const prep = await prepare(message, sessionId, page, { cloud: provider.place === 'cloud', includePrivate: opts.includePrivate });
+  if (prep.heldBack) yield { type: 'private', heldBack: prep.heldBack };
   if (prep.weak) {
     yield { type: 'weak', closest: prep.closest, top: prep.top, sessionId: prep.id };
     return;
   }
-  const { id, messages, sources, remember } = prep;
+  let { id, turns, sources, remember } = prep;
   yield { type: 'sources', sources, sessionId: id, top: prep.top };
+  const run = async function* (p, m) {
+    for await (const text of p.ask({ system: SYSTEM, messages: turns, model: m })) yield text;
+  };
   let reply = '';
-  for await (const text of chatStream(messages)) { reply += text; yield { type: 'token', text }; }
+  let gen = run(provider, model);
+  let first;
+  try {
+    first = await gen.next();
+  } catch (err) {
+    if (provider.place !== 'cloud') throw err;
+    yield { type: 'fallback', reason: err.message };
+    provider = providers.local;
+    model = undefined;
+    // a local answer may read every source again, private ones included
+    const again = await prepare(message, id, page);
+    if (!again.weak) {
+      ({ turns, sources, remember } = again);
+      yield { type: 'sources', sources, sessionId: id, top: again.top };
+    }
+    gen = run(provider, model);
+    first = await gen.next();
+  }
+  yield { type: 'provider', id: provider.id, place: provider.place, model: provider.id === 'claude' ? 'Claude' : model || (await providers.local.list()).find((x) => x.isDefault)?.label || 'local' };
+  if (!first.done) {
+    reply += first.value;
+    yield { type: 'token', text: first.value };
+    for await (const text of gen) {
+      reply += text;
+      yield { type: 'token', text };
+    }
+  }
   remember(reply.trim());
-  yield { type: 'done', reply: reply.trim(), sessionId: id, sources };
+  yield { type: 'done', reply: reply.trim(), sessionId: id, sources, provider: provider.id };
 }

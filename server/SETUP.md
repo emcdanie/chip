@@ -47,6 +47,8 @@ npm start     # http://localhost:3100
 | `CHIP_EMBED_MODEL` | `nomic-embed-text` | embedding model (changing it re-embeds everything) |
 | `OLLAMA_URL` | `http://localhost:11434` | Ollama API |
 | `PORT` | `3100` | server port (the only place it is set) |
+| `CHIP_CLAUDE_DAILY` | `20` | questions a day OBI's Auto may send to Claude (manual picks still go through) |
+| `CHIP_CLAUDE_BIN` | `claude` | the Claude Code binary OBI runs headless, read-only, on your plan |
 | `CHIP_KEEP_ALIVE` | `30m` | how long Ollama keeps the model loaded |
 | `CHIP_NUM_CTX` | `4096` | context window cap |
 | `CHIP_CONTEXT_WORDS` | `450` | words of retrieved sources sent per question |

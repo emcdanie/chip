@@ -17,8 +17,8 @@ async function request(path, body) {
   return res;
 }
 
-const chatBody = (messages, stream) => ({
-  model: CHIP_MODEL, messages, stream, think: false,
+const chatBody = (messages, stream, model = CHIP_MODEL) => ({
+  model, messages, stream, think: false,
   options: { num_ctx: CHIP_NUM_CTX, temperature: 0.2 },
 });
 
@@ -29,8 +29,9 @@ export async function chat(messages) {
 }
 
 // Yields text pieces as the model generates them (Ollama streams NDJSON).
-export async function* chatStream(messages) {
-  const res = await request('/api/chat', chatBody(messages, true));
+// model: any installed Ollama model (the picker's choice); CHIP_MODEL by default
+export async function* chatStream(messages, model) {
+  const res = await request('/api/chat', chatBody(messages, true, model));
   const decoder = new TextDecoder();
   let buf = '';
   for await (const part of res.body) {

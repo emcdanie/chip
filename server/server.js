@@ -9,6 +9,9 @@ import { ROOT, PORT, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL } from './lib/conf
 import { ask, askStream } from './lib/ask.mjs';
 import { warm } from './lib/llm.js';
 import { loadIndex } from './lib/index.mjs';
+import { listAll } from './providers/index.mjs';
+import { logUsage, claudeToday } from './lib/usage.mjs';
+import { CHIP_CLAUDE_DAILY } from './lib/config.mjs';
 
 const app = express();
 app.use(express.json());
@@ -35,6 +38,15 @@ app.get('/health', (_req, res) => {
 app.post('/ask', async (req, res) => {
   const { message, sessionId, stream } = req.body || {};
   const page = typeof req.body?.page === 'string' ? req.body.page.slice(0, 120) : undefined;
+  // who answers: 'local:<model>' or 'claude'; route says why ("Auto → Claude · asked for a review")
+  const providerId = typeof req.body?.provider === 'string' ? req.body.provider.slice(0, 80) : undefined;
+  const route = typeof req.body?.route === 'string' ? req.body.route.slice(0, 160) : null;
+  const auto = req.body?.auto === true;
+  const includePrivate = req.body?.includePrivate === true;
+  const override = req.body?.override;
+  if (override && typeof override.autoChose === 'string' && typeof override.chose === 'string') {
+    logUsage({ type: 'override', autoChose: override.autoChose.slice(0, 80), chose: override.chose.slice(0, 80), page });
+  }
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ error: 'message is required' });
   }
@@ -42,7 +54,11 @@ app.post('/ask', async (req, res) => {
     res.setHeader('content-type', 'application/x-ndjson; charset=utf-8');
     res.setHeader('cache-control', 'no-cache');
     try {
-      for await (const ev of askStream(message.trim(), sessionId, page)) res.write(JSON.stringify(ev) + '\n');
+      for await (const ev of askStream(message.trim(), sessionId, page, { provider: providerId, includePrivate })) {
+        res.write(JSON.stringify(ev) + '\n');
+        if (ev.type === 'done') logUsage({ type: 'ask', provider: ev.provider, asked: providerId ?? 'local', route, auto, page });
+        if (ev.type === 'weak') logUsage({ type: 'ask', provider: 'none', asked: providerId ?? 'local', route, auto, page, weak: true });
+      }
     } catch (err) {
       console.error('[CHIP server]', err.message);
       res.write(JSON.stringify({ type: 'error', error: err.message }) + '\n');
@@ -55,6 +71,11 @@ app.post('/ask', async (req, res) => {
     console.error('[CHIP server]', err.message);
     res.status(502).json({ error: err.message });
   }
+});
+
+// GET /models: what OBI can pick, and today's Claude budget for Auto.
+app.get('/models', async (_req, res) => {
+  res.json({ models: await listAll(), budget: { used: claudeToday(), limit: CHIP_CLAUDE_DAILY } });
 });
 
 // GET /docs: every indexed source once, { title, path | url }, for the jump palette.

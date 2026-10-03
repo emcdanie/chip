@@ -131,6 +131,13 @@ const commands = {
       const b = JSON.parse(readFileSync(BELLA_JSON, 'utf8'));
       console.log(`bella    ${b.components.length} components @ ${b.source.commit}`);
     }
+    // OBI: today's Claude use against Auto's budget, and the week's overrides
+    const { claudeToday, topOverrides } = await import('../server/lib/usage.mjs');
+    const { CHIP_CLAUDE_DAILY } = await import('../server/lib/config.mjs');
+    console.log(`claude   Auto sent ${claudeToday()} of ${CHIP_CLAUDE_DAILY} today (its daily budget; hand picks are not counted)`);
+    const top = topOverrides(3);
+    console.log(`overrides this week${top.length ? '' : ': none'}`);
+    for (const o of top) console.log(`  ${o.count}× Auto chose ${o.from}, you chose ${o.to}`);
   },
 };
 

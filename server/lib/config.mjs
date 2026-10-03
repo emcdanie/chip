@@ -21,6 +21,10 @@ export const CHIP_EMBED_MODEL = env.CHIP_EMBED_MODEL || 'nomic-embed-text';
 export const CHIP_KEEP_ALIVE = env.CHIP_KEEP_ALIVE || '30m';
 export const CHIP_NUM_CTX = Number(env.CHIP_NUM_CTX || 4096);
 export const CHIP_CONTEXT_WORDS = Number(env.CHIP_CONTEXT_WORDS || 450);
+// how many questions a day Auto may send to Claude (manual picks still go through)
+export const CHIP_CLAUDE_DAILY = Number(env.CHIP_CLAUDE_DAILY || 20);
+// the Claude Code binary OBI runs headless
+export const CHIP_CLAUDE_BIN = env.CHIP_CLAUDE_BIN || 'claude';
 export const NOTION_API_TOKEN = env.NOTION_API_TOKEN || '';
 export const BELLA_DIR = env.BELLA_DIR || join(homedir(), 'DEV', 'bella');
 
