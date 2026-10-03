@@ -2,8 +2,8 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "a0e0b22",
-    "committedAt": "2026-10-03T12:46:24+02:00",
+    "commit": "b15f03e",
+    "committedAt": "2026-10-03T13:10:54+02:00",
     "version": "0.3.0"
   },
   "counts": {
@@ -25,7 +25,7 @@ window.BELLA = {
       ]
     },
     "cssVars": {
-      "light": 590,
+      "light": 591,
       "darkOverrides": 0
     }
   },
@@ -423,6 +423,18 @@ window.BELLA = {
     {
       "commit": "a158e42",
       "committedAt": "2026-10-03T12:14:28+02:00",
+      "components": 27,
+      "storyCoverage": 93,
+      "contractCoverage": 93,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "b15f03e",
+      "committedAt": "2026-10-03T13:10:54+02:00",
       "components": 27,
       "storyCoverage": 93,
       "contractCoverage": 93,
@@ -1225,6 +1237,9 @@ window.BELLA = {
     "--component-data-table-border-radius": [
       "DataTable"
     ],
+    "--component-data-table-compact-row-min-height": [
+      "DataTable"
+    ],
     "--component-data-table-font-size": [
       "DataTable"
     ],
@@ -1821,6 +1836,8 @@ window.BELLA = {
         "focus",
         "disabled"
       ],
+      "shapes": [],
+      "rendersAs": "a button, or one anchor with href",
       "usage": [
         "OBI suggestions and answer actions",
         "Component chips that open Atlas",
@@ -1940,6 +1957,8 @@ window.BELLA = {
       "states": [
         "default"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "A portrait beside a name and role",
         "An author or testimonial attribution",
@@ -2044,6 +2063,8 @@ window.BELLA = {
       "states": [
         "default"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "The site nav (size nav, 40px tall)",
         "The footer sign-off (size full-bleed)",
@@ -2136,6 +2157,11 @@ window.BELLA = {
         "focus",
         "disabled"
       ],
+      "shapes": [
+        "default",
+        "pill"
+      ],
+      "rendersAs": "a button, or one anchor with href",
       "usage": [
         "Hero CTA",
         "Card 'Read more' action",
@@ -2428,6 +2454,8 @@ window.BELLA = {
         "hover",
         "focus"
       ],
+      "shapes": [],
+      "rendersAs": "a div; with href one anchor, with onClick one button",
       "usage": [
         "Portfolio grid",
         "Case-study cards",
@@ -2654,6 +2682,8 @@ window.BELLA = {
         "active-option",
         "focus"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "CHIP's one input: jump to a component or doc, or ask OBI",
         "Any field that picks from a grouped, filtered list"
@@ -2778,6 +2808,7 @@ window.BELLA = {
         "className",
         "columns",
         "defaultSort",
+        "density",
         "maxHeight",
         "onSelect",
         "rowKey",
@@ -2792,6 +2823,8 @@ window.BELLA = {
         "hover",
         "focus"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "CHIP per-component health results",
         "Any comparison of the same facts across many items"
@@ -2800,13 +2833,14 @@ window.BELLA = {
         "Do not dim unselected rows: selection is the ochre fill, everything else keeps its paint",
         "Do not use ochre-deep for selection: it is the focus ring only",
         "Do not left-align figures: numeric columns are right-aligned and tabular",
-        "Do not drop the caption: it names the table"
+        "Do not drop the caption: it names the table",
+        "Do not use density compact on a sortable or selectable table: interactive rows keep the 44px target (the component ignores compact there)"
       ],
       "restNote": "Flat: rules, the sticky header and the cell text. audit:quality asserts no elevation or animation (root carries data-bella-component=data-table).",
       "a11y": "Verified 2026-10-03: a real table with a visible caption; column headers scope=col, the first cell of each row scope=row. Sortable headers hold a button and carry aria-sort (none, ascending, descending); the arrow is decorative. Selection is a toggle button with aria-pressed in the row header; the selected row is ochre fill with ink text, 9.01:1 (AAA), nested components included (a muted StatusPill label on ochre would be 3.51:1), and no other row changes. Header labels text-secondary on panel, 7.09:1 light / 8.44:1 dark (AAA). With maxHeight the scroll wrapper is a focusable region named by the caption. Sort and select buttons hit the 44px touch-target token; focus ring 3px.",
       "minTarget": {
-        "token": "--component-data-table-row-min-height",
-        "value": "44px"
+        "token": "--component-data-table-compact-row-min-height",
+        "value": "32px"
       },
       "sandbox": {
         "minHeight": null,
@@ -2835,8 +2869,8 @@ window.BELLA = {
         "Icon"
       ],
       "tokens": {
-        "count": 24,
-        "component": 6,
+        "count": 25,
+        "component": 7,
         "semantic": 3,
         "list": [
           "--border-width-thin",
@@ -2844,6 +2878,7 @@ window.BELLA = {
           "--color-semantic-text-primary",
           "--color-semantic-text-secondary",
           "--component-data-table-border-radius",
+          "--component-data-table-compact-row-min-height",
           "--component-data-table-font-size",
           "--component-data-table-header-background",
           "--component-data-table-row-min-height",
@@ -2907,6 +2942,8 @@ window.BELLA = {
         "open",
         "focus"
       ],
+      "shapes": [],
+      "rendersAs": "a native dialog, opened modal",
       "usage": [
         "CHIP sidebar below 720px",
         "Any navigation or filter panel that cannot stay on screen at phone width"
@@ -3009,6 +3046,8 @@ window.BELLA = {
       "states": [
         "default"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "Above hero headlines",
         "Above section titles",
@@ -3105,6 +3144,8 @@ window.BELLA = {
         "pressed",
         "focus"
       ],
+      "shapes": [],
+      "rendersAs": "a button with aria-pressed",
       "usage": [
         "Work library skill/type filters",
         "Any multi-select narrowing row"
@@ -3354,6 +3395,8 @@ window.BELLA = {
       "states": [
         "default"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "Page titles",
         "Section heads",
@@ -3439,6 +3482,8 @@ window.BELLA = {
       "states": [
         "default"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "Segment glyphs",
         "The Select chevron",
@@ -3534,6 +3579,8 @@ window.BELLA = {
         "disabled",
         "error"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "Contact form fields",
         "Any labelled free-text entry; multiline renders the textarea"
@@ -3774,6 +3821,8 @@ window.BELLA = {
       "states": [
         "default"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "Shortcut hint inside a search field",
         "Shortcut legend in a help menu",
@@ -3871,6 +3920,8 @@ window.BELLA = {
         "visited",
         "focus"
       ],
+      "shapes": [],
+      "rendersAs": "an anchor; external opens a new tab",
       "usage": [
         "Inline references inside paragraphs",
         "Footer links"
@@ -4062,6 +4113,8 @@ window.BELLA = {
         "focus",
         "collapsed"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "CHIP workspace sidebar",
         "Any app sidebar of views or sections"
@@ -4171,6 +4224,8 @@ window.BELLA = {
       "states": [
         "default"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "Behind a page opening or hero, first child of a position: relative container"
       ],
@@ -4250,6 +4305,8 @@ window.BELLA = {
         "hover",
         "focus-visible"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "The toolkit gallery, one card per installable skill",
         "Any gallery where the items are files or documents with a type and a state"
@@ -4362,6 +4419,8 @@ window.BELLA = {
       ],
       "variants": [],
       "states": [],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [],
       "dont": [],
       "restNote": null,
@@ -4430,6 +4489,8 @@ window.BELLA = {
         "low",
         "self"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "CHIP readiness map, fed by the station scores in bella.json",
         "Any per-dimension score for a named system"
@@ -4543,6 +4604,8 @@ window.BELLA = {
       ],
       "variants": [],
       "states": [],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [],
       "dont": [],
       "restNote": null,
@@ -4623,6 +4686,8 @@ window.BELLA = {
         "selected",
         "focus"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "Work library view switcher (Cards / Map / Table)",
         "Any mutually exclusive view pick with few options"
@@ -4731,6 +4796,8 @@ window.BELLA = {
         "focus",
         "open"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "Sort order",
         "Long single-choice lists"
@@ -4841,6 +4908,8 @@ window.BELLA = {
       "states": [
         "default"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "CHIP health figures (components, failures, indexed chunks, last sync)",
         "Any small row of headline figures on a Card or panel"
@@ -5020,6 +5089,8 @@ window.BELLA = {
       "states": [
         "default"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "Current-focus marker",
         "Project state rows",
@@ -5121,6 +5192,8 @@ window.BELLA = {
         "selected",
         "focus"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "CHIP workspace switcher",
         "CHIP terminal switcher (with run state)",
@@ -5320,6 +5393,8 @@ window.BELLA = {
       "states": [
         "default"
       ],
+      "shapes": [],
+      "rendersAs": null,
       "usage": [
         "Card category labels",
         "Project metadata rows",

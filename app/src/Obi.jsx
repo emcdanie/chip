@@ -192,7 +192,7 @@ function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onS
         ) : t.path === 'data' ? (
           <>
             <p>{t.data.title}</p>
-            <DataTable columns={t.data.columns} rows={t.data.rows} rowKey={t.data.rowKey} caption={t.data.caption ?? 'Results'} maxHeight="calc(var(--spacing-20) * 4)" />
+            <DataTable columns={t.data.columns} rows={t.data.rows} rowKey={t.data.rowKey} caption={t.data.caption ?? 'Results'} maxHeight="calc(var(--spacing-20) * 4)" density="compact" />
           </>
         ) : t.path === 'docs' ? (
           t.text ? <Rich text={tidyCitations(t.text)} sources={t.sources} /> : <p className="label">Reading your sources…</p>

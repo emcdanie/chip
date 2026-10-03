@@ -499,6 +499,8 @@ function Facts({ c, notes, canTry, onTry, notify }) {
       {first ? <p className="label">{first}</p> : null}
       <dl className="facts">
         <div><dt>Variants</dt><dd>{c.variants.length ? c.variants.join(', ') : 'None'}</dd></div>
+        {c.shapes?.length ? <div><dt>Shape</dt><dd>{c.shapes.join(' · ')}</dd></div> : null}
+        {c.rendersAs ? <div><dt>Renders as</dt><dd>{c.rendersAs}</dd></div> : null}
         <div><dt>States</dt><dd>{c.states.length ? c.states.join(', ') : 'Not recorded'}</dd></div>
         <div><dt>Min height</dt><dd>{c.minTarget ? c.minTarget.value : 'Not a control'}</dd></div>
         <div><dt>Tokens</dt><dd>{c.tokens.count}</dd></div>

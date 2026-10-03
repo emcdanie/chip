@@ -191,6 +191,8 @@ const components = names.map((name) => {
     states: contract?.states ?? [],
     // contract prose for Atlas's Facts card: what it is for, what not to do,
     // and the rest-state note ("one job per state")
+    shapes: contract?.shapes ?? [],
+    rendersAs: contract?.rendersAs ?? null,
     usage: contract?.usage ?? [],
     dont: contract?.dont ?? [],
     restNote: contract?.restState?.description ?? null,
