@@ -337,7 +337,7 @@ export default function App() {
               <Health bella={bella} health={health} failures={failures} onOpenAtlas={openAtlas} onAsk={send} onRun={send} narrow={narrow} />
             </div>
             <div {...tabPanelProps('ws', 'docs', ws === 'docs')}>{ws === 'docs' ? <Docs docId={docId} version={docsVersion} narrow={narrow} /> : null}</div>
-            <div {...tabPanelProps('ws', 'connectors', ws === 'connectors')}>{ws === 'connectors' ? <Connectors /> : null}</div>
+            <div {...tabPanelProps('ws', 'connectors', ws === 'connectors')}>{ws === 'connectors' ? <Connectors narrow={narrow} /> : null}</div>
             <div {...tabPanelProps('ws', 'atlas', ws === 'atlas')}>
               {ws === 'atlas' ? (
                 <Atlas c={atlas} bella={bella} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={!narrow} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} />

@@ -10,7 +10,7 @@
       "allow": [
         "read"
       ],
-      "note": "The official Figma MCP in the Figma desktop app: open a design file, Dev Mode, enable the MCP server. Read only."
+      "note": "The official Figma MCP in the Figma desktop app: open a design file, Dev Mode, enable the MCP server."
     },
     {
       "name": "figma-console",

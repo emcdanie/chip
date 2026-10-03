@@ -7,9 +7,21 @@ import React, { useEffect, useState } from 'react';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
 import Section from '@bella/components/Section/Section';
 import Card from '@bella/components/Card/Card';
+import SidebarLayout from '@bella/components/SidebarLayout/SidebarLayout';
+import NavList from '@bella/components/NavList/NavList';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import Tag from '@bella/components/Tag/Tag';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
+
+// a URL or path breaks only after "/" or ".", never mid-word
+function Breakable({ text }) {
+  return text.split(/(?<=[/.])/).map((part, i) => (
+    <React.Fragment key={i}>
+      {part}
+      <wbr />
+    </React.Fragment>
+  ));
+}
 
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never');
 
@@ -21,7 +33,7 @@ function Server({ s, onTest, testing }) {
         <h3 id={`srv-${s.name}`} className="card-title">
           {s.name}
         </h3>
-        <StatusPill variant={ok ? 'success' : 'info'}>{s.status}</StatusPill>
+        <StatusPill variant={ok ? 'success' : 'neutral'}>{s.status}</StatusPill>
         <span className="connector-spacer" />
         {!s.disabled ? (
           <ActionChip onClick={() => onTest(s.name)} disabled={testing} ariaLabel={`Test ${s.name}`}>
@@ -32,7 +44,7 @@ function Server({ s, onTest, testing }) {
       {s.note ? <p className="label">{s.note}</p> : null}
       <dl className="row-dl">
         <div><dt>Kind</dt><dd>{s.kind === 'cli' ? 'CLI tool' : `MCP over ${s.transport}`}</dd></div>
-        <div><dt>Where</dt><dd><span className="mono">{s.where}</span></dd></div>
+        <div className="where"><dt>Where</dt><dd><span className="mono"><Breakable text={s.where} /></span></dd></div>
         <div><dt>Allowed</dt><dd>{s.allow.length ? s.allow.join(' and ') : 'nothing'}</dd></div>
         <div><dt>Tools</dt><dd>{s.tools ? `${s.tools.filter((t) => t.kind === 'read').length} read` : 'not listed yet'}</dd></div>
         {s.tools ? (
@@ -58,7 +70,7 @@ function Server({ s, onTest, testing }) {
   );
 }
 
-export default function Connectors() {
+export default function Connectors({ narrow }) {
   const [servers, setServers] = useState(null);
   const [testing, setTesting] = useState(null);
   const [error, setError] = useState(null);
@@ -92,8 +104,9 @@ export default function Connectors() {
     </div>
   );
 
-  return (
-    <div className="connectors">
+  const sections = [mcp.length && { href: '#mcp', label: 'MCP servers' }, cli.length && { href: '#cli', label: 'CLI tools' }].filter(Boolean);
+  const content = (
+    <>
       <PageHeader
         meta="Settings"
         title="Connectors"
@@ -111,6 +124,13 @@ export default function Connectors() {
           {rows(cli)}
         </Section>
       ) : null}
+    </>
+  );
+
+  // the same aside as every page, so the title stays put across the tabs
+  return (
+    <div className="connectors">
+      {narrow ? content : <SidebarLayout aside={<NavList label="On this page" groups={[{ label: 'On this page', items: sections }]} />} asideLabel="On this page">{content}</SidebarLayout>}
     </div>
   );
 }

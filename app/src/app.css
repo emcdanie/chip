@@ -115,6 +115,7 @@ body {
 }
 
 .connector {
+  container-type: inline-size;
   display: grid;
   gap: var(--layout-stack-md);
   align-content: start;
@@ -156,7 +157,13 @@ body {
 .row-dl dd {
   margin: 0;
   min-inline-size: 0;
-  overflow-wrap: anywhere;
+}
+
+/* Where gets two shares of the row; its value breaks only at "/" or "." */
+@container (min-width: 48rem) {
+  .row-dl {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  }
 }
 
 @container (max-width: 30rem) {
