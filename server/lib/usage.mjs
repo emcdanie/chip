@@ -41,3 +41,10 @@ export function topOverrides(n = 3) {
     return { from, to, count };
   });
 }
+
+/** When each tool server was last used: { name: ISO date } (Connectors page). */
+export function lastToolUses() {
+  const out = {};
+  for (const e of entries()) if (e.type === 'tool' && !e.cancelled && !e.refused) out[e.server] = e.at;
+  return out;
+}

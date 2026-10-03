@@ -97,8 +97,48 @@ body {
 }
 
 /* Atlas carries its own library card, so the shell has no sidebar there */
-.shell[data-ws='atlas'] .body {
+.shell[data-ws='atlas'] .body,
+.shell[data-ws='connectors'] .body {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.connector-grid {
+  display: grid;
+  gap: var(--spacing-5);
+  margin-block-start: var(--spacing-6);
+}
+
+.connector-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+}
+
+.connector {
+  display: grid;
+  gap: var(--spacing-3);
+  align-content: start;
+}
+
+.connector-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.tool-rows,
+.tool-list {
+  margin: var(--spacing-2) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--spacing-2);
+  max-block-size: calc(var(--spacing-20) * 4);
+  overflow: auto;
+}
+
+.tool-preview {
+  display: grid;
+  gap: var(--spacing-2);
 }
 
 /* the page above, OBI docked below like an editor's terminal panel */

@@ -11,11 +11,13 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import DataTable from '@bella/components/DataTable/DataTable';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Combobox from '@bella/components/Combobox/Combobox';
-import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss } from './answers.js';
+import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor } from './answers.js';
 import Select from '@bella/components/Select/Select';
 import { baseOf } from './Sandbox.jsx';
 
 const COMMANDS = [
+  { cmd: 'tools', note: 'connected tools and their status' },
+  { cmd: 'tool', note: '/tool <server> <tool> {json args}' },
   { cmd: 'status', note: 'model, index size, last sync' },
   { cmd: 'audit', note: 'sync BELLA, scores and failures' },
   { cmd: 'sync', note: 'BELLA and Notion, then re-index' },
@@ -255,6 +257,69 @@ function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onS
   );
 }
 
+// a tool call: who ran what, how long, its output; a write waits for Confirm
+function ToolTurn({ t, onConfirm, onCancel }) {
+  return (
+    <li className="turn turn-tool">
+      <p className="you">
+        <span className="you-label">You</span>
+        <span>{t.q}</span>
+      </p>
+      <div className="answer">
+        {t.list ? (
+          <ul className="tool-list">
+            {t.list.map((srv) => (
+              <li key={srv.name}>
+                <span className="mono">{srv.name}</span> · {srv.status}
+                {srv.tools ? ` · ${srv.tools.length} tools (${srv.tools.filter((x) => x.kind === 'read').length} read)` : ''}
+                {srv.note && srv.disabled ? <span className="label"> · {srv.note}</span> : null}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {t.message ? <p>{t.message}</p> : null}
+        {t.preview ? (
+          <div className="tool-preview">
+            <p>
+              This would change Figma through <span className="mono">{t.preview.tool}</span>. Nothing has run yet.
+            </p>
+            {t.preview.before ? (
+              <>
+                <p className="label">Before</p>
+                <pre className="turn-out mono">{t.preview.before}</pre>
+              </>
+            ) : null}
+            <p className="label">After</p>
+            <pre className="turn-out mono">{JSON.stringify(t.preview.after, null, 2)}</pre>
+            {t.settled ? (
+              <p className="label">{t.settled}</p>
+            ) : (
+              <div className="turn-actions">
+                <ActionChip onClick={() => onConfirm(t)}>Confirm</ActionChip>
+                <ActionChip onClick={() => onCancel(t)}>Cancel</ActionChip>
+              </div>
+            )}
+          </div>
+        ) : null}
+        {t.text ? <pre className="turn-out mono">{t.text.length > 3000 ? `${t.text.slice(0, 3000)}\n…` : t.text}</pre> : null}
+        {t.error ? <p role="alert">{t.error}</p> : null}
+        {t.error && /Desktop Bridge/i.test(t.error) ? (
+          <p className="label">Open the Desktop Bridge plugin in Figma (Plugins, Development, Figma Desktop Bridge) on the BELLA file, then ask again.</p>
+        ) : null}
+      </div>
+      {t.server && t.tool ? (
+        <p className="meta-line">
+          <Tag>
+            {t.server} · {t.tool.replace(/^figma_/, '').replace(/_/g, ' ')}
+            {t.ms != null ? ` · ${(t.ms / 1000).toFixed(1)}s` : ''}
+          </Tag>
+          {t.why ? <span className="label">{t.why}</span> : null}
+        </p>
+      ) : null}
+    </li>
+  );
+}
+
 function CmdTurn({ t }) {
   const gates = [...(t.text.matchAll(/^\s*([a-z:-]+)\s+(OK|FAIL)\s*$/gm) ?? [])];
   return (
@@ -304,6 +369,10 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
     const data = answerFromData(q, bella, page);
     if (data) return setTurns((ts) => [...ts, { ...base, path: 'data', data, components: data.components, route: auto ? 'Auto → BELLA data · no model' : null }]);
 
+    // a question for Figma goes to a tool, not a model (Auto only)
+    const toolRoute = auto && !opts.provider ? toolRouteFor(q) : null;
+    if (toolRoute) return runTool(q, { ...toolRoute, why: `Auto → ${toolRoute.why}` });
+
     const autoPick = routeFor(q, models, budget);
     const choice = opts.provider ? { provider: opts.provider, why: null } : auto ? autoPick : { provider: picked, why: null };
     if (!choice.provider) return setTurns((ts) => [...ts, { ...base, path: 'clarify', text: choice.why }]);
@@ -350,6 +419,44 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
     } finally {
       setBusy(false);
       onAnswered?.();
+    }
+  }
+
+  /** Runs a tool through the host (POST /host/call); a write comes back as a preview. */
+  async function runTool(q, { server, tool, args = {}, why = null }) {
+    const id = Date.now() + Math.random();
+    setTurns((ts) => [...ts, { id, kind: 'tool', q, server, tool, why }]);
+    if (!tool) return patch(id, () => ({ message: `${why}. Name it in chip.config.local.json and turn it on to use it.` }));
+    setBusy(true);
+    try {
+      const res = await fetch('/host/call', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ server, tool, args, purpose: q.slice(0, 200) }) });
+      const r = await res.json();
+      if (r.error) patch(id, () => ({ error: r.error }));
+      else if (r.refused) patch(id, () => ({ error: `Refused: ${r.refused}` }));
+      else if (r.pending) patch(id, () => ({ preview: r.pending.preview, pendingId: r.pending.id }));
+      else patch(id, () => (r.ok ? { text: r.text, ms: r.ms } : { error: r.error, ms: r.ms }));
+    } catch {
+      patch(id, () => ({ error: 'The CHIP server is not answering on 127.0.0.1:3100.' }));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function settle(t, confirm) {
+    const res = await fetch(`/host/${confirm ? 'confirm' : 'cancel'}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: t.pendingId }) });
+    const r = await res.json().catch(() => ({}));
+    if (!confirm) return patch(t.id, () => ({ settled: 'Cancelled. Nothing changed.' }));
+    patch(t.id, () => (r.ok ? { settled: 'Applied.', text: r.text, ms: r.ms } : { settled: 'Not applied.', error: r.error ?? 'The change did not run.' }));
+  }
+
+  async function listTools(q) {
+    const id = Date.now() + Math.random();
+    setTurns((ts) => [...ts, { id, kind: 'tool', q }]);
+    try {
+      const r = await (await fetch('/host')).json();
+      patch(id, () => ({ list: r.servers, message: r.servers.length ? null : 'No servers in chip.config.local.json yet. See docs/host.md.' }));
+    } catch {
+      patch(id, () => ({ error: 'The CHIP server is not answering on 127.0.0.1:3100.' }));
     }
   }
 
@@ -402,9 +509,22 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
       // /ask --claude … or /ask --local … overrides the picker for one question
       const flag = arg.match(/^--(claude|local)\s+(.+)$/);
       const localId = (models.find((m) => m.place === 'local' && m.isDefault) ?? models.find((m) => m.place === 'local'))?.id;
-      if (word === 'ask' && flag) ask(flag[2], { provider: flag[1] === 'claude' ? 'claude' : localId });
+      if (word === 'tools') listTools(text);
+      else if (word === 'tool') {
+        // /tool <server> <tool> {json args}
+        const m = arg.match(/^(\S+)\s+(\S+)\s*(\{[\s\S]*\})?$/);
+        let args = {};
+        try {
+          args = m?.[3] ? JSON.parse(m[3]) : {};
+        } catch {
+          setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: 'The arguments are not valid JSON.' }]);
+          return true;
+        }
+        if (!m) setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: 'Use /tool <server> <tool> {json args}. /tools lists them.' }]);
+        else runTool(text, { server: m[1], tool: m[2], args, why: 'you named the tool' });
+      } else if (word === 'ask' && flag) ask(flag[2], { provider: flag[1] === 'claude' ? 'claude' : localId });
       else if (word === 'ask' && arg) ask(arg);
-      else if (COMMANDS.some((c) => c.cmd === word && c.cmd !== 'ask')) run(word);
+      else if (['status', 'audit', 'sync'].includes(word)) run(word);
       else setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: `Unknown command. Try ${COMMANDS.map((c) => '/' + c.cmd).join(', ')}.` }]);
       return true;
     }
@@ -424,7 +544,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
     }
   }
 
-  return { turns, busy, send, save, history, compare, includeAndRetry };
+  return { turns, busy, send, save, history, compare, includeAndRetry, confirmTool: (t) => settle(t, true), cancelTool: (t) => settle(t, false) };
 }
 
 /* ---------- the one input ---------- */
@@ -439,13 +559,15 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
 
   const groups = useMemo(() => {
     if (!query) return [];
+    // a command with arguments is complete: no list, Enter sends it
+    if (query.startsWith('/') && query.includes(' ')) return [];
     if (query.startsWith('/')) {
       const word = needle.slice(1).split(' ')[0];
       return [
         {
           id: 'cmd',
           label: 'Run',
-          options: COMMANDS.filter((c) => c.cmd.startsWith(word)).map((c) => ({ id: `cmd:${c.cmd}`, label: c.cmd === 'ask' ? '/ask <question>' : `/${c.cmd}`, meta: c.note })),
+          options: COMMANDS.filter((c) => c.cmd.startsWith(word)).map((c) => ({ id: `cmd:${c.cmd}`, label: c.cmd === 'ask' ? '/ask <question>' : c.cmd === 'tool' ? '/tool <server> <tool>' : `/${c.cmd}`, meta: c.note })),
         },
       ];
     }
@@ -482,6 +604,8 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
       setQ('');
     } else if (o.id === 'cmd:ask') {
       setQ('/ask ');
+    } else if (o.id === 'cmd:tool') {
+      setQ('/tool ');
     } else if (o.id.startsWith('cmd:')) {
       if (obi.send(`/${o.id.slice(4)}`)) setQ('');
     } else if (o.id === 'ask') {
@@ -597,6 +721,8 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
         {obi.turns.map((t) =>
           t.kind === 'cmd' ? (
             <CmdTurn key={t.id} t={t} />
+          ) : t.kind === 'tool' ? (
+            <ToolTurn key={t.id} t={t} onConfirm={obi.confirmTool} onCancel={obi.cancelTool} />
           ) : (
             <AskTurn
               key={t.id}

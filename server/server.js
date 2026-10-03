@@ -10,6 +10,7 @@ import { ask, askStream } from './lib/ask.mjs';
 import { warm } from './lib/llm.js';
 import { loadIndex } from './lib/index.mjs';
 import { listAll } from './providers/index.mjs';
+import * as host from './host/registry.js';
 import { logUsage, claudeToday } from './lib/usage.mjs';
 import { CHIP_CLAUDE_DAILY } from './lib/config.mjs';
 
@@ -76,6 +77,49 @@ app.post('/ask', async (req, res) => {
 // GET /models: what OBI can pick, and today's Claude budget for Auto.
 app.get('/models', async (_req, res) => {
   res.json({ models: await listAll(), budget: { used: claudeToday(), limit: CHIP_CLAUDE_DAILY } });
+});
+
+// The host: MCP servers and CLI tools behind one registry (docs/host.md).
+// GET /host lists servers and status; POST /host/test connects one; POST
+// /host/call runs a tool through the guard (a write returns a preview and
+// waits); POST /host/confirm or /host/cancel settles a pending write.
+const sameApp = (req, res) => {
+  const origin = req.get('origin');
+  if (origin && !APP_ORIGINS.has(origin)) {
+    res.status(403).json({ error: 'origin not allowed' });
+    return false;
+  }
+  return true;
+};
+app.get('/host', (_req, res) => res.json({ servers: host.servers() }));
+app.post('/host/test', async (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(await host.test(String(req.body?.server ?? '')));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+app.post('/host/call', async (req, res) => {
+  if (!sameApp(req, res)) return;
+  const { server, tool, args, purpose } = req.body ?? {};
+  try {
+    res.json(await host.call({ server: String(server ?? ''), tool: String(tool ?? ''), args: args ?? {}, purpose: typeof purpose === 'string' ? purpose.slice(0, 200) : null }));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+app.post('/host/confirm', async (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(await host.confirm(String(req.body?.id ?? '')));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+app.post('/host/cancel', (req, res) => {
+  if (!sameApp(req, res)) return;
+  res.json(host.cancel(String(req.body?.id ?? '')));
 });
 
 // GET /docs: every indexed source once, { title, path | url }, for the jump palette.

@@ -214,3 +214,29 @@ export function tidyCitations(text) {
     })
     .join('\n');
 }
+
+/* ---------- tools: when a question is for Figma ---------- */
+// One line each, so Elleta can read and change them (docs/host.md):
+//   - a figma.com link with a node, or "frame / design context / screenshot"
+//     plus "figma"            -> the official Figma MCP (read only)
+//   - "variables / plugin / library" plus "figma" -> Figma Console MCP
+//   - "export / batch / many files" plus "figma"  -> the Figma CLI (not set up yet)
+// Returns { server, tool, args, why } or null.
+export function toolRouteFor(q) {
+  const url = q.match(/https?:\/\/(?:www\.)?figma\.com\/(?:design|file|proto|board)\/[^\s]+/i)?.[0];
+  const mentionsFigma = /\bfigma\b/i.test(q) || Boolean(url);
+  if (!mentionsFigma) return null;
+  if (url) {
+    const node = new URL(url).searchParams.get('node-id');
+    if (node) return { server: 'figma', tool: 'get_metadata', args: { nodeId: node.replace('-', ':') }, why: 'figma · get_metadata · the frame in the link' };
+    return { server: 'figma', tool: 'get_metadata', args: {}, why: 'figma · get_metadata · the pages of the open file' };
+  }
+  if (/\b(export|batch|many files|script)\b/i.test(q)) return { server: 'figma-cli', tool: null, args: {}, why: 'figma-cli · batch work (the Figma CLI is not set up yet)' };
+  if (/\b(variables?|plugin|library|libraries)\b/i.test(q)) return { server: 'figma-console', tool: 'figma_get_variables', args: {}, why: 'figma-console · read variables' };
+  if (/\b(frame|design context|screenshot|selection|selected)\b/i.test(q)) {
+    return /\bscreenshot\b/i.test(q)
+      ? { server: 'figma', tool: 'get_screenshot', args: {}, why: 'figma · get_screenshot · your selection' }
+      : { server: 'figma', tool: 'get_design_context', args: {}, why: 'figma · get_design_context · your selection' };
+  }
+  return null;
+}

@@ -1,4 +1,79 @@
 {
-  "$comment": "Copy to chip.config.local.json (gitignored) to change it. claudeModel: the Claude Code model OBI's Claude route uses; an alias (sonnet, haiku, opus) follows the current model of that family.",
-  "claudeModel": "sonnet"
+  "$comment": "Copy to chip.config.local.json (gitignored). claudeModel: the Claude Code model OBI's Claude route uses. servers: MCP servers and CLI tools CHIP can call; secrets come from server/.env by name, written as ${NAME}, never pasted here. See docs/host.md.",
+  "claudeModel": "sonnet",
+  "servers": [
+    {
+      "name": "figma",
+      "kind": "mcp",
+      "transport": "http",
+      "url": "http://127.0.0.1:3845/mcp",
+      "allow": [
+        "read"
+      ],
+      "note": "The official Figma MCP in the Figma desktop app: open a design file, Dev Mode, enable the MCP server. Read only."
+    },
+    {
+      "name": "figma-console",
+      "kind": "mcp",
+      "transport": "stdio",
+      "command": "node",
+      "args": [
+        "~/figma-console-mcp/dist/local.js"
+      ],
+      "env": {
+        "FIGMA_ACCESS_TOKEN": "${FIGMA_ACCESS_TOKEN}"
+      },
+      "allow": [
+        "read",
+        "write"
+      ],
+      "note": "Figma Console MCP from a local install. Variables and plugin work need the Desktop Bridge plugin open in Figma."
+    },
+    {
+      "name": "figma-cli",
+      "kind": "cli",
+      "command": "figma",
+      "subcommands": {},
+      "allow": [
+        "read"
+      ],
+      "disabled": true,
+      "note": "Which Figma CLI is still open; turned off until it is named."
+    },
+    {
+      "name": "notion",
+      "kind": "mcp",
+      "transport": "http",
+      "url": "https://mcp.notion.com/mcp",
+      "allow": [
+        "read"
+      ],
+      "disabled": true,
+      "note": "Needs Notion's sign-in flow; not wired yet. CHIP reads Notion through its own sync for now."
+    },
+    {
+      "name": "git",
+      "kind": "cli",
+      "command": "git",
+      "cwd": ".",
+      "subcommands": {
+        "status": {
+          "args": [
+            "--short",
+            "--branch"
+          ]
+        },
+        "log": {
+          "args": [
+            "--oneline"
+          ],
+          "pattern": "^-n[0-9]{1,3}$"
+        }
+      },
+      "allow": [
+        "read"
+      ],
+      "note": "The CLI adapter's test tool: git status and git log only."
+    }
+  ]
 }

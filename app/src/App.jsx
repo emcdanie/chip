@@ -2,18 +2,19 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import NavList from '@bella/components/NavList/NavList';
-import Button from '@bella/components/Button/Button';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Select from '@bella/components/Select/Select';
 import Health from './Health.jsx';
 import Atlas, { Library } from './Atlas.jsx';
+import Connectors from './Connectors.jsx';
 import { useObi, OneInput, ObiPanel } from './Obi.jsx';
 import { useTheme, THEMES } from './theme.js';
 
 const WORKSPACES = [
   { id: 'health', label: 'Health' },
   { id: 'atlas', label: 'Atlas' },
+  { id: 'connectors', label: 'Connectors' },
 ];
 
 const HEALTH_SECTIONS = [
@@ -23,7 +24,7 @@ const HEALTH_SECTIONS = [
   { href: '#components', label: 'Components' },
 ];
 
-const WS_KEYS = { Digit1: 'health', Digit2: 'atlas' };
+const WS_KEYS = { Digit1: 'health', Digit2: 'atlas', Digit3: 'connectors' };
 const OBI_KEY = 'chip-obi-open';
 const MODEL_KEY = 'chip-model';
 const DOCK_KEY = 'chip-dock-height';
@@ -32,7 +33,7 @@ const PAGE_MIN = 320; // px the page keeps above the dock
 
 // routes: #/health, #/atlas/<component id>
 function routeOf(hash) {
-  const m = hash.match(/^#\/(health|atlas)(?:\/([\w-]+))?$/);
+  const m = hash.match(/^#\/(health|atlas|connectors)(?:\/([\w-]+))?$/);
   return m ? { ws: m[1], id: m[2] } : null;
 }
 
@@ -114,7 +115,7 @@ export default function App() {
 
   // the address follows the view; in-page anchors (#overview) leave it alone
   useEffect(() => {
-    const want = ws === 'atlas' ? `#/atlas/${atlasId}` : '#/health';
+    const want = ws === 'atlas' ? `#/atlas/${atlasId}` : `#/${ws}`;
     if (window.location.hash !== want) window.history.replaceState(null, '', want);
   }, [ws, atlasId]);
   useEffect(() => {
@@ -141,7 +142,7 @@ export default function App() {
 
   const failures = failuresOf(bella);
   const atlas = bella?.components.find((c) => c.id === atlasId) ?? null;
-  const page = ws === 'atlas' ? `Atlas · ${atlas?.name ?? '…'}` : 'Health';
+  const page = ws === 'atlas' ? `Atlas · ${atlas?.name ?? '…'}` : ws === 'connectors' ? 'Connectors' : 'Health';
   const obi = useObi({ bella, page, notify: setToast, onSaved: loadNotes, models, budget, picked, onAnswered: loadModels });
   // asking opens OBI, so the answer has somewhere to land
   const send = (text) => {
@@ -313,6 +314,7 @@ export default function App() {
             <div {...tabPanelProps('ws', 'health', ws === 'health')}>
               <Health bella={bella} health={health} failures={failures} onOpenAtlas={openAtlas} onAsk={send} onRun={send} />
             </div>
+            <div {...tabPanelProps('ws', 'connectors', ws === 'connectors')}>{ws === 'connectors' ? <Connectors /> : null}</div>
             <div {...tabPanelProps('ws', 'atlas', ws === 'atlas')}>
               {ws === 'atlas' ? (
                 <Atlas c={atlas} bella={bella} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={!narrow} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} />
