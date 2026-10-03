@@ -41,6 +41,8 @@ const semDark = readJson('tokens/semantic/dark.json');
 const dsds = read('bella.dsds.yaml');
 const css = read('tokens/bella.css');
 
+const STORYBOOK = (readJson('package.json').homepage || '').replace(/\/?$/, '/');
+
 const git = (...args) => execFileSync('git', ['-C', BELLA, ...args], { encoding: 'utf8' }).trim();
 const source = {
   repo: 'bella',
@@ -80,6 +82,16 @@ function cssBlock(re) {
 const lightVars = cssBlock(/:root\s*\{/);
 const darkVars = { ...lightVars, ...cssBlock(/\[data-theme=["']?dark["']?\]\s*\{/) };
 
+// a token's final value in one theme, following var() references
+function resolve(vars, name, seen = new Set()) {
+  if (!name || seen.has(name)) return null;
+  seen.add(name);
+  const v = vars[name];
+  if (v === undefined) return null;
+  const ref = v.match(/^var\((--[\w-]+)\)$/);
+  return ref ? resolve(vars, ref[1], seen) : v;
+}
+
 // every var a token reaches through var() chains, in either theme
 function closure(name, out = new Set()) {
   if (out.has(name)) return out;
@@ -115,6 +127,27 @@ const components = names.map((name) => {
   const man = manifestByName[name] ?? null;
   const description = (man?.description || contract?.description || '').trim() || null;
 
+  // Anatomy is recorded in the contract ($extensions.bella.anatomy), never
+  // made up here. Each part names its DOM target (a selector inside the
+  // component root), a zone shape and a layer kind. pin and anchor are
+  // measured by the app from the rendered component, in the specimen's own
+  // coordinate space, so they stay null in the data.
+  const parts = (contract?.anatomy ?? []).map((p, i) => ({
+    key: p.key,
+    n: i + 1,
+    title: p.title,
+    detail: p.detail,
+    token: p.token,
+    value: { light: resolve(lightVars, p.token), dark: resolve(darkVars, p.token) },
+    kind: p.kind,
+    target: p.target,
+    zone: p.zone,
+    z: i,
+    pin: null,
+    anchor: null,
+  }));
+  const minTarget = tokens.find((t) => /^--component-.*min-height$/.test(t));
+
   return {
     id: key,
     name,
@@ -126,6 +159,12 @@ const components = names.map((name) => {
     hasA11yNotes: Boolean(contract?.a11y && (Array.isArray(contract.a11y) ? contract.a11y.length : true)),
     props: man?.reactDocgen?.props ? Object.keys(man.reactDocgen.props).sort() : [],
     variants: contract?.variants ?? [],
+    states: contract?.states ?? [],
+    a11y: contract?.a11y ?? null,
+    minTarget: minTarget ? { token: minTarget, value: resolve(lightVars, minTarget) } : null,
+    parts,
+    anatomySource: `tokens/component.json → component.${key}.$extensions.bella.anatomy`,
+    storyUrl: man?.id ? `${STORYBOOK}?path=/docs/${man.id}--docs` : null,
     composedFrom: imports,
     tokens: {
       count: tokens.length,

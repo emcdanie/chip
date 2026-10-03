@@ -106,6 +106,7 @@ body {
 .main {
   padding: var(--spacing-8);
   min-width: 0;
+  container-type: inline-size;
 }
 
 .main:focus {
@@ -230,4 +231,445 @@ body {
 
 .loading {
   color: var(--color-semantic-text-secondary);
+}
+
+/* ---------- Specimen ---------- */
+
+.specimen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(var(--spacing-20) * 3.5);
+  gap: var(--spacing-8);
+  align-items: start;
+}
+
+@container (max-width: 56rem) {
+  .specimen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.spec-main {
+  display: grid;
+  gap: var(--spacing-5);
+  min-width: 0;
+}
+
+.spec-head {
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.spec-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+/* Study B: stage, then legend */
+.anatomy {
+  display: grid;
+  gap: var(--spacing-5);
+}
+
+.stage,
+.exploded {
+  border-radius: var(--radius-lg);
+  background-color: var(--color-semantic-surface-card);
+  background-image:
+    linear-gradient(var(--color-semantic-border-subtle) var(--border-width-thin), transparent var(--border-width-thin)),
+    linear-gradient(90deg, var(--color-semantic-border-subtle) var(--border-width-thin), transparent var(--border-width-thin));
+  background-size: var(--spacing-6) var(--spacing-6);
+}
+
+.stage {
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: var(--spacing-4);
+}
+
+.spec-frame {
+  position: relative;
+  padding: calc(var(--spacing-16) + var(--spacing-4)) var(--spacing-12);
+}
+
+.spec-frame--plain {
+  inline-size: min(100%, calc(var(--spacing-20) * 7));
+  box-sizing: border-box;
+}
+
+.spec-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.zone {
+  position: absolute;
+  border-radius: var(--radius-md);
+  transition: background var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.zone[data-hl] {
+  background: color-mix(in srgb, var(--color-semantic-accent) 22%, transparent);
+  box-shadow: 0 0 0 var(--border-width-medium) var(--color-semantic-accent);
+}
+
+.leaders {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.leaders line {
+  stroke: var(--color-semantic-text-secondary);
+  stroke-width: 1.25;
+}
+
+.leaders g[data-hl] line {
+  stroke: var(--color-semantic-accent);
+  stroke-width: 2;
+}
+
+.leaders .anc {
+  fill: var(--color-semantic-accent);
+  stroke: var(--color-semantic-surface-card);
+  stroke-width: 2;
+}
+
+.pin {
+  position: absolute;
+  inline-size: calc(var(--spacing-6) + var(--spacing-1));
+  block-size: calc(var(--spacing-6) + var(--spacing-1));
+  margin: calc(-0.5 * (var(--spacing-6) + var(--spacing-1))) 0 0 calc(-0.5 * (var(--spacing-6) + var(--spacing-1)));
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  background: var(--color-semantic-accent);
+  color: var(--color-semantic-text-on-accent);
+  box-shadow: 0 0 0 var(--border-width-thick) var(--color-semantic-surface-card);
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-mono);
+  font-weight: var(--typography-font-weight-bold);
+  cursor: default;
+}
+
+.pin[data-hl] {
+  background: var(--color-semantic-text-primary);
+  color: var(--color-semantic-background);
+}
+
+.legend,
+.ex-labels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--spacing-20) * 3), 1fr));
+  gap: var(--spacing-2);
+}
+
+.legend button,
+.ex-labels .label {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0 var(--spacing-3);
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: var(--spacing-touch-target);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--color-semantic-text-primary);
+}
+
+.legend .n,
+.ex-labels .n {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  inline-size: var(--spacing-6);
+  block-size: var(--spacing-6);
+  border-radius: var(--radius-full);
+  background: var(--color-semantic-text-primary);
+  color: var(--color-semantic-background);
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-mono);
+}
+
+.legend b,
+.ex-labels b {
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.legend small,
+.ex-labels small {
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-mono);
+  font-feature-settings: var(--typography-font-feature-mono);
+  color: var(--color-semantic-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* highlight, never dim: the row fills ochre, everything on it goes ink */
+.legend button[aria-pressed='true'],
+.ex-labels .label[aria-pressed='true'] {
+  background: var(--color-semantic-accent);
+  color: var(--color-semantic-text-on-accent);
+}
+
+.legend button[aria-pressed='true'] small,
+.ex-labels .label[aria-pressed='true'] small {
+  color: var(--color-semantic-text-on-accent);
+}
+
+.legend button:focus-visible,
+.ex-labels .label:focus-visible {
+  outline: var(--ring-focus-width) solid var(--ring-focus-color);
+  outline-offset: var(--ring-focus-offset);
+}
+
+/* Study D: exploded cards, flat labels */
+.exploded {
+  position: relative;
+  block-size: calc(var(--spacing-20) * 7);
+  overflow: hidden;
+  perspective: calc(var(--spacing-20) * 17.5);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.exploded[data-drag] {
+  cursor: grabbing;
+}
+
+.rig {
+  position: absolute;
+  left: 34%;
+  top: 50%;
+  translate: -50% -50%;
+  transform-style: preserve-3d;
+  transition: transform var(--motion-duration-slow) var(--motion-easing-out);
+}
+
+.card {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--spacing-4);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-thin) solid transparent;
+  transform-style: preserve-3d;
+  transition: transform var(--motion-duration-slow) var(--motion-easing-out),
+    background var(--motion-duration-normal) var(--motion-easing-standard),
+    border-color var(--motion-duration-normal) var(--motion-easing-standard);
+}
+
+.card:first-child {
+  position: relative;
+}
+
+.exploded[data-open] .card {
+  background: var(--color-semantic-surface-elevated);
+  border-color: var(--color-semantic-border-strong);
+  box-shadow: var(--shadow-floating);
+}
+
+.exploded[data-open] .card[data-hl] {
+  border-color: var(--color-semantic-border-ink);
+  background: color-mix(in srgb, var(--color-semantic-accent) 22%, transparent);
+}
+
+.exploded[data-drag] .rig,
+.exploded[data-drag] .card {
+  transition: none;
+}
+
+.card-anchor {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  inline-size: var(--border-width-thin);
+  block-size: var(--border-width-thin);
+}
+
+.ex-lines {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  pointer-events: none;
+}
+
+.ex-lines path {
+  fill: none;
+  stroke: var(--color-semantic-text-secondary);
+  stroke-width: 1;
+}
+
+.ex-lines circle {
+  fill: var(--color-semantic-accent);
+}
+
+.ex-labels .label {
+  position: absolute;
+  right: var(--spacing-5);
+  inline-size: min(calc(var(--spacing-20) * 3.5), 38%);
+  translate: 0 -50%;
+  background: var(--color-semantic-surface-card);
+}
+
+/* layer isolation: each card keeps only its part, in place */
+.card-layer * {
+  visibility: hidden;
+}
+
+.card-layer [data-anat-target] {
+  visibility: visible;
+}
+
+.card[data-kind='content'] [data-anat-target],
+.card[data-kind='content'] [data-anat-target] *,
+.card[data-kind='part'] [data-anat-target] * {
+  visibility: visible;
+}
+
+.card[data-kind='content'] [data-anat-target] {
+  background: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  color: var(--color-semantic-text-primary) !important;
+}
+
+.card[data-kind='content'] [data-anat-target] * {
+  color: inherit !important;
+}
+
+.card[data-kind='shadow'] [data-anat-target] {
+  background: none !important;
+  border-color: transparent !important;
+}
+
+.card[data-kind='fill'] [data-anat-target] {
+  box-shadow: none !important;
+}
+
+.card[data-kind='edge'] [data-anat-target] {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+.card[data-kind='box'] [data-anat-target] {
+  background: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  outline: var(--border-width-thin) dashed var(--color-semantic-border-strong);
+}
+
+.card[data-kind='ring'] [data-anat-target] {
+  background: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  outline: var(--ring-focus-width) solid var(--ring-focus-color);
+  outline-offset: var(--ring-focus-offset);
+}
+
+/* not anatomy yet */
+.no-anatomy {
+  display: grid;
+  gap: var(--spacing-2);
+  justify-items: start;
+}
+
+.no-anatomy p {
+  margin: 0;
+}
+
+/* right panel */
+.spec-panel {
+  display: grid;
+  gap: var(--spacing-6);
+  padding: var(--spacing-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-semantic-surface-card);
+}
+
+.spec-panel section {
+  display: grid;
+  gap: var(--spacing-3);
+}
+
+.panel-title {
+  margin: 0;
+  font-size: var(--typography-font-size-lg);
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.facts,
+.gates {
+  display: grid;
+  gap: var(--spacing-2);
+  margin: 0;
+}
+
+.facts div {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+.gates div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.facts dt,
+.gates dt {
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-mono);
+  font-feature-settings: var(--typography-font-feature-mono);
+  color: var(--color-semantic-text-secondary);
+}
+
+.facts dd,
+.gates dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  justify-items: start;
+}
+
+.toast {
+  position: fixed;
+  inset-block-end: var(--spacing-6);
+  inset-inline-end: var(--spacing-6);
+  margin: 0;
+  padding: var(--spacing-3) var(--spacing-5);
+  border-radius: var(--radius-md);
+  background: var(--color-semantic-text-primary);
+  color: var(--color-semantic-background);
+  visibility: hidden;
+}
+
+.toast[data-show] {
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zone,
+  .rig,
+  .card {
+    transition: none;
+  }
 }

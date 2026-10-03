@@ -7,24 +7,28 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import Health from './Health.jsx';
 import Ask from './Ask.jsx';
+import Specimen from './Specimen.jsx';
 import { useTheme } from './theme.js';
 
 const WORKSPACES = [
   { id: 'health', label: 'Health' },
   { id: 'ask', label: 'Ask' },
+  { id: 'specimen', label: 'Specimen' },
 ];
 
 const SECTIONS = {
   health: [
     { href: '#overview', label: 'Overview' },
     { href: '#readiness', label: 'Readiness map' },
-    { href: '#failures', label: 'Failures' },
+    { href: '#components', label: 'Components' },
   ],
   ask: [
     { href: '#ask-form', label: 'New question' },
     { href: '#answers', label: 'This session' },
   ],
 };
+
+const WS_KEYS = { Digit1: 'health', Digit2: 'ask', Digit3: 'specimen' };
 
 function failuresOf(bella) {
   const out = [];
@@ -43,6 +47,8 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
   const [pending, setPending] = useState(null);
+  const [prefill, setPrefill] = useState(null);
+  const [specimenId, setSpecimenId] = useState('button');
   const [bella, setBella] = useState(null);
   const [health, setHealth] = useState(null);
   const [offline, setOffline] = useState(false);
@@ -63,9 +69,9 @@ export default function App() {
       } else if (mod && e.key === '\\') {
         e.preventDefault();
         setCollapsed((c) => !c);
-      } else if (e.altKey && (e.code === 'Digit1' || e.code === 'Digit2')) {
+      } else if (e.altKey && WS_KEYS[e.code]) {
         e.preventDefault();
-        setWs(e.code === 'Digit1' ? 'health' : 'ask');
+        setWs(WS_KEYS[e.code]);
       }
     }
     window.addEventListener('keydown', onKey);
@@ -82,10 +88,24 @@ export default function App() {
   }
 
   const failures = failuresOf(bella);
-  const sections = SECTIONS[ws].map((s) => ({
-    ...s,
-    badge: s.href === '#failures' && bella ? failures.length : undefined,
-  }));
+  const specimen = bella?.components.find((c) => c.id === specimenId) ?? null;
+  const sections =
+    ws === 'specimen'
+      ? (bella?.components ?? []).map((c) => ({
+          href: `#specimen-${c.id}`,
+          label: c.name,
+          badge: c.parts.length ? c.parts.length : undefined,
+          current: c.id === specimenId,
+        }))
+      : SECTIONS[ws].map((s) => ({
+          ...s,
+          badge: s.href === '#components' && bella ? failures.length : undefined,
+        }));
+
+  function askAbout(name) {
+    setPrefill({ text: `What does BELLA's ${name} contract say, and how is ${name} built? Cite your sources.`, at: Date.now() });
+    setWs('ask');
+  }
 
   return (
     <div className="shell" data-nav-collapsed={collapsed || undefined}>
@@ -126,7 +146,15 @@ export default function App() {
         <aside className="sidebar">
           <NavList
             label="Sections"
-            groups={[{ label: WORKSPACES.find((w) => w.id === ws).label, items: sections }]}
+            groups={[{ label: ws === 'specimen' ? 'Components' : WORKSPACES.find((w) => w.id === ws).label, items: sections }]}
+            onNavigate={
+              ws === 'specimen'
+                ? (href, e) => {
+                    e.preventDefault();
+                    setSpecimenId(href.replace('#specimen-', ''));
+                  }
+                : undefined
+            }
             collapsed={collapsed}
             onToggle={() => setCollapsed((c) => !c)}
             footer={
@@ -150,7 +178,10 @@ export default function App() {
             <Health bella={bella} health={health} failures={failures} />
           </div>
           <div {...tabPanelProps('ws', 'ask', ws === 'ask')}>
-            <Ask pending={pending} />
+            <Ask pending={pending} prefill={prefill} />
+          </div>
+          <div {...tabPanelProps('ws', 'specimen', ws === 'specimen')}>
+            {ws === 'specimen' ? <Specimen c={specimen} onAsk={askAbout} /> : null}
           </div>
         </main>
       </div>

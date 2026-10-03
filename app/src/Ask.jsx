@@ -34,7 +34,7 @@ async function* askStream(message, sessionId) {
   }
 }
 
-export default function Ask({ pending }) {
+export default function Ask({ pending, prefill }) {
   const [question, setQuestion] = useState('');
   const [answers, setAnswers] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -71,6 +71,12 @@ export default function Ask({ pending }) {
     }
   }, [pending]);
 
+  useEffect(() => {
+    if (!prefill) return;
+    setQuestion(prefill.text);
+    requestAnimationFrame(() => document.getElementById('ask-question')?.focus());
+  }, [prefill]);
+
   function submit(e) {
     e.preventDefault();
     const q = question.trim();
@@ -90,7 +96,7 @@ export default function Ask({ pending }) {
           machine.
         </p>
         <form className="ask-form" onSubmit={submit}>
-          <Input label="Your question" multiline value={question} onChange={setQuestion} />
+          <Input id="ask-question" label="Your question" multiline value={question} onChange={setQuestion} />
           <div className="ask-actions">
             <Button type="submit" variant="primary" disabled={busy}>
               {busy ? 'Answering…' : 'Ask'}

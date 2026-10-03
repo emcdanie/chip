@@ -2,15 +2,15 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "ec0a6ef",
-    "committedAt": "2026-09-24T09:37:53+02:00",
+    "commit": "526a1e0",
+    "committedAt": "2026-10-03T08:09:57+02:00",
     "version": "0.3.0"
   },
   "counts": {
-    "components": 18,
-    "withStory": 16,
-    "withDocs": 18,
-    "withContract": 16,
+    "components": 24,
+    "withStory": 22,
+    "withDocs": 24,
+    "withContract": 22,
     "semanticTokenGroups": {
       "light": [
         "blur",
@@ -25,14 +25,14 @@ window.BELLA = {
       ]
     },
     "cssVars": {
-      "light": 512,
+      "light": 553,
       "darkOverrides": 0
     }
   },
   "gates": {
     "contrastPairs": {
       "ok": true,
-      "summary": "contrast pairs: 64 checked, OK"
+      "summary": "contrast pairs: 76 checked, OK"
     },
     "contractParity": {
       "ok": true,
@@ -52,7 +52,13 @@ window.BELLA = {
         "input",
         "link",
         "brand-wordmark",
-        "pattern-field"
+        "pattern-field",
+        "tabs",
+        "kbd",
+        "nav-list",
+        "stat",
+        "score-strip",
+        "data-table"
       ],
       "exemptContracts": [
         "nav-link",
@@ -84,9 +90,9 @@ window.BELLA = {
     {
       "id": "a11y",
       "name": "A11y",
-      "score": 89,
+      "score": 92,
       "assessment": "measured",
-      "basis": "16/18 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
+      "basis": "22/24 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -112,23 +118,23 @@ window.BELLA = {
     {
       "id": "governance",
       "name": "Governance",
-      "score": 89,
+      "score": 92,
       "assessment": "measured",
-      "basis": "16/18 components: Tier 3 contract checked by contract-parity and passing"
+      "basis": "22/24 components: Tier 3 contract checked by contract-parity and passing"
     },
     {
       "id": "docs",
       "name": "Docs",
-      "score": 89,
+      "score": 92,
       "assessment": "measured",
-      "basis": "16/18 components: Storybook story and a docs description in the manifest"
+      "basis": "22/24 components: Storybook story and a docs description in the manifest"
     },
     {
       "id": "machine-readable",
       "name": "Machine-readable",
-      "score": 67,
+      "score": 75,
       "assessment": "measured",
-      "basis": "12/18 components: DSDS component entry and react-docgen props in the manifest"
+      "basis": "18/24 components: DSDS component entry and react-docgen props in the manifest"
     },
     {
       "id": "agent-access",
@@ -158,6 +164,14 @@ window.BELLA = {
         "style"
       ],
       "variants": [],
+      "states": [
+        "default"
+      ],
+      "a11y": "Verified 2026-07-30: initials are text-secondary on the surface-inset wash, 7.74:1 in light and 7.33:1 worst in dark, AAA both. With an image the img carries alt; without one the root is role=img labelled by name and the initials are aria-hidden, so it announces once, as the person, never as two letters.",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.avatar.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-avatar--docs",
       "composedFrom": [],
       "tokens": {
         "count": 17,
@@ -188,7 +202,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 7,
+          "pairs": 8,
           "failing": []
         },
         "contract": {
@@ -222,6 +236,14 @@ window.BELLA = {
         "pattern",
         "ink"
       ],
+      "states": [
+        "default"
+      ],
+      "a11y": "role=img with the word as its accessible name; the pattern layers are aria-hidden. The ink variant is text-primary (AAA). Static: nothing moves, so reduced motion needs no change.",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.brand-wordmark.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/brand-wordmark--docs",
       "composedFrom": [
         "Button"
       ],
@@ -240,7 +262,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 4,
+          "pairs": 6,
           "failing": []
         },
         "contract": {
@@ -279,6 +301,118 @@ window.BELLA = {
         "secondary",
         "tertiary"
       ],
+      "states": [
+        "default",
+        "hover",
+        "active",
+        "focus",
+        "disabled"
+      ],
+      "a11y": "Verified 2026-09-22: primary label (text-inverse) 16.0:1 on the ink plate, 10.6:1 light / 11.8:1 dark on the hover plate (AAA). Secondary and tertiary labels are ink, 16.7:1 on panel. Secondary outline border-strong 3.00:1 worst (non-text AA). Focus ring 3px ochre-deep (3.20:1 on panel) / ochre (8.70:1 on the dark surface), 3px offset, focus-visible only.",
+      "minTarget": {
+        "token": "--component-button-primary-min-height",
+        "value": "44px"
+      },
+      "parts": [
+        {
+          "key": "shadow",
+          "n": 1,
+          "title": "Key shadow",
+          "detail": "1px 3px 0 ink, soft drop, inset highlight (primary)",
+          "token": "--shadow-key-resting",
+          "value": {
+            "light": "1px 3px 0 #121212, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66",
+            "dark": "1px 3px 0 #121212, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66"
+          },
+          "kind": "shadow",
+          "target": ":scope",
+          "zone": {
+            "edge": "bottom",
+            "size": 12
+          },
+          "z": 0,
+          "pin": null,
+          "anchor": null
+        },
+        {
+          "key": "fill",
+          "n": 2,
+          "title": "Fill",
+          "detail": "ink plate, 1px edge, white-alpha gloss",
+          "token": "--component-button-primary-fill-hi",
+          "value": {
+            "light": "#121212",
+            "dark": "#ededed"
+          },
+          "kind": "fill",
+          "target": ":scope",
+          "zone": {
+            "inset": 6
+          },
+          "z": 1,
+          "pin": null,
+          "anchor": null
+        },
+        {
+          "key": "box",
+          "n": 3,
+          "title": "Box",
+          "detail": "44px min, padding 12 / 20, radius 12",
+          "token": "--component-button-primary-min-height",
+          "value": {
+            "light": "44px",
+            "dark": "44px"
+          },
+          "kind": "box",
+          "target": ":scope",
+          "zone": {
+            "inset": 0
+          },
+          "z": 2,
+          "pin": null,
+          "anchor": null
+        },
+        {
+          "key": "label",
+          "n": 4,
+          "title": "Label",
+          "detail": "Geist 13, 700, caps, 0.08em",
+          "token": "--component-button-primary-font-size",
+          "value": {
+            "light": "13px",
+            "dark": "13px"
+          },
+          "kind": "content",
+          "target": "[data-bella-roll=label]",
+          "zone": {
+            "inset": -4
+          },
+          "z": 3,
+          "pin": null,
+          "anchor": null
+        },
+        {
+          "key": "ring",
+          "n": 5,
+          "title": "Focus ring",
+          "detail": "3px, 3px offset, focus-visible only",
+          "token": "--ring-focus-color",
+          "value": {
+            "light": "#b97a14",
+            "dark": "#e8a83e"
+          },
+          "kind": "ring",
+          "target": ":scope",
+          "zone": {
+            "inset": -6
+          },
+          "z": 4,
+          "pin": null,
+          "anchor": null
+        }
+      ],
+      "anatomySource": "tokens/component.json → component.button.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-button--docs",
       "composedFrom": [],
       "tokens": {
         "count": 48,
@@ -342,7 +476,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 7,
+          "pairs": 8,
           "failing": []
         },
         "contract": {
@@ -382,6 +516,16 @@ window.BELLA = {
         "default",
         "peek"
       ],
+      "states": [
+        "resting",
+        "hover",
+        "focus"
+      ],
+      "a11y": "Interactive cards render as a single anchor or button: one tab stop, no nested interactives. Name a card via ariaLabel when its visible content isn't the right name; media is aria-hidden when ariaLabel is set. Focus shows a visible ring (asserted in CI, both themes). Only interactive cards lift on hover and focus; prefers-reduced-motion keeps them still (the shadow still marks hover and focus). Card text sits on surface-card: text-muted 4.64:1 light / 6.03:1 dark, the worst pair (AA).",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.card.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-card--docs",
       "composedFrom": [],
       "tokens": {
         "count": 21,
@@ -432,6 +576,96 @@ window.BELLA = {
       }
     },
     {
+      "id": "data-table",
+      "name": "DataTable",
+      "description": "Rows of facts in columns. Sortable headers are buttons with aria-sort,\nthe header sticks, and an optional single selection fills the chosen row\nochre without dimming any other row.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "caption",
+        "className",
+        "columns",
+        "defaultSort",
+        "maxHeight",
+        "onSelect",
+        "rowKey",
+        "rows",
+        "selectedKey"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "sorted",
+        "selected",
+        "hover",
+        "focus"
+      ],
+      "a11y": "Verified 2026-10-03: a real table with a visible caption; column headers scope=col, the first cell of each row scope=row. Sortable headers hold a button and carry aria-sort (none, ascending, descending); the arrow is decorative. Selection is a toggle button with aria-pressed in the row header; the selected row is ochre fill with ink text, 9.01:1 (AAA), nested components included (a muted StatusPill label on ochre would be 3.51:1), and no other row changes. Header labels text-secondary on panel, 7.09:1 light / 8.44:1 dark (AAA). With maxHeight the scroll wrapper is a focusable region named by the caption. Sort and select buttons hit the 44px touch-target token; focus ring 3px.",
+      "minTarget": {
+        "token": "--component-data-table-row-min-height",
+        "value": "44px"
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.data-table.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-datatable--docs",
+      "composedFrom": [
+        "Icon"
+      ],
+      "tokens": {
+        "count": 26,
+        "component": 6,
+        "semantic": 3,
+        "list": [
+          "--border-width-thin",
+          "--color-semantic-border",
+          "--color-semantic-text-primary",
+          "--color-semantic-text-secondary",
+          "--component-data-table-border-radius",
+          "--component-data-table-font-size",
+          "--component-data-table-header-background",
+          "--component-data-table-row-min-height",
+          "--component-data-table-selected-background",
+          "--component-data-table-selected-foreground",
+          "--radius-sm",
+          "--ring-focus-color",
+          "--ring-focus-offset",
+          "--ring-focus-width",
+          "--spacing-1",
+          "--spacing-2",
+          "--spacing-20",
+          "--spacing-3",
+          "--spacing-4",
+          "--spacing-touch-target",
+          "--typography-font-family-body",
+          "--typography-font-family-mono",
+          "--typography-font-feature-mono",
+          "--typography-font-size-mono",
+          "--typography-font-weight-medium",
+          "--typography-letter-spacing-body"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 14,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
       "id": "eyebrow",
       "name": "Eyebrow",
       "description": "Eyebrow (style unify, 2026-09-22): the Geist Mono label above a heading.\n13px, ss09, no tracking, no caps. Never an accent: wayfinding is not action.",
@@ -450,6 +684,14 @@ window.BELLA = {
         "muted",
         "ink"
       ],
+      "states": [
+        "default"
+      ],
+      "a11y": "13px floor. muted: text-secondary, 7.09:1 worst light / 7.06:1 worst dark (AAA). ink: text-primary (AAA). Verified 2026-09-22.",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.eyebrow.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-eyebrow--docs",
       "composedFrom": [],
       "tokens": {
         "count": 13,
@@ -508,6 +750,20 @@ window.BELLA = {
         "pressed"
       ],
       "variants": [],
+      "states": [
+        "default",
+        "hover",
+        "pressed",
+        "focus"
+      ],
+      "a11y": "Verified 2026-07-22: real button with aria-pressed, both themes. Default label text-secondary on transparent, 8.33:1 light / 9.20:1 dark (AAA). Pressed is the inverse fill: ground-on-ink 16.06:1 light, navy-on-dark-inverse equivalent in dark (AAA). Focus ring independent. Hit area 44px minimum (the touch-target token; the portfolio 32px chip is a recorded divergence, below the 2.5.5 Enhanced floor BELLA holds).",
+      "minTarget": {
+        "token": "--component-filter-chip-min-height",
+        "value": "44px"
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.filter-chip.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-filterchip--docs",
       "composedFrom": [],
       "tokens": {
         "count": 19,
@@ -578,6 +834,14 @@ window.BELLA = {
         "page",
         "section"
       ],
+      "states": [
+        "default"
+      ],
+      "a11y": "Verified 2026-09-22: text-primary 18.73:1 light (bg) / 16.60:1 dark (bg), AAA. The accent segment is the muted half-line, text-secondary, 7.09:1 light / 7.06:1 dark (AAA): ochre is a fill, never text. Semantic level decouples from the visual tier via the as prop, so the outline stays honest.",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.heading.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-heading--docs",
       "composedFrom": [],
       "tokens": {
         "count": 10,
@@ -603,7 +867,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 8,
+          "pairs": 11,
           "failing": []
         },
         "contract": {
@@ -633,6 +897,14 @@ window.BELLA = {
         "style"
       ],
       "variants": [],
+      "states": [
+        "default"
+      ],
+      "a11y": "Verified 2026-07-22: aria-hidden by default (decorative); with label, role=img plus aria-label. Colour is always currentColor, so contrast rides on the text token of the context. Sizes from the icon tokens (sm 16 / md 20 / lg 24), stroke from icon.stroke.",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.icon.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-icon--docs",
       "composedFrom": [],
       "tokens": {
         "count": 2,
@@ -645,7 +917,9 @@ window.BELLA = {
       },
       "compositionDepth": 0,
       "composesInto": [
+        "DataTable",
         "Input",
+        "NavList",
         "ResourceCard",
         "Select"
       ],
@@ -691,6 +965,20 @@ window.BELLA = {
         "value"
       ],
       "variants": [],
+      "states": [
+        "default",
+        "focus",
+        "disabled",
+        "error"
+      ],
+      "a11y": "Verified 2026-07-22: real label element (for/id), 8.33:1 light / 9.20:1 dark (AAA). Field text text-primary on surface, 16.92:1 light (AAA); placeholder text-muted, 4.67:1 worst (AA, opacity reset for Firefox). Errors (status tokens, 2026-09-22): aria-invalid + role=alert message via aria-describedby; 2px danger-border (3:1+ on every surface), WarningCircle icon, message in danger-text (5.84:1 light on panel, 6.86:1 dark on raised; AA). Focus: the 3px focus ring (3px offset) plus an ink edge; an invalid field keeps its danger edge under the ring. 44px min-height.",
+      "minTarget": {
+        "token": "--component-input-min-height",
+        "value": "44px"
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.input.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-input--docs",
       "composedFrom": [
         "Icon"
       ],
@@ -732,7 +1020,68 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 17,
+          "pairs": 20,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "kbd",
+      "name": "Kbd",
+      "description": "A keyboard shortcut, set in Mono keycaps. Not a control: it names keys,\nit does not press them.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "keys",
+        "label"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "a11y": "Verified 2026-10-03: a kbd element with nested kbd per key, never focusable. With label, the glyphs are aria-hidden and the label is read. Caps text-secondary on surface-inset, 7.09:1 light / 7.69:1 dark (AAA). The cap edge is a decorative hairline. Mono at the 13px floor.",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.kbd.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-kbd--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 12,
+        "component": 7,
+        "semantic": 0,
+        "list": [
+          "--border-width-thin",
+          "--component-kbd-background",
+          "--component-kbd-border",
+          "--component-kbd-border-radius",
+          "--component-kbd-font-family",
+          "--component-kbd-font-feature-settings",
+          "--component-kbd-font-size",
+          "--component-kbd-foreground",
+          "--spacing-1",
+          "--spacing-6",
+          "--typography-letter-spacing-mono",
+          "--typography-line-height-normal"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -761,6 +1110,17 @@ window.BELLA = {
         "href"
       ],
       "variants": [],
+      "states": [
+        "default",
+        "hover",
+        "visited",
+        "focus"
+      ],
+      "a11y": "Ink foreground on ground passes AAA (16.06:1, verified 2026-07-21). Link affordance is the underline; hover thickens it to 2px (brand refresh, 2026-09-22). Ink throughout.",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.link.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-link--docs",
       "composedFrom": [],
       "tokens": {
         "count": 12,
@@ -800,6 +1160,94 @@ window.BELLA = {
       }
     },
     {
+      "id": "nav-list",
+      "name": "NavList",
+      "description": "A sidebar of grouped links: where you are is aria-current, not just paint.\nCollapses to its toggle.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "collapsed",
+        "footer",
+        "groups",
+        "label",
+        "onNavigate",
+        "onToggle"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "hover",
+        "current",
+        "focus",
+        "collapsed"
+      ],
+      "a11y": "Verified 2026-10-03: a nav landmark with a required aria-label; groups with a heading are lists labelled by it; the current item is aria-current=page. Labels text-secondary at rest, 7.09:1 light / 8.44:1 dark on panel (AAA); hover and current go text-primary, current on the border-subtle wash 14.60:1 / 12.26:1 (AAA); counts go ink on the current wash (muted would be 6.18:1). The toggle is a real button with aria-expanded, aria-controls and a spoken Hide / Show name; its icon is decorative. Focus ring 3px, inset. Rows and the toggle hit the 44px touch-target token.",
+      "minTarget": {
+        "token": "--component-nav-list-min-height",
+        "value": "44px"
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.nav-list.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-navlist--docs",
+      "composedFrom": [
+        "Icon"
+      ],
+      "tokens": {
+        "count": 26,
+        "component": 7,
+        "semantic": 5,
+        "list": [
+          "--border-width-thin",
+          "--color-semantic-border",
+          "--color-semantic-border-subtle",
+          "--color-semantic-surface-inset",
+          "--color-semantic-text-primary",
+          "--color-semantic-text-secondary",
+          "--component-nav-list-border-radius",
+          "--component-nav-list-current-background",
+          "--component-nav-list-font-family",
+          "--component-nav-list-font-size",
+          "--component-nav-list-label-font-family",
+          "--component-nav-list-label-font-size",
+          "--component-nav-list-min-height",
+          "--motion-duration-fast",
+          "--motion-easing-standard",
+          "--ring-focus-color",
+          "--ring-focus-width",
+          "--spacing-1",
+          "--spacing-2",
+          "--spacing-3",
+          "--spacing-6",
+          "--typography-font-feature-mono",
+          "--typography-font-weight-medium",
+          "--typography-font-weight-regular",
+          "--typography-letter-spacing-body",
+          "--typography-letter-spacing-mono"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 13,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
       "id": "pattern-field",
       "name": "PatternField",
       "description": "PatternField (brand refresh, 2026-09-22): the brand pattern as a quiet\nhero background. Greyscale at about 7% (inverted grey at about 6% in\ndark), fading out radially from the upper right. Decorative only:\naria-hidden, no interaction, never moves. It fills its positioned\nparent; put it first inside a `position: relative` hero. Replaces the\ndot grid.",
@@ -813,6 +1261,14 @@ window.BELLA = {
         "seed"
       ],
       "variants": [],
+      "states": [
+        "default"
+      ],
+      "a11y": "Decorative: aria-hidden, focusable=false, pointer-events none. At 7% greyscale it does not reduce text contrast measurably; axe checks the text over it.",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.pattern-field.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/brand-pattern--docs",
       "composedFrom": [],
       "tokens": {
         "count": 1,
@@ -862,6 +1318,16 @@ window.BELLA = {
         "type"
       ],
       "variants": [],
+      "states": [
+        "default",
+        "hover",
+        "focus-visible"
+      ],
+      "a11y": "Verified 2026-07-30: title is text-primary on the surface, 12.81:1 light and 12.61:1 worst dark, AAA. Description is text-secondary, 7.74:1 light and 7.33:1 worst dark, AAA. Tab label and footer meta sit at the 13px metadata tier, text-secondary, same ratios. The Open action is text-accent, 5.96:1 light and 5.30:1 worst dark, AA, and never stands on colour alone: it carries the word Open beside the arrow. One link per card, so one tab stop.",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.resource-card.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-resourcecard--docs",
       "composedFrom": [
         "Card",
         "Icon"
@@ -946,6 +1412,12 @@ window.BELLA = {
         "title"
       ],
       "variants": [],
+      "states": [],
+      "a11y": null,
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.scaled-frame.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-scaledframe--docs",
       "composedFrom": [],
       "tokens": {
         "count": 0,
@@ -963,6 +1435,100 @@ window.BELLA = {
         },
         "contract": {
           "status": "no-contract",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "score-strip",
+      "name": "ScoreStrip",
+      "description": "One system's readiness: an overall score and a strip of station scores,\nbanded sturdy, drifting or check engine. Measured and self-assessed are\ntold apart in text, never by fill alone.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "as",
+        "cells",
+        "className",
+        "kind",
+        "name",
+        "score"
+      ],
+      "variants": [],
+      "states": [
+        "strong",
+        "mid",
+        "low",
+        "self"
+      ],
+      "a11y": "Verified 2026-10-03: a region labelled by the system heading (level set by as); stations are a labelled list, each spoken as full name, value of 100 and band word, or self-assessed; the visible figure and short label are aria-hidden duplicates. Cell text is ink on every wash, 16.24:1 light / 12.23:1 dark worst (AAA; muted would fall to 6.68:1). Band edges are status borders at 3:1 or better on panel (success, danger) or the control border (3.00:1); the washes alone are near 1:1 on light panel and never carry meaning. The overall bar is aria-hidden, ink on the border-subtle track (14.60:1 / 12.26:1).",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.score-strip.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-scorestrip--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 39,
+        "component": 8,
+        "semantic": 7,
+        "list": [
+          "--border-width-thick",
+          "--border-width-thin",
+          "--cells",
+          "--color-semantic-border-strong",
+          "--color-semantic-danger-border",
+          "--color-semantic-danger-subtle",
+          "--color-semantic-success-border",
+          "--color-semantic-success-subtle",
+          "--color-semantic-text-primary",
+          "--color-semantic-text-secondary",
+          "--component-score-strip-cell-border-radius",
+          "--component-score-strip-label-font-family",
+          "--component-score-strip-label-font-size",
+          "--component-score-strip-name-font-size",
+          "--component-score-strip-score-font-size",
+          "--component-score-strip-track",
+          "--component-score-strip-track-fill",
+          "--component-score-strip-value-font-size",
+          "--radius-full",
+          "--radius-sm",
+          "--spacing-1",
+          "--spacing-12",
+          "--spacing-2",
+          "--spacing-20",
+          "--spacing-3",
+          "--spacing-5",
+          "--spacing-8",
+          "--typography-font-family-body",
+          "--typography-font-family-display",
+          "--typography-font-feature-mono",
+          "--typography-font-size-sm",
+          "--typography-font-weight-light",
+          "--typography-font-weight-medium",
+          "--typography-font-weight-regular",
+          "--typography-letter-spacing-h2",
+          "--typography-letter-spacing-mono",
+          "--typography-letter-spacing-title",
+          "--typography-line-height-heading",
+          "--typography-line-height-snug"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 18,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
           "issues": []
         },
         "visual": {
@@ -994,6 +1560,12 @@ window.BELLA = {
         "term"
       ],
       "variants": [],
+      "states": [],
+      "a11y": null,
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.section-header.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-sectionheader--docs",
       "composedFrom": [
         "Eyebrow",
         "Heading"
@@ -1019,7 +1591,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 4,
+          "pairs": 5,
           "failing": []
         },
         "contract": {
@@ -1049,6 +1621,20 @@ window.BELLA = {
         "value"
       ],
       "variants": [],
+      "states": [
+        "default",
+        "hover",
+        "selected",
+        "focus"
+      ],
+      "a11y": "Verified 2026-07-22: each segment is a real button; Tab moves between segments, Enter/Space selects, arrows deliberately inert; aria-current=true marks the selection in the tree; the group carries a required aria-label. Segment icons are a decorative leading slot, aria-hidden, sized by the icon tokens; the text label always stays and carries the name (restored 2026-07-22 after the first extraction dropped it, a recorded divergence). Labels text-secondary 8.33:1 light / 9.20:1 dark (AAA); selected label text-accent on accent-subtle, 5.25:1 worst light / 5.30:1 worst dark (AA). Focus ring inset. Segments hit the 44px touch-target token (portfolio 38px is a recorded divergence).",
+      "minTarget": {
+        "token": "--component-segmented-control-min-height",
+        "value": "44px"
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.segmented-control.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-segmentedcontrol--docs",
       "composedFrom": [],
       "tokens": {
         "count": 22,
@@ -1084,7 +1670,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 8,
+          "pairs": 9,
           "failing": []
         },
         "contract": {
@@ -1114,6 +1700,19 @@ window.BELLA = {
         "value"
       ],
       "variants": [],
+      "states": [
+        "default",
+        "focus",
+        "open"
+      ],
+      "a11y": "Verified 2026-07-22: native select labelled by containment; the platform popup needs no re-verification. Closed control: text-primary on surface, 16.92:1 light (AAA); label text-secondary 8.33:1 light / 9.20:1 dark (AAA). Option text at 14px is the closed-control field; the popup renders at platform size. Focus ring on the field; 44px min-height via the touch-target token.",
+      "minTarget": {
+        "token": "--component-select-min-height",
+        "value": "44px"
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.select.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-select--docs",
       "composedFrom": [
         "Icon"
       ],
@@ -1146,7 +1745,131 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 12,
+          "pairs": 15,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "stat",
+      "name": "Stat",
+      "description": "One figure with its label and an optional change. A term-description pair,\nso the label names the figure for assistive tech.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "delta",
+        "label",
+        "trend",
+        "value"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "a11y": "Verified 2026-10-03: a dl with a dt label and dd figure, so the label names the figure. The trend arrow is aria-hidden and a spoken Up / Down precedes the change. Figure text-primary, label and change text-secondary, all AAA on the page and on panel (7.09:1 light / 8.44:1 dark worst for muted). Tabular numerals.",
+      "minTarget": null,
+      "parts": [
+        {
+          "key": "label",
+          "n": 1,
+          "title": "Label",
+          "detail": "Geist Mono 13, muted",
+          "token": "--component-stat-label-font-size",
+          "value": {
+            "light": "13px",
+            "dark": "13px"
+          },
+          "kind": "content",
+          "target": "dt",
+          "zone": {
+            "inset": -2
+          },
+          "z": 0,
+          "pin": null,
+          "anchor": null
+        },
+        {
+          "key": "figure",
+          "n": 2,
+          "title": "Figure",
+          "detail": "Geist 300, 32, tabular numerals",
+          "token": "--component-stat-value-font-size",
+          "value": {
+            "light": "32px",
+            "dark": "32px"
+          },
+          "kind": "content",
+          "target": "dd:first-of-type",
+          "zone": {
+            "inset": -2
+          },
+          "z": 1,
+          "pin": null,
+          "anchor": null
+        },
+        {
+          "key": "change",
+          "n": 3,
+          "title": "Change line",
+          "detail": "Geist 14, muted; arrow hidden, direction spoken",
+          "token": "--component-stat-delta-font-size",
+          "value": {
+            "light": "14px",
+            "dark": "14px"
+          },
+          "kind": "content",
+          "target": "dd:nth-of-type(2)",
+          "zone": {
+            "inset": -2
+          },
+          "z": 2,
+          "pin": null,
+          "anchor": null
+        }
+      ],
+      "anatomySource": "tokens/component.json → component.stat.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-stat--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 15,
+        "component": 6,
+        "semantic": 2,
+        "list": [
+          "--color-semantic-text-primary",
+          "--color-semantic-text-secondary",
+          "--component-stat-delta-font-size",
+          "--component-stat-label-font-family",
+          "--component-stat-label-font-size",
+          "--component-stat-value-font-family",
+          "--component-stat-value-font-size",
+          "--component-stat-value-font-weight",
+          "--spacing-1",
+          "--typography-font-family-body",
+          "--typography-font-feature-mono",
+          "--typography-letter-spacing-body",
+          "--typography-letter-spacing-h2",
+          "--typography-letter-spacing-mono",
+          "--typography-line-height-heading"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 11,
           "failing": []
         },
         "contract": {
@@ -1178,6 +1901,14 @@ window.BELLA = {
         "success",
         "info"
       ],
+      "states": [
+        "default"
+      ],
+      "a11y": "Verified 2026-07-22: the label never depends on the tint. Accent label is text-accent, 5.66:1 light / 6.65:1 dark (AA). Success/info labels are text-secondary, AAA both themes. Tints as non-text rings: sage 4.33:1 on ground and 3.45:1 on navy (passes 3:1); steel 2.87:1 on ground (fails 3:1, wash-only per the recorded carry) and 5.20:1 on navy. The state is always readable from the word alone. CARRIED TINTS: pending the status-ladder sitting (issue #1).",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.status-pill.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-statuspill--docs",
       "composedFrom": [],
       "tokens": {
         "count": 14,
@@ -1205,7 +1936,167 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 4,
+          "pairs": 5,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "tabs",
+      "name": "Tabs",
+      "description": "Switch between panels that share one place on the page. W3C APG tabs with\nautomatic activation: one tab stop, arrows move and select, Home and End\njump to the ends.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "idBase",
+        "label",
+        "onChange",
+        "tabs",
+        "value"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "hover",
+        "selected",
+        "focus"
+      ],
+      "a11y": "Verified 2026-10-03: tablist with a required aria-label; one tab stop (roving tabindex); ArrowLeft/ArrowRight move and select with wrap, Home/End jump; aria-selected and aria-controls in the tree, each panel labelled by its tab. Labels text-secondary 7.94:1 light / 9.06:1 dark at rest (AAA), selected text-primary 18.73:1 / 16.60:1 on the page (AAA); the selected bar is ink (non-text, far above 3:1). Run state is a filled ink dot or an idle border-strong ring (3.00:1 worst) and also text in the name. Focus ring 3px, inset. Tabs hit the 44px touch-target token.",
+      "minTarget": {
+        "token": "--component-tabs-min-height",
+        "value": "44px"
+      },
+      "parts": [
+        {
+          "key": "hairline",
+          "n": 1,
+          "title": "Hairline",
+          "detail": "1px decorative rule under the list",
+          "token": "--color-semantic-border",
+          "value": {
+            "light": "#e3e3e3",
+            "dark": "#2a2a2a"
+          },
+          "kind": "edge",
+          "target": ":scope",
+          "zone": {
+            "edge": "bottom",
+            "size": 6
+          },
+          "z": 0,
+          "pin": null,
+          "anchor": null
+        },
+        {
+          "key": "bar",
+          "n": 2,
+          "title": "Selected bar",
+          "detail": "2px ink bar under the selected tab",
+          "token": "--component-tabs-indicator",
+          "value": {
+            "light": "#121212",
+            "dark": "#ededed"
+          },
+          "kind": "part",
+          "target": "[aria-selected=true]",
+          "zone": {
+            "edge": "bottom",
+            "size": 8
+          },
+          "z": 1,
+          "pin": null,
+          "anchor": null
+        },
+        {
+          "key": "labels",
+          "n": 3,
+          "title": "Labels",
+          "detail": "Geist 14, 500; muted at rest, ink when selected",
+          "token": "--component-tabs-font-size",
+          "value": {
+            "light": "14px",
+            "dark": "14px"
+          },
+          "kind": "content",
+          "target": "[role=tab]",
+          "zone": {
+            "inset": 6
+          },
+          "z": 2,
+          "pin": null,
+          "anchor": null
+        },
+        {
+          "key": "dots",
+          "n": 4,
+          "title": "Run dots",
+          "detail": "ink fill running, control ring idle",
+          "token": "--color-semantic-border-ink",
+          "value": {
+            "light": "#121212",
+            "dark": "#ededed"
+          },
+          "kind": "part",
+          "target": "[data-status]",
+          "zone": {
+            "inset": -4
+          },
+          "z": 3,
+          "pin": null,
+          "anchor": null
+        }
+      ],
+      "anatomySource": "tokens/component.json → component.tabs.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-tabs--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 23,
+        "component": 7,
+        "semantic": 6,
+        "list": [
+          "--border-width-thin",
+          "--color-semantic-border",
+          "--color-semantic-border-ink",
+          "--color-semantic-border-strong",
+          "--color-semantic-border-subtle",
+          "--color-semantic-text-primary",
+          "--color-semantic-text-secondary",
+          "--component-tabs-border-radius",
+          "--component-tabs-font-family",
+          "--component-tabs-font-size",
+          "--component-tabs-font-weight",
+          "--component-tabs-indicator",
+          "--component-tabs-indicator-width",
+          "--component-tabs-min-height",
+          "--motion-duration-fast",
+          "--motion-easing-standard",
+          "--radius-full",
+          "--ring-focus-color",
+          "--ring-focus-width",
+          "--spacing-1",
+          "--spacing-2",
+          "--spacing-4",
+          "--typography-letter-spacing-body"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 16,
           "failing": []
         },
         "contract": {
@@ -1237,6 +2128,14 @@ window.BELLA = {
         "default",
         "accent"
       ],
+      "states": [
+        "default"
+      ],
+      "a11y": "Verified 2026-07-22: default label is text-secondary, 7.74:1 on the surface-inset wash in light and 7.33:1 worst in dark, AAA both. Accent label is text-accent on the accent-subtle wash, 5.25:1 worst in light and 5.30:1 worst in dark, AA. Non-interactive: no tab stop, no pointer affordance, cursor default.",
+      "minTarget": null,
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.tag.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-tag--docs",
       "composedFrom": [],
       "tokens": {
         "count": 13,

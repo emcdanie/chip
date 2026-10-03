@@ -4,6 +4,30 @@ import Heading from '@bella/components/Heading/Heading';
 import Eyebrow from '@bella/components/Eyebrow/Eyebrow';
 import Stat from '@bella/components/Stat/Stat';
 import ScoreStrip, { ScoreLegend } from '@bella/components/ScoreStrip/ScoreStrip';
+import DataTable from '@bella/components/DataTable/DataTable';
+import StatusPill from '@bella/components/StatusPill/StatusPill';
+
+function Pill({ ok, word }) {
+  return <StatusPill variant={ok ? 'success' : 'info'}>{word}</StatusPill>;
+}
+
+const yes = (v) => (v ? 1 : 0);
+
+const COLUMNS = [
+  { key: 'name', label: 'Component', sortable: true },
+  { key: 'hasStory', label: 'Story', sortable: true, sortValue: (c) => yes(c.hasStory),
+    render: (c) => <Pill ok={c.hasStory} word={c.hasStory ? 'present' : 'missing'} /> },
+  { key: 'inDsds', label: 'DSDS', sortable: true, sortValue: (c) => yes(c.inDsds),
+    render: (c) => <Pill ok={c.inDsds} word={c.inDsds ? 'present' : 'missing'} /> },
+  { key: 'contract', label: 'Contract', sortable: true, sortValue: (c) => c.health.contract.status,
+    render: (c) => <Pill ok={c.health.contract.status === 'pass'} word={c.health.contract.status} /> },
+  { key: 'contrast', label: 'Contrast', sortable: true, sortValue: (c) => c.health.contrast.status,
+    render: (c) => <Pill ok={c.health.contrast.status === 'pass'} word={c.health.contrast.status} /> },
+  { key: 'parts', label: 'Anatomy parts', numeric: true, sortable: true, sortValue: (c) => c.parts.length,
+    render: (c) => c.parts.length },
+  { key: 'tokens', label: 'Tokens', numeric: true, sortable: true, sortValue: (c) => c.tokens.count,
+    render: (c) => c.tokens.count },
+];
 
 // Short cell labels for the ten stations; the full name is what gets spoken.
 const SHORT = {
@@ -82,19 +106,19 @@ export default function Health({ bella, health, failures }) {
         </Card>
       </section>
 
-      <section id="failures" aria-labelledby="failures-h" className="block">
-        <h2 id="failures-h" className="block-title">Failures</h2>
-        <Card>
-          {failures.length ? (
-            <ul className="failures">
-              {failures.map((f) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>No failures.</p>
-          )}
-        </Card>
+      <section id="components" aria-labelledby="components-h" className="block">
+        <h2 id="components-h" className="block-title">Components</h2>
+        <p className="block-lead">
+          {failures.length ? `${failures.length} failing: ${failures.join(', ')}.` : 'Every component passes.'}
+        </p>
+        <DataTable
+          columns={COLUMNS}
+          rows={bella.components}
+          rowKey="id"
+          caption={`Per-component results, BELLA @ ${bella.source.commit}`}
+          defaultSort={{ key: 'name', direction: 'ascending' }}
+          maxHeight="calc(var(--spacing-20) * 6)"
+        />
       </section>
     </div>
   );
