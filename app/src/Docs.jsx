@@ -98,15 +98,19 @@ export default function Docs({ docId, version = 0, narrow }) {
     loadList();
   }, [version]);
 
+  // with no doc picked, the newest one opens (wide only: on a phone the list comes first)
+  const newest = useMemo(() => [...(list ?? [])].sort((a, b) => String(b.updated ?? b.date).localeCompare(String(a.updated ?? a.date)))[0], [list]);
+  const openId = docId ?? (!narrow ? newest?.id ?? null : null);
+
   // a new doc closes the editor; a save elsewhere (version) only refreshes
   useEffect(() => setEditing(null), [docId]);
   useEffect(() => {
-    if (!docId) return setDoc(null);
-    fetch(`/obi-docs/${docId}`)
+    if (!openId) return setDoc(null);
+    fetch(`/obi-docs/${openId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then(setDoc)
       .catch(() => setDoc(null));
-  }, [docId, version]);
+  }, [openId, version]);
 
   const tags = useMemo(() => [...new Set((list ?? []).flatMap((d) => d.tags))].sort(), [list]);
   const shown = (list ?? []).filter(
@@ -116,13 +120,13 @@ export default function Docs({ docId, version = 0, narrow }) {
       (status === 'all' || d.status === status)
   );
   const groups = ['Loop', 'Notes']
-    .map((g) => ({ label: g, items: shown.filter((d) => d.group === g).map((d) => ({ href: `#/docs/${d.id}`, label: d.title, badge: d.group === 'Notes' ? when(d.date) : undefined, current: d.id === docId })) }))
+    .map((g) => ({ label: g, items: shown.filter((d) => d.group === g).map((d) => ({ href: `#/docs/${d.id}`, label: d.title, badge: d.group === 'Notes' ? when(d.date) : undefined, current: d.id === openId })) }))
     .filter((g) => g.items.length);
 
   const saved = (d) => {
     setEditing(null);
     loadList();
-    if (d.id === docId) setDoc(d);
+    if (d.id === openId) setDoc(d);
     else window.location.hash = `#/docs/${d.id}`;
   };
 
@@ -160,7 +164,7 @@ export default function Docs({ docId, version = 0, narrow }) {
     <Card innerClassName="doc-rail">
       <p className="card-title">About this doc</p>
       <dl className="facts">
-        <div><dt>Status</dt><dd><StatusPill variant={doc.status === 'done' ? 'success' : 'info'}>{statusLabel(doc.status)}</StatusPill></dd></div>
+        <div><dt>Status</dt><dd><StatusPill variant={doc.status === 'done' ? 'success' : 'neutral'}>{statusLabel(doc.status)}</StatusPill></dd></div>
         <div><dt>Type</dt><dd>{kindLabel(doc.kind)}</dd></div>
         <div><dt>Date</dt><dd>{doc.group === 'Loop' ? when(doc.updated) : when(doc.date) || 'None'}</dd></div>
         {doc.tags.filter((t) => t !== doc.kind).length ? (
@@ -225,14 +229,15 @@ export default function Docs({ docId, version = 0, narrow }) {
     ) : (
       <>
         <PageHeader meta={`Notes, plans, decisions and handoffs · ${folder || 'notes folder'}, never committed`} title="Docs" lede="Everything OBI saved and everything you wrote, searchable here and by OBI." />
+        {/* one frame: the card, no dashed box inside it */}
         <Card innerClassName="doc-empty">
-          <div className="empty">
-            <p className="card-title">{list?.length ? 'Pick a doc, or start a new one' : 'No docs yet'}</p>
-            <p className="label">
-              {list?.length
-                ? `${list.length} docs: ${list.filter((d) => d.status === 'in-progress').length} in progress, ${list.filter((d) => d.status === 'done').length} done.`
-                : 'Save one from OBI with /note, or start one here.'}
-            </p>
+          <p className="card-title">{list?.length ? 'Pick a doc, or start a new one' : 'No docs yet'}</p>
+          <p className="label">
+            {list?.length
+              ? `${list.length} docs: ${statuses.map((st) => `${list.filter((d) => d.status === st).length} ${statusLabel(st).toLowerCase()}`).join(', ')}.`
+              : 'Save one from OBI with /note, or start one here.'}
+          </p>
+          <div className="doc-actions">
             <Button variant="secondary" onClick={() => setEditing('new')}>
               New doc
             </Button>
