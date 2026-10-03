@@ -24,7 +24,10 @@ function Server({ s, onTest, testing }) {
         <div><dt>Kind</dt><dd>{s.kind === 'cli' ? 'CLI tool' : `MCP over ${s.transport}`}</dd></div>
         <div><dt>Where</dt><dd><span className="mono">{s.where}</span></dd></div>
         <div><dt>Allowed</dt><dd>{s.allow.length ? s.allow.join(' and ') : 'nothing'}</dd></div>
-        <div><dt>Tools</dt><dd>{s.tools ? `${s.tools.length} (${s.tools.filter((t) => t.kind === 'read').length} read, ${s.tools.filter((t) => t.kind !== 'read').length} write)` : 'not listed yet'}</dd></div>
+        <div><dt>Tools</dt><dd>{s.tools ? `${s.tools.filter((t) => t.kind === 'read').length} read` : 'not listed yet'}</dd></div>
+        {s.tools ? (
+          <div><dt>Writes</dt><dd>{`${s.tools.filter((t) => t.kind !== 'read').length} write tools · ${s.tools.filter((t) => t.kind !== 'read' && t.allowed).length} allowed`}</dd></div>
+        ) : null}
         <div><dt>Last used</dt><dd>{when(s.lastUsed)}</dd></div>
       </dl>
       {s.error ? <p role="alert">{s.error}</p> : null}
@@ -41,7 +44,7 @@ function Server({ s, onTest, testing }) {
           <ul className="tool-rows">
             {s.tools.map((t) => (
               <li key={t.name}>
-                <span className="mono">{t.name}</span> <Tag>{t.kind}</Tag>
+                <span className="mono">{t.name}</span> <Tag>{t.kind === 'read' ? 'read' : t.allowed ? 'write · allowed' : 'write · blocked'}</Tag>
                 {t.description ? <span className="label"> {t.description}</span> : null}
               </li>
             ))}

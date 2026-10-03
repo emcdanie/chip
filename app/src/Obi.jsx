@@ -271,7 +271,7 @@ function ToolTurn({ t, onConfirm, onCancel }) {
             {t.list.map((srv) => (
               <li key={srv.name}>
                 <span className="mono">{srv.name}</span> · {srv.status}
-                {srv.tools ? ` · ${srv.tools.length} tools (${srv.tools.filter((x) => x.kind === 'read').length} read)` : ''}
+                {srv.tools ? ` · ${srv.tools.filter((x) => x.kind === 'read').length} read · ${srv.tools.filter((x) => x.kind !== 'read').length} write, ${srv.tools.filter((x) => x.kind !== 'read' && x.allowed).length} allowed` : ''}
                 {srv.note && srv.disabled ? <span className="label"> · {srv.note}</span> : null}
               </li>
             ))}

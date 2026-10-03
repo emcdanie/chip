@@ -12,7 +12,7 @@ import { ROOT } from '../lib/config.mjs';
 import { logUsage, lastToolUses } from '../lib/usage.mjs';
 import { McpServer } from './mcp.js';
 import { CliServer } from './cli.js';
-import { guard, take } from './guard.js';
+import { guard, take, writeBlocked } from './guard.js';
 
 // "${NAME}" -> process.env.NAME; "~/" -> the home folder
 const fill = (v) =>
@@ -96,7 +96,8 @@ export async function test(name) {
   const cfg = configOf(name);
   const e = entry(cfg);
   try {
-    e.tools = await e.adapter.listTools();
+    // allowed: a read, or a write on the allowlist
+    e.tools = (await e.adapter.listTools()).map((t) => ({ ...t, allowed: t.kind === 'read' || !writeBlocked(cfg, t.name) }));
     e.status = 'connected';
     e.error = null;
   } catch (err) {
@@ -149,7 +150,8 @@ export async function confirm(id, session) {
   const p = take(id, session);
   if (!p) throw new Error('That change has expired or was already handled. Ask again.');
   const cfg = configOf(p.server);
-  if (!(cfg.allow ?? []).includes('write')) throw new Error(`${cfg.name} is read-only in chip.config now; nothing ran.`);
+  const why = writeBlocked(cfg, p.tool);
+  if (why) throw new Error(`${why}; nothing ran.`);
   return run(cfg, p.tool, p.args, p.purpose);
 }
 

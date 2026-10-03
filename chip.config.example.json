@@ -36,6 +36,12 @@
         "figma_audit_design_system",
         "figma_check_design_parity",
         "figma_diagnose"
+      ],
+      "allowWrite": [
+        "figma_create_variable",
+        "figma_update_variable",
+        "figma_delete_variable",
+        "figma_rename_variable"
       ]
     },
     {
