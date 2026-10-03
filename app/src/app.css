@@ -1119,9 +1119,15 @@ body {
 
 .tile {
   display: grid;
+  grid-template-rows: 1fr auto;
   gap: var(--layout-stack-sm);
-  align-content: space-between;
   justify-items: start;
+}
+
+.tile-action {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--spacing-touch-target);
 }
 
 /* ---------- OBI ---------- */

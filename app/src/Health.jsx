@@ -13,7 +13,7 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Link from '@bella/components/Link/Link';
 
 function Pill({ ok, word }) {
-  return <StatusPill variant={ok ? 'success' : 'info'}>{word}</StatusPill>;
+  return <StatusPill variant={ok ? 'success' : 'neutral'}>{word}</StatusPill>;
 }
 
 const yes = (v) => (v ? 1 : 0);
@@ -57,7 +57,8 @@ function Tile({ label, value, t, action }) {
   return (
     <div className="tile">
       <Stat label={label} value={value} delta={t.delta} trend={t.trend} series={t.series} seriesLabel={t.seriesLabel?.(label)} />
-      {action}
+      {/* one 44px row for every action, so a link and a chip share a baseline */}
+      <div className="tile-action">{action}</div>
     </div>
   );
 }
@@ -120,7 +121,6 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
     <NavList
       label="On this page"
       groups={[{ label: 'On this page', items: SECTIONS.filter((x) => x.href !== '#failures' || failures.length) }]}
-      footer={<p className="source-line">{source}</p>}
     />
   );
 
