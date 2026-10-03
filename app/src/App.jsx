@@ -103,7 +103,9 @@ export default function App() {
     return () => ro.disconnect();
   }, []);
   const [dockH, setDockH] = useState(() => Number(stored(DOCK_KEY, '')) || Math.round(window.innerHeight * 0.34));
-  const narrow = useMedia('(max-width: 719px)');
+  // the bar folds when SidebarLayout stacks: its width under 768px, the
+  // viewport under 832px with the container's 32px padding
+  const narrow = useMedia('(max-width: 831px)');
   const [models, setModels] = useState([]);
   const [budget, setBudget] = useState(null);
   const [picked, setPicked] = useState(() => stored(MODEL_KEY, 'auto'));
@@ -287,13 +289,14 @@ export default function App() {
       data-ws={ws}
       data-obi={obiOpen || undefined}
       // the page pads by the dock's height; sticky parts sit under the bar
-      style={{ '--topbar-h': `${topbarH}px`, ...(obiOpen && !narrow ? { '--dock-h': `${dockH}px` } : {}) }}
+      style={{ '--header-height': `${topbarH}px`, ...(obiOpen && !narrow ? { '--dock-height': `${dockH}px` } : {}) }}
     >
       <a className="skip" href="#main">
         Skip to workspace
       </a>
 
       <header className="topbar" ref={topbar}>
+        <div className="container topbar-row">
         {narrow ? (
           <>
             {/* sentence case: Button keeps its caps keycap label, these are quiet actions */}
@@ -322,6 +325,7 @@ export default function App() {
             <Select label="Theme" value={theme} onChange={setTheme} options={THEMES} className="theme-select" />
           </>
         )}
+        </div>
       </header>
 
       <div className="body">
@@ -333,7 +337,7 @@ export default function App() {
 
         {/* the page above, OBI docked below like an editor's terminal panel */}
         <div className="work">
-          <main id="main" className="main" tabIndex={-1}>
+          <main id="main" className="main container" tabIndex={-1}>
             {offline ? (
               <p className="offline" role="alert">
                 The CHIP server is not answering on 127.0.0.1:3100. Start it with npm start.

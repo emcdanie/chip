@@ -41,13 +41,27 @@ body {
   position: sticky;
   inset-block-start: 0;
   z-index: 3;
+  padding-block-start: env(safe-area-inset-top);
+  border-bottom: var(--border-width-thin) solid var(--color-semantic-border);
+  background: var(--color-semantic-background);
+}
+
+/* the page container: one max width and side padding for the bar and the
+   page, so the wordmark's x is the content's x at every width */
+.container {
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: calc(var(--layout-container-max) + 2 * var(--layout-container-pad));
+  margin-inline: auto;
+  padding-inline: var(--layout-container-pad);
+}
+
+.topbar-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-3) var(--spacing-6);
-  padding: var(--spacing-3) var(--spacing-6);
-  border-bottom: var(--border-width-thin) solid var(--color-semantic-border);
-  background: var(--color-semantic-background);
+  padding-block: var(--spacing-3);
 }
 
 .brand {
@@ -156,7 +170,7 @@ body {
   position: fixed;
   inset: auto 0 0 0;
   z-index: 3;
-  block-size: var(--dock-h, 34vh);
+  block-size: var(--dock-height, 34vh);
   min-block-size: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -192,9 +206,9 @@ body {
 
 .sidebar {
   position: sticky;
-  top: var(--topbar-h, 0rem);
+  top: var(--header-height);
   align-self: start;
-  max-height: calc(100dvh - var(--topbar-h, 0rem) - var(--dock-h, 0rem));
+  max-height: calc(100dvh - var(--header-height) - var(--dock-height, 0px));
   overflow-y: auto;
   padding: var(--spacing-4) var(--spacing-3);
   background: var(--color-semantic-surface-card);
@@ -212,34 +226,33 @@ body {
 }
 
 .main {
-  padding: var(--spacing-8);
-  padding-block-end: calc(var(--dock-h, 0rem) + var(--spacing-8));
+  padding-block: var(--layout-section-space) calc(var(--dock-height, 0px) + var(--layout-section-space));
   min-width: 0;
   container-type: inline-size;
-  scroll-margin-block-start: var(--topbar-h, 0rem);
+  scroll-margin-block-start: var(--header-height);
 }
 
 /* in-page anchors land below the sticky bar */
 .main [id] {
-  scroll-margin-block-start: calc(var(--topbar-h, 0rem) + var(--spacing-4));
+  scroll-margin-block-start: calc(var(--header-height) + var(--spacing-4));
 }
 
 .main:focus {
   outline: none;
 }
 
-/* below 720px the sidebar lives in a drawer, opened from Menu */
-@media (max-width: 719px) {
+/* below 832px (SidebarLayout stacks) the aside lives in a drawer, opened from Menu */
+@media (max-width: 831px) {
   .body,
   .shell[data-nav-collapsed] .body {
     grid-template-columns: minmax(0, 1fr);
   }
 
   /* one row: Menu · CHIP · where you are · OBI */
-  .topbar {
+  .topbar-row {
     flex-wrap: nowrap;
     gap: var(--spacing-3);
-    padding: var(--spacing-2) var(--spacing-4);
+    padding-block: var(--spacing-2);
   }
 
   .here {
@@ -257,10 +270,6 @@ body {
     z-index: 4;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     box-shadow: var(--shadow-lg);
-  }
-
-  .main {
-    padding: var(--spacing-6) var(--spacing-4);
   }
 
   .bar-slot {
@@ -388,8 +397,8 @@ body {
 @container (min-width: 40rem) {
   .library {
     position: sticky;
-    top: calc(var(--topbar-h, 0rem) + var(--spacing-4));
-    max-block-size: calc(100dvh - var(--topbar-h, 0rem) - var(--dock-h, 0rem) - var(--spacing-8));
+    top: calc(var(--header-height) + var(--spacing-4));
+    max-block-size: calc(100dvh - var(--header-height) - var(--dock-height, 0px) - var(--spacing-8));
     overflow-y: auto;
   }
 }
@@ -1207,7 +1216,7 @@ body {
 .toast {
   position: fixed;
   z-index: 4; /* above the fixed OBI dock */
-  inset-block-end: calc(var(--dock-h, 0rem) + var(--spacing-6));
+  inset-block-end: calc(var(--dock-height, 0px) + var(--spacing-6));
   inset-inline-end: var(--spacing-6);
   margin: 0;
   padding: var(--spacing-3) var(--spacing-5);
@@ -1660,8 +1669,8 @@ body {
   /* the list sticks under the bar with its own scroll */
   .docs-list {
     position: sticky;
-    top: calc(var(--topbar-h, 0rem) + var(--spacing-4));
-    max-block-size: calc(100dvh - var(--topbar-h, 0rem) - var(--dock-h, 0rem) - var(--spacing-8));
+    top: calc(var(--header-height) + var(--spacing-4));
+    max-block-size: calc(100dvh - var(--header-height) - var(--dock-height, 0px) - var(--spacing-8));
     overflow-y: auto;
   }
 }
