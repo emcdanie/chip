@@ -13,6 +13,7 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Combobox from '@bella/components/Combobox/Combobox';
 import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss } from './answers.js';
 import Select from '@bella/components/Select/Select';
+import { baseOf } from './Sandbox.jsx';
 
 const COMMANDS = [
   { cmd: 'status', note: 'model, index size, last sync' },
@@ -121,13 +122,27 @@ function Closest({ sources }) {
   );
 }
 
+// the one meta line under an answer: model · place · kind
+function metaLine(t) {
+  if (t.path === 'data') return 'BELLA data · no model';
+  if (t.path === 'weak') return `${t.asked === 'claude' ? 'Claude' : 'local'} · miss`;
+  const who = t.model ? `${t.model} · ${t.place === 'cloud' ? 'cloud' : 'local'}` : 'reading your sources';
+  return `${who} · ${isMiss(t.text) ? 'miss' : 'docs'}`;
+}
+
+// is the question about this component (named, or "here", "this", "it" on its page)?
+function aboutComponent(t, name) {
+  if (!name) return false;
+  if (new RegExp(`\\b${name}\\b`, 'i').test(t.q)) return true;
+  return t.page === `Atlas · ${name}` && /\b(here|this|it|its)\b/i.test(t.q);
+}
+
 function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onSave, onCompare, onIncludePrivate, notify }) {
-  // no chip for the component you are already looking at
   const here = page?.match(/^Atlas · (\w+)$/)?.[1];
-  const names = (t.components ?? []).filter((n) => n !== here);
-  const tokens = tokensIn(t.text ?? '') ;
-  const target = (t.components ?? [])[0] ?? t.page?.match(/^Atlas · (\w+)$/)?.[1];
-  const sandboxable = target && (tokens.length || t.data) && bella?.components.find((c) => c.name === target)?.sandbox;
+  const done = t.path !== 'docs' || t.total != null;
+  const miss = t.path === 'weak' || (t.path === 'docs' && done && isMiss(t.text));
+  const answered = done && !miss && (t.path === 'data' || (t.path === 'docs' && t.text));
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(proposalOf(t));
@@ -136,109 +151,105 @@ function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onS
       notify('Could not copy');
     }
   }
-  const done = t.path !== 'docs' || t.total != null;
+
+  // actions, most useful first; two show, the rest go under More
+  const actions = [];
+  if (answered) {
+    if (t.path === 'docs' && t.place === 'local' && claudeOk) actions.push({ key: 'claude', label: soundsUnsure(t.text) ? 'Ask Claude' : 'Ask Claude instead', run: () => onCompare(t) });
+    const target = (t.components ?? []).find((n) => aboutComponent(t, n)) ?? (aboutComponent(t, here) ? here : null);
+    const targetComp = target && bella?.components.find((c) => c.name === target);
+    if (targetComp && tokensIn(t.text ?? '').length && Object.keys(baseOf(targetComp)).length) actions.push({ key: 'try', label: 'Try in sandbox', run: () => onSandbox(target) });
+    for (const n of (t.components ?? []).filter((n) => n !== here)) actions.push({ key: `open-${n}`, label: `Open ${n} in Atlas`, run: () => onOpenAtlas(n) });
+    if (target) actions.push({ key: 'save', label: `Save to ${target} notes`, run: () => onSave(target, t) });
+    actions.push({ key: 'copy', label: 'Copy as proposal', run: copy });
+  }
+  const shown = actions.slice(0, 2);
+  const more = actions.slice(2);
+
   return (
-    <li className="turn turn-ask">
-      <p className="turn-q">{t.q}</p>
-      {t.path === 'clarify' ? (
-        <p className="turn-a">{t.text}</p>
-      ) : t.path === 'error' ? (
-        <p className="turn-a" role="alert">
-          {t.text}
-        </p>
-      ) : t.path === 'weak' ? (
-        <div className="turn-a">
-          {t.compareTo ? <p className="turn-via">The same question, asked of Claude.</p> : null}
-          {t.route ? <p className="turn-via">{t.route}</p> : null}
-          {t.heldBack ? (
-            <p className="turn-note">
-              {t.heldBack} Notion source{t.heldBack === 1 ? ' was' : 's were'} held back: private sources are not sent to Anthropic.{' '}
-              <ActionChip onClick={() => onIncludePrivate(t)}>Include them this session</ActionChip>
-            </p>
-          ) : null}
-          <p>I couldn't find this in {t.heldBack ? 'the sources that may go to the cloud' : 'your sources'}. The closest three:</p>
-          <Closest sources={t.closest} />
-        </div>
-      ) : t.path === 'data' ? (
-        <div className="turn-a">
-          <p className="turn-via">{t.route ?? 'From BELLA data'}</p>
-          <p className="turn-lead">{t.data.title}</p>
-          <DataTable
-            columns={t.data.columns}
-            rows={t.data.rows}
-            rowKey={t.data.rowKey}
-            caption={t.data.caption ?? 'Results'}
-            maxHeight="calc(var(--spacing-20) * 6)"
-          />
-          <p className="meta">data/bella.json, synced from BELLA @ {bella?.source.commit}. No model call.</p>
-        </div>
-      ) : (
-        <div className="turn-a" aria-busy={!done}>
-          {t.compareTo ? <p className="turn-via">The same question, asked of Claude. Compare it with the answer above.</p> : null}
-          {t.route ? <p className="turn-via">{t.route}</p> : null}
-          <p className="turn-via">
-            {t.model ? `Answered by ${t.model} · ${t.place === 'cloud' ? 'cloud' : 'local'}` : 'From your docs'}
+    <li className="turn">
+      <p className="you">
+        <span className="you-label">You</span>
+        <span>{t.q}</span>
+      </p>
+
+      <div className="answer">
+        {t.compareTo ? <p className="label">The same question, asked of Claude. Compare it with the answer above.</p> : null}
+        {t.path === 'clarify' ? <p>{t.text}</p> : null}
+        {t.path === 'error' ? <p role="alert">{t.text}</p> : null}
+        {t.fallback ? <p className="label">Claude could not answer ({t.fallback}). The local model answered instead.</p> : null}
+        {t.heldBack ? (
+          <p className="turn-note">
+            {t.heldBack} Notion source{t.heldBack === 1 ? ' was' : 's were'} held back: private sources are not sent to Anthropic.{' '}
+            <ActionChip onClick={() => onIncludePrivate(t)}>Include them this session</ActionChip>
           </p>
-          {t.fallback ? <p className="turn-note">Claude could not answer ({t.fallback}). The local model answered instead.</p> : null}
-          {t.heldBack ? (
-            <p className="turn-note">
-              {t.heldBack} Notion source{t.heldBack === 1 ? ' was' : 's were'} held back: private sources are not sent to Anthropic.{' '}
-              <ActionChip onClick={() => onIncludePrivate(t)}>Include them this session</ActionChip>
-            </p>
-          ) : null}
-          {done && isMiss(t.text) ? (
-            <>
-              <p>I couldn't find this in your sources. The closest three:</p>
-              <Closest sources={t.sources} />
-            </>
-          ) : t.text ? (
-            <Rich text={tidyCitations(t.text)} sources={t.sources} />
-          ) : (
-            <p className="meta">Reading your sources…</p>
-          )}
-          {t.cutOff ? <p className="turn-note">This answer stopped part way ({t.cutOff}).</p> : null}
-          {done && t.place === 'local' && claudeOk && soundsUnsure(t.text) ? (
-            <p className="turn-escalate">
-              This looks hard for the local model. <ActionChip onClick={() => onCompare(t)}>Ask Claude</ActionChip>
-            </p>
-          ) : null}
-        </div>
-      )}
+        ) : null}
+        {miss ? (
+          <>
+            <p>I couldn't find this in {t.heldBack ? 'the sources that may go to the cloud' : 'your sources'}. The closest three:</p>
+            <Closest sources={t.path === 'weak' ? t.closest : t.sources} />
+          </>
+        ) : t.path === 'data' ? (
+          <>
+            <p>{t.data.title}</p>
+            <DataTable columns={t.data.columns} rows={t.data.rows} rowKey={t.data.rowKey} caption={t.data.caption ?? 'Results'} maxHeight="calc(var(--spacing-20) * 4)" />
+          </>
+        ) : t.path === 'docs' ? (
+          t.text ? <Rich text={tidyCitations(t.text)} sources={t.sources} /> : <p className="label">Reading your sources…</p>
+        ) : null}
+        {t.cutOff ? <p className="label">This answer stopped part way ({t.cutOff}).</p> : null}
+      </div>
 
-      {done && names.length ? (
-        <div className="turn-chips" aria-label="Components in this answer">
-          {names.map((n) => (
-            <ActionChip key={n} onClick={() => onOpenAtlas(n)}>
-              Open {n} in Atlas
-            </ActionChip>
-          ))}
-        </div>
-      ) : null}
-
-      {done && (t.path === 'data' || (t.path === 'docs' && t.text && !isMiss(t.text))) ? (
-        <div className="turn-actions">
-          {t.path === 'docs' && t.place === 'local' && claudeOk && !soundsUnsure(t.text) ? (
-            <ActionChip onClick={() => onCompare(t)}>Ask Claude instead</ActionChip>
-          ) : null}
-          {sandboxable ? <ActionChip onClick={() => onSandbox(target)}>Try in sandbox</ActionChip> : null}
-          <ActionChip onClick={copy}>Copy as proposal</ActionChip>
-          {target ? <ActionChip onClick={() => onSave(target, t)}>Save to {target} notes</ActionChip> : null}
-        </div>
-      ) : null}
-
-      {t.path === 'docs' && t.total != null ? (
+      {t.path === 'data' || t.path === 'docs' || t.path === 'weak' ? (
         <details className="turn-details">
-          <summary>Details</summary>
-          <p className="meta">
-            First words {t.first?.toFixed(1) ?? '–'} s · total {t.total.toFixed(1)} s · best match {t.top?.toFixed(2)}
-          </p>
+          <summary>
+            <span className="label">{metaLine(t)}</span> <span className="details-link">Details</span>
+          </summary>
+          {t.route ? <p className="label">Why: {t.route.replace(/^Auto → /, 'Auto chose ')}</p> : null}
+          {t.total != null ? (
+            <p className="label">
+              First words {t.first?.toFixed(1) ?? '–'} s · total {t.total.toFixed(1)} s{t.top != null ? ` · best match ${t.top.toFixed(2)}` : ''}
+            </p>
+          ) : null}
+          {t.path === 'docs' && t.sources?.length && !miss ? (
+            <ol className="detail-sources">
+              {t.sources.map((src) => (
+                <li key={src.n}>
+                  [{src.n}] {src.title} <span className="label">match {src.score?.toFixed(2)}</span>
+                </li>
+              ))}
+            </ol>
+          ) : null}
+          {t.path === 'data' ? <p className="label">From data/bella.json, synced from BELLA @ <span className="mono">{bella?.source.commit}</span>.</p> : null}
           {claudeOk && budget ? (
-            <p className="meta">
+            <p className="label">
               Auto sent {budget.used} of {budget.limit} questions to Claude today.
               {/* TODO(04 context savings): add "≈ tokens kept local today" once 04's ledger exists */}
             </p>
           ) : null}
         </details>
+      ) : null}
+
+      {shown.length ? (
+        <div className="turn-actions">
+          {shown.map((x) => (
+            <ActionChip key={x.key} onClick={x.run}>
+              {x.label}
+            </ActionChip>
+          ))}
+          {more.length ? (
+            <details className="turn-more">
+              <summary>More</summary>
+              <div className="turn-more-list">
+                {more.map((x) => (
+                  <ActionChip key={x.key} onClick={x.run}>
+                    {x.label}
+                  </ActionChip>
+                ))}
+              </div>
+            </details>
+          ) : null}
+        </div>
       ) : null}
     </li>
   );
@@ -248,27 +259,27 @@ function CmdTurn({ t }) {
   const gates = [...(t.text.matchAll(/^\s*([a-z:-]+)\s+(OK|FAIL)\s*$/gm) ?? [])];
   return (
     <li className="turn turn-cmd">
-      <p className="turn-q">
-        <span className="mono">$ chip {t.cmd}{t.arg ? ` "${t.arg}"` : ''}</span>
+      <p className="you">
+        <span className="you-label">You</span>
+        <span className="mono">/{t.cmd}</span>
+      </p>
+      <pre className="turn-out mono" tabIndex={0} aria-label={`Output of /${t.cmd}`}>
+        {t.text || ' '}
+      </pre>
+      <p className="label meta-line">
+        command ·{' '}
         {t.exit == null ? (
           <StatusPill variant="info">running</StatusPill>
         ) : (
           <StatusPill variant={t.exit === 0 ? 'success' : 'info'}>{t.exit === 0 ? 'pass' : `fail (exit ${t.exit})`}</StatusPill>
         )}
+        {gates.map((g) => (
+          <span key={g[1]} className="gate">
+            <span className="mono">{g[1]}</span>
+            <StatusPill variant={g[2] === 'OK' ? 'success' : 'info'}>{g[2] === 'OK' ? 'pass' : 'fail'}</StatusPill>
+          </span>
+        ))}
       </p>
-      {gates.length ? (
-        <p className="turn-gates">
-          {gates.map((g) => (
-            <span key={g[1]} className="gate">
-              <span className="mono">{g[1]}</span>
-              <StatusPill variant={g[2] === 'OK' ? 'success' : 'info'}>{g[2] === 'OK' ? 'pass' : 'fail'}</StatusPill>
-            </span>
-          ))}
-        </p>
-      ) : null}
-      <pre className="turn-out" tabIndex={0} aria-label={`Output of chip ${t.cmd}`}>
-        {t.text || ' '}
-      </pre>
     </li>
   );
 }
@@ -540,16 +551,15 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
 }
 
 /* ---------- the panel ---------- */
-export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onSandbox, onClose, notify, models = [], picked, setPicked, budget }) {
+export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, onClose, notify, models = [], picked, setPicked, budget }) {
   const thread = useRef(null);
   const claudeOk = models.some((m) => m.id === 'claude' && m.available);
-  const pickedModel = models.find((m) => m.id === picked);
+  const suggestions = useMemo(() => suggestionsFor(page, bella), [page, bella]);
   const options = [
     { value: 'auto', label: 'Auto · OBI decides' },
     ...models.filter((m) => m.place === 'local').map((m) => ({ value: m.id, label: `${m.label} · on this machine` })),
     ...models.filter((m) => m.place === 'cloud' && m.kind !== 'decider').map((m) => ({ value: m.id, label: `${m.label} · your plan, cloud${m.available ? '' : ' (not available)'}` })),
   ];
-  const suggestions = useMemo(() => suggestionsFor(page, bella), [page, bella]);
 
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight });
@@ -558,16 +568,12 @@ export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onS
   return (
     <section className="obi" aria-labelledby="obi-h">
       <header className="obi-head">
-        <div className="obi-name">
-          <h2 id="obi-h" className="obi-title">
-            OBI
-          </h2>
-          <Tag>Looking at {page}</Tag>
-        </div>
-        <div className="obi-model">
-          {/* the Select shows the choice; each answer's route line says what Auto picked */}
-          <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
-        </div>
+        <h2 id="obi-h" className="obi-title">
+          OBI
+        </h2>
+        <Tag>Looking at {page}</Tag>
+        <span className="obi-grow" />
+        <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
         <ActionChip onClick={onClose} ariaLabel="Hide OBI (Escape or Command J)">
           Hide
         </ActionChip>
@@ -576,12 +582,12 @@ export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onS
       <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
         {obi.turns.length === 0 ? (
           <li className="obi-empty">
-            <p className="label">Ask below, or type / for a command. Questions about {page === 'Health' ? 'BELLA' : page.replace('Atlas · ', '')} include it as context.</p>
+            <p>Ask about {page === 'Health' ? 'BELLA' : page.replace('Atlas · ', '')}, or type / for a command.</p>
             {suggestions.length ? (
               <div className="obi-suggest" aria-label="Suggested questions">
-                {suggestions.map((s) => (
-                  <ActionChip key={s} onClick={() => obi.send(s)} disabled={obi.busy}>
-                    {s}
+                {suggestions.map((sg) => (
+                  <ActionChip key={sg} onClick={() => obi.send(sg)} disabled={obi.busy}>
+                    {sg}
                   </ActionChip>
                 ))}
               </div>
@@ -611,12 +617,6 @@ export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onS
       </ol>
 
       <div className="obi-input" ref={inputSlot} />
-
-      <p className="obi-status">
-        <span>{picked === 'auto' ? `Auto · local ${health?.model ?? ''}`.trim() : pickedModel?.label ?? 'Model offline'}</span>
-        <span>{health ? `${health.chunks.toLocaleString('en')} chunks` : 'No index'}</span>
-        <span>BELLA @ {bella?.source.commit ?? '…'}</span>
-      </p>
     </section>
   );
 }

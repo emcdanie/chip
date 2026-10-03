@@ -1,8 +1,8 @@
 {
   "source": {
     "repo": "bella",
-    "commit": "a158e42",
-    "committedAt": "2026-10-03T12:14:28+02:00",
+    "commit": "a0e0b22",
+    "committedAt": "2026-10-03T12:46:24+02:00",
     "version": "0.3.0"
   },
   "counts": {
@@ -1820,6 +1820,17 @@
         "focus",
         "disabled"
       ],
+      "usage": [
+        "OBI suggestions and answer actions",
+        "Component chips that open Atlas",
+        "Small actions on a tile (Which have none?)"
+      ],
+      "dont": [
+        "Do not set it in caps: sentence case is the point",
+        "Do not use it as a filter or toggle: that is FilterChip with aria-pressed",
+        "Do not use it for the main action of a view: that is Button primary"
+      ],
+      "restNote": "Flat always: the control-border pill and its label. audit:quality asserts no elevation or animation (root carries data-bella-component=action-chip).",
       "a11y": "Verified 2026-10-03: a real button (or a link with href), 44px. Label ink on the page and on panel (AAA in light, warm and dark); the control border clears 3:1 on every surface; hover adds the hairline wash and the edge goes ink; focus is the shared ring.",
       "minTarget": {
         "token": "--component-action-chip-min-height",
@@ -1928,6 +1939,17 @@
       "states": [
         "default"
       ],
+      "usage": [
+        "A portrait beside a name and role",
+        "An author or testimonial attribution",
+        "The identity slot in a contact panel"
+      ],
+      "dont": [
+        "Do not use it as a decorative circle: an Avatar stands for someone, a plain disc is artwork",
+        "Do not ship it without a name: the initials fallback is the point, an empty disc is a bug",
+        "Do not put a status dot on it yet: the status ladder is unresolved (issue #1)"
+      ],
+      "restNote": "An Avatar is entirely static. The ring is a rest-state affordance, not a hover one: it is either on or off, it never animates. audit:quality asserts it never transforms or animates (root carries data-bella-component=avatar).",
       "a11y": "Verified 2026-07-30: initials are text-secondary on the surface-inset wash, 7.74:1 in light and 7.33:1 worst in dark, AAA both. With an image the img carries alt; without one the root is role=img labelled by name and the initials are aria-hidden, so it announces once, as the person, never as two letters.",
       "minTarget": null,
       "sandbox": {
@@ -2021,6 +2043,18 @@
       "states": [
         "default"
       ],
+      "usage": [
+        "The site nav (size nav, 40px tall)",
+        "The footer sign-off (size full-bleed)",
+        "The BELLA name on its own pages"
+      ],
+      "dont": [
+        "Never below 32px tall",
+        "Never recolour the pattern: it only comes from color.pattern.*",
+        "Never as body type or a heading: it is a mark, not a typeface",
+        "Never animate it"
+      ],
+      "restNote": "Entirely static.",
       "a11y": "role=img with the word as its accessible name; the pattern layers are aria-hidden. The ink variant is text-primary (AAA). Static: nothing moves, so reduced motion needs no change.",
       "minTarget": null,
       "sandbox": {
@@ -2101,6 +2135,23 @@
         "focus",
         "disabled"
       ],
+      "usage": [
+        "Hero CTA",
+        "Card 'Read more' action",
+        "Form submit",
+        "Contact send",
+        "Nav call to action (shape pill)",
+        "The primary contact CTA reads \"Let's talk\" (brand refresh, 2026-09-22)"
+      ],
+      "dont": [
+        "Do not render more than one primary per view: the keycap is the single 3D moment",
+        "Do not use for filters, toggles, or sort: that is FilterChip / SegmentedControl / Select territory",
+        "Do not set labels in Unique at any size",
+        "Do not build a neutral keycap: that tier is retired",
+        "Do not lift a button on hover: lift is reserved for cards; hover is the label roll",
+        "Do not add the trace ring to a button: the trace is Card's affordance"
+      ],
+      "restNote": "One job per state. At rest the keycap is calm: plate, gloss, edge, resting key shadow, label. Hover and focus-visible roll the label and shift the colour on every tier (primary plate, secondary fill, tertiary label); the button never lifts. Active is the keycap press, primary only. Reduced motion: colour only, the shift stays and the roll and press drop. audit:quality asserts the invariants on every story rendering the component (root carries data-bella-component=button).",
       "a11y": "Verified 2026-09-22: primary label (text-inverse) 16.0:1 on the ink plate, 10.6:1 light / 11.8:1 dark on the hover plate (AAA). Secondary and tertiary labels are ink, 16.7:1 on panel. Secondary outline border-strong 3.00:1 worst (non-text AA). Focus ring 3px ochre-deep (3.20:1 on panel) / ochre (8.70:1 on the dark surface), 3px offset, focus-visible only.",
       "minTarget": {
         "token": "--component-button-primary-min-height",
@@ -2376,6 +2427,19 @@
         "hover",
         "focus"
       ],
+      "usage": [
+        "Portfolio grid",
+        "Case-study cards",
+        "CHIP idea clusters",
+        "Dashboard tiles"
+      ],
+      "dont": [
+        "Do not nest cards inside cards",
+        "Do not use for navigation, that's nav-link's job",
+        "Do not nest links or buttons inside an interactive card: the card is ONE link or ONE button",
+        "Do not build a fixed-dark card, no fixed-dark path exists; peek (fixed always-light paper on navy) is the one recorded fixed-context exception"
+      ],
+      "restNote": "FLAT AT REST is a contract (surface rules, 2026-09-19): only these layers may paint before hover/focus. audit:quality asserts the invariants on every story that renders the component (root carries data-bella-component=card).",
       "a11y": "Interactive cards render as a single anchor or button: one tab stop, no nested interactives. Name a card via ariaLabel when its visible content isn't the right name; media is aria-hidden when ariaLabel is set. Focus shows a visible ring (asserted in CI, both themes). Only interactive cards lift on hover and focus; prefers-reduced-motion keeps them still (the shadow still marks hover and focus). Card text sits on surface-card: text-muted 4.64:1 light / 6.03:1 dark, the worst pair (AA).",
       "minTarget": null,
       "sandbox": {
@@ -2589,6 +2653,16 @@
         "active-option",
         "focus"
       ],
+      "usage": [
+        "CHIP's one input: jump to a component or doc, or ask OBI",
+        "Any field that picks from a grouped, filtered list"
+      ],
+      "dont": [
+        "Do not move focus into the list: focus stays in the field and the active option is aria-activedescendant",
+        "Do not dim the other options: the active one gets the ochre fill, nothing else changes",
+        "Do not use it for a fixed short list without typing: that is Select"
+      ],
+      "restNote": "Closed: the field alone. Open: the list floats with the large shadow.",
       "a11y": "Verified 2026-10-03: input role=combobox with aria-expanded, aria-controls and aria-autocomplete=list; the list is role=listbox named by the label, groups are role=group named by their heading, options are role=option with aria-selected on the active one, referenced by aria-activedescendant. Esc closes the list and stops there; a second Esc belongs to the page. Option and field text ink on the panel (AAA), group headings and meta text-secondary (AAA), the active option ink on ochre 9.01:1 (AAA). Options and field are 44px. Focus ring on the field.",
       "minTarget": {
         "token": "--component-combobox-min-height",
@@ -2717,6 +2791,17 @@
         "hover",
         "focus"
       ],
+      "usage": [
+        "CHIP per-component health results",
+        "Any comparison of the same facts across many items"
+      ],
+      "dont": [
+        "Do not dim unselected rows: selection is the ochre fill, everything else keeps its paint",
+        "Do not use ochre-deep for selection: it is the focus ring only",
+        "Do not left-align figures: numeric columns are right-aligned and tabular",
+        "Do not drop the caption: it names the table"
+      ],
+      "restNote": "Flat: rules, the sticky header and the cell text. audit:quality asserts no elevation or animation (root carries data-bella-component=data-table).",
       "a11y": "Verified 2026-10-03: a real table with a visible caption; column headers scope=col, the first cell of each row scope=row. Sortable headers hold a button and carry aria-sort (none, ascending, descending); the arrow is decorative. Selection is a toggle button with aria-pressed in the row header; the selected row is ochre fill with ink text, 9.01:1 (AAA), nested components included (a muted StatusPill label on ochre would be 3.51:1), and no other row changes. Header labels text-secondary on panel, 7.09:1 light / 8.44:1 dark (AAA). With maxHeight the scroll wrapper is a focusable region named by the caption. Sort and select buttons hit the 44px touch-target token; focus ring 3px.",
       "minTarget": {
         "token": "--component-data-table-row-min-height",
@@ -2821,6 +2906,16 @@
         "open",
         "focus"
       ],
+      "usage": [
+        "CHIP sidebar below 720px",
+        "Any navigation or filter panel that cannot stay on screen at phone width"
+      ],
+      "dont": [
+        "Do not use it as a page section: it is a modal and blocks the page",
+        "Do not open it without a visible trigger: focus has to return somewhere",
+        "Do not dim content inside the panel: the scrim covers the page, never the drawer"
+      ],
+      "restNote": "Closed, it renders an empty dialog element the browser hides. Open, it slides in once and holds still.",
       "a11y": "Verified 2026-10-03: a native <dialog> opened with showModal(), named by its visible title (aria-labelledby). The rest of the page is inert while it is open, so Tab stays inside. Esc, the Close button and a click on the scrim close it; focus returns to the element that opened it. Title and content text-primary on the raised surface, 16.73:1 light / 12.93:1 dark (AAA). The slide is 250ms and is dropped under prefers-reduced-motion.",
       "minTarget": null,
       "sandbox": {
@@ -2913,6 +3008,17 @@
       "states": [
         "default"
       ],
+      "usage": [
+        "Above hero headlines",
+        "Above section titles",
+        "Above card groupings"
+      ],
+      "dont": [
+        "Do not use as a heading: eyebrows complement a heading, never replace one",
+        "Never an accent colour: wayfinding is not action",
+        "Never below 13px, never tracked, never uppercased"
+      ],
+      "restNote": "Type only, entirely static.",
       "a11y": "13px floor. muted: text-secondary, 7.09:1 worst light / 7.06:1 worst dark (AAA). ink: text-primary (AAA). Verified 2026-09-22.",
       "minTarget": null,
       "sandbox": {
@@ -2998,6 +3104,16 @@
         "pressed",
         "focus"
       ],
+      "usage": [
+        "Work library skill/type filters",
+        "Any multi-select narrowing row"
+      ],
+      "dont": [
+        "Do not use for mutually exclusive views: that is SegmentedControl",
+        "Do not raise it: the keycap is reserved for true actions",
+        "Do not fake the state with colour alone: aria-pressed is the state, the fill is its paint"
+      ],
+      "restNote": "At rest the chip is the flat outline and its label; hover wash and the pressed fill are state paints. audit:quality asserts no elevation ever (root carries data-bella-component=filter-chip).",
       "a11y": "Verified 2026-07-22: real button with aria-pressed, both themes. Default label text-secondary on transparent, 8.33:1 light / 9.20:1 dark (AAA). Pressed is the inverse fill: ground-on-ink 16.06:1 light, navy-on-dark-inverse equivalent in dark (AAA). Focus ring independent. Hit area 44px minimum (the touch-target token; the portfolio 32px chip is a recorded divergence, below the 2.5.5 Enhanced floor BELLA holds).",
       "minTarget": {
         "token": "--component-filter-chip-min-height",
@@ -3237,6 +3353,17 @@
       "states": [
         "default"
       ],
+      "usage": [
+        "Page titles",
+        "Section heads",
+        "The hero headline"
+      ],
+      "dont": [
+        "Never inside a card: cards carry titles (Geist 500), not headings (contract-enforced by audit:quality)",
+        "Never below 32px: the section tier floors at 32px",
+        "Never Unique: the wordmark is the only Unique"
+      ],
+      "restNote": "Type only, entirely static; and a Heading may never sit inside a Card. audit:quality asserts both (root carries data-bella-component=heading).",
       "a11y": "Verified 2026-09-22: text-primary 18.73:1 light (bg) / 16.60:1 dark (bg), AAA. The accent segment is the muted half-line, text-secondary, 7.09:1 light / 7.06:1 dark (AAA): ochre is a fill, never text. Semantic level decouples from the visual tier via the as prop, so the outline stays honest.",
       "minTarget": null,
       "sandbox": {
@@ -3311,6 +3438,19 @@
       "states": [
         "default"
       ],
+      "usage": [
+        "Segment glyphs",
+        "The Select chevron",
+        "Any leading icon slot"
+      ],
+      "dont": [
+        "Do not put id attributes inside an icon SVG: the glyph renders more than once (the Button label roll duplicates it), so an id-referenced gradient or clip would collide; draw with paths and currentColor only (audit:quality enforces)",
+        "Do not mix icon sets or draw one-off SVGs: Iconoir is the ONLY source (declared 2026-07-22) and every glyph lives in the registry, nothing inline (audit:quality enforces)",
+        "Do not import an icon library component surface: the registry carries the paths BELLA ships (borrow-behavior-only, recorded)",
+        "Do not hardcode an icon colour: currentColor inherits the themed ink",
+        "Do not let a meaningful icon stand without text unless its accessible name is proven in a Behavior story; decorative is the default and needs no name"
+      ],
+      "restNote": "Static glyph. audit:quality has no elevation to assert; the invariants hold trivially.",
       "a11y": "Verified 2026-07-22: aria-hidden by default (decorative); with label, role=img plus aria-label. Colour is always currentColor, so contrast rides on the text token of the context. Sizes from the icon tokens (sm 16 / md 20 / lg 24), stroke from icon.stroke.",
       "minTarget": null,
       "sandbox": {
@@ -3393,6 +3533,16 @@
         "disabled",
         "error"
       ],
+      "usage": [
+        "Contact form fields",
+        "Any labelled free-text entry; multiline renders the textarea"
+      ],
+      "dont": [
+        "Do not use placeholder as the label: the label is always rendered and wired with for/id",
+        "Do not fake errors with colour alone: aria-invalid plus a role=alert message wired via aria-describedby is the pattern",
+        "Do not signal an error with colour alone: the danger border always comes with the WarningCircle icon, the message and aria-invalid"
+      ],
+      "restNote": "Flat always: field, border, label, messages. audit:quality asserts no elevation ever (root carries data-bella-component=input).",
       "a11y": "Verified 2026-07-22: real label element (for/id), 8.33:1 light / 9.20:1 dark (AAA). Field text text-primary on surface, 16.92:1 light (AAA); placeholder text-muted, 4.67:1 worst (AA, opacity reset for Firefox). Errors (status tokens, 2026-09-22): aria-invalid + role=alert message via aria-describedby; 2px danger-border (3:1+ on every surface), WarningCircle icon, message in danger-text (5.84:1 light on panel, 6.86:1 dark on raised; AA). Focus: the 3px focus ring (3px offset) plus an ink edge; an invalid field keeps its danger edge under the ring. 44px min-height.",
       "minTarget": {
         "token": "--component-input-min-height",
@@ -3623,6 +3773,17 @@
       "states": [
         "default"
       ],
+      "usage": [
+        "Shortcut hint inside a search field",
+        "Shortcut legend in a help menu",
+        "Inline in body copy that names a shortcut"
+      ],
+      "dont": [
+        "Do not make it clickable: a pressable keycap is Button",
+        "Do not raise or animate it: the raised keycap is Button's, Kbd is recessed and flat",
+        "Do not leave a symbol key unlabelled: pass label so screen readers say the shortcut, not the glyph"
+      ],
+      "restNote": "Entirely static, like Tag. audit:quality asserts it never lifts or animates (root carries data-bella-component=kbd).",
       "a11y": "Verified 2026-10-03: a kbd element with nested kbd per key, never focusable. With label, the glyphs are aria-hidden and the label is read. Caps text-secondary on surface-inset, 7.09:1 light / 7.69:1 dark (AAA). The cap edge is a decorative hairline. Mono at the 13px floor.",
       "minTarget": null,
       "sandbox": {
@@ -3709,6 +3870,15 @@
         "visited",
         "focus"
       ],
+      "usage": [
+        "Inline references inside paragraphs",
+        "Footer links"
+      ],
+      "dont": [
+        "Do not use for primary navigation, that's nav-link",
+        "Do not rely on color alone, always underlined or weight-shifted on hover"
+      ],
+      "restNote": null,
       "a11y": "Ink foreground on ground passes AAA (16.06:1, verified 2026-07-21). Link affordance is the underline; hover thickens it to 2px (brand refresh, 2026-09-22). Ink throughout.",
       "minTarget": null,
       "sandbox": {
@@ -3891,6 +4061,17 @@
         "focus",
         "collapsed"
       ],
+      "usage": [
+        "CHIP workspace sidebar",
+        "Any app sidebar of views or sections"
+      ],
+      "dont": [
+        "Do not use for the site's top nav: that is the nav-link contract",
+        "Do not use for in-page panels: that is Tabs",
+        "Do not mark the current item with a wash alone: aria-current plus ink plus weight",
+        "Do not collapse without onToggle: the lists would be unreachable"
+      ],
+      "restNote": "Flat: text rows and the current wash. audit:quality asserts no elevation or animation (root carries data-bella-component=nav-list).",
       "a11y": "Verified 2026-10-03: a nav landmark with a required aria-label; groups with a heading are lists labelled by it; the current item is aria-current=page. Labels text-secondary at rest, 7.09:1 light / 8.44:1 dark on panel (AAA); hover and current go text-primary, current on the border-subtle wash 14.60:1 / 12.26:1 (AAA); counts go ink on the current wash (muted would be 6.18:1). The toggle is a real button with aria-expanded, aria-controls and a spoken Hide / Show name; its icon is decorative. Focus ring 3px, inset. Rows and the toggle hit the 44px touch-target token.",
       "minTarget": {
         "token": "--component-nav-list-min-height",
@@ -3989,6 +4170,15 @@
       "states": [
         "default"
       ],
+      "usage": [
+        "Behind a page opening or hero, first child of a position: relative container"
+      ],
+      "dont": [
+        "Never behind body text at more than its token opacity",
+        "Never in colour: the colour pattern belongs to the wordmark",
+        "Never interactive"
+      ],
+      "restNote": "Entirely static.",
       "a11y": "Decorative: aria-hidden, focusable=false, pointer-events none. At 7% greyscale it does not reduce text contrast measurably; axe checks the text over it.",
       "minTarget": null,
       "sandbox": {
@@ -4059,6 +4249,17 @@
         "hover",
         "focus-visible"
       ],
+      "usage": [
+        "The toolkit gallery, one card per installable skill",
+        "Any gallery where the items are files or documents with a type and a state"
+      ],
+      "dont": [
+        "Do not put a second link inside it: the whole card is one link, the Open action is a span that inherits it",
+        "Do not give the tab its own colour or a shadow: it is the sheet folded up, and a shadow breaks the fold",
+        "Do not write the description longer than two lines: it clamps, and a clamped third line reads as a bug",
+        "Do not colour the status dot yet: the ladder is unresolved (issue #1) and the neutral dot is the honest placeholder"
+      ],
+      "restNote": "At rest the card is the cover, the sheet, the tab and the notch. Flat at rest like Card: no shadow; the lift and shadow are hover and focus only, inherited from Card. The notch is painted from the same semantic surface token as the sheet, so it flips with the theme instead of biting a light hole in the navy card.",
       "a11y": "Verified 2026-07-30: title is text-primary on the surface, 12.81:1 light and 12.61:1 worst dark, AAA. Description is text-secondary, 7.74:1 light and 7.33:1 worst dark, AAA. Tab label and footer meta sit at the 13px metadata tier, text-secondary, same ratios. The Open action is text-accent, 5.96:1 light and 5.30:1 worst dark, AA, and never stands on colour alone: it carries the word Open beside the arrow. One link per card, so one tab stop.",
       "minTarget": null,
       "sandbox": {
@@ -4160,6 +4361,9 @@
       ],
       "variants": [],
       "states": [],
+      "usage": [],
+      "dont": [],
+      "restNote": null,
       "a11y": null,
       "minTarget": null,
       "sandbox": {
@@ -4225,6 +4429,17 @@
         "low",
         "self"
       ],
+      "usage": [
+        "CHIP readiness map, fed by the station scores in bella.json",
+        "Any per-dimension score for a named system"
+      ],
+      "dont": [
+        "Do not invent a warning colour for the mid band: it stays neutral until the status ladder adds one (issue #1)",
+        "Do not show a self-assessed score as a measured number",
+        "Do not drop ScoreLegend from a map: the bands need their key",
+        "Do not rely on the wash: the edge, the figure and the spoken band carry the meaning"
+      ],
+      "restNote": "Entirely static. audit:quality asserts it never lifts or animates (root carries data-bella-component=score-strip).",
       "a11y": "Verified 2026-10-03: a region labelled by the system heading (level set by as); stations are a labelled list, each spoken as full name, value of 100 and band word, or self-assessed; the visible figure and short label are aria-hidden duplicates. Cell text is ink on every wash, 16.24:1 light / 12.23:1 dark worst (AAA; muted would fall to 6.68:1). Band edges are status borders at 3:1 or better on panel (success, danger) or the control border (3.00:1); the washes alone are near 1:1 on light panel and never carry meaning. The overall bar is aria-hidden, ink on the border-subtle track (14.60:1 / 12.26:1).",
       "minTarget": null,
       "sandbox": {
@@ -4327,6 +4542,9 @@
       ],
       "variants": [],
       "states": [],
+      "usage": [],
+      "dont": [],
+      "restNote": null,
       "a11y": null,
       "minTarget": null,
       "sandbox": {
@@ -4404,6 +4622,16 @@
         "selected",
         "focus"
       ],
+      "usage": [
+        "Work library view switcher (Cards / Map / Table)",
+        "Any mutually exclusive view pick with few options"
+      ],
+      "dont": [
+        "Do not use for multi-select: that is FilterChip",
+        "Do not use radiogroup or tablist semantics: plain buttons with aria-current, per the recorded discovery pass (W3C APG radio rejected: single tab stop plus arrow-select blocks surveying; Primer SegmentedControl guidance matches)",
+        "Do not hide options behind it: if they do not all fit, it is a Select"
+      ],
+      "restNote": "Flat always: the group border, dividers, and the selected fill are the whole paint. audit:quality asserts no elevation ever (root carries data-bella-component=segmented-control).",
       "a11y": "Verified 2026-07-22: each segment is a real button; Tab moves between segments, Enter/Space selects, arrows deliberately inert; aria-current=true marks the selection in the tree; the group carries a required aria-label. Segment icons are a decorative leading slot, aria-hidden, sized by the icon tokens; the text label always stays and carries the name (restored 2026-07-22 after the first extraction dropped it, a recorded divergence). Labels text-secondary 8.33:1 light / 9.20:1 dark (AAA); selected label text-accent on accent-subtle, 5.25:1 worst light / 5.30:1 worst dark (AA). Focus ring inset. Segments hit the 44px touch-target token (portfolio 38px is a recorded divergence).",
       "minTarget": {
         "token": "--component-segmented-control-min-height",
@@ -4502,6 +4730,16 @@
         "focus",
         "open"
       ],
+      "usage": [
+        "Sort order",
+        "Long single-choice lists"
+      ],
+      "dont": [
+        "Do not hand-roll a listbox: the native select owns the popup, the keyboard model, and the assistive-tech semantics",
+        "Do not drop the visible label: an unlabelled dropdown is a guess",
+        "Do not use it for a handful of visible options: SegmentedControl or FilterChip"
+      ],
+      "restNote": "Flat always: field, border, chevron, label. audit:quality asserts no elevation ever (root carries data-bella-component=select).",
       "a11y": "Verified 2026-07-22: native select labelled by containment; the platform popup needs no re-verification. Closed control: text-primary on surface, 16.92:1 light (AAA); label text-secondary 8.33:1 light / 9.20:1 dark (AAA). Option text at 14px is the closed-control field; the popup renders at platform size. Focus ring on the field; 44px min-height via the touch-target token.",
       "minTarget": {
         "token": "--component-select-min-height",
@@ -4602,6 +4840,18 @@
       "states": [
         "default"
       ],
+      "usage": [
+        "CHIP health figures (components, failures, indexed chunks, last sync)",
+        "Any small row of headline figures on a Card or panel"
+      ],
+      "dont": [
+        "Do not colour the change: up is not always good, and the status ladder has no neutral change colour",
+        "Do not invent figures: a Stat shows a real count or nothing",
+        "Do not give it its own box: place Stats on a Card or panel",
+        "Do not draw a sparkline from fewer than two real points, and never from made-up history",
+        "Do not colour the sparkline: its shape carries the trend"
+      ],
+      "restNote": "Entirely static. audit:quality asserts it never lifts or animates (root carries data-bella-component=stat).",
       "a11y": "Verified 2026-10-03: a dl with a dt label and dd figure, so the label names the figure. The trend arrow is aria-hidden and a spoken Up / Down precedes the change. Figure text-primary, label and change text-secondary, all AAA on the page and on panel (7.09:1 light / 8.44:1 dark worst for muted). Tabular numerals. The sparkline is role=img with an aria-label that says the first and last values and the number of points (or seriesLabel); line and end dot text-primary, 3:1+ as non-text on page and panel in both themes.",
       "minTarget": null,
       "sandbox": {
@@ -4769,6 +5019,17 @@
       "states": [
         "default"
       ],
+      "usage": [
+        "Current-focus marker",
+        "Project state rows",
+        "Availability notes"
+      ],
+      "dont": [
+        "Do not make it clickable: a pill that toggles is a FilterChip",
+        "Do not colour the label with the state tint: the tint is border and wash only, the word carries the meaning",
+        "Do not design new status UI on the carried tints without asking: the BELLA-native status ladder (issue #1) is pending and will restyle this"
+      ],
+      "restNote": "Entirely static, like Tag. audit:quality asserts it never lifts or animates (root carries data-bella-component=status-pill).",
       "a11y": "Verified 2026-07-22: the label never depends on the tint. Accent label is text-accent, 5.66:1 light / 6.65:1 dark (AA). Success/info labels are text-secondary, AAA both themes. Tints as non-text rings: sage 4.33:1 on ground and 3.45:1 on navy (passes 3:1); steel 2.87:1 on ground (fails 3:1, wash-only per the recorded carry) and 5.20:1 on navy. The state is always readable from the word alone. CARRIED TINTS: pending the status-ladder sitting (issue #1).",
       "minTarget": null,
       "sandbox": {
@@ -4859,6 +5120,18 @@
         "selected",
         "focus"
       ],
+      "usage": [
+        "CHIP workspace switcher",
+        "CHIP terminal switcher (with run state)",
+        "Any set of panels where one shows at a time"
+      ],
+      "dont": [
+        "Do not use to switch a view of the same content: that is SegmentedControl",
+        "Do not use for navigation between pages: that is NavList",
+        "Do not mark the selected tab with colour alone: ink text plus the 2px ink bar",
+        "Do not render panels without tabPanelProps: aria-controls must resolve"
+      ],
+      "restNote": "Flat: the hairline, the selected bar and the labels are the whole paint. audit:quality asserts no elevation or animation (root carries data-bella-component=tabs).",
       "a11y": "Verified 2026-10-03: tablist with a required aria-label; one tab stop (roving tabindex); ArrowLeft/ArrowRight move and select with wrap, Home/End jump; aria-selected and aria-controls in the tree, each panel labelled by its tab. Labels text-secondary 7.94:1 light / 9.06:1 dark at rest (AAA), selected text-primary 18.73:1 / 16.60:1 on the page (AAA); the selected bar is ink (non-text, far above 3:1). Run state is a filled ink dot or an idle border-strong ring (3.00:1 worst) and also text in the name. Focus ring 3px, inset. Tabs hit the 44px touch-target token.",
       "minTarget": {
         "token": "--component-tabs-min-height",
@@ -5046,6 +5319,17 @@
       "states": [
         "default"
       ],
+      "usage": [
+        "Card category labels",
+        "Project metadata rows",
+        "Mood and topic markers"
+      ],
+      "dont": [
+        "Do not make it clickable: narrowing a set is FilterChip's job",
+        "Do not add a border: the flat wash is what separates it from interactive chips",
+        "Do not set the label in an accent or status colour: tints are wash-only here"
+      ],
+      "restNote": "A Tag is entirely static: the wash and the label are the whole component, in every state. audit:quality asserts it never lifts or animates (root carries data-bella-component=tag).",
       "a11y": "Verified 2026-07-22: default label is text-secondary, 7.74:1 on the surface-inset wash in light and 7.33:1 worst in dark, AAA both. Accent label is text-accent on the accent-subtle wash, 5.25:1 worst in light and 5.30:1 worst in dark, AA. Non-interactive: no tab stop, no pointer affordance, cursor default.",
       "minTarget": null,
       "sandbox": {

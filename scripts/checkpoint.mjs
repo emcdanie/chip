@@ -95,6 +95,7 @@ if (chromium) {
         await ctx.addInitScript((t) => {
           localStorage.setItem('chip-theme', t);
           localStorage.setItem('chip-obi-open', 'closed');
+          localStorage.removeItem('chip-dock-height');
         }, theme);
         const page = await ctx.newPage();
         const errors = [];
@@ -109,26 +110,54 @@ if (chromium) {
           log(`   ${theme} ${w} ${name}: axe ${v.length ? v.join('; ') : 0} · width ${sw}${sw > w ? ' OVERFLOW' : ''}`);
           if (bad) failures.push(`${theme} ${w} ${name}`);
         };
+        // Health with the dock closed
         await page.goto(`${APP}/#/health`, { waitUntil: 'networkidle' });
         await page.waitForTimeout(600);
         await check('health');
-        await page.goto(`${APP}/#/atlas/card`, { waitUntil: 'networkidle' });
-        await page.waitForTimeout(800);
-        await page.locator('.legend button', { hasText: 'Surface' }).click();
+        // Atlas · Button, anatomy with a part selected, dock closed
+        await page.goto(`${APP}/#/atlas/button`, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(900);
+        await page.locator('.legend button', { hasText: 'Label' }).first().click();
         await page.waitForTimeout(300);
-        await check('atlas-card-surface');
-        await page.locator('.legend button', { hasText: 'Focus ring' }).click();
+        await check('atlas-button');
+        // the one input's dropdown (desktop: in the bar)
+        if (w >= 720) {
+          await page.locator('#one-input').click();
+          await page.keyboard.type('card');
+          await page.waitForTimeout(300);
+          await check('jump-dropdown');
+          await page.locator('#one-input').fill('');
+          await page.keyboard.press('Escape');
+        }
+        // OBI open: the four answer states in one thread
+        await page.keyboard.press(process.platform === 'darwin' ? 'Meta+j' : 'Control+j');
+        await page.waitForTimeout(400);
+        const send = async (q) => {
+          await page.locator('#one-input').click();
+          await page.locator('#one-input').fill(q);
+          await page.waitForTimeout(250);
+          await page.keyboard.press('Enter');
+        };
+        await send("what's missing here?");
+        await page.waitForTimeout(400);
+        await send('/status');
+        await page.locator('.turn-cmd .meta-line', { hasText: /pass|fail/ }).last().waitFor({ timeout: 60000 });
+        await send('What is the capital of Peru?');
+        await page.locator('.turn').last().getByText("I couldn't find this").waitFor({ timeout: 60000 });
+        await send('What would Vitaly say about dashboards?');
+        // wait for the answer to finish (the details row gets its timings)
+        await page.locator('.turn').last().getByText(/First words/).waitFor({ state: 'attached', timeout: 180000 });
         await page.waitForTimeout(300);
-        await check('atlas-card-focus');
-        await page.locator('#one-input').click();
-        await page.keyboard.type('card');
-        await page.waitForTimeout(300);
-        await check('jump-dropdown');
-        await page.locator('#one-input').fill('');
-        await page.keyboard.type("what's missing here?");
-        await page.keyboard.press('Enter');
-        await page.waitForTimeout(600);
-        await check('obi-open');
+        await check('obi-states');
+        // drag the dock taller with the keyboard (the handle is a separator) to see every state
+        if (w >= 720) {
+          await page.locator('.dock-handle').focus();
+          for (let i = 0; i < 12; i++) await page.keyboard.press('ArrowUp');
+          await page.waitForTimeout(300);
+        }
+        await page.evaluate(() => document.querySelector('.obi-thread')?.scrollTo(0, 0));
+        await page.waitForTimeout(200);
+        await check('obi-states-top');
         if (errors.length) {
           failures.push(`${theme} ${w} console errors`);
           log(`   ${theme} ${w} errors: ${errors.join(' | ')}`);

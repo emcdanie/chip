@@ -140,3 +140,12 @@ export const SPECIMENS = {
   ),
   Tag: () => <Tag>Case study</Tag>,
 };
+
+// One render per contract variant, for Atlas's variants card. Only where the
+// contract's variants map straight to a prop; anything else gets no card.
+export const VARIANTS = {
+  Button: (v) => <Button variant={v}>{v}</Button>,
+  Tag: (v) => <Tag variant={v}>{v}</Tag>,
+  StatusPill: (v) => <StatusPill variant={v}>{v}</StatusPill>,
+  Eyebrow: (v) => <Eyebrow variant={v}>{v}</Eyebrow>,
+};

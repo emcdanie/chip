@@ -209,7 +209,7 @@ function proposal(bella, c, draft, before, after, theme) {
   ].join('\n');
 }
 
-export default function Sandbox({ bella, c, draft, setDraft, heights, theme, notify, children }) {
+export default function Sandbox({ bella, c, draft, setDraft, heights, theme, notify, children, onReset }) {
   const s = c.sandbox ?? {};
   const base = baseOf(c);
   const slots = Object.keys(base);
@@ -310,7 +310,15 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
         {demo != null ? (
           <ActionChip onClick={() => setDraft({ ...draft, minHeight: '32', paddingY: String(demo) })}>Try a 32px target</ActionChip>
         ) : null}
-        <Button variant="secondary" onClick={() => setDraft(base)} disabled={!changed}>
+        {/* Reset puts the draft back; in Atlas it also returns the stage to the anatomy */}
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setDraft(base);
+            onReset?.();
+          }}
+          disabled={!changed && !onReset}
+        >
           Reset
         </Button>
         <ActionChip onClick={copy} disabled={!changed}>

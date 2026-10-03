@@ -189,6 +189,11 @@ const components = names.map((name) => {
     props: man?.reactDocgen?.props ? Object.keys(man.reactDocgen.props).sort() : [],
     variants: contract?.variants ?? [],
     states: contract?.states ?? [],
+    // contract prose for Atlas's Facts card: what it is for, what not to do,
+    // and the rest-state note ("one job per state")
+    usage: contract?.usage ?? [],
+    dont: contract?.dont ?? [],
+    restNote: contract?.restState?.description ?? null,
     a11y: contract?.a11y ?? null,
     minTarget: minTarget ? { token: minTarget, value: resolve(lightVars, minTarget) } : null,
     sandbox,

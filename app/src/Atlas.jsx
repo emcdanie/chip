@@ -1,16 +1,17 @@
-// Atlas: one BELLA component as an object page. Header (name, one line,
-// status pills), then one job per view: Anatomy | Try a change | Facts |
-// Notes. Parts, facts and gates come from data/bella.json; nothing here is
-// written by hand.
+// Atlas: one BELLA component, laid out like Elleta's BELLA Atlas (v8): the
+// specimen library, the specimen card (the anatomy stage, Explode, or Try a
+// change) and the Facts card side by side, then example cards. Parts, facts,
+// checks and findings come from data/bella.json; a card with no data is left
+// out, never faked.
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Heading from '@bella/components/Heading/Heading';
 import Eyebrow from '@bella/components/Eyebrow/Eyebrow';
 import Link from '@bella/components/Link/Link';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
-import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
-import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import NavList from '@bella/components/NavList/NavList';
+import Button from '@bella/components/Button/Button';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
-import { SPECIMENS } from './specimens.jsx';
+import { SPECIMENS, VARIANTS } from './specimens.jsx';
 import { layout, targetsOf } from './anatomy.js';
 import { forceAttr, installForcedStates } from './forcedStates.js';
 import Sandbox, { baseOf, overridesOf } from './Sandbox.jsx';
@@ -70,7 +71,7 @@ function useForced(root, parts, hl) {
   });
 }
 
-function Anatomy({ name, parts, hl, setHl, zoom, setZoom, overrides }) {
+function Anatomy({ name, parts, hl, setHl, zoom, setZoom, overrides, children }) {
   const frame = useRef(null);
   const [geo, setGeo] = useState(null);
   const Render = SPECIMENS[name];
@@ -102,7 +103,7 @@ function Anatomy({ name, parts, hl, setHl, zoom, setZoom, overrides }) {
   }, [measure, name, zoom, overrides, hl]);
 
   return (
-    <div className="stage">
+    <div className="stage stage--split">
       <div className="spec-frame" ref={frame}>
         <div className="spec-render" inert aria-hidden="true" style={{ zoom, ...overrides }}>
           {Render ? <Render /> : null}
@@ -135,6 +136,7 @@ function Anatomy({ name, parts, hl, setHl, zoom, setZoom, overrides }) {
           </div>
         ) : null}
       </div>
+      {children}
     </div>
   );
 }
@@ -327,21 +329,160 @@ function Exploded({ name, parts, hl, setHl, zoom, overrides }) {
   );
 }
 
-/* ---------- views ---------- */
-const VIEWS = [
-  { id: 'anatomy', label: 'Anatomy' },
-  { id: 'try', label: 'Try a change' },
-  { id: 'facts', label: 'Facts' },
-  { id: 'notes', label: 'Notes' },
-];
+/* ---------- the specimen library ---------- */
+const CATEGORIES = ['Actions', 'Inputs', 'Layout', 'Data', 'Brand'];
+const NO_CONTRACT = 'No contract yet';
+const complete = (c) => c.hasStory && c.hasDocs;
+const statusText = (c) => (complete(c) ? 'Story and docs present' : !c.hasStory ? 'Missing story' : 'Missing docs');
 
-function pill(status, word) {
-  const pass = status === 'pass' || status === true;
-  return <StatusPill variant={pass ? 'success' : 'info'}>{word}</StatusPill>;
+export function Library({ bella, current, onOpen }) {
+  const by = {};
+  for (const c of bella.components) (by[c.category ?? NO_CONTRACT] ??= []).push(c);
+  const groups = [...CATEGORIES, NO_CONTRACT].filter((g) => by[g]).map((g) => ({
+    label: g,
+    items: by[g].map((c) => ({
+      href: `#/atlas/${c.id}`,
+      label: c.name,
+      current: c.id === current,
+      // the dot: filled when story and docs are present, a hollow ring when
+      // something is missing; the shape carries it, the hidden words say it
+      badge: (
+        <>
+          <span className={`dot ${complete(c) ? 'dot--ok' : 'dot--gap'}`} title={statusText(c)} aria-hidden="true" />
+          <span className="sr-only">{statusText(c)}</span>
+        </>
+      ),
+    })),
+  }));
+  const gaps = bella.components.filter((c) => !complete(c)).length;
+  return (
+    <div className="atlas-card library">
+      <NavList
+        label="Specimen library"
+        groups={groups}
+        onNavigate={(href, e) => {
+          e.preventDefault();
+          onOpen(href.slice('#/atlas/'.length));
+        }}
+        footer={
+          <div className="dot-legend">
+            <p className="label">
+              <span className="dot dot--ok" aria-hidden="true" /> Has a story and docs
+            </p>
+            <p className="label">
+              <span className="dot dot--gap" aria-hidden="true" /> Something missing ({gaps} of {bella.components.length})
+            </p>
+          </div>
+        }
+      />
+    </div>
+  );
 }
 
-function Facts({ c, notify }) {
-  const focusable = c.states.includes('focus');
+/* ---------- example cards (only from real data) ---------- */
+const sentences = (text, n) => (text ?? '').split(/(?<=\.)\s+/).slice(0, n).join(' ');
+
+function InState({ name, state }) {
+  const ref = useRef(null);
+  const Render = SPECIMENS[name];
+  useLayoutEffect(() => {
+    const el = ref.current?.querySelector('[data-bella-component]');
+    const force = forceAttr(state);
+    if (el && force) el.setAttribute(force[0], force[1]);
+  }, [state, name]);
+  return (
+    <figure className="state-cell">
+      <div ref={ref} inert aria-hidden="true">
+        {Render ? <Render /> : null}
+      </div>
+      <figcaption className="label">{state === 'active' ? 'press' : state}</figcaption>
+    </figure>
+  );
+}
+
+function Example({ eyebrow, caption, children }) {
+  return (
+    <section className="atlas-card example">
+      <h3 className="label example-eyebrow">{eyebrow}</h3>
+      <div className="well">{children}</div>
+      {caption ? <p className="example-caption">{caption}</p> : null}
+    </section>
+  );
+}
+
+function Examples({ c, bella }) {
+  const cards = [];
+  const variants = VARIANTS[c.name];
+  if (variants && c.variants.length >= 2) {
+    const rule = c.dont.find((d) => c.variants.some((v) => d.toLowerCase().includes(v)));
+    cards.push(
+      <Example key="v" eyebrow={`${c.variants.length} variants`} caption={rule ?? `Variants from the contract: ${c.variants.join(', ')}.`}>
+        <div className="well-row" inert aria-hidden="true">
+          {c.variants.map((v) => (
+            <React.Fragment key={v}>{variants(v)}</React.Fragment>
+          ))}
+        </div>
+      </Example>
+    );
+  }
+  const states = ['hover', 'focus', 'active'].filter((s) => c.states.includes(s));
+  if (states.length && SPECIMENS[c.name]) {
+    cards.push(
+      <Example key="s" eyebrow="One job per state" caption={sentences(c.restNote, 2) || null}>
+        <div className="well-row">
+          {['rest', ...states].map((s) => (
+            <InState key={`${c.name}-${s}`} name={c.name} state={s} />
+          ))}
+        </div>
+      </Example>
+    );
+  }
+  // the nearest sibling: the first component the contract's do-nots point to
+  const rule = c.dont.find((d) => bella.components.some((o) => o.name !== c.name && SPECIMENS[o.name] && new RegExp(`\\b${o.name}\\b`).test(d)));
+  const sibling = rule && bella.components.find((o) => o.name !== c.name && SPECIMENS[o.name] && new RegExp(`\\b${o.name}\\b`).test(rule));
+  if (sibling && SPECIMENS[c.name]) {
+    const A = SPECIMENS[c.name];
+    const B = SPECIMENS[sibling.name];
+    cards.push(
+      <Example key="c" eyebrow={`Compare · ${c.name} vs ${sibling.name}`} caption={rule}>
+        <div className="well-row" inert aria-hidden="true">
+          <A />
+          <B />
+        </div>
+      </Example>
+    );
+  }
+  const findings = [
+    ...bella.components.filter((o) => !o.hasStory).map((o) => `${o.name} has no story`),
+    ...bella.components.filter((o) => o.health.contract.status === 'fail').map((o) => `${o.name} fails contract parity`),
+    ...bella.components.filter((o) => o.health.contrast.status === 'fail').map((o) => `${o.name} fails a contrast pair`),
+  ];
+  const noDsds = bella.components.filter((o) => !o.inDsds).length;
+  if (findings.length || noDsds) {
+    cards.push(
+      <Example key="g" eyebrow="What the gate caught" caption="Real findings from BELLA's checks, not illustrations.">
+        <ul className="findings">
+          {findings.map((f) => (
+            <li key={f}>
+              <span className="dot dot--gap" aria-hidden="true" /> {f}
+            </li>
+          ))}
+          {noDsds ? (
+            <li>
+              <span className="count">{noDsds}</span> components missing a DSDS entry
+            </li>
+          ) : null}
+        </ul>
+      </Example>
+    );
+  }
+  return cards.length ? <div className="examples">{cards}</div> : null;
+}
+
+/* ---------- the Facts card ---------- */
+function Facts({ c, notes, canTry, onTry, notify }) {
+  const first = sentences(c.description, 1);
+  const tip = sentences(c.restNote, 2);
   async function copy(t) {
     try {
       await navigator.clipboard.writeText(`var(${t})`);
@@ -350,44 +491,70 @@ function Facts({ c, notify }) {
       notify(`Could not copy ${t}`);
     }
   }
+  const pass = (ok, word = ok ? 'pass' : 'fail') => <StatusPill variant={ok ? 'success' : 'info'}>{word}</StatusPill>;
+  const mine = notes.filter((n) => n.component === c.name);
   return (
-    <div className="facts-view">
+    <aside className="atlas-card facts-card" aria-label={`${c.name} facts`}>
+      <h2 className="facts-name">{c.name}</h2>
+      {first ? <p className="label">{first}</p> : null}
       <dl className="facts">
         <div><dt>Variants</dt><dd>{c.variants.length ? c.variants.join(', ') : 'None'}</dd></div>
         <div><dt>States</dt><dd>{c.states.length ? c.states.join(', ') : 'Not recorded'}</dd></div>
-        <div><dt>Min target</dt><dd>{c.minTarget ? `${c.minTarget.value}` : 'Not a control'}</dd></div>
-        <div><dt>Focus</dt><dd>{focusable ? '3px ring, 3px offset, keyboard focus only' : 'Not focusable'}</dd></div>
+        <div><dt>Min height</dt><dd>{c.minTarget ? c.minTarget.value : 'Not a control'}</dd></div>
         <div><dt>Tokens</dt><dd>{c.tokens.count}</dd></div>
-        <div><dt>Story</dt><dd>{c.storyUrl ? <Link href={c.storyUrl} external>Open the story</Link> : 'None published'}</dd></div>
       </dl>
-      <h2 className="view-title">Tokens</h2>
-      <ul className="token-rows">
-        {c.tokens.list.map((t) => (
-          <li key={t}>
-            <span className="legend-token" title={t}>{middle(t, 34)}</span>
-            <ActionChip onClick={() => copy(t)} ariaLabel={`Copy ${t}`}>Copy</ActionChip>
-          </li>
-        ))}
+      {tip ? (
+        <div className="did-you-know">
+          <p className="label">Did you know</p>
+          <p>{tip}</p>
+        </div>
+      ) : null}
+      <h3 className="label checks-title">Checks · from the gate</h3>
+      <ul className="gate-list">
+        <li>{pass(c.health.contrast.status === 'pass', c.health.contrast.status === 'not-covered' ? 'n/a' : undefined)} Contrast{c.health.contrast.pairs ? ` · ${c.health.contrast.pairs} pairs` : ''}</li>
+        <li>{pass(c.health.contract.status === 'pass', c.health.contract.status === 'no-contract' ? 'none' : undefined)} Contract parity</li>
+        <li>{pass(complete(c))} Story and docs present</li>
+        <li>{pass(c.inDsds)} DSDS entry</li>
+        {c.minTarget ? <li>{pass(parseFloat(c.minTarget.value) >= 44, c.minTarget.value)} Touch target minimum</li> : null}
       </ul>
-    </div>
-  );
-}
-
-function Notes({ c, notes }) {
-  return notes.length ? (
-    <ul className="note-list">
-      {[...notes].reverse().map((n) => (
-        <li key={n.at}>
-          <p className="label">
-            <time dateTime={n.at}>{new Date(n.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</time>
-            {n.question ? ` · ${n.question}` : ''}
-          </p>
-          <p className="note-text">{n.text.length > 400 ? `${n.text.slice(0, 400)}…` : n.text}</p>
-        </li>
-      ))}
-    </ul>
-  ) : (
-    <p className="label">No notes for {c.name} yet. Save one from an OBI answer.</p>
+      <div className="facts-actions">
+        {canTry ? <ActionChip onClick={onTry}>Try a change</ActionChip> : null}
+        {c.storyUrl ? (
+          <Button variant="primary" href={c.storyUrl}>
+            Open the story
+          </Button>
+        ) : null}
+      </div>
+      <details className="facts-tokens">
+        <summary>Tokens ({c.tokens.count})</summary>
+        <ul className="token-rows">
+          {c.tokens.list.map((t) => (
+            <li key={t}>
+              <span className="legend-token" title={t}>{middle(t, 30)}</span>
+              <ActionChip onClick={() => copy(t)} ariaLabel={`Copy ${t}`}>Copy</ActionChip>
+            </li>
+          ))}
+        </ul>
+      </details>
+      <section className="facts-notes" aria-labelledby="notes-h">
+        <h3 id="notes-h" className="label">Notes</h3>
+        {mine.length ? (
+          <ul className="note-list">
+            {[...mine].reverse().map((n) => (
+              <li key={n.at}>
+                <p className="label">
+                  <time dateTime={n.at}>{new Date(n.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</time>
+                  {n.question ? ` · ${n.question}` : ''}
+                </p>
+                <p className="note-text">{n.text.length > 240 ? `${n.text.slice(0, 240)}…` : n.text}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="label">No notes yet. Save one from an OBI answer.</p>
+        )}
+      </section>
+    </aside>
   );
 }
 
@@ -397,9 +564,10 @@ function specimenHeight() {
   return el ? el.offsetHeight : null;
 }
 
-export default function Atlas({ c, bella, theme, notes = [], view, setView }) {
+export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary = true, trySignal, onTryUsed }) {
   const reduced = useReducedMotion();
   const [exploded, setExploded] = useState(false);
+  const [mode, setMode] = useState('anatomy'); // or 'try'
   const [hl, setHl] = useState(null);
   const [toast, setToast] = useState('');
   const [zoom, setZoom] = useState(1);
@@ -419,8 +587,16 @@ export default function Atlas({ c, bella, theme, notes = [], view, setView }) {
   useEffect(() => {
     setExploded(false);
     setHl(null);
+    setMode('anatomy');
     setHeights({ base: null, now: null });
   }, [c?.id]);
+  // "Try in sandbox" from OBI
+  // one shot: used, then cleared, so later visits open on the anatomy
+  useEffect(() => {
+    if (!trySignal) return;
+    setMode('try');
+    onTryUsed?.();
+  }, [trySignal?.at]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(''), 3000);
@@ -436,101 +612,76 @@ export default function Atlas({ c, bella, theme, notes = [], view, setView }) {
     });
   });
 
-  if (!c) return <p className="loading">Loading BELLA…</p>;
+  if (!c || !bella) return <p className="loading">Loading BELLA…</p>;
   const Render = SPECIMENS[c.name];
   const showExplode = parts.length > 0 && !reduced;
-  const short = c.description?.split(/(?<=\.)\s/)[0] ?? '';
+  const canTry = Object.keys(baseOf(c)).length > 0;
+  const order = [...CATEGORIES, NO_CONTRACT].flatMap((g) => bella.components.filter((o) => (o.category ?? NO_CONTRACT) === g));
+  const number = String(order.findIndex((o) => o.id === c.id) + 1).padStart(3, '0');
+  const plainStage = (
+    <div className="stage">
+      <div className="spec-frame spec-frame--plain">
+        <div className="spec-render" inert aria-hidden="true" style={overrides}>
+          {Render ? <Render /> : null}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="atlas">
-      <header className="atlas-head">
-        <Eyebrow>Atlas · {c.category ?? 'No contract yet'}</Eyebrow>
-        <Heading tier="page" as="h1">{c.name}</Heading>
-        {c.description ? (
-          <details className="atlas-desc">
-            <summary>
-              <span className="desc-line">{short}</span>
-              {short !== c.description ? <span className="more">More</span> : null}
-            </summary>
-            <p>{c.description}</p>
-          </details>
-        ) : null}
-        <p className="atlas-pills">
-          {pill(c.health.contrast.status, `Contrast ${c.health.contrast.status}`)}
-          {pill(c.health.contract.status, `Parity ${c.health.contract.status}`)}
-          {pill(c.hasStory, c.hasStory ? 'Story present' : 'Story missing')}
-          {pill(c.inDsds, c.inDsds ? 'DSDS present' : 'DSDS missing')}
-        </p>
-      </header>
+      <div className="atlas-grid" data-library={showLibrary || undefined}>
+        {showLibrary ? <Library bella={bella} current={c.id} onOpen={onOpen} /> : null}
 
-      <Tabs tabs={VIEWS} value={view} onChange={setView} label={`${c.name} views`} idBase="atlas" className="atlas-tabs" />
+        <section className="atlas-card specimen-card" aria-labelledby="specimen-h">
+          <p className="label">
+            Specimen No. {number} · {c.category ?? NO_CONTRACT}
+          </p>
+          <Heading tier="section" as="h1" id="specimen-h">
+            {c.name}
+          </Heading>
+          {c.description ? <p className="desc-2">{c.description}</p> : null}
 
-      <div {...tabPanelProps('atlas', 'anatomy', view === 'anatomy')}>
-        {view === 'anatomy' ? (
-          parts.length ? (
-            <div className="anatomy-view">
-              <div className="anatomy-bar">
-                <p className="label">
-                  {parts.length} parts, bottom layer first. Hover or focus a part to find it.
-                </p>
-                {showExplode ? (
-                  <SegmentedControl
-                    label="Anatomy view"
-                    value={exploded ? 'exploded' : 'rest'}
-                    onChange={(v) => setExploded(v === 'exploded')}
-                    options={[
-                      { value: 'rest', label: 'At rest' },
-                      { value: 'exploded', label: 'Exploded' },
-                    ]}
-                  />
-                ) : null}
-              </div>
+          {mode === 'try' ? (
+            <Sandbox bella={bella} c={c} draft={draft} setDraft={setDraft} heights={heights} theme={theme} notify={setToast} onReset={() => setMode('anatomy')}>
+              {plainStage}
+            </Sandbox>
+          ) : parts.length ? (
+            <>
               {exploded && showExplode ? (
                 <Exploded name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} overrides={overrides} />
               ) : (
-                <div className="anatomy-split">
-                  <Anatomy name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} setZoom={setZoom} overrides={overrides} />
+                <Anatomy name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} setZoom={setZoom} overrides={overrides}>
                   <Legend name={c.name} parts={parts} hl={hl} setHl={setHl} />
-                </div>
+                </Anatomy>
               )}
-            </div>
-          ) : (
-            <div className="anatomy-split">
-              <div className="stage">
-                <div className="spec-frame spec-frame--plain">
-                  <div className="spec-render" inert aria-hidden="true">
-                    {Render ? <Render /> : null}
-                  </div>
-                </div>
+              <div className="stage-bar">
+                {showExplode ? (
+                  <Button variant="secondary" onClick={() => setExploded((x) => !x)}>
+                    {exploded ? 'Put back' : 'Explode'}
+                  </Button>
+                ) : null}
+                <p className="label">
+                  {parts.length} parts, bottom layer first. Hover a part to see it; select it to show its state.
+                </p>
               </div>
+            </>
+          ) : (
+            <>
+              {plainStage}
               <div className="no-anatomy">
                 <p>No anatomy recorded for {c.name} yet.</p>
                 <p className="label">Add it in BELLA at {c.anatomySource}</p>
                 <Link href={REPO_FILE} external>Open the contract file</Link>
               </div>
-            </div>
-          )
-        ) : null}
+            </>
+          )}
+        </section>
+
+        <Facts c={c} notes={notes} canTry={canTry && mode !== 'try'} onTry={() => setMode('try')} notify={setToast} />
       </div>
 
-      <div {...tabPanelProps('atlas', 'try', view === 'try')}>
-        {view === 'try' ? (
-          <Sandbox bella={bella} c={c} draft={draft} setDraft={setDraft} heights={heights} theme={theme} notify={setToast}>
-            <div className="stage">
-              <div className="spec-frame spec-frame--plain">
-                <div className="spec-render" inert aria-hidden="true" style={overrides}>
-                  {Render ? <Render /> : null}
-                </div>
-              </div>
-            </div>
-          </Sandbox>
-        ) : null}
-      </div>
-
-      <div {...tabPanelProps('atlas', 'facts', view === 'facts')}>{view === 'facts' ? <Facts c={c} notify={setToast} /> : null}</div>
-      <div {...tabPanelProps('atlas', 'notes', view === 'notes')}>
-        {view === 'notes' ? <Notes c={c} notes={notes.filter((n) => n.component === c.name)} /> : null}
-      </div>
+      <Examples c={c} bella={bella} />
 
       <p className="toast" role="status" aria-live="polite" data-show={toast ? '' : undefined}>
         {toast}
