@@ -37,6 +37,7 @@
 /server/.chip-env-id
 /node_modules/
 /server/node_modules/
+/app/dist/
 
 # Local search: synced Notion pages and the embedding index never leave this machine
 /data/notion/

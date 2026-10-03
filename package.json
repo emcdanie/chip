@@ -12,7 +12,9 @@
     "dev": "node --watch server/server.js",
     "sync:bella": "node scripts/sync-bella.mjs",
     "sync:notion": "node scripts/sync-notion.mjs",
-    "sync": "node bin/chip.mjs sync"
+    "sync": "node bin/chip.mjs sync",
+    "app": "vite --config app/vite.config.js",
+    "app:build": "vite build --config app/vite.config.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -21,6 +23,12 @@
     "@notionhq/client": "^5.27.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.1.5"
   }
 }

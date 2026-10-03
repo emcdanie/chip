@@ -1,0 +1,233 @@
+/* CHIP app layout. BELLA semantic tokens only: no hex, no raw sizes. The
+ * components bring their own styles; this file only places them. */
+
+html,
+body {
+  margin: 0;
+  background: var(--color-semantic-background);
+  color: var(--color-semantic-text-primary);
+  font-family: var(--typography-font-family-body);
+  font-size: var(--typography-font-size-body);
+  letter-spacing: var(--typography-letter-spacing-body);
+  line-height: var(--typography-line-height-normal);
+}
+
+.skip {
+  position: absolute;
+  inset-inline-start: var(--spacing-4);
+  inset-block-start: calc(-1 * var(--spacing-20));
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--color-semantic-surface-card);
+  color: var(--color-semantic-text-primary);
+}
+
+.skip:focus {
+  inset-block-start: var(--spacing-4);
+  outline: var(--ring-focus-width) solid var(--ring-focus-color);
+  outline-offset: var(--ring-focus-offset);
+}
+
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-4) var(--spacing-8);
+  padding: var(--spacing-4) var(--spacing-8) 0;
+  border-bottom: var(--border-width-thin) solid var(--color-semantic-border);
+}
+
+.brand {
+  margin: 0;
+  align-self: center;
+  font-size: var(--typography-font-size-xl);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-title);
+}
+
+.ws-tabs {
+  border-bottom: none;
+}
+
+.search {
+  flex: 1 1 calc(var(--spacing-20) * 4);
+  padding-bottom: var(--spacing-3);
+}
+
+.search-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding-bottom: var(--spacing-3);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: calc(var(--spacing-16) * 4) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.shell[data-nav-collapsed] .body {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: var(--spacing-4) var(--spacing-3);
+  background: var(--color-semantic-surface-card);
+  border-right: var(--border-width-thin) solid var(--color-semantic-border);
+  box-sizing: border-box;
+  min-height: 100%;
+}
+
+.source-line {
+  margin: 0;
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-mono);
+  font-feature-settings: var(--typography-font-feature-mono);
+  color: var(--color-semantic-text-secondary);
+}
+
+.main {
+  padding: var(--spacing-8);
+  min-width: 0;
+}
+
+.main:focus {
+  outline: none;
+}
+
+.view {
+  display: grid;
+  gap: var(--spacing-12);
+  max-width: calc(var(--spacing-20) * 12);
+}
+
+.block {
+  display: grid;
+  gap: var(--spacing-4);
+  scroll-margin-top: var(--spacing-8);
+}
+
+.block-title {
+  margin: 0;
+  font-size: var(--typography-font-size-xl);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-title);
+  line-height: var(--typography-line-height-snug);
+}
+
+.block-lead {
+  margin: 0;
+  max-width: 65ch;
+  color: var(--color-semantic-text-secondary);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--spacing-16) * 2), 1fr));
+  gap: var(--spacing-6);
+}
+
+.readiness {
+  display: grid;
+  gap: var(--spacing-6);
+}
+
+.basis summary {
+  cursor: pointer;
+  width: fit-content;
+  min-height: var(--spacing-touch-target);
+  display: flex;
+  align-items: center;
+}
+
+.basis summary:focus-visible {
+  outline: var(--ring-focus-width) solid var(--ring-focus-color);
+  outline-offset: var(--ring-focus-offset);
+}
+
+.basis dl {
+  display: grid;
+  gap: var(--spacing-3);
+  margin: var(--spacing-3) 0 0;
+}
+
+.basis dt {
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.basis dd {
+  margin: 0;
+  color: var(--color-semantic-text-secondary);
+}
+
+.failures,
+.answers,
+.answer-sources ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.answers {
+  gap: var(--spacing-6);
+}
+
+.answer {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.answer-q {
+  margin: 0;
+  font-size: var(--typography-font-size-lg);
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.answer-text {
+  margin: 0;
+  white-space: pre-wrap;
+  max-width: 70ch;
+}
+
+.answer-error,
+.offline {
+  margin: 0;
+  color: var(--color-semantic-danger-text);
+}
+
+.ask-form {
+  display: grid;
+  gap: var(--spacing-4);
+  max-width: calc(var(--spacing-20) * 9);
+}
+
+.meta {
+  margin: 0;
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-mono);
+  font-feature-settings: var(--typography-font-feature-mono);
+  color: var(--color-semantic-text-secondary);
+}
+
+.loading {
+  color: var(--color-semantic-text-secondary);
+}
