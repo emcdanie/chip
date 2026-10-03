@@ -27,6 +27,10 @@
 # Internal setup notes + Claude Code local settings
 /setup/
 /.claude/
+/server/.claude/
+
+# Reference mocks: personal, local only
+/docs/reference/
 
 # Server — secrets and build artifacts never committed
 /server/.env
