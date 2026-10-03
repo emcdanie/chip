@@ -555,12 +555,12 @@ function Others({ c }) {
   return (
     <div className="others">
       {r.findings.map((f) => (
-        <div key={f.url} className="finding">
+        <div key={`${f.key}${f.url}`} className="finding">
           <p>
-            <b>{f.system ?? new URL(f.url).hostname.replace(/^www\./, '')}.</b> {f.summary}
+            <b>{f.topic}.</b> {f.text}
           </p>
           <Link href={f.url} external>
-            {f.title}
+            {f.system ?? f.title}
           </Link>
         </div>
       ))}
