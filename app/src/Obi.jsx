@@ -95,10 +95,11 @@ function Rich({ text, sources }) {
 }
 
 /* ---------- one turn ---------- */
+// a data row as text: only the columns the table shows
+const rowText = (data, r) => data.columns.map((c) => r[c.key]).join(' · ');
+
 function proposalOf(t) {
-  const body = t.data
-    ? [t.data.title, '', ...t.data.rows.map((r) => `- ${Object.values(r).join(' · ')}`)].join('\n')
-    : t.text;
+  const body = t.data ? [t.data.title, '', ...t.data.rows.map((r) => `- ${rowText(t.data, r)}`)].join('\n') : t.text;
   const src = (t.sources ?? []).map((s) => `[${s.n}] ${s.title} · ${s.url ?? s.path}`);
   return [`## ${t.q}`, '', `${t.path === 'data' ? 'From BELLA data' : 'From your docs'} (${t.page ?? 'CHIP'})`, '', body, '', ...(src.length ? ['Sources:', ...src] : [])].join('\n');
 }
@@ -375,7 +376,7 @@ export default function Obi({ bella, health, page, queued, onOpenAtlas, onSandbo
   }
 
   async function save(component, t) {
-    const text = t.data ? [t.data.title, ...t.data.rows.map((r) => Object.values(r).join(' · '))].join('\n') : t.text;
+    const text = t.data ? [t.data.title, ...t.data.rows.map((r) => rowText(t.data, r))].join('\n') : t.text;
     try {
       const res = await fetch('/notes', {
         method: 'POST',
