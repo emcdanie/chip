@@ -5,10 +5,12 @@ import cors from 'cors';
 import { join, resolve, relative } from 'node:path';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
-import { ROOT, PORT, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL } from './lib/config.mjs';
+import { ROOT, PORT, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL, NOTES_DIR } from './lib/config.mjs';
 import { ask, askStream } from './lib/ask.mjs';
 import { warm } from './lib/llm.js';
-import { loadIndex } from './lib/index.mjs';
+import { loadIndex, buildIndex } from './lib/index.mjs';
+import { listDocs, readDoc, saveDoc, STATUSES } from './lib/docs.mjs';
+import { homedir } from 'node:os';
 import { listAll } from './providers/index.mjs';
 import * as host from './host/registry.js';
 import { logUsage, claudeToday, usageWeek } from './lib/usage.mjs';
@@ -153,14 +155,55 @@ app.get('/docs', (_req, res) => {
   res.json([...seen.values()]);
 });
 
+// OBI Docs (docs/host.md has the host; this is the notes folder):
+// GET /obi-docs lists, GET /obi-docs/:id reads, POST /obi-docs creates,
+// PUT /obi-docs/:id updates. A save re-indexes in the background.
+let reindexing = null, reindexAgain = false;
+function reindexSoon() {
+  if (reindexing) return void (reindexAgain = true);
+  reindexing = buildIndex({ log: () => {} })
+    .catch((e) => console.error('[CHIP] re-index failed:', e.message))
+    .finally(() => {
+      reindexing = null;
+      if (reindexAgain) {
+        reindexAgain = false;
+        reindexSoon();
+      }
+    });
+}
+app.get('/obi-docs', (req, res) => {
+  if (!sameApp(req, res, { post: false })) return;
+  res.json({ docs: listDocs(), statuses: STATUSES, folder: NOTES_DIR.replace(homedir(), '~') });
+});
+app.get('/obi-docs/:id', (req, res) => {
+  if (!sameApp(req, res, { post: false })) return;
+  const d = readDoc(String(req.params.id));
+  return d ? res.json(d) : res.status(404).json({ error: 'No doc with that id.' });
+});
+const saveRoute = (req, res, id) => {
+  if (!sameApp(req, res)) return;
+  const { title, tags, status, kind, body, localOnly } = req.body ?? {};
+  try {
+    const d = saveDoc({ id, title: String(title ?? ''), tags, status, kind: typeof kind === 'string' ? kind.slice(0, 20) : 'note', body: String(body ?? ''), localOnly: localOnly === true });
+    reindexSoon();
+    res.status(id ? 200 : 201).json(d);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+};
+app.post('/obi-docs', (req, res) => saveRoute(req, res, null));
+app.put('/obi-docs/:id', (req, res) => saveRoute(req, res, String(req.params.id)));
+
 // GET /source?path=<indexed path>: the text of one source, so a citation can
 // open it. Only paths that are in the search index; nothing else on disk.
 app.get('/source', (req, res) => {
   const index = loadIndex();
   const path = String(req.query.path || '');
   const known = index && index.chunks.some((c) => c.path === path);
-  const file = resolve(ROOT, path);
-  if (!known || relative(ROOT, file).startsWith('..') || !existsSync(file)) return res.status(404).type('text/plain').send('Not an indexed source.');
+  // obi-notes/<file> lives in the notes folder, outside the repo
+  const base = path.startsWith('obi-notes/') ? NOTES_DIR : ROOT;
+  const file = resolve(base, path.startsWith('obi-notes/') ? path.slice('obi-notes/'.length) : path);
+  if (!known || relative(base, file).startsWith('..') || !existsSync(file)) return res.status(404).type('text/plain').send('Not an indexed source.');
   res.type('text/plain; charset=utf-8').send(readFileSync(file, 'utf8'));
 });
 

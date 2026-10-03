@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import { join, dirname, basename, relative } from 'node:path';
 import { createHash } from 'node:crypto';
+import { docSources } from './docs.mjs';
 import { ROOT, BELLA_DIR, NOTION_DIR, INDEX_FILE, BELLA_JSON, CHIP_EMBED_MODEL, COWORK_DIR } from './config.mjs';
 import { embed } from './llm.js';
 
@@ -62,6 +63,7 @@ function collectSources() {
     const { meta, body } = frontMatter(readFileSync(f, 'utf8'));
     out.push({ title: meta.title || basename(f, '.md'), url: meta.url || null, path: relative(ROOT, f), text: body });
   }
+  out.push(...docSources()); // OBI Docs, private
   for (const f of mdFiles(COWORK_DIR)) {
     const md = readFileSync(f, 'utf8');
     out.push({ title: 'Cowork · ' + (firstHeading(md) || basename(f, '.md')), url: null, path: relative(ROOT, f), text: md });
@@ -112,7 +114,7 @@ export async function buildIndex({ log = () => {} } = {}) {
     const pieces = src.single ? [src.text] : chunk(src.text);
     pieces.forEach((text, i) => {
       const embedText = `${src.title}\n\n${text}`;
-      pending.push({ id: `${src.path}#${src.part ?? i}`, title: src.title, url: src.url, path: src.path, hash: sha(embedText), text, embedText });
+      pending.push({ id: `${src.path}#${src.part ?? i}`, title: src.title, url: src.url, path: src.path, hash: sha(embedText), text, embedText, ...(src.localOnly ? { localOnly: true } : {}) });
     });
   }
 

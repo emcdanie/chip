@@ -15,14 +15,19 @@ import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeF
 import Select from '@bella/components/Select/Select';
 import { baseOf } from './Sandbox.jsx';
 
+// arg: the command takes text; picking it from the list fills "/cmd " to type on
 const COMMANDS = [
+  { cmd: 'note', arg: '<text>', note: 'save a note to Docs' },
+  { cmd: 'plan', arg: '<goal>', note: 'start a plan in Docs' },
+  { cmd: 'decision', arg: '<what was decided>', note: 'record a decision in Docs' },
+  { cmd: 'handoff', note: 'save this thread as a handoff doc' },
   { cmd: 'usage', note: 'this week: answers by route, tokens kept local' },
   { cmd: 'tools', note: 'connected tools and their status' },
-  { cmd: 'tool', note: '/tool <server> <tool> {json args}' },
+  { cmd: 'tool', arg: '<server> <tool>', note: '/tool <server> <tool> {json args}' },
   { cmd: 'status', note: 'model, index size, last sync' },
   { cmd: 'audit', note: 'sync BELLA, scores and failures' },
   { cmd: 'sync', note: 'BELLA and Notion, then re-index' },
-  { cmd: 'ask', note: 'ask through the terminal path' },
+  { cmd: 'ask', arg: '<question>', note: 'ask through the terminal path' },
 ];
 
 /* ---------- streams ---------- */
@@ -43,10 +48,13 @@ async function* lines(res) {
   }
 }
 
+// where a source opens: a Docs note in the Docs page, anything else as text
+const sourceHref = (s) => s.url ?? (s.path?.startsWith('obi-notes/') ? `/#/docs/${s.path.slice(10).replace(/\.md$/, '')}` : `/source?path=${encodeURIComponent(s.path)}`);
+
 /* ---------- answer text: paragraphs, bullets, bold, [n] citations ---------- */
 function Cite({ n, source }) {
   if (!source) return <span>[{n}]</span>;
-  const href = source.url ?? `/source?path=${encodeURIComponent(source.path)}`;
+  const href = sourceHref(source);
   return (
     <span className="cite">
       <Link href={href} external>
@@ -79,7 +87,7 @@ function inline(text, sources, key) {
   return out;
 }
 
-function Rich({ text, sources }) {
+export function Rich({ text, sources = [] }) {
   const blocks = [];
   let list = null;
   text.split('\n').forEach((raw, i) => {
@@ -93,7 +101,8 @@ function Rich({ text, sources }) {
       blocks.push(<ul key={`u${i}`}>{list}</ul>);
       list = null;
     }
-    if (line) blocks.push(<p key={i}>{inline(line.replace(/^#+\s*/, ''), sources, i)}</p>);
+    if (/^#{1,6}\s/.test(line)) blocks.push(<h3 key={i} className="rich-h">{inline(line.replace(/^#+\s*/, ''), sources, i)}</h3>);
+    else if (line) blocks.push(<p key={i}>{inline(line, sources, i)}</p>);
   });
   if (list) blocks.push(<ul key="u-end">{list}</ul>);
   return <div className="obi-rich">{blocks}</div>;
@@ -109,13 +118,64 @@ function proposalOf(t) {
   return [`## ${t.q}`, '', `${t.path === 'data' ? 'From BELLA data' : 'From your docs'} (${t.page ?? 'CHIP'})`, '', body, '', ...(src.length ? ['Sources:', ...src] : [])].join('\n');
 }
 
+const titleCase = (q) => (q.length > 70 ? `${q.slice(0, 70).replace(/\s+\S*$/, '')}…` : q);
+const firstSentence = (t) => {
+  const s = (t ?? '').replace(/\[\d+\]/g, '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+  const m = s.match(/^(.{20,220}?[.!?])(\s|$)/);
+  return m ? m[1] : s.slice(0, 220);
+};
+
+/** /handoff: the thread as a doc. What was asked and what came back, tools
+ *  used, and what is still open, so the next session can start from it. */
+function handoffOf(turns, page, name) {
+  const done = [], open = [], saved = [], tools = new Set();
+  for (const t of turns) {
+    if (t.kind === 'cmd') {
+      (t.exit === 0 ? done : open).push(`- /${t.cmd}: ${t.exit === 0 ? 'passed' : `failed (exit ${t.exit ?? 'still running'})`}`);
+    } else if (t.kind === 'tool') {
+      if (t.server && t.tool) tools.add(`${t.server} · ${t.label ?? t.tool}`);
+      if (t.docId) saved.push(`- ${t.message.replace(/^Saved to Docs: /, '').replace(/\.$/, '')}`);
+      else if (t.error) open.push(`- ${t.q} → ${t.server ? summarizeTool(t) : t.error}`);
+      else if (t.text != null) done.push(`- ${t.q} → ${summarizeTool(t)}`);
+      else if (t.message) done.push(`- ${t.q} → ${t.message}`);
+    } else if (t.path === 'error' || t.path === 'weak' || isMiss(t)) {
+      open.push(`- ${t.q} → not answered from your sources`);
+    } else if (t.path === 'data') {
+      done.push(`- ${t.q} → ${t.data.title} (BELLA data)`);
+    } else if (t.text) {
+      done.push(`- ${t.q} → ${firstSentence(tidyCitations(t.text))} (${t.place === 'cloud' ? 'Claude' : 'local model'})`);
+    }
+  }
+  const day = new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return {
+    title: name || `Handoff · ${page ?? 'CHIP'} · ${day}`,
+    kind: 'handoff',
+    tags: ['handoff'],
+    localOnly: turns.some((t) => (t.sources ?? []).some((x) => x.path?.startsWith('docs/reference/cowork/'))), // it may quote Cowork
+    status: 'done',
+    body: [
+      `Session on ${page ?? 'CHIP'}, ${day}. ${turns.length} turns.`,
+      '',
+      '## Done',
+      ...(done.length ? done : ['- Nothing finished in this thread.']),
+      '',
+      '## Still open',
+      ...(open.length ? open : ['- Nothing left open.']),
+      '',
+      ...(saved.length ? ['## Saved to Docs', ...saved, ''] : []),
+      '## Tools used',
+      ...(tools.size ? [...tools].map((x) => `- ${x}`) : ['- None.']),
+    ].join('\n'),
+  };
+}
+
 // a miss is honest and useful: what was searched, and the three nearest sources with their scores
 function Closest({ sources }) {
   return (
     <ul className="closest">
       {sources.slice(0, 3).map((s) => (
         <li key={s.n}>
-          <Link href={s.url ?? `/source?path=${encodeURIComponent(s.path)}`} external>
+          <Link href={sourceHref(s)} external>
             {s.title}
           </Link>{' '}
           <span className="label">match {s.score?.toFixed(2)}</span>
@@ -140,7 +200,7 @@ function aboutComponent(t, name) {
   return t.page === `Atlas · ${name}` && /\b(here|this|it|its)\b/i.test(t.q);
 }
 
-function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onSave, onCompare, onIncludePrivate, notify }) {
+function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onSave, onSaveDoc, onCompare, onIncludePrivate, notify }) {
   const here = page?.match(/^Atlas · (\w+)$/)?.[1];
   const done = t.path !== 'docs' || t.total != null;
   const miss = t.path === 'weak' || (t.path === 'docs' && done && isMiss(t.text));
@@ -164,6 +224,7 @@ function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onS
     if (targetComp && tokensIn(t.text ?? '').length && Object.keys(baseOf(targetComp)).length) actions.push({ key: 'try', label: 'Try in sandbox', run: () => onSandbox(target) });
     for (const n of (t.components ?? []).filter((n) => n !== here)) actions.push({ key: `open-${n}`, label: `Open ${n} in Atlas`, run: () => onOpenAtlas(n) });
     if (target) actions.push({ key: 'save', label: `Save to ${target} notes`, run: () => onSave(target, t) });
+    actions.push({ key: 'doc', label: 'Save as doc', run: () => onSaveDoc(t) });
     actions.push({ key: 'copy', label: 'Copy as proposal', run: copy });
   }
   const shown = actions.slice(0, 2);
@@ -279,7 +340,17 @@ function ToolTurn({ t, onConfirm, onCancel }) {
             ))}
           </ul>
         ) : null}
-        {t.message ? <p>{t.message}</p> : null}
+        {t.message ? (
+          <p>
+            {t.message}
+            {t.docId ? (
+              <>
+                {' '}
+                <Link href={`#/docs/${t.docId}`}>Open in Docs</Link>
+              </>
+            ) : null}
+          </p>
+        ) : null}
         {t.lines ? (
           <ul className="tool-list">
             {t.lines.map((l) => (
@@ -374,7 +445,7 @@ function CmdTurn({ t }) {
 const SESSION = crypto.randomUUID();
 const HOST_HEADERS = { 'content-type': 'application/json', 'x-chip-session': SESSION };
 
-export function useObi({ bella, page, notify, onSaved, models = [], budget, picked = 'auto', onAnswered }) {
+export function useObi({ bella, page, notify, onSaved, models = [], budget, picked = 'auto', onAnswered, onDocSaved }) {
   const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
   const session = useRef(null);
@@ -478,6 +549,21 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
     patch(t.id, () => (r.ok ? { settled: 'Applied.', text: r.text, ms: r.ms } : { settled: 'Not applied.', error: r.error ?? 'The change did not run.' }));
   }
 
+  /** Saves a doc to the private notes folder (POST /obi-docs) and says where. */
+  async function saveToDocs(q, doc) {
+    const id = Date.now() + Math.random();
+    setTurns((ts) => [...ts, { id, kind: 'tool', q }]);
+    try {
+      const res = await fetch('/obi-docs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(doc) });
+      const r = await res.json();
+      if (!res.ok) throw new Error(r.error ?? 'Not saved');
+      patch(id, () => ({ message: `Saved to Docs: ${r.title}.`, docId: r.id }));
+      onDocSaved?.();
+    } catch (e) {
+      patch(id, () => ({ error: `Not saved: ${e.message}` }));
+    }
+  }
+
   async function showUsage(q) {
     const id = Date.now() + Math.random();
     setTurns((ts) => [...ts, { id, kind: 'tool', q }]);
@@ -552,7 +638,16 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
       // /ask --claude … or /ask --local … overrides the picker for one question
       const flag = arg.match(/^--(claude|local)\s+(.+)$/);
       const localId = (models.find((m) => m.place === 'local' && m.isDefault) ?? models.find((m) => m.place === 'local'))?.id;
-      if (word === 'usage') showUsage(text);
+      const titleOf = (t) => (t.split('\n')[0].length > 70 ? `${t.split('\n')[0].slice(0, 70).replace(/\s+\S*$/, '')}…` : t.split('\n')[0]);
+      const needsText = { note: 'Write the note after /note.', plan: 'Name the goal after /plan.', decision: 'Say what was decided after /decision.' };
+      if (needsText[word] && !arg) setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: needsText[word] }]);
+      else if (word === 'note') saveToDocs(text, { title: titleOf(arg), body: arg, kind: 'note', tags: ['note'], status: 'active' });
+      else if (word === 'plan') saveToDocs(text, { title: `Plan: ${titleOf(arg)}`, body: `## Goal\n${arg}\n\n## Steps\n- First step\n\n## Risks\n- None named yet`, kind: 'plan', tags: ['plan'], status: 'draft' });
+      else if (word === 'decision') saveToDocs(text, { title: `Decision: ${titleOf(arg)}`, body: `## Decision\n${arg}\n\n## Why\n- Not written yet\n\n## Context\nPage: ${page ?? 'CHIP'}`, kind: 'decision', tags: ['decision'], status: 'done' });
+      else if (word === 'handoff') {
+        if (!turns.length) setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: 'Nothing in this thread to hand off yet.' }]);
+        else saveToDocs(text, handoffOf(turns, page, arg));
+      } else if (word === 'usage') showUsage(text);
       else if (word === 'tools') listTools(text);
       else if (word === 'tool') {
         // /tool <server> <tool> {json args}
@@ -588,7 +683,10 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
     }
   }
 
-  return { turns, busy, send, save, history, compare, includeAndRetry, confirmTool: (t) => settle(t, true), cancelTool: (t) => settle(t, false) };
+  // an answer built on Cowork sources stays local only as a doc too
+  const saveAsDoc = (t) =>
+    saveToDocs(`Save as doc: ${t.q}`, { title: titleCase(t.q), body: proposalOf(t), kind: 'answer', tags: ['answer'], status: 'active', localOnly: (t.sources ?? []).some((s) => s.path?.startsWith('docs/reference/cowork/')) });
+  return { turns, busy, send, save, saveAsDoc, history, compare, includeAndRetry, confirmTool: (t) => settle(t, true), cancelTool: (t) => settle(t, false) };
 }
 
 /* ---------- the one input ---------- */
@@ -611,7 +709,7 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
         {
           id: 'cmd',
           label: 'Run',
-          options: COMMANDS.filter((c) => c.cmd.startsWith(word)).map((c) => ({ id: `cmd:${c.cmd}`, label: c.cmd === 'ask' ? '/ask <question>' : c.cmd === 'tool' ? '/tool <server> <tool>' : `/${c.cmd}`, meta: c.note })),
+          options: COMMANDS.filter((c) => c.cmd.startsWith(word)).map((c) => ({ id: `cmd:${c.cmd}`, label: c.arg ? `/${c.cmd} ${c.arg}` : `/${c.cmd}`, meta: c.note })),
         },
       ];
     }
@@ -644,12 +742,10 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
       setQ('');
     } else if (o.id.startsWith('d:')) {
       const href = o.id.split(':').slice(2).join(':');
-      window.open(href.startsWith('http') ? href : `/source?path=${encodeURIComponent(href)}`, '_blank', 'noopener');
+      window.open(href.startsWith('http') ? href : sourceHref({ path: href }), '_blank', 'noopener');
       setQ('');
-    } else if (o.id === 'cmd:ask') {
-      setQ('/ask ');
-    } else if (o.id === 'cmd:tool') {
-      setQ('/tool ');
+    } else if (COMMANDS.some((c) => c.arg && o.id === `cmd:${c.cmd}`)) {
+      setQ(`/${o.id.slice(4)} `);
     } else if (o.id.startsWith('cmd:')) {
       if (obi.send(`/${o.id.slice(4)}`)) setQ('');
     } else if (o.id === 'ask') {
@@ -778,6 +874,7 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
               onOpenAtlas={onOpenAtlas}
               onSandbox={onSandbox}
               onSave={obi.save}
+              onSaveDoc={obi.saveAsDoc}
               onCompare={obi.compare}
               onIncludePrivate={obi.includeAndRetry}
               notify={notify}

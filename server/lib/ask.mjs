@@ -77,10 +77,11 @@ function fitBudget(chunks) {
 // Notion pages are Elleta's own workspace: they stay off the cloud unless she
 // says yes for this session. Nothing in the index is marked public yet, so
 // every Notion source counts as private (privacy first).
-const isPrivate = (c) => (c.path || '').startsWith('data/notion/') || /notion\.(so|com)/.test(c.url || '');
+// OBI Docs (obi-notes/) are private the same way.
+const isPrivate = (c) => (c.path || '').startsWith('data/notion/') || (c.path || '').startsWith('obi-notes/') || /notion\.(so|com)/.test(c.url || '');
 // Cowork exports (the context pack among them) never go to the cloud, not
 // even with the yes for Notion: they are local answers' background only.
-const isLocalOnly = (c) => (c.path || '').startsWith('docs/reference/cowork/');
+const isLocalOnly = (c) => (c.path || '').startsWith('docs/reference/cowork/') || c.localOnly === true;
 
 // page: what the user is looking at ("Atlas · Button"). The question is
 // searched on its own; the page joins (as a second search, merged, and as a

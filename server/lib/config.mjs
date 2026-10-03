@@ -51,3 +51,16 @@ export const BELLA_JSON = join(DATA_DIR, 'bella.json');
 export const COWORK_DIR = join(ROOT, 'docs', 'reference', 'cowork');
 export const CONTEXT_PACK = join(COWORK_DIR, 'context-pack.md');
 export const CONTEXT_PACK_MAX_TOKENS = 1500;
+
+// OBI Docs: private markdown notes, outside the public repo. The folder comes
+// from chip.config.local.json ("notesDir"); never committed, never sent to the
+// cloud without the per-session yes.
+function notesDir() {
+  try {
+    const d = JSON.parse(readFileSync(join(ROOT, 'chip.config.local.json'), 'utf8')).notesDir;
+    if (typeof d === 'string' && d) return d.replace(/^~\//, `${homedir()}/`);
+  } catch {}
+  return join(homedir(), 'DEV', 'obi-notes');
+}
+export const NOTES_DIR = notesDir();
+export const INBOX_DIR = join(ROOT, 'docs', 'reference', 'inbox');

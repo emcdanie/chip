@@ -8,12 +8,14 @@ import Select from '@bella/components/Select/Select';
 import Health from './Health.jsx';
 import Atlas, { Library } from './Atlas.jsx';
 import Connectors from './Connectors.jsx';
+import Docs from './Docs.jsx';
 import { useObi, OneInput, ObiPanel } from './Obi.jsx';
 import { useTheme, THEMES } from './theme.js';
 
 const WORKSPACES = [
   { id: 'health', label: 'Health' },
   { id: 'atlas', label: 'Atlas' },
+  { id: 'docs', label: 'Docs' },
   { id: 'connectors', label: 'Connectors' },
 ];
 
@@ -25,7 +27,7 @@ const HEALTH_SECTIONS = [
   { href: '#components', label: 'Components' },
 ];
 
-const WS_KEYS = { Digit1: 'health', Digit2: 'atlas', Digit3: 'connectors' };
+const WS_KEYS = { Digit1: 'health', Digit2: 'atlas', Digit3: 'docs', Digit4: 'connectors' };
 const OBI_KEY = 'chip-obi-open';
 const MODEL_KEY = 'chip-model';
 const DOCK_KEY = 'chip-dock-height';
@@ -34,7 +36,7 @@ const PAGE_MIN = 320; // px the page keeps above the dock
 
 // routes: #/health, #/atlas/<component id>
 function routeOf(hash) {
-  const m = hash.match(/^#\/(health|atlas|connectors)(?:\/([\w-]+))?$/);
+  const m = hash.match(/^#\/(health|atlas|docs|connectors)(?:\/([\w-]+))?$/);
   return m ? { ws: m[1], id: m[2] } : null;
 }
 
@@ -77,7 +79,9 @@ export default function App() {
   const [theme, setTheme] = useTheme();
   const start = routeOf(window.location.hash) ?? { ws: 'health' };
   const [ws, setWs] = useState(start.ws);
-  const [atlasId, setAtlasId] = useState(start.id ?? 'button');
+  const [atlasId, setAtlasId] = useState(start.ws === 'atlas' ? start.id ?? 'button' : 'button');
+  const [docId, setDocId] = useState(start.ws === 'docs' ? start.id ?? null : null);
+  const [docsVersion, setDocsVersion] = useState(0); // bumped when OBI saves a doc
   const [collapsed, setCollapsed] = useState(false);
   const [bella, setBella] = useState(null);
   const [health, setHealth] = useState(null);
@@ -116,15 +120,16 @@ export default function App() {
 
   // the address follows the view; in-page anchors (#overview) leave it alone
   useEffect(() => {
-    const want = ws === 'atlas' ? `#/atlas/${atlasId}` : `#/${ws}`;
+    const want = ws === 'atlas' ? `#/atlas/${atlasId}` : ws === 'docs' && docId ? `#/docs/${docId}` : `#/${ws}`;
     if (window.location.hash !== want) window.history.replaceState(null, '', want);
-  }, [ws, atlasId]);
+  }, [ws, atlasId, docId]);
   useEffect(() => {
     const on = () => {
       const r = routeOf(window.location.hash);
       if (!r) return;
       setWs(r.ws);
-      if (r.id) setAtlasId(r.id);
+      if (r.ws === 'docs') setDocId(r.id ?? null);
+      else if (r.id) setAtlasId(r.id);
     };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
@@ -143,8 +148,8 @@ export default function App() {
 
   const failures = failuresOf(bella);
   const atlas = bella?.components.find((c) => c.id === atlasId) ?? null;
-  const page = ws === 'atlas' ? `Atlas · ${atlas?.name ?? '…'}` : ws === 'connectors' ? 'Connectors' : 'Health';
-  const obi = useObi({ bella, page, notify: setToast, onSaved: loadNotes, models, budget, picked, onAnswered: loadModels });
+  const page = ws === 'atlas' ? `Atlas · ${atlas?.name ?? '…'}` : ws === 'connectors' ? 'Connectors' : ws === 'docs' ? 'Docs' : 'Health';
+  const obi = useObi({ bella, page, notify: setToast, onSaved: loadNotes, models, budget, picked, onAnswered: loadModels, onDocSaved: () => setDocsVersion((v) => v + 1) });
   // asking opens OBI, so the answer has somewhere to land
   const send = (text) => {
     const ok = obi.send(text);
@@ -244,7 +249,11 @@ export default function App() {
     const r = routeOf(href);
     if (r) {
       e.preventDefault();
-      if (r.id) openAtlas(r.id);
+      if (r.ws === 'docs') {
+        setWs('docs');
+        setDocId(r.id ?? null);
+        setNavOpen(false);
+      } else if (r.id) openAtlas(r.id);
       else {
         setWs(r.ws);
         setNavOpen(false);
@@ -315,6 +324,7 @@ export default function App() {
             <div {...tabPanelProps('ws', 'health', ws === 'health')}>
               <Health bella={bella} health={health} failures={failures} onOpenAtlas={openAtlas} onAsk={send} onRun={send} />
             </div>
+            <div {...tabPanelProps('ws', 'docs', ws === 'docs')}>{ws === 'docs' ? <Docs docId={docId} version={docsVersion} narrow={narrow} /> : null}</div>
             <div {...tabPanelProps('ws', 'connectors', ws === 'connectors')}>{ws === 'connectors' ? <Connectors /> : null}</div>
             <div {...tabPanelProps('ws', 'atlas', ws === 'atlas')}>
               {ws === 'atlas' ? (

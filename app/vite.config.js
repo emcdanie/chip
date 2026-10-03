@@ -27,7 +27,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     fs: { allow: [resolve(here, '..'), BELLA] },
-    proxy: { '/ask': SERVER, '/cmd': SERVER, '/health': SERVER, '/data': SERVER, '/notes': SERVER, '/source': SERVER, '/docs': SERVER, '/models': SERVER, '/host': SERVER, '/usage': SERVER },
+    proxy: { '/ask': SERVER, '/cmd': SERVER, '/health': SERVER, '/data': SERVER, '/notes': SERVER, '/source': SERVER, '/docs': SERVER, '/models': SERVER, '/host': SERVER, '/usage': SERVER, '/obi-docs': SERVER },
   },
   build: { outDir: resolve(here, 'dist'), emptyOutDir: true },
 });

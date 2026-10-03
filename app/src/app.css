@@ -98,6 +98,7 @@ body {
 
 /* Atlas carries its own library card, so the shell has no sidebar there */
 .shell[data-ws='atlas'] .body,
+.shell[data-ws='docs'] .body,
 .shell[data-ws='connectors'] .body {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -1606,4 +1607,79 @@ body {
 
 .usage-actions {
   margin-block-start: var(--spacing-5);
+}
+
+/* ---------- Docs ---------- */
+.docs-grid {
+  display: grid;
+  gap: var(--spacing-5);
+  margin-block-start: var(--spacing-6);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .docs-grid {
+    grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+  }
+}
+
+.docs-list,
+.doc-view {
+  display: grid;
+  gap: var(--spacing-4);
+  align-content: start;
+  min-inline-size: 0;
+}
+
+.docs-tags,
+.doc-meta,
+.doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.doc-meta {
+  margin: var(--spacing-2) 0 0;
+}
+
+.doc-edit,
+.doc-edit-fields {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.doc-edit-split {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 80rem) {
+  .doc-edit-split {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.doc-textarea textarea {
+  min-block-size: calc(var(--spacing-20) * 4);
+  font-family: var(--typography-font-family-mono);
+}
+
+.doc-preview {
+  border: var(--border-width-thin) solid var(--color-semantic-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-4);
+  min-inline-size: 0;
+}
+
+.rich-h {
+  margin: var(--spacing-4) 0 var(--spacing-1);
+  font-size: var(--typography-font-size-lg);
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.rich-h:first-child {
+  margin-block-start: 0;
 }

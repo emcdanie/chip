@@ -1,5 +1,5 @@
 {
-  "$comment": "Copy to chip.config.local.json (gitignored). claudeModel: the Claude Code model OBI's Claude route uses. servers: MCP servers and CLI tools CHIP can call; secrets come from server/.env by name, written as ${NAME}, never pasted here. See docs/host.md.",
+  "$comment": "Copy to chip.config.local.json (gitignored). claudeModel: the Claude Code model OBI's Claude route uses. notesDir: the private OBI Docs folder, outside this repo. servers: MCP servers and CLI tools CHIP can call; secrets come from server/.env by name, written as ${NAME}, never pasted here. See docs/host.md.",
   "claudeModel": "sonnet",
   "servers": [
     {
@@ -92,5 +92,6 @@
       ],
       "note": "The CLI adapter's test tool: git status and git log only."
     }
-  ]
+  ],
+  "notesDir": "~/DEV/obi-notes"
 }
