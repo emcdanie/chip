@@ -108,10 +108,13 @@ async function retrieve(query, k, page, withPage) {
 }
 async function prepare(message, sessionId, page, { cloud = false, includePrivate = false } = {}) {
   const id = sessionId || randomUUID();
-  // a cloud model never sees turns a local model answered: those may quote
-  // the context pack or private sources. Pairs are stored with their place.
-  const history = (sessions.get(id) || []).filter((m) => !cloud || m.place !== 'local').map(({ role, content }) => ({ role, content }));
+  // a cloud model sees a locally answered turn only when that answer used no
+  // private source (Notion, Cowork, docs); otherwise the pair stays local and
+  // the answer says how many were left out. Pairs carry place and private.
   const stored = sessions.get(id) || [];
+  const keep = (m) => !cloud || m.place !== 'local' || !m.private;
+  const history = stored.filter(keep).map(({ role, content }) => ({ role, content }));
+  const keptLocal = cloud ? stored.filter((m) => m.role === 'assistant' && !keep(m)).length : 0;
   const withPage = pointsAt(message, page);
   let found = await retrieve(message, TOP_K * (cloud ? 3 : 1), page, withPage);
   let heldBack = 0;
@@ -123,7 +126,7 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   found = found.slice(0, TOP_K);
   const top = found[0]?.score ?? 0;
   if (top < WEAK_SCORE) {
-    return { id, weak: true, top, heldBack, closest: [...numbered(found.slice(0, 3)).values()] };
+    return { id, weak: true, top, heldBack, keptLocal, closest: [...numbered(found.slice(0, 3)).values()] };
   }
   const chunks = fitBudget(found);
   const nums = numbered(chunks);
@@ -131,10 +134,12 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const where = withPage ? `The user is looking at: ${page}.\n\n` : '';
   const turns = [...history, { role: 'user', content: `Sources:\n\n${context}\n\n===\n\n${where}Question: ${message}` }];
   const messages = [{ role: 'system', content: withPack(SYSTEM) }, ...turns]; // non-streamed path is local only
-  // history keeps the bare question, not the sources, and where it was answered
+  // history keeps the bare question, not the sources, where it was answered
+  // and whether a private source went into it
+  const usedPrivate = chunks.some((c) => isPrivate(c) || isLocalOnly(c));
   const remember = (reply, place = 'local') =>
-    sessions.set(id, [...stored, { role: 'user', content: message, place }, { role: 'assistant', content: reply, place }].slice(-HISTORY_TURNS));
-  return { id, top, heldBack, messages, turns, sources: [...nums.values()], remember };
+    sessions.set(id, [...stored, { role: 'user', content: message, place, private: usedPrivate }, { role: 'assistant', content: reply, place, private: usedPrivate }].slice(-HISTORY_TURNS));
+  return { id, top, heldBack, keptLocal, messages, turns, sources: [...nums.values()], remember };
 }
 
 export async function ask(message, sessionId, page) {
@@ -156,6 +161,7 @@ export async function* askStream(message, sessionId, page, opts = {}) {
   let { provider, model } = resolve(opts.provider);
   const prep = await prepare(message, sessionId, page, { cloud: provider.place === 'cloud', includePrivate: opts.includePrivate });
   if (prep.heldBack) yield { type: 'private', heldBack: prep.heldBack };
+  if (prep.keptLocal) yield { type: 'kept', count: prep.keptLocal };
   if (prep.weak) {
     yield { type: 'weak', closest: prep.closest, top: prep.top, sessionId: prep.id };
     return;

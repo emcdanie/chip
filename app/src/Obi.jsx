@@ -180,6 +180,7 @@ function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onS
         {t.compareTo ? <p className="label">The same question, asked of Claude. Compare it with the answer above.</p> : null}
         {t.path === 'clarify' ? <p>{t.text}</p> : null}
         {t.path === 'error' ? <p role="alert">{t.text}</p> : null}
+        {t.keptLocal ? <p className="label">{t.keptLocal} earlier turn{t.keptLocal === 1 ? '' : 's'} kept local: they used private sources.</p> : null}
         {t.fallback ? <p className="label">Claude could not answer ({t.fallback}). The local model answered instead.</p> : null}
         {t.heldBack ? (
           <p className="turn-note">
@@ -435,6 +436,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
         if (ev.type === 'weak') patch(id, () => ({ path: 'weak', closest: ev.closest, top: ev.top }));
         if (ev.type === 'provider') patch(id, () => ({ model: ev.model, place: ev.place, provider: ev.id === 'claude' ? 'claude' : choice.provider.startsWith('local:') ? choice.provider : `local:${ev.model}` }));
         if (ev.type === 'private') patch(id, () => ({ heldBack: ev.heldBack }));
+        if (ev.type === 'kept') patch(id, () => ({ keptLocal: ev.count }));
         // the local model read every source after a fallback, so nothing is held back any more
         if (ev.type === 'fallback') patch(id, () => ({ fallback: ev.reason, heldBack: 0 }));
         if (ev.type === 'sources') patch(id, () => ({ sources: ev.sources, top: ev.top }));
