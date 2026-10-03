@@ -211,9 +211,7 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
 
       <section id="components" aria-labelledby="components-h" className="block">
         <h2 id="components-h" className="block-title">Components</h2>
-        <p className="block-lead">
-          {failures.length ? `${failures.length} failing: ${failures.join(', ')}.` : 'Every component passes.'}
-        </p>
+        {failures.length ? null : <p className="block-lead">Every component passes.</p>}
         <DataTable
           columns={COLUMNS}
           rows={bella.components}
