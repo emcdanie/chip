@@ -267,14 +267,15 @@ export default function App() {
       <header className="topbar" ref={topbar}>
         {narrow ? (
           <>
-            <Button variant="tertiary" onClick={() => setNavOpen(true)} ariaLabel="Open the menu">
+            {/* sentence case: Button keeps its caps keycap label, these are quiet actions */}
+            <ActionChip onClick={() => setNavOpen(true)} ariaLabel="Open the menu">
               Menu
-            </Button>
+            </ActionChip>
             <p className="brand">CHIP</p>
             <p className="here">{page}</p>
-            <Button variant="secondary" onClick={() => setObiOpen((o) => !o)} ariaLabel={obiOpen ? 'Close OBI' : 'Open OBI'}>
+            <ActionChip onClick={() => setObiOpen((o) => !o)} ariaLabel={obiOpen ? 'Close OBI' : 'Open OBI'}>
               OBI
-            </Button>
+            </ActionChip>
           </>
         ) : (
           <>
