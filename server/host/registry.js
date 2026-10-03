@@ -114,12 +114,12 @@ async function run(cfg, toolName, args, purpose) {
   try {
     const text = redact(await e.adapter.call(toolName, args));
     const ms = Date.now() - t0;
-    logUsage({ type: 'tool', server: cfg.name, tool: toolName, purpose, ms, ok: true });
+    logUsage({ type: 'tool', route: 'tool', server: cfg.name, tool: toolName, purpose, ms, ok: true });
     return { ok: true, text, ms };
   } catch (err) {
     const ms = Date.now() - t0;
     const error = redact(err.message);
-    logUsage({ type: 'tool', server: cfg.name, tool: toolName, purpose, ms, ok: false, error: error.slice(0, 200) });
+    logUsage({ type: 'tool', route: 'tool', server: cfg.name, tool: toolName, purpose, ms, ok: false, error: error.slice(0, 200) });
     return { ok: false, error, ms };
   }
 }
@@ -132,13 +132,13 @@ export async function call({ server, tool, args = {}, purpose = null, session = 
   const t = e.tools?.find((x) => x.name === tool);
   if (!t) {
     const why = `${server} has no tool called "${tool}"${e.error ? ` (${e.error})` : ''}`;
-    logUsage({ type: 'tool', server, tool, purpose, ok: false, refused: why });
+    logUsage({ type: 'tool', route: 'tool', server, tool, purpose, ok: false, refused: why });
     throw new Error(why);
   }
   const reader = BEFORE[server]?.(tool);
   const g = await guard({ serverCfg: cfg, tool: t, args, purpose, readBefore: reader ? async () => redact(await e.adapter.call(...reader)) : null, session });
   if (g.refused) {
-    logUsage({ type: 'tool', server, tool, purpose, ok: false, refused: g.refused });
+    logUsage({ type: 'tool', route: 'tool', server, tool, purpose, ok: false, refused: g.refused });
     return { refused: g.refused };
   }
   if (g.pending) return g;
@@ -157,6 +157,6 @@ export async function confirm(id, session) {
 
 export function cancel(id, session) {
   const p = take(id, session);
-  if (p) logUsage({ type: 'tool', server: p.server, tool: p.tool, purpose: p.purpose, ok: false, cancelled: true });
+  if (p) logUsage({ type: 'tool', route: 'tool', server: p.server, tool: p.tool, purpose: p.purpose, ok: false, cancelled: true });
   return { cancelled: Boolean(p) };
 }

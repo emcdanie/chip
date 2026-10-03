@@ -25,7 +25,7 @@ export const local = {
     }));
   },
 
-  ask({ system, messages, model }) {
-    return chatStream([{ role: 'system', content: system }, ...messages], model || CHIP_MODEL);
+  ask({ system, messages, model, stats }) {
+    return chatStream([{ role: 'system', content: system }, ...messages], model || CHIP_MODEL, stats);
   },
 };

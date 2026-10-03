@@ -11,11 +11,12 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import DataTable from '@bella/components/DataTable/DataTable';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Combobox from '@bella/components/Combobox/Combobox';
-import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor, summarizeTool } from './answers.js';
+import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor, summarizeTool, usageLines } from './answers.js';
 import Select from '@bella/components/Select/Select';
 import { baseOf } from './Sandbox.jsx';
 
 const COMMANDS = [
+  { cmd: 'usage', note: 'this week: answers by route, tokens kept local' },
   { cmd: 'tools', note: 'connected tools and their status' },
   { cmd: 'tool', note: '/tool <server> <tool> {json args}' },
   { cmd: 'status', note: 'model, index size, last sync' },
@@ -278,6 +279,13 @@ function ToolTurn({ t, onConfirm, onCancel }) {
           </ul>
         ) : null}
         {t.message ? <p>{t.message}</p> : null}
+        {t.lines ? (
+          <ul className="tool-list">
+            {t.lines.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+        ) : null}
         {t.preview ? (
           <div className="tool-preview">
             <p>
@@ -303,7 +311,7 @@ function ToolTurn({ t, onConfirm, onCancel }) {
         ) : null}
         {t.text != null || t.error ? (
           // the answer in words; the raw output is under Details
-          t.error ? <p role="alert">{summarizeTool(t)}</p> : <p>{summarizeTool(t)}</p>
+          t.error ? <p role="alert">{t.server ? summarizeTool(t) : t.error}</p> : <p>{summarizeTool(t)}</p>
         ) : null}
         {t.tool === 'get_metadata' && !t.args?.nodeId && /\bpages?\b/i.test(t.q) && t.text?.trim().startsWith('<') ? (
           <p className="label">Something is selected in Figma, so it described the selection. Click empty canvas and ask again for the page list.</p>
@@ -385,7 +393,11 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
     if (c) return setTurns((ts) => [...ts, { ...base, path: 'clarify', text: c }]);
     // BELLA data questions never call a model, whatever the picker says
     const data = answerFromData(q, bella, page);
-    if (data) return setTurns((ts) => [...ts, { ...base, path: 'data', data, components: data.components, route: auto ? 'Auto → BELLA data · no model' : null }]);
+    if (data) {
+      // the ledger counts it: answered here, from data, no model
+      fetch('/usage', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'data', page }) }).catch(() => {});
+      return setTurns((ts) => [...ts, { ...base, path: 'data', data, components: data.components, route: auto ? 'Auto → BELLA data · no model' : null }]);
+    }
 
     // a question for Figma goes to a tool, not a model (Auto only)
     const toolRoute = auto && !opts.provider ? toolRouteFor(q) : null;
@@ -467,6 +479,17 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
     patch(t.id, () => (r.ok ? { settled: 'Applied.', text: r.text, ms: r.ms } : { settled: 'Not applied.', error: r.error ?? 'The change did not run.' }));
   }
 
+  async function showUsage(q) {
+    const id = Date.now() + Math.random();
+    setTurns((ts) => [...ts, { id, kind: 'tool', q }]);
+    try {
+      const u = await (await fetch('/usage')).json();
+      patch(id, () => ({ lines: usageLines(u) }));
+    } catch {
+      patch(id, () => ({ error: 'The CHIP server is not answering on 127.0.0.1:3100.' }));
+    }
+  }
+
   async function listTools(q) {
     const id = Date.now() + Math.random();
     setTurns((ts) => [...ts, { id, kind: 'tool', q }]);
@@ -527,7 +550,8 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
       // /ask --claude … or /ask --local … overrides the picker for one question
       const flag = arg.match(/^--(claude|local)\s+(.+)$/);
       const localId = (models.find((m) => m.place === 'local' && m.isDefault) ?? models.find((m) => m.place === 'local'))?.id;
-      if (word === 'tools') listTools(text);
+      if (word === 'usage') showUsage(text);
+      else if (word === 'tools') listTools(text);
       else if (word === 'tool') {
         // /tool <server> <tool> {json args}
         const m = arg.match(/^(\S+)\s+(\S+)\s*(\{[\s\S]*\})?$/);

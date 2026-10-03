@@ -1,5 +1,9 @@
-// data/usage.jsonl (local, gitignored): one line per OBI answer and per manual
-// override, so the router's rules can be tuned and the daily Claude budget held.
+// data/usage.jsonl (local, gitignored): the ledger. One line per answer,
+// command, tool call and manual override, so the router's rules can be tuned,
+// the daily Claude budget held, and the Usage card can say what stayed local.
+// An answer line: { at, type: 'ask' | 'data', route: 'data' | 'local' | 'cloud',
+// provider, model, prompt, output (tokens), ms, why }. A tool or command line:
+// { at, type: 'tool', route: 'tool', server, tool, purpose, ms, ok }.
 import { appendFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATA_DIR } from './config.mjs';
@@ -47,4 +51,60 @@ export function lastToolUses() {
   const out = {};
   for (const e of entries()) if (e.type === 'tool' && !e.cancelled && !e.refused) out[e.server] = e.at;
   return out;
+}
+
+// Lines written before the ledger had "route" as the router's reason; their
+// place comes from the provider.
+const placeOf = (e) =>
+  ['data', 'local', 'cloud', 'tool'].includes(e.route) ? e.route : e.type === 'data' ? 'data' : e.type === 'tool' ? 'tool' : e.provider === 'claude' ? 'cloud' : 'local';
+
+function pricing() {
+  try {
+    return JSON.parse(readFileSync(join(DATA_DIR, 'pricing.json'), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+/** The last 7 days: answers by route, tokens kept local, value at API rates,
+ *  share that never left the laptop, a daily series and tool calls. */
+export function usageWeek(now = Date.now()) {
+  const DAY = 24 * 3600 * 1000;
+  const since = now - 7 * DAY;
+  const routes = { data: 0, local: 0, cloud: 0 };
+  const tools = {};
+  let promptLocal = 0, outputLocal = 0, cloudTokens = 0, uncounted = 0;
+  const days = Array.from({ length: 7 }, () => 0); // answers kept local, oldest first
+  for (const e of entries()) {
+    const t = new Date(e.at).getTime();
+    if (!(t >= since)) continue;
+    const place = placeOf(e);
+    if (e.type === 'tool') {
+      if (!e.cancelled && !e.refused) tools[e.server ?? e.tool] = (tools[e.server ?? e.tool] ?? 0) + 1;
+      continue;
+    }
+    if (e.type !== 'ask' && e.type !== 'data') continue;
+    routes[place] = (routes[place] ?? 0) + 1;
+    if (place === 'local' && e.prompt == null && !e.weak) uncounted += 1; // logged before tokens were counted
+    if (place === 'local') {
+      promptLocal += e.prompt ?? 0;
+      outputLocal += e.output ?? 0;
+    }
+    if (place === 'cloud') cloudTokens += (e.prompt ?? 0) + (e.output ?? 0);
+    if (place !== 'cloud') days[Math.min(6, Math.floor((t - since) / DAY))] += 1;
+  }
+  const answers = routes.data + routes.local + routes.cloud;
+  const p = pricing();
+  const rated = p && typeof p.inputPerMillion === 'number' && typeof p.outputPerMillion === 'number';
+  return {
+    routes,
+    answers,
+    keptLocalShare: answers ? (routes.data + routes.local) / answers : null,
+    tokensLocal: promptLocal + outputLocal,
+    uncounted,
+    cloudTokens,
+    value: rated ? { amount: (promptLocal * p.inputPerMillion + outputLocal * p.outputPerMillion) / 1e6, currency: p.currency ?? 'USD', model: p.model ?? 'Claude' } : null,
+    days,
+    tools,
+  };
 }

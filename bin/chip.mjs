@@ -135,6 +135,12 @@ const commands = {
     const { claudeToday, topOverrides } = await import('../server/lib/usage.mjs');
     const { CHIP_CLAUDE_DAILY } = await import('../server/lib/config.mjs');
     console.log(`claude   Auto sent ${claudeToday()} of ${CHIP_CLAUDE_DAILY} today (its daily budget; hand picks are not counted)`);
+    // the Cowork context pack opens every local prompt: keep it short
+    const { contextPack } = await import('../server/lib/ask.mjs');
+    const { CONTEXT_PACK_MAX_TOKENS } = await import('../server/lib/config.mjs');
+    const pack = contextPack();
+    const packTokens = Math.ceil(pack.length / 4); // about 4 characters a token
+    console.log(`context  ${pack ? `context pack ≈ ${packTokens} tokens${packTokens > CONTEXT_PACK_MAX_TOKENS ? `  WARNING: over ${CONTEXT_PACK_MAX_TOKENS}, every local answer pays for it` : ''}` : 'no context pack (docs/reference/cowork/context-pack.md)'}`);
     const top = topOverrides(3);
     console.log(`overrides this week${top.length ? '' : ': none'}`);
     for (const o of top) console.log(`  ${o.count}× Auto chose ${o.from}, you chose ${o.to}`);

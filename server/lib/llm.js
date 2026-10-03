@@ -30,7 +30,8 @@ export async function chat(messages) {
 
 // Yields text pieces as the model generates them (Ollama streams NDJSON).
 // model: any installed Ollama model (the picker's choice); CHIP_MODEL by default
-export async function* chatStream(messages, model) {
+// stats: filled from Ollama's last line, { prompt, output } tokens
+export async function* chatStream(messages, model, stats = {}) {
   const res = await request('/api/chat', chatBody(messages, true, model));
   const decoder = new TextDecoder();
   let buf = '';
@@ -44,6 +45,7 @@ export async function* chatStream(messages, model) {
       const msg = JSON.parse(line);
       if (msg.error) throw new Error('Ollama: ' + msg.error);
       if (msg.message?.content) yield msg.message.content;
+      if (msg.done) Object.assign(stats, { prompt: msg.prompt_eval_count ?? 0, output: msg.eval_count ?? 0 });
     }
   }
 }

@@ -33,7 +33,9 @@ export const claude = {
 
   /** Streams Claude's answer. Throws before the first piece if Claude cannot answer
    *  (not installed, not logged in), so the caller can fall back to local. */
-  async *ask({ system, messages }) {
+  // stats: filled from the result event, { prompt, output } tokens (cached
+  // prompt tokens count as prompt)
+  async *ask({ system, messages, stats = {} }) {
     if (!check().available) throw new Error(check().note);
     // earlier turns go in as plain text: the CLI takes one prompt
     const prompt = messages.map((m) => (m.role === 'user' ? m.content : `(Your earlier answer)\n${m.content}`)).join('\n\n---\n\n');
@@ -73,6 +75,10 @@ export const claude = {
             yield d.text;
           }
           if (e.type === 'result' && e.is_error) failure = e.result || 'Claude returned an error';
+          if (e.type === 'result' && e.usage) {
+            const u = e.usage;
+            Object.assign(stats, { prompt: (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0), output: u.output_tokens ?? 0 });
+          }
         }
       }
       const code = await done;

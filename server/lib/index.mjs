@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import { join, dirname, basename, relative } from 'node:path';
 import { createHash } from 'node:crypto';
-import { ROOT, BELLA_DIR, NOTION_DIR, INDEX_FILE, BELLA_JSON, CHIP_EMBED_MODEL } from './config.mjs';
+import { ROOT, BELLA_DIR, NOTION_DIR, INDEX_FILE, BELLA_JSON, CHIP_EMBED_MODEL, COWORK_DIR } from './config.mjs';
 import { embed } from './llm.js';
 
 const CHUNK_WORDS = 150;
@@ -61,6 +61,10 @@ function collectSources() {
   for (const f of mdFiles(NOTION_DIR)) {
     const { meta, body } = frontMatter(readFileSync(f, 'utf8'));
     out.push({ title: meta.title || basename(f, '.md'), url: meta.url || null, path: relative(ROOT, f), text: body });
+  }
+  for (const f of mdFiles(COWORK_DIR)) {
+    const md = readFileSync(f, 'utf8');
+    out.push({ title: 'Cowork · ' + (firstHeading(md) || basename(f, '.md')), url: null, path: relative(ROOT, f), text: md });
   }
   for (const f of mdFiles(join(ROOT, 'docs'))) {
     const md = readFileSync(f, 'utf8');

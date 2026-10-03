@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { usageFigures } from './answers.js';
 import Card from '@bella/components/Card/Card';
 import Heading from '@bella/components/Heading/Heading';
 import Eyebrow from '@bella/components/Eyebrow/Eyebrow';
@@ -56,6 +57,34 @@ function Tile({ label, value, t, action }) {
       <Stat label={label} value={value} delta={t.delta} trend={t.trend} series={t.series} seriesLabel={t.seriesLabel?.(label)} />
       {action}
     </div>
+  );
+}
+
+// What stayed on this machine this week, from data/usage.jsonl (GET /usage).
+function Usage({ onRun }) {
+  const [u, setU] = useState(null);
+  useEffect(() => {
+    fetch('/usage')
+      .then((r) => r.json())
+      .then(setU)
+      .catch(() => setU(false));
+  }, []);
+  if (u === false) return <p className="label">The CHIP server is not answering, so there is no usage to show.</p>;
+  if (!u) return <p className="label">Reading the usage ledger…</p>;
+  const f = usageFigures(u);
+  const days = `answers kept local per day, last 7 days: ${u.days.join(', ')}`;
+  return (
+    <Card>
+      <div className="hero-stats">
+        <Stat label="Answers this week" value={f.answers.value} delta={f.answers.delta} series={u.days} seriesLabel={days} />
+        <Stat label="Tokens kept local" value={f.tokens.value} delta={f.tokens.delta} />
+        <Stat label="Value at API rates" value={f.value.value} delta={f.value.delta} />
+        <Stat label="Stayed on this laptop" value={f.local.value} delta={f.local.delta} />
+      </div>
+      <div className="usage-actions">
+        <ActionChip onClick={() => onRun('/usage')}>Ask OBI for /usage</ActionChip>
+      </div>
+    </Card>
   );
 }
 
@@ -154,6 +183,12 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
             </details>
           </div>
         </Card>
+      </section>
+
+      <section id="usage" aria-labelledby="usage-h" className="block">
+        <h2 id="usage-h" className="block-title">Usage</h2>
+        <p className="block-lead">What OBI answered this week and where: from BELLA data, a local model, or the cloud. Tokens are counted by Ollama and Claude.</p>
+        <Usage onRun={onRun} />
       </section>
 
       {failures.length ? (

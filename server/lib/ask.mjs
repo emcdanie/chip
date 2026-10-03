@@ -6,7 +6,20 @@ import { randomUUID } from 'node:crypto';
 import { search } from './index.mjs';
 import { chat } from './llm.js';
 import { resolve, providers } from '../providers/index.mjs';
-import { CHIP_CONTEXT_WORDS } from './config.mjs';
+import { readFileSync, existsSync } from 'node:fs';
+import { CHIP_CONTEXT_WORDS, CONTEXT_PACK } from './config.mjs';
+
+// The Cowork context pack opens every local-model prompt (background on
+// BELLA, CHIP and how Elleta works). Read fresh each time: it is small and
+// her reviewer edits it. Local only: never sent to the cloud this way.
+export function contextPack() {
+  if (!existsSync(CONTEXT_PACK)) return '';
+  return readFileSync(CONTEXT_PACK, 'utf8').trim();
+}
+const withPack = (system) => {
+  const pack = contextPack();
+  return pack ? `Background (from Elleta's context pack; not a numbered source, do not cite it):\n${pack}\n\n===\n\n${system}` : system;
+};
 
 const TOP_K = 6;
 // Below this cosine score the best match is weak: no model call, the closest
@@ -64,7 +77,8 @@ function fitBudget(chunks) {
 // Notion pages are Elleta's own workspace: they stay off the cloud unless she
 // says yes for this session. Nothing in the index is marked public yet, so
 // every Notion source counts as private (privacy first).
-const isPrivate = (c) => (c.path || '').startsWith('data/notion/') || /notion\.(so|com)/.test(c.url || '');
+// Cowork exports count as private too.
+const isPrivate = (c) => (c.path || '').startsWith('data/notion/') || (c.path || '').startsWith('docs/reference/cowork/') || /notion\.(so|com)/.test(c.url || '');
 
 // page: what the user is looking at ("Atlas · Button"). The question is
 // searched on its own; the page joins (as a second search, merged, and as a
@@ -110,7 +124,7 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const context = chunks.map((c) => `[${nums.get(keyOf(c)).n}] ${c.title}\n${c.text}`).join('\n\n---\n\n');
   const where = withPage ? `The user is looking at: ${page}.\n\n` : '';
   const turns = [...history, { role: 'user', content: `Sources:\n\n${context}\n\n===\n\n${where}Question: ${message}` }];
-  const messages = [{ role: 'system', content: SYSTEM }, ...turns];
+  const messages = [{ role: 'system', content: withPack(SYSTEM) }, ...turns]; // non-streamed path is local only
   const remember = (reply) => // history keeps the bare question, not the sources
     sessions.set(id, [...history, { role: 'user', content: message }, { role: 'assistant', content: reply }].slice(-HISTORY_TURNS));
   return { id, top, heldBack, messages, turns, sources: [...nums.values()], remember };
@@ -141,8 +155,9 @@ export async function* askStream(message, sessionId, page, opts = {}) {
   }
   let { id, turns, sources, remember } = prep;
   yield { type: 'sources', sources, sessionId: id, top: prep.top };
+  const stats = {}; // { prompt, output } tokens, filled by the provider
   const run = async function* (p, m) {
-    for await (const text of p.ask({ system: SYSTEM, messages: turns, model: m })) yield text;
+    for await (const text of p.ask({ system: p.place === 'local' ? withPack(SYSTEM) : SYSTEM, messages: turns, model: m, stats })) yield text;
   };
   let reply = '';
   let gen = run(provider, model);
@@ -163,7 +178,8 @@ export async function* askStream(message, sessionId, page, opts = {}) {
     gen = run(provider, model);
     first = await gen.next();
   }
-  yield { type: 'provider', id: provider.id, place: provider.place, model: provider.id === 'claude' ? (await providers.claude.list())[0].label : model || (await providers.local.list()).find((x) => x.isDefault)?.label || 'local' };
+  const modelName = provider.id === 'claude' ? (await providers.claude.list())[0].label : model || (await providers.local.list()).find((x) => x.isDefault)?.label || 'local';
+  yield { type: 'provider', id: provider.id, place: provider.place, model: modelName };
   if (!first.done) {
     reply += first.value;
     yield { type: 'token', text: first.value };
@@ -173,5 +189,5 @@ export async function* askStream(message, sessionId, page, opts = {}) {
     }
   }
   remember(reply.trim());
-  yield { type: 'done', reply: reply.trim(), sessionId: id, sources, provider: provider.id };
+  yield { type: 'done', reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }

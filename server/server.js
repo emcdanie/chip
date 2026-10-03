@@ -11,7 +11,7 @@ import { warm } from './lib/llm.js';
 import { loadIndex } from './lib/index.mjs';
 import { listAll } from './providers/index.mjs';
 import * as host from './host/registry.js';
-import { logUsage, claudeToday } from './lib/usage.mjs';
+import { logUsage, claudeToday, usageWeek } from './lib/usage.mjs';
 import { CHIP_CLAUDE_DAILY } from './lib/config.mjs';
 
 const app = express();
@@ -55,10 +55,12 @@ app.post('/ask', async (req, res) => {
     res.setHeader('content-type', 'application/x-ndjson; charset=utf-8');
     res.setHeader('cache-control', 'no-cache');
     try {
+      const t0 = Date.now();
       for await (const ev of askStream(message.trim(), sessionId, page, { provider: providerId, includePrivate })) {
         res.write(JSON.stringify(ev) + '\n');
-        if (ev.type === 'done') logUsage({ type: 'ask', provider: ev.provider, asked: providerId ?? 'local', route, auto, page });
-        if (ev.type === 'weak') logUsage({ type: 'ask', provider: 'none', asked: providerId ?? 'local', route, auto, page, weak: true });
+        // route: where the answer was made; why: the router's reason
+        if (ev.type === 'done') logUsage({ type: 'ask', route: ev.place === 'cloud' ? 'cloud' : 'local', provider: ev.provider, model: ev.model, prompt: ev.tokens.prompt, output: ev.tokens.output, ms: Date.now() - t0, asked: providerId ?? 'local', why: route, auto, page });
+        if (ev.type === 'weak') logUsage({ type: 'ask', route: 'local', provider: 'none', model: null, prompt: 0, output: 0, ms: Date.now() - t0, asked: providerId ?? 'local', why: route, auto, page, weak: true });
       }
     } catch (err) {
       console.error('[CHIP server]', err.message);
@@ -72,6 +74,18 @@ app.post('/ask', async (req, res) => {
     console.error('[CHIP server]', err.message);
     res.status(502).json({ error: err.message });
   }
+});
+
+// GET /usage: the week's ledger summary (Health's Usage card, OBI's /usage).
+// POST /usage logs an answer made in the page from BELLA data (no model).
+app.get('/usage', (_req, res) => res.json(usageWeek()));
+app.post('/usage', (req, res) => {
+  const origin = req.get('origin');
+  if (!origin || !APP_ORIGINS.has(origin)) return res.status(403).json({ error: 'origin not allowed' });
+  const { kind, ms, page } = req.body ?? {};
+  if (kind !== 'data') return res.status(400).json({ error: 'kind must be data' });
+  logUsage({ type: 'data', route: 'data', provider: 'data', model: null, prompt: 0, output: 0, ms: Number.isFinite(ms) ? Math.round(ms) : null, page: typeof page === 'string' ? page.slice(0, 120) : undefined });
+  res.status(204).end();
 });
 
 // GET /models: what OBI can pick, and today's Claude budget for Auto.
@@ -198,6 +212,7 @@ app.post('/cmd', (req, res) => {
   if (running) return res.status(409).json({ error: `chip ${running} is still running` });
 
   running = cmd;
+  const t0 = Date.now();
   const child = spawn(process.execPath, argv, { cwd: ROOT, shell: false, env: { ...process.env, NO_COLOR: '1' } });
   const timer = setTimeout(() => child.kill('SIGTERM'), CMD_TIMEOUT_MS);
   res.setHeader('content-type', 'text/plain; charset=utf-8');
@@ -209,6 +224,7 @@ app.post('/cmd', (req, res) => {
   child.on('close', (code, signal) => {
     clearTimeout(timer);
     running = null;
+    logUsage({ type: 'tool', route: 'tool', server: 'chip', tool: cmd, purpose: `chip ${cmd} from OBI`, ms: Date.now() - t0, ok: code === 0 });
     res.end(`\n[exit ${code ?? signal}]\n`);
   });
   // the page went away: stop the command rather than run it unseen

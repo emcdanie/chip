@@ -45,3 +45,9 @@ export const DATA_DIR = join(ROOT, 'data');
 export const NOTION_DIR = join(DATA_DIR, 'notion');
 export const INDEX_FILE = join(DATA_DIR, 'index', 'chunks.json');
 export const BELLA_JSON = join(DATA_DIR, 'bella.json');
+
+// Cowork exports (local only, gitignored): every .md is indexed as
+// "Cowork · <title>"; context-pack.md also opens every local-model prompt.
+export const COWORK_DIR = join(ROOT, 'docs', 'reference', 'cowork');
+export const CONTEXT_PACK = join(COWORK_DIR, 'context-pack.md');
+export const CONTEXT_PACK_MAX_TOKENS = 1500;

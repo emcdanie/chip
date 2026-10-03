@@ -318,3 +318,35 @@ export function summarizeTool({ server, tool, text = '', error = null }) {
   const first = out.split('\n').find((l) => l.trim()) ?? '';
   return first.replace(NODE_ID, '').replace(/\s+/g, ' ').trim().slice(0, 240);
 }
+
+/* ---------- usage, in words (Health's Usage card and /usage) ---------- */
+const fmtTokens = (n) => (n >= 10000 ? `${Math.round(n / 1000)}k` : n.toLocaleString('en'));
+
+/** The week's ledger (GET /usage) as figures with a line under each. */
+export function usageFigures(u) {
+  const { data, local, cloud } = u.routes;
+  return {
+    answers: { value: u.answers, delta: `data ${data} · local ${local} · cloud ${cloud}` },
+    tokens: {
+      value: fmtTokens(u.tokensLocal),
+      delta: `${u.cloudTokens ? `${fmtTokens(u.cloudTokens)} went to the cloud` : 'none went to the cloud'}${u.uncounted ? ` · ${u.uncounted} earlier answers not counted` : ''}`,
+    },
+    value: u.value
+      ? { value: `≈ ${u.value.currency === 'USD' ? '$' : ''}${u.value.amount.toFixed(2)}${u.value.currency === 'USD' ? '' : ` ${u.value.currency}`}`, delta: `value at ${u.value.model} API rates; you are on a plan` }
+      : { value: 'Not set', delta: 'add rates to data/pricing.json' },
+    local: { value: u.keptLocalShare == null ? '–' : `${Math.round(u.keptLocalShare * 100)}%`, delta: 'of questions never left the laptop' },
+  };
+}
+
+/** The same, as lines for /usage. */
+export function usageLines(u) {
+  const f = usageFigures(u);
+  const tools = Object.entries(u.tools).sort((a, b) => b[1] - a[1]);
+  return [
+    `Answers this week: ${f.answers.value} (${f.answers.delta}).`,
+    `Tokens kept local: ${f.tokens.value} (${f.tokens.delta}).`,
+    u.value ? `${f.value.value} ${f.value.delta}.` : 'Value at API rates: not set (add rates to data/pricing.json).',
+    `${f.local.value} ${f.local.delta}.`,
+    tools.length ? `Tool calls: ${tools.map(([n, c]) => `${n} ${c}`).join(', ')}.` : 'No tool calls this week.',
+  ];
+}
