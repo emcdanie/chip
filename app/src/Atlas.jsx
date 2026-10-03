@@ -83,9 +83,10 @@ function Anatomy({ name, parts, hl, setHl, zoom, setZoom, overrides, children })
     const root = frame.current?.querySelector('[data-bella-component]');
     if (!root) return;
     const w = root.offsetWidth;
-    const want = w < 200 ? 2 : w < 360 ? 1.5 : 1;
+    // about 1.6x for small parts (v8's scale), 1x on phones
+    const want = window.innerWidth < 720 ? 1 : w < 200 ? 1.6 : w < 360 ? 1.4 : 1;
     const room = (frame.current.clientWidth * 0.8) / w;
-    const next = Math.max(1, Math.min(want, Math.floor(room * 2) / 2));
+    const next = Math.max(1, Math.min(want, Math.floor(room * 10) / 10));
     if (next !== zoom) setZoom(next);
   }, [name, zoom, setZoom]);
 

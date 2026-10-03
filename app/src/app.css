@@ -594,7 +594,9 @@ body {
 }
 
 .stage--split > .spec-frame {
-  justify-self: center;
+  justify-self: stretch;
+  display: grid;
+  place-items: center;
 }
 
 .stage--split .legend {
