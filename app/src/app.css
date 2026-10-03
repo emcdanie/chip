@@ -27,15 +27,20 @@ body {
   outline-offset: var(--ring-focus-offset);
 }
 
+/* the document scrolls, like a normal page: the bar sticks to the top, the
+   OBI dock is fixed to the bottom and the page pads by its height, so
+   nothing hides under it and a full-page capture gets everything */
 .shell {
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
+  grid-template-rows: auto 1fr;
 }
 
 .topbar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 3;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -89,7 +94,7 @@ body {
 .body {
   display: grid;
   grid-template-columns: calc(var(--spacing-16) * 3.5) minmax(0, 1fr);
-  min-height: 0;
+  align-items: start;
 }
 
 .shell[data-nav-collapsed] .body {
@@ -144,13 +149,13 @@ body {
 
 /* the page above, OBI docked below like an editor's terminal panel */
 .work {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  min-height: 0;
   min-width: 0;
 }
 
 .dock {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 3;
   block-size: var(--dock-h, 34vh);
   min-block-size: 0;
   display: grid;
@@ -187,9 +192,9 @@ body {
 
 .sidebar {
   position: sticky;
-  top: 0;
+  top: var(--topbar-h, 0rem);
   align-self: start;
-  max-height: 100vh;
+  max-height: calc(100dvh - var(--topbar-h, 0rem) - var(--dock-h, 0rem));
   overflow-y: auto;
   padding: var(--spacing-4) var(--spacing-3);
   background: var(--color-semantic-surface-card);
@@ -207,11 +212,16 @@ body {
 }
 
 .main {
-  overflow: auto;
   padding: var(--spacing-8);
+  padding-block-end: calc(var(--dock-h, 0rem) + var(--spacing-8));
   min-width: 0;
-  min-height: 0;
   container-type: inline-size;
+  scroll-margin-block-start: var(--topbar-h, 0rem);
+}
+
+/* in-page anchors land below the sticky bar */
+.main [id] {
+  scroll-margin-block-start: calc(var(--topbar-h, 0rem) + var(--spacing-4));
 }
 
 .main:focus {
@@ -242,13 +252,7 @@ body {
     color: var(--color-semantic-text-secondary);
   }
 
-  .work {
-    grid-template-rows: minmax(0, 1fr);
-  }
-
   .dock {
-    position: fixed;
-    inset: auto 0 0 0;
     block-size: 85dvh;
     z-index: 4;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
@@ -364,14 +368,31 @@ body {
   gap: var(--spacing-5);
   align-items: start;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'spec' 'facts';
+  grid-template-areas: 'spec' 'facts' 'ex';
 }
 
 .atlas-grid[data-library] {
-  grid-template-areas: 'lib' 'spec' 'facts';
+  grid-template-areas: 'lib' 'spec' 'facts' 'ex';
 }
 
-.library { grid-area: lib; }
+/* the examples sit right under the specimen, beside the library: no gap */
+.atlas-grid > .examples {
+  grid-area: ex;
+}
+
+.library {
+  grid-area: lib;
+}
+
+/* beside the specimen, the library sticks under the bar with its own scroll */
+@container (min-width: 40rem) {
+  .library {
+    position: sticky;
+    top: calc(var(--topbar-h, 0rem) + var(--spacing-4));
+    max-block-size: calc(100dvh - var(--topbar-h, 0rem) - var(--dock-h, 0rem) - var(--spacing-8));
+    overflow-y: auto;
+  }
+}
 .specimen-card { grid-area: spec; }
 .facts-card { grid-area: facts; }
 
@@ -379,7 +400,8 @@ body {
 @container (min-width: 40rem) {
   .atlas-grid[data-library] {
     grid-template-columns: calc(var(--spacing-20) * 3) minmax(0, 1fr);
-    grid-template-areas: 'lib spec' 'lib facts';
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: 'lib spec' 'lib facts' 'lib ex';
   }
 }
 
@@ -387,12 +409,13 @@ body {
 @container (min-width: 70rem) {
   .atlas-grid[data-library] {
     grid-template-columns: calc(var(--spacing-20) * 3) minmax(0, 1fr) calc(var(--spacing-20) * 4);
-    grid-template-areas: 'lib spec facts';
+    grid-template-rows: auto 1fr;
+    grid-template-areas: 'lib spec facts' 'lib ex ex';
   }
 
   .atlas-grid:not([data-library]) {
     grid-template-columns: minmax(0, 1fr) calc(var(--spacing-20) * 4);
-    grid-template-areas: 'spec facts';
+    grid-template-areas: 'spec facts' 'ex ex';
   }
 }
 

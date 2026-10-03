@@ -120,6 +120,17 @@ if (chromium) {
         await page.locator('.legend button', { hasText: 'Label' }).first().click();
         await page.waitForTimeout(300);
         await check('atlas-button');
+        // the document scrolls: nothing lives only inside an inner scroller,
+        // and a full-page capture gets the whole page
+        const fit = await page.evaluate(() => {
+          const main = document.querySelector('.main');
+          const bottom = Math.max(...[...main.querySelectorAll('*')].map((e) => e.getBoundingClientRect().bottom + scrollY));
+          return { doc: document.documentElement.scrollHeight, bottom: Math.round(bottom), inner: [...main.querySelectorAll('*')].filter((e) => /(auto|scroll|hidden)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight + 40 && e.clientHeight > innerHeight * 0.6).length };
+        });
+        await page.screenshot({ path: join(OUT, `atlas-button-full-${w}-${theme}.png`), fullPage: true });
+        const scrolls = fit.bottom <= fit.doc + 2;
+        log(`   ${theme} ${w} full page: document ${fit.doc}px, content ends ${fit.bottom}px${scrolls ? '' : ' CUT OFF'}`);
+        if (!scrolls) failures.push(`${theme} ${w} page content beyond the document`);
         // the one input's dropdown (desktop: in the bar)
         if (w >= 720) {
           await page.locator('#one-input').click();

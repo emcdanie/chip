@@ -92,6 +92,16 @@ export default function App() {
   const [navOpen, setNavOpen] = useState(false);
   const [trySignal, setTrySignal] = useState(null);
   const [obiOpen, setObiOpen] = useState(() => stored(OBI_KEY, 'closed') === 'open');
+  // the sticky bar's height, for whatever sticks under it
+  const shellRef = useRef(null);
+  const [topbarH, setTopbarH] = useState(0);
+  useLayoutEffect(() => {
+    const bar = shellRef.current?.querySelector('.topbar');
+    if (!bar) return;
+    const ro = new ResizeObserver(() => setTopbarH(Math.round(bar.getBoundingClientRect().height)));
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, []);
   const [dockH, setDockH] = useState(() => Number(stored(DOCK_KEY, '')) || Math.round(window.innerHeight * 0.34));
   const narrow = useMedia('(max-width: 719px)');
   const [models, setModels] = useState([]);
@@ -270,7 +280,15 @@ export default function App() {
   ) : null;
 
   return (
-    <div className="shell" data-nav-collapsed={collapsed || undefined} data-ws={ws} data-obi={obiOpen || undefined}>
+    <div
+      className="shell"
+      ref={shellRef}
+      data-nav-collapsed={collapsed || undefined}
+      data-ws={ws}
+      data-obi={obiOpen || undefined}
+      // the page pads by the dock's height; sticky parts sit under the bar
+      style={{ '--topbar-h': `${topbarH}px`, ...(obiOpen && !narrow ? { '--dock-h': `${dockH}px` } : {}) }}
+    >
       <a className="skip" href="#main">
         Skip to workspace
       </a>
@@ -314,7 +332,7 @@ export default function App() {
         ) : null}
 
         {/* the page above, OBI docked below like an editor's terminal panel */}
-        <div className="work" style={obiOpen && !narrow ? { '--dock-h': `${dockH}px` } : undefined}>
+        <div className="work">
           <main id="main" className="main" tabIndex={-1}>
             {offline ? (
               <p className="offline" role="alert">

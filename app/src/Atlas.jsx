@@ -332,7 +332,8 @@ function Exploded({ name, parts, hl, setHl, zoom, overrides }) {
 
 /* ---------- the specimen library ---------- */
 const CATEGORIES = ['Actions', 'Inputs', 'Layout', 'Data', 'Brand'];
-const NO_CONTRACT = 'No contract yet';
+// not a category: the group of components with no contract, always last
+const NO_CONTRACT = 'Missing a contract';
 const complete = (c) => c.hasStory && c.hasDocs;
 const statusText = (c) => (complete(c) ? 'Story and docs present' : !c.hasStory ? 'Missing story' : 'Missing docs');
 
@@ -453,30 +454,31 @@ function Examples({ c, bella }) {
       </Example>
     );
   }
+  // this component's findings only; the whole system's live on Health
   const findings = [
-    ...bella.components.filter((o) => !o.hasStory).map((o) => `${o.name} has no story`),
-    ...bella.components.filter((o) => o.health.contract.status === 'fail').map((o) => `${o.name} fails contract parity`),
-    ...bella.components.filter((o) => o.health.contrast.status === 'fail').map((o) => `${o.name} fails a contrast pair`),
-  ];
-  const noDsds = bella.components.filter((o) => !o.inDsds).length;
-  if (findings.length || noDsds) {
-    cards.push(
-      <Example key="g" eyebrow="What the gate caught" caption="Real findings from BELLA's checks, not illustrations.">
+    !c.hasStory && 'No story',
+    !c.hasDocs && 'No docs description',
+    c.health.contract.status === 'fail' && `Contract parity fails: ${c.health.contract.issues.join('; ')}`,
+    c.health.contract.status === 'no-contract' && 'No contract',
+    c.health.contrast.status === 'fail' && `A contrast pair fails: ${c.health.contrast.failing.join('; ')}`,
+    !c.inDsds && 'No DSDS entry',
+  ].filter(Boolean);
+  cards.push(
+    <Example key="g" eyebrow="What the gate caught" caption="Real findings from BELLA's checks for this component.">
+      {findings.length ? (
         <ul className="findings">
           {findings.map((f) => (
             <li key={f}>
               <span className="dot dot--gap" aria-hidden="true" /> {f}
             </li>
           ))}
-          {noDsds ? (
-            <li>
-              <span className="count">{noDsds}</span> components missing a DSDS entry
-            </li>
-          ) : null}
         </ul>
-      </Example>
-    );
-  }
+      ) : (
+        <p>Nothing caught for {c.name}.</p>
+      )}
+      <Link href="#/health">See all on Health</Link>
+    </Example>
+  );
   return cards.length ? <div className="examples">{cards}</div> : null;
 }
 
@@ -690,9 +692,9 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
         </section>
 
         <Facts c={c} notes={notes} canTry={canTry && mode !== 'try'} onTry={() => setMode('try')} notify={setToast} />
-      </div>
 
-      <Examples c={c} bella={bella} />
+        <Examples c={c} bella={bella} />
+      </div>
 
       <p className="toast" role="status" aria-live="polite" data-show={toast ? '' : undefined}>
         {toast}
