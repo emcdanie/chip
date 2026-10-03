@@ -2,15 +2,15 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "b15f03e",
-    "committedAt": "2026-10-03T13:10:54+02:00",
+    "commit": "6fea00c",
+    "committedAt": "2026-10-03T14:24:34+02:00",
     "version": "0.3.0"
   },
   "counts": {
-    "components": 27,
-    "withStory": 25,
-    "withDocs": 27,
-    "withContract": 25,
+    "components": 28,
+    "withStory": 26,
+    "withDocs": 28,
+    "withContract": 26,
     "semanticTokenGroups": {
       "light": [
         "blur",
@@ -25,14 +25,14 @@ window.BELLA = {
       ]
     },
     "cssVars": {
-      "light": 591,
+      "light": 596,
       "darkOverrides": 0
     }
   },
   "gates": {
     "contrastPairs": {
       "ok": true,
-      "summary": "contrast pairs: 155 checked (light, dark, warm), OK"
+      "summary": "contrast pairs: 161 checked (light, dark, warm), OK"
     },
     "contractParity": {
       "ok": true,
@@ -61,6 +61,7 @@ window.BELLA = {
         "data-table",
         "drawer",
         "combobox",
+        "disclosure",
         "action-chip"
       ],
       "exemptContracts": [
@@ -95,7 +96,7 @@ window.BELLA = {
       "name": "A11y",
       "score": 93,
       "assessment": "measured",
-      "basis": "25/27 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
+      "basis": "26/28 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -123,21 +124,21 @@ window.BELLA = {
       "name": "Governance",
       "score": 93,
       "assessment": "measured",
-      "basis": "25/27 components: Tier 3 contract checked by contract-parity and passing"
+      "basis": "26/28 components: Tier 3 contract checked by contract-parity and passing"
     },
     {
       "id": "docs",
       "name": "Docs",
       "score": 93,
       "assessment": "measured",
-      "basis": "25/27 components: Storybook story and a docs description in the manifest"
+      "basis": "26/28 components: Storybook story and a docs description in the manifest"
     },
     {
       "id": "machine-readable",
       "name": "Machine-readable",
-      "score": 78,
+      "score": 79,
       "assessment": "measured",
-      "basis": "21/27 components: DSDS component entry and react-docgen props in the manifest"
+      "basis": "22/28 components: DSDS component entry and react-docgen props in the manifest"
     },
     {
       "id": "agent-access",
@@ -443,6 +444,30 @@ window.BELLA = {
         "contractParity": true,
         "ok": true
       }
+    },
+    {
+      "commit": "9040221",
+      "committedAt": "2026-10-03T13:55:36+02:00",
+      "components": 27,
+      "storyCoverage": 93,
+      "contractCoverage": 93,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "6fea00c",
+      "committedAt": "2026-10-03T14:24:34+02:00",
+      "components": 28,
+      "storyCoverage": 93,
+      "contractCoverage": 93,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
     }
   ],
   "palette": {
@@ -716,6 +741,7 @@ window.BELLA = {
       "ActionChip",
       "Combobox",
       "DataTable",
+      "Disclosure",
       "Drawer",
       "Kbd",
       "NavList",
@@ -765,6 +791,7 @@ window.BELLA = {
     ],
     "--motion-duration-fast": [
       "ActionChip",
+      "Disclosure",
       "FilterChip",
       "Link",
       "NavList",
@@ -774,6 +801,7 @@ window.BELLA = {
     "--motion-easing-standard": [
       "ActionChip",
       "Card",
+      "Disclosure",
       "Drawer",
       "FilterChip",
       "Link",
@@ -787,6 +815,7 @@ window.BELLA = {
       "Card",
       "Combobox",
       "DataTable",
+      "Disclosure",
       "FilterChip",
       "Input",
       "Link",
@@ -801,6 +830,7 @@ window.BELLA = {
       "Card",
       "Combobox",
       "DataTable",
+      "Disclosure",
       "FilterChip",
       "Input",
       "Link",
@@ -815,6 +845,7 @@ window.BELLA = {
       "Card",
       "Combobox",
       "DataTable",
+      "Disclosure",
       "FilterChip",
       "Input",
       "Link",
@@ -826,6 +857,7 @@ window.BELLA = {
       "Card",
       "Combobox",
       "DataTable",
+      "Disclosure",
       "FilterChip",
       "Input",
       "Link",
@@ -840,6 +872,7 @@ window.BELLA = {
       "Card",
       "Combobox",
       "DataTable",
+      "Disclosure",
       "FilterChip",
       "Input",
       "NavList",
@@ -855,6 +888,7 @@ window.BELLA = {
       "ActionChip",
       "Combobox",
       "DataTable",
+      "Disclosure",
       "FilterChip",
       "Input",
       "ResourceCard",
@@ -866,6 +900,7 @@ window.BELLA = {
       "ActionChip",
       "Combobox",
       "DataTable",
+      "Disclosure",
       "Drawer",
       "Input",
       "ResourceCard",
@@ -888,6 +923,7 @@ window.BELLA = {
     ],
     "--typography-line-height-snug": [
       "ActionChip",
+      "Disclosure",
       "Drawer",
       "Eyebrow",
       "ResourceCard",
@@ -963,6 +999,7 @@ window.BELLA = {
       "BrandWordmark",
       "Combobox",
       "DataTable",
+      "Disclosure",
       "Drawer",
       "Input",
       "NavList",
@@ -1223,6 +1260,7 @@ window.BELLA = {
     "--typography-font-size-sm": [
       "Combobox",
       "DataTable",
+      "Disclosure",
       "Input",
       "ScoreStrip"
     ],
@@ -1262,10 +1300,30 @@ window.BELLA = {
     ],
     "--typography-font-weight-medium": [
       "DataTable",
+      "Disclosure",
       "Drawer",
       "Input",
       "NavList",
       "ScoreStrip"
+    ],
+    "--component-disclosure-border": [
+      "Disclosure"
+    ],
+    "--component-disclosure-font-size": [
+      "Disclosure"
+    ],
+    "--component-disclosure-foreground": [
+      "Disclosure"
+    ],
+    "--component-disclosure-meta-foreground": [
+      "Disclosure"
+    ],
+    "--component-disclosure-min-height": [
+      "Disclosure"
+    ],
+    "--component-link-default-underline-offset": [
+      "Disclosure",
+      "Link"
     ],
     "--component-drawer-background": [
       "Drawer"
@@ -1461,9 +1519,6 @@ window.BELLA = {
       "Link"
     ],
     "--component-link-default-text-decoration": [
-      "Link"
-    ],
-    "--component-link-default-underline-offset": [
       "Link"
     ],
     "--component-link-default-underline-thickness": [
@@ -2637,7 +2692,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 13,
+          "pairs": 15,
           "failing": []
         },
         "contract": {
@@ -2906,6 +2961,130 @@ window.BELLA = {
         "contrast": {
           "status": "pass",
           "pairs": 14,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "disclosure",
+      "name": "Disclosure",
+      "category": "Layout",
+      "description": "One open/close section: a native details/summary. The whole header row is\nthe 44px target; a chevron turns when it opens (no motion under reduced\nmotion). Stack several for a card that fits the screen. Not a tab set and\nnot navigation.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "children",
+        "className",
+        "defaultOpen",
+        "id",
+        "onToggle",
+        "open",
+        "summary",
+        "title"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "hover",
+        "focus",
+        "open"
+      ],
+      "shapes": [],
+      "rendersAs": "a native details with its summary",
+      "usage": [
+        "Facts, Checks, Tokens and Notes on the Atlas Facts card",
+        "Any long card that should fit the screen closed"
+      ],
+      "dont": [
+        "Do not use it for navigation or to switch views: that is Tabs or SegmentedControl",
+        "Do not hide the one thing people came for: keep the main section open by default",
+        "Do not nest a disclosure inside another"
+      ],
+      "restNote": "Closed: a hairline, the title, the summary and a chevron pointing down.",
+      "a11y": "Verified 2026-10-03: native details/summary, so the expanded state is announced and Enter or Space toggles it. The header row is at least 44px; title AAA and summary AA on panel in light, warm and dark; the hairline is a divider only; focus is the shared ring; the chevron does not turn under reduced motion.",
+      "minTarget": {
+        "token": "--component-disclosure-min-height",
+        "value": "44px"
+      },
+      "sandbox": {
+        "minHeight": {
+          "token": "--component-disclosure-min-height",
+          "light": "44px",
+          "dark": "44px",
+          "warm": "44px"
+        },
+        "paddingY": null,
+        "paddingX": null,
+        "label": {
+          "token": "--component-disclosure-foreground",
+          "light": "#121212",
+          "dark": "#ededed",
+          "warm": "#121212"
+        },
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": {
+          "token": "--ring-focus-width",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        },
+        "ringOffset": {
+          "token": "--ring-focus-offset",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        }
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.disclosure.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-disclosure--docs",
+      "composedFrom": [
+        "Icon"
+      ],
+      "tokens": {
+        "count": 19,
+        "component": 6,
+        "semantic": 0,
+        "list": [
+          "--border-width-thin",
+          "--component-disclosure-border",
+          "--component-disclosure-font-size",
+          "--component-disclosure-foreground",
+          "--component-disclosure-meta-foreground",
+          "--component-disclosure-min-height",
+          "--component-link-default-underline-offset",
+          "--motion-duration-fast",
+          "--motion-easing-standard",
+          "--ring-focus-color",
+          "--ring-focus-offset",
+          "--ring-focus-width",
+          "--spacing-2",
+          "--spacing-3",
+          "--spacing-4",
+          "--typography-font-family-body",
+          "--typography-font-size-sm",
+          "--typography-font-weight-medium",
+          "--typography-line-height-snug"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 4,
           "failing": []
         },
         "contract": {
@@ -3525,6 +3704,7 @@ window.BELLA = {
       "compositionDepth": 0,
       "composesInto": [
         "DataTable",
+        "Disclosure",
         "Input",
         "NavList",
         "ResourceCard",

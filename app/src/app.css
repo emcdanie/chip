@@ -1804,3 +1804,16 @@ body {
     display: grid;
   }
 }
+
+/* the Facts card: a stack of open/close sections, fits 1440 x 900 closed */
+.facts-stack {
+  display: grid;
+}
+
+.facts-stack .facts {
+  margin: 0;
+}
+
+.tip-text {
+  margin: 0;
+}

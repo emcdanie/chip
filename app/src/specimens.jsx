@@ -9,6 +9,7 @@ import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
 import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
 import DataTable from '@bella/components/DataTable/DataTable';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Eyebrow from '@bella/components/Eyebrow/Eyebrow';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Heading from '@bella/components/Heading/Heading';
@@ -42,6 +43,13 @@ export const SPECIMENS = {
     </Card>
   ),
   ActionChip: () => <ActionChip onClick={noop}>Try in sandbox</ActionChip>,
+  Disclosure: () => (
+    <div style={{ inlineSize: 'calc(var(--spacing-20) * 4)' }}>
+      <Disclosure title="Checks" summary="5 of 5 pass">
+        <p style={{ margin: 0 }}>Every check passes.</p>
+      </Disclosure>
+    </div>
+  ),
   Combobox: () => <Combobox label="Ask OBI or jump to" hideLabel value="" onChange={noop} groups={[]} onSelect={noop} placeholder="Ask OBI or jump to…" />,
   DataTable: () => (
     <DataTable

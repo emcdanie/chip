@@ -11,6 +11,7 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import NavList from '@bella/components/NavList/NavList';
 import Button from '@bella/components/Button/Button';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import { SPECIMENS, VARIANTS } from './specimens.jsx';
 import { layout, targetsOf } from './anatomy.js';
 import { forceAttr, installForcedStates } from './forcedStates.js';
@@ -483,9 +484,31 @@ function Examples({ c, bella }) {
 }
 
 /* ---------- the Facts card ---------- */
-function Facts({ c, notes, canTry, onTry, notify }) {
+// open or closed per section, remembered in this browser
+const FACTS_KEY = 'chip-facts-open';
+function useSections() {
+  const [open, setOpen] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(FACTS_KEY) ?? '{}');
+    } catch {
+      return {};
+    }
+  });
+  const set = (k, v) =>
+    setOpen((o) => {
+      const n = { ...o, [k]: v };
+      try {
+        localStorage.setItem(FACTS_KEY, JSON.stringify(n));
+      } catch {}
+      return n;
+    });
+  return [open, set];
+}
+
+function Facts({ c, notes, canTry, trying, onTry, notify }) {
   const first = sentences(c.description, 1);
   const tip = sentences(c.restNote, 2);
+  const [open, setOpen] = useSections();
   async function copy(t) {
     try {
       await navigator.clipboard.writeText(`var(${t})`);
@@ -496,69 +519,91 @@ function Facts({ c, notes, canTry, onTry, notify }) {
   }
   const pass = (ok, word = ok ? 'pass' : 'fail') => <StatusPill variant={ok ? 'success' : 'info'}>{word}</StatusPill>;
   const mine = notes.filter((n) => n.component === c.name);
+  const checks = [
+    { ok: c.health.contrast.status !== 'fail', word: c.health.contrast.status === 'not-covered' ? 'n/a' : undefined, label: `Contrast${c.health.contrast.pairs ? ` · ${c.health.contrast.pairs} pairs` : ''}` },
+    { ok: c.health.contract.status === 'pass', word: c.health.contract.status === 'no-contract' ? 'none' : undefined, label: 'Contract parity' },
+    { ok: complete(c), label: 'Story and docs present' },
+    { ok: c.inDsds, label: 'DSDS entry' },
+    ...(c.minTarget ? [{ ok: parseFloat(c.minTarget.value) >= 44, word: c.minTarget.value, label: 'Touch target minimum' }] : []),
+  ];
+  const failing = checks.filter((x) => !x.ok).length;
+  // a section's default when this browser has no memory of it
+  const isOpen = (k, dflt) => open[k] ?? dflt;
+  const factsSummary = [`${c.variants.length || 'no'} variant${c.variants.length === 1 ? '' : 's'}`, c.minTarget ? `${c.minTarget.value} min` : null].filter(Boolean).join(' · ');
   return (
     <aside className="atlas-card facts-card" aria-label={`${c.name} facts`}>
       <h2 className="facts-name">{c.name}</h2>
       {first ? <p className="label">{first}</p> : null}
-      <dl className="facts">
-        <div><dt>Variants</dt><dd>{c.variants.length ? c.variants.join(', ') : 'None'}</dd></div>
-        {c.shapes?.length ? <div><dt>Shape</dt><dd>{c.shapes.join(' · ')}</dd></div> : null}
-        {c.rendersAs ? <div><dt>Renders as</dt><dd>{c.rendersAs}</dd></div> : null}
-        <div><dt>States</dt><dd>{c.states.length ? c.states.join(', ') : 'Not recorded'}</dd></div>
-        <div><dt>Min height</dt><dd>{c.minTarget ? c.minTarget.value : 'Not a control'}</dd></div>
-        <div><dt>Tokens</dt><dd>{c.tokens.count}</dd></div>
-      </dl>
-      {tip ? (
-        <div className="did-you-know">
-          <p className="label">Did you know</p>
-          <p>{tip}</p>
-        </div>
-      ) : null}
-      <h3 className="label checks-title">Checks · from the gate</h3>
-      <ul className="gate-list">
-        <li>{pass(c.health.contrast.status === 'pass', c.health.contrast.status === 'not-covered' ? 'n/a' : undefined)} Contrast{c.health.contrast.pairs ? ` · ${c.health.contrast.pairs} pairs` : ''}</li>
-        <li>{pass(c.health.contract.status === 'pass', c.health.contract.status === 'no-contract' ? 'none' : undefined)} Contract parity</li>
-        <li>{pass(complete(c))} Story and docs present</li>
-        <li>{pass(c.inDsds)} DSDS entry</li>
-        {c.minTarget ? <li>{pass(parseFloat(c.minTarget.value) >= 44, c.minTarget.value)} Touch target minimum</li> : null}
-      </ul>
-      <div className="facts-actions">
-        {canTry ? <ActionChip onClick={onTry}>Try a change</ActionChip> : null}
-        {c.storyUrl ? (
-          <Button variant="primary" href={c.storyUrl}>
-            Open the story
-          </Button>
-        ) : null}
-      </div>
-      <details className="facts-tokens">
-        <summary>Tokens ({c.tokens.count})</summary>
-        <ul className="token-rows">
-          {c.tokens.list.map((t) => (
-            <li key={t}>
-              <span className="legend-token" title={t}>{middle(t, 30)}</span>
-              <ActionChip onClick={() => copy(t)} ariaLabel={`Copy ${t}`}>Copy</ActionChip>
-            </li>
-          ))}
-        </ul>
-      </details>
-      <section className="facts-notes" aria-labelledby="notes-h">
-        <h3 id="notes-h" className="label">Notes</h3>
-        {mine.length ? (
-          <ul className="note-list">
-            {[...mine].reverse().map((n) => (
-              <li key={n.at}>
-                <p className="label">
-                  <time dateTime={n.at}>{new Date(n.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</time>
-                  {n.question ? ` · ${n.question}` : ''}
-                </p>
-                <p className="note-text">{n.text.length > 240 ? `${n.text.slice(0, 240)}…` : n.text}</p>
+      <div className="facts-stack">
+        <Disclosure title="Facts" summary={factsSummary} open={isOpen('facts', true)} onToggle={(v) => setOpen('facts', v)}>
+          <dl className="facts">
+            <div><dt>Variants</dt><dd>{c.variants.length ? c.variants.join(', ') : 'None'}</dd></div>
+            {c.shapes?.length ? <div><dt>Shape</dt><dd>{c.shapes.join(' · ')}</dd></div> : null}
+            {c.rendersAs ? <div><dt>Renders as</dt><dd>{c.rendersAs}</dd></div> : null}
+            <div><dt>States</dt><dd>{c.states.length ? c.states.join(', ') : 'Not recorded'}</dd></div>
+            <div><dt>Min height</dt><dd>{c.minTarget ? c.minTarget.value : 'Not a control'}</dd></div>
+          </dl>
+        </Disclosure>
+        <Disclosure
+          title="Checks"
+          summary={failing ? <StatusPill variant="info">{failing} failing</StatusPill> : `${checks.length} of ${checks.length} pass`}
+          open={isOpen('checks', failing > 0)}
+          onToggle={(v) => setOpen('checks', v)}
+        >
+          <ul className="gate-list">
+            {checks.map((x) => (
+              <li key={x.label}>
+                {pass(x.ok, x.word)} {x.label}
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="label">No notes yet. Save one from an OBI answer.</p>
-        )}
-      </section>
+        </Disclosure>
+        {tip ? (
+          <Disclosure title="Did you know" open={isOpen('tip', false)} onToggle={(v) => setOpen('tip', v)}>
+            <p className="tip-text">{tip}</p>
+          </Disclosure>
+        ) : null}
+        {canTry ? (
+          // opening it swaps the stage into the sandbox; closing puts the anatomy back
+          <Disclosure title="Try a change" summary={trying ? 'On the stage' : null} open={trying} onToggle={(v) => v !== trying && onTry(v)}>
+            <p className="label">The stage is the sandbox now: change a token and watch the checks.</p>
+          </Disclosure>
+        ) : null}
+        <Disclosure title="Notes" summary={mine.length ? `${mine.length} note${mine.length === 1 ? '' : 's'}` : 'None'} open={isOpen('notes', false)} onToggle={(v) => setOpen('notes', v)}>
+          {mine.length ? (
+            <ul className="note-list">
+              {[...mine].reverse().map((n) => (
+                <li key={n.at}>
+                  <p className="label">
+                    <time dateTime={n.at}>{new Date(n.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</time>
+                    {n.question ? ` · ${n.question}` : ''}
+                  </p>
+                  <p className="note-text">{n.text.length > 240 ? `${n.text.slice(0, 240)}…` : n.text}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="label">No notes yet. Save one from an OBI answer.</p>
+          )}
+        </Disclosure>
+        <Disclosure title="Tokens" summary={String(c.tokens.count)} open={isOpen('tokens', false)} onToggle={(v) => setOpen('tokens', v)}>
+          <ul className="token-rows">
+            {c.tokens.list.map((t) => (
+              <li key={t}>
+                <span className="legend-token" title={t}>{middle(t, 30)}</span>
+                <ActionChip onClick={() => copy(t)} ariaLabel={`Copy ${t}`}>Copy</ActionChip>
+              </li>
+            ))}
+          </ul>
+        </Disclosure>
+      </div>
+      {c.storyUrl ? (
+        <div className="facts-actions">
+          <Button variant="primary" href={c.storyUrl}>
+            Open the story
+          </Button>
+        </div>
+      ) : null}
     </aside>
   );
 }
@@ -691,7 +736,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
           )}
         </section>
 
-        <Facts c={c} notes={notes} canTry={canTry && mode !== 'try'} onTry={() => setMode('try')} notify={setToast} />
+        <Facts c={c} notes={notes} canTry={canTry} trying={mode === 'try'} onTry={(on) => setMode(on ? 'try' : 'anatomy')} notify={setToast} />
 
         <Examples c={c} bella={bella} />
       </div>
