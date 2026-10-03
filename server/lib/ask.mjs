@@ -66,13 +66,35 @@ function fitBudget(chunks) {
 // every Notion source counts as private (privacy first).
 const isPrivate = (c) => (c.path || '').startsWith('data/notion/') || /notion\.(so|com)/.test(c.url || '');
 
-// page: what the user is looking at ("Atlas · Button"); it biases retrieval
-// and tells the model what "here" and "this" mean. cloud + includePrivate
-// decide whether private sources may go to a cloud model.
+// page: what the user is looking at ("Atlas · Button"). The question is
+// searched on its own; the page joins (as a second search, merged, and as a
+// line in the prompt) only when the question points at it ("this", "here",
+// "it", or the component's name). Mixing it in always dragged unrelated
+// questions toward the page and the model refused them (2026-10-03: "anything
+// on dashboards" on Atlas · Button). cloud + includePrivate decide whether
+// private sources may go to a cloud model.
+function pointsAt(message, page) {
+  if (!page) return false;
+  const name = page.match(/^Atlas · (\w+)$/)?.[1];
+  return /\b(this|here|it|its)\b/i.test(message) || (name ? new RegExp(`\\b${name}\\b`, 'i').test(message) : false);
+}
+
+async function retrieve(query, k, page, withPage) {
+  const plain = await search(query, k);
+  if (!withPage) return plain;
+  const paged = await search(`${query} (${page})`, k);
+  const best = new Map();
+  for (const c of [...plain, ...paged]) {
+    const key = `${c.path || c.url}#${c.text.slice(0, 40)}`;
+    if (!best.has(key) || best.get(key).score < c.score) best.set(key, c);
+  }
+  return [...best.values()].sort((a, b) => b.score - a.score).slice(0, k);
+}
 async function prepare(message, sessionId, page, { cloud = false, includePrivate = false } = {}) {
   const id = sessionId || randomUUID();
   const history = sessions.get(id) || [];
-  let found = await search(page ? `${message} (${page})` : message, TOP_K * (cloud && !includePrivate ? 3 : 1));
+  const withPage = pointsAt(message, page);
+  let found = await retrieve(message, TOP_K * (cloud && !includePrivate ? 3 : 1), page, withPage);
   let heldBack = 0;
   if (cloud && !includePrivate) {
     heldBack = found.filter(isPrivate).length;
@@ -86,7 +108,7 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const chunks = fitBudget(found);
   const nums = numbered(chunks);
   const context = chunks.map((c) => `[${nums.get(keyOf(c)).n}] ${c.title}\n${c.text}`).join('\n\n---\n\n');
-  const where = page ? `The user is looking at: ${page}.\n\n` : '';
+  const where = withPage ? `The user is looking at: ${page}.\n\n` : '';
   const turns = [...history, { role: 'user', content: `Sources:\n\n${context}\n\n===\n\n${where}Question: ${message}` }];
   const messages = [{ role: 'system', content: SYSTEM }, ...turns];
   const remember = (reply) => // history keeps the bare question, not the sources

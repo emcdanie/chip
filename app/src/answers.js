@@ -175,9 +175,15 @@ export function routeFor(q, models, budget) {
   return { provider: 'claude', why: `Claude · ${wantsClaude}` };
 }
 
-/** The local model says it is out of its depth. */
+/** The local model hedges: low confidence, worth a second opinion. (A
+ *  retrieval miss is not this: see isMiss.) */
 export function soundsUnsure(text) {
-  return /nothing in my sources covers|not sure|i don'?t know|unclear from the sources|cannot find|can'?t find/i.test(text ?? '');
+  return /\b(not sure|i'?m unsure|unclear from the sources|may be inaccurate|i might be wrong)\b/i.test(text ?? '');
+}
+
+/** The model found nothing it could use: a retrieval miss, not the model's fault. */
+export function isMiss(text) {
+  return /^\s*nothing in my sources covers/i.test(text ?? '');
 }
 
 /* ---------- citations: one marker per sentence, one per run ---------- */

@@ -11,7 +11,7 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import DataTable from '@bella/components/DataTable/DataTable';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Combobox from '@bella/components/Combobox/Combobox';
-import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations } from './answers.js';
+import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss } from './answers.js';
 import Select from '@bella/components/Select/Select';
 
 const COMMANDS = [
@@ -105,6 +105,22 @@ function proposalOf(t) {
   return [`## ${t.q}`, '', `${t.path === 'data' ? 'From BELLA data' : 'From your docs'} (${t.page ?? 'CHIP'})`, '', body, '', ...(src.length ? ['Sources:', ...src] : [])].join('\n');
 }
 
+// a miss is honest and useful: what was searched, and the three nearest sources with their scores
+function Closest({ sources }) {
+  return (
+    <ul className="closest">
+      {sources.slice(0, 3).map((s) => (
+        <li key={s.n}>
+          <Link href={s.url ?? `/source?path=${encodeURIComponent(s.path)}`} external>
+            {s.title}
+          </Link>{' '}
+          <span className="label">match {s.score?.toFixed(2)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onSave, onCompare, onIncludePrivate, notify }) {
   // no chip for the component you are already looking at
   const here = page?.match(/^Atlas · (\w+)$/)?.[1];
@@ -141,20 +157,7 @@ function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onS
             </p>
           ) : null}
           <p>I couldn't find this in {t.heldBack ? 'the sources that may go to the cloud' : 'your sources'}. The closest three:</p>
-          <ul className="closest">
-            {t.closest.map((s) => (
-              <li key={s.n}>
-                <Link href={s.url ?? `/source?path=${encodeURIComponent(s.path)}`} external>
-                  {s.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {claudeOk && t.asked !== 'claude' ? (
-            <p className="turn-escalate">
-              This looks hard for the local model. <ActionChip onClick={() => onCompare(t)}>Ask Claude</ActionChip>
-            </p>
-          ) : null}
+          <Closest sources={t.closest} />
         </div>
       ) : t.path === 'data' ? (
         <div className="turn-a">
@@ -183,7 +186,16 @@ function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onS
               <ActionChip onClick={() => onIncludePrivate(t)}>Include them this session</ActionChip>
             </p>
           ) : null}
-          {t.text ? <Rich text={tidyCitations(t.text)} sources={t.sources} /> : <p className="meta">Reading your sources…</p>}
+          {done && isMiss(t.text) ? (
+            <>
+              <p>I couldn't find this in your sources. The closest three:</p>
+              <Closest sources={t.sources} />
+            </>
+          ) : t.text ? (
+            <Rich text={tidyCitations(t.text)} sources={t.sources} />
+          ) : (
+            <p className="meta">Reading your sources…</p>
+          )}
           {t.cutOff ? <p className="turn-note">This answer stopped part way ({t.cutOff}).</p> : null}
           {done && t.place === 'local' && claudeOk && soundsUnsure(t.text) ? (
             <p className="turn-escalate">
@@ -203,7 +215,7 @@ function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onS
         </div>
       ) : null}
 
-      {done && (t.path === 'data' || t.path === 'docs') ? (
+      {done && (t.path === 'data' || (t.path === 'docs' && t.text && !isMiss(t.text))) ? (
         <div className="turn-actions">
           {t.path === 'docs' && t.place === 'local' && claudeOk && !soundsUnsure(t.text) ? (
             <ActionChip onClick={() => onCompare(t)}>Ask Claude instead</ActionChip>
