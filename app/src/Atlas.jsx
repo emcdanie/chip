@@ -458,8 +458,8 @@ export default function Atlas({ c, bella, theme, notes = [], view, setView }) {
         <p className="atlas-pills">
           {pill(c.health.contrast.status, `Contrast ${c.health.contrast.status}`)}
           {pill(c.health.contract.status, `Parity ${c.health.contract.status}`)}
-          {pill(c.hasStory, c.hasStory ? 'Story' : 'No story')}
-          {pill(c.inDsds, c.inDsds ? 'DSDS' : 'No DSDS')}
+          {pill(c.hasStory, c.hasStory ? 'Story present' : 'Story missing')}
+          {pill(c.inDsds, c.inDsds ? 'DSDS present' : 'DSDS missing')}
         </p>
       </header>
 
