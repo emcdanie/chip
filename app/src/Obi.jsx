@@ -104,10 +104,12 @@ function proposalOf(t) {
   return [`## ${t.q}`, '', `${t.path === 'data' ? 'From BELLA data' : 'From your docs'} (${t.page ?? 'CHIP'})`, '', body, '', ...(src.length ? ['Sources:', ...src] : [])].join('\n');
 }
 
-function AskTurn({ t, bella, model, onOpenAtlas, onSandbox, onSave, notify }) {
-  const names = t.components ?? [];
+function AskTurn({ t, bella, model, page, onOpenAtlas, onSandbox, onSave, notify }) {
+  // no chip for the component you are already looking at
+  const here = page?.match(/^Atlas · (\w+)$/)?.[1];
+  const names = (t.components ?? []).filter((n) => n !== here);
   const tokens = tokensIn(t.text ?? '') ;
-  const target = names[0] ?? t.page?.match(/^Atlas · (\w+)$/)?.[1];
+  const target = (t.components ?? [])[0] ?? t.page?.match(/^Atlas · (\w+)$/)?.[1];
   const sandboxable = target && (tokens.length || t.data) && bella?.components.find((c) => c.name === target)?.sandbox;
   async function copy() {
     try {
@@ -143,11 +145,12 @@ function AskTurn({ t, bella, model, onOpenAtlas, onSandbox, onSave, notify }) {
       ) : t.path === 'data' ? (
         <div className="turn-a">
           <p className="turn-via">From BELLA data</p>
+          <p className="turn-lead">{t.data.title}</p>
           <DataTable
             columns={t.data.columns}
             rows={t.data.rows}
             rowKey={t.data.rowKey}
-            caption={t.data.title}
+            caption={t.data.caption ?? 'Results'}
             maxHeight="calc(var(--spacing-20) * 6)"
           />
           <p className="meta">data/bella.json, synced from BELLA @ {bella?.source.commit}. No model call.</p>
@@ -162,8 +165,8 @@ function AskTurn({ t, bella, model, onOpenAtlas, onSandbox, onSave, notify }) {
       {done && names.length ? (
         <div className="turn-chips" aria-label="Components in this answer">
           {names.map((n) => (
-            <ActionChip key={n} onClick={() => onOpenAtlas(n)} ariaLabel={`Open ${n} in Atlas`}>
-              {n}
+            <ActionChip key={n} onClick={() => onOpenAtlas(n)}>
+              Open {n} in Atlas
             </ActionChip>
           ))}
         </div>
@@ -469,7 +472,7 @@ export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onS
           t.kind === 'cmd' ? (
             <CmdTurn key={t.id} t={t} />
           ) : (
-            <AskTurn key={t.id} t={t} bella={bella} model={model} onOpenAtlas={onOpenAtlas} onSandbox={onSandbox} onSave={obi.save} notify={notify} />
+            <AskTurn key={t.id} t={t} bella={bella} model={model} page={page} onOpenAtlas={onOpenAtlas} onSandbox={onSandbox} onSave={obi.save} notify={notify} />
           )
         )}
       </ol>

@@ -42,6 +42,7 @@ export function answerFromData(q, bella, page) {
   const all = bella.components;
   const list = (title, rows, extra = []) => ({
     title,
+    caption: 'Components',
     rowKey: 'name',
     columns: [{ key: 'name', label: 'Component' }, ...extra],
     rows,
@@ -84,13 +85,14 @@ export function answerFromData(q, bella, page) {
   const c = named(q, bella, page);
   if (c && /\btokens?\b/.test(s) && !token) {
     const rows = c.tokens.list.map((t) => ({ name: t, used: (bella.tokenUsage[t] ?? []).length }));
-    return { title: `${c.name} reads ${rows.length} tokens`, rowKey: 'name', columns: [{ key: 'name', label: 'Token' }, { key: 'used', label: 'Components using it', numeric: true }], rows, components: [c.name] };
+    return { title: `${c.name} reads ${rows.length} tokens`, caption: `${c.name} tokens`, rowKey: 'name', columns: [{ key: 'name', label: 'Token' }, { key: 'used', label: 'Components using it', numeric: true }], rows, components: [c.name] };
   }
   if (c && /\b(missing|gaps?|lacks?|what'?s wrong|incomplete)\b/.test(s)) {
     const rows = gaps(c);
     const missing = rows.filter((r) => !r.ok).length;
     return {
       title: missing ? `${c.name}: ${missing} of ${rows.length} checks need work` : `${c.name}: nothing missing`,
+      caption: `${c.name} checks`,
       rowKey: 'check',
       columns: [{ key: 'check', label: `${c.name} check` }, { key: 'status', label: 'Status' }],
       rows,
