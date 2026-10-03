@@ -290,7 +290,7 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
                   <span className="num">
                     {b?.score ?? 'n/a'} → {k.score ?? 'n/a'}
                   </span>
-                  <StatusPill variant={k.pass ? 'success' : 'info'}>{k.pass ? 'pass' : 'fail'}</StatusPill>
+                  <StatusPill variant={k.pass ? 'success' : 'neutral'}>{k.pass ? 'pass' : 'fail'}</StatusPill>
                   <span className="check-rule">{k.rule}</span>
                 </li>
               );

@@ -571,31 +571,6 @@ body {
   color: var(--color-semantic-text-secondary);
 }
 
-.stage--split {
-  display: grid;
-  gap: var(--spacing-4);
-  padding: var(--spacing-4);
-  align-items: center;
-}
-
-@container (min-width: 46rem) {
-  .stage--split {
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  }
-}
-
-.stage--split > .spec-frame {
-  justify-self: stretch;
-  display: grid;
-  place-items: center;
-}
-
-.stage--split .legend {
-  background: var(--color-semantic-surface-card);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-1);
-}
-
 .stage,
 .exploded {
   border-radius: var(--radius-lg);
@@ -616,6 +591,17 @@ body {
 .spec-frame {
   position: relative;
   padding: calc(var(--spacing-16) + var(--spacing-4)) var(--spacing-12);
+}
+
+/* every specimen sits in the middle of its stage; the anatomy frame fills
+   the stage so the pins have room */
+.spec-frame {
+  display: grid;
+  place-items: center;
+}
+
+.stage > .spec-frame:not(.spec-frame--plain) {
+  justify-self: stretch;
 }
 
 .spec-frame--plain {
@@ -697,10 +683,23 @@ body {
   padding: 0;
 }
 
+/* the numbered parts sit under the stage, on the card: two columns once
+   the card is wide enough */
 .legend {
   display: grid;
-  gap: var(--spacing-1);
+  gap: var(--spacing-1) var(--layout-gutter);
   min-width: 0;
+}
+
+@container (min-width: 32rem) {
+  .specimen-card .legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* an odd last example spans the row */
+.examples-cols > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .legend button {

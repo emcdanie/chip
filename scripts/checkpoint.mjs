@@ -7,7 +7,9 @@
 //      (prints term numbers, never terms)
 //   4. in the browser (Playwright from the BELLA repo, like the app's
 //      components): the checkpoint screens at 1440 and 390 in warm and dark,
-//      axe on each, no sideways scroll, no console errors
+//      axe on each, no sideways scroll, no console errors, nothing cut off
+//      (an ellipsis that hides text, or a middle-ellipsis string like
+//      "--component-b…fill-hi")
 // Needs the server (npm start, :3100) and the app (npm run app, :5173).
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
@@ -105,9 +107,22 @@ if (chromium) {
           await page.addScriptTag({ content: axeSrc }).catch(() => {});
           const v = await page.evaluate(async () => (await window.axe.run(document, { resultTypes: ['violations'] })).violations.map((x) => `${x.id} x${x.nodes.length}`));
           const sw = await page.evaluate(() => document.documentElement.scrollWidth);
+          // truncation: text cut by an ellipsis, or a string shortened in the middle
+          const cut = await page.evaluate(() => {
+            const out = [];
+            const shown = (e) => e.getClientRects().length && !e.closest('[hidden], details:not([open]) > :not(summary)');
+            for (const e of document.querySelectorAll('body *')) {
+              if (!shown(e)) continue;
+              const st = getComputedStyle(e);
+              if ((st.textOverflow === 'ellipsis' || st.webkitLineClamp !== 'none') && (e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1)) out.push(e.textContent.trim().slice(0, 40));
+            }
+            const tw = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            for (let n; (n = tw.nextNode()); ) if (/\S…\S/.test(n.textContent) && n.parentElement && shown(n.parentElement)) out.push(n.textContent.trim().slice(0, 40));
+            return out;
+          });
           await page.screenshot({ path: join(OUT, `${name}-${w}-${theme}.png`) });
-          const bad = v.length || sw > w;
-          log(`   ${theme} ${w} ${name}: axe ${v.length ? v.join('; ') : 0} · width ${sw}${sw > w ? ' OVERFLOW' : ''}`);
+          const bad = v.length || sw > w || cut.length;
+          log(`   ${theme} ${w} ${name}: axe ${v.length ? v.join('; ') : 0} · width ${sw}${sw > w ? ' OVERFLOW' : ''} · cut off ${cut.length ? cut.map((c) => `"${c}"`).join(', ') : 0}`);
           if (bad) failures.push(`${theme} ${w} ${name}`);
         };
         // Health with the dock closed

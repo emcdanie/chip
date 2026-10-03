@@ -36,11 +36,20 @@ function useReducedMotion() {
   return reduced;
 }
 
-/** --color-semantic-surface-card -> --color-sem…surface-card: the ends carry the meaning. */
-export function middle(token, max = 26) {
-  if (!token || token.length <= max) return token;
-  const keep = max - 1;
-  return `${token.slice(0, Math.ceil(keep / 2))}…${token.slice(-Math.floor(keep / 2))}`;
+/** A token in full, allowed to wrap after each "-" (never cut in the middle). */
+export function Token({ name }) {
+  if (!name) return null;
+  const parts = name.split('-');
+  return parts.map((p, i) => (
+    <React.Fragment key={i}>
+      {p}
+      {i < parts.length - 1 ? (
+        <>
+          -<wbr />
+        </>
+      ) : null}
+    </React.Fragment>
+  ));
 }
 
 /* ---------- Study B: numbered anatomy at rest ---------- */
@@ -109,7 +118,8 @@ function Anatomy({ name, parts, hl, setHl, zoom, setZoom, overrides, children })
   }, [measure, name, zoom, overrides, hl]);
 
   return (
-    <div className="stage stage--split">
+    <>
+    <div className="stage">
       <div className="spec-frame" ref={frame}>
         <div className="spec-render" inert aria-hidden="true" style={{ zoom, ...overrides }}>
           {Render ? <Render /> : null}
@@ -142,8 +152,9 @@ function Anatomy({ name, parts, hl, setHl, zoom, setZoom, overrides, children })
           </div>
         ) : null}
       </div>
-      {children}
     </div>
+    {children}
+    </>
   );
 }
 
@@ -162,8 +173,8 @@ function Legend({ name, parts, hl, setHl }) {
             <span className="n">{p.n}</span>
             <span className="legend-name">{p.title}</span>
             <span className="legend-line">{p.detail}</span>
-            <span className="legend-token" title={p.token}>
-              {middle(p.token)}
+            <span className="legend-token">
+              <Token name={p.token} />
               {p.trigger && p.trigger !== 'rest' ? ` · on ${p.trigger}` : ''}
             </span>
           </button>
@@ -561,7 +572,7 @@ function Facts({ c, notes, canTry, trying, onTry, notify }) {
       notify(`Could not copy ${t}`);
     }
   }
-  const pass = (ok, word = ok ? 'pass' : 'fail') => <StatusPill variant={ok ? 'success' : 'info'}>{word}</StatusPill>;
+  const pass = (ok, word = ok ? 'pass' : 'fail') => <StatusPill variant={ok ? 'success' : 'neutral'}>{word}</StatusPill>;
   const mine = notes.filter((n) => n.component === c.name);
   const checks = [
     { ok: c.health.contrast.status !== 'fail', word: c.health.contrast.status === 'not-covered' ? 'n/a' : undefined, label: `Contrast${c.health.contrast.pairs ? ` · ${c.health.contrast.pairs} pairs` : ''}` },
@@ -589,7 +600,7 @@ function Facts({ c, notes, canTry, trying, onTry, notify }) {
         </Disclosure>
         <Disclosure
           title="Checks"
-          summary={failing ? <StatusPill variant="info">{failing} failing</StatusPill> : `${checks.length} of ${checks.length} pass`}
+          summary={failing ? <StatusPill variant="neutral">{failing} failing</StatusPill> : `${checks.length} of ${checks.length} pass`}
           // never remembered: Checks opens exactly when something fails
           open={checksOpen ?? failing > 0}
           onToggle={setChecksOpen}
@@ -634,7 +645,7 @@ function Facts({ c, notes, canTry, trying, onTry, notify }) {
           <ul className="token-rows">
             {c.tokens.list.map((t) => (
               <li key={t}>
-                <span className="legend-token" title={t}>{middle(t, 30)}</span>
+                <span className="legend-token"><Token name={t} /></span>
                 <ActionChip onClick={() => copy(t)} ariaLabel={`Copy ${t}`}>Copy</ActionChip>
               </li>
             ))}
@@ -725,7 +736,6 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
       setToast('Could not copy the import');
     }
   }
-  const explodeNote = !parts.length ? 'Explode needs anatomy parts.' : reduced ? 'Explode is off while reduced motion is on.' : null;
 
   const content = (
     <>
@@ -773,12 +783,18 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
                     </div>
                   </>
                 )}
-                <div className="stage-bar">
-                  <Button variant="secondary" disabled={!showExplode} onClick={() => setExploded((x) => !x)}>
-                    {exploded ? 'Put back' : 'Explode'}
-                  </Button>
-                  <p className="label">{explodeNote ?? `${parts.length} parts, bottom layer first. Hover a part to see it; select it to show its state.`}</p>
-                </div>
+                {parts.length ? (
+                  <div className="stage-bar">
+                    {showExplode ? (
+                      <Button variant="secondary" onClick={() => setExploded((x) => !x)}>
+                        {exploded ? 'Put back' : 'Explode'}
+                      </Button>
+                    ) : null}
+                    <p className="label">
+                      {showExplode ? `${parts.length} parts, bottom layer first. Hover a part to see it; select it to show its state.` : 'Explode is off while reduced motion is on.'}
+                    </p>
+                  </div>
+                ) : null}
               </>
             )}
           </Card>
@@ -787,7 +803,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
       </div>
 
       <Section id="examples" heading="Examples">
-        {examples.length ? <Columns count={2}>{examples}</Columns> : (
+        {examples.length ? <Columns count={2} className="examples-cols">{examples}</Columns> : (
           <Card>
             <div className="empty">
               <p className="card-title">No examples yet</p>

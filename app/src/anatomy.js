@@ -67,7 +67,8 @@ export function layout(frame, parts) {
       // the dot sits ON the part: its own edge (a ring sits outside, on its
       // zone; a shadow below the box, in the middle of its zone)
       const edge = p.kind === 'ring' ? p.zone : p.zone.top > p.rect.top && p.zone.bottom < p.rect.bottom ? p.zone : p.rect;
-      const ay = p.zone.top >= specBox.bottom - 1 ? (p.zone.top + p.zone.bottom) / 2 : p.below ? edge.bottom : edge.top;
+      // content (a label) is never crossed: its line stops at the box edge
+      const ay = p.zone.top >= specBox.bottom - 1 ? (p.zone.top + p.zone.bottom) / 2 : p.kind === 'content' ? (p.below ? specBox.bottom : specBox.top) : p.below ? edge.bottom : edge.top;
       p.pin = [x, y];
       p.anchor = [ax, ay];
     });
