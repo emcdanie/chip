@@ -2,8 +2,8 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "3127923",
-    "committedAt": "2026-10-03T11:02:06+02:00",
+    "commit": "df0fbbd",
+    "committedAt": "2026-10-03T11:28:22+02:00",
     "version": "0.3.0"
   },
   "counts": {
@@ -25,7 +25,7 @@ window.BELLA = {
       ]
     },
     "cssVars": {
-      "light": 589,
+      "light": 590,
       "darkOverrides": 0
     }
   },
@@ -399,6 +399,18 @@ window.BELLA = {
     {
       "commit": "3127923",
       "committedAt": "2026-10-03T11:02:06+02:00",
+      "components": 27,
+      "storyCoverage": 93,
+      "contractCoverage": 93,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "df0fbbd",
+      "committedAt": "2026-10-03T11:28:22+02:00",
       "components": 27,
       "storyCoverage": 93,
       "contractCoverage": 93,
@@ -1568,9 +1580,6 @@ window.BELLA = {
     "--border-width-thick": [
       "ScoreStrip"
     ],
-    "--cells": [
-      "ScoreStrip"
-    ],
     "--color-semantic-danger-subtle": [
       "ScoreStrip"
     ],
@@ -1581,6 +1590,9 @@ window.BELLA = {
       "ScoreStrip"
     ],
     "--component-score-strip-cell-border-radius": [
+      "ScoreStrip"
+    ],
+    "--component-score-strip-cell-min-width": [
       "ScoreStrip"
     ],
     "--component-score-strip-label-font-family": [
@@ -1604,10 +1616,6 @@ window.BELLA = {
     "--component-score-strip-value-font-size": [
       "ScoreStrip"
     ],
-    "--spacing-12": [
-      "ScoreStrip",
-      "SectionHeader"
-    ],
     "--spacing-5": [
       "ScoreStrip",
       "SectionHeader"
@@ -1629,6 +1637,9 @@ window.BELLA = {
     "--typography-line-height-heading": [
       "ScoreStrip",
       "Stat"
+    ],
+    "--spacing-12": [
+      "SectionHeader"
     ],
     "--typography-font-size-body": [
       "SectionHeader"
@@ -4252,13 +4263,12 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-scorestrip--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 39,
-        "component": 8,
+        "count": 38,
+        "component": 9,
         "semantic": 7,
         "list": [
           "--border-width-thick",
           "--border-width-thin",
-          "--cells",
           "--color-semantic-border-strong",
           "--color-semantic-danger-border",
           "--color-semantic-danger-subtle",
@@ -4267,6 +4277,7 @@ window.BELLA = {
           "--color-semantic-text-primary",
           "--color-semantic-text-secondary",
           "--component-score-strip-cell-border-radius",
+          "--component-score-strip-cell-min-width",
           "--component-score-strip-label-font-family",
           "--component-score-strip-label-font-size",
           "--component-score-strip-name-font-size",
@@ -4277,7 +4288,6 @@ window.BELLA = {
           "--radius-full",
           "--radius-sm",
           "--spacing-1",
-          "--spacing-12",
           "--spacing-2",
           "--spacing-20",
           "--spacing-3",

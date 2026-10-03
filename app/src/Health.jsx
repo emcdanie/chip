@@ -30,19 +30,6 @@ const COLUMNS = [
     render: (c) => c.tokens.count },
 ];
 
-// Short cell labels for the ten stations; the full name is what gets spoken.
-const SHORT = {
-  coverage: 'Cov',
-  'best-practices': 'Best',
-  a11y: 'A11y',
-  'shared-language': 'Lang',
-  testing: 'Test',
-  orchestration: 'Orch',
-  governance: 'Gov',
-  docs: 'Docs',
-  'machine-readable': 'MRead',
-  'agent-access': 'Agent',
-};
 
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const time = (iso) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -149,7 +136,7 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
               name="BELLA"
               kind={`Design system · overall is the mean of ${measured.length} measured`}
               score={overall}
-              cells={stations.map((s) => ({ label: SHORT[s.id] ?? s.name, name: s.name, value: s.score }))}
+              cells={stations.map((s) => ({ label: s.name, name: s.name, value: s.score }))}
             />
             <ScoreLegend />
             <details className="basis">
