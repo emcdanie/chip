@@ -59,13 +59,19 @@ const commands = {
       stream = askStream(q);
       via = 'direct';
     }
-    let first = null, sources = [];
+    let first = null, sources = [], closest = null;
     for await (const ev of stream) {
+      if (ev.type === 'weak') closest = ev.closest;
       if (ev.type === 'sources') sources = ev.sources;
       if (ev.type === 'token') { first ??= Date.now(); process.stdout.write(ev.text); }
     }
-    console.log('\n\nSources:');
-    for (const s of sources) console.log(`  - ${s.title} · ${s.url || s.path}`);
+    if (closest) {
+      console.log("I couldn't find this in your sources. Closest:");
+      for (const s of closest) console.log(`  - ${s.title} · ${s.url || s.path}`);
+    } else {
+      console.log('\n\nSources:');
+      for (const s of sources) console.log(`  [${s.n}] ${s.title} · ${s.url || s.path}`);
+    }
     console.log(`\n(first words ${(((first ?? Date.now()) - t) / 1000).toFixed(1)}s · total ${((Date.now() - t) / 1000).toFixed(1)}s · ${CHIP_MODEL} · ${via})`);
   },
 

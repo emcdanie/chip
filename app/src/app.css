@@ -33,18 +33,19 @@ body {
   grid-template-rows: auto 1fr;
 }
 
+/* top bar: workspace name, the two workspaces, the jump palette, OBI and theme */
 .topbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--spacing-4) var(--spacing-8);
-  padding: var(--spacing-4) var(--spacing-8) 0;
+  align-items: center;
+  gap: var(--spacing-3) var(--spacing-6);
+  padding: var(--spacing-3) var(--spacing-6);
   border-bottom: var(--border-width-thin) solid var(--color-semantic-border);
+  background: var(--color-semantic-background);
 }
 
 .brand {
   margin: 0;
-  align-self: center;
   font-size: var(--typography-font-size-xl);
   font-weight: var(--typography-font-weight-medium);
   letter-spacing: var(--typography-letter-spacing-title);
@@ -54,9 +55,24 @@ body {
   border-bottom: none;
 }
 
-.search {
+.palette {
+  position: relative;
   flex: 1 1 calc(var(--spacing-20) * 4);
-  padding-bottom: var(--spacing-3);
+  min-width: 0;
+}
+
+.palette-results {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(100% + var(--spacing-2));
+  z-index: 2;
+  max-block-size: calc(var(--spacing-20) * 5);
+  overflow: auto;
+  padding: var(--spacing-3);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-thin) solid var(--color-semantic-border);
+  background: var(--color-semantic-surface-card);
+  box-shadow: var(--shadow-lg);
 }
 
 .search-label {
@@ -67,19 +83,39 @@ body {
 
 .topbar-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-4);
-  padding-bottom: var(--spacing-3);
+  gap: var(--spacing-3);
 }
 
+/* three columns: sidebar, the page, OBI docked on the right from 1024px */
 .body {
   display: grid;
   grid-template-columns: calc(var(--spacing-16) * 4) minmax(0, 1fr);
   min-height: 0;
 }
 
+.shell[data-obi] .body {
+  grid-template-columns: calc(var(--spacing-16) * 4) minmax(0, 1fr) calc(var(--spacing-20) * 5);
+}
+
 .shell[data-nav-collapsed] .body {
   grid-template-columns: auto minmax(0, 1fr);
+}
+
+.shell[data-nav-collapsed][data-obi] .body {
+  grid-template-columns: auto minmax(0, 1fr) calc(var(--spacing-20) * 5);
+}
+
+/* 1024 to 1279: both side columns narrower, so the page keeps its width */
+@media (max-width: 1279px) {
+  .shell[data-obi] .body {
+    grid-template-columns: calc(var(--spacing-16) * 3) minmax(0, 1fr) calc(var(--spacing-20) * 4);
+  }
+
+  .shell[data-nav-collapsed][data-obi] .body {
+    grid-template-columns: auto minmax(0, 1fr) calc(var(--spacing-20) * 4);
+  }
 }
 
 .sidebar {
@@ -111,6 +147,27 @@ body {
 
 .main:focus {
   outline: none;
+}
+
+/* below 720px the sidebar lives in a drawer, opened from Menu */
+@media (max-width: 719px) {
+  .body,
+  .shell[data-nav-collapsed] .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .topbar {
+    padding: var(--spacing-3) var(--spacing-4);
+  }
+
+  .main {
+    padding: var(--spacing-6) var(--spacing-4);
+  }
+
+  .palette {
+    flex-basis: 100%;
+    order: 5;
+  }
 }
 
 .view {
@@ -180,45 +237,9 @@ body {
 
 .failures,
 .answers,
-.answer-sources ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: var(--spacing-2);
-}
-
-.answers {
-  gap: var(--spacing-6);
-}
-
-.answer {
-  display: grid;
-  gap: var(--spacing-4);
-}
-
-.answer-q {
-  margin: 0;
-  font-size: var(--typography-font-size-lg);
-  font-weight: var(--typography-font-weight-medium);
-}
-
-.answer-text {
-  margin: 0;
-  white-space: pre-wrap;
-  max-width: 70ch;
-}
-
-.answer-error,
 .offline {
   margin: 0;
   color: var(--color-semantic-danger-text);
-}
-
-.ask-form {
-  display: grid;
-  gap: var(--spacing-4);
-  max-width: calc(var(--spacing-20) * 9);
 }
 
 .meta {
@@ -745,54 +766,355 @@ body {
   }
 }
 
-/* terminal: the four chip commands, streamed */
-.terminal {
+/* ---------- Health hero ---------- */
+.hero {
   display: grid;
   gap: var(--spacing-6);
 }
 
-.term-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-5);
-  align-items: end;
-}
-
-.term-cmd {
+.hero-head {
   display: grid;
   gap: var(--spacing-2);
-  justify-items: start;
+  max-width: 65ch;
 }
 
-.term-ask {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-3);
-  align-items: end;
-  flex: 1 1 calc(var(--spacing-20) * 5);
-}
-
-.term-ask > :first-child {
-  flex: 1 1 calc(var(--spacing-20) * 3);
-}
-
-.term-out {
+.chip-word {
   margin: 0;
-  min-block-size: calc(var(--spacing-20) * 4);
-  max-block-size: calc(var(--spacing-20) * 7);
-  overflow: auto;
+  font-family: var(--typography-font-family-display);
+  font-size: var(--typography-font-size-3xl);
+  font-weight: var(--typography-font-weight-light);
+  letter-spacing: var(--typography-letter-spacing-h2);
+  line-height: var(--typography-line-height-heading);
+}
+
+/* the full stop is an ochre fill, never ochre text */
+.chip-dot {
+  display: inline-block;
+  inline-size: 0.22em;
+  block-size: 0.22em;
+  margin-inline-start: 0.06em;
+  border-radius: var(--radius-full);
+  background: var(--color-semantic-accent);
+}
+
+.hero-intro {
+  margin: 0;
+  color: var(--color-semantic-text-secondary);
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--spacing-20) * 2.5), 1fr));
+  gap: var(--spacing-4);
+}
+
+.tile {
+  display: grid;
+  gap: var(--spacing-3);
+  align-content: space-between;
+  justify-items: start;
   padding: var(--spacing-5);
   border-radius: var(--radius-lg);
   border: var(--border-width-thin) solid var(--color-semantic-border);
-  background: var(--color-semantic-surface-inset);
+  background: var(--color-semantic-background);
+}
+
+/* ---------- OBI ---------- */
+.obi-dock {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  block-size: 100vh;
+  min-width: 0;
+  background: var(--color-semantic-background);
   color: var(--color-semantic-text-primary);
-  font-family: var(--typography-font-family-mono);
+  border-inline-start: var(--border-width-thin) solid var(--color-semantic-border);
+}
+
+/* dialog. raises it over the Drawer's own width rule */
+dialog.obi-drawer {
+  inline-size: min(100vw, calc(var(--spacing-20) * 5));
+}
+
+dialog.obi-drawer > :last-child {
+  padding: 0;
+}
+
+/* at phone width OBI is a full-height sheet */
+@media (max-width: 479px) {
+  dialog.obi-drawer {
+    inline-size: 100vw;
+  }
+}
+
+.obi {
+  box-sizing: border-box;
+  block-size: 100%;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
   font-size: var(--typography-font-size-base);
+}
+
+.obi-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.obi-title {
+  margin: 0;
+  font-size: var(--typography-font-size-xl);
+  font-weight: var(--typography-font-weight-medium);
+  letter-spacing: var(--typography-letter-spacing-title);
+}
+
+.obi-head .meta {
+  margin: 0;
+}
+
+.obi-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.obi-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.obi-thread {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  min-block-size: 0;
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-5);
+}
+
+.obi-empty {
+  padding: var(--spacing-3) 0;
+}
+
+.turn {
+  display: grid;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.turn-q {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.turn-a {
+  display: grid;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.turn-a p {
+  margin: 0;
+}
+
+.turn-via {
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-mono);
+  font-feature-settings: var(--typography-font-feature-mono);
+  color: var(--color-semantic-text-secondary);
+}
+
+.obi-rich {
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.obi-rich p,
+.obi-rich ul {
+  margin: 0;
+}
+
+.obi-rich ul {
+  padding-inline-start: var(--spacing-5);
+}
+
+.closest {
+  margin: 0;
+  padding-inline-start: var(--spacing-5);
+}
+
+.turn-chips,
+.turn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.turn-details summary {
+  cursor: pointer;
+  color: var(--color-semantic-text-secondary);
+  font-size: var(--typography-font-size-sm);
+}
+
+.turn-details summary:focus-visible {
+  outline: var(--ring-focus-width) solid var(--ring-focus-color);
+  outline-offset: var(--ring-focus-offset);
+}
+
+.turn-gates {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+}
+
+.gate {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.mono {
+  font-family: var(--typography-font-family-mono);
+  font-feature-settings: var(--typography-font-feature-mono);
+}
+
+.turn-out {
+  margin: 0;
+  max-block-size: calc(var(--spacing-20) * 4);
+  overflow: auto;
+  padding: var(--spacing-3);
+  border-radius: var(--radius-md);
+  border: var(--border-width-thin) solid var(--color-semantic-border);
+  background: var(--color-semantic-surface-inset);
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-sm);
   line-height: var(--typography-line-height-normal);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
-.term-prompt {
-  font-weight: var(--typography-font-weight-bold);
+.turn-out:focus-visible {
+  outline: var(--ring-focus-width) solid var(--ring-focus-color);
+  outline-offset: var(--ring-focus-offset);
+}
+
+/* numbered citation: the card shows the passage on hover or focus */
+.cite {
+  position: relative;
+  white-space: nowrap;
+}
+
+.cite-card {
+  position: absolute;
+  inset-block-end: calc(100% + var(--spacing-2));
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  z-index: 3;
+  inline-size: min(calc(var(--spacing-20) * 3.5), 80vw);
+  display: none;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-md);
+  border: var(--border-width-thin) solid var(--color-semantic-border-strong);
+  background: var(--color-semantic-surface-elevated);
+  color: var(--color-semantic-text-primary);
+  box-shadow: var(--shadow-lg);
+  white-space: normal;
+  font-size: var(--typography-font-size-sm);
+}
+
+.cite:hover .cite-card,
+.cite:focus-within .cite-card {
+  display: grid;
+}
+
+.obi-input {
+  position: relative;
+}
+
+.obi-commands {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(100% + var(--spacing-2));
+  margin: 0;
+  padding: var(--spacing-2);
+  list-style: none;
+  display: grid;
+  gap: var(--spacing-1);
+  border-radius: var(--radius-md);
+  border: var(--border-width-thin) solid var(--color-semantic-border-strong);
+  background: var(--color-semantic-surface-elevated);
+  box-shadow: var(--shadow-lg);
+}
+
+.obi-commands li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding-inline-end: var(--spacing-2);
+  border-radius: var(--radius-sm);
+}
+
+/* the active command is highlighted with the ochre fill; nothing dims */
+.obi-commands li[data-active] {
+  background: var(--color-semantic-accent);
+  color: var(--color-semantic-text-on-accent);
+}
+
+.obi-commands li[data-active] .meta,
+.obi-commands li[data-active] button {
+  color: var(--color-semantic-text-on-accent);
+}
+
+.obi-status {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-4);
+  padding-block-start: var(--spacing-2);
+  border-block-start: var(--border-width-thin) solid var(--color-semantic-border);
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-mono);
+  font-feature-settings: var(--typography-font-feature-mono);
+  color: var(--color-semantic-text-secondary);
+}
+
+/* ---------- Atlas notes ---------- */
+.note-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.note-list p {
+  margin: 0;
+}
+
+.note-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

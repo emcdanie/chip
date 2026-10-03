@@ -48,3 +48,6 @@
 *.swp
 *.swo
 Thumbs.db
+
+# OBI component notes: personal, local only
+/data/notes.json

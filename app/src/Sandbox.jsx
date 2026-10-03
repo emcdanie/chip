@@ -225,6 +225,13 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
   const changed = Object.keys(overridesOf(c, draft)).length > 0;
   const blast = blastOf(bella, c, draft);
   const set = (k) => (v) => setDraft((d) => ({ ...d, [k]: v }));
+  // the 32px demo moves min height and block padding together, so the box
+  // really renders at 32px: the content height is what the base measured
+  // minus its own block padding
+  const demo =
+    s.minHeight && s.paddingY && heights.base
+      ? Math.max(0, Math.round((32 - (heights.base - 2 * parseFloat(base.paddingY))) / 2))
+      : null;
   const colours = (slot) => [
     { value: slot.token, label: `${slot.token} (contract)` },
     ...Object.keys(bella.palette)
@@ -303,6 +310,11 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
       ) : null}
 
       <div className="sandbox-actions">
+        {demo != null ? (
+          <Button variant="secondary" onClick={() => setDraft({ ...draft, minHeight: '32', paddingY: String(demo) })}>
+            Try a 32px target
+          </Button>
+        ) : null}
         <Button variant="secondary" onClick={() => setDraft(base)} disabled={!changed}>
           Reset
         </Button>

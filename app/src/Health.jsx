@@ -6,6 +6,7 @@ import Stat from '@bella/components/Stat/Stat';
 import ScoreStrip, { ScoreLegend } from '@bella/components/ScoreStrip/ScoreStrip';
 import DataTable from '@bella/components/DataTable/DataTable';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
+import Button from '@bella/components/Button/Button';
 
 function Pill({ ok, word }) {
   return <StatusPill variant={ok ? 'success' : 'info'}>{word}</StatusPill>;
@@ -46,9 +47,39 @@ const SHORT = {
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const time = (iso) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-export default function Health({ bella, health, failures }) {
+// one stat tile: the figure, its change since the previous BELLA commit and
+// the sparkline over the history (only when there are two real points)
+function trendOf(history, key, unit = '') {
+  const pts = history.filter((h) => h[key] != null);
+  if (pts.length < 2) return {};
+  const series = pts.map((h) => h[key]);
+  const diff = series.at(-1) - series.at(-2);
+  return {
+    series,
+    trend: diff > 0 ? 'up' : diff < 0 ? 'down' : undefined,
+    delta: diff ? `${Math.abs(diff)}${unit} since the previous BELLA commit` : 'no change since the previous BELLA commit',
+    seriesLabel: (label) => `${label}: ${series[0]}${unit} to ${series.at(-1)}${unit} over ${series.length} commits`,
+  };
+}
+
+function Tile({ label, value, t, action }) {
+  return (
+    <div className="tile">
+      <Stat label={label} value={value} delta={t.delta} trend={t.trend} series={t.series} seriesLabel={t.seriesLabel?.(label)} />
+      {action}
+    </div>
+  );
+}
+
+export default function Health({ bella, health, failures, onOpenAtlas, onAsk, onRun }) {
   if (!bella) return <p className="loading">Loading BELLA health…</p>;
 
+  const history = bella.history ?? [];
+  const pct = (n) => Math.round((n / bella.counts.components) * 100);
+  const gateOk = bella.gates.contrastPairs.ok && bella.gates.contractParity.ok;
+  // green or red per commit, from the gate scripts that existed at that commit
+  const gateHistory = history.filter((h) => h.gate).map((h) => ({ ok: h.gate.ok }));
+  const greenCommits = gateHistory.filter((h) => h.ok).length;
   const stations = bella.stations;
   const measured = stations.filter((s) => s.score !== null);
   const overall = measured.length
@@ -58,20 +89,50 @@ export default function Health({ bella, health, failures }) {
   return (
     <div className="view">
       <section id="overview" aria-labelledby="overview-h" className="block">
-        <Eyebrow>BELLA {bella.source.version} @ {bella.source.commit}</Eyebrow>
-        <Heading tier="section" as="h1" id="overview-h">
+        <Eyebrow>
+          BELLA {bella.source.version} @ {bella.source.commit} · synced {health?.indexedAt ? `${day(health.indexedAt)}, ${time(health.indexedAt)}` : 'never'}
+        </Eyebrow>
+        <Heading tier="page" as="h1" id="overview-h">
           System health
         </Heading>
+        <p className="block-lead">BELLA read from the repo, checked by its own gate scripts, on this machine.</p>
         <Card>
-          <div className="stats">
-            <Stat label="Components" value={bella.counts.components} delta={`${bella.counts.withStory} with a story`} />
-            <Stat label="Failures" value={failures.length} delta="across story, docs, contract, contrast" />
-            <Stat label="Indexed" value={health ? health.chunks.toLocaleString('en') : '…'} delta="search chunks" />
-            <Stat
-              label="Last sync"
-              value={health?.indexedAt ? day(health.indexedAt) : health ? 'Never' : '…'}
-              delta={health?.indexedAt ? `at ${time(health.indexedAt)}` : undefined}
-            />
+          <div className="hero">
+            <div className="hero-head">
+              <p className="chip-word">
+                CHIP<span className="chip-dot" aria-hidden="true" />
+              </p>
+              <p className="hero-intro">
+                Your design system, measured: {bella.counts.components} components, {failures.length} open failures,{' '}
+                {health ? `${health.chunks.toLocaleString('en')} chunks of your docs` : 'your docs'} indexed for OBI.
+              </p>
+            </div>
+            <div className="hero-stats">
+              <Tile
+                label="Components"
+                value={bella.counts.components}
+                t={trendOf(history, 'components')}
+                action={<Button variant="tertiary" onClick={() => onOpenAtlas()}>Open Atlas</Button>}
+              />
+              <Tile
+                label="Story coverage"
+                value={`${pct(bella.counts.withStory)}%`}
+                t={trendOf(history, 'storyCoverage', '%')}
+                action={<Button variant="tertiary" onClick={() => onAsk('Which components have no story?')}>Which have none?</Button>}
+              />
+              <Tile
+                label="Contract coverage"
+                value={`${pct(bella.counts.withContract)}%`}
+                t={trendOf(history, 'contractCoverage', '%')}
+                action={<Button variant="tertiary" onClick={() => onAsk('Which components have no contract?')}>Which have none?</Button>}
+              />
+              <Tile
+                label="Gate"
+                value={gateOk ? 'Green' : 'Red'}
+                t={{ series: gateHistory.length >= 2 ? gateHistory.map((h) => (h.ok ? 1 : 0)) : undefined, seriesLabel: () => `Gate over ${gateHistory.length} commits: ${greenCommits} green, ${gateHistory.length - greenCommits} red`, delta: `${greenCommits} of ${gateHistory.length} recent commits green` }}
+                action={<Button variant="tertiary" onClick={() => onRun('/audit')}>Run /audit</Button>}
+              />
+            </div>
           </div>
         </Card>
       </section>

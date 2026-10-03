@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
 
-// BELLA themes by [data-theme] on <html>: light is :root, dark overrides it.
-// The first visit follows the OS; a pick is remembered for this browser only.
+// BELLA themes by [data-theme] on <html>: light is :root, dark and warm
+// override it. Warm is CHIP's default (2026-10-03, Elleta); a pick is
+// remembered for this browser only.
 const KEY = 'chip-theme';
+export const THEMES = [
+  { value: 'warm', label: 'Warm' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
 
 function initial() {
   try {
     const saved = localStorage.getItem(KEY);
-    if (saved === 'light' || saved === 'dark') return saved;
+    if (THEMES.some((t) => t.value === saved)) return saved;
   } catch {}
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return 'warm';
 }
 
 export function useTheme() {

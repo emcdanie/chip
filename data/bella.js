@@ -2,8 +2,8 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "b647b24",
-    "committedAt": "2026-10-03T09:57:44+02:00",
+    "commit": "770dc35",
+    "committedAt": "2026-10-03T10:24:23+02:00",
     "version": "0.3.0"
   },
   "counts": {
@@ -25,14 +25,14 @@ window.BELLA = {
       ]
     },
     "cssVars": {
-      "light": 572,
+      "light": 573,
       "darkOverrides": 0
     }
   },
   "gates": {
     "contrastPairs": {
       "ok": true,
-      "summary": "contrast pairs: 119 checked (light, dark, warm), OK"
+      "summary": "contrast pairs: 134 checked (light, dark, warm), OK"
     },
     "contractParity": {
       "ok": true,
@@ -398,215 +398,267 @@ window.BELLA = {
   "palette": {
     "--color-semantic-background": {
       "light": "#ffffff",
-      "dark": "#0d0d0d"
+      "dark": "#0d0d0d",
+      "warm": "#f6f1e8"
     },
     "--color-semantic-background-inverse": {
       "light": "#121212",
-      "dark": "#ededed"
+      "dark": "#ededed",
+      "warm": "#121212"
     },
     "--color-semantic-surface": {
       "light": "#f2f2f2",
-      "dark": "#161616"
+      "dark": "#161616",
+      "warm": "#f0ede8"
     },
     "--color-semantic-surface-card": {
       "light": "#f2f2f2",
-      "dark": "#161616"
+      "dark": "#161616",
+      "warm": "#fbfaf7"
     },
     "--color-semantic-surface-elevated": {
       "light": "#f2f2f2",
-      "dark": "#262626"
+      "dark": "#262626",
+      "warm": "#fbfaf7"
     },
     "--color-semantic-surface-inset": {
-      "light": "#f2f2f2",
-      "dark": "#1f1f1f"
+      "light": "#e8e8e8",
+      "dark": "#1f1f1f",
+      "warm": "#ebe4d6"
     },
     "--color-semantic-surface-inverse": {
       "light": "#161616",
-      "dark": "#f2f2f2"
+      "dark": "#f2f2f2",
+      "warm": "#161616"
     },
     "--color-semantic-surface-glass": {
       "light": "linear-gradient(180deg, #FFFFFFD1 0%, #FFFFFFAD 100%)",
-      "dark": "#1B191699"
+      "dark": "#1B191699",
+      "warm": "linear-gradient(180deg, #FFFFFFD1 0%, #FFFFFFAD 100%)"
     },
     "--color-semantic-surface-glass-elevated": {
       "light": "linear-gradient(180deg, #FFFFFFAD 0%, #FFFFFF7A 100%)",
-      "dark": "#1B19167A"
+      "dark": "#1B19167A",
+      "warm": "linear-gradient(180deg, #FFFFFFAD 0%, #FFFFFF7A 100%)"
     },
     "--color-semantic-surface-glass-light": {
       "light": "linear-gradient(180deg, #FFFFFF7A 0%, #FFFFFF47 100%)",
-      "dark": "#1B191652"
+      "dark": "#1B191652",
+      "warm": "linear-gradient(180deg, #FFFFFF7A 0%, #FFFFFF47 100%)"
     },
     "--color-semantic-surface-glass-accent": {
       "light": "#e8a83e26",
-      "dark": "#e8a83e26"
+      "dark": "#e8a83e26",
+      "warm": "#e8a83e26"
     },
     "--color-semantic-border-glass-top": {
       "light": "#FFFFFFB8",
-      "dark": "#F4EFE624"
+      "dark": "#F4EFE624",
+      "warm": "#FFFFFFB8"
     },
     "--color-semantic-border-glass-edge": {
       "light": "#FFFFFF8C",
-      "dark": "#F4EFE61A"
+      "dark": "#F4EFE61A",
+      "warm": "#FFFFFF8C"
     },
     "--color-semantic-text-primary": {
       "light": "#121212",
-      "dark": "#ededed"
+      "dark": "#ededed",
+      "warm": "#121212"
     },
     "--color-semantic-text-secondary": {
-      "light": "#515151",
-      "dark": "#b1b1b1"
+      "light": "#4b4b4b",
+      "dark": "#b1b1b1",
+      "warm": "#4f463d"
     },
     "--color-semantic-text-muted": {
-      "light": "#515151",
-      "dark": "#b1b1b1"
+      "light": "#4b4b4b",
+      "dark": "#b1b1b1",
+      "warm": "#4f463d"
     },
     "--color-semantic-text-inverse": {
       "light": "#ededed",
-      "dark": "#121212"
+      "dark": "#121212",
+      "warm": "#ededed"
     },
     "--color-semantic-text-accent": {
       "light": "#121212",
-      "dark": "#ededed"
+      "dark": "#ededed",
+      "warm": "#121212"
     },
     "--color-semantic-accent": {
       "light": "#e8a83e",
-      "dark": "#e8a83e"
+      "dark": "#e8a83e",
+      "warm": "#e8a83e"
     },
     "--color-semantic-accent-hover": {
       "light": "#b97a14",
-      "dark": "#e8a83e"
+      "dark": "#e8a83e",
+      "warm": "#b97a14"
     },
     "--color-semantic-text-on-accent": {
       "light": "#121212",
-      "dark": "#121212"
+      "dark": "#121212",
+      "warm": "#121212"
     },
     "--color-semantic-accent-subtle": {
-      "light": "#f2f2f2",
-      "dark": "#161616"
+      "light": "#e8e8e8",
+      "dark": "#1f1f1f",
+      "warm": "#ebe4d6"
     },
     "--color-semantic-accent-border": {
-      "light": "#8c8c8c",
-      "dark": "#636363"
+      "light": "#838383",
+      "dark": "#707070",
+      "warm": "#857a6a"
     },
     "--color-semantic-border": {
       "light": "#e3e3e3",
-      "dark": "#2a2a2a"
+      "dark": "#2a2a2a",
+      "warm": "#e3dbcf"
     },
     "--color-semantic-border-subtle": {
       "light": "#e3e3e3",
-      "dark": "#2a2a2a"
+      "dark": "#2a2a2a",
+      "warm": "#e3dbcf"
     },
     "--color-semantic-border-faint": {
       "light": "#e3e3e3",
-      "dark": "#2a2a2a"
+      "dark": "#2a2a2a",
+      "warm": "#e3dbcf"
     },
     "--color-semantic-border-strong": {
-      "light": "#8c8c8c",
-      "dark": "#636363"
+      "light": "#838383",
+      "dark": "#707070",
+      "warm": "#857a6a"
     },
     "--color-semantic-border-ink": {
       "light": "#121212",
-      "dark": "#ededed"
+      "dark": "#ededed",
+      "warm": "#121212"
     },
     "--color-semantic-scrim": {
       "light": "#1A172038",
-      "dark": "#1B191699"
+      "dark": "#1B191699",
+      "warm": "#1A172038"
     },
     "--color-semantic-focus-ring": {
       "light": "#b97a14",
-      "dark": "#e8a83e"
+      "dark": "#e8a83e",
+      "warm": "#b97a14"
     },
     "--color-semantic-danger-text": {
       "light": "#b3261e",
-      "dark": "#ff8f84"
+      "dark": "#ff8f84",
+      "warm": "#b3261e"
     },
     "--color-semantic-danger-border": {
       "light": "#b3261e",
-      "dark": "#ff8f84"
+      "dark": "#ff8f84",
+      "warm": "#b3261e"
     },
     "--color-semantic-danger-subtle": {
       "light": "#fcebe9",
-      "dark": "#3a1714"
+      "dark": "#3a1714",
+      "warm": "#fcebe9"
     },
     "--color-semantic-success-text": {
       "light": "#1a7439",
-      "dark": "#72d08b"
+      "dark": "#72d08b",
+      "warm": "#1a7439"
     },
     "--color-semantic-success-border": {
       "light": "#1a7439",
-      "dark": "#72d08b"
+      "dark": "#72d08b",
+      "warm": "#1a7439"
     },
     "--color-semantic-success-subtle": {
       "light": "#e6f3ea",
-      "dark": "#12301d"
+      "dark": "#12301d",
+      "warm": "#e6f3ea"
     },
     "--color-semantic-chip-1": {
       "light": "#cfe0ef",
-      "dark": "#cfe0ef"
+      "dark": "#cfe0ef",
+      "warm": "#cfe0ef"
     },
     "--color-semantic-chip-2": {
       "light": "#f6c9a8",
-      "dark": "#f6c9a8"
+      "dark": "#f6c9a8",
+      "warm": "#f6c9a8"
     },
     "--color-semantic-chip-3": {
       "light": "#cfe8dc",
-      "dark": "#cfe8dc"
+      "dark": "#cfe8dc",
+      "warm": "#cfe8dc"
     },
     "--color-semantic-chip-text": {
       "light": "#17191a",
-      "dark": "#17191a"
+      "dark": "#17191a",
+      "warm": "#17191a"
     },
     "--color-semantic-link": {
       "light": "#121212",
-      "dark": "#ededed"
+      "dark": "#ededed",
+      "warm": "#121212"
     },
     "--color-semantic-link-hover": {
       "light": "#121212",
-      "dark": "#ededed"
+      "dark": "#ededed",
+      "warm": "#121212"
     },
     "--color-semantic-success": {
       "light": "#4A7C6F",
-      "dark": "#4A7C6F"
+      "dark": "#4A7C6F",
+      "warm": "#4A7C6F"
     },
     "--color-semantic-info": {
       "light": "#6495C5",
-      "dark": "#6495C5"
+      "dark": "#6495C5",
+      "warm": "#6495C5"
     },
     "--color-semantic-info-subtle": {
       "light": "#6495C526",
-      "dark": "#6495C526"
+      "dark": "#6495C526",
+      "warm": "#6495C526"
     },
     "--color-semantic-info-border": {
       "light": "#6495C54D",
-      "dark": "#6495C54D"
+      "dark": "#6495C54D",
+      "warm": "#6495C54D"
     },
     "--color-semantic-accent-raised-hi": {
       "light": "#121212",
-      "dark": "#ededed"
+      "dark": "#ededed",
+      "warm": "#121212"
     },
     "--color-semantic-accent-raised-lo": {
       "light": "#121212",
-      "dark": "#ededed"
+      "dark": "#ededed",
+      "warm": "#121212"
     },
     "--color-semantic-accent-raised-hover": {
       "light": "#343434",
-      "dark": "#cdcdcd"
+      "dark": "#cdcdcd",
+      "warm": "#343434"
     },
     "--color-semantic-accent-raised-edge": {
       "light": "#121212",
-      "dark": "#ededed"
+      "dark": "#ededed",
+      "warm": "#121212"
     }
   },
   "ring": {
     "color": {
       "token": "--ring-focus-color",
       "light": "#b97a14",
-      "dark": "#e8a83e"
+      "dark": "#e8a83e",
+      "warm": "#b97a14"
     },
     "ground": {
       "token": "--color-semantic-background",
       "light": "#ffffff",
-      "dark": "#0d0d0d"
+      "dark": "#0d0d0d",
+      "warm": "#f6f1e8"
     }
   },
   "tokenUsage": {
@@ -1670,13 +1722,15 @@ window.BELLA = {
         "paddingX": null,
         "label": {
           "token": "--component-avatar-default-foreground",
-          "light": "#515151",
-          "dark": "#b1b1b1"
+          "light": "#4b4b4b",
+          "dark": "#b1b1b1",
+          "warm": "#4f463d"
         },
         "background": {
           "token": "--component-avatar-default-background",
-          "light": "#f2f2f2",
-          "dark": "#1f1f1f"
+          "light": "#e8e8e8",
+          "dark": "#1f1f1f",
+          "warm": "#ebe4d6"
         },
         "backgroundPair": null,
         "ringWidth": null,
@@ -1840,42 +1894,50 @@ window.BELLA = {
         "minHeight": {
           "token": "--component-button-primary-min-height",
           "light": "44px",
-          "dark": "44px"
+          "dark": "44px",
+          "warm": "44px"
         },
         "paddingY": {
           "token": "--component-button-primary-padding-y",
           "light": "12px",
-          "dark": "12px"
+          "dark": "12px",
+          "warm": "12px"
         },
         "paddingX": {
           "token": "--component-button-primary-padding-x",
           "light": "20px",
-          "dark": "20px"
+          "dark": "20px",
+          "warm": "20px"
         },
         "label": {
           "token": "--component-button-primary-foreground",
           "light": "#ededed",
-          "dark": "#121212"
+          "dark": "#121212",
+          "warm": "#ededed"
         },
         "background": {
           "token": "--component-button-primary-fill-hi",
           "light": "#121212",
-          "dark": "#ededed"
+          "dark": "#ededed",
+          "warm": "#121212"
         },
         "backgroundPair": {
           "token": "--component-button-primary-fill-lo",
           "light": "#121212",
-          "dark": "#ededed"
+          "dark": "#ededed",
+          "warm": "#121212"
         },
         "ringWidth": {
           "token": "--ring-focus-width",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         },
         "ringOffset": {
           "token": "--ring-focus-offset",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         }
       },
       "parts": [
@@ -1887,7 +1949,8 @@ window.BELLA = {
           "token": "--shadow-key-resting",
           "value": {
             "light": "1px 3px 0 #121212, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66",
-            "dark": "1px 3px 0 #121212, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66"
+            "dark": "1px 3px 0 #121212, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66",
+            "warm": "1px 3px 0 #121212, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66"
           },
           "kind": "shadow",
           "trigger": null,
@@ -1908,7 +1971,8 @@ window.BELLA = {
           "token": "--component-button-primary-fill-hi",
           "value": {
             "light": "#121212",
-            "dark": "#ededed"
+            "dark": "#ededed",
+            "warm": "#121212"
           },
           "kind": "fill",
           "trigger": null,
@@ -1928,7 +1992,8 @@ window.BELLA = {
           "token": "--component-button-primary-min-height",
           "value": {
             "light": "44px",
-            "dark": "44px"
+            "dark": "44px",
+            "warm": "44px"
           },
           "kind": "box",
           "trigger": null,
@@ -1948,7 +2013,8 @@ window.BELLA = {
           "token": "--component-button-primary-font-size",
           "value": {
             "light": "13px",
-            "dark": "13px"
+            "dark": "13px",
+            "warm": "13px"
           },
           "kind": "content",
           "trigger": null,
@@ -1968,7 +2034,8 @@ window.BELLA = {
           "token": "--ring-focus-color",
           "value": {
             "light": "#b97a14",
-            "dark": "#e8a83e"
+            "dark": "#e8a83e",
+            "warm": "#b97a14"
           },
           "kind": "ring",
           "trigger": null,
@@ -2047,7 +2114,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 8,
+          "pairs": 9,
           "failing": []
         },
         "contract": {
@@ -2104,12 +2171,14 @@ window.BELLA = {
         "ringWidth": {
           "token": "--ring-focus-width",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         },
         "ringOffset": {
           "token": "--ring-focus-offset",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         }
       },
       "parts": [
@@ -2121,7 +2190,8 @@ window.BELLA = {
           "token": "--shadow-hover",
           "value": {
             "light": "0 8px 24px #1A172014",
-            "dark": "0 8px 24px rgba(0, 0, 0, 0.45)"
+            "dark": "0 8px 24px rgba(0, 0, 0, 0.45)",
+            "warm": "0 8px 24px #1A172014"
           },
           "kind": "shadow",
           "trigger": "hover",
@@ -2142,7 +2212,8 @@ window.BELLA = {
           "token": "--color-semantic-surface-card",
           "value": {
             "light": "#f2f2f2",
-            "dark": "#161616"
+            "dark": "#161616",
+            "warm": "#fbfaf7"
           },
           "kind": "fill",
           "trigger": "rest",
@@ -2162,7 +2233,8 @@ window.BELLA = {
           "token": "--color-semantic-border-faint",
           "value": {
             "light": "#e3e3e3",
-            "dark": "#2a2a2a"
+            "dark": "#2a2a2a",
+            "warm": "#e3dbcf"
           },
           "kind": "edge",
           "trigger": "rest",
@@ -2182,7 +2254,8 @@ window.BELLA = {
           "token": "--spacing-6",
           "value": {
             "light": "24px",
-            "dark": "24px"
+            "dark": "24px",
+            "warm": "24px"
           },
           "kind": "box",
           "trigger": "rest",
@@ -2202,7 +2275,8 @@ window.BELLA = {
           "token": "--ring-focus-color",
           "value": {
             "light": "#b97a14",
-            "dark": "#e8a83e"
+            "dark": "#e8a83e",
+            "warm": "#b97a14"
           },
           "kind": "ring",
           "trigger": "focus",
@@ -2309,12 +2383,14 @@ window.BELLA = {
         "ringWidth": {
           "token": "--ring-focus-width",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         },
         "ringOffset": {
           "token": "--ring-focus-offset",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         }
       },
       "parts": [],
@@ -2406,12 +2482,14 @@ window.BELLA = {
         "label": {
           "token": "--component-drawer-foreground",
           "light": "#121212",
-          "dark": "#ededed"
+          "dark": "#ededed",
+          "warm": "#121212"
         },
         "background": {
           "token": "--component-drawer-background",
           "light": "#f2f2f2",
-          "dark": "#262626"
+          "dark": "#262626",
+          "warm": "#fbfaf7"
         },
         "backgroundPair": null,
         "ringWidth": null,
@@ -2494,8 +2572,9 @@ window.BELLA = {
         "paddingX": null,
         "label": {
           "token": "--component-eyebrow-muted-foreground",
-          "light": "#515151",
-          "dark": "#b1b1b1"
+          "light": "#4b4b4b",
+          "dark": "#b1b1b1",
+          "warm": "#4f463d"
         },
         "background": null,
         "backgroundPair": null,
@@ -2578,26 +2657,30 @@ window.BELLA = {
         "minHeight": {
           "token": "--component-filter-chip-min-height",
           "light": "44px",
-          "dark": "44px"
+          "dark": "44px",
+          "warm": "44px"
         },
         "paddingY": null,
         "paddingX": null,
         "label": {
           "token": "--component-filter-chip-foreground",
-          "light": "#515151",
-          "dark": "#b1b1b1"
+          "light": "#4b4b4b",
+          "dark": "#b1b1b1",
+          "warm": "#4f463d"
         },
         "background": null,
         "backgroundPair": null,
         "ringWidth": {
           "token": "--ring-focus-width",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         },
         "ringOffset": {
           "token": "--ring-focus-offset",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         }
       },
       "parts": [
@@ -2609,7 +2692,8 @@ window.BELLA = {
           "token": "--component-filter-chip-min-height",
           "value": {
             "light": "44px",
-            "dark": "44px"
+            "dark": "44px",
+            "warm": "44px"
           },
           "kind": "box",
           "trigger": "rest",
@@ -2628,8 +2712,9 @@ window.BELLA = {
           "detail": "1px border-strong, never raised",
           "token": "--component-filter-chip-border",
           "value": {
-            "light": "#8c8c8c",
-            "dark": "#636363"
+            "light": "#838383",
+            "dark": "#707070",
+            "warm": "#857a6a"
           },
           "kind": "edge",
           "trigger": "rest",
@@ -2649,7 +2734,8 @@ window.BELLA = {
           "token": "--color-semantic-border-subtle",
           "value": {
             "light": "#e3e3e3",
-            "dark": "#2a2a2a"
+            "dark": "#2a2a2a",
+            "warm": "#e3dbcf"
           },
           "kind": "state",
           "trigger": "hover",
@@ -2669,7 +2755,8 @@ window.BELLA = {
           "token": "--color-semantic-background-inverse",
           "value": {
             "light": "#121212",
-            "dark": "#ededed"
+            "dark": "#ededed",
+            "warm": "#121212"
           },
           "kind": "fill",
           "trigger": "pressed",
@@ -2688,8 +2775,9 @@ window.BELLA = {
           "detail": "Geist 14, 500, text-secondary",
           "token": "--component-filter-chip-foreground",
           "value": {
-            "light": "#515151",
-            "dark": "#b1b1b1"
+            "light": "#4b4b4b",
+            "dark": "#b1b1b1",
+            "warm": "#4f463d"
           },
           "kind": "content",
           "trigger": "rest",
@@ -2709,7 +2797,8 @@ window.BELLA = {
           "token": "--ring-focus-color",
           "value": {
             "light": "#b97a14",
-            "dark": "#e8a83e"
+            "dark": "#e8a83e",
+            "warm": "#b97a14"
           },
           "kind": "ring",
           "trigger": "focus",
@@ -2960,7 +3049,8 @@ window.BELLA = {
         "minHeight": {
           "token": "--component-input-min-height",
           "light": "44px",
-          "dark": "44px"
+          "dark": "44px",
+          "warm": "44px"
         },
         "paddingY": null,
         "paddingX": null,
@@ -2970,12 +3060,14 @@ window.BELLA = {
         "ringWidth": {
           "token": "--ring-focus-width",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         },
         "ringOffset": {
           "token": "--ring-focus-offset",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         }
       },
       "parts": [
@@ -2986,8 +3078,9 @@ window.BELLA = {
           "detail": "Geist 13, 700, caps; a real label wired for/id",
           "token": "--color-semantic-text-secondary",
           "value": {
-            "light": "#515151",
-            "dark": "#b1b1b1"
+            "light": "#4b4b4b",
+            "dark": "#b1b1b1",
+            "warm": "#4f463d"
           },
           "kind": "content",
           "trigger": "rest",
@@ -3007,7 +3100,8 @@ window.BELLA = {
           "token": "--color-semantic-surface",
           "value": {
             "light": "#f2f2f2",
-            "dark": "#161616"
+            "dark": "#161616",
+            "warm": "#f0ede8"
           },
           "kind": "fill",
           "trigger": "rest",
@@ -3026,8 +3120,9 @@ window.BELLA = {
           "detail": "1px border-strong, the 3:1 control edge",
           "token": "--color-semantic-border-strong",
           "value": {
-            "light": "#8c8c8c",
-            "dark": "#636363"
+            "light": "#838383",
+            "dark": "#707070",
+            "warm": "#857a6a"
           },
           "kind": "edge",
           "trigger": "rest",
@@ -3047,7 +3142,8 @@ window.BELLA = {
           "token": "--component-input-min-height",
           "value": {
             "light": "44px",
-            "dark": "44px"
+            "dark": "44px",
+            "warm": "44px"
           },
           "kind": "box",
           "trigger": "rest",
@@ -3066,8 +3162,9 @@ window.BELLA = {
           "detail": "text-muted, opacity reset for Firefox; never the label",
           "token": "--color-semantic-text-muted",
           "value": {
-            "light": "#515151",
-            "dark": "#b1b1b1"
+            "light": "#4b4b4b",
+            "dark": "#b1b1b1",
+            "warm": "#4f463d"
           },
           "kind": "content",
           "trigger": "rest",
@@ -3087,7 +3184,8 @@ window.BELLA = {
           "token": "--ring-focus-color",
           "value": {
             "light": "#b97a14",
-            "dark": "#e8a83e"
+            "dark": "#e8a83e",
+            "warm": "#b97a14"
           },
           "kind": "ring",
           "trigger": "focus",
@@ -3143,7 +3241,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 20,
+          "pairs": 22,
           "failing": []
         },
         "contract": {
@@ -3182,13 +3280,15 @@ window.BELLA = {
         "paddingX": null,
         "label": {
           "token": "--component-kbd-foreground",
-          "light": "#515151",
-          "dark": "#b1b1b1"
+          "light": "#4b4b4b",
+          "dark": "#b1b1b1",
+          "warm": "#4f463d"
         },
         "background": {
           "token": "--component-kbd-background",
-          "light": "#f2f2f2",
-          "dark": "#1f1f1f"
+          "light": "#e8e8e8",
+          "dark": "#1f1f1f",
+          "warm": "#ebe4d6"
         },
         "backgroundPair": null,
         "ringWidth": null,
@@ -3266,19 +3366,22 @@ window.BELLA = {
         "label": {
           "token": "--component-link-default-foreground",
           "light": "#121212",
-          "dark": "#ededed"
+          "dark": "#ededed",
+          "warm": "#121212"
         },
         "background": null,
         "backgroundPair": null,
         "ringWidth": {
           "token": "--ring-focus-width",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         },
         "ringOffset": {
           "token": "--ring-focus-offset",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         }
       },
       "parts": [
@@ -3290,7 +3393,8 @@ window.BELLA = {
           "token": "--component-link-default-foreground",
           "value": {
             "light": "#121212",
-            "dark": "#ededed"
+            "dark": "#ededed",
+            "warm": "#121212"
           },
           "kind": "content",
           "trigger": "rest",
@@ -3310,7 +3414,8 @@ window.BELLA = {
           "token": "--component-link-default-underline-thickness",
           "value": {
             "light": "1px",
-            "dark": "1px"
+            "dark": "1px",
+            "warm": "1px"
           },
           "kind": "edge",
           "trigger": "rest",
@@ -3331,7 +3436,8 @@ window.BELLA = {
           "token": "--component-link-default-underline-thickness-hover",
           "value": {
             "light": "2px",
-            "dark": "2px"
+            "dark": "2px",
+            "warm": "2px"
           },
           "kind": "state",
           "trigger": "hover",
@@ -3352,7 +3458,8 @@ window.BELLA = {
           "token": "--ring-focus-color",
           "value": {
             "light": "#b97a14",
-            "dark": "#e8a83e"
+            "dark": "#e8a83e",
+            "warm": "#b97a14"
           },
           "kind": "ring",
           "trigger": "focus",
@@ -3440,7 +3547,8 @@ window.BELLA = {
         "minHeight": {
           "token": "--component-nav-list-min-height",
           "light": "44px",
-          "dark": "44px"
+          "dark": "44px",
+          "warm": "44px"
         },
         "paddingY": null,
         "paddingX": null,
@@ -3450,7 +3558,8 @@ window.BELLA = {
         "ringWidth": {
           "token": "--ring-focus-width",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         },
         "ringOffset": null
       },
@@ -3498,7 +3607,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 13,
+          "pairs": 14,
           "failing": []
         },
         "contract": {
@@ -3828,7 +3937,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 18,
+          "pairs": 20,
           "failing": []
         },
         "contract": {
@@ -3950,7 +4059,8 @@ window.BELLA = {
         "minHeight": {
           "token": "--component-segmented-control-min-height",
           "light": "44px",
-          "dark": "44px"
+          "dark": "44px",
+          "warm": "44px"
         },
         "paddingY": null,
         "paddingX": null,
@@ -3960,7 +4070,8 @@ window.BELLA = {
         "ringWidth": {
           "token": "--ring-focus-width",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         },
         "ringOffset": null
       },
@@ -4002,7 +4113,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 9,
+          "pairs": 11,
           "failing": []
         },
         "contract": {
@@ -4046,7 +4157,8 @@ window.BELLA = {
         "minHeight": {
           "token": "--component-select-min-height",
           "light": "44px",
-          "dark": "44px"
+          "dark": "44px",
+          "warm": "44px"
         },
         "paddingY": null,
         "paddingX": null,
@@ -4056,12 +4168,14 @@ window.BELLA = {
         "ringWidth": {
           "token": "--ring-focus-width",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         },
         "ringOffset": {
           "token": "--ring-focus-offset",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         }
       },
       "parts": [],
@@ -4099,7 +4213,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 15,
+          "pairs": 17,
           "failing": []
         },
         "contract": {
@@ -4155,7 +4269,8 @@ window.BELLA = {
           "token": "--component-stat-label-font-size",
           "value": {
             "light": "13px",
-            "dark": "13px"
+            "dark": "13px",
+            "warm": "13px"
           },
           "kind": "content",
           "trigger": null,
@@ -4175,7 +4290,8 @@ window.BELLA = {
           "token": "--component-stat-value-font-size",
           "value": {
             "light": "32px",
-            "dark": "32px"
+            "dark": "32px",
+            "warm": "32px"
           },
           "kind": "content",
           "trigger": null,
@@ -4195,7 +4311,8 @@ window.BELLA = {
           "token": "--component-stat-delta-font-size",
           "value": {
             "light": "14px",
-            "dark": "14px"
+            "dark": "14px",
+            "warm": "14px"
           },
           "kind": "content",
           "trigger": null,
@@ -4215,7 +4332,8 @@ window.BELLA = {
           "token": "--component-stat-trend-stroke",
           "value": {
             "light": "#121212",
-            "dark": "#ededed"
+            "dark": "#ededed",
+            "warm": "#121212"
           },
           "kind": "content",
           "trigger": "rest",
@@ -4307,12 +4425,14 @@ window.BELLA = {
         "label": {
           "token": "--component-status-pill-accent-foreground",
           "light": "#121212",
-          "dark": "#121212"
+          "dark": "#121212",
+          "warm": "#121212"
         },
         "background": {
           "token": "--component-status-pill-accent-background",
           "light": "#e8a83e",
-          "dark": "#e8a83e"
+          "dark": "#e8a83e",
+          "warm": "#e8a83e"
         },
         "backgroundPair": null,
         "ringWidth": null,
@@ -4394,7 +4514,8 @@ window.BELLA = {
         "minHeight": {
           "token": "--component-tabs-min-height",
           "light": "44px",
-          "dark": "44px"
+          "dark": "44px",
+          "warm": "44px"
         },
         "paddingY": null,
         "paddingX": null,
@@ -4404,7 +4525,8 @@ window.BELLA = {
         "ringWidth": {
           "token": "--ring-focus-width",
           "light": "3px",
-          "dark": "3px"
+          "dark": "3px",
+          "warm": "3px"
         },
         "ringOffset": null
       },
@@ -4417,7 +4539,8 @@ window.BELLA = {
           "token": "--color-semantic-border",
           "value": {
             "light": "#e3e3e3",
-            "dark": "#2a2a2a"
+            "dark": "#2a2a2a",
+            "warm": "#e3dbcf"
           },
           "kind": "edge",
           "trigger": null,
@@ -4438,7 +4561,8 @@ window.BELLA = {
           "token": "--component-tabs-indicator",
           "value": {
             "light": "#121212",
-            "dark": "#ededed"
+            "dark": "#ededed",
+            "warm": "#121212"
           },
           "kind": "part",
           "trigger": null,
@@ -4459,7 +4583,8 @@ window.BELLA = {
           "token": "--component-tabs-font-size",
           "value": {
             "light": "14px",
-            "dark": "14px"
+            "dark": "14px",
+            "warm": "14px"
           },
           "kind": "content",
           "trigger": null,
@@ -4479,7 +4604,8 @@ window.BELLA = {
           "token": "--color-semantic-border-ink",
           "value": {
             "light": "#121212",
-            "dark": "#ededed"
+            "dark": "#ededed",
+            "warm": "#121212"
           },
           "kind": "part",
           "trigger": null,
@@ -4530,7 +4656,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 16,
+          "pairs": 18,
           "failing": []
         },
         "contract": {
@@ -4572,22 +4698,26 @@ window.BELLA = {
         "paddingY": {
           "token": "--component-tag-default-padding-y",
           "light": "4px",
-          "dark": "4px"
+          "dark": "4px",
+          "warm": "4px"
         },
         "paddingX": {
           "token": "--component-tag-default-padding-x",
           "light": "12px",
-          "dark": "12px"
+          "dark": "12px",
+          "warm": "12px"
         },
         "label": {
           "token": "--component-tag-default-foreground",
-          "light": "#515151",
-          "dark": "#b1b1b1"
+          "light": "#4b4b4b",
+          "dark": "#b1b1b1",
+          "warm": "#4f463d"
         },
         "background": {
           "token": "--component-tag-default-background",
-          "light": "#f2f2f2",
-          "dark": "#1f1f1f"
+          "light": "#e8e8e8",
+          "dark": "#1f1f1f",
+          "warm": "#ebe4d6"
         },
         "backgroundPair": null,
         "ringWidth": null,

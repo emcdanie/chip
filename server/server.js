@@ -2,7 +2,8 @@
 // model over the local index. Nothing here calls a paid or remote API.
 import express from 'express';
 import cors from 'cors';
-import { join } from 'node:path';
+import { join, resolve, relative } from 'node:path';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { ROOT, PORT, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL } from './lib/config.mjs';
 import { ask, askStream } from './lib/ask.mjs';
@@ -26,11 +27,14 @@ app.get('/health', (_req, res) => {
     chunks: index ? index.chunks.length : 0, indexedAt: index ? index.builtAt : null });
 });
 
-// Contract: { message, sessionId } -> { reply, sessionId, sources: [{ title, url | path }] }
+// Contract: { message, sessionId, page? } -> { reply, sessionId, sources: [{ n, title, url | path, passage, score }] }
+// or, when the best match is weak, { weak: true, closest: [the 3 nearest sources] } with no model call.
+// page is what the user is looking at ("Atlas · Button").
 // With { stream: true }: NDJSON lines, { type: 'sources' } then { type: 'token', text }
 // pieces, then { type: 'done', reply, sessionId, sources } (or { type: 'error' }).
 app.post('/ask', async (req, res) => {
   const { message, sessionId, stream } = req.body || {};
+  const page = typeof req.body?.page === 'string' ? req.body.page.slice(0, 120) : undefined;
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ error: 'message is required' });
   }
@@ -38,7 +42,7 @@ app.post('/ask', async (req, res) => {
     res.setHeader('content-type', 'application/x-ndjson; charset=utf-8');
     res.setHeader('cache-control', 'no-cache');
     try {
-      for await (const ev of askStream(message.trim(), sessionId)) res.write(JSON.stringify(ev) + '\n');
+      for await (const ev of askStream(message.trim(), sessionId, page)) res.write(JSON.stringify(ev) + '\n');
     } catch (err) {
       console.error('[CHIP server]', err.message);
       res.write(JSON.stringify({ type: 'error', error: err.message }) + '\n');
@@ -46,11 +50,56 @@ app.post('/ask', async (req, res) => {
     return res.end();
   }
   try {
-    res.json(await ask(message.trim(), sessionId));
+    res.json(await ask(message.trim(), sessionId, page));
   } catch (err) {
     console.error('[CHIP server]', err.message);
     res.status(502).json({ error: err.message });
   }
+});
+
+// GET /docs: every indexed source once, { title, path | url }, for the jump palette.
+app.get('/docs', (_req, res) => {
+  const index = loadIndex();
+  const seen = new Map();
+  for (const c of index?.chunks ?? []) {
+    const key = c.url || c.path;
+    if (!seen.has(key)) seen.set(key, c.url ? { title: c.title, url: c.url } : { title: c.title, path: c.path });
+  }
+  res.json([...seen.values()]);
+});
+
+// GET /source?path=<indexed path>: the text of one source, so a citation can
+// open it. Only paths that are in the search index; nothing else on disk.
+app.get('/source', (req, res) => {
+  const index = loadIndex();
+  const path = String(req.query.path || '');
+  const known = index && index.chunks.some((c) => c.path === path);
+  const file = resolve(ROOT, path);
+  if (!known || relative(ROOT, file).startsWith('..') || !existsSync(file)) return res.status(404).type('text/plain').send('Not an indexed source.');
+  res.type('text/plain; charset=utf-8').send(readFileSync(file, 'utf8'));
+});
+
+// Component notes saved from OBI answers: data/notes.json (local, gitignored).
+// GET /notes -> [{ component, text, question, at }]; POST /notes adds one.
+const NOTES = join(ROOT, 'data/notes.json');
+const readNotes = () => {
+  try {
+    return JSON.parse(readFileSync(NOTES, 'utf8'));
+  } catch {
+    return [];
+  }
+};
+app.get('/notes', (_req, res) => res.json(readNotes()));
+app.post('/notes', (req, res) => {
+  const origin = req.get('origin');
+  if (origin && !APP_ORIGINS.has(origin)) return res.status(403).json({ error: 'origin not allowed' });
+  const { component, text, question } = req.body || {};
+  if (typeof component !== 'string' || !/^[A-Za-z]{1,40}$/.test(component) || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: 'component (a BELLA component name) and text are required' });
+  }
+  const note = { component, text: text.trim().slice(0, 4000), question: typeof question === 'string' ? question.slice(0, 500) : null, at: new Date().toISOString() };
+  writeFileSync(NOTES, JSON.stringify([...readNotes(), note], null, 2) + '\n');
+  res.status(201).json(note);
 });
 
 // POST /cmd runs one of the four chip commands and streams its output as

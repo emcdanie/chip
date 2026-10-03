@@ -8,14 +8,19 @@ import { chat, chatStream } from './llm.js';
 import { CHIP_CONTEXT_WORDS } from './config.mjs';
 
 const TOP_K = 6;
+// Below this cosine score the best match is weak: no model call, the closest
+// three are shown instead. Measured 2026-10-03: off-topic questions top out
+// at 0.51 to 0.55, on-topic ones start around 0.64.
+export const WEAK_SCORE = 0.6;
 const HISTORY_TURNS = 4; // messages kept per session (user + assistant); short keeps the prompt fast
 
 const SYSTEM = `You are CHIP, a design systems assistant for Elleta, who runs the BELLA design system.
 
 Tone: spare, declarative. No filler, no preamble, no praise, no emoji, no trailing offers. State the finding, then the implication.
 
-Answer ONLY from the sources in the message (each starts with "Source: <title>"). Rules:
-- Cite the source title in brackets for every claim, e.g. [BELLA health (data/bella.json)]. Never cite by number.
+Answer ONLY from the sources in the message (each starts with "[n] <title>"). Rules:
+- Cite every claim with its source number in brackets, e.g. [1] or [2][3]. Each number is one source. Never write source titles in the answer.
+- If a pronoun (he, she, they, it, this) cannot be resolved from earlier turns or from the page the user is looking at, do not guess: ask who or what is meant, in one sentence, and stop.
 - If the sources do not answer the question, say plainly: "Nothing in my sources covers that." Then stop, or add one line marked "General knowledge, not your sources:".
 - Never invent data: no numbers, percentages, ticket IDs, dates, people or platform status that are not in the sources.
 - BELLA is web only (React). There is no iOS or Android implementation and no parity data for them. If asked, say there is no data; do not estimate.
@@ -26,14 +31,20 @@ Format: markdown, under 200 words unless the question needs more. Bold sparingly
 
 const sessions = new Map(); // sessionId -> [{ role, content }]
 
-function sourceList(chunks) {
-  const seen = new Map();
+// One numbered source per document, in rank order; the passage is the start
+// of its best chunk, for the hover card.
+const excerpt = (t) => (t.length > 320 ? t.slice(0, 320).replace(/\s+\S*$/, '') + '…' : t);
+function numbered(chunks) {
+  const byKey = new Map();
   for (const c of chunks) {
     const key = c.url || c.path;
-    if (!seen.has(key)) seen.set(key, c.url ? { title: c.title, url: c.url } : { title: c.title, path: c.path });
+    if (!byKey.has(key)) {
+      byKey.set(key, { n: byKey.size + 1, title: c.title, ...(c.url ? { url: c.url } : { path: c.path }), passage: excerpt(c.text.trim()), score: +c.score.toFixed(3) });
+    }
   }
-  return [...seen.values()];
+  return byKey;
 }
+const keyOf = (c) => c.url || c.path;
 
 // Fill the word budget with the top chunks in rank order; the last one may be
 // cut. Only chunks actually sent to the model are reported as sources.
@@ -49,29 +60,46 @@ function fitBudget(chunks) {
   return picked;
 }
 
-async function prepare(message, sessionId) {
+// page: what the user is looking at ("Atlas · Button"); it biases retrieval
+// and tells the model what "here" and "this" mean.
+async function prepare(message, sessionId, page) {
   const id = sessionId || randomUUID();
   const history = sessions.get(id) || [];
-  const chunks = fitBudget(await search(message, TOP_K));
-  const context = chunks.map((c) => `Source: ${c.title}\n${c.text}`).join('\n\n---\n\n');
+  const found = await search(page ? `${message} (${page})` : message, TOP_K);
+  const top = found[0]?.score ?? 0;
+  if (top < WEAK_SCORE) {
+    return { id, weak: true, top, closest: [...numbered(found.slice(0, 3)).values()] };
+  }
+  const chunks = fitBudget(found);
+  const nums = numbered(chunks);
+  const context = chunks.map((c) => `[${nums.get(keyOf(c)).n}] ${c.title}\n${c.text}`).join('\n\n---\n\n');
+  const where = page ? `The user is looking at: ${page}.\n\n` : '';
   const messages = [{ role: 'system', content: SYSTEM }, ...history,
-    { role: 'user', content: `Sources:\n\n${context}\n\n===\n\nQuestion: ${message}` }];
+    { role: 'user', content: `Sources:\n\n${context}\n\n===\n\n${where}Question: ${message}` }];
   const remember = (reply) => // history keeps the bare question, not the sources
     sessions.set(id, [...history, { role: 'user', content: message }, { role: 'assistant', content: reply }].slice(-HISTORY_TURNS));
-  return { id, messages, sources: sourceList(chunks), remember };
+  return { id, top, messages, sources: [...nums.values()], remember };
 }
 
-export async function ask(message, sessionId) {
-  const { id, messages, sources, remember } = await prepare(message, sessionId);
+export async function ask(message, sessionId, page) {
+  const prep = await prepare(message, sessionId, page);
+  if (prep.weak) return { weak: true, reply: null, sessionId: prep.id, sources: [], closest: prep.closest, top: prep.top };
+  const { id, messages, sources, remember } = prep;
   const reply = await chat(messages);
   remember(reply);
   return { reply, sessionId: id, sources };
 }
 
-// Streaming: { type: 'sources' } first, then { type: 'token' } pieces, then { type: 'done' }.
-export async function* askStream(message, sessionId) {
-  const { id, messages, sources, remember } = await prepare(message, sessionId);
-  yield { type: 'sources', sources, sessionId: id };
+// Streaming: { type: 'sources' } first, then { type: 'token' } pieces, then
+// { type: 'done' }. A weak best match yields one { type: 'weak', closest }.
+export async function* askStream(message, sessionId, page) {
+  const prep = await prepare(message, sessionId, page);
+  if (prep.weak) {
+    yield { type: 'weak', closest: prep.closest, top: prep.top, sessionId: prep.id };
+    return;
+  }
+  const { id, messages, sources, remember } = prep;
+  yield { type: 'sources', sources, sessionId: id, top: prep.top };
   let reply = '';
   for await (const text of chatStream(messages)) { reply += text; yield { type: 'token', text }; }
   remember(reply.trim());

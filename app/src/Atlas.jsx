@@ -36,8 +36,12 @@ function Anatomy({ name, parts, hl, setHl, zoom, setZoom, overrides }) {
   useLayoutEffect(() => {
     const root = frame.current?.querySelector('[data-bella-component]');
     if (!root) return;
-    const w = root.getBoundingClientRect().width / zoom;
-    const next = w < 200 ? 2 : w < 360 ? 1.5 : 1;
+    const w = root.offsetWidth; // layout width, unaffected by the zoom
+    const want = w < 200 ? 2 : w < 360 ? 1.5 : 1;
+    // never wider than the stage leaves room for: a zoomed component that
+    // overflows would wrap and stop being itself
+    const room = (frame.current.clientWidth * 0.8) / w;
+    const next = Math.max(1, Math.min(want, Math.floor(room * 2) / 2));
     if (next !== zoom) setZoom(next);
   }, [name, zoom, setZoom]);
 
@@ -296,7 +300,7 @@ function Pill({ status }) {
   return <StatusPill variant={pass ? 'success' : 'info'}>{word}</StatusPill>;
 }
 
-function Panel({ c, parts, hl, onAsk, notify, sandbox }) {
+function Panel({ c, parts, hl, onAsk, notify, sandbox, notes }) {
   const focusable = c.states.includes('focus');
   const selected = parts.find((p) => p.key === hl);
   const token = selected?.token ?? c.tokens.list[0];
@@ -365,7 +369,26 @@ function Panel({ c, parts, hl, onAsk, notify, sandbox }) {
         <Button variant="secondary" onClick={copy}>Copy token</Button>
         <p className="meta">{token}</p>
         {c.storyUrl ? <Link href={c.storyUrl} external>Open story</Link> : <p className="meta">No story published</p>}
-        <Button variant="tertiary" onClick={() => onAsk(c.name)}>Ask CHIP about {c.name}</Button>
+        <Button variant="tertiary" onClick={() => onAsk(c.name)}>Ask OBI about {c.name}</Button>
+      </section>
+
+      <section aria-labelledby="notes-h" className="notes">
+        <h2 id="notes-h" className="panel-title">Notes</h2>
+        {notes.length ? (
+          <ul className="note-list">
+            {[...notes].reverse().map((n) => (
+              <li key={n.at}>
+                <p className="meta">
+                  <time dateTime={n.at}>{new Date(n.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</time>
+                  {n.question ? ` · ${n.question}` : ''}
+                </p>
+                <p className="note-text">{n.text.length > 280 ? `${n.text.slice(0, 280)}…` : n.text}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="meta">No notes yet. Save one from an OBI answer.</p>
+        )}
       </section>
     </aside>
   );
@@ -376,11 +399,10 @@ function Panel({ c, parts, hl, onAsk, notify, sandbox }) {
 function specimenHeight() {
   const el = document.querySelector('.specimen .spec-render [data-bella-component], .specimen .card-layer [data-bella-component]');
   if (!el) return null;
-  const zoom = parseFloat(el.closest('[style]')?.style.zoom) || 1;
-  return el.getBoundingClientRect().height / zoom;
+  return el.offsetHeight; // layout pixels: the stage's zoom does not count
 }
 
-export default function Specimen({ c, onAsk, bella, theme }) {
+export default function Atlas({ c, onAsk, bella, theme, notes = [], focusSandbox }) {
   const reduced = useReducedMotion();
   const [exploded, setExploded] = useState(false);
   const [hl, setHl] = useState(null);
@@ -419,6 +441,14 @@ export default function Specimen({ c, onAsk, bella, theme }) {
     return () => clearTimeout(t);
   }, [toast]);
 
+  // "Try in sandbox" from OBI: bring the sandbox into view and put focus in it
+  useEffect(() => {
+    if (!focusSandbox) return;
+    const h = document.getElementById('try-h');
+    h?.scrollIntoView({ block: 'start' });
+    h?.closest('section')?.querySelector('input, select')?.focus();
+  }, [focusSandbox?.at]);
+
   if (!c) return <p className="loading">Loading BELLA…</p>;
   const Render = SPECIMENS[c.name];
   const showExplode = parts.length > 0 && !reduced;
@@ -427,7 +457,7 @@ export default function Specimen({ c, onAsk, bella, theme }) {
     <div className="specimen">
       <div className="spec-main">
         <header className="spec-head">
-          <Eyebrow>Specimen</Eyebrow>
+          <Eyebrow>Atlas</Eyebrow>
           <Heading tier="section" as="h1">
             {c.name}
           </Heading>
@@ -474,6 +504,7 @@ export default function Specimen({ c, onAsk, bella, theme }) {
         hl={hl}
         onAsk={onAsk}
         notify={setToast}
+        notes={notes.filter((n) => n.component === c.name)}
         sandbox={
           bella ? (
             <Sandbox bella={bella} c={c} draft={draft} setDraft={setDraft} heights={heights} theme={theme} notify={setToast} />

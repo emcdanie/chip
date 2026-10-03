@@ -81,6 +81,8 @@ function cssBlock(re) {
 }
 const lightVars = cssBlock(/:root\s*\{/);
 const darkVars = { ...lightVars, ...cssBlock(/\[data-theme=["']?dark["']?\]\s*\{/) };
+const warmVars = { ...lightVars, ...cssBlock(/\[data-theme=["']?warm["']?\]\s*\{/) };
+const themed = (t) => ({ token: t, light: resolve(lightVars, t), dark: resolve(darkVars, t), warm: resolve(warmVars, t) });
 
 // a token's final value in one theme, following var() references
 function resolve(vars, name, seen = new Set()) {
@@ -138,7 +140,7 @@ const components = names.map((name) => {
     title: p.title,
     detail: p.detail,
     token: p.token,
-    value: { light: resolve(lightVars, p.token), dark: resolve(darkVars, p.token) },
+    value: { light: resolve(lightVars, p.token), dark: resolve(darkVars, p.token), warm: resolve(warmVars, p.token) },
     kind: p.kind,
     trigger: p.trigger ?? null,
     target: p.target,
@@ -156,7 +158,7 @@ const components = names.map((name) => {
   const slot = (...suffixes) => {
     for (const sfx of suffixes) {
       for (const t of [v && `--component-${key}-${v}-${sfx}`, `--component-${key}-default-${sfx}`, `--component-${key}-${sfx}`]) {
-        if (t && tokens.includes(t)) return { token: t, light: resolve(lightVars, t), dark: resolve(darkVars, t) };
+        if (t && tokens.includes(t)) return themed(t);
       }
     }
     return null;
@@ -170,8 +172,8 @@ const components = names.map((name) => {
     background,
     // a gradient plate: its second stop follows the background slot
     backgroundPair: background?.token.endsWith('-fill-hi') ? slot('fill-lo') : null,
-    ringWidth: tokens.includes('--ring-focus-width') ? { token: '--ring-focus-width', light: resolve(lightVars, '--ring-focus-width'), dark: resolve(darkVars, '--ring-focus-width') } : null,
-    ringOffset: tokens.includes('--ring-focus-offset') ? { token: '--ring-focus-offset', light: resolve(lightVars, '--ring-focus-offset'), dark: resolve(darkVars, '--ring-focus-offset') } : null,
+    ringWidth: tokens.includes('--ring-focus-width') ? themed('--ring-focus-width') : null,
+    ringOffset: tokens.includes('--ring-focus-offset') ? themed('--ring-focus-offset') : null,
   };
 
   return {
@@ -368,11 +370,11 @@ const out = {
   // its live contrast maths; ground is what the focus ring sits on
   palette: Object.fromEntries(
     Object.keys(lightVars).filter((t) => t.startsWith('--color-semantic-'))
-      .map((t) => [t, { light: resolve(lightVars, t), dark: resolve(darkVars, t) }])
+      .map((t) => [t, { light: resolve(lightVars, t), dark: resolve(darkVars, t), warm: resolve(warmVars, t) }])
   ),
   ring: {
-    color: { token: '--ring-focus-color', light: resolve(lightVars, '--ring-focus-color'), dark: resolve(darkVars, '--ring-focus-color') },
-    ground: { token: '--color-semantic-background', light: resolve(lightVars, '--color-semantic-background'), dark: resolve(darkVars, '--color-semantic-background') },
+    color: themed('--ring-focus-color'),
+    ground: themed('--color-semantic-background'),
   },
   tokenUsage,
   components,
