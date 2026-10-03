@@ -305,6 +305,9 @@ function ToolTurn({ t, onConfirm, onCancel }) {
           // the answer in words; the raw output is under Details
           t.error ? <p role="alert">{summarizeTool(t)}</p> : <p>{summarizeTool(t)}</p>
         ) : null}
+        {t.tool === 'get_metadata' && !t.args?.nodeId && /\bpages?\b/i.test(t.q) && t.text?.trim().startsWith('<') ? (
+          <p className="label">Something is selected in Figma, so it described the selection. Click empty canvas and ask again for the page list.</p>
+        ) : null}
         {t.error && /Desktop Bridge/i.test(t.error) ? (
           <p className="label">Open the Desktop Bridge plugin in Figma (Plugins, Development, Figma Desktop Bridge) on the BELLA file, then ask again.</p>
         ) : null}
@@ -440,7 +443,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
   /** Runs a tool through the host (POST /host/call); a write comes back as a preview. */
   async function runTool(q, { server, tool, args = {}, label = null, why = null }) {
     const id = Date.now() + Math.random();
-    setTurns((ts) => [...ts, { id, kind: 'tool', q, server, tool, label, why }]);
+    setTurns((ts) => [...ts, { id, kind: 'tool', q, server, tool, args, label, why }]);
     if (!tool) return patch(id, () => ({ message: `${why}. Name it in chip.config.local.json and turn it on to use it.` }));
     setBusy(true);
     try {
