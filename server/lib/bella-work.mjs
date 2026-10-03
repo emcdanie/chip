@@ -310,7 +310,7 @@ export function history(id) {
       date,
       subject,
       explanation: subject.replace(/^\w+(\([^)]*\))?!?:\s*/, ''),
-      detail: body.split('\n\n')[0].replace(/\s+/g, ' ').trim() || null,
+      detail: body.split('\n\n')[0].trim() || null, // line breaks kept: a list stays a list
       types: [...types],
       api,
       images,

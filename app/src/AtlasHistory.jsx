@@ -74,6 +74,36 @@ function Shot({ rev, path, label }) {
   );
 }
 
+// a commit body: "- " lines become a list (wrapped lines join their item), the rest stays prose
+function Body({ text }) {
+  const blocks = [];
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const item = line.match(/^[-*]\s+(.*)$/);
+    const last = blocks.at(-1);
+    if (item) {
+      if (last?.list) last.items.push(item[1]);
+      else blocks.push({ list: true, items: [item[1]] });
+    } else if (last?.list) last.items[last.items.length - 1] += ` ${line}`;
+    else if (last && !last.list) last.text += ` ${line}`;
+    else blocks.push({ list: false, text: line });
+  }
+  return blocks.map((b, i) =>
+    b.list ? (
+      <ul key={i} className="label tl-list">
+        {b.items.map((x) => (
+          <li key={x}>{x}</li>
+        ))}
+      </ul>
+    ) : (
+      <p key={i} className="label tl-detail">
+        {b.text}
+      </p>
+    )
+  );
+}
+
 function Entry({ e }) {
   return (
     <li className="tl-entry">
@@ -90,7 +120,7 @@ function Entry({ e }) {
       <p>
         {e.explanation[0].toUpperCase() + e.explanation.slice(1)}. <span className="label">From the commit message.</span>
       </p>
-      {e.detail ? <p className="label tl-detail">{e.detail}</p> : null}
+      {e.detail ? <Body text={e.detail} /> : null}
       {e.api ? (
         <pre className="diff">
           {[...e.api.props.added.map((p) => `+ prop ${p}`), ...e.api.props.removed.map((p) => `- prop ${p}`), ...e.api.states.added.map((p) => `+ state ${p}`), ...e.api.states.removed.map((p) => `- state ${p}`)].map((l) => (
