@@ -27,7 +27,16 @@
         "read",
         "write"
       ],
-      "note": "Figma Console MCP from a local install. Variables and plugin work need the Desktop Bridge plugin open in Figma."
+      "note": "Figma Console MCP from a local install. Variables and plugin work need the Desktop Bridge plugin open in Figma.",
+      "readTools": [
+        "figma_take_screenshot",
+        "figma_capture_screenshot",
+        "figma_search_components",
+        "figma_lint_design",
+        "figma_audit_design_system",
+        "figma_check_design_parity",
+        "figma_diagnose"
+      ]
     },
     {
       "name": "figma-cli",

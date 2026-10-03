@@ -83,15 +83,21 @@ app.get('/models', async (_req, res) => {
 // GET /host lists servers and status; POST /host/test connects one; POST
 // /host/call runs a tool through the guard (a write returns a preview and
 // waits); POST /host/confirm or /host/cancel settles a pending write.
-const sameApp = (req, res) => {
+// A browser always sends Origin on a POST, so a POST without one, or from
+// another site, is refused. A GET from another site carries Origin too.
+const sameApp = (req, res, { post = true } = {}) => {
   const origin = req.get('origin');
-  if (origin && !APP_ORIGINS.has(origin)) {
+  if (origin ? !APP_ORIGINS.has(origin) : post) {
     res.status(403).json({ error: 'origin not allowed' });
     return false;
   }
   return true;
 };
-app.get('/host', (_req, res) => res.json({ servers: host.servers() }));
+const session = (req) => String(req.get('x-chip-session') ?? '').slice(0, 64) || null;
+app.get('/host', (req, res) => {
+  if (!sameApp(req, res, { post: false })) return;
+  res.json({ servers: host.servers() });
+});
 app.post('/host/test', async (req, res) => {
   if (!sameApp(req, res)) return;
   try {
@@ -104,7 +110,7 @@ app.post('/host/call', async (req, res) => {
   if (!sameApp(req, res)) return;
   const { server, tool, args, purpose } = req.body ?? {};
   try {
-    res.json(await host.call({ server: String(server ?? ''), tool: String(tool ?? ''), args: args ?? {}, purpose: typeof purpose === 'string' ? purpose.slice(0, 200) : null }));
+    res.json(await host.call({ server: String(server ?? ''), tool: String(tool ?? ''), args: args ?? {}, purpose: typeof purpose === 'string' ? purpose.slice(0, 200) : null, session: session(req) }));
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -112,14 +118,14 @@ app.post('/host/call', async (req, res) => {
 app.post('/host/confirm', async (req, res) => {
   if (!sameApp(req, res)) return;
   try {
-    res.json(await host.confirm(String(req.body?.id ?? '')));
+    res.json(await host.confirm(String(req.body?.id ?? ''), session(req)));
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
 });
 app.post('/host/cancel', (req, res) => {
   if (!sameApp(req, res)) return;
-  res.json(host.cancel(String(req.body?.id ?? '')));
+  res.json(host.cancel(String(req.body?.id ?? ''), session(req)));
 });
 
 // GET /docs: every indexed source once, { title, path | url }, for the jump palette.

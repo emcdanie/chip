@@ -350,6 +350,10 @@ function CmdTurn({ t }) {
 }
 
 /* ---------- the thread and the two paths ---------- */
+// one id per page load: only this page can confirm the writes it asked for
+const SESSION = crypto.randomUUID();
+const HOST_HEADERS = { 'content-type': 'application/json', 'x-chip-session': SESSION };
+
 export function useObi({ bella, page, notify, onSaved, models = [], budget, picked = 'auto', onAnswered }) {
   const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -429,7 +433,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
     if (!tool) return patch(id, () => ({ message: `${why}. Name it in chip.config.local.json and turn it on to use it.` }));
     setBusy(true);
     try {
-      const res = await fetch('/host/call', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ server, tool, args, purpose: q.slice(0, 200) }) });
+      const res = await fetch('/host/call', { method: 'POST', headers: HOST_HEADERS, body: JSON.stringify({ server, tool, args, purpose: q.slice(0, 200) }) });
       const r = await res.json();
       if (r.error) patch(id, () => ({ error: r.error }));
       else if (r.refused) patch(id, () => ({ error: `Refused: ${r.refused}` }));
@@ -443,7 +447,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
   }
 
   async function settle(t, confirm) {
-    const res = await fetch(`/host/${confirm ? 'confirm' : 'cancel'}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: t.pendingId }) });
+    const res = await fetch(`/host/${confirm ? 'confirm' : 'cancel'}`, { method: 'POST', headers: HOST_HEADERS, body: JSON.stringify({ id: t.pendingId }) });
     const r = await res.json().catch(() => ({}));
     if (!confirm) return patch(t.id, () => ({ settled: 'Cancelled. Nothing changed.' }));
     patch(t.id, () => (r.ok ? { settled: 'Applied.', text: r.text, ms: r.ms } : { settled: 'Not applied.', error: r.error ?? 'The change did not run.' }));

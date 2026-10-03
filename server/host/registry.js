@@ -24,13 +24,25 @@ const fill = (v) =>
         ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fill(x)]))
         : v;
 
-function loadConfig() {
+function rawConfig() {
   try {
-    const cfg = JSON.parse(readFileSync(join(ROOT, 'chip.config.local.json'), 'utf8'));
-    return (cfg.servers ?? []).map(fill);
+    return JSON.parse(readFileSync(join(ROOT, 'chip.config.local.json'), 'utf8')).servers ?? [];
   } catch {
     return [];
   }
+}
+const loadConfig = () => rawConfig().map(fill);
+
+// any ${NAME} value the config uses, written back as ${NAME} in text we show
+function redact(text) {
+  if (typeof text !== 'string') return text;
+  const names = new Set(JSON.stringify(rawConfig()).match(/\$\{(\w+)\}/g) ?? []);
+  let out = text;
+  for (const n of names) {
+    const v = process.env[n.slice(2, -1)];
+    if (v && v.length > 3) out = out.split(v).join(n);
+  }
+  return out;
 }
 
 // Before a write, what does the thing look like now? A read tool per server,
@@ -52,18 +64,20 @@ function entry(cfg) {
 /** Every configured server with its status, for /tools and the Connectors page. */
 export function servers() {
   const used = lastToolUses();
+  const raw = new Map(rawConfig().map((c) => [c.name, c]));
   return loadConfig().map((cfg) => {
     const e = cfg.disabled ? null : entry(cfg);
+    const r = raw.get(cfg.name) ?? {};
     return {
       name: cfg.name,
       kind: cfg.kind,
       transport: cfg.kind === 'cli' ? 'cli' : cfg.transport,
-      where: cfg.url ?? [cfg.command, ...(cfg.args ?? [])].join(' '),
+      where: r.url ?? [r.command, ...(r.args ?? [])].join(' '), // as written: ${NAME}, never the value
       allow: cfg.allow ?? [],
       note: cfg.note ?? null,
       disabled: Boolean(cfg.disabled),
       status: cfg.disabled ? 'disabled' : e.status,
-      error: e?.error ?? null,
+      error: redact(e?.error ?? null),
       tools: e?.tools ?? null,
       lastUsed: used[cfg.name] ?? null,
     };
@@ -97,22 +111,23 @@ async function run(cfg, toolName, args, purpose) {
   const e = entry(cfg);
   const t0 = Date.now();
   try {
-    const text = await e.adapter.call(toolName, args);
+    const text = redact(await e.adapter.call(toolName, args));
     const ms = Date.now() - t0;
     logUsage({ type: 'tool', server: cfg.name, tool: toolName, purpose, ms, ok: true });
     return { ok: true, text, ms };
   } catch (err) {
     const ms = Date.now() - t0;
-    logUsage({ type: 'tool', server: cfg.name, tool: toolName, purpose, ms, ok: false, error: err.message.slice(0, 200) });
-    return { ok: false, error: err.message, ms };
+    const error = redact(err.message);
+    logUsage({ type: 'tool', server: cfg.name, tool: toolName, purpose, ms, ok: false, error: error.slice(0, 200) });
+    return { ok: false, error, ms };
   }
 }
 
 /** Calls one tool through the guard. Returns a result, a refusal, or a pending write. */
-export async function call({ server, tool, args = {}, purpose = null }) {
+export async function call({ server, tool, args = {}, purpose = null, session = null }) {
   const cfg = configOf(server);
   const e = entry(cfg);
-  if (!e.tools) await test(server);
+  if (!e.tools || !e.adapter.client && cfg.kind !== 'cli') await test(server); // a closed client reconnects
   const t = e.tools?.find((x) => x.name === tool);
   if (!t) {
     const why = `${server} has no tool called "${tool}"${e.error ? ` (${e.error})` : ''}`;
@@ -120,7 +135,7 @@ export async function call({ server, tool, args = {}, purpose = null }) {
     throw new Error(why);
   }
   const reader = BEFORE[server]?.(tool);
-  const g = await guard({ serverCfg: cfg, tool: t, args, purpose, readBefore: reader ? () => e.adapter.call(...reader) : null });
+  const g = await guard({ serverCfg: cfg, tool: t, args, purpose, readBefore: reader ? async () => redact(await e.adapter.call(...reader)) : null, session });
   if (g.refused) {
     logUsage({ type: 'tool', server, tool, purpose, ok: false, refused: g.refused });
     return { refused: g.refused };
@@ -130,14 +145,16 @@ export async function call({ server, tool, args = {}, purpose = null }) {
 }
 
 /** Confirm runs a pending write; Cancel drops it. */
-export async function confirm(id) {
-  const p = take(id);
+export async function confirm(id, session) {
+  const p = take(id, session);
   if (!p) throw new Error('That change has expired or was already handled. Ask again.');
-  return run(configOf(p.server), p.tool, p.args, p.purpose);
+  const cfg = configOf(p.server);
+  if (!(cfg.allow ?? []).includes('write')) throw new Error(`${cfg.name} is read-only in chip.config now; nothing ran.`);
+  return run(cfg, p.tool, p.args, p.purpose);
 }
 
-export function cancel(id) {
-  const p = take(id);
+export function cancel(id, session) {
+  const p = take(id, session);
   if (p) logUsage({ type: 'tool', server: p.server, tool: p.tool, purpose: p.purpose, ok: false, cancelled: true });
   return { cancelled: Boolean(p) };
 }

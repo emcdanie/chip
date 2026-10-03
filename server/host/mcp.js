@@ -15,14 +15,12 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 
 const CONNECT_MS = 15000;
 
-// A tool counts as "read" when the server says it only reads (the MCP
-// readOnlyHint annotation), or, when it says nothing, when its name starts
-// with a reading verb. Everything else is "write" and goes through the guard.
-const READ_NAME = /^(figma_)?(get|list|read|search|browse|capture|take|check|lint|audit|analyze|diagnose|whoami|export_tokens|generate_)/i;
-export function kindOf(tool) {
-  const a = tool.annotations ?? {};
-  if (a.readOnlyHint === true) return 'read';
-  if (a.readOnlyHint === false || a.destructiveHint === true) return 'write';
+// A tool counts as "read" only when its name starts get_, list_, read_ or
+// browse_, or when the config lists it in "readTools". Everything else,
+// whatever the server's own hints say, is "write" and waits for Confirm.
+const READ_NAME = /^(figma_)?(get|list|read|browse)_/i;
+export function kindOf(tool, readTools = []) {
+  if (readTools.includes(tool.name)) return 'read';
   return READ_NAME.test(tool.name) ? 'read' : 'write';
 }
 
@@ -37,33 +35,57 @@ export class McpServer {
     this.tools = null;
   }
 
-  async connect() {
-    if (this.client) return this.client;
-    const { transport, command, args = [], env = {}, url } = this.cfg;
+  // one connection at a time; a failed or closed one is forgotten, so the
+  // next call reconnects (Figma closed and reopened, the child exited)
+  connect() {
+    if (this.client) return Promise.resolve(this.client);
+    this.connecting ??= this.open().finally(() => {
+      this.connecting = null;
+    });
+    return this.connecting;
+  }
+
+  async attempt(transport, what) {
     const client = new Client({ name: 'chip', version: '2.0.0' });
-    if (transport === 'stdio') {
-      // the child gets our PATH plus only the variables the config names
-      await withTimeout(client.connect(new StdioClientTransport({ command, args, env: { PATH: process.env.PATH, HOME: process.env.HOME, ...env }, stderr: 'ignore' })), CONNECT_MS, `${this.cfg.name} start`);
-    } else {
-      // newer servers speak "streamable HTTP"; older ones Server-Sent Events
-      try {
-        await withTimeout(client.connect(new StreamableHTTPClientTransport(new URL(url))), CONNECT_MS, `${this.cfg.name} connect`);
-      } catch {
-        const sse = new Client({ name: 'chip', version: '2.0.0' });
-        await withTimeout(sse.connect(new SSEClientTransport(new URL(url.replace(/\/mcp$/, '/sse')))), CONNECT_MS, `${this.cfg.name} connect`);
-        this.client = sse;
-        return sse;
-      }
+    try {
+      await withTimeout(client.connect(transport), CONNECT_MS, what);
+    } catch (e) {
+      await client.close().catch(() => {}); // stops a stdio child that hung
+      throw e;
     }
+    client.onclose = () => {
+      if (this.client === client) {
+        this.client = null;
+        this.tools = null;
+      }
+    };
     this.client = client;
     return client;
+  }
+
+  async open() {
+    const { transport, command, args = [], env = {}, url } = this.cfg;
+    if (transport === 'stdio') {
+      // the child gets our PATH plus only the variables the config names
+      return this.attempt(new StdioClientTransport({ command, args, env: { PATH: process.env.PATH, HOME: process.env.HOME, ...env }, stderr: 'ignore' }), `${this.cfg.name} start`);
+    }
+    // newer servers speak "streamable HTTP"; older ones Server-Sent Events
+    try {
+      return await this.attempt(new StreamableHTTPClientTransport(new URL(url)), `${this.cfg.name} connect`);
+    } catch (first) {
+      try {
+        return await this.attempt(new SSEClientTransport(new URL(url.replace(/\/mcp$/, '/sse'))), `${this.cfg.name} connect`);
+      } catch {
+        throw first;
+      }
+    }
   }
 
   /** [{ server, name, description, kind: 'read' | 'write', inputSchema }] */
   async listTools() {
     const client = await this.connect();
     const { tools } = await withTimeout(client.listTools(), CONNECT_MS, `${this.cfg.name} list tools`);
-    this.tools = tools.map((t) => ({ server: this.cfg.name, name: t.name, description: (t.description ?? '').split('\n')[0].slice(0, 200), kind: kindOf(t), inputSchema: t.inputSchema }));
+    this.tools = tools.map((t) => ({ server: this.cfg.name, name: t.name, description: (t.description ?? '').split('\n')[0].slice(0, 200), kind: kindOf(t, this.cfg.readTools), inputSchema: t.inputSchema }));
     return this.tools;
   }
 

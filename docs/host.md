@@ -24,6 +24,7 @@ Copy `chip.config.example.json` to `chip.config.local.json` (gitignored) and
 edit `servers`. Each entry:
 
 - `name`, `kind` (`mcp` or `cli`), `allow` (`["read"]` or `["read","write"]`), `note`, `disabled`
+- `readTools`: tools that only read but whose names do not start `get_`, `list_`, `read_` or `browse_`. Every other tool counts as a write and waits for Confirm.
 - MCP over stdio: `transport: "stdio"`, `command`, `args`, `env`
 - MCP over http: `transport: "http"`, `url`
 - CLI: `command`, `cwd`, `subcommands: { name: { args: [...], pattern: "regex" } }`
