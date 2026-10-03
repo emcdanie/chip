@@ -11,7 +11,7 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import DataTable from '@bella/components/DataTable/DataTable';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Combobox from '@bella/components/Combobox/Combobox';
-import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor } from './answers.js';
+import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor, summarizeTool } from './answers.js';
 import Select from '@bella/components/Select/Select';
 import { baseOf } from './Sandbox.jsx';
 
@@ -301,20 +301,29 @@ function ToolTurn({ t, onConfirm, onCancel }) {
             )}
           </div>
         ) : null}
-        {t.text ? <pre className="turn-out mono">{t.text.length > 3000 ? `${t.text.slice(0, 3000)}\n…` : t.text}</pre> : null}
-        {t.error ? <p role="alert">{t.error}</p> : null}
+        {t.text != null || t.error ? (
+          // the answer in words; the raw output is under Details
+          t.error ? <p role="alert">{summarizeTool(t)}</p> : <p>{summarizeTool(t)}</p>
+        ) : null}
         {t.error && /Desktop Bridge/i.test(t.error) ? (
           <p className="label">Open the Desktop Bridge plugin in Figma (Plugins, Development, Figma Desktop Bridge) on the BELLA file, then ask again.</p>
         ) : null}
       </div>
       {t.server && t.tool ? (
-        <p className="meta-line">
-          <Tag>
-            {t.server} · {t.tool.replace(/^figma_/, '').replace(/_/g, ' ')}
-            {t.ms != null ? ` · ${(t.ms / 1000).toFixed(1)}s` : ''}
-          </Tag>
-          {t.why ? <span className="label">{t.why}</span> : null}
-        </p>
+        <details className="turn-details">
+          <summary>
+            <Tag>
+              {t.server} · {t.tool.replace(/^figma_/, '').replace(/_/g, ' ')}
+              {t.ms != null ? ` · ${(t.ms / 1000).toFixed(1)}s` : ''}
+            </Tag>{' '}
+            {t.why ? <span className="label">{t.why}</span> : null} <span className="details-link">Details</span>
+          </summary>
+          {t.text || t.error ? (
+            <pre className="turn-out mono" tabIndex={0} aria-label={`Raw output of ${t.tool}`}>
+              {(t.text || t.error).length > 3000 ? `${(t.text || t.error).slice(0, 3000)}\n…` : t.text || t.error}
+            </pre>
+          ) : null}
+        </details>
       ) : null}
     </li>
   );

@@ -240,3 +240,78 @@ export function toolRouteFor(q) {
   }
   return null;
 }
+
+/* ---------- tool output, in words ---------- */
+// Every tool answer opens with a sentence, not a dump; the raw output goes
+// under Details. Node IDs (12:34) stay out of the sentence.
+const NODE_ID = /\b\d+:\d+\b/g;
+const listOf = (names, max = 6) => {
+  const shown = names.slice(0, max).join(', ');
+  return names.length > max ? `${shown} and ${names.length - max} more` : shown;
+};
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+function parseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/** A short plain answer for a tool's output (or its error). */
+export function summarizeTool({ server, tool, text = '', error = null }) {
+  if (error) {
+    const j = parseJson(error);
+    const msg = j ? [j.error, j.message].filter(Boolean).join('. ') : error;
+    return `${server} could not do that: ${msg.replace(/^\[[\w-]+\]\s*/, '').replace(NODE_ID, '').replace(/\s+/g, ' ').trim()}`;
+  }
+  const out = text.trim();
+  if (!out) return `${server} ran ${tool} and returned nothing.`;
+
+  // official Figma MCP: page list ("- 0:1: Cover")
+  const pages = [...out.matchAll(/^- \d+:\d+: (.+)$/gm)].map((m) => m[1].trim()).filter((n) => !/^-+$/.test(n));
+  if (pages.length && /pages/i.test(out)) return `The open file has ${plural(pages.length, 'page')}: ${listOf(pages)}.`;
+
+  // XML node metadata: the top node and its direct children
+  const top = out.match(/^<(\w+) id="[^"]*" name="([^"]*)"[^>]*>/);
+  if (top) {
+    const lines = out.split('\n');
+    const indent = (l) => l.match(/^\s*/)[0].length;
+    const base = indent(lines.find((l) => l.trim().startsWith('<')) ?? '');
+    const kids = lines.filter((l) => /^\s*<\w+ id=/.test(l) && indent(l) === base + 2).map((l) => l.match(/name="([^"]*)"/)?.[1]).filter(Boolean);
+    const w = top[0].match(/width="([\d.]+)"/)?.[1];
+    const h = top[0].match(/height="([\d.]+)"/)?.[1];
+    const size = w && h && +w > 0 ? ` (${Math.round(w)} × ${Math.round(h)})` : '';
+    const kind = top[1] === 'canvas' ? 'page' : top[1];
+    return `${top[2]} is a ${kind}${size}${kids.length ? ` with ${plural(kids.length, 'layer')}: ${listOf(kids)}` : ''}.`;
+  }
+
+  // JSON (Figma Console): errors, variables, collections, or a count of keys
+  const j = parseJson(out);
+  if (j && typeof j === 'object') {
+    if (j.error) return summarizeTool({ server, tool, error: out });
+    const vars = j.variables ?? j.data?.variables;
+    const cols = j.collections ?? j.variableCollections ?? j.data?.variableCollections;
+    if (Array.isArray(vars)) return `${plural(vars.length, 'variable')}${Array.isArray(cols) ? ` in ${plural(cols.length, 'collection')}: ${listOf(cols.map((c) => c.name))}` : ''}.`;
+    if (j.success === true || j.ok === true) return `Done. ${j.message ?? ''}`.trim();
+    if (Array.isArray(j)) return `${tool.replace(/^figma_/, '').replace(/_/g, ' ')} returned ${plural(j.length, 'item')}.`;
+    const keys = Object.keys(j).filter((k) => !k.startsWith('_'));
+    return `${tool.replace(/^figma_/, '').replace(/_/g, ' ')} returned ${listOf(keys, 5)}.`;
+  }
+
+  // git
+  if (server === 'git' && tool === 'status') {
+    const [head, ...files] = out.split('\n');
+    const branch = head.match(/^## (\S+?)(?:\.\.\.|\s|$)/)?.[1];
+    return `On ${branch ?? 'this branch'}: ${files.length ? `${plural(files.length, 'changed file')}` : 'nothing changed'}.`;
+  }
+  if (server === 'git' && tool === 'log') {
+    const commits = out.split('\n').map((l) => l.replace(/^[0-9a-f]{7,}\s+/, ''));
+    return `The last ${plural(commits.length, 'commit')}: ${commits.slice(0, 3).join('; ')}${commits.length > 3 ? '; …' : ''}.`;
+  }
+
+  // anything else: its first real line
+  const first = out.split('\n').find((l) => l.trim()) ?? '';
+  return first.replace(NODE_ID, '').replace(/\s+/g, ' ').trim().slice(0, 240);
+}
