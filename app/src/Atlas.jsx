@@ -575,7 +575,7 @@ function Others({ c }) {
   );
 }
 
-function Facts({ c, bella, theme, notes, role, vis, setVis, trial = null }) {
+function Facts({ c, bella, theme, notes, role, vis, setVis, trial = null, lint = null }) {
   const tip = sentences(c.restNote, 2);
   // a tip is for people: an internal audit note is not one
   const humanTip = tip && !/audit|data-bella|asserts|invariant/i.test(tip) ? tip : null;
@@ -667,6 +667,16 @@ function Facts({ c, bella, theme, notes, role, vis, setVis, trial = null }) {
             <p className="label">No notes yet. Save one from an OBI answer.</p>
           ),
           remembered('notes', false)
+        )}
+        {section(
+          'lint',
+          'Figma lint',
+          lintSummary(lint),
+          <p className="label">
+            {lint?.found ? `Figma readiness ${lint.score} from ${lint.findings.filter((f) => f.ok === false).length} findings.` : lint?.reason ?? 'Reading Figma…'}{' '}
+            <Link href="#lint">See Figma lint</Link>
+          </p>,
+          remembered('lint', false)
         )}
         {section('others', 'How others do it', 'cited', isOpen('others', false) ? <Others c={c} /> : null, remembered('others', false))}
       </div>
@@ -928,7 +938,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
               </>
             )}
           </Card>
-          <Facts c={c} notes={notes} role={role} vis={vis} setVis={setVis} bella={bella} theme={theme} trial={view === 'try' ? { draft, height: heights.now } : null} />
+          <Facts c={c} notes={notes} role={role} vis={vis} setVis={setVis} bella={bella} theme={theme} lint={lint} trial={view === 'try' ? { draft, height: heights.now } : null} />
         </Columns>
       </div>
 
