@@ -125,20 +125,20 @@ export function checksOf(bella, c, draft, height, theme) {
   if (s.minHeight && height) {
     const h = Math.round(height);
     const set = parseFloat(draft.minHeight);
-    // the rule speaks about the rendered box; say so when padding holds it above the min height
-    const held = Number.isFinite(set) && Math.abs(set - h) >= 1 ? `Min height ${set}px renders ${h}px (padding and line height hold it). ` : '';
+    // the contract value is what BELLA promises, so it must clear the floor
+    // itself; padding that holds the box taller does not count
+    const setOk = !Number.isFinite(set) || set >= BELLA_FLOOR;
+    const held = Number.isFinite(set) && Math.abs(set - h) >= 1 ? ` (it renders ${h}px: padding and line height hold it)` : '';
     checks.push({
       key: 'target',
       name: 'Target size',
-      score: Math.round(Math.min(h / BELLA_FLOOR, 1) * 100),
-      pass: h >= BELLA_FLOOR,
-      rule:
-        held +
-        (h >= BELLA_FLOOR
+      score: Math.round(Math.min(Math.min(h, Number.isFinite(set) ? set : h) / BELLA_FLOOR, 1) * 100),
+      pass: setOk && h >= BELLA_FLOOR,
+      rule: !setOk
+        ? `Min height ${set}px is under BELLA's ${BELLA_FLOOR}px floor${set >= WCAG_MIN ? ` (still over WCAG 2.5.8's ${WCAG_MIN}px)` : ` and WCAG 2.5.8's ${WCAG_MIN}px`}${held}`
+        : h >= BELLA_FLOOR
           ? `Target ${h}px meets BELLA's ${BELLA_FLOOR}px floor`
-          : h >= WCAG_MIN
-            ? `Target ${h}px fails BELLA's ${BELLA_FLOOR}px floor (passes WCAG 2.5.8, ${WCAG_MIN}px)`
-            : `Target ${h}px fails WCAG 2.5.8 (${WCAG_MIN}px) and BELLA's ${BELLA_FLOOR}px floor`),
+          : `Target renders ${h}px, under BELLA's ${BELLA_FLOOR}px floor`,
     });
   }
 

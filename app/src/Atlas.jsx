@@ -574,7 +574,7 @@ function Others({ c }) {
   );
 }
 
-function Facts({ c, notes, role, vis, setVis }) {
+function Facts({ c, notes, role, vis, setVis, trial = null }) {
   const tip = sentences(c.restNote, 2);
   // a tip is for people: an internal audit note is not one
   const humanTip = tip && !/audit|data-bella|asserts|invariant/i.test(tip) ? tip : null;
@@ -589,7 +589,14 @@ function Facts({ c, notes, role, vis, setVis }) {
     { ok: ['pass', 'unchecked'].includes(c.health.contract.status), word: c.health.contract.status === 'no-contract' ? 'none' : c.health.contract.status === 'unchecked' ? 'n/a' : undefined, label: 'Contract parity' },
     { ok: complete(c), label: 'Story and docs present' },
     { ok: c.inDsds, label: 'DSDS entry' },
-    ...(c.minTarget ? [{ ok: parseFloat(c.minTarget.value) >= 44, word: c.minTarget.value, label: 'Touch target minimum' }] : []),
+    ...(c.minTarget
+      ? [
+          trial?.minHeight != null
+            ? // while trying a change, the target check reads the slider, not the contract
+              { ok: trial.minHeight >= 44, word: `${trial.minHeight}px`, label: trial.minHeight >= 44 ? 'Touch target minimum (your change)' : `Min height ${trial.minHeight}px is under BELLA's 44px floor` }
+            : { ok: parseFloat(c.minTarget.value) >= 44, word: c.minTarget.value, label: 'Touch target minimum' },
+        ]
+      : []),
   ];
   const failing = checks.filter((x) => !x.ok).length;
   // a section's default when this browser has no memory of it
@@ -637,7 +644,7 @@ function Facts({ c, notes, role, vis, setVis }) {
         {section(
           'checks',
           'Checks',
-          failing ? `${failing} failing` : `${checks.length} of ${checks.length} pass`,
+          `${checks.length - failing} of ${checks.length} pass${trial ? ' with your change' : ''}`,
           <ul className="gate-list">
             {checks.map((x) => (
               <li key={x.label}>
@@ -905,7 +912,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
               </>
             )}
           </Card>
-          <Facts c={c} notes={notes} role={role} vis={vis} setVis={setVis} />
+          <Facts c={c} notes={notes} role={role} vis={vis} setVis={setVis} trial={view === 'try' && draft.minHeight != null ? { minHeight: Number(draft.minHeight) } : null} />
         </Columns>
       </div>
 

@@ -155,6 +155,23 @@ if (chromium) {
         const scrolls = fit.bottom <= fit.doc + 2;
         log(`   ${theme} ${w} full page: document ${fit.doc}px, content ends ${fit.bottom}px${scrolls ? '' : ' CUT OFF'}`);
         if (!scrolls) failures.push(`${theme} ${w} page content beyond the document`);
+        // Try a change: Min height under the 44px mark flips the check, back to 44 restores it
+        if (w >= 720 && theme === 'warm') {
+          await page.locator('#specimen').getByRole('button', { name: 'Try a change' }).click();
+          await page.waitForTimeout(400);
+          const minH = page.getByRole('slider', { name: 'Min height' });
+          const facts = page.locator('[aria-label="Button facts"]');
+          await minH.fill('40');
+          await page.waitForTimeout(300);
+          const at40 = { summary: /4 of 5 pass/.test(await facts.innerText()), reason: await facts.getByText("Min height 40px is under BELLA's 44px floor").count() };
+          await minH.fill('44');
+          await page.waitForTimeout(300);
+          const at44 = /5 of 5 pass/.test(await facts.innerText());
+          const ok = at40.summary && at40.reason > 0 && at44;
+          log(`   ${theme} ${w} try a change: 40px -> ${at40.summary ? '4 of 5' : 'NOT 4 of 5'}${at40.reason ? ' with the reason' : ' NO REASON'}; 44px -> ${at44 ? '5 of 5' : 'NOT 5 of 5'}`);
+          if (!ok) failures.push(`${theme} ${w} try a change does not flip the touch target check`);
+          await page.locator('#specimen').getByRole('button', { name: 'Anatomy' }).click();
+        }
         // the one input's dropdown (desktop: in the bar)
         if (w >= 720) {
           await page.locator('#one-input').click();
