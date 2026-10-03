@@ -82,7 +82,6 @@ export default function App() {
   const [atlasId, setAtlasId] = useState(start.ws === 'atlas' ? start.id ?? 'button' : 'button');
   const [docId, setDocId] = useState(start.ws === 'docs' ? start.id ?? null : null);
   const [docsVersion, setDocsVersion] = useState(0); // bumped when OBI saves a doc
-  const [collapsed, setCollapsed] = useState(false);
   const [bella, setBella] = useState(null);
   const [health, setHealth] = useState(null);
   const [docs, setDocs] = useState([]);
@@ -235,9 +234,6 @@ export default function App() {
       } else if (mod && e.key.toLowerCase() === 'j') {
         e.preventDefault();
         setObiOpen((o) => !o);
-      } else if (mod && e.key === '\\') {
-        e.preventDefault();
-        setCollapsed((c) => !c);
       } else if (e.altKey && WS_KEYS[e.code]) {
         e.preventDefault();
         setWs(WS_KEYS[e.code]);
@@ -285,7 +281,6 @@ export default function App() {
     <div
       className="shell"
       ref={shellRef}
-      data-nav-collapsed={collapsed || undefined}
       data-ws={ws}
       data-obi={obiOpen || undefined}
       // the page pads by the dock's height; sticky parts sit under the bar
@@ -329,12 +324,6 @@ export default function App() {
       </header>
 
       <div className="body">
-        {!narrow && ws === 'health' ? (
-          <aside className="sidebar">
-            <NavList label="On this page" groups={healthGroups} onNavigate={onNavigate} collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} footer={sourceLine} />
-          </aside>
-        ) : null}
-
         {/* the page above, OBI docked below like an editor's terminal panel */}
         <div className="work">
           <main id="main" className="main container" tabIndex={-1}>
@@ -344,7 +333,7 @@ export default function App() {
               </p>
             ) : null}
             <div {...tabPanelProps('ws', 'health', ws === 'health')}>
-              <Health bella={bella} health={health} failures={failures} onOpenAtlas={openAtlas} onAsk={send} onRun={send} />
+              <Health bella={bella} health={health} failures={failures} onOpenAtlas={openAtlas} onAsk={send} onRun={send} narrow={narrow} />
             </div>
             <div {...tabPanelProps('ws', 'docs', ws === 'docs')}>{ws === 'docs' ? <Docs docId={docId} version={docsVersion} narrow={narrow} /> : null}</div>
             <div {...tabPanelProps('ws', 'connectors', ws === 'connectors')}>{ws === 'connectors' ? <Connectors /> : null}</div>

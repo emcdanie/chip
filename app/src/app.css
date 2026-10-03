@@ -105,23 +105,6 @@ body {
   white-space: nowrap;
 }
 
-.body {
-  display: grid;
-  grid-template-columns: calc(var(--spacing-16) * 3.5) minmax(0, 1fr);
-  align-items: start;
-}
-
-.shell[data-nav-collapsed] .body {
-  grid-template-columns: auto minmax(0, 1fr);
-}
-
-/* Atlas carries its own library card, so the shell has no sidebar there */
-.shell[data-ws='atlas'] .body,
-.shell[data-ws='docs'] .body,
-.shell[data-ws='connectors'] .body {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .connector-grid {
   display: grid;
   gap: var(--spacing-5);
@@ -204,19 +187,6 @@ body {
   outline-offset: calc(-1 * var(--ring-focus-width));
 }
 
-.sidebar {
-  position: sticky;
-  top: var(--header-height);
-  align-self: start;
-  max-height: calc(100dvh - var(--header-height) - var(--dock-height, 0px));
-  overflow-y: auto;
-  padding: var(--spacing-4) var(--spacing-3);
-  background: var(--color-semantic-surface-card);
-  border-right: var(--border-width-thin) solid var(--color-semantic-border);
-  box-sizing: border-box;
-  min-height: 100%;
-}
-
 .source-line {
   margin: 0;
   font-family: var(--typography-font-family-mono);
@@ -243,11 +213,6 @@ body {
 
 /* below 832px (SidebarLayout stacks) the aside lives in a drawer, opened from Menu */
 @media (max-width: 831px) {
-  .body,
-  .shell[data-nav-collapsed] .body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   /* one row: Menu · CHIP · where you are · OBI */
   .topbar-row {
     flex-wrap: nowrap;
@@ -1238,57 +1203,18 @@ body {
   }
 }
 
-/* ---------- Health hero ---------- */
-.hero {
-  display: grid;
-  gap: var(--spacing-6);
-}
-
-.hero-head {
-  display: grid;
-  gap: var(--spacing-2);
-  max-width: 65ch;
-}
-
-.chip-word {
-  margin: 0;
-  font-family: var(--typography-font-family-display);
-  font-size: var(--typography-font-size-3xl);
-  font-weight: var(--typography-font-weight-light);
-  letter-spacing: var(--typography-letter-spacing-h2);
-  line-height: var(--typography-line-height-heading);
-}
-
-/* the full stop is an ochre fill, never ochre text */
-.chip-dot {
-  display: inline-block;
-  inline-size: 0.22em;
-  block-size: 0.22em;
-  margin-inline-start: 0.06em;
-  border-radius: var(--radius-full);
-  background: var(--color-semantic-accent);
-}
-
-.hero-intro {
-  margin: 0;
-  color: var(--color-semantic-text-secondary);
-}
-
+/* ---------- Health ---------- */
 .hero-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(calc(var(--spacing-20) * 2.5), 1fr));
-  gap: var(--spacing-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--spacing-20) * 2.4)), 1fr));
+  gap: var(--layout-gutter);
 }
 
 .tile {
   display: grid;
-  gap: var(--spacing-3);
+  gap: var(--layout-stack-sm);
   align-content: space-between;
   justify-items: start;
-  padding: var(--spacing-5);
-  border-radius: var(--radius-lg);
-  border: var(--border-width-thin) solid var(--color-semantic-border);
-  background: var(--color-semantic-background);
 }
 
 /* ---------- OBI ---------- */
@@ -1636,10 +1562,6 @@ body {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-
-.usage-actions {
-  margin-block-start: var(--spacing-5);
 }
 
 /* ---------- Docs ---------- */

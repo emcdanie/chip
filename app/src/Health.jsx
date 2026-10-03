@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { usageFigures } from './answers.js';
 import Card from '@bella/components/Card/Card';
-import Heading from '@bella/components/Heading/Heading';
-import Eyebrow from '@bella/components/Eyebrow/Eyebrow';
+import PageHeader from '@bella/components/PageHeader/PageHeader';
+import Section from '@bella/components/Section/Section';
+import SidebarLayout from '@bella/components/SidebarLayout/SidebarLayout';
+import NavList from '@bella/components/NavList/NavList';
 import Stat from '@bella/components/Stat/Stat';
 import ScoreStrip, { ScoreLegend } from '@bella/components/ScoreStrip/ScoreStrip';
 import DataTable from '@bella/components/DataTable/DataTable';
@@ -61,7 +63,7 @@ function Tile({ label, value, t, action }) {
 }
 
 // What stayed on this machine this week, from data/usage.jsonl (GET /usage).
-function Usage({ onRun }) {
+function Usage() {
   const [u, setU] = useState(null);
   useEffect(() => {
     fetch('/usage')
@@ -81,14 +83,21 @@ function Usage({ onRun }) {
         <Stat label="Value at API rates" value={f.value.value} delta={f.value.delta} />
         <Stat label="Stayed on this laptop" value={f.local.value} delta={f.local.delta} />
       </div>
-      <div className="usage-actions">
-        <ActionChip onClick={() => onRun('/usage')}>Ask OBI for /usage</ActionChip>
-      </div>
     </Card>
   );
 }
 
-export default function Health({ bella, health, failures, onOpenAtlas, onAsk, onRun }) {
+const SECTIONS = [
+  { href: '#overview', label: 'Overview' },
+  { href: '#readiness', label: 'Readiness map' },
+  { href: '#usage', label: 'Usage' },
+  { href: '#failures', label: 'Open failures' },
+  { href: '#components', label: 'Components' },
+];
+
+// The Overview template (layout foundation): On this page beside the
+// sections; the page header, then one Section per block.
+export default function Health({ bella, health, failures, onOpenAtlas, onAsk, onRun, narrow }) {
   if (!bella) return <p className="loading">Loading BELLA health…</p>;
 
   const history = bella.history ?? [];
@@ -102,65 +111,72 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
   const overall = measured.length
     ? Math.round(measured.reduce((n, s) => n + s.score, 0) / measured.length)
     : null;
+  const source = (
+    <>
+      BELLA {bella.source.version} @ <span className="mono">{bella.source.commit}</span>
+    </>
+  );
+  const onThisPage = (
+    <NavList
+      label="On this page"
+      groups={[{ label: 'On this page', items: SECTIONS.filter((x) => x.href !== '#failures' || failures.length) }]}
+      footer={<p className="source-line">{source}</p>}
+    />
+  );
 
-  return (
-    <div className="view">
-      <section id="overview" aria-labelledby="overview-h" className="block">
-        <Eyebrow>
-          BELLA {bella.source.version} @ {bella.source.commit} · synced {health?.indexedAt ? `${day(health.indexedAt)}, ${time(health.indexedAt)}` : 'never'}
-        </Eyebrow>
-        <Heading tier="page" as="h1" id="overview-h">
-          System health
-        </Heading>
-        <p className="block-lead">BELLA read from the repo, checked by its own gate scripts, on this machine.</p>
+  const content = (
+    <>
+      <PageHeader
+        meta={
+          <>
+            {source} · synced {health?.indexedAt ? `${day(health.indexedAt)}, ${time(health.indexedAt)}` : 'never'}
+          </>
+        }
+        title="System health"
+        lede="BELLA read from the repo, checked by its own gate scripts, on this machine."
+      />
+
+      <Section
+        id="overview"
+        heading="Overview"
+        lede={
+          <>
+            Your design system, measured: {bella.counts.components} components,{' '}
+            {failures.length ? <Link href="#failures">{failures.length} open failures</Link> : 'no open failures'},{' '}
+            {health ? `${health.chunks.toLocaleString('en')} chunks of your docs` : 'your docs'} indexed for OBI.
+          </>
+        }
+      >
         <Card>
-          <div className="hero">
-            <div className="hero-head">
-              <p className="chip-word">
-                CHIP<span className="chip-dot" aria-hidden="true" />
-              </p>
-              <p className="hero-intro">
-                Your design system, measured: {bella.counts.components} components,{' '}
-                {failures.length ? <Link href="#failures">{failures.length} open failures</Link> : 'no open failures'},{' '}
-                {health ? `${health.chunks.toLocaleString('en')} chunks of your docs` : 'your docs'} indexed for OBI.
-              </p>
-            </div>
-            <div className="hero-stats">
-              <Tile
-                label="Components"
-                value={bella.counts.components}
-                t={trendOf(history, 'components')}
-                action={<ActionChip onClick={() => onOpenAtlas()}>Open Atlas</ActionChip>}
-              />
-              <Tile
-                label="Story coverage"
-                value={`${pct(bella.counts.withStory)}%`}
-                t={trendOf(history, 'storyCoverage', '%')}
-                action={<ActionChip onClick={() => onAsk('Which components have no story?')}>Which have none?</ActionChip>}
-              />
-              <Tile
-                label="Contract coverage"
-                value={`${pct(bella.counts.withContract)}%`}
-                t={trendOf(history, 'contractCoverage', '%')}
-                action={<ActionChip onClick={() => onAsk('Which components have no contract?')}>Which have none?</ActionChip>}
-              />
-              <Tile
-                label="Gate"
-                value={gateOk ? 'Green' : 'Red'}
-                t={{ series: gateHistory.length >= 2 ? gateHistory.map((h) => (h.ok ? 1 : 0)) : undefined, seriesLabel: () => `Gate over ${gateHistory.length} commits: ${greenCommits} green, ${gateHistory.length - greenCommits} red`, delta: `${greenCommits} of ${gateHistory.length} recent commits green` }}
-                action={<ActionChip onClick={() => onRun('/audit')}>Run /audit</ActionChip>}
-              />
-            </div>
+          <div className="hero-stats">
+            <Tile label="Components" value={bella.counts.components} t={trendOf(history, 'components')} action={<Link href="#/atlas">Open Atlas</Link>} />
+            <Tile
+              label="Story coverage"
+              value={`${pct(bella.counts.withStory)}%`}
+              t={trendOf(history, 'storyCoverage', '%')}
+              action={<ActionChip onClick={() => onAsk('Which components have no story?')}>Which have none?</ActionChip>}
+            />
+            <Tile
+              label="Contract coverage"
+              value={`${pct(bella.counts.withContract)}%`}
+              t={trendOf(history, 'contractCoverage', '%')}
+              action={<ActionChip onClick={() => onAsk('Which components have no contract?')}>Which have none?</ActionChip>}
+            />
+            <Tile
+              label="Gate"
+              value={gateOk ? 'Green' : 'Red'}
+              t={{ series: gateHistory.length >= 2 ? gateHistory.map((h) => (h.ok ? 1 : 0)) : undefined, seriesLabel: () => `Gate over ${gateHistory.length} commits: ${greenCommits} green, ${gateHistory.length - greenCommits} red`, delta: `${greenCommits} of ${gateHistory.length} recent commits green` }}
+              action={<ActionChip onClick={() => onRun('/audit')}>Run /audit</ActionChip>}
+            />
           </div>
         </Card>
-      </section>
+      </Section>
 
-      <section id="readiness" aria-labelledby="readiness-h" className="block">
-        <h2 id="readiness-h" className="block-title">Readiness map</h2>
-        <p className="block-lead">
-          The ten-station AI-readiness inspection, pointed at BELLA. {measured.length} of {stations.length} stations
-          are measured from the repo; the rest are self-assessed until they have a source.
-        </p>
+      <Section
+        id="readiness"
+        heading="Readiness map"
+        lede={`The ten-station AI-readiness inspection, pointed at BELLA. ${measured.length} of ${stations.length} stations are measured from the repo; the rest are self-assessed until they have a source.`}
+      >
         <Card>
           <div className="readiness">
             <ScoreStrip
@@ -183,17 +199,19 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
             </details>
           </div>
         </Card>
-      </section>
+      </Section>
 
-      <section id="usage" aria-labelledby="usage-h" className="block">
-        <h2 id="usage-h" className="block-title">Usage</h2>
-        <p className="block-lead">What OBI answered this week and where: from BELLA data, a local model, or the cloud. Tokens are counted by Ollama and Claude.</p>
-        <Usage onRun={onRun} />
-      </section>
+      <Section
+        id="usage"
+        heading="Usage"
+        lede="What OBI answered this week and where: from BELLA data, a local model, or the cloud. Tokens are counted by Ollama and Claude."
+        actions={<ActionChip onClick={() => onRun('/usage')}>Ask OBI for /usage</ActionChip>}
+      >
+        <Usage />
+      </Section>
 
       {failures.length ? (
-        <section id="failures" aria-labelledby="failures-h" className="block">
-          <h2 id="failures-h" className="block-title">Open failures</h2>
+        <Section id="failures" heading="Open failures" lede={`${failures.length} open failures, from BELLA's own checks.`}>
           <DataTable
             columns={[
               { key: 'name', label: 'Component' },
@@ -206,21 +224,21 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
             rowKey="id"
             caption={`${failures.length} open failures`}
           />
-        </section>
+        </Section>
       ) : null}
 
-      <section id="components" aria-labelledby="components-h" className="block">
-        <h2 id="components-h" className="block-title">Components</h2>
-        {failures.length ? null : <p className="block-lead">Every component passes.</p>}
+      <Section id="components" heading="Components" lede={failures.length ? null : 'Every component passes.'}>
         <DataTable
           columns={COLUMNS}
           rows={bella.components}
           rowKey="id"
           caption={`Per-component results, BELLA @ ${bella.source.commit}`}
           defaultSort={{ key: 'name', direction: 'ascending' }}
-          maxHeight="calc(var(--spacing-20) * 6)"
         />
-      </section>
-    </div>
+      </Section>
+    </>
   );
+
+  // below 832px On this page lives in the Menu drawer
+  return narrow ? content : <SidebarLayout aside={onThisPage} asideLabel="On this page">{content}</SidebarLayout>;
 }
