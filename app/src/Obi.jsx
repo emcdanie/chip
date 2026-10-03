@@ -425,14 +425,14 @@ function CmdTurn({ t }) {
       <p className="label meta-line">
         command ·{' '}
         {t.exit == null ? (
-          <StatusPill variant="info">running</StatusPill>
+          <StatusPill variant="neutral">running</StatusPill>
         ) : (
-          <StatusPill variant={t.exit === 0 ? 'success' : 'info'}>{t.exit === 0 ? 'pass' : `fail (exit ${t.exit})`}</StatusPill>
+          <StatusPill variant={t.exit === 0 ? 'success' : 'neutral'}>{t.exit === 0 ? 'pass' : `fail (exit ${t.exit})`}</StatusPill>
         )}
         {gates.map((g) => (
           <span key={g[1]} className="gate">
             <span className="mono">{g[1]}</span>
-            <StatusPill variant={g[2] === 'OK' ? 'success' : 'info'}>{g[2] === 'OK' ? 'pass' : 'fail'}</StatusPill>
+            <StatusPill variant={g[2] === 'OK' ? 'success' : 'neutral'}>{g[2] === 'OK' ? 'pass' : 'fail'}</StatusPill>
           </span>
         ))}
       </p>

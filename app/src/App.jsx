@@ -299,7 +299,8 @@ export default function App() {
               Menu
             </ActionChip>
             <p className="brand">CHIP</p>
-            <p className="here">{page}</p>
+            {/* the page name only; it wraps or shrinks, never cuts off */}
+            <p className="here">{ws === 'atlas' ? atlas?.name ?? 'Atlas' : page}</p>
             <ActionChip onClick={() => setObiOpen((o) => !o)} ariaLabel={obiOpen ? 'Close OBI' : 'Open OBI'}>
               OBI
             </ActionChip>
