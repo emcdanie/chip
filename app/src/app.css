@@ -406,8 +406,12 @@ body {
   stroke-width: 2;
 }
 
-.leaders .anc {
+.leaders g[data-hl] .anc {
   fill: var(--color-semantic-accent);
+}
+
+.leaders .anc {
+  fill: var(--color-semantic-text-primary);
   stroke: var(--color-semantic-surface-card);
   stroke-width: 2;
 }
@@ -420,18 +424,19 @@ body {
   border-radius: var(--radius-full);
   display: grid;
   place-items: center;
-  background: var(--color-semantic-accent);
-  color: var(--color-semantic-text-on-accent);
+  /* ink at rest; ochre only on the part that is selected or hovered */
+  background: var(--color-semantic-text-primary);
+  color: var(--color-semantic-background);
   box-shadow: 0 0 0 var(--border-width-thick) var(--color-semantic-surface-card);
-  font-family: var(--typography-font-family-mono);
-  font-size: var(--typography-font-size-mono);
+  font-family: var(--typography-font-family-body);
+  font-size: var(--typography-font-size-sm);
   font-weight: var(--typography-font-weight-bold);
   cursor: default;
 }
 
 .pin[data-hl] {
-  background: var(--color-semantic-text-primary);
-  color: var(--color-semantic-background);
+  background: var(--color-semantic-accent);
+  color: var(--color-semantic-text-on-accent);
 }
 
 .legend,
