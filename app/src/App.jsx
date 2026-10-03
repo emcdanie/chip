@@ -198,10 +198,11 @@ export default function App() {
     if (narrow) setObiOpen(false); // the sheet covers the page at phone width
   }
 
+  // Health shows its own sections; the component list belongs to Atlas
   const groups = [];
   if (ws === 'health') groups.push({ label: 'On this page', items: HEALTH_SECTIONS });
   const byCat = {};
-  for (const c of bella?.components ?? []) (byCat[c.category ?? NO_CONTRACT] ??= []).push(c);
+  for (const c of ws === 'atlas' ? bella?.components ?? [] : []) (byCat[c.category ?? NO_CONTRACT] ??= []).push(c);
   for (const cat of [...CATEGORIES, NO_CONTRACT]) {
     if (!byCat[cat]) continue;
     groups.push({
@@ -263,7 +264,7 @@ export default function App() {
       <div className="body">
         {!narrow ? (
           <aside className="sidebar">
-            <NavList label="Components" groups={groups} onNavigate={onNavigate} collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} footer={sourceLine} />
+            <NavList label={ws === 'health' ? 'On this page' : 'Components'} groups={groups} onNavigate={onNavigate} collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} footer={sourceLine} />
           </aside>
         ) : null}
 
