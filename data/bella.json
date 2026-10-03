@@ -1,15 +1,15 @@
 {
   "source": {
     "repo": "bella",
-    "commit": "98a96b7",
-    "committedAt": "2026-10-03T09:34:03+02:00",
+    "commit": "b647b24",
+    "committedAt": "2026-10-03T09:57:44+02:00",
     "version": "0.3.0"
   },
   "counts": {
-    "components": 24,
-    "withStory": 22,
-    "withDocs": 24,
-    "withContract": 22,
+    "components": 25,
+    "withStory": 23,
+    "withDocs": 25,
+    "withContract": 23,
     "semanticTokenGroups": {
       "light": [
         "blur",
@@ -24,14 +24,14 @@
       ]
     },
     "cssVars": {
-      "light": 553,
+      "light": 572,
       "darkOverrides": 0
     }
   },
   "gates": {
     "contrastPairs": {
       "ok": true,
-      "summary": "contrast pairs: 76 checked, OK"
+      "summary": "contrast pairs: 119 checked (light, dark, warm), OK"
     },
     "contractParity": {
       "ok": true,
@@ -57,7 +57,8 @@
         "nav-list",
         "stat",
         "score-strip",
-        "data-table"
+        "data-table",
+        "drawer"
       ],
       "exemptContracts": [
         "nav-link",
@@ -91,7 +92,7 @@
       "name": "A11y",
       "score": 92,
       "assessment": "measured",
-      "basis": "22/24 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
+      "basis": "23/25 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -119,21 +120,21 @@
       "name": "Governance",
       "score": 92,
       "assessment": "measured",
-      "basis": "22/24 components: Tier 3 contract checked by contract-parity and passing"
+      "basis": "23/25 components: Tier 3 contract checked by contract-parity and passing"
     },
     {
       "id": "docs",
       "name": "Docs",
       "score": 92,
       "assessment": "measured",
-      "basis": "22/24 components: Storybook story and a docs description in the manifest"
+      "basis": "23/25 components: Storybook story and a docs description in the manifest"
     },
     {
       "id": "machine-readable",
       "name": "Machine-readable",
-      "score": 75,
+      "score": 76,
       "assessment": "measured",
-      "basis": "18/24 components: DSDS component entry and react-docgen props in the manifest"
+      "basis": "19/25 components: DSDS component entry and react-docgen props in the manifest"
     },
     {
       "id": "agent-access",
@@ -141,6 +142,256 @@
       "score": null,
       "assessment": "self-assessed",
       "basis": "No automated source yet"
+    }
+  ],
+  "history": [
+    {
+      "commit": "28a717e",
+      "committedAt": "2026-07-21T14:48:36+02:00",
+      "components": 1,
+      "storyCoverage": 100,
+      "contractCoverage": 100,
+      "gate": null
+    },
+    {
+      "commit": "2ce18b8",
+      "committedAt": "2026-07-22T10:51:48+02:00",
+      "components": 1,
+      "storyCoverage": 100,
+      "contractCoverage": 100,
+      "gate": null
+    },
+    {
+      "commit": "140aea1",
+      "committedAt": "2026-07-22T11:45:10+02:00",
+      "components": 1,
+      "storyCoverage": 100,
+      "contractCoverage": 100,
+      "gate": null
+    },
+    {
+      "commit": "68b6479",
+      "committedAt": "2026-07-22T11:45:57+02:00",
+      "components": 1,
+      "storyCoverage": 100,
+      "contractCoverage": 100,
+      "gate": null
+    },
+    {
+      "commit": "492339b",
+      "committedAt": "2026-07-22T12:04:43+02:00",
+      "components": 1,
+      "storyCoverage": 100,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": null,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "0ceb2eb",
+      "committedAt": "2026-07-22T14:40:48+02:00",
+      "components": 10,
+      "storyCoverage": 100,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": null,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "6bf7529",
+      "committedAt": "2026-09-18T10:26:18+02:00",
+      "components": 10,
+      "storyCoverage": 100,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": null,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "e2c92a8",
+      "committedAt": "2026-09-19T12:09:58+02:00",
+      "components": 12,
+      "storyCoverage": 100,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": null,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "b263bdf",
+      "committedAt": "2026-09-19T12:16:19+02:00",
+      "components": 12,
+      "storyCoverage": 100,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": null,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "7dcba7c",
+      "committedAt": "2026-09-19T12:25:26+02:00",
+      "components": 12,
+      "storyCoverage": 100,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": null,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "f4af299",
+      "committedAt": "2026-09-22T13:24:27+02:00",
+      "components": 18,
+      "storyCoverage": 89,
+      "contractCoverage": 89,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "17be1f1",
+      "committedAt": "2026-10-03T07:22:34+02:00",
+      "components": 19,
+      "storyCoverage": 89,
+      "contractCoverage": 89,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "51b8d0e",
+      "committedAt": "2026-10-03T07:22:36+02:00",
+      "components": 20,
+      "storyCoverage": 90,
+      "contractCoverage": 90,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "f751fda",
+      "committedAt": "2026-10-03T07:24:57+02:00",
+      "components": 21,
+      "storyCoverage": 90,
+      "contractCoverage": 90,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "d9cdc91",
+      "committedAt": "2026-10-03T07:24:58+02:00",
+      "components": 22,
+      "storyCoverage": 91,
+      "contractCoverage": 91,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "94a8e81",
+      "committedAt": "2026-10-03T07:26:50+02:00",
+      "components": 23,
+      "storyCoverage": 91,
+      "contractCoverage": 91,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "9451293",
+      "committedAt": "2026-10-03T07:28:48+02:00",
+      "components": 23,
+      "storyCoverage": 91,
+      "contractCoverage": 91,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "e72a8d0",
+      "committedAt": "2026-10-03T07:30:54+02:00",
+      "components": 23,
+      "storyCoverage": 91,
+      "contractCoverage": 91,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "988418d",
+      "committedAt": "2026-10-03T08:07:29+02:00",
+      "components": 24,
+      "storyCoverage": 92,
+      "contractCoverage": 92,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "526a1e0",
+      "committedAt": "2026-10-03T08:09:57+02:00",
+      "components": 24,
+      "storyCoverage": 92,
+      "contractCoverage": 92,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "98a96b7",
+      "committedAt": "2026-10-03T09:34:03+02:00",
+      "components": 24,
+      "storyCoverage": 92,
+      "contractCoverage": 92,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "b647b24",
+      "committedAt": "2026-10-03T09:57:44+02:00",
+      "components": 25,
+      "storyCoverage": 92,
+      "contractCoverage": 92,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
     }
   ],
   "palette": {
@@ -255,6 +506,10 @@
     "--color-semantic-border-ink": {
       "light": "#121212",
       "dark": "#ededed"
+    },
+    "--color-semantic-scrim": {
+      "light": "#1A172038",
+      "dark": "#1B191699"
     },
     "--color-semantic-focus-ring": {
       "light": "#b97a14",
@@ -422,6 +677,7 @@
     "--spacing-3": [
       "BrandWordmark",
       "DataTable",
+      "Drawer",
       "Input",
       "NavList",
       "ResourceCard",
@@ -632,6 +888,7 @@
       "ScoreStrip",
       "SegmentedControl",
       "Select",
+      "Stat",
       "StatusPill",
       "Tabs"
     ],
@@ -673,6 +930,7 @@
     ],
     "--motion-easing-standard": [
       "Card",
+      "Drawer",
       "FilterChip",
       "Link",
       "NavList",
@@ -695,9 +953,11 @@
     ],
     "--border-width-thin": [
       "DataTable",
+      "Drawer",
       "Kbd",
       "NavList",
       "ScoreStrip",
+      "Stat",
       "Tabs"
     ],
     "--color-semantic-text-secondary": [
@@ -754,6 +1014,7 @@
     ],
     "--typography-font-family-body": [
       "DataTable",
+      "Drawer",
       "Input",
       "ResourceCard",
       "ScoreStrip",
@@ -774,6 +1035,7 @@
     ],
     "--typography-font-weight-medium": [
       "DataTable",
+      "Drawer",
       "Input",
       "NavList",
       "ScoreStrip"
@@ -784,6 +1046,45 @@
       "SectionHeader",
       "Stat",
       "Tabs"
+    ],
+    "--component-drawer-background": [
+      "Drawer"
+    ],
+    "--component-drawer-border": [
+      "Drawer"
+    ],
+    "--component-drawer-duration": [
+      "Drawer"
+    ],
+    "--component-drawer-foreground": [
+      "Drawer"
+    ],
+    "--component-drawer-padding": [
+      "Drawer"
+    ],
+    "--component-drawer-scrim": [
+      "Drawer"
+    ],
+    "--component-drawer-shadow": [
+      "Drawer"
+    ],
+    "--component-drawer-width": [
+      "Drawer"
+    ],
+    "--typography-font-size-xl": [
+      "Drawer",
+      "SectionHeader"
+    ],
+    "--typography-letter-spacing-title": [
+      "Drawer",
+      "ScoreStrip"
+    ],
+    "--typography-line-height-snug": [
+      "Drawer",
+      "Eyebrow",
+      "ResourceCard",
+      "ScoreStrip",
+      "SectionHeader"
     ],
     "--component-eyebrow-ink-font-family": [
       "Eyebrow"
@@ -820,12 +1121,6 @@
     ],
     "--component-eyebrow-muted-letter-spacing": [
       "Eyebrow"
-    ],
-    "--typography-line-height-snug": [
-      "Eyebrow",
-      "ResourceCard",
-      "ScoreStrip",
-      "SectionHeader"
     ],
     "--color-semantic-background-inverse": [
       "FilterChip"
@@ -1173,17 +1468,11 @@
       "ScoreStrip",
       "Stat"
     ],
-    "--typography-letter-spacing-title": [
-      "ScoreStrip"
-    ],
     "--typography-line-height-heading": [
       "ScoreStrip",
       "Stat"
     ],
     "--typography-font-size-body": [
-      "SectionHeader"
-    ],
-    "--typography-font-size-xl": [
       "SectionHeader"
     ],
     "--color-semantic-accent-border": [
@@ -1238,6 +1527,15 @@
       "Stat"
     ],
     "--component-stat-label-font-size": [
+      "Stat"
+    ],
+    "--component-stat-trend-height": [
+      "Stat"
+    ],
+    "--component-stat-trend-stroke": [
+      "Stat"
+    ],
+    "--component-stat-trend-width": [
       "Stat"
     ],
     "--component-stat-value-font-family": [
@@ -1742,7 +2040,8 @@
       },
       "compositionDepth": 0,
       "composesInto": [
-        "BrandWordmark"
+        "BrandWordmark",
+        "Drawer"
       ],
       "health": {
         "contrast": {
@@ -1953,7 +2252,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 11,
+          "pairs": 12,
           "failing": []
         },
         "contract": {
@@ -2062,6 +2361,96 @@
         "contrast": {
           "status": "pass",
           "pairs": 14,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "drawer",
+      "name": "Drawer",
+      "description": "A panel that slides in from an edge over a scrim, for navigation or a tool panel on\nsmall screens. A native modal dialog: the rest of the page is inert while\nit is open, so focus stays inside; Esc closes it; focus goes back to\nwhatever opened it.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "children",
+        "className",
+        "label",
+        "onClose",
+        "open",
+        "side"
+      ],
+      "variants": [],
+      "states": [
+        "closed",
+        "open",
+        "focus"
+      ],
+      "a11y": "Verified 2026-10-03: a native <dialog> opened with showModal(), named by its visible title (aria-labelledby). The rest of the page is inert while it is open, so Tab stays inside. Esc, the Close button and a click on the scrim close it; focus returns to the element that opened it. Title and content text-primary on the raised surface, 16.73:1 light / 12.93:1 dark (AAA). The slide is 250ms and is dropped under prefers-reduced-motion.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": {
+          "token": "--component-drawer-foreground",
+          "light": "#121212",
+          "dark": "#ededed"
+        },
+        "background": {
+          "token": "--component-drawer-background",
+          "light": "#f2f2f2",
+          "dark": "#262626"
+        },
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.drawer.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-drawer--docs",
+      "composedFrom": [
+        "Button"
+      ],
+      "tokens": {
+        "count": 16,
+        "component": 8,
+        "semantic": 0,
+        "list": [
+          "--border-width-thin",
+          "--component-drawer-background",
+          "--component-drawer-border",
+          "--component-drawer-duration",
+          "--component-drawer-foreground",
+          "--component-drawer-padding",
+          "--component-drawer-scrim",
+          "--component-drawer-shadow",
+          "--component-drawer-width",
+          "--motion-easing-standard",
+          "--spacing-3",
+          "--typography-font-family-body",
+          "--typography-font-size-xl",
+          "--typography-font-weight-medium",
+          "--typography-letter-spacing-title",
+          "--typography-line-height-snug"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 1,
           "failing": []
         },
         "contract": {
@@ -3735,6 +4124,8 @@
         "className",
         "delta",
         "label",
+        "series",
+        "seriesLabel",
         "trend",
         "value"
       ],
@@ -3742,7 +4133,7 @@
       "states": [
         "default"
       ],
-      "a11y": "Verified 2026-10-03: a dl with a dt label and dd figure, so the label names the figure. The trend arrow is aria-hidden and a spoken Up / Down precedes the change. Figure text-primary, label and change text-secondary, all AAA on the page and on panel (7.09:1 light / 8.44:1 dark worst for muted). Tabular numerals.",
+      "a11y": "Verified 2026-10-03: a dl with a dt label and dd figure, so the label names the figure. The trend arrow is aria-hidden and a spoken Up / Down precedes the change. Figure text-primary, label and change text-secondary, all AAA on the page and on panel (7.09:1 light / 8.44:1 dark worst for muted). Tabular numerals. The sparkline is role=img with an aria-label that says the first and last values and the number of points (or seriesLabel); line and end dot text-primary, 3:1+ as non-text on page and panel in both themes.",
       "minTarget": null,
       "sandbox": {
         "minHeight": null,
@@ -3814,25 +4205,50 @@
           "z": 2,
           "pin": null,
           "anchor": null
+        },
+        {
+          "key": "trend",
+          "n": 4,
+          "title": "Sparkline",
+          "detail": "1px ink line and end dot, 80 by 24; shown with two or more points",
+          "token": "--component-stat-trend-stroke",
+          "value": {
+            "light": "#121212",
+            "dark": "#ededed"
+          },
+          "kind": "content",
+          "trigger": "rest",
+          "target": "[data-bella-diagram]",
+          "zone": {
+            "inset": -2
+          },
+          "z": 3,
+          "pin": null,
+          "anchor": null
         }
       ],
       "anatomySource": "tokens/component.json → component.stat.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-stat--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 15,
-        "component": 6,
+        "count": 20,
+        "component": 9,
         "semantic": 2,
         "list": [
+          "--border-width-thin",
           "--color-semantic-text-primary",
           "--color-semantic-text-secondary",
           "--component-stat-delta-font-size",
           "--component-stat-label-font-family",
           "--component-stat-label-font-size",
+          "--component-stat-trend-height",
+          "--component-stat-trend-stroke",
+          "--component-stat-trend-width",
           "--component-stat-value-font-family",
           "--component-stat-value-font-size",
           "--component-stat-value-font-weight",
           "--spacing-1",
+          "--spacing-2",
           "--typography-font-family-body",
           "--typography-font-feature-mono",
           "--typography-letter-spacing-body",
@@ -3846,7 +4262,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 11,
+          "pairs": 12,
           "failing": []
         },
         "contract": {
