@@ -45,17 +45,24 @@ function useReducedMotion() {
 /** A token in full, allowed to wrap after each "-" (never cut in the middle). */
 export function Token({ name }) {
   if (!name) return null;
-  const parts = name.split('-');
-  return parts.map((p, i) => (
-    <React.Fragment key={i}>
-      {p}
-      {i < parts.length - 1 ? (
-        <>
-          -<wbr />
-        </>
-      ) : null}
-    </React.Fragment>
-  ));
+  // never break inside the leading "--": only at the hyphens after it
+  const lead = name.startsWith('--') ? '--' : '';
+  const parts = name.slice(lead.length).split('-');
+  return (
+    <span className="token-name">
+      {lead}
+      {parts.map((p, i) => (
+        <React.Fragment key={i}>
+          {p}
+          {i < parts.length - 1 ? (
+            <>
+              -<wbr />
+            </>
+          ) : null}
+        </React.Fragment>
+      ))}
+    </span>
+  );
 }
 
 /* ---------- Study B: numbered anatomy at rest ---------- */

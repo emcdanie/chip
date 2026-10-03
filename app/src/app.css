@@ -2044,10 +2044,41 @@ body {
   pointer-events: none;
 }
 
-/* the padding, tinted where it is measured (a highlight, never a dim) */
-.rl-band {
+/* the padding outlined where it is measured, over the untouched component */
+.rl-zone {
   position: absolute;
-  background: color-mix(in srgb, var(--color-semantic-accent) 40%, transparent);
+  box-sizing: border-box;
+  border: var(--border-width-thin) solid var(--color-semantic-accent);
+  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--color-semantic-accent) 45%, transparent) 0 1px, transparent 1px 5px);
+}
+
+.rl-content {
+  position: absolute;
+  box-sizing: border-box;
+  border: var(--border-width-thin) dashed var(--color-semantic-accent);
+}
+
+/* a numbered pin where a label can't fit, listed under the stage */
+.rl-pin {
+  position: absolute;
+  display: inline-grid;
+  place-items: center;
+  inline-size: var(--spacing-5);
+  block-size: var(--spacing-5);
+  border-radius: var(--radius-full);
+  background: var(--color-semantic-text-primary);
+  color: var(--color-semantic-background);
+  font-family: var(--typography-font-family-body);
+  font-size: var(--typography-font-size-tag);
+  font-weight: var(--typography-font-weight-bold);
+  transform: translate(-50%, -100%);
+}
+
+.rl-pin--inline {
+  position: static;
+  transform: none;
+  margin-inline-end: var(--spacing-2);
+  vertical-align: middle;
 }
 
 .rl-tag {
@@ -2115,7 +2146,11 @@ body {
 
 .spec-legend dd {
   margin: 0;
-  overflow-wrap: anywhere;
+}
+
+/* each token on its own line under the value */
+.legend-token {
+  display: block;
 }
 
 .spec-section {

@@ -35,6 +35,7 @@ function measure(frame) {
     pt: px(cs.paddingTop),
     pb: px(cs.paddingBottom),
     radius: px(cs.borderTopLeftRadius),
+    radiusRaw: cs.borderTopLeftRadius,
     minH: cs.minHeight === 'auto' ? null : px(cs.minHeight),
     height: px(root.offsetHeight),
     ring: px(doc.getPropertyValue('--ring-focus-width')),
@@ -59,6 +60,8 @@ export function SpecStage({ c, overrides }) {
   const z = m?.zoom ?? 1;
   // a narrow card: tags go under the box instead of beside it
   const narrow = m ? m.fw - (m.x + m.w) < 150 : false;
+  // the radius token: the one this component reads whose value is the measured radius
+  const radiusToken = m ? (c.tokens?.list ?? []).find((t) => /radius|shape-default/.test(t) && getComputedStyle(document.documentElement).getPropertyValue(t).trim() === m.radiusRaw) : null;
   return (
     <>
       <div className="stage spec-stage" aria-label={`${c.name} with its measurements`}>
@@ -68,28 +71,36 @@ export function SpecStage({ c, overrides }) {
           </div>
           {m ? (
             <div className="redlines" aria-hidden="true" data-narrow={narrow || undefined}>
-              {/* padding bands: where each value is measured */}
-              {m.pl ? <span className="rl-band" style={{ left: m.x, top: m.y, width: m.pl * z, height: m.h }} /> : null}
-              {m.pr ? <span className="rl-band" style={{ left: m.x + m.w - m.pr * z, top: m.y, width: m.pr * z, height: m.h }} /> : null}
-              {m.pt ? <span className="rl-band" style={{ left: m.x + m.pl * z, top: m.y, width: m.w - (m.pl + m.pr) * z, height: m.pt * z }} /> : null}
-              {m.pb ? <span className="rl-band" style={{ left: m.x + m.pl * z, top: m.y + m.h - m.pb * z, width: m.w - (m.pl + m.pr) * z, height: m.pb * z }} /> : null}
-              {/* side padding: beside the box when there is room, under each band when the card is narrow */}
-              {m.pl ? <span className={`rl-tag ${narrow ? 'rl-tag--below' : 'rl-tag--left'}`} style={narrow ? { left: m.x + (m.pl * z) / 2, top: m.y + m.h + 6 } : { left: m.x - 8, top: m.y + m.h / 2 }}>{m.pl}px</span> : null}
-              {m.pr ? <span className={`rl-tag ${narrow ? 'rl-tag--below' : 'rl-tag--right'}`} style={narrow ? { left: m.x + m.w - (m.pr * z) / 2, top: m.y + m.h + 6 } : { left: m.x + m.w + 8, top: m.y + m.h / 2 }}>{m.pr}px</span> : null}
-              {/* top and bottom padding: above and below */}
-              {m.pt ? <span className="rl-tag rl-tag--above" style={{ left: m.x + m.w / 2, top: m.y - 8 }}>{m.pt}px</span> : null}
-              {m.pb ? <span className="rl-tag rl-tag--below" style={{ left: m.x + m.w / 2, top: m.y + m.h + (narrow ? 6 : 8) }}>{m.pb}px</span> : null}
-              {/* min height: a bracket on the right, beyond the side tag; its tag goes under it when the right side is tight */}
-              <span className="rl-vline" style={{ left: m.x + m.w + (narrow ? 14 : 56), top: m.y, height: m.h }} />
-              <span className={`rl-tag ${narrow ? 'rl-tag--below' : 'rl-tag--right'}`} style={narrow ? { left: m.x + m.w + 15, top: m.y + m.h + 30 } : { left: m.x + m.w + 64, top: m.y + m.h / 2 }}>
-                {m.minH ? `${m.minH}px min` : `${m.height}px`}
-              </span>
-              {/* radius: a leader from the top-left corner, only when there is room for it (the legend always lists it) */}
-              {m.radius && m.x >= 110 ? (
+              {/* padding zones outlined over the untouched component; the content box dashed */}
+              {m.pl ? <span className="rl-zone" style={{ left: m.x, top: m.y, width: m.pl * z, height: m.h }} /> : null}
+              {m.pr ? <span className="rl-zone" style={{ left: m.x + m.w - m.pr * z, top: m.y, width: m.pr * z, height: m.h }} /> : null}
+              {m.pt ? <span className="rl-zone" style={{ left: m.x + m.pl * z, top: m.y, width: m.w - (m.pl + m.pr) * z, height: m.pt * z }} /> : null}
+              {m.pb ? <span className="rl-zone" style={{ left: m.x + m.pl * z, top: m.y + m.h - m.pb * z, width: m.w - (m.pl + m.pr) * z, height: m.pb * z }} /> : null}
+              <span className="rl-content" style={{ left: m.x + m.pl * z, top: m.y + m.pt * z, width: m.w - (m.pl + m.pr) * z, height: m.h - (m.pt + m.pb) * z }} />
+              {/* sides beside the box, top and bottom above and below, at every width */}
+              {m.pl ? <span className="rl-tag rl-tag--left" style={{ left: m.x - 6, top: m.y + m.h / 2 }}>{m.pl}px</span> : null}
+              {m.pr ? <span className="rl-tag rl-tag--right" style={{ left: m.x + m.w + 6, top: m.y + m.h / 2 }}>{m.pr}px</span> : null}
+              {m.pt ? <span className="rl-tag rl-tag--above" style={{ left: m.x + m.w / 2, top: m.y - 6 }}>{m.pt}px</span> : null}
+              {m.pb ? <span className="rl-tag rl-tag--below" style={{ left: m.x + m.w / 2, top: m.y + m.h + 6 }}>{m.pb}px</span> : null}
+              {/* min height on the right; on a narrow card a numbered pin, listed under the stage */}
+              {narrow ? (
+                <span className="rl-pin" style={{ left: m.x + m.w, top: m.y - 6 }}>1</span>
+              ) : (
+                <>
+                  <span className="rl-vline" style={{ left: m.x + m.w + 56, top: m.y, height: m.h }} />
+                  <span className="rl-tag rl-tag--right" style={{ left: m.x + m.w + 64, top: m.y + m.h / 2 }}>
+                    {m.minH ? `${m.minH}px min` : `${m.height}px`}
+                  </span>
+                </>
+              )}
+              {/* radius: a leader from the top-left corner when there is room; otherwise pin 2 */}
+              {m.radius && !narrow ? (
                 <>
                   <span className="rl-leader" style={{ left: m.x - 40 + m.radius * z * 0.3, top: m.y + m.radius * z * 0.3 }} />
                   <span className="rl-tag rl-tag--corner" style={{ left: m.x - 32, top: m.y - 32 }}>radius {m.radius}px</span>
                 </>
+              ) : m.radius ? (
+                <span className="rl-pin" style={{ left: m.x - 18, top: m.y - 6 }}>2</span>
               ) : null}
             </div>
           ) : null}
@@ -98,28 +109,32 @@ export function SpecStage({ c, overrides }) {
       {m ? (
         <dl className="spec-legend">
           <div>
-            <dt>Min height</dt>
+            <dt>{narrow ? <span className="rl-pin rl-pin--inline">1</span> : null}Min height</dt>
             <dd>
-              <b>{m.minH ? `${m.minH}px` : 'none'}</b> {s.minHeight ? <span className="mono label"><Token name={s.minHeight.token} /></span> : null}
+              <b>{m.minH ? `${m.minH}px` : 'none'}</b>
               {m.minH && m.height !== m.minH ? <span className="label"> · renders {m.height}px</span> : null}
+              {s.minHeight ? <span className="mono label legend-token"><Token name={s.minHeight.token} /></span> : null}
             </dd>
           </div>
           <div>
             <dt>Padding, sides</dt>
             <dd>
-              <b>{m.pl === m.pr ? `${m.pl}px` : `${m.pl}px / ${m.pr}px`}</b> {s.paddingX ? <span className="mono label"><Token name={s.paddingX.token} /></span> : null}
+              <b>{m.pl === m.pr ? `${m.pl}px` : `${m.pl}px / ${m.pr}px`}</b>
+              {s.paddingX ? <span className="mono label legend-token"><Token name={s.paddingX.token} /></span> : null}
             </dd>
           </div>
           <div>
             <dt>Padding, top and bottom</dt>
             <dd>
-              <b>{m.pt === m.pb ? `${m.pt}px` : `${m.pt}px / ${m.pb}px`}</b> {s.paddingY ? <span className="mono label"><Token name={s.paddingY.token} /></span> : null}
+              <b>{m.pt === m.pb ? `${m.pt}px` : `${m.pt}px / ${m.pb}px`}</b>
+              {s.paddingY ? <span className="mono label legend-token"><Token name={s.paddingY.token} /></span> : null}
             </dd>
           </div>
           <div>
-            <dt>Radius</dt>
+            <dt>{narrow ? <span className="rl-pin rl-pin--inline">2</span> : null}Radius</dt>
             <dd>
               <b>{m.radius}px</b>
+              {radiusToken ? <span className="mono label legend-token"><Token name={radiusToken} /></span> : null}
             </dd>
           </div>
           <div>
@@ -127,8 +142,9 @@ export function SpecStage({ c, overrides }) {
             <dd>
               <b>
                 {m.ring}px, {m.offset}px offset
-              </b>{' '}
-              <span className="mono label">--ring-focus-width · --ring-focus-offset</span>
+              </b>
+              <span className="mono label legend-token"><Token name="--ring-focus-width" /></span>
+              <span className="mono label legend-token"><Token name="--ring-focus-offset" /></span>
             </dd>
           </div>
         </dl>
