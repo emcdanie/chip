@@ -141,7 +141,7 @@ export async function* askStream(message, sessionId, page, opts = {}) {
     gen = run(provider, model);
     first = await gen.next();
   }
-  yield { type: 'provider', id: provider.id, place: provider.place, model: provider.id === 'claude' ? 'Claude' : model || (await providers.local.list()).find((x) => x.isDefault)?.label || 'local' };
+  yield { type: 'provider', id: provider.id, place: provider.place, model: provider.id === 'claude' ? (await providers.claude.list())[0].label : model || (await providers.local.list()).find((x) => x.isDefault)?.label || 'local' };
   if (!first.done) {
     reply += first.value;
     yield { type: 'token', text: first.value };

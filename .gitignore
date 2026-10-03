@@ -52,3 +52,6 @@ Thumbs.db
 # OBI component notes: personal, local only
 /data/notes.json
 /data/usage.jsonl
+
+# local CHIP settings (copy chip.config.example.json)
+/chip.config.local.json

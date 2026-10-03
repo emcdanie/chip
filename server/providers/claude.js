@@ -7,7 +7,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CHIP_CLAUDE_BIN } from '../lib/config.mjs';
+import { CHIP_CLAUDE_BIN, CHIP_CLAUDE_MODEL } from '../lib/config.mjs';
 
 let checked = null; // { available, note }
 
@@ -28,7 +28,7 @@ export const claude = {
 
   async list() {
     const c = check();
-    return [{ id: 'claude', label: 'Claude', group: 'Cloud', place: 'cloud', available: c.available, note: c.note }];
+    return [{ id: 'claude', label: `Claude · ${CHIP_CLAUDE_MODEL}`, group: 'Cloud', place: 'cloud', available: c.available, note: c.note }];
   },
 
   /** Streams Claude's answer. Throws before the first piece if Claude cannot answer
@@ -40,7 +40,7 @@ export const claude = {
     const dir = mkdtempSync(join(tmpdir(), 'chip-claude-'));
     const child = spawn(
       CHIP_CLAUDE_BIN,
-      ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--tools', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--disable-slash-commands', '--no-session-persistence', '--setting-sources', '', '--system-prompt', system],
+      ['-p', '--model', CHIP_CLAUDE_MODEL, '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--tools', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--disable-slash-commands', '--no-session-persistence', '--setting-sources', '', '--system-prompt', system],
       { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'] }
     );
     // a failed spawn or an early exit (EPIPE on stdin) must reach the caller,

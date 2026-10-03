@@ -1,6 +1,7 @@
 // The one config. Secrets and model names come from server/.env; the port
 // default lives here and nowhere else (the bridge talks to the server it was
 // served from, so it never needs to know the port).
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
@@ -25,6 +26,18 @@ export const CHIP_CONTEXT_WORDS = Number(env.CHIP_CONTEXT_WORDS || 450);
 export const CHIP_CLAUDE_DAILY = Number(env.CHIP_CLAUDE_DAILY || 20);
 // the Claude Code binary OBI runs headless
 export const CHIP_CLAUDE_BIN = env.CHIP_CLAUDE_BIN || 'claude';
+
+// chip.config.local.json (gitignored; chip.config.example.json shows the
+// shape). claudeModel: a lighter model than the plan's strongest, so OBI's
+// Claude answers spend less of the plan (Elleta, 2026-10-03).
+const localConfig = (() => {
+  try {
+    return JSON.parse(readFileSync(join(ROOT, 'chip.config.local.json'), 'utf8'));
+  } catch {
+    return {};
+  }
+})();
+export const CHIP_CLAUDE_MODEL = env.CHIP_CLAUDE_MODEL || localConfig.claudeModel || 'sonnet';
 export const NOTION_API_TOKEN = env.NOTION_API_TOKEN || '';
 export const BELLA_DIR = env.BELLA_DIR || join(homedir(), 'DEV', 'bella');
 

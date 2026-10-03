@@ -1,0 +1,4 @@
+{
+  "$comment": "Copy to chip.config.local.json (gitignored) to change it. claudeModel: the Claude Code model OBI's Claude route uses; an alias (sonnet, haiku, opus) follows the current model of that family.",
+  "claudeModel": "sonnet"
+}
