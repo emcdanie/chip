@@ -172,7 +172,7 @@ function Edit({ d, onCancel, onProposed }) {
 
   return (
     <Card innerClassName="doc-edit">
-      <SegmentedControl label="File" value={kind} onChange={setKind} options={KINDS} />
+      <SegmentedControl label="File" value={kind} onChange={setKind} options={KINDS} className="seg-wrap" />
       <p className="label">
         {kind === 'guidance' ? `${d.guidance.path}: longer guidance and rationale, never a contract rule.` : kind === 'contract' ? `${d.contract.path} → component.${d.id}: the rules agents and the gate read. Checked as you type.` : 'AGENTS.md: the lines that name this component. Keep each line number in front.'}
       </p>

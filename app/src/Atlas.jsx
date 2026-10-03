@@ -882,7 +882,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
         <Columns split="wide-start">
           <Card innerClassName="specimen-card">
             <div className="stage-top">
-              {modes.length > 1 ? <SegmentedControl label="Stage" value={view} onChange={setMode} options={modes} /> : null}
+              {modes.length > 1 ? <SegmentedControl label="Stage" value={view} onChange={setMode} options={modes} className="seg-wrap" /> : null}
               {stageNote ? <p className="label">{stageNote}</p> : null}
             </div>
             {view === 'try' ? (

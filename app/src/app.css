@@ -1611,6 +1611,17 @@ body {
 }
 
 /* ---------- Atlas v4 ---------- */
+/* a SegmentedControl with many options wraps on a narrow card instead of running past it */
+.atlas .seg-wrap {
+  flex-wrap: wrap;
+  max-inline-size: 100%;
+}
+
+.sandbox,
+.sandbox-fields > * {
+  min-inline-size: 0;
+}
+
 .view-as > span:first-child {
   position: static;
   width: auto;

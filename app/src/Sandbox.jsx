@@ -303,7 +303,7 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
         {children}
       </div>
       <div className="sandbox-row">
-        <SegmentedControl label="Force state" value={state} onChange={setState} options={STATES} />
+        <SegmentedControl label="Force state" value={state} onChange={setState} options={STATES} className="seg-wrap" />
         <FilterChip pressed={slow} onClick={() => setSlow((x) => !x)}>
           Slow motion
         </FilterChip>
