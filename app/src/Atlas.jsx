@@ -1,11 +1,15 @@
-// Atlas: one BELLA component, laid out like Elleta's BELLA Atlas (v8): the
-// specimen library, the specimen card (the anatomy stage, Explode, or Try a
-// change) and the Facts card side by side, then example cards. Parts, facts,
-// checks and findings come from data/bella.json; a card with no data is left
-// out, never faked.
+// Atlas: one BELLA component on the Object page template (layout
+// foundation): the specimen library beside the page; the page header, the
+// specimen card (the anatomy stage, Explode, or Try a change) beside the
+// Facts card, then Examples, Contract and What the gate caught, always in
+// that order. Parts, facts, checks and findings come from data/bella.json; a
+// missing piece is an empty state that says what to add, never faked.
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import Heading from '@bella/components/Heading/Heading';
-import Eyebrow from '@bella/components/Eyebrow/Eyebrow';
+import PageHeader from '@bella/components/PageHeader/PageHeader';
+import Section from '@bella/components/Section/Section';
+import SidebarLayout from '@bella/components/SidebarLayout/SidebarLayout';
+import Columns from '@bella/components/Columns/Columns';
+import Card from '@bella/components/Card/Card';
 import Link from '@bella/components/Link/Link';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import NavList from '@bella/components/NavList/NavList';
@@ -359,7 +363,7 @@ export function Library({ bella, current, onOpen }) {
   }));
   const gaps = bella.components.filter((c) => !complete(c)).length;
   return (
-    <div className="atlas-card library">
+    <div className="library">
       <NavList
         label="Specimen library"
         groups={groups}
@@ -405,15 +409,15 @@ function InState({ name, state }) {
 
 function Example({ eyebrow, caption, children }) {
   return (
-    <section className="atlas-card example">
-      <h3 className="label example-eyebrow">{eyebrow}</h3>
+    <Card innerClassName="example">
+      <h3 className="card-title">{eyebrow}</h3>
       <div className="well">{children}</div>
       {caption ? <p className="example-caption">{caption}</p> : null}
-    </section>
+    </Card>
   );
 }
 
-function Examples({ c, bella }) {
+function exampleCards(c, bella) {
   const cards = [];
   const variants = VARIANTS[c.name];
   if (variants && c.variants.length >= 2) {
@@ -455,7 +459,11 @@ function Examples({ c, bella }) {
       </Example>
     );
   }
-  // this component's findings only; the whole system's live on Health
+  return cards;
+}
+
+// this component's findings only; the whole system's live on Health
+function Findings({ c }) {
   const findings = [
     !c.hasStory && 'No story',
     !c.hasDocs && 'No docs description',
@@ -464,8 +472,8 @@ function Examples({ c, bella }) {
     c.health.contrast.status === 'fail' && `A contrast pair fails: ${c.health.contrast.failing.join('; ')}`,
     !c.inDsds && 'No DSDS entry',
   ].filter(Boolean);
-  cards.push(
-    <Example key="g" eyebrow="What the gate caught" caption="Real findings from BELLA's checks for this component.">
+  return (
+    <Card innerClassName="gate-card">
       {findings.length ? (
         <ul className="findings">
           {findings.map((f) => (
@@ -477,10 +485,45 @@ function Examples({ c, bella }) {
       ) : (
         <p>Nothing caught for {c.name}.</p>
       )}
+      <p className="label">Real findings from BELLA's checks for this component.</p>
       <Link href="#/health">See all on Health</Link>
-    </Example>
+    </Card>
   );
-  return cards.length ? <div className="examples">{cards}</div> : null;
+}
+
+// what the contract promises; with no contract, the empty state says where to add one
+function Contract({ c }) {
+  if (!c.hasContract) {
+    return (
+      <Card innerClassName="contract-card">
+        <div className="empty">
+          <p className="card-title">No contract yet</p>
+          <p className="label">Add one for {c.name} to tokens/component.json in BELLA.</p>
+          <Link href={REPO_FILE} external>Open the contract file</Link>
+        </div>
+      </Card>
+    );
+  }
+  return (
+    <Card innerClassName="contract-card">
+      <dl className="facts">
+        <div><dt>Props</dt><dd className="props">{c.props.map((p) => <span key={p} className="mono">{p}</span>)}</dd></div>
+        <div><dt>Variants</dt><dd>{c.variants.length ? c.variants.join(', ') : 'None'}</dd></div>
+        <div><dt>States</dt><dd>{c.states.length ? c.states.join(', ') : 'Not recorded'}</dd></div>
+        {c.rendersAs ? <div><dt>Renders as</dt><dd>{c.rendersAs}</dd></div> : null}
+      </dl>
+      <Columns count={2}>
+        <div className="contract-list">
+          <p className="label">Use it for</p>
+          <ul>{c.usage.map((u) => <li key={u}>{u}</li>)}</ul>
+        </div>
+        <div className="contract-list">
+          <p className="label">Don't</p>
+          <ul>{c.dont.map((d) => <li key={d}>{d}</li>)}</ul>
+        </div>
+      </Columns>
+    </Card>
+  );
 }
 
 /* ---------- the Facts card ---------- */
@@ -506,7 +549,6 @@ function useSections() {
 }
 
 function Facts({ c, notes, canTry, trying, onTry, notify }) {
-  const first = sentences(c.description, 1);
   const tip = sentences(c.restNote, 2);
   const [open, setOpen] = useSections();
   const [checksOpen, setChecksOpen] = useState(null); // this visit only
@@ -534,10 +576,8 @@ function Facts({ c, notes, canTry, trying, onTry, notify }) {
   const isOpen = (k, dflt) => open[k] ?? dflt;
   const factsSummary = [`${c.variants.length || 'no'} variant${c.variants.length === 1 ? '' : 's'}`, c.minTarget ? `${c.minTarget.value} min` : null].filter(Boolean).join(' · ');
   return (
-    <aside className="atlas-card facts-card" aria-label={`${c.name} facts`}>
-      <h2 className="facts-name">{c.name}</h2>
-      {first ? <p className="label">{first}</p> : null}
-      <div className="facts-stack">
+    <Card innerClassName="facts-card">
+      <div className="facts-stack" role="group" aria-label={`${c.name} facts`}>
         <Disclosure title="Facts" summary={factsSummary} open={isOpen('facts', true)} onToggle={(v) => setOpen('facts', v)}>
           <dl className="facts">
             <div><dt>Variants</dt><dd>{c.variants.length ? c.variants.join(', ') : 'None'}</dd></div>
@@ -601,14 +641,7 @@ function Facts({ c, notes, canTry, trying, onTry, notify }) {
           </ul>
         </Disclosure>
       </div>
-      {c.storyUrl ? (
-        <div className="facts-actions">
-          <Button variant="primary" href={c.storyUrl}>
-            Open the story
-          </Button>
-        </div>
-      ) : null}
-    </aside>
+    </Card>
   );
 }
 
@@ -672,6 +705,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
   const canTry = Object.keys(baseOf(c)).length > 0;
   const order = [...CATEGORIES, NO_CONTRACT].flatMap((g) => bella.components.filter((o) => (o.category ?? NO_CONTRACT) === g));
   const number = String(order.findIndex((o) => o.id === c.id) + 1).padStart(3, '0');
+  const examples = exampleCards(c, bella);
   const plainStage = (
     <div className="stage">
       <div className="spec-frame spec-frame--plain">
@@ -682,68 +716,106 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
     </div>
   );
 
-  return (
-    <div className="atlas">
-      <div className="atlas-grid" data-library={showLibrary || undefined}>
-        {showLibrary ? <Library bella={bella} current={c.id} onOpen={onOpen} /> : null}
+  const importLine = `import ${c.name} from '@bella/components/${c.name}/${c.name}';`;
+  async function copyImport() {
+    try {
+      await navigator.clipboard.writeText(importLine);
+      setToast('Copied the import');
+    } catch {
+      setToast('Could not copy the import');
+    }
+  }
+  const explodeNote = !parts.length ? 'Explode needs anatomy parts.' : reduced ? 'Explode is off while reduced motion is on.' : null;
 
-        <section className="atlas-card specimen-card" aria-labelledby="specimen-h">
-          <p className="label">
-            Specimen No. {number} · {c.category ?? NO_CONTRACT}
-          </p>
-          <Heading tier="section" as="h1" id="specimen-h">
-            {c.name}
-          </Heading>
-          {c.description ? (
-            // two lines, then More expands it in place
-            <details className="desc-more">
-              <summary>
-                <span className="desc-2">{c.description}</span>
-                <span className="more">More</span>
-              </summary>
-            </details>
-          ) : null}
+  const content = (
+    <>
+      <PageHeader
+        meta={`Specimen No. ${number} · ${c.category ?? NO_CONTRACT}`}
+        title={c.name}
+        lede={c.description || null}
+        actions={
+          <>
+            <Button variant="secondary" onClick={copyImport} ariaLabel={`Copy the import line for ${c.name}`}>
+              Copy import
+            </Button>
+            {c.storyUrl ? (
+              <Button variant="secondary" href={c.storyUrl}>
+                Open the story
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
-          {mode === 'try' ? (
-            <Sandbox bella={bella} c={c} draft={draft} setDraft={setDraft} heights={heights} theme={theme} notify={setToast} onReset={() => setMode('anatomy')}>
-              {plainStage}
-            </Sandbox>
-          ) : parts.length ? (
-            <>
-              {exploded && showExplode ? (
-                <Exploded name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} overrides={overrides} />
-              ) : (
-                <Anatomy name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} setZoom={setZoom} overrides={overrides}>
-                  <Legend name={c.name} parts={parts} hl={hl} setHl={setHl} />
-                </Anatomy>
-              )}
-              <div className="stage-bar">
-                {showExplode ? (
-                  <Button variant="secondary" onClick={() => setExploded((x) => !x)}>
+      <div className="stage-row">
+        <Columns split="wide-start">
+          <Card innerClassName="specimen-card">
+            {mode === 'try' ? (
+              <Sandbox bella={bella} c={c} draft={draft} setDraft={setDraft} heights={heights} theme={theme} notify={setToast} onReset={() => setMode('anatomy')}>
+                {plainStage}
+              </Sandbox>
+            ) : (
+              <>
+                {parts.length ? (
+                  exploded && showExplode ? (
+                    <Exploded name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} overrides={overrides} />
+                  ) : (
+                    <Anatomy name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} setZoom={setZoom} overrides={overrides}>
+                      <Legend name={c.name} parts={parts} hl={hl} setHl={setHl} />
+                    </Anatomy>
+                  )
+                ) : (
+                  <>
+                    {plainStage}
+                    <div className="empty">
+                      <p className="card-title">No anatomy yet</p>
+                      <p className="label">Add anatomy to {c.name}'s contract in BELLA ({c.anatomySource}) and its parts appear here, numbered on the stage.</p>
+                    </div>
+                  </>
+                )}
+                <div className="stage-bar">
+                  <Button variant="secondary" disabled={!showExplode} onClick={() => setExploded((x) => !x)}>
                     {exploded ? 'Put back' : 'Explode'}
                   </Button>
-                ) : null}
-                <p className="label">
-                  {parts.length} parts, bottom layer first. Hover a part to see it; select it to show its state.
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              {plainStage}
-              <div className="no-anatomy">
-                <p>No anatomy recorded for {c.name} yet.</p>
-                <p className="label">Add it in BELLA at {c.anatomySource}</p>
-                <Link href={REPO_FILE} external>Open the contract file</Link>
-              </div>
-            </>
-          )}
-        </section>
-
-        <Facts c={c} notes={notes} canTry={canTry} trying={mode === 'try'} onTry={(on) => setMode(on ? 'try' : 'anatomy')} notify={setToast} />
-
-        <Examples c={c} bella={bella} />
+                  <p className="label">{explodeNote ?? `${parts.length} parts, bottom layer first. Hover a part to see it; select it to show its state.`}</p>
+                </div>
+              </>
+            )}
+          </Card>
+          <Facts c={c} notes={notes} canTry={canTry} trying={mode === 'try'} onTry={(on) => setMode(on ? 'try' : 'anatomy')} notify={setToast} />
+        </Columns>
       </div>
+
+      <Section id="examples" heading="Examples">
+        {examples.length ? <Columns count={2}>{examples}</Columns> : (
+          <Card>
+            <div className="empty">
+              <p className="card-title">No examples yet</p>
+              <p className="label">Examples come from the contract's variants and states and a specimen in CHIP's specimens.jsx.</p>
+            </div>
+          </Card>
+        )}
+      </Section>
+
+      <Section id="contract" heading="Contract" lede="What BELLA promises about this component, read from its contract.">
+        <Contract c={c} />
+      </Section>
+
+      <Section id="gate" heading="What the gate caught">
+        <Findings c={c} />
+      </Section>
+    </>
+  );
+
+  return (
+    <div className="atlas">
+      {showLibrary ? (
+        <SidebarLayout aside={<Library bella={bella} current={c.id} onOpen={onOpen} />} asideLabel="Components">
+          {content}
+        </SidebarLayout>
+      ) : (
+        content
+      )}
 
       <p className="toast" role="status" aria-live="polite" data-show={toast ? '' : undefined}>
         {toast}
