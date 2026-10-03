@@ -547,10 +547,8 @@ export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onS
           <Tag>Looking at {page}</Tag>
         </div>
         <div className="obi-model">
+          {/* the Select shows the choice; each answer's route line says what Auto picked */}
           <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
-          <StatusPill variant={pickedModel?.place === 'cloud' ? 'info' : 'success'}>
-            {picked === 'auto' ? 'Auto' : pickedModel?.label ?? picked}
-          </StatusPill>
         </div>
         <ActionChip onClick={onClose} ariaLabel="Hide OBI (Escape or Command J)">
           Hide
