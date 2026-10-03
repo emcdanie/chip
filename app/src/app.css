@@ -55,67 +55,44 @@ body {
   border-bottom: none;
 }
 
-.palette {
-  position: relative;
+/* the one input sits centred in the bar; when OBI is open it moves into the
+   panel and the bar shows the quiet OBI chip instead */
+.bar-slot {
   flex: 1 1 calc(var(--spacing-20) * 4);
+  max-width: calc(var(--spacing-20) * 8);
+  margin-inline: auto;
+  display: flex;
+  justify-content: center;
   min-width: 0;
 }
 
-.palette-results {
+.bar-input:empty {
+  display: none;
+}
+
+.bar-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* compact theme menu: BELLA's Select, label for assistive tech only */
+.theme-select > span:first-child {
   position: absolute;
-  inset-inline: 0;
-  inset-block-start: calc(100% + var(--spacing-2));
-  z-index: 2;
-  max-block-size: calc(var(--spacing-20) * 5);
-  overflow: auto;
-  padding: var(--spacing-3);
-  border-radius: var(--radius-lg);
-  border: var(--border-width-thin) solid var(--color-semantic-border);
-  background: var(--color-semantic-surface-card);
-  box-shadow: var(--shadow-lg);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-.search-label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-
-.topbar-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-3);
-}
-
-/* three columns: sidebar, the page, OBI docked on the right from 1024px */
 .body {
   display: grid;
-  grid-template-columns: calc(var(--spacing-16) * 4) minmax(0, 1fr);
+  grid-template-columns: calc(var(--spacing-16) * 3.5) minmax(0, 1fr);
   min-height: 0;
-}
-
-.shell[data-obi] .body {
-  grid-template-columns: calc(var(--spacing-16) * 4) minmax(0, 1fr) calc(var(--spacing-20) * 5);
 }
 
 .shell[data-nav-collapsed] .body {
   grid-template-columns: auto minmax(0, 1fr);
-}
-
-.shell[data-nav-collapsed][data-obi] .body {
-  grid-template-columns: auto minmax(0, 1fr) calc(var(--spacing-20) * 5);
-}
-
-/* 1024 to 1279: both side columns narrower, so the page keeps its width */
-@media (max-width: 1279px) {
-  .shell[data-obi] .body {
-    grid-template-columns: calc(var(--spacing-16) * 3) minmax(0, 1fr) calc(var(--spacing-20) * 4);
-  }
-
-  .shell[data-nav-collapsed][data-obi] .body {
-    grid-template-columns: auto minmax(0, 1fr) calc(var(--spacing-20) * 4);
-  }
 }
 
 .sidebar {
@@ -164,8 +141,9 @@ body {
     padding: var(--spacing-6) var(--spacing-4);
   }
 
-  .palette {
+  .bar-slot {
     flex-basis: 100%;
+    max-width: none;
     order: 5;
   }
 }
@@ -256,34 +234,109 @@ body {
 
 /* ---------- Specimen ---------- */
 
-.specimen {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) calc(var(--spacing-20) * 3.5);
-  gap: var(--spacing-8);
-  align-items: start;
-}
-
-@container (max-width: 56rem) {
-  .specimen {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.spec-main {
+/* Atlas: header, view tabs, one job per view */
+.atlas {
   display: grid;
   gap: var(--spacing-5);
-  min-width: 0;
+  max-width: calc(var(--spacing-20) * 15);
 }
 
-.spec-head {
+.atlas-head {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-2);
 }
 
-.spec-bar {
+.atlas-desc {
+  max-width: 70ch;
+  color: var(--color-semantic-text-secondary);
+}
+
+.atlas-desc summary {
   display: flex;
-  align-items: center;
+  gap: var(--spacing-2);
+  cursor: pointer;
+  list-style: none;
+}
+
+.atlas-desc summary::-webkit-details-marker {
+  display: none;
+}
+
+.atlas-desc summary:focus-visible {
+  outline: var(--ring-focus-width) solid var(--ring-focus-color);
+  outline-offset: var(--ring-focus-offset);
+}
+
+.desc-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atlas-desc[open] .desc-line {
+  white-space: normal;
+}
+
+.more {
+  flex: none;
+  color: var(--color-semantic-text-primary);
+  text-decoration: underline;
+  text-underline-offset: var(--component-link-default-underline-offset);
+}
+
+.atlas-desc[open] .more {
+  display: none;
+}
+
+.atlas-desc p {
+  margin: var(--spacing-2) 0 0;
+}
+
+.atlas-pills {
+  margin: var(--spacing-1) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.label {
+  margin: 0;
+  font-size: var(--typography-font-size-sm);
+  color: var(--color-semantic-text-secondary);
+}
+
+.view-title {
+  margin: var(--spacing-6) 0 var(--spacing-3);
+  font-size: var(--typography-font-size-lg);
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.anatomy-view {
+  display: grid;
   gap: var(--spacing-4);
+}
+
+.anatomy-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+/* stage and legend side by side when the page has room, stacked below */
+.anatomy-split {
+  display: grid;
+  gap: var(--spacing-5);
+  align-items: start;
+}
+
+@container (min-width: 46rem) {
+  .anatomy-split {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
 }
 
 /* Study B: stage, then legend */
@@ -390,8 +443,43 @@ body {
 
 .legend {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(calc(var(--spacing-20) * 3), 1fr));
-  gap: var(--spacing-2);
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.legend button {
+  grid-template-columns: auto minmax(0, 1fr);
+  row-gap: 0;
+}
+
+.legend-name {
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.legend-line,
+.legend-token {
+  grid-column: 2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend-line {
+  font-size: var(--typography-font-size-sm);
+  color: var(--color-semantic-text-secondary);
+}
+
+.legend-token {
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-mono);
+  font-feature-settings: var(--typography-font-feature-mono);
+  color: var(--color-semantic-text-secondary);
+}
+
+.legend button[aria-pressed='true'] .legend-line,
+.legend button[aria-pressed='true'] .legend-token {
+  color: var(--color-semantic-text-on-accent);
 }
 
 .legend button,
@@ -412,7 +500,7 @@ body {
 
 .legend .n,
 .ex-labels .n {
-  grid-row: span 2;
+  grid-row: span 3;
   display: grid;
   place-items: center;
   inline-size: var(--spacing-6);
@@ -615,63 +703,74 @@ body {
 }
 
 /* right panel */
-.spec-panel {
+.facts {
   display: grid;
-  gap: var(--spacing-6);
-  padding: var(--spacing-5);
-  border-radius: var(--radius-lg);
-  background: var(--color-semantic-surface-card);
-}
-
-.spec-panel section {
-  display: grid;
-  gap: var(--spacing-3);
-}
-
-.panel-title {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--spacing-3) var(--spacing-8);
   margin: 0;
-  font-size: var(--typography-font-size-lg);
-  font-weight: var(--typography-font-weight-medium);
-}
-
-.facts,
-.gates {
-  display: grid;
-  gap: var(--spacing-2);
-  margin: 0;
+  max-width: 70ch;
 }
 
 .facts div {
-  display: grid;
-  gap: var(--spacing-1);
+  display: contents;
 }
 
-.gates div {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--spacing-3);
-  align-items: center;
-}
-
-.facts dt,
-.gates dt {
-  font-family: var(--typography-font-family-mono);
-  font-size: var(--typography-font-size-mono);
-  font-feature-settings: var(--typography-font-feature-mono);
+.facts dt {
   color: var(--color-semantic-text-secondary);
 }
 
-.facts dd,
-.gates dd {
+.facts dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-.actions {
-  justify-items: start;
+.token-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--spacing-20) * 4), 1fr));
+  gap: var(--spacing-2) var(--spacing-6);
 }
 
-/* contract sandbox: local state only */
+.token-rows li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-3);
+  min-width: 0;
+  padding-block: var(--spacing-1);
+  border-bottom: var(--border-width-thin) solid var(--color-semantic-border);
+}
+
+/* Try a change: inputs, the live specimen, before and after */
+.sandbox {
+  display: grid;
+  gap: var(--spacing-5);
+}
+
+.sandbox-grid {
+  display: grid;
+  gap: var(--spacing-6);
+  align-items: start;
+}
+
+@container (min-width: 52rem) {
+  .sandbox-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1.2fr);
+  }
+}
+
+.sandbox-specimen .stage {
+  min-block-size: calc(var(--spacing-20) * 3);
+  display: grid;
+}
+
+.sandbox-specimen .spec-frame {
+  display: grid;
+  place-items: center;
+}
+
 .sandbox-fields {
   display: grid;
   gap: var(--spacing-4);
@@ -820,30 +919,32 @@ body {
 }
 
 /* ---------- OBI ---------- */
-.obi-dock {
-  position: sticky;
-  top: 0;
-  align-self: start;
-  block-size: 100vh;
-  min-width: 0;
+/* OBI floats over the right edge with a shadow; the page keeps its layout */
+.obi-layer {
+  position: fixed;
+  inset-block: calc(var(--spacing-16) + var(--spacing-2)) var(--spacing-3);
+  inset-inline-end: var(--spacing-3);
+  inline-size: min(calc(var(--spacing-20) * 5.25), calc(100vw - var(--spacing-6)));
+  z-index: 4;
+  border-radius: var(--radius-lg);
+  border: var(--border-width-thin) solid var(--color-semantic-border);
   background: var(--color-semantic-background);
   color: var(--color-semantic-text-primary);
-  border-inline-start: var(--border-width-thin) solid var(--color-semantic-border);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
 }
 
-/* dialog. raises it over the Drawer's own width rule */
-dialog.obi-drawer {
-  inline-size: min(100vw, calc(var(--spacing-20) * 5));
+.obi-layer[hidden] {
+  display: none;
 }
 
-dialog.obi-drawer > :last-child {
-  padding: 0;
-}
-
-/* at phone width OBI is a full-height sheet */
-@media (max-width: 479px) {
-  dialog.obi-drawer {
-    inline-size: 100vw;
+/* below 720 it is a full-height sheet, input at its foot */
+@media (max-width: 719px) {
+  .obi-layer {
+    inset: 0;
+    inline-size: auto;
+    border-radius: 0;
+    border: 0;
   }
 }
 
@@ -851,7 +952,7 @@ dialog.obi-drawer > :last-child {
   box-sizing: border-box;
   block-size: 100%;
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   gap: var(--spacing-3);
   padding: var(--spacing-4);
   font-size: var(--typography-font-size-base);
@@ -871,15 +972,11 @@ dialog.obi-drawer > :last-child {
   letter-spacing: var(--typography-letter-spacing-title);
 }
 
-.obi-head .meta {
-  margin: 0;
-}
-
-.obi-context {
+.obi-name {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--spacing-3);
 }
 
 .obi-suggest {
@@ -1042,41 +1139,7 @@ dialog.obi-drawer > :last-child {
 }
 
 .obi-input {
-  position: relative;
-}
-
-.obi-commands {
-  position: absolute;
-  inset-inline: 0;
-  inset-block-end: calc(100% + var(--spacing-2));
-  margin: 0;
-  padding: var(--spacing-2);
-  list-style: none;
-  display: grid;
-  gap: var(--spacing-1);
-  border-radius: var(--radius-md);
-  border: var(--border-width-thin) solid var(--color-semantic-border-strong);
-  background: var(--color-semantic-surface-elevated);
-  box-shadow: var(--shadow-lg);
-}
-
-.obi-commands li {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  padding-inline-end: var(--spacing-2);
-  border-radius: var(--radius-sm);
-}
-
-/* the active command is highlighted with the ochre fill; nothing dims */
-.obi-commands li[data-active] {
-  background: var(--color-semantic-accent);
-  color: var(--color-semantic-text-on-accent);
-}
-
-.obi-commands li[data-active] .meta,
-.obi-commands li[data-active] button {
-  color: var(--color-semantic-text-on-accent);
+  min-width: 0;
 }
 
 .obi-status {

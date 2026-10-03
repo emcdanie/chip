@@ -2,15 +2,15 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "770dc35",
-    "committedAt": "2026-10-03T10:24:23+02:00",
+    "commit": "3127923",
+    "committedAt": "2026-10-03T11:02:06+02:00",
     "version": "0.3.0"
   },
   "counts": {
-    "components": 25,
-    "withStory": 23,
-    "withDocs": 25,
-    "withContract": 23,
+    "components": 27,
+    "withStory": 25,
+    "withDocs": 27,
+    "withContract": 25,
     "semanticTokenGroups": {
       "light": [
         "blur",
@@ -25,14 +25,14 @@ window.BELLA = {
       ]
     },
     "cssVars": {
-      "light": 573,
+      "light": 589,
       "darkOverrides": 0
     }
   },
   "gates": {
     "contrastPairs": {
       "ok": true,
-      "summary": "contrast pairs: 134 checked (light, dark, warm), OK"
+      "summary": "contrast pairs: 155 checked (light, dark, warm), OK"
     },
     "contractParity": {
       "ok": true,
@@ -59,7 +59,9 @@ window.BELLA = {
         "stat",
         "score-strip",
         "data-table",
-        "drawer"
+        "drawer",
+        "combobox",
+        "action-chip"
       ],
       "exemptContracts": [
         "nav-link",
@@ -91,9 +93,9 @@ window.BELLA = {
     {
       "id": "a11y",
       "name": "A11y",
-      "score": 92,
+      "score": 93,
       "assessment": "measured",
-      "basis": "23/25 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
+      "basis": "25/27 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -119,23 +121,23 @@ window.BELLA = {
     {
       "id": "governance",
       "name": "Governance",
-      "score": 92,
+      "score": 93,
       "assessment": "measured",
-      "basis": "23/25 components: Tier 3 contract checked by contract-parity and passing"
+      "basis": "25/27 components: Tier 3 contract checked by contract-parity and passing"
     },
     {
       "id": "docs",
       "name": "Docs",
-      "score": 92,
+      "score": 93,
       "assessment": "measured",
-      "basis": "23/25 components: Storybook story and a docs description in the manifest"
+      "basis": "25/27 components: Storybook story and a docs description in the manifest"
     },
     {
       "id": "machine-readable",
       "name": "Machine-readable",
-      "score": 76,
+      "score": 78,
       "assessment": "measured",
-      "basis": "19/25 components: DSDS component entry and react-docgen props in the manifest"
+      "basis": "21/27 components: DSDS component entry and react-docgen props in the manifest"
     },
     {
       "id": "agent-access",
@@ -388,6 +390,18 @@ window.BELLA = {
       "components": 25,
       "storyCoverage": 92,
       "contractCoverage": 92,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "3127923",
+      "committedAt": "2026-10-03T11:02:06+02:00",
+      "components": 27,
+      "storyCoverage": 93,
+      "contractCoverage": 93,
       "gate": {
         "contrastPairs": true,
         "contractParity": true,
@@ -662,6 +676,188 @@ window.BELLA = {
     }
   },
   "tokenUsage": {
+    "--border-width-thin": [
+      "ActionChip",
+      "Combobox",
+      "DataTable",
+      "Drawer",
+      "Kbd",
+      "NavList",
+      "ScoreStrip",
+      "Stat",
+      "Tabs"
+    ],
+    "--color-semantic-border": [
+      "ActionChip",
+      "Button",
+      "Combobox",
+      "DataTable",
+      "NavList",
+      "SegmentedControl",
+      "Tabs"
+    ],
+    "--color-semantic-border-ink": [
+      "ActionChip",
+      "Combobox",
+      "FilterChip",
+      "Input",
+      "Tabs"
+    ],
+    "--color-semantic-text-muted": [
+      "ActionChip",
+      "Button",
+      "Combobox",
+      "Input"
+    ],
+    "--component-action-chip-border": [
+      "ActionChip"
+    ],
+    "--component-action-chip-border-radius": [
+      "ActionChip"
+    ],
+    "--component-action-chip-font-size": [
+      "ActionChip"
+    ],
+    "--component-action-chip-foreground": [
+      "ActionChip"
+    ],
+    "--component-action-chip-hover-background": [
+      "ActionChip"
+    ],
+    "--component-action-chip-min-height": [
+      "ActionChip"
+    ],
+    "--motion-duration-fast": [
+      "ActionChip",
+      "FilterChip",
+      "Link",
+      "NavList",
+      "SegmentedControl",
+      "Tabs"
+    ],
+    "--motion-easing-standard": [
+      "ActionChip",
+      "Card",
+      "Drawer",
+      "FilterChip",
+      "Link",
+      "NavList",
+      "SegmentedControl",
+      "Tabs"
+    ],
+    "--ring-focus-color": [
+      "ActionChip",
+      "Button",
+      "Card",
+      "Combobox",
+      "DataTable",
+      "FilterChip",
+      "Input",
+      "Link",
+      "NavList",
+      "SegmentedControl",
+      "Select",
+      "Tabs"
+    ],
+    "--color-semantic-focus-ring": [
+      "ActionChip",
+      "Button",
+      "Card",
+      "Combobox",
+      "DataTable",
+      "FilterChip",
+      "Input",
+      "Link",
+      "NavList",
+      "SegmentedControl",
+      "Select",
+      "Tabs"
+    ],
+    "--ring-focus-offset": [
+      "ActionChip",
+      "Button",
+      "Card",
+      "Combobox",
+      "DataTable",
+      "FilterChip",
+      "Input",
+      "Link",
+      "Select"
+    ],
+    "--ring-focus-width": [
+      "ActionChip",
+      "Button",
+      "Card",
+      "Combobox",
+      "DataTable",
+      "FilterChip",
+      "Input",
+      "Link",
+      "NavList",
+      "SegmentedControl",
+      "Select",
+      "Tabs"
+    ],
+    "--spacing-2": [
+      "ActionChip",
+      "Button",
+      "Card",
+      "Combobox",
+      "DataTable",
+      "FilterChip",
+      "Input",
+      "NavList",
+      "ResourceCard",
+      "ScoreStrip",
+      "SegmentedControl",
+      "Select",
+      "Stat",
+      "StatusPill",
+      "Tabs"
+    ],
+    "--spacing-4": [
+      "ActionChip",
+      "Combobox",
+      "DataTable",
+      "FilterChip",
+      "Input",
+      "ResourceCard",
+      "SectionHeader",
+      "SegmentedControl",
+      "Tabs"
+    ],
+    "--typography-font-family-body": [
+      "ActionChip",
+      "Combobox",
+      "DataTable",
+      "Drawer",
+      "Input",
+      "ResourceCard",
+      "ScoreStrip",
+      "Select",
+      "Stat"
+    ],
+    "--typography-font-weight-regular": [
+      "ActionChip",
+      "NavList",
+      "ScoreStrip"
+    ],
+    "--typography-letter-spacing-body": [
+      "ActionChip",
+      "DataTable",
+      "NavList",
+      "SectionHeader",
+      "Stat",
+      "Tabs"
+    ],
+    "--typography-line-height-snug": [
+      "ActionChip",
+      "Drawer",
+      "Eyebrow",
+      "ResourceCard",
+      "ScoreStrip",
+      "SectionHeader"
+    ],
     "--color-semantic-background": [
       "Avatar"
     ],
@@ -729,6 +925,7 @@ window.BELLA = {
     ],
     "--spacing-3": [
       "BrandWordmark",
+      "Combobox",
       "DataTable",
       "Drawer",
       "Input",
@@ -737,21 +934,10 @@ window.BELLA = {
       "ScoreStrip",
       "Select"
     ],
-    "--color-semantic-border": [
-      "Button",
-      "DataTable",
-      "NavList",
-      "SegmentedControl",
-      "Tabs"
-    ],
     "--color-semantic-surface-inset": [
       "Button",
       "Input",
       "NavList"
-    ],
-    "--color-semantic-text-muted": [
-      "Button",
-      "Input"
     ],
     "--component-button-motion-press": [
       "Button"
@@ -867,51 +1053,6 @@ window.BELLA = {
     "--component-button-tertiary-underline-thickness-hover": [
       "Button"
     ],
-    "--ring-focus-color": [
-      "Button",
-      "Card",
-      "DataTable",
-      "FilterChip",
-      "Input",
-      "Link",
-      "NavList",
-      "SegmentedControl",
-      "Select",
-      "Tabs"
-    ],
-    "--color-semantic-focus-ring": [
-      "Button",
-      "Card",
-      "DataTable",
-      "FilterChip",
-      "Input",
-      "Link",
-      "NavList",
-      "SegmentedControl",
-      "Select",
-      "Tabs"
-    ],
-    "--ring-focus-offset": [
-      "Button",
-      "Card",
-      "DataTable",
-      "FilterChip",
-      "Input",
-      "Link",
-      "Select"
-    ],
-    "--ring-focus-width": [
-      "Button",
-      "Card",
-      "DataTable",
-      "FilterChip",
-      "Input",
-      "Link",
-      "NavList",
-      "SegmentedControl",
-      "Select",
-      "Tabs"
-    ],
     "--shadow-key-pressed": [
       "Button"
     ],
@@ -920,27 +1061,13 @@ window.BELLA = {
     ],
     "--spacing-1": [
       "Button",
+      "Combobox",
       "DataTable",
       "FilterChip",
       "Kbd",
       "NavList",
       "ResourceCard",
       "ScoreStrip",
-      "Stat",
-      "StatusPill",
-      "Tabs"
-    ],
-    "--spacing-2": [
-      "Button",
-      "Card",
-      "DataTable",
-      "FilterChip",
-      "Input",
-      "NavList",
-      "ResourceCard",
-      "ScoreStrip",
-      "SegmentedControl",
-      "Select",
       "Stat",
       "StatusPill",
       "Tabs"
@@ -981,15 +1108,6 @@ window.BELLA = {
     "--motion-duration-lift": [
       "Card"
     ],
-    "--motion-easing-standard": [
-      "Card",
-      "Drawer",
-      "FilterChip",
-      "Link",
-      "NavList",
-      "SegmentedControl",
-      "Tabs"
-    ],
     "--motion-transform-hover-lift": [
       "Card"
     ],
@@ -1004,16 +1122,8 @@ window.BELLA = {
       "Kbd",
       "NavList"
     ],
-    "--border-width-thin": [
-      "DataTable",
-      "Drawer",
-      "Kbd",
-      "NavList",
-      "ScoreStrip",
-      "Stat",
-      "Tabs"
-    ],
     "--color-semantic-text-secondary": [
+      "Combobox",
       "DataTable",
       "Heading",
       "Input",
@@ -1025,6 +1135,67 @@ window.BELLA = {
       "Stat",
       "StatusPill",
       "Tabs"
+    ],
+    "--component-combobox-active-background": [
+      "Combobox"
+    ],
+    "--component-combobox-active-foreground": [
+      "Combobox"
+    ],
+    "--component-combobox-background": [
+      "Combobox"
+    ],
+    "--component-combobox-border": [
+      "Combobox"
+    ],
+    "--component-combobox-border-radius": [
+      "Combobox"
+    ],
+    "--component-combobox-font-size": [
+      "Combobox"
+    ],
+    "--component-combobox-foreground": [
+      "Combobox"
+    ],
+    "--component-combobox-group-foreground": [
+      "Combobox"
+    ],
+    "--component-combobox-list-background": [
+      "Combobox"
+    ],
+    "--component-combobox-min-height": [
+      "Combobox"
+    ],
+    "--radius-lg": [
+      "Combobox"
+    ],
+    "--radius-md": [
+      "Combobox"
+    ],
+    "--shadow-lg": [
+      "Combobox"
+    ],
+    "--spacing-20": [
+      "Combobox",
+      "DataTable",
+      "ScoreStrip"
+    ],
+    "--spacing-touch-target": [
+      "Combobox",
+      "DataTable"
+    ],
+    "--typography-font-size-sm": [
+      "Combobox",
+      "Input",
+      "ScoreStrip"
+    ],
+    "--typography-line-height-normal": [
+      "Combobox",
+      "Input",
+      "Kbd",
+      "ResourceCard",
+      "SectionHeader",
+      "Tag"
     ],
     "--component-data-table-border-radius": [
       "DataTable"
@@ -1049,31 +1220,6 @@ window.BELLA = {
       "Link",
       "ScoreStrip"
     ],
-    "--spacing-20": [
-      "DataTable",
-      "ScoreStrip"
-    ],
-    "--spacing-4": [
-      "DataTable",
-      "FilterChip",
-      "Input",
-      "ResourceCard",
-      "SectionHeader",
-      "SegmentedControl",
-      "Tabs"
-    ],
-    "--spacing-touch-target": [
-      "DataTable"
-    ],
-    "--typography-font-family-body": [
-      "DataTable",
-      "Drawer",
-      "Input",
-      "ResourceCard",
-      "ScoreStrip",
-      "Select",
-      "Stat"
-    ],
     "--typography-font-family-mono": [
       "DataTable"
     ],
@@ -1092,13 +1238,6 @@ window.BELLA = {
       "Input",
       "NavList",
       "ScoreStrip"
-    ],
-    "--typography-letter-spacing-body": [
-      "DataTable",
-      "NavList",
-      "SectionHeader",
-      "Stat",
-      "Tabs"
     ],
     "--component-drawer-background": [
       "Drawer"
@@ -1131,13 +1270,6 @@ window.BELLA = {
     "--typography-letter-spacing-title": [
       "Drawer",
       "ScoreStrip"
-    ],
-    "--typography-line-height-snug": [
-      "Drawer",
-      "Eyebrow",
-      "ResourceCard",
-      "ScoreStrip",
-      "SectionHeader"
     ],
     "--component-eyebrow-ink-font-family": [
       "Eyebrow"
@@ -1178,11 +1310,6 @@ window.BELLA = {
     "--color-semantic-background-inverse": [
       "FilterChip"
     ],
-    "--color-semantic-border-ink": [
-      "FilterChip",
-      "Input",
-      "Tabs"
-    ],
     "--color-semantic-border-subtle": [
       "FilterChip",
       "NavList",
@@ -1212,13 +1339,6 @@ window.BELLA = {
     ],
     "--component-filter-chip-min-height": [
       "FilterChip"
-    ],
-    "--motion-duration-fast": [
-      "FilterChip",
-      "Link",
-      "NavList",
-      "SegmentedControl",
-      "Tabs"
     ],
     "--component-heading-font-family": [
       "Heading"
@@ -1282,10 +1402,6 @@ window.BELLA = {
     "--component-input-min-height": [
       "Input"
     ],
-    "--typography-font-size-sm": [
-      "Input",
-      "ScoreStrip"
-    ],
     "--typography-font-size-tag": [
       "Input"
     ],
@@ -1296,13 +1412,6 @@ window.BELLA = {
       "Input",
       "SegmentedControl",
       "Select"
-    ],
-    "--typography-line-height-normal": [
-      "Input",
-      "Kbd",
-      "ResourceCard",
-      "SectionHeader",
-      "Tag"
     ],
     "--component-kbd-background": [
       "Kbd"
@@ -1369,10 +1478,6 @@ window.BELLA = {
     ],
     "--component-nav-list-min-height": [
       "NavList"
-    ],
-    "--typography-font-weight-regular": [
-      "NavList",
-      "ScoreStrip"
     ],
     "--component-pattern-field-opacity": [
       "PatternField"
@@ -1693,8 +1798,120 @@ window.BELLA = {
   },
   "components": [
     {
+      "id": "action-chip",
+      "name": "ActionChip",
+      "category": "Actions",
+      "description": "The quiet action: a sentence-case pill for suggestions, chips and the\nsmall actions under an answer. Below secondary in weight, never a toggle\n(that is FilterChip) and never the page's main action (that is Button).",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "ariaLabel",
+        "children",
+        "className",
+        "disabled",
+        "href",
+        "linkComponent",
+        "onClick"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "hover",
+        "focus",
+        "disabled"
+      ],
+      "a11y": "Verified 2026-10-03: a real button (or a link with href), 44px. Label ink on the page and on panel (AAA in light, warm and dark); the control border clears 3:1 on every surface; hover adds the hairline wash and the edge goes ink; focus is the shared ring.",
+      "minTarget": {
+        "token": "--component-action-chip-min-height",
+        "value": "44px"
+      },
+      "sandbox": {
+        "minHeight": {
+          "token": "--component-action-chip-min-height",
+          "light": "44px",
+          "dark": "44px",
+          "warm": "44px"
+        },
+        "paddingY": null,
+        "paddingX": null,
+        "label": {
+          "token": "--component-action-chip-foreground",
+          "light": "#121212",
+          "dark": "#ededed",
+          "warm": "#121212"
+        },
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": {
+          "token": "--ring-focus-width",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        },
+        "ringOffset": {
+          "token": "--ring-focus-offset",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        }
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.action-chip.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-actionchip--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 21,
+        "component": 6,
+        "semantic": 3,
+        "list": [
+          "--border-width-thin",
+          "--color-semantic-border",
+          "--color-semantic-border-ink",
+          "--color-semantic-text-muted",
+          "--component-action-chip-border",
+          "--component-action-chip-border-radius",
+          "--component-action-chip-font-size",
+          "--component-action-chip-foreground",
+          "--component-action-chip-hover-background",
+          "--component-action-chip-min-height",
+          "--motion-duration-fast",
+          "--motion-easing-standard",
+          "--ring-focus-color",
+          "--ring-focus-offset",
+          "--ring-focus-width",
+          "--spacing-2",
+          "--spacing-4",
+          "--typography-font-family-body",
+          "--typography-font-weight-regular",
+          "--typography-letter-spacing-body",
+          "--typography-line-height-snug"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 5,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
       "id": "avatar",
       "name": "Avatar",
+      "category": "Data",
       "description": "A person or entity as a circle. An image when there is one, the initials\nof the name when there is not, never an empty grey disc.",
       "hasStory": true,
       "hasDocs": true,
@@ -1769,7 +1986,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 8,
+          "pairs": 10,
           "failing": []
         },
         "contract": {
@@ -1785,6 +2002,7 @@ window.BELLA = {
     {
       "id": "brand-wordmark",
       "name": "BrandWordmark",
+      "category": "Brand",
       "description": "BrandWordmark (brand refresh, 2026-09-22): the custom E, L, T, A, B\nglyphs as stroke paths at the locked settings (weight 12, width 58,\nheight 130, tracking 16, soft corners), filled with the seeded brand\npattern and a grain, or in plain ink. A labelled image: the pattern\nlayers are aria-hidden. It never moves, so reduced motion needs nothing.",
       "hasStory": false,
       "hasDocs": true,
@@ -1855,6 +2073,7 @@ window.BELLA = {
     {
       "id": "button",
       "name": "Button",
+      "category": "Actions",
       "description": "Keycaps with real hierarchy: two colour treatments, three tiers, one\nprimary per view. Labels are Geist caps, never Unique. One job per\nstate: hover and focus-visible roll the label, active presses the\nkeycap; a button never lifts on hover (lift is for cards).",
       "hasStory": true,
       "hasDocs": true,
@@ -2130,6 +2349,7 @@ window.BELLA = {
     {
       "id": "card",
       "name": "Card",
+      "category": "Layout",
       "description": "The one-card system: every card surface renders through this. Flat at\nrest (surface-card, a faint border, no shadow), theme-aware by\nconstruction; only interactive cards lift on hover and focus. The only\nfixed-light path is Peek, on purpose.",
       "hasStory": true,
       "hasDocs": true,
@@ -2208,7 +2428,7 @@ window.BELLA = {
           "key": "surface",
           "n": 2,
           "title": "Surface",
-          "detail": "the page ground one step darker; flat at rest",
+          "detail": "the card fill, flat at rest",
           "token": "--color-semantic-surface-card",
           "value": {
             "light": "#f2f2f2",
@@ -2327,7 +2547,138 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 12,
+          "pairs": 13,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "combobox",
+      "name": "Combobox",
+      "category": "Inputs",
+      "description": "One field that filters a grouped list: the ARIA combobox pattern. Typing\nopens the list; Up and Down move the active option (aria-activedescendant,\nfocus stays in the field); Enter chooses it; Esc closes the list. The\nactive option is the ochre fill; nothing else dims.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "defaultOptionId",
+        "groups",
+        "hideLabel",
+        "hint",
+        "id",
+        "label",
+        "onChange",
+        "onKeyDown",
+        "onSelect",
+        "placeholder",
+        "placement",
+        "value"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "open",
+        "active-option",
+        "focus"
+      ],
+      "a11y": "Verified 2026-10-03: input role=combobox with aria-expanded, aria-controls and aria-autocomplete=list; the list is role=listbox named by the label, groups are role=group named by their heading, options are role=option with aria-selected on the active one, referenced by aria-activedescendant. Esc closes the list and stops there; a second Esc belongs to the page. Option and field text ink on the panel (AAA), group headings and meta text-secondary (AAA), the active option ink on ochre 9.01:1 (AAA). Options and field are 44px. Focus ring on the field.",
+      "minTarget": {
+        "token": "--component-combobox-min-height",
+        "value": "44px"
+      },
+      "sandbox": {
+        "minHeight": {
+          "token": "--component-combobox-min-height",
+          "light": "44px",
+          "dark": "44px",
+          "warm": "44px"
+        },
+        "paddingY": null,
+        "paddingX": null,
+        "label": {
+          "token": "--component-combobox-foreground",
+          "light": "#121212",
+          "dark": "#ededed",
+          "warm": "#121212"
+        },
+        "background": {
+          "token": "--component-combobox-background",
+          "light": "#f2f2f2",
+          "dark": "#161616",
+          "warm": "#fbfaf7"
+        },
+        "backgroundPair": null,
+        "ringWidth": {
+          "token": "--ring-focus-width",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        },
+        "ringOffset": {
+          "token": "--ring-focus-offset",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        }
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.combobox.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-combobox--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 30,
+        "component": 10,
+        "semantic": 4,
+        "list": [
+          "--border-width-thin",
+          "--color-semantic-border",
+          "--color-semantic-border-ink",
+          "--color-semantic-text-muted",
+          "--color-semantic-text-secondary",
+          "--component-combobox-active-background",
+          "--component-combobox-active-foreground",
+          "--component-combobox-background",
+          "--component-combobox-border",
+          "--component-combobox-border-radius",
+          "--component-combobox-font-size",
+          "--component-combobox-foreground",
+          "--component-combobox-group-foreground",
+          "--component-combobox-list-background",
+          "--component-combobox-min-height",
+          "--radius-lg",
+          "--radius-md",
+          "--ring-focus-color",
+          "--ring-focus-offset",
+          "--ring-focus-width",
+          "--shadow-lg",
+          "--spacing-1",
+          "--spacing-2",
+          "--spacing-20",
+          "--spacing-3",
+          "--spacing-4",
+          "--spacing-touch-target",
+          "--typography-font-family-body",
+          "--typography-font-size-sm",
+          "--typography-line-height-normal"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 11,
           "failing": []
         },
         "contract": {
@@ -2343,6 +2694,7 @@ window.BELLA = {
     {
       "id": "data-table",
       "name": "DataTable",
+      "category": "Data",
       "description": "Rows of facts in columns. Sortable headers are buttons with aria-sort,\nthe header sticks, and an optional single selection fills the chosen row\nochre without dimming any other row.",
       "hasStory": true,
       "hasDocs": true,
@@ -2453,6 +2805,7 @@ window.BELLA = {
     {
       "id": "drawer",
       "name": "Drawer",
+      "category": "Layout",
       "description": "A panel that slides in from an edge over a scrim, for navigation or a tool panel on\nsmall screens. A native modal dialog: the rest of the page is inert while\nit is open, so focus stays inside; Esc closes it; focus goes back to\nwhatever opened it.",
       "hasStory": true,
       "hasDocs": true,
@@ -2545,6 +2898,7 @@ window.BELLA = {
     {
       "id": "eyebrow",
       "name": "Eyebrow",
+      "category": "Layout",
       "description": "Eyebrow (style unify, 2026-09-22): the Geist Mono label above a heading.\n13px, ss09, no tracking, no caps. Never an accent: wayfinding is not action.",
       "hasStory": true,
       "hasDocs": true,
@@ -2628,6 +2982,7 @@ window.BELLA = {
     {
       "id": "filter-chip",
       "name": "FilterChip",
+      "category": "Actions",
       "description": "The toggle for narrowing a set. Pressed is a real state with real\nsemantics, not a restyle.",
       "hasStory": true,
       "hasDocs": true,
@@ -2861,6 +3216,7 @@ window.BELLA = {
     {
       "id": "heading",
       "name": "Heading",
+      "category": "Layout",
       "description": "Geist Light carries every heading tier; Unique is the wordmark only.\n32px floor, never inside a card.",
       "hasStory": true,
       "hasDocs": true,
@@ -2942,6 +3298,7 @@ window.BELLA = {
     {
       "id": "icon",
       "name": "Icon",
+      "category": "Data",
       "description": "The only way BELLA renders an icon. Iconoir glyphs from the registry\n(one set, declared), sized by the icon ramp, always currentColor so the\nthemed ink recolours them for free. Decorative by default; a meaningful\nicon requires the label prop and never stands without text unless its\naccessible name is proven in a Behavior story.",
       "hasStory": true,
       "hasDocs": true,
@@ -3011,6 +3368,7 @@ window.BELLA = {
     {
       "id": "input",
       "name": "Input",
+      "category": "Inputs",
       "description": "Labelled, stateful, honest about errors. The form is the channel, so the\nfields carry the trust.",
       "hasStory": true,
       "hasDocs": true,
@@ -3257,6 +3615,7 @@ window.BELLA = {
     {
       "id": "kbd",
       "name": "Kbd",
+      "category": "Data",
       "description": "A keyboard shortcut, set in Mono keycaps. Not a control: it names keys,\nit does not press them.",
       "hasStory": true,
       "hasDocs": true,
@@ -3338,6 +3697,7 @@ window.BELLA = {
     {
       "id": "link",
       "name": "Link",
+      "category": "Actions",
       "description": "Link (brand refresh, 2026-09-22): the inline text link. Ink with an\nunderline at rest; hover thickens the underline to 2px; focus-visible is\nthe shared ochre ring (3px, 3px offset). Visited stays ink. Never colour\nalone: the underline is the affordance.",
       "hasStory": true,
       "hasDocs": true,
@@ -3515,6 +3875,7 @@ window.BELLA = {
     {
       "id": "nav-list",
       "name": "NavList",
+      "category": "Layout",
       "description": "A sidebar of grouped links: where you are is aria-current, not just paint.\nCollapses to its toggle.",
       "hasStory": true,
       "hasDocs": true,
@@ -3623,6 +3984,7 @@ window.BELLA = {
     {
       "id": "pattern-field",
       "name": "PatternField",
+      "category": "Brand",
       "description": "PatternField (brand refresh, 2026-09-22): the brand pattern as a quiet\nhero background. Greyscale at about 7% (inverted grey at about 6% in\ndark), fading out radially from the upper right. Decorative only:\naria-hidden, no interaction, never moves. It fills its positioned\nparent; put it first inside a `position: relative` hero. Replaces the\ndot grid.",
       "hasStory": false,
       "hasDocs": true,
@@ -3682,6 +4044,7 @@ window.BELLA = {
     {
       "id": "resource-card",
       "name": "ResourceCard",
+      "category": "Layout",
       "description": "The folder card. A dark file window on top, a warm sheet below, and a tab\nfolded up from the sheet itself so the two read as one piece of paper.",
       "hasStory": true,
       "hasDocs": true,
@@ -3788,6 +4151,7 @@ window.BELLA = {
     {
       "id": "scaled-frame",
       "name": "ScaledFrame",
+      "category": null,
       "description": "THE scaled frame, ported from the portfolio (2026-09-21): the full canvas\nrenders at its intrinsic design size and scales down to the container.\nNo internal scrolling, no cropping, at any width.\n\nTheme: live children read the BELLA tokens through [data-theme] like\neverything else on the page. An embedded page (src) gets the current\n[data-theme] mirrored over postMessage ({ type: \"theme\" }); the portfolio's\n?theme= query param is gone.",
       "hasStory": true,
       "hasDocs": true,
@@ -3849,6 +4213,7 @@ window.BELLA = {
     {
       "id": "score-strip",
       "name": "ScoreStrip",
+      "category": "Data",
       "description": "One system's readiness: an overall score and a strip of station scores,\nbanded sturdy, drifting or check engine. Measured and self-assessed are\ntold apart in text, never by fill alone.",
       "hasStory": true,
       "hasDocs": true,
@@ -3953,6 +4318,7 @@ window.BELLA = {
     {
       "id": "section-header",
       "name": "SectionHeader",
+      "category": null,
       "description": "The section header, ported from the portfolio's layout copy (2026-09-21).\nNo site imports: the glossary lookup became the optional `term` prop.\nSplit is decided by the header's own width (a named container), not the\nwindow, so the header behaves the same in any column it is placed in.",
       "hasStory": true,
       "hasDocs": true,
@@ -4030,6 +4396,7 @@ window.BELLA = {
     {
       "id": "segmented-control",
       "name": "SegmentedControl",
+      "category": "Actions",
       "description": "Pick one view among a few, all options visible. The selected state lives\nin ARIA, not just paint.",
       "hasStory": true,
       "hasDocs": true,
@@ -4129,6 +4496,7 @@ window.BELLA = {
     {
       "id": "select",
       "name": "Select",
+      "category": "Inputs",
       "description": "For long lists only. If the options fit on screen, chips or a segmented\ncontrol do it better.",
       "hasStory": true,
       "hasDocs": true,
@@ -4229,6 +4597,7 @@ window.BELLA = {
     {
       "id": "stat",
       "name": "Stat",
+      "category": "Data",
       "description": "One figure with its label and an optional change. A term-description pair,\nso the label names the figure for assistive tech.",
       "hasStory": true,
       "hasDocs": true,
@@ -4397,6 +4766,7 @@ window.BELLA = {
     {
       "id": "status-pill",
       "name": "StatusPill",
+      "category": "Data",
       "description": "A status word in a pill. Non-interactive, one tint per state, readable\nin both themes.",
       "hasStory": true,
       "hasDocs": true,
@@ -4484,6 +4854,7 @@ window.BELLA = {
     {
       "id": "tabs",
       "name": "Tabs",
+      "category": "Actions",
       "description": "Switch between panels that share one place on the page. W3C APG tabs with\nautomatic activation: one tab stop, arrows move and select, Home and End\njump to the ends.",
       "hasStory": true,
       "hasDocs": true,
@@ -4672,6 +5043,7 @@ window.BELLA = {
     {
       "id": "tag",
       "name": "Tag",
+      "category": "Data",
       "description": "Non-interactive metadata. If you can click it, it is not a Tag.",
       "hasStory": true,
       "hasDocs": true,

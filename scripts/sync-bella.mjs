@@ -179,6 +179,7 @@ const components = names.map((name) => {
   return {
     id: key,
     name,
+    category: contract?.category ?? null, // contract-owned grouping (Actions, Inputs, Layout, Data, Brand)
     description,
     hasStory: files.some((f) => f.endsWith('.stories.tsx')),
     hasDocs: Boolean(man?.description?.trim()),

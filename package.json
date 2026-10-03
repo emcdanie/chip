@@ -14,7 +14,8 @@
     "sync:notion": "node scripts/sync-notion.mjs",
     "sync": "node bin/chip.mjs sync",
     "app": "vite --config app/vite.config.js",
-    "app:build": "vite build --config app/vite.config.js"
+    "app:build": "vite build --config app/vite.config.js",
+    "checkpoint": "node scripts/checkpoint.mjs"
   },
   "engines": {
     "node": ">=18.0.0"

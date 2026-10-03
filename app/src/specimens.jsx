@@ -2,7 +2,9 @@
 // sample props, like a story's args: they show the component, they are not
 // anatomy. Anatomy (the numbered parts) only comes from bella.json.
 import React from 'react';
+import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Avatar from '@bella/components/Avatar/Avatar';
+import Combobox from '@bella/components/Combobox/Combobox';
 import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
 import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
@@ -33,11 +35,14 @@ export const SPECIMENS = {
   Avatar: () => <Avatar name="Ada Lovelace" size="lg" ring />,
   BrandWordmark: () => <BrandWordmark word="BELLA" variant="ink" size="nav" />,
   Button: () => <Button variant="primary">Save changes</Button>,
+  // interactive, so its hover and focus layers exist to be shown
   Card: () => (
-    <Card>
-      <p style={{ margin: 0 }}>A flat card on the panel surface.</p>
+    <Card href="#specimen">
+      <p style={{ margin: 0 }}>A card that links somewhere.</p>
     </Card>
   ),
+  ActionChip: () => <ActionChip onClick={noop}>Try in sandbox</ActionChip>,
+  Combobox: () => <Combobox label="Ask OBI or jump to" hideLabel value="" onChange={noop} groups={[]} onSelect={noop} placeholder="Ask OBI or jump to…" />,
   DataTable: () => (
     <DataTable
       caption="Sample"
@@ -54,7 +59,7 @@ export const SPECIMENS = {
   ),
   Eyebrow: () => <Eyebrow>Design system</Eyebrow>,
   FilterChip: () => (
-    <FilterChip pressed onClick={noop}>
+    <FilterChip pressed={false} onClick={noop}>
       Accessible
     </FilterChip>
   ),

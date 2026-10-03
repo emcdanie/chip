@@ -42,7 +42,7 @@ export function layout(frame, parts) {
   const measured = parts
     .map((p) => {
       const r = unionRect(targetsOf(root, p.target), origin);
-      return r ? { ...p, zone: zoneRect(r, p.zone) } : null;
+      return r ? { ...p, rect: r, zone: zoneRect(r, p.zone) } : null;
     })
     .filter(Boolean);
 
@@ -64,7 +64,10 @@ export function layout(frame, parts) {
       const x = specBox.left + ((i + 0.5) * span) / row.length;
       const y = p.below ? specBox.bottom + PIN_GAP : specBox.top - PIN_GAP;
       const ax = Math.min(Math.max(x, p.zone.left + 6), p.zone.right - 6);
-      const ay = p.zone.top >= specBox.bottom - 1 ? (p.zone.top + p.zone.bottom) / 2 : p.below ? p.zone.bottom : p.zone.top;
+      // the dot sits ON the part: its own edge (a ring sits outside, on its
+      // zone; a shadow below the box, in the middle of its zone)
+      const edge = p.kind === 'ring' ? p.zone : p.zone.top > p.rect.top && p.zone.bottom < p.rect.bottom ? p.zone : p.rect;
+      const ay = p.zone.top >= specBox.bottom - 1 ? (p.zone.top + p.zone.bottom) / 2 : p.below ? edge.bottom : edge.top;
       p.pin = [x, y];
       p.anchor = [ax, ay];
     });

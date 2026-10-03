@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import NavList from '@bella/components/NavList/NavList';
-import Kbd from '@bella/components/Kbd/Kbd';
 import Button from '@bella/components/Button/Button';
+import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Drawer from '@bella/components/Drawer/Drawer';
-import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import Select from '@bella/components/Select/Select';
 import Health from './Health.jsx';
 import Atlas from './Atlas.jsx';
-import Obi from './Obi.jsx';
-import Palette from './Palette.jsx';
+import { useObi, OneInput, ObiPanel } from './Obi.jsx';
 import { useTheme, THEMES } from './theme.js';
 
 const WORKSPACES = [
@@ -21,6 +21,11 @@ const HEALTH_SECTIONS = [
   { href: '#readiness', label: 'Readiness map' },
   { href: '#components', label: 'Components' },
 ];
+
+// sidebar groups come from each contract's category; components without a
+// contract say so instead of hiding
+const CATEGORIES = ['Actions', 'Inputs', 'Layout', 'Data', 'Brand'];
+const NO_CONTRACT = 'No contract yet';
 
 const WS_KEYS = { Digit1: 'health', Digit2: 'atlas' };
 const OBI_KEY = 'chip-obi-open';
@@ -58,6 +63,7 @@ export default function App() {
   const start = routeOf(window.location.hash) ?? { ws: 'health' };
   const [ws, setWs] = useState(start.ws);
   const [atlasId, setAtlasId] = useState(start.id ?? 'button');
+  const [atlasView, setAtlasView] = useState('anatomy');
   const [collapsed, setCollapsed] = useState(false);
   const [bella, setBella] = useState(null);
   const [health, setHealth] = useState(null);
@@ -65,20 +71,15 @@ export default function App() {
   const [notes, setNotes] = useState([]);
   const [offline, setOffline] = useState(false);
   const [toast, setToast] = useState('');
-  const [queued, setQueued] = useState(null);
-  const [focusSandbox, setFocusSandbox] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
-  const [drawerObi, setDrawerObi] = useState(false);
-  const [dockObi, setDockObi] = useState(() => {
+  const [obiOpen, setObiOpen] = useState(() => {
     try {
-      return localStorage.getItem(OBI_KEY) !== 'closed';
+      return localStorage.getItem(OBI_KEY) === 'open';
     } catch {
-      return true;
+      return false;
     }
   });
-  const wide = useMedia('(min-width: 1024px)');
   const narrow = useMedia('(max-width: 719px)');
-  const obiOpen = wide ? dockObi : drawerObi;
 
   const loadNotes = () => fetch('/notes').then((r) => r.json()).then(setNotes).catch(() => {});
   useEffect(() => {
@@ -90,9 +91,9 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(OBI_KEY, dockObi ? 'open' : 'closed');
+      localStorage.setItem(OBI_KEY, obiOpen ? 'open' : 'closed');
     } catch {}
-  }, [dockObi]);
+  }, [obiOpen]);
 
   // the address follows the view; in-page anchors (#overview) leave it alone
   useEffect(() => {
@@ -121,9 +122,47 @@ export default function App() {
     for (const el of document.querySelectorAll('input, textarea')) el.setAttribute('data-gramm', 'false');
   });
 
+  const failures = failuresOf(bella);
+  const atlas = bella?.components.find((c) => c.id === atlasId) ?? null;
+  const page = ws === 'atlas' ? `Atlas · ${atlas?.name ?? '…'}` : 'Health';
+  const obi = useObi({ bella, page, notify: setToast, onSaved: loadNotes });
+
+  // asking opens OBI, so the answer has somewhere to land
+  const send = (text) => {
+    const ok = obi.send(text);
+    if (ok) setObiOpen(true);
+    else if (obi.busy) setToast('OBI is still answering. Try again in a moment.');
+    return ok;
+  };
+  const obiApi = { ...obi, send };
+
+  /* ---- the one input: one element, moved between the bar and the panel ---- */
+  const [holder] = useState(() => {
+    const d = document.createElement('div');
+    d.className = 'one-input-holder';
+    return d;
+  });
+  const barSlot = useRef(null);
+  const panelSlot = useRef(null);
+  useLayoutEffect(() => {
+    const target = obiOpen ? panelSlot.current : barSlot.current;
+    if (!target || holder.parentNode === target) return;
+    // moving a node drops its focus; carry focus and the caret across
+    const input = holder.querySelector('input');
+    const had = input && document.activeElement === input;
+    const sel = had ? [input.selectionStart, input.selectionEnd] : null;
+    target.append(holder);
+    if (had) {
+      input.focus();
+      input.setSelectionRange(...sel);
+    }
+  });
+
   function toggleObi() {
-    if (wide) setDockObi((o) => !o);
-    else setDrawerObi((o) => !o);
+    setObiOpen((o) => !o);
+  }
+  function focusInput() {
+    holder.querySelector('input')?.focus();
   }
 
   useEffect(() => {
@@ -131,7 +170,7 @@ export default function App() {
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        document.getElementById('chip-search')?.focus();
+        focusInput();
       } else if (mod && e.key.toLowerCase() === 'j') {
         e.preventDefault();
         toggleObi();
@@ -141,43 +180,40 @@ export default function App() {
       } else if (e.altKey && WS_KEYS[e.code]) {
         e.preventDefault();
         setWs(WS_KEYS[e.code]);
+      } else if (e.key === 'Escape' && obiOpen && !e.defaultPrevented && !navOpen) {
+        // Esc closes OBI from anywhere (the input's own list closes first)
+        setObiOpen(false);
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const failures = failuresOf(bella);
-  const atlas = bella?.components.find((c) => c.id === atlasId) ?? null;
-  const page = ws === 'atlas' ? `Atlas · ${atlas?.name ?? '…'}` : 'Health';
-
-  function openAtlas(idOrName) {
+  function openAtlas(idOrName, view) {
     const c = idOrName ? bella?.components.find((x) => x.id === idOrName || x.name === idOrName) : null;
     if (c) setAtlasId(c.id);
+    if (view) setAtlasView(view);
     setWs('atlas');
     setNavOpen(false);
-  }
-  function sendToObi(text) {
-    if (wide) setDockObi(true);
-    else setDrawerObi(true);
-    setQueued({ text, at: Date.now() });
-  }
-  function sandbox(name) {
-    openAtlas(name);
-    if (!wide) setDrawerObi(false);
-    setFocusSandbox({ at: Date.now() });
+    if (narrow) setObiOpen(false); // the sheet covers the page at phone width
   }
 
-  const componentItems = (bella?.components ?? []).map((c) => ({
-    href: `#/atlas/${c.id}`,
-    label: c.name,
-    badge: c.parts.length || undefined,
-    current: ws === 'atlas' && c.id === atlasId,
-  }));
-  const groups = [
-    ...(ws === 'health' ? [{ label: 'On this page', items: HEALTH_SECTIONS }] : []),
-    { label: 'Components', items: componentItems },
-  ];
+  const groups = [];
+  if (ws === 'health') groups.push({ label: 'On this page', items: HEALTH_SECTIONS });
+  const byCat = {};
+  for (const c of bella?.components ?? []) (byCat[c.category ?? NO_CONTRACT] ??= []).push(c);
+  for (const cat of [...CATEGORIES, NO_CONTRACT]) {
+    if (!byCat[cat]) continue;
+    groups.push({
+      label: cat,
+      items: byCat[cat].map((c) => ({
+        href: `#/atlas/${c.id}`,
+        label: c.name,
+        badge: c.parts.length ? `${c.parts.length} parts` : undefined,
+        current: ws === 'atlas' && c.id === atlasId,
+      })),
+    });
+  }
   const onNavigate = (href, e) => {
     const r = routeOf(href);
     if (r) {
@@ -198,26 +234,8 @@ export default function App() {
     </p>
   ) : null;
 
-  const obi = (inDrawer) => (
-    <Obi
-      bella={bella}
-      health={health}
-      page={page}
-      queued={queued}
-      onOpenAtlas={(n) => {
-        openAtlas(n);
-        if (!wide) setDrawerObi(false);
-      }}
-      onSandbox={sandbox}
-      onSaved={loadNotes}
-      onClose={inDrawer ? null : () => setDockObi(false)}
-      notify={setToast}
-      inDrawer={inDrawer}
-    />
-  );
-
   return (
-    <div className="shell" data-nav-collapsed={collapsed || undefined} data-obi={(wide && dockObi) || undefined}>
+    <div className="shell" data-nav-collapsed={collapsed || undefined}>
       <a className="skip" href="#main">
         Skip to workspace
       </a>
@@ -230,26 +248,22 @@ export default function App() {
         ) : null}
         <p className="brand">CHIP</p>
         <Tabs tabs={WORKSPACES} value={ws} onChange={setWs} label="Workspaces" idBase="ws" className="ws-tabs" />
-        <Palette bella={bella} docs={docs} onOpenAtlas={openAtlas} onAsk={sendToObi} />
-        <div className="topbar-meta">
-          <Button variant="secondary" onClick={toggleObi} ariaLabel={obiOpen ? 'Close OBI, Command J' : 'Open OBI, Command J'}>
-            OBI <Kbd keys={['⌘', 'J']} />
-          </Button>
-          <SegmentedControl label="Theme" value={theme} onChange={setTheme} options={THEMES} />
+        <div className="bar-slot">
+          {/* the input lives in this empty node when OBI is closed; React never manages it */}
+          <div ref={barSlot} className="bar-input" />
+          {obiOpen ? (
+            <ActionChip onClick={() => setObiOpen(false)} ariaLabel="OBI is open. Hide it (Command J)">
+              OBI open · ⌘J
+            </ActionChip>
+          ) : null}
         </div>
+        <Select label="Theme" value={theme} onChange={setTheme} options={THEMES} className="theme-select" />
       </header>
 
       <div className="body">
         {!narrow ? (
           <aside className="sidebar">
-            <NavList
-              label="Sections"
-              groups={groups}
-              onNavigate={onNavigate}
-              collapsed={collapsed}
-              onToggle={() => setCollapsed((c) => !c)}
-              footer={sourceLine}
-            />
+            <NavList label="Components" groups={groups} onNavigate={onNavigate} collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} footer={sourceLine} />
           </aside>
         ) : null}
 
@@ -260,36 +274,43 @@ export default function App() {
             </p>
           ) : null}
           <div {...tabPanelProps('ws', 'health', ws === 'health')}>
-            <Health bella={bella} health={health} failures={failures} onOpenAtlas={openAtlas} onAsk={sendToObi} onRun={sendToObi} />
+            <Health bella={bella} health={health} failures={failures} onOpenAtlas={openAtlas} onAsk={send} onRun={send} />
           </div>
           <div {...tabPanelProps('ws', 'atlas', ws === 'atlas')}>
-            {ws === 'atlas' ? (
-              <Atlas
-                c={atlas}
-                onAsk={(name) => sendToObi(`What's missing in ${name}, and how is it built?`)}
-                bella={bella}
-                theme={theme}
-                notes={notes}
-                focusSandbox={focusSandbox}
-              />
-            ) : null}
+            {ws === 'atlas' ? <Atlas c={atlas} bella={bella} theme={theme} notes={notes} view={atlasView} setView={setAtlasView} /> : null}
           </div>
         </main>
-
-        {wide && dockObi ? (
-          <aside className="obi-dock" data-theme="dark" aria-label="OBI">
-            {obi(false)}
-          </aside>
-        ) : null}
       </div>
 
-      {!wide ? (
-        <div data-theme="dark">
-          <Drawer open={drawerObi} onClose={() => setDrawerObi(false)} label="OBI" side="right" className="obi-drawer">
-            {obi(true)}
-          </Drawer>
-        </div>
-      ) : null}
+      {/* OBI floats over the right edge; the page keeps its layout */}
+      <div className="obi-layer" data-theme="dark" hidden={!obiOpen}>
+        <ObiPanel
+          bella={bella}
+          health={health}
+          page={page}
+          obi={obiApi}
+          inputSlot={panelSlot}
+          onOpenAtlas={(n) => openAtlas(n)}
+          onSandbox={(n) => openAtlas(n, 'try')}
+          onClose={() => setObiOpen(false)}
+          notify={setToast}
+        />
+      </div>
+
+      {createPortal(
+        <OneInput
+          bella={bella}
+          docs={docs}
+          page={page}
+          obi={obiApi}
+          inPanel={obiOpen}
+          onJump={(id) => openAtlas(id)}
+          onEscape={() => (obiOpen ? setObiOpen(false) : document.activeElement?.blur())}
+          notify={setToast}
+        />,
+        holder
+      )}
+
       {narrow ? (
         <Drawer open={navOpen} onClose={() => setNavOpen(false)} label="CHIP">
           <NavList

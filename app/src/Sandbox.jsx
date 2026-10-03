@@ -5,6 +5,7 @@ import React from 'react';
 import Input from '@bella/components/Input/Input';
 import Select from '@bella/components/Select/Select';
 import Button from '@bella/components/Button/Button';
+import ActionChip from '@bella/components/ActionChip/ActionChip';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 
 const BELLA_FLOOR = 44; // BELLA's touch target (WCAG 2.5.5 Enhanced)
@@ -208,15 +209,14 @@ function proposal(bella, c, draft, before, after, theme) {
   ].join('\n');
 }
 
-export default function Sandbox({ bella, c, draft, setDraft, heights, theme, notify }) {
+export default function Sandbox({ bella, c, draft, setDraft, heights, theme, notify, children }) {
   const s = c.sandbox ?? {};
   const base = baseOf(c);
   const slots = Object.keys(base);
   if (!slots.length) {
     return (
-      <section aria-labelledby="try-h" className="sandbox">
-        <h2 id="try-h" className="panel-title">Try a change</h2>
-        <p className="meta">{c.name}'s contract has no sandbox slots (min height, padding, label, background or focus ring).</p>
+      <section className="sandbox">
+        <p className="label">{c.name}'s contract has no slots to try (min height, padding, label, background or focus ring).</p>
       </section>
     );
   }
@@ -242,10 +242,10 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
     s[k] ? (
       <Input
         key={k}
-        label={`${label} (px)`}
+        label={label}
         value={draft[k] ?? ''}
         onChange={set(k)}
-        hint={s[k].token}
+        hint={`${s[k].token}, in px`}
         error={Number.isFinite(parseFloat(draft[k])) ? undefined : 'Enter a number of pixels'}
         autoComplete="off"
       />
@@ -262,65 +262,60 @@ export default function Sandbox({ bella, c, draft, setDraft, heights, theme, not
   }
 
   return (
-    <section aria-labelledby="try-h" className="sandbox">
-      <h2 id="try-h" className="panel-title">Try a change</h2>
-      <p className="meta">Local only. Nothing is written to BELLA.</p>
-      <div className="sandbox-fields">
-        {num('minHeight', 'Min target height')}
-        {num('paddingY', 'Padding, block')}
-        {num('paddingX', 'Padding, inline')}
-        {s.label ? <Select label="Label colour" value={draft.label} onChange={set('label')} options={colours(s.label)} /> : null}
-        {s.background ? (
-          <Select label="Background" value={draft.background} onChange={set('background')} options={colours(s.background)} />
-        ) : null}
-        {num('ringWidth', 'Focus ring width')}
-        {num('ringOffset', 'Focus ring offset')}
-      </div>
-
-      <div className="sandbox-score" aria-live="polite">
-        <p className="score-line">
-          Accessibility <b className="num">{before.accessibility ?? 'n/a'}</b> → <b className="num">{after.accessibility ?? 'n/a'}</b>
-        </p>
-        <ul className="checks">
-          {after.checks.map((k) => {
-            const b = before.checks.find((x) => x.key === k.key);
-            return (
-              <li key={k.key}>
-                <span className="check-name">{k.name}</span>
-                <span className="num">
-                  {b?.score ?? 'n/a'} → {k.score ?? 'n/a'}
-                </span>
-                <StatusPill variant={k.pass ? 'success' : 'info'}>{k.pass ? 'pass' : 'fail'}</StatusPill>
-                <span className="check-rule">{k.rule}</span>
-              </li>
-            );
-          })}
-        </ul>
-        <p className="meta">Score per check: contrast ÷ 7:1, target ÷ 44px, ring width ÷ 2px and contrast ÷ 3:1, each capped at 100.</p>
-      </div>
-
-      {changed ? (
-        <div className="blast">
-          <h3 className="check-name">Blast radius</h3>
-          <p>
-            {blast.tokens.join(', ')} reaches {blast.names.length} component{blast.names.length === 1 ? '' : 's'}:{' '}
-            {blast.names.join(', ')}
-          </p>
+    <section className="sandbox" aria-label={`Try a change to ${c.name}`}>
+      <p className="label">Local only. Nothing is written to BELLA.</p>
+      <div className="sandbox-grid">
+        <div className="sandbox-fields">
+          {num('minHeight', 'Min height')}
+          {num('paddingY', 'Padding Y')}
+          {num('paddingX', 'Padding X')}
+          {s.label ? <Select label="Label colour" value={draft.label} onChange={set('label')} options={colours(s.label)} /> : null}
+          {s.background ? <Select label="Background" value={draft.background} onChange={set('background')} options={colours(s.background)} /> : null}
+          {num('ringWidth', 'Ring width')}
+          {num('ringOffset', 'Ring offset')}
         </div>
-      ) : null}
+
+        <div className="sandbox-specimen">{children}</div>
+
+        <div className="sandbox-score" aria-live="polite">
+          <p className="score-line">
+            Accessibility <b className="num">{before.accessibility ?? 'n/a'}</b> → <b className="num">{after.accessibility ?? 'n/a'}</b>
+          </p>
+          <ul className="checks">
+            {after.checks.map((k) => {
+              const b = before.checks.find((x) => x.key === k.key);
+              return (
+                <li key={k.key}>
+                  <span className="check-name">{k.name}</span>
+                  <span className="num">
+                    {b?.score ?? 'n/a'} → {k.score ?? 'n/a'}
+                  </span>
+                  <StatusPill variant={k.pass ? 'success' : 'info'}>{k.pass ? 'pass' : 'fail'}</StatusPill>
+                  <span className="check-rule">{k.rule}</span>
+                </li>
+              );
+            })}
+          </ul>
+          {changed ? (
+            <p className="blast">
+              <span className="check-name">Blast radius</span>{' '}
+              {blast.tokens.join(', ')} reaches {blast.names.length} component{blast.names.length === 1 ? '' : 's'}: {blast.names.join(', ')}
+            </p>
+          ) : null}
+          <p className="label">Score per check: contrast ÷ 7:1, target ÷ 44px, ring width ÷ 2px and contrast ÷ 3:1, each capped at 100.</p>
+        </div>
+      </div>
 
       <div className="sandbox-actions">
         {demo != null ? (
-          <Button variant="secondary" onClick={() => setDraft({ ...draft, minHeight: '32', paddingY: String(demo) })}>
-            Try a 32px target
-          </Button>
+          <ActionChip onClick={() => setDraft({ ...draft, minHeight: '32', paddingY: String(demo) })}>Try a 32px target</ActionChip>
         ) : null}
         <Button variant="secondary" onClick={() => setDraft(base)} disabled={!changed}>
           Reset
         </Button>
-        <Button variant="tertiary" onClick={copy} disabled={!changed}>
+        <ActionChip onClick={copy} disabled={!changed}>
           Copy as proposal
-        </Button>
+        </ActionChip>
       </div>
     </section>
   );

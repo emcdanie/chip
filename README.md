@@ -52,7 +52,8 @@ The server binds to localhost only and warms both models on start, so the first 
 ```
 bin/chip.mjs                 terminal commands
 server/server.js             serves app/dist; POST /ask (numbered sources, weak-match fallback), POST /cmd (ask, sync, audit, status only), GET /docs, GET /source (indexed paths only), GET/POST /notes (data/notes.json, local)
-app/                         the CHIP app on BELLA components: Health, Atlas (each component's anatomy, facts, sandbox, notes) and OBI, the ask-or-run panel on every page (⌘J); ⌘K jumps
+app/                         the CHIP app on BELLA components: Health and Atlas (Anatomy, Try a change, Facts, Notes per component); one input (⌘K) jumps or asks OBI, whose thread floats over the right edge (⌘J, Esc)
+scripts/checkpoint.mjs       npm run checkpoint: no hex or px fonts, build, NDA scan, then axe and screens at 1440 and 390 (warm, dark)
 server/lib/                  config, local model (Ollama), search index, ask
 scripts/sync-bella.mjs       BELLA → data/bella.json (+ data/bella.js for the bridge)
 scripts/sync-notion.mjs      Notion → data/notion/*.md (local only, gitignored)

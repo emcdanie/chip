@@ -1,16 +1,16 @@
-// OBI: ask or run, on every page. One input: plain text asks, "/" opens the
-// command list (POST /cmd, the same four-command allowlist, one at a time),
-// Up recalls history. One thread mixes answers and command output. BELLA data
-// questions are answered from data/bella.json with no model call; the rest go
-// to the model with retrieval and come back with numbered citations.
+// OBI: ask or run. useObi holds the thread and the two paths (BELLA data
+// questions answered from data/bella.json with no model call; the rest
+// retrieved and sent to the model, back with numbered citations) and the
+// four commands (POST /cmd, one at a time). OneInput is CHIP's only field;
+// ObiPanel shows the thread and floats over the right edge.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Input from '@bella/components/Input/Input';
-import Button from '@bella/components/Button/Button';
 import Kbd from '@bella/components/Kbd/Kbd';
 import Link from '@bella/components/Link/Link';
 import Tag from '@bella/components/Tag/Tag';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import DataTable from '@bella/components/DataTable/DataTable';
+import ActionChip from '@bella/components/ActionChip/ActionChip';
+import Combobox from '@bella/components/Combobox/Combobox';
 import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor } from './answers.js';
 
 const COMMANDS = [
@@ -148,7 +148,7 @@ function AskTurn({ t, bella, model, onOpenAtlas, onSandbox, onSave, notify }) {
             rows={t.data.rows}
             rowKey={t.data.rowKey}
             caption={t.data.title}
-            maxHeight="calc(var(--spacing-20) * 3)"
+            maxHeight="calc(var(--spacing-20) * 6)"
           />
           <p className="meta">data/bella.json, synced from BELLA @ {bella?.source.commit}. No model call.</p>
         </div>
@@ -162,28 +162,18 @@ function AskTurn({ t, bella, model, onOpenAtlas, onSandbox, onSave, notify }) {
       {done && names.length ? (
         <div className="turn-chips" aria-label="Components in this answer">
           {names.map((n) => (
-            <Button key={n} variant="secondary" shape="pill" onClick={() => onOpenAtlas(n)}>
+            <ActionChip key={n} onClick={() => onOpenAtlas(n)} ariaLabel={`Open ${n} in Atlas`}>
               {n}
-            </Button>
+            </ActionChip>
           ))}
         </div>
       ) : null}
 
       {done && (t.path === 'data' || t.path === 'docs') ? (
         <div className="turn-actions">
-          {sandboxable ? (
-            <Button variant="tertiary" onClick={() => onSandbox(target)}>
-              Try in sandbox
-            </Button>
-          ) : null}
-          <Button variant="tertiary" onClick={copy}>
-            Copy as proposal
-          </Button>
-          {target ? (
-            <Button variant="tertiary" onClick={() => onSave(target, t)}>
-              Save to {target} notes
-            </Button>
-          ) : null}
+          {sandboxable ? <ActionChip onClick={() => onSandbox(target)}>Try in sandbox</ActionChip> : null}
+          <ActionChip onClick={copy}>Copy as proposal</ActionChip>
+          {target ? <ActionChip onClick={() => onSave(target, t)}>Save to {target} notes</ActionChip> : null}
         </div>
       ) : null}
 
@@ -228,42 +218,12 @@ function CmdTurn({ t }) {
   );
 }
 
-/* ---------- the panel ---------- */
-// The thread outlives the panel: the drawer unmounts its content when it
-// closes, and the panel moves between dock and drawer at 1024px.
-const memory = { turns: [], history: [], session: null };
-export default function Obi({ bella, health, page, queued, onOpenAtlas, onSandbox, onSaved, onClose, notify, inDrawer }) {
-  const [turns, setTurns] = useState(memory.turns);
-  const [input, setInput] = useState('');
+/* ---------- the thread and the two paths ---------- */
+export function useObi({ bella, page, notify, onSaved }) {
+  const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
-  const [active, setActive] = useState(0);
-  const history = useRef(memory.history);
-  const histAt = useRef(-1);
-  const session = useRef(memory.session);
-  const thread = useRef(null);
-  const handled = useRef(null);
-  const model = health?.model ?? 'the local model';
-
-  const suggestions = useMemo(() => suggestionsFor(page, bella), [page, bella]);
-  const slash = input.startsWith('/') && !input.includes(' ');
-  const matches = slash ? COMMANDS.filter((c) => `/${c.cmd}`.startsWith(input)) : [];
-
-  useEffect(() => {
-    memory.turns = turns;
-    thread.current?.scrollTo({ top: thread.current.scrollHeight });
-  }, [turns]);
-  useEffect(() => () => {
-    memory.history = history.current;
-    memory.session = session.current;
-  }, []);
-  useEffect(() => setActive(0), [input]);
-  useEffect(() => {
-    if (queued && handled.current !== queued.at) {
-      handled.current = queued.at;
-      send(queued.text);
-    }
-  });
-
+  const session = useRef(null);
+  const history = useRef([]);
   const patch = (id, fn) => setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, ...fn(t) } : t)));
 
   async function ask(q) {
@@ -290,9 +250,7 @@ export default function Obi({ bella, health, page, queued, onOpenAtlas, onSandbo
         if (ev.type === 'weak') patch(id, () => ({ path: 'weak', closest: ev.closest, top: ev.top }));
         if (ev.type === 'sources') patch(id, () => ({ sources: ev.sources, top: ev.top }));
         if (ev.type === 'token') patch(id, (t) => ({ text: t.text + ev.text, first: t.first ?? (performance.now() - t0) / 1000 }));
-        if (ev.type === 'done') {
-          patch(id, (t) => ({ total: (performance.now() - t0) / 1000, components: componentsIn(t.text, bella) }));
-        }
+        if (ev.type === 'done') patch(id, (t) => ({ total: (performance.now() - t0) / 1000, components: componentsIn(t.text, bella) }));
       }
     } catch (err) {
       patch(id, () => ({ path: 'error', text: /fetch/i.test(err.message) ? 'The CHIP server is not answering on 127.0.0.1:3100. Start it with npm start.' : err.message }));
@@ -301,16 +259,12 @@ export default function Obi({ bella, health, page, queued, onOpenAtlas, onSandbo
     }
   }
 
-  async function run(cmd, arg) {
+  async function run(cmd) {
     const id = Date.now() + Math.random();
-    setTurns((ts) => [...ts, { id, kind: 'cmd', cmd, arg, text: '', exit: null }]);
+    setTurns((ts) => [...ts, { id, kind: 'cmd', cmd, text: '', exit: null }]);
     setBusy(true);
     try {
-      const res = await fetch('/cmd', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(arg ? { cmd, question: arg } : { cmd }),
-      });
+      const res = await fetch('/cmd', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ cmd }) });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         patch(id, () => ({ text: `chip: ${err.error ?? `server answered ${res.status}`}`, exit: 1 }));
@@ -320,8 +274,7 @@ export default function Obi({ bella, health, page, queued, onOpenAtlas, onSandbo
       let text = '';
       for await (const part of res.body) {
         text += dec.decode(part, { stream: true });
-        const shown = text.replace(/\n\[exit [^\]]+\]\n?$/, '');
-        patch(id, () => ({ text: shown }));
+        patch(id, () => ({ text: text.replace(/\n\[exit [^\]]+\]\n?$/, '') }));
       }
       const m = text.match(/\[exit (\S+)\]\s*$/);
       patch(id, () => ({ exit: m ? (Number.isNaN(+m[1]) ? 1 : +m[1]) : 1 }));
@@ -332,57 +285,27 @@ export default function Obi({ bella, health, page, queued, onOpenAtlas, onSandbo
     }
   }
 
+  /** Plain text asks; "/status", "/audit", "/sync" run; "/ask <q>" asks. */
   function send(raw) {
     const text = raw.trim();
-    if (!text || busy) return;
+    if (!text || busy) return false;
     history.current = [...history.current.filter((h) => h !== text), text];
-    histAt.current = -1;
-    setInput('');
     if (text.startsWith('/')) {
       const [word, ...rest] = text.slice(1).split(' ');
       const arg = rest.join(' ').trim();
-      if (word === 'ask') return arg ? ask(arg) : setInput('/ask ');
-      if (COMMANDS.some((c) => c.cmd === word)) return run(word);
-      return setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: `Unknown command. Try ${COMMANDS.map((c) => '/' + c.cmd).join(', ')}.` }]);
+      if (word === 'ask' && arg) ask(arg);
+      else if (COMMANDS.some((c) => c.cmd === word && c.cmd !== 'ask')) run(word);
+      else setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: `Unknown command. Try ${COMMANDS.map((c) => '/' + c.cmd).join(', ')}.` }]);
+      return true;
     }
-    return ask(text);
-  }
-
-  function pick(c) {
-    if (c.cmd === 'ask') setInput('/ask ');
-    else send(`/${c.cmd}`);
-    requestAnimationFrame(() => document.getElementById('obi-input')?.focus());
-  }
-
-  function onKeyDown(e) {
-    if (matches.length && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-      e.preventDefault();
-      setActive((a) => (a + (e.key === 'ArrowDown' ? 1 : matches.length - 1)) % matches.length);
-    } else if (matches.length && e.key === 'Enter') {
-      e.preventDefault();
-      pick(matches[active]);
-    } else if (e.key === 'ArrowUp' && !input && history.current.length) {
-      e.preventDefault();
-      histAt.current = histAt.current < 0 ? history.current.length - 1 : Math.max(0, histAt.current - 1);
-      setInput(history.current[histAt.current]);
-    } else if (e.key === 'ArrowDown' && histAt.current >= 0) {
-      e.preventDefault();
-      histAt.current += 1;
-      if (histAt.current >= history.current.length) {
-        histAt.current = -1;
-        setInput('');
-      } else setInput(history.current[histAt.current]);
-    }
+    ask(text);
+    return true;
   }
 
   async function save(component, t) {
     const text = t.data ? [t.data.title, ...t.data.rows.map((r) => rowText(t.data, r))].join('\n') : t.text;
     try {
-      const res = await fetch('/notes', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ component, text, question: t.q }),
-      });
+      const res = await fetch('/notes', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ component, text, question: t.q }) });
       if (!res.ok) throw new Error();
       notify(`Saved to ${component} notes`);
       onSaved();
@@ -391,75 +314,171 @@ export default function Obi({ bella, health, page, queued, onOpenAtlas, onSandbo
     }
   }
 
+  return { turns, busy, send, save, history };
+}
+
+/* ---------- the one input ---------- */
+export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, notify }) {
+  const [q, setQ] = useState('');
+  const histAt = useRef(-1);
+  const query = q.trim();
+  const needle = query.toLowerCase();
+
+  const groups = useMemo(() => {
+    if (!query) return [];
+    if (query.startsWith('/')) {
+      const word = needle.slice(1).split(' ')[0];
+      return [
+        {
+          id: 'cmd',
+          label: 'Run',
+          options: COMMANDS.filter((c) => c.cmd.startsWith(word)).map((c) => ({ id: `cmd:${c.cmd}`, label: c.cmd === 'ask' ? '/ask <question>' : `/${c.cmd}`, meta: c.note })),
+        },
+      ];
+    }
+    const comps = (bella?.components ?? []).filter((c) => c.name.toLowerCase().includes(needle)).slice(0, 6);
+    const words = needle.split(/\s+/).filter((w) => w.length > 2);
+    const docHits = docs
+      .map((d) => ({ d, hits: words.filter((w) => d.title.toLowerCase().includes(w)).length }))
+      .filter((x) => x.hits > 0 || x.d.title.toLowerCase().includes(needle))
+      .sort((a, b) => b.hits - a.hits)
+      .slice(0, 4);
+    return [
+      {
+        id: 'jump',
+        label: 'Jump to',
+        options: [
+          ...comps.map((c) => ({ id: `c:${c.id}`, label: c.name, meta: c.parts.length ? `Component · ${c.parts.length} parts` : 'Component' })),
+          ...docHits.map(({ d }, i) => ({ id: `d:${i}:${d.url ?? d.path}`, label: d.title, meta: 'Doc' })),
+        ],
+      },
+      { id: 'ask', label: 'Ask OBI', options: [{ id: 'ask', label: `Ask OBI: ${query}`, meta: `Looking at ${page}` }] },
+    ];
+  }, [query, needle, bella, docs, page]);
+
+  const exact = bella?.components.find((c) => c.name.toLowerCase() === needle);
+  const preferred = query.startsWith('/') ? groups[0]?.options[0]?.id : exact ? `c:${exact.id}` : 'ask';
+
+  function select(o) {
+    if (o.id.startsWith('c:')) {
+      onJump(o.id.slice(2));
+      setQ('');
+    } else if (o.id.startsWith('d:')) {
+      const href = o.id.split(':').slice(2).join(':');
+      window.open(href.startsWith('http') ? href : `/source?path=${encodeURIComponent(href)}`, '_blank', 'noopener');
+      setQ('');
+    } else if (o.id === 'cmd:ask') {
+      setQ('/ask ');
+    } else if (o.id.startsWith('cmd:')) {
+      if (obi.send(`/${o.id.slice(4)}`)) setQ('');
+    } else if (o.id === 'ask') {
+      if (obi.send(query)) setQ('');
+    }
+  }
+
+  function onKeyDown(e) {
+    const open = e.currentTarget.getAttribute('aria-expanded') === 'true';
+    const h = obi.history.current;
+    // history wins over the list while browsing it (the list opens as soon as a
+    // recalled entry fills the field)
+    if (e.key === 'ArrowUp' && (!q || histAt.current >= 0) && h.length) {
+      e.preventDefault();
+      histAt.current = histAt.current < 0 ? h.length - 1 : Math.max(0, histAt.current - 1);
+      setQ(h[histAt.current]);
+    } else if (e.key === 'ArrowDown' && histAt.current >= 0) {
+      e.preventDefault();
+      histAt.current += 1;
+      if (histAt.current >= h.length) {
+        histAt.current = -1;
+        setQ('');
+      } else setQ(h[histAt.current]);
+    } else if (e.key === 'Enter' && query.startsWith('/') && !groups[0]?.options.length) {
+      // an unknown command still reaches OBI, which says so
+      e.preventDefault();
+      if (obi.send(query)) setQ('');
+    } else if (e.key === 'Enter' && query.startsWith('/ask ') && query.length > 5) {
+      // "/ask <question>" goes straight to OBI
+      e.preventDefault();
+      if (obi.send(query)) setQ('');
+    } else if (e.key === 'Escape' && !open) {
+      onEscape();
+    } else if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
+      histAt.current = -1;
+    }
+  }
+
+  return (
+    <Combobox
+      id="one-input"
+      label="Ask OBI or jump to"
+      hideLabel
+      value={q}
+      onChange={setQ}
+      groups={groups}
+      defaultOptionId={preferred}
+      onSelect={select}
+      onKeyDown={onKeyDown}
+      placement={inPanel ? 'above' : 'below'}
+      placeholder={inPanel ? 'Ask a follow-up, or / for a command' : 'Ask OBI or jump to…'}
+      hint={inPanel ? null : <Kbd keys={['⌘', 'K']} label="Command K" />}
+      className="one-input"
+    />
+  );
+}
+
+/* ---------- the panel ---------- */
+export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onSandbox, onClose, notify }) {
+  const thread = useRef(null);
+  const model = health?.model ?? 'the local model';
+  const suggestions = useMemo(() => suggestionsFor(page, bella), [page, bella]);
+
+  useEffect(() => {
+    thread.current?.scrollTo({ top: thread.current.scrollHeight });
+  }, [obi.turns]);
+
   return (
     <section className="obi" aria-labelledby="obi-h">
       <header className="obi-head">
-        <div>
-          {/* in the drawer, the drawer's own title names the panel */}
-          <h2 id="obi-h" className={inDrawer ? 'sr-only' : 'obi-title'}>
+        <div className="obi-name">
+          <h2 id="obi-h" className="obi-title">
             OBI
           </h2>
-          <p className="meta">ask or run</p>
+          <Tag>Looking at {page}</Tag>
         </div>
-        {onClose ? (
-          <Button variant="tertiary" onClick={onClose} ariaLabel="Close OBI">
-            Close <Kbd keys={['⌘', 'J']} label="Command J" />
-          </Button>
-        ) : null}
+        <ActionChip onClick={onClose} ariaLabel="Hide OBI (Escape or Command J)">
+          Hide
+        </ActionChip>
       </header>
 
-      <div className="obi-context">
-        <span className="meta">Looking at</span>
-        <Tag>{page}</Tag>
-      </div>
-
-      {suggestions.length ? (
-        <div className="obi-suggest" aria-label="Suggested questions">
-          {suggestions.map((s) => (
-            <Button key={s} variant="secondary" shape="pill" onClick={() => send(s)} disabled={busy}>
-              {s}
-            </Button>
-          ))}
-        </div>
-      ) : null}
-
       <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
-        {turns.length === 0 ? <li className="meta obi-empty">Ask a question, or type / for a command.</li> : null}
-        {turns.map((t) =>
+        {obi.turns.length === 0 ? (
+          <li className="obi-empty">
+            <p className="label">Ask below, or type / for a command. Questions about {page === 'Health' ? 'BELLA' : page.replace('Atlas · ', '')} include it as context.</p>
+            {suggestions.length ? (
+              <div className="obi-suggest" aria-label="Suggested questions">
+                {suggestions.map((s) => (
+                  <ActionChip key={s} onClick={() => obi.send(s)} disabled={obi.busy}>
+                    {s}
+                  </ActionChip>
+                ))}
+              </div>
+            ) : null}
+          </li>
+        ) : null}
+        {obi.turns.map((t) =>
           t.kind === 'cmd' ? (
             <CmdTurn key={t.id} t={t} />
           ) : (
-            <AskTurn key={t.id} t={t} bella={bella} model={model} onOpenAtlas={onOpenAtlas} onSandbox={onSandbox} onSave={save} notify={notify} />
+            <AskTurn key={t.id} t={t} bella={bella} model={model} onOpenAtlas={onOpenAtlas} onSandbox={onSandbox} onSave={obi.save} notify={notify} />
           )
         )}
       </ol>
 
-      <form
-        className="obi-input"
-        onSubmit={(e) => {
-          e.preventDefault();
-          send(input);
-        }}
-        onKeyDown={onKeyDown}
-      >
-        {matches.length ? (
-          <ul className="obi-commands" aria-label="Commands">
-            {matches.map((c, i) => (
-              <li key={c.cmd} data-active={i === active || undefined}>
-                <Button variant="tertiary" onClick={() => pick(c)}>
-                  /{c.cmd}
-                </Button>
-                <span className="meta">{c.note}</span>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        <Input id="obi-input" label="Ask or run" value={input} onChange={setInput} placeholder="Ask, or / for a command" autoComplete="off" />
-      </form>
+      <div className="obi-input" ref={inputSlot} />
 
       <p className="obi-status">
-        <span>{health ? health.model : 'model offline'}</span>
-        <span>{health ? `${health.chunks.toLocaleString('en')} chunks` : 'no index'}</span>
+        <span>{health ? health.model : 'Model offline'}</span>
+        <span>{health ? `${health.chunks.toLocaleString('en')} chunks` : 'No index'}</span>
         <span>BELLA @ {bella?.source.commit ?? '…'}</span>
       </p>
     </section>

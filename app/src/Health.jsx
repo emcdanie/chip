@@ -6,7 +6,7 @@ import Stat from '@bella/components/Stat/Stat';
 import ScoreStrip, { ScoreLegend } from '@bella/components/ScoreStrip/ScoreStrip';
 import DataTable from '@bella/components/DataTable/DataTable';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
-import Button from '@bella/components/Button/Button';
+import ActionChip from '@bella/components/ActionChip/ActionChip';
 
 function Pill({ ok, word }) {
   return <StatusPill variant={ok ? 'success' : 'info'}>{word}</StatusPill>;
@@ -112,25 +112,25 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
                 label="Components"
                 value={bella.counts.components}
                 t={trendOf(history, 'components')}
-                action={<Button variant="tertiary" onClick={() => onOpenAtlas()}>Open Atlas</Button>}
+                action={<ActionChip onClick={() => onOpenAtlas()}>Open Atlas</ActionChip>}
               />
               <Tile
                 label="Story coverage"
                 value={`${pct(bella.counts.withStory)}%`}
                 t={trendOf(history, 'storyCoverage', '%')}
-                action={<Button variant="tertiary" onClick={() => onAsk('Which components have no story?')}>Which have none?</Button>}
+                action={<ActionChip onClick={() => onAsk('Which components have no story?')}>Which have none?</ActionChip>}
               />
               <Tile
                 label="Contract coverage"
                 value={`${pct(bella.counts.withContract)}%`}
                 t={trendOf(history, 'contractCoverage', '%')}
-                action={<Button variant="tertiary" onClick={() => onAsk('Which components have no contract?')}>Which have none?</Button>}
+                action={<ActionChip onClick={() => onAsk('Which components have no contract?')}>Which have none?</ActionChip>}
               />
               <Tile
                 label="Gate"
                 value={gateOk ? 'Green' : 'Red'}
                 t={{ series: gateHistory.length >= 2 ? gateHistory.map((h) => (h.ok ? 1 : 0)) : undefined, seriesLabel: () => `Gate over ${gateHistory.length} commits: ${greenCommits} green, ${gateHistory.length - greenCommits} red`, delta: `${greenCommits} of ${gateHistory.length} recent commits green` }}
-                action={<Button variant="tertiary" onClick={() => onRun('/audit')}>Run /audit</Button>}
+                action={<ActionChip onClick={() => onRun('/audit')}>Run /audit</ActionChip>}
               />
             </div>
           </div>
