@@ -105,7 +105,7 @@ export function VisMenu({ role, label, settings, onChange, withStatus = true }) 
   if (!canEdit(role)) return null;
   return (
     <span className="vis-menu" ref={box}>
-      <ActionChip onClick={() => setOpen((o) => !o)} ariaLabel={`${label}: visibility and status`}>
+      <ActionChip variant="quiet" onClick={() => setOpen((o) => !o)} ariaLabel={`${label}: visibility and status`}>
         ⋯
       </ActionChip>
       {open ? (
