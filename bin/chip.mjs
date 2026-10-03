@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // chip: the terminal side of CHIP.
-//   chip ask "question"   answer from the local index with the local model
+//   chip ask "question"   answer from the local index (via the server when it is up)
 //   chip sync             sync BELLA + Notion, then re-index
 //   chip audit            sync BELLA, print station scores and failures
 //   chip status           model, index size, last sync
 import { spawnSync } from 'node:child_process';
 import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, BELLA_JSON, INDEX_FILE, NOTION_DIR, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL, NOTION_API_TOKEN } from '../server/lib/config.mjs';
+import { ROOT, PORT, BELLA_JSON, INDEX_FILE, NOTION_DIR, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL, NOTION_API_TOKEN } from '../server/lib/config.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
 
@@ -17,20 +17,56 @@ function syncBella({ quiet = false } = {}) {
   if (r.status !== 0) throw new Error('sync:bella failed');
 }
 
+// POST /ask on the running server (its models are already warm). Returns null
+// when nothing is listening, so the caller falls back to the model directly.
+async function serverStream(q) {
+  let res;
+  try {
+    res = await fetch(`http://127.0.0.1:${PORT}/ask`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ message: q, stream: true }),
+    });
+  } catch {
+    return null;
+  }
+  if (!res.ok) throw new Error(`server /ask ${res.status}`);
+  return (async function* () {
+    const dec = new TextDecoder();
+    let buf = '';
+    for await (const part of res.body) {
+      buf += dec.decode(part, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        const ev = JSON.parse(line);
+        if (ev.type === 'error') throw new Error(ev.error);
+        yield ev;
+      }
+    }
+  })();
+}
+
 const commands = {
   async ask() {
     const q = rest.join(' ').trim();
     if (!q) throw new Error('usage: chip ask "your question"');
-    const { askStream } = await import('../server/lib/ask.mjs');
     const t = Date.now();
+    let stream = await serverStream(q), via = 'server';
+    if (!stream) {
+      const { askStream } = await import('../server/lib/ask.mjs');
+      stream = askStream(q);
+      via = 'direct';
+    }
     let first = null, sources = [];
-    for await (const ev of askStream(q)) {
+    for await (const ev of stream) {
       if (ev.type === 'sources') sources = ev.sources;
       if (ev.type === 'token') { first ??= Date.now(); process.stdout.write(ev.text); }
     }
     console.log('\n\nSources:');
     for (const s of sources) console.log(`  - ${s.title} · ${s.url || s.path}`);
-    console.log(`\n(first words ${(((first ?? Date.now()) - t) / 1000).toFixed(1)}s · total ${((Date.now() - t) / 1000).toFixed(1)}s · ${CHIP_MODEL})`);
+    console.log(`\n(first words ${(((first ?? Date.now()) - t) / 1000).toFixed(1)}s · total ${((Date.now() - t) / 1000).toFixed(1)}s · ${CHIP_MODEL} · ${via})`);
   },
 
   async sync() {
