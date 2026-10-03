@@ -74,7 +74,7 @@ CHIP stands on the shoulders of:
 - **Mark Cianfrani** — designer as agent-operator
 - **Dan Donald** — Inclusion Plugin pattern (override with logged exception)
 - **Linear · Raycast · Arc** — command palette lineage
-- **UN PRISM · Hitparade.ch · Nadieh Bremer · howmanyplants.com** — dense data viz aesthetic
+- **A UN agency's data platform · Hitparade.ch · Nadieh Bremer · howmanyplants.com** — dense data viz aesthetic
 - **Finviz** — sortable-table density
 
 ## License

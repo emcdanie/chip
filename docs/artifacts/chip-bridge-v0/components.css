@@ -1888,7 +1888,7 @@ body[data-density="compact"] .surfaces__row { padding: var(--s2) var(--s3); }
 
 
 /* ================================================================ */
-/* STAGE 12 — PRISM viz: voices map, sparklines, aggregates, cadence */
+/* STAGE 12 — dense viz: voices map, sparklines, aggregates, cadence */
 /* ================================================================ */
 
 /* 12.1 Voices Map */
@@ -3316,7 +3316,7 @@ body[data-inclusion="overridden"] .inclusion-explainer {
 }
 
 /* ================================================================ */
-/* STAGE 18.15 — PRISM-style dependency map                          */
+/* STAGE 18.15 — dense dependency map                          */
 /* Hierarchical node tree with side-panel detail. Click a node →     */
 /* detail populates on the right. Status colour reflects parity.     */
 /* ================================================================ */

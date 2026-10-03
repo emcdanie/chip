@@ -1449,7 +1449,7 @@
     });
   }
 
-  // ============ Stage 18.15 — PRISM-style dependency tree ============
+  // ============ Stage 18.15 — dense dependency tree ============
   // Click any tree node → detail side panel populates with description,
   // metrics, last update / next review, sparkline, availability bar.
   var DEP_NODE_DATA = {
