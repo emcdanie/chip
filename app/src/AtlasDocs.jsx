@@ -322,6 +322,7 @@ function Confirm({ branch, onDone, onCancel }) {
         This pushes <span className="mono">{pre.branch}</span> to BELLA's remote, and nothing else, then opens a <b>draft</b> pull request against {pre.base}. This click is your OK for this one change. CHIP never merges.
       </p>
       <dl className="facts">
+        <div><dt>Base</dt><dd><span className="mono">{pre.base}</span>{pre.carries != null ? ` · carries ${pre.carries} commit${pre.carries === 1 ? '' : 's'}` : ''}</dd></div>
         <div><dt>Files</dt><dd>{pre.files.map((f) => <span key={f} className="mono">{f} </span>)}</dd></div>
         <div><dt>Title</dt><dd>{pre.title}</dd></div>
         <div><dt>Body</dt><dd className="doc-pr-body">{pre.body}</dd></div>

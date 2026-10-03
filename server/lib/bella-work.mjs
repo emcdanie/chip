@@ -11,6 +11,8 @@ import { join } from 'node:path';
 import { ROOT } from './config.mjs';
 
 export const BELLA = process.env.BELLA_DIR || join(homedir(), 'DEV', 'bella');
+// proposals branch from this and open their draft PR against it (Elleta, 2026-10-03)
+const PROPOSAL_BASE = process.env.BELLA_PROPOSAL_BASE || 'feat/chip-components';
 const BRANCH = /^docs\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const git = (args, opts = {}) => execFileSync('git', ['-C', opts.cwd ?? BELLA, '--no-optional-locks', ...args], { encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'], ...opts.exec });
 const gitBuf = (args) => execFileSync('git', ['-C', BELLA, '--no-optional-locks', ...args], { maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -67,16 +69,13 @@ function removeWorktree(dir) {
   git(['worktree', 'remove', '--force', dir]);
 }
 
-function currentBranch() {
-  return git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
-}
 
 /** Lists this component's local proposal branches. */
 export function proposals(id) {
   const out = git(['branch', '--list', `docs/${id}-*`, '--format=%(refname:short)%09%(subject)%09%(committerdate:short)']).trim();
   return out ? out.split('\n').map((l) => {
     const [branch, subject, date] = l.split('\t');
-    const ahead = Number(git(['rev-list', '--count', `${currentBranch()}..${branch}`]).trim());
+    const ahead = Number(git(['rev-list', '--count', `${PROPOSAL_BASE}..${branch}`]).trim());
     return { branch, subject, date, ahead, job: [...jobs.values()].find((j) => j.branch === branch)?.status ?? null };
   }).filter((p) => p.ahead > 0) : [];
 }
@@ -145,7 +144,7 @@ const run = (cmd, args, cwd) =>
 export function propose(id, { kind, content, summary }) {
   const { c } = component(id);
   if (typeof content !== 'string' || !content.trim()) throw new Error('Nothing to propose');
-  const base = currentBranch();
+  const base = PROPOSAL_BASE;
   const branch = `docs/${id}-${slug(summary || `${kind} edit`)}`;
   if (!BRANCH.test(branch)) throw new Error(`Not a docs branch name: ${branch}`);
   if (git(['branch', '--list', branch]).trim()) throw new Error(`${branch} already exists: open it or discard it first`);
@@ -211,8 +210,8 @@ export function discard(branch) {
  */
 export async function pullRequest({ branch, confirm, dryRun }) {
   checkBranch(branch);
-  const base = [...jobs.values()].find((j) => j.branch === branch)?.base ?? currentBranch();
-  const remoteBase = git(['ls-remote', '--heads', 'origin', base]).trim() ? base : 'main';
+  const base = [...jobs.values()].find((j) => j.branch === branch)?.base ?? PROPOSAL_BASE;
+  const remoteBase = base; // never main: the PR goes against the branch the proposal came from
   const files = git(['diff', '--name-only', `${base}...${branch}`]).trim().split('\n').filter(Boolean);
   const title = git(['log', '-1', '--format=%s', branch]).trim();
   const body = `${git(['log', '-1', '--format=%b', branch]).trim()}\n\nFiles: ${files.join(', ')}.\nThe BELLA gate ran green in the pre-commit hook on this branch. Draft: review before merging; CHIP does not merge.`;
@@ -231,9 +230,11 @@ export async function pullRequest({ branch, confirm, dryRun }) {
   const blocked =
     carries === 1
       ? null
-      : carries == null
+      : !baseSha
+        ? `${remoteBase} is not on BELLA's remote, so there is nothing to open a pull request against. Pushing it is your call, outside CHIP.`
+        : carries == null
         ? `Can't tell what the pull request would carry: ${remoteBase} on the remote is not in this clone. Fetch BELLA first.`
-        : `A pull request against ${remoteBase} would carry ${carries} commits, not just this one: ${base} is not on the remote yet. Pushing ${base} is your call, outside CHIP.`;
+        : `A pull request against ${remoteBase} would carry ${carries} commits, not just this one: your local ${base} is ${carries - 1} commit${carries - 1 === 1 ? '' : 's'} ahead of the remote. Pushing ${base} is your call, outside CHIP.`;
   const preview = { branch, base: remoteBase, files, title, body, carries, blocked, commands: commands.map((c) => c.join(' ')) };
   if (!confirm || dryRun || blocked) return { dryRun: true, ...preview };
   const push = await run(commands[0][0], commands[0].slice(1), BELLA);
