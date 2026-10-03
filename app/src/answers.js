@@ -266,7 +266,7 @@ function parseJson(text) {
 }
 
 /** A short plain answer for a tool's output (or its error). */
-export function summarizeTool({ server, tool, text = '', error = null, q = '' }) {
+export function summarizeTool({ server, tool, text = '', error = null, q = '', args = {} }) {
   if (error) {
     const p = parseJson(error);
     const j = p && typeof p === 'object' && !Array.isArray(p) ? p : null;
@@ -297,7 +297,7 @@ export function summarizeTool({ server, tool, text = '', error = null, q = '' })
       return `The open file has ${plural(pages.length, 'page')}: ${listOf(pages)}.`;
     }
     // asked for pages, got a node: say so, never answer a different question
-    if (/\bpages?\b/i.test(q)) return 'Figma gave me your selection, not the page list. Deselect everything and ask again.';
+    if (/\bpages?\b/i.test(q) && !args?.nodeId) return 'Figma gave me your selection, not the page list. Deselect everything and ask again.';
     const kind = top[1] === 'canvas' ? 'page' : top[1];
     return `${top[2]} is a ${kind}${size}${kids.length ? ` with ${plural(kids.length, 'layer')}: ${listOf(kids)}` : ''}.`;
   }

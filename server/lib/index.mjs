@@ -2,7 +2,7 @@
 // local model, store in data/index/chunks.json, cosine top-k.
 // Re-embeds only chunks whose text changed (keyed by hash), so a re-index
 // with nothing new is fast.
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, statSync, renameSync } from 'node:fs';
 import { join, dirname, basename, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { docSources } from './docs.mjs';
@@ -128,7 +128,10 @@ export async function buildIndex({ log = () => {} } = {}) {
   const chunks = pending.map(({ embedText, ...c }) => ({ ...c, embedding: cache.get(c.hash) }));
   const index = { model: CHIP_EMBED_MODEL, builtAt: new Date().toISOString(), chunks };
   mkdirSync(dirname(INDEX_FILE), { recursive: true });
-  writeFileSync(INDEX_FILE, JSON.stringify(index));
+  // write then rename, so a reader never sees half a file
+  const tmp = `${INDEX_FILE}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(index));
+  renameSync(tmp, INDEX_FILE);
   _index = index; _mtime = statSync(INDEX_FILE).mtimeMs;
   return { chunks: chunks.length, embedded: fresh.length };
 }

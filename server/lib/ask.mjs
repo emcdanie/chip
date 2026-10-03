@@ -16,6 +16,19 @@ export function contextPack() {
   if (!existsSync(CONTEXT_PACK)) return '';
   return readFileSync(CONTEXT_PACK, 'utf8').trim();
 }
+// Does a local reply quote the pack? Any run of 8 words in common counts.
+const words = (t) => t.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+export function quotesPack(reply) {
+  const pack = contextPack();
+  if (!pack || !reply) return false;
+  const p = words(pack);
+  const runs = new Set();
+  for (let i = 0; i + 8 <= p.length; i++) runs.add(p.slice(i, i + 8).join(' '));
+  const r = words(reply);
+  for (let i = 0; i + 8 <= r.length; i++) if (runs.has(r.slice(i, i + 8).join(' '))) return true;
+  return false;
+}
+
 const withPack = (system) => {
   const pack = contextPack();
   return pack ? `Background (from Elleta's context pack; not a numbered source, do not cite it):\n${pack}\n\n===\n\n${system}` : system;
@@ -53,7 +66,7 @@ function numbered(chunks) {
   for (const c of chunks) {
     const key = c.url || c.path;
     if (!byKey.has(key)) {
-      byKey.set(key, { n: byKey.size + 1, title: c.title, ...(c.url ? { url: c.url } : { path: c.path }), passage: excerpt(c.text.trim()), score: +c.score.toFixed(3) });
+      byKey.set(key, { n: byKey.size + 1, title: c.title, ...(c.url ? { url: c.url } : { path: c.path }), passage: excerpt(c.text.trim()), score: +c.score.toFixed(3), ...(c.localOnly ? { localOnly: true } : {}) });
     }
   }
   return byKey;
@@ -137,9 +150,14 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const messages = [{ role: 'system', content: withPack(SYSTEM) }, ...turns]; // non-streamed path is local only
   // history keeps the bare question, not the sources, where it was answered
   // and whether a private source went into it
-  const usedPrivate = chunks.some((c) => isPrivate(c) || isLocalOnly(c));
-  const remember = (reply, place = 'local') =>
-    sessions.set(id, [...stored, { role: 'user', content: message, place, private: usedPrivate }, { role: 'assistant', content: reply, place, private: usedPrivate }].slice(-HISTORY_TURNS));
+  // private when a private source went in, when an earlier private turn was
+  // in its history (it may restate it), or when a local reply quotes the
+  // context pack (Cowork text)
+  const usedPrivate = chunks.some((c) => isPrivate(c) || isLocalOnly(c)) || stored.some((m) => m.private);
+  const remember = (reply, place = 'local') => {
+    const priv = usedPrivate || (place === 'local' && quotesPack(reply));
+    sessions.set(id, [...stored, { role: 'user', content: message, place, private: priv }, { role: 'assistant', content: reply, place, private: priv }].slice(-HISTORY_TURNS));
+  };
   return { id, top, heldBack, keptLocal, messages, turns, sources: [...nums.values()], remember };
 }
 

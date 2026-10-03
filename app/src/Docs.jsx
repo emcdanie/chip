@@ -88,8 +88,9 @@ export default function Docs({ docId, version = 0, narrow }) {
     loadList();
   }, [version]);
 
+  // a new doc closes the editor; a save elsewhere (version) only refreshes
+  useEffect(() => setEditing(null), [docId]);
   useEffect(() => {
-    setEditing(null);
     if (!docId) return setDoc(null);
     fetch(`/obi-docs/${docId}`)
       .then((r) => (r.ok ? r.json() : null))

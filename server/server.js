@@ -160,7 +160,8 @@ app.get('/docs', (_req, res) => {
 // PUT /obi-docs/:id updates. A save re-indexes in the background.
 let reindexing = null, reindexAgain = false;
 function reindexSoon() {
-  if (reindexing) return void (reindexAgain = true);
+  // chip sync rebuilds the index itself; run again after it, not alongside
+  if (reindexing || running === 'sync') return void (reindexAgain = true);
   reindexing = buildIndex({ log: () => {} })
     .catch((e) => console.error('[CHIP] re-index failed:', e.message))
     .finally(() => {
@@ -266,7 +267,12 @@ app.post('/cmd', (req, res) => {
   child.on('error', (err) => res.write(`chip: ${err.message}\n`));
   child.on('close', (code, signal) => {
     clearTimeout(timer);
+    const was = running;
     running = null;
+    if (was === 'sync' && reindexAgain) {
+      reindexAgain = false;
+      reindexSoon();
+    }
     logUsage({ type: 'tool', route: 'tool', server: 'chip', tool: cmd, purpose: `chip ${cmd} from OBI`, ms: Date.now() - t0, ok: code === 0 });
     res.end(`\n[exit ${code ?? signal}]\n`);
   });

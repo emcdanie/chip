@@ -151,7 +151,7 @@ function handoffOf(turns, page, name) {
     title: name || `Handoff · ${page ?? 'CHIP'} · ${day}`,
     kind: 'handoff',
     tags: ['handoff'],
-    localOnly: turns.some((t) => (t.sources ?? []).some((x) => x.path?.startsWith('docs/reference/cowork/'))), // it may quote Cowork
+    localOnly: turns.some((t) => (t.sources ?? []).some((x) => x.localOnly || x.path?.startsWith('docs/reference/cowork/'))), // it may quote Cowork
     status: 'done',
     body: [
       `Session on ${page ?? 'CHIP'}, ${day}. ${turns.length} turns.`,
@@ -685,7 +685,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
 
   // an answer built on Cowork sources stays local only as a doc too
   const saveAsDoc = (t) =>
-    saveToDocs(`Save as doc: ${t.q}`, { title: titleCase(t.q), body: proposalOf(t), kind: 'answer', tags: ['answer'], status: 'active', localOnly: (t.sources ?? []).some((s) => s.path?.startsWith('docs/reference/cowork/')) });
+    saveToDocs(`Save as doc: ${t.q}`, { title: titleCase(t.q), body: proposalOf(t), kind: 'answer', tags: ['answer'], status: 'active', localOnly: (t.sources ?? []).some((s) => s.localOnly || s.path?.startsWith('docs/reference/cowork/')) });
   return { turns, busy, send, save, saveAsDoc, history, compare, includeAndRetry, confirmTool: (t) => settle(t, true), cancelTool: (t) => settle(t, false) };
 }
 
