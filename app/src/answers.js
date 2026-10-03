@@ -221,22 +221,24 @@ export function tidyCitations(text) {
 //     plus "figma"            -> the official Figma MCP (read only)
 //   - "variables / plugin / library" plus "figma" -> Figma Console MCP
 //   - "export / batch / many files" plus "figma"  -> the Figma CLI (not set up yet)
-// Returns { server, tool, args, why } or null.
+// Returns { server, tool, args, label, why } or null: label is the short
+// "what" for the answer's one line, why is the reason, shown under Details.
 export function toolRouteFor(q) {
   const url = q.match(/https?:\/\/(?:www\.)?figma\.com\/(?:design|file|proto|board)\/[^\s]+/i)?.[0];
   const mentionsFigma = /\bfigma\b/i.test(q) || Boolean(url);
   if (!mentionsFigma) return null;
   if (url) {
     const node = new URL(url).searchParams.get('node-id');
-    if (node) return { server: 'figma', tool: 'get_metadata', args: { nodeId: node.replace('-', ':') }, why: 'figma · get_metadata · the frame in the link' };
-    return { server: 'figma', tool: 'get_metadata', args: {}, why: 'figma · get_metadata · the pages of the open file' };
+    if (node) return { server: 'figma', tool: 'get_metadata', args: { nodeId: node.replace('-', ':') }, label: 'the frame in the link', why: 'the question has a Figma link with a node' };
+    // with nothing selected Figma lists the pages; with a selection, it describes it
+    return { server: 'figma', tool: 'get_metadata', args: {}, label: 'the open file', why: 'the question has a Figma link without a node' };
   }
-  if (/\b(export|batch|many files|script)\b/i.test(q)) return { server: 'figma-cli', tool: null, args: {}, why: 'figma-cli · batch work (the Figma CLI is not set up yet)' };
-  if (/\b(variables?|plugin|library|libraries)\b/i.test(q)) return { server: 'figma-console', tool: 'figma_get_variables', args: {}, why: 'figma-console · read variables' };
+  if (/\b(export|batch|many files|script)\b/i.test(q)) return { server: 'figma-cli', tool: null, args: {}, label: 'batch work', why: 'Figma batch work goes to the Figma CLI, which is not set up yet' };
+  if (/\b(variables?|plugin|library|libraries)\b/i.test(q)) return { server: 'figma-console', tool: 'figma_get_variables', args: {}, label: 'read variables', why: 'Figma variables, plugins and libraries go to Figma Console' };
   if (/\b(frame|design context|screenshot|selection|selected)\b/i.test(q)) {
     return /\bscreenshot\b/i.test(q)
-      ? { server: 'figma', tool: 'get_screenshot', args: {}, why: 'figma · get_screenshot · your selection' }
-      : { server: 'figma', tool: 'get_design_context', args: {}, why: 'figma · get_design_context · your selection' };
+      ? { server: 'figma', tool: 'get_screenshot', args: {}, label: 'screenshot of your selection', why: 'a Figma screenshot goes to the official Figma MCP' }
+      : { server: 'figma', tool: 'get_design_context', args: {}, label: 'your selection', why: 'a Figma frame or selection goes to the official Figma MCP' };
   }
   return null;
 }
@@ -263,7 +265,8 @@ function parseJson(text) {
 export function summarizeTool({ server, tool, text = '', error = null }) {
   if (error) {
     const j = parseJson(error);
-    const msg = j ? [j.error, j.message].filter(Boolean).join('. ') : error;
+    // the Desktop Bridge advice is shown as its own line under the answer
+    const msg = j ? [j.error, /Desktop Bridge/i.test(j.message ?? '') ? null : j.message].filter(Boolean).join('. ') : error;
     return `${server} could not do that: ${msg.replace(/^\[[\w-]+\]\s*/, '').replace(NODE_ID, '').replace(/\s+/g, ' ').trim()}`;
   }
   const out = text.trim();

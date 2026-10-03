@@ -311,13 +311,15 @@ function ToolTurn({ t, onConfirm, onCancel }) {
       </div>
       {t.server && t.tool ? (
         <details className="turn-details">
+          {/* one line: who, what, how long; the why and the raw output inside */}
           <summary>
             <Tag>
-              {t.server} · {t.tool.replace(/^figma_/, '').replace(/_/g, ' ')}
+              {t.server} · {t.label ?? t.tool.replace(/^figma_/, '').replace(/_/g, ' ')}
               {t.ms != null ? ` · ${(t.ms / 1000).toFixed(1)}s` : ''}
             </Tag>{' '}
-            {t.why ? <span className="label">{t.why}</span> : null} <span className="details-link">Details</span>
+            <span className="details-link">Details</span>
           </summary>
+          {t.why ? <p className="label">Why: {t.why}</p> : null}
           {t.text || t.error ? (
             <pre className="turn-out mono" tabIndex={0} aria-label={`Raw output of ${t.tool}`}>
               {(t.text || t.error).length > 3000 ? `${(t.text || t.error).slice(0, 3000)}\n…` : t.text || t.error}
@@ -384,7 +386,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
 
     // a question for Figma goes to a tool, not a model (Auto only)
     const toolRoute = auto && !opts.provider ? toolRouteFor(q) : null;
-    if (toolRoute) return runTool(q, { ...toolRoute, why: `Auto → ${toolRoute.why}` });
+    if (toolRoute) return runTool(q, { ...toolRoute, why: `Auto chose ${toolRoute.server} · ${toolRoute.tool ?? 'none'}: ${toolRoute.why}` });
 
     const autoPick = routeFor(q, models, budget);
     const choice = opts.provider ? { provider: opts.provider, why: null } : auto ? autoPick : { provider: picked, why: null };
@@ -436,9 +438,9 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
   }
 
   /** Runs a tool through the host (POST /host/call); a write comes back as a preview. */
-  async function runTool(q, { server, tool, args = {}, why = null }) {
+  async function runTool(q, { server, tool, args = {}, label = null, why = null }) {
     const id = Date.now() + Math.random();
-    setTurns((ts) => [...ts, { id, kind: 'tool', q, server, tool, why }]);
+    setTurns((ts) => [...ts, { id, kind: 'tool', q, server, tool, label, why }]);
     if (!tool) return patch(id, () => ({ message: `${why}. Name it in chip.config.local.json and turn it on to use it.` }));
     setBusy(true);
     try {
@@ -534,7 +536,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
           return true;
         }
         if (!m) setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: 'Use /tool <server> <tool> {json args}. /tools lists them.' }]);
-        else runTool(text, { server: m[1], tool: m[2], args, why: 'you named the tool' });
+        else runTool(text, { server: m[1], tool: m[2], args, why: `You named ${m[1]} · ${m[2]}` });
       } else if (word === 'ask' && flag) ask(flag[2], { provider: flag[1] === 'claude' ? 'claude' : localId });
       else if (word === 'ask' && arg) ask(arg);
       else if (['status', 'audit', 'sync'].includes(word)) run(word);
