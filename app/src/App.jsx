@@ -30,6 +30,7 @@ const NO_CONTRACT = 'No contract yet';
 
 const WS_KEYS = { Digit1: 'health', Digit2: 'atlas' };
 const OBI_KEY = 'chip-obi-open';
+const MODEL_KEY = 'chip-model';
 
 // routes: #/health, #/atlas/<component id>
 function routeOf(hash) {
@@ -81,6 +82,29 @@ export default function App() {
     }
   });
   const narrow = useMedia('(max-width: 719px)');
+  const [models, setModels] = useState([]);
+  const [budget, setBudget] = useState(null);
+  // the picked brain, remembered per browser; Auto by default
+  const [picked, setPicked] = useState(() => {
+    try {
+      return localStorage.getItem(MODEL_KEY) || 'auto';
+    } catch {
+      return 'auto';
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(MODEL_KEY, picked);
+    } catch {}
+  }, [picked]);
+  const loadModels = () =>
+    fetch('/models')
+      .then((r) => r.json())
+      .then((m) => {
+        setModels(m.models);
+        setBudget(m.budget);
+      })
+      .catch(() => {});
 
   const loadNotes = () => fetch('/notes').then((r) => r.json()).then(setNotes).catch(() => {});
   useEffect(() => {
@@ -88,6 +112,7 @@ export default function App() {
     fetch('/health').then((r) => r.json()).then(setHealth).catch(() => setOffline(true));
     fetch('/docs').then((r) => r.json()).then(setDocs).catch(() => {});
     loadNotes();
+    loadModels();
   }, []);
 
   useEffect(() => {
@@ -126,7 +151,7 @@ export default function App() {
   const failures = failuresOf(bella);
   const atlas = bella?.components.find((c) => c.id === atlasId) ?? null;
   const page = ws === 'atlas' ? `Atlas · ${atlas?.name ?? '…'}` : 'Health';
-  const obi = useObi({ bella, page, notify: setToast, onSaved: loadNotes });
+  const obi = useObi({ bella, page, notify: setToast, onSaved: loadNotes, models, budget, picked, onAnswered: loadModels });
 
   // asking opens OBI, so the answer has somewhere to land
   const send = (text) => {
@@ -296,6 +321,10 @@ export default function App() {
           onSandbox={(n) => openAtlas(n, 'try')}
           onClose={() => setObiOpen(false)}
           notify={setToast}
+          models={models}
+          picked={picked}
+          setPicked={setPicked}
+          budget={budget}
         />
       </div>
 
@@ -309,6 +338,10 @@ export default function App() {
           onJump={(id) => openAtlas(id)}
           onEscape={() => (obiOpen ? setObiOpen(false) : document.activeElement?.blur())}
           notify={setToast}
+          cloud={models.find((m) => m.id === picked)?.place === 'cloud'}
+          models={models}
+          budget={budget}
+          picked={picked}
         />,
         holder
       )}

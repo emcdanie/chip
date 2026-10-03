@@ -142,3 +142,40 @@ export function suggestionsFor(page, bella) {
   if (lowest) out.push(`How could BELLA raise its ${lowest.name} score?`);
   return out.slice(0, 3);
 }
+
+/* ---------- Auto: which brain answers, cheapest first ---------- */
+// (BELLA data questions and /commands are routed before this and never reach
+// a model.) Later, a decider (Jev) is asked first and these rules only run
+// when its probability is under 0.7.
+const REASON = {
+  review: 'a review', plan: 'a plan', write: 'writing', draft: 'a draft', compare: 'a comparison',
+  critique: 'a critique', explain: 'an explanation', why: 'an explanation', tradeoff: 'trade-offs', tradeoffs: 'trade-offs',
+};
+const CLAUDE_ASKS = /\b(review|plan|write|draft|compare|critique|explain why|why does|why is|trade-?offs?)\b/i;
+
+/** { provider: 'claude' | 'local:<model>' | null, why } for Auto. */
+export function routeFor(q, models, budget) {
+  const local = models.find((m) => m.place === 'local' && m.isDefault) ?? models.find((m) => m.place === 'local');
+  const claude = models.find((m) => m.id === 'claude' && m.available);
+  // no list yet (or Ollama down): still the server's own default model, so a
+  // real answer or a real error comes back
+  const localPick = { provider: local?.id ?? 'local:', why: `${local?.label ?? 'the local model'} · docs question` };
+  if (/figma\.com\/(file|design|proto|board)/i.test(q)) {
+    return { provider: null, why: 'Figma link · Figma is not connected to CHIP yet' };
+  }
+  const words = q.trim().split(/\s+/).length;
+  const parts = (q.match(/\?/g) ?? []).length;
+  const verb = CLAUDE_ASKS.exec(q)?.[0]?.toLowerCase().replace(/-/g, '');
+  const wantsClaude = verb
+    ? `asked for ${REASON[verb] ?? REASON[verb.split(' ')[0]] ?? 'reasoning'}`
+    : words > 40 ? 'a long question' : parts > 1 ? 'a multi-part question' : null;
+  if (!wantsClaude) return localPick;
+  if (!claude) return { ...localPick, why: `${localPick.why} (Claude would fit, but it is not available)` };
+  if (budget && budget.used >= budget.limit) return { ...localPick, why: `${localPick.why} (today's Claude budget of ${budget.limit} is used)` };
+  return { provider: 'claude', why: `Claude · ${wantsClaude}` };
+}
+
+/** The local model says it is out of its depth. */
+export function soundsUnsure(text) {
+  return /nothing in my sources covers|not sure|i don'?t know|unclear from the sources|cannot find|can'?t find/i.test(text ?? '');
+}

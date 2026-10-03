@@ -55,6 +55,7 @@ server/server.js             serves app/dist; POST /ask (numbered sources, weak-
 app/                         the CHIP app on BELLA components: Health and Atlas (Anatomy, Try a change, Facts, Notes per component); one input (⌘K) jumps or asks OBI, whose thread floats over the right edge (⌘J, Esc)
 scripts/checkpoint.mjs       npm run checkpoint: no hex or px fonts, build, NDA scan, then axe and screens at 1440 and 390 (warm, dark)
 server/lib/                  config, local model (Ollama), search index, ask
+server/providers/            who answers: local (any Ollama model), Claude (headless Claude Code on your plan, no tools), Jev (decider, interface only)
 scripts/sync-bella.mjs       BELLA → data/bella.json (+ data/bella.js for the bridge)
 scripts/sync-notion.mjs      Notion → data/notion/*.md (local only, gitignored)
 data/index/chunks.json       embeddings (local only, gitignored)

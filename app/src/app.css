@@ -965,6 +965,7 @@ body {
 
 .obi-head {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: var(--spacing-3);
@@ -1028,6 +1029,33 @@ body {
 
 .turn-a p {
   margin: 0;
+}
+
+.obi-model {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+/* the picker's label is for assistive tech; the pill shows the choice */
+.model-select > span:first-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.turn-note,
+.turn-escalate {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--color-semantic-text-secondary);
 }
 
 .turn-lead {

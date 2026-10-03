@@ -11,7 +11,8 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import DataTable from '@bella/components/DataTable/DataTable';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Combobox from '@bella/components/Combobox/Combobox';
-import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor } from './answers.js';
+import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure } from './answers.js';
+import Select from '@bella/components/Select/Select';
 
 const COMMANDS = [
   { cmd: 'status', note: 'model, index size, last sync' },
@@ -104,7 +105,7 @@ function proposalOf(t) {
   return [`## ${t.q}`, '', `${t.path === 'data' ? 'From BELLA data' : 'From your docs'} (${t.page ?? 'CHIP'})`, '', body, '', ...(src.length ? ['Sources:', ...src] : [])].join('\n');
 }
 
-function AskTurn({ t, bella, model, page, onOpenAtlas, onSandbox, onSave, notify }) {
+function AskTurn({ t, bella, page, claudeOk, onOpenAtlas, onSandbox, onSave, onCompare, onIncludePrivate, notify }) {
   // no chip for the component you are already looking at
   const here = page?.match(/^Atlas · (\w+)$/)?.[1];
   const names = (t.components ?? []).filter((n) => n !== here);
@@ -131,7 +132,15 @@ function AskTurn({ t, bella, model, page, onOpenAtlas, onSandbox, onSave, notify
         </p>
       ) : t.path === 'weak' ? (
         <div className="turn-a">
-          <p>I couldn't find this in your sources. The closest three:</p>
+          {t.compareTo ? <p className="turn-via">The same question, asked of Claude.</p> : null}
+          {t.route ? <p className="turn-via">{t.route}</p> : null}
+          {t.heldBack ? (
+            <p className="turn-note">
+              {t.heldBack} Notion source{t.heldBack === 1 ? ' was' : 's were'} held back: private sources are not sent to Anthropic.{' '}
+              <ActionChip onClick={() => onIncludePrivate(t)}>Include them this session</ActionChip>
+            </p>
+          ) : null}
+          <p>I couldn't find this in {t.heldBack ? 'the sources that may go to the cloud' : 'your sources'}. The closest three:</p>
           <ul className="closest">
             {t.closest.map((s) => (
               <li key={s.n}>
@@ -141,10 +150,15 @@ function AskTurn({ t, bella, model, page, onOpenAtlas, onSandbox, onSave, notify
               </li>
             ))}
           </ul>
+          {claudeOk && t.asked !== 'claude' ? (
+            <p className="turn-escalate">
+              This looks hard for the local model. <ActionChip onClick={() => onCompare(t)}>Ask Claude</ActionChip>
+            </p>
+          ) : null}
         </div>
       ) : t.path === 'data' ? (
         <div className="turn-a">
-          <p className="turn-via">From BELLA data</p>
+          <p className="turn-via">{t.route ?? 'From BELLA data'}</p>
           <p className="turn-lead">{t.data.title}</p>
           <DataTable
             columns={t.data.columns}
@@ -157,8 +171,25 @@ function AskTurn({ t, bella, model, page, onOpenAtlas, onSandbox, onSave, notify
         </div>
       ) : (
         <div className="turn-a" aria-busy={!done}>
-          <p className="turn-via">From your docs · {model}</p>
+          {t.compareTo ? <p className="turn-via">The same question, asked of Claude. Compare it with the answer above.</p> : null}
+          {t.route ? <p className="turn-via">{t.route}</p> : null}
+          <p className="turn-via">
+            {t.model ? `Answered by ${t.model} · ${t.place === 'cloud' ? 'cloud' : 'local'}` : 'From your docs'}
+          </p>
+          {t.fallback ? <p className="turn-note">Claude could not answer ({t.fallback}). The local model answered instead.</p> : null}
+          {t.heldBack ? (
+            <p className="turn-note">
+              {t.heldBack} Notion source{t.heldBack === 1 ? ' was' : 's were'} held back: private sources are not sent to Anthropic.{' '}
+              <ActionChip onClick={() => onIncludePrivate(t)}>Include them this session</ActionChip>
+            </p>
+          ) : null}
           {t.text ? <Rich text={t.text} sources={t.sources} /> : <p className="meta">Reading your sources…</p>}
+          {t.cutOff ? <p className="turn-note">This answer stopped part way ({t.cutOff}).</p> : null}
+          {done && t.place === 'local' && claudeOk && soundsUnsure(t.text) ? (
+            <p className="turn-escalate">
+              This looks hard for the local model. <ActionChip onClick={() => onCompare(t)}>Ask Claude</ActionChip>
+            </p>
+          ) : null}
         </div>
       )}
 
@@ -174,6 +205,9 @@ function AskTurn({ t, bella, model, page, onOpenAtlas, onSandbox, onSave, notify
 
       {done && (t.path === 'data' || t.path === 'docs') ? (
         <div className="turn-actions">
+          {t.path === 'docs' && t.place === 'local' && claudeOk && !soundsUnsure(t.text) ? (
+            <ActionChip onClick={() => onCompare(t)}>Ask Claude instead</ActionChip>
+          ) : null}
           {sandboxable ? <ActionChip onClick={() => onSandbox(target)}>Try in sandbox</ActionChip> : null}
           <ActionChip onClick={copy}>Copy as proposal</ActionChip>
           {target ? <ActionChip onClick={() => onSave(target, t)}>Save to {target} notes</ActionChip> : null}
@@ -222,35 +256,62 @@ function CmdTurn({ t }) {
 }
 
 /* ---------- the thread and the two paths ---------- */
-export function useObi({ bella, page, notify, onSaved }) {
+export function useObi({ bella, page, notify, onSaved, models = [], budget, picked = 'auto', onAnswered }) {
   const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
   const session = useRef(null);
   const history = useRef([]);
+  const includePrivate = useRef(false); // once per session, on her yes
+  const auto = picked === 'auto';
   const patch = (id, fn) => setTurns((ts) => ts.map((t) => (t.id === id ? { ...t, ...fn(t) } : t)));
 
-  async function ask(q) {
+  // opts.provider forces a brain (slash override, Ask Claude instead)
+  async function ask(q, opts = {}) {
     const id = Date.now() + Math.random();
     const base = { id, kind: 'ask', q, page };
     const c = clarify(q, turns, page);
     if (c) return setTurns((ts) => [...ts, { ...base, path: 'clarify', text: c }]);
+    // BELLA data questions never call a model, whatever the picker says
     const data = answerFromData(q, bella, page);
-    if (data) return setTurns((ts) => [...ts, { ...base, path: 'data', data, components: data.components }]);
+    if (data) return setTurns((ts) => [...ts, { ...base, path: 'data', data, components: data.components, route: auto ? 'Auto → BELLA data · no model' : null }]);
 
-    setTurns((ts) => [...ts, { ...base, path: 'docs', text: '', sources: [] }]);
+    const autoPick = routeFor(q, models, budget);
+    const choice = opts.provider ? { provider: opts.provider, why: null } : auto ? autoPick : { provider: picked, why: null };
+    if (!choice.provider) return setTurns((ts) => [...ts, { ...base, path: 'clarify', text: choice.why }]);
+    const route = auto && !opts.provider ? `Auto → ${choice.why}` : null;
+    // a hand pick that differs from Auto is logged, so the rules can learn
+    const override = opts.override ?? (!auto && !opts.provider && autoPick.provider && autoPick.provider !== picked ? { autoChose: autoPick.provider, chose: picked } : null);
+
+    setTurns((ts) => [...ts, { ...base, path: 'docs', text: '', sources: [], asked: choice.provider, route, compareTo: opts.compareTo }]);
     setBusy(true);
     const t0 = performance.now();
     try {
       const res = await fetch('/ask', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ message: q, sessionId: session.current, page, stream: true }),
+        body: JSON.stringify({
+          message: q, sessionId: session.current, page, stream: true,
+          provider: choice.provider, route, auto: auto && !opts.provider, includePrivate: includePrivate.current, override,
+        }),
       });
       if (!res.ok) throw new Error(`The CHIP server answered ${res.status}`);
       for await (const ev of lines(res)) {
-        if (ev.type === 'error') throw new Error(ev.error);
+        if (ev.type === 'error') {
+          // an answer that stopped part way keeps what it said, marked as cut off
+          let kept = false;
+          patch(id, (t) => {
+            kept = Boolean(t.text);
+            return kept ? { cutOff: ev.error, total: (performance.now() - t0) / 1000 } : {};
+          });
+          if (kept) continue;
+          throw new Error(ev.error);
+        }
         session.current = ev.sessionId ?? session.current;
         if (ev.type === 'weak') patch(id, () => ({ path: 'weak', closest: ev.closest, top: ev.top }));
+        if (ev.type === 'provider') patch(id, () => ({ model: ev.model, place: ev.place, provider: ev.id === 'claude' ? 'claude' : choice.provider.startsWith('local:') ? choice.provider : `local:${ev.model}` }));
+        if (ev.type === 'private') patch(id, () => ({ heldBack: ev.heldBack }));
+        // the local model read every source after a fallback, so nothing is held back any more
+        if (ev.type === 'fallback') patch(id, () => ({ fallback: ev.reason, heldBack: 0 }));
         if (ev.type === 'sources') patch(id, () => ({ sources: ev.sources, top: ev.top }));
         if (ev.type === 'token') patch(id, (t) => ({ text: t.text + ev.text, first: t.first ?? (performance.now() - t0) / 1000 }));
         if (ev.type === 'done') patch(id, (t) => ({ total: (performance.now() - t0) / 1000, components: componentsIn(t.text, bella) }));
@@ -259,7 +320,20 @@ export function useObi({ bella, page, notify, onSaved }) {
       patch(id, () => ({ path: 'error', text: /fetch/i.test(err.message) ? 'The CHIP server is not answering on 127.0.0.1:3100. Start it with npm start.' : err.message }));
     } finally {
       setBusy(false);
+      onAnswered?.();
     }
+  }
+
+  /** "Ask Claude instead": the same question, stacked under the first answer. */
+  function compare(t) {
+    if (busy) return notify('OBI is still answering. Try again in a moment.');
+    ask(t.q, { provider: 'claude', compareTo: t.id, override: { autoChose: t.provider ?? t.asked ?? 'local', chose: 'claude' } });
+  }
+
+  /** Her yes to sending private Notion sources, for this session, then the same question again. */
+  function includeAndRetry(t) {
+    includePrivate.current = true;
+    if (!busy) ask(t.q, { provider: t.asked, compareTo: t.id });
   }
 
   async function run(cmd) {
@@ -296,7 +370,11 @@ export function useObi({ bella, page, notify, onSaved }) {
     if (text.startsWith('/')) {
       const [word, ...rest] = text.slice(1).split(' ');
       const arg = rest.join(' ').trim();
-      if (word === 'ask' && arg) ask(arg);
+      // /ask --claude … or /ask --local … overrides the picker for one question
+      const flag = arg.match(/^--(claude|local)\s+(.+)$/);
+      const localId = (models.find((m) => m.place === 'local' && m.isDefault) ?? models.find((m) => m.place === 'local'))?.id;
+      if (word === 'ask' && flag) ask(flag[2], { provider: flag[1] === 'claude' ? 'claude' : localId });
+      else if (word === 'ask' && arg) ask(arg);
       else if (COMMANDS.some((c) => c.cmd === word && c.cmd !== 'ask')) run(word);
       else setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: `Unknown command. Try ${COMMANDS.map((c) => '/' + c.cmd).join(', ')}.` }]);
       return true;
@@ -317,15 +395,18 @@ export function useObi({ bella, page, notify, onSaved }) {
     }
   }
 
-  return { turns, busy, send, save, history };
+  return { turns, busy, send, save, history, compare, includeAndRetry };
 }
 
 /* ---------- the one input ---------- */
-export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, notify }) {
+export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, notify, cloud, models = [], budget, picked = 'auto' }) {
   const [q, setQ] = useState('');
   const histAt = useRef(-1);
   const query = q.trim();
   const needle = query.toLowerCase();
+  // before sending, say where the question goes (Auto may pick Claude)
+  const goesToClaude = query && !query.startsWith('/') && (picked === 'claude' || (picked === 'auto' && routeFor(query, models, budget).provider === 'claude'));
+  const askMeta = goesToClaude ? `Looking at ${page} · Claude, sent to Anthropic` : `Looking at ${page}`;
 
   const groups = useMemo(() => {
     if (!query) return [];
@@ -355,9 +436,9 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
           ...docHits.map(({ d }, i) => ({ id: `d:${i}:${d.url ?? d.path}`, label: d.title, meta: 'Doc' })),
         ],
       },
-      { id: 'ask', label: 'Ask OBI', options: [{ id: 'ask', label: `Ask OBI: ${query}`, meta: `Looking at ${page}` }] },
+      { id: 'ask', label: 'Ask OBI', options: [{ id: 'ask', label: `Ask OBI: ${query}`, meta: askMeta }] },
     ];
-  }, [query, needle, bella, docs, page]);
+  }, [query, needle, bella, docs, page, askMeta]);
 
   const exact = bella?.components.find((c) => c.name.toLowerCase() === needle);
   const preferred = query.startsWith('/') ? groups[0]?.options[0]?.id : exact ? `c:${exact.id}` : 'ask';
@@ -403,6 +484,13 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
       // "/ask <question>" goes straight to OBI
       e.preventDefault();
       if (obi.send(query)) setQ('');
+    } else if (e.key === 'Enter' && !open && query) {
+      // Enter before the list has opened (fast typing): take the preferred option
+      e.preventDefault();
+      const all = groups.flatMap((g) => g.options);
+      const o = all.find((x) => x.id === preferred) ?? (query.startsWith('/') ? null : { id: 'ask' });
+      if (o) select(o);
+      else if (obi.send(query)) setQ('');
     } else if (e.key === 'Escape' && !open) {
       onEscape();
     } else if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
@@ -422,7 +510,11 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
       onSelect={select}
       onKeyDown={onKeyDown}
       placement={inPanel ? 'above' : 'below'}
-      placeholder={inPanel ? 'Ask a follow-up, or / for a command' : 'Ask OBI or jump to…'}
+      placeholder={
+        cloud
+          ? inPanel ? 'Sent to Anthropic · ask a follow-up, or / for a command' : 'Ask OBI (sent to Anthropic) or jump to…'
+          : inPanel ? 'Ask a follow-up, or / for a command' : 'Ask OBI or jump to…'
+      }
       hint={inPanel ? null : <Kbd keys={['⌘', 'K']} label="Command K" />}
       className="one-input"
     />
@@ -430,9 +522,15 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
 }
 
 /* ---------- the panel ---------- */
-export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onSandbox, onClose, notify }) {
+export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onSandbox, onClose, notify, models = [], picked, setPicked, budget }) {
   const thread = useRef(null);
-  const model = health?.model ?? 'the local model';
+  const claudeOk = models.some((m) => m.id === 'claude' && m.available);
+  const pickedModel = models.find((m) => m.id === picked);
+  const options = [
+    { value: 'auto', label: 'Auto · OBI decides' },
+    ...models.filter((m) => m.place === 'local').map((m) => ({ value: m.id, label: `${m.label} · on this machine` })),
+    ...models.filter((m) => m.place === 'cloud' && m.kind !== 'decider').map((m) => ({ value: m.id, label: `${m.label} · your plan, cloud${m.available ? '' : ' (not available)'}` })),
+  ];
   const suggestions = useMemo(() => suggestionsFor(page, bella), [page, bella]);
 
   useEffect(() => {
@@ -447,6 +545,12 @@ export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onS
             OBI
           </h2>
           <Tag>Looking at {page}</Tag>
+        </div>
+        <div className="obi-model">
+          <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
+          <StatusPill variant={pickedModel?.place === 'cloud' ? 'info' : 'success'}>
+            {picked === 'auto' ? 'Auto' : pickedModel?.label ?? picked}
+          </StatusPill>
         </div>
         <ActionChip onClick={onClose} ariaLabel="Hide OBI (Escape or Command J)">
           Hide
@@ -472,7 +576,19 @@ export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onS
           t.kind === 'cmd' ? (
             <CmdTurn key={t.id} t={t} />
           ) : (
-            <AskTurn key={t.id} t={t} bella={bella} model={model} page={page} onOpenAtlas={onOpenAtlas} onSandbox={onSandbox} onSave={obi.save} notify={notify} />
+            <AskTurn
+              key={t.id}
+              t={t}
+              bella={bella}
+              page={page}
+              claudeOk={claudeOk}
+              onOpenAtlas={onOpenAtlas}
+              onSandbox={onSandbox}
+              onSave={obi.save}
+              onCompare={obi.compare}
+              onIncludePrivate={obi.includeAndRetry}
+              notify={notify}
+            />
           )
         )}
       </ol>
@@ -480,7 +596,8 @@ export function ObiPanel({ bella, health, page, obi, inputSlot, onOpenAtlas, onS
       <div className="obi-input" ref={inputSlot} />
 
       <p className="obi-status">
-        <span>{health ? health.model : 'Model offline'}</span>
+        <span>{picked === 'auto' ? `Auto · local ${health?.model ?? ''}`.trim() : pickedModel?.label ?? 'Model offline'}</span>
+        {claudeOk && budget ? <span>Auto's Claude today {budget.used} of {budget.limit}</span> : null}
         <span>{health ? `${health.chunks.toLocaleString('en')} chunks` : 'No index'}</span>
         <span>BELLA @ {bella?.source.commit ?? '…'}</span>
       </p>
