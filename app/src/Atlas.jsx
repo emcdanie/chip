@@ -20,6 +20,7 @@ import SegmentedControl from '@bella/components/SegmentedControl/SegmentedContro
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import AtlasDocs from './AtlasDocs.jsx';
 import AtlasHistory from './AtlasHistory.jsx';
+import { SpecStage } from './AtlasSpec.jsx';
 import { Badges, VisMenu, canSee, settingsOf } from './visibility.jsx';
 import { SPECIMENS, VARIANTS } from './specimens.jsx';
 import { layout, targetsOf } from './anatomy.js';
@@ -793,6 +794,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
     ...(parts.length ? [{ value: 'anatomy', label: 'Anatomy' }] : [{ value: 'specimen', label: 'Specimen' }]),
     ...(showExplode ? [{ value: 'exploded', label: 'Exploded' }] : []),
     ...(Object.keys(baseOf(c)).length ? [{ value: 'try', label: 'Try a change' }] : []),
+    ...(SPECIMENS[c.name] ? [{ value: 'spec', label: 'Spec' }] : []),
   ];
   const view = modes.some((m) => m.value === mode) ? mode : modes[0].value;
   const canTry = Object.keys(baseOf(c)).length > 0;
@@ -822,6 +824,8 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
   const stageNote =
     view === 'try'
       ? 'Drag across a mark: the check flips as you go.'
+      : view === 'spec'
+        ? 'The measurements, from the rendered component.'
       : view === 'exploded'
         ? 'Drag to turn the layers; select a part to show its state.'
         : parts.length
@@ -851,10 +855,10 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
           </>
         }
         title={c.name}
+        titleAside={<VisMenu role={role} label={c.name} settings={settings} onChange={(ch) => setVis({ component: c.id, ...ch })} />}
         lede={c.description || null}
         actions={
           <>
-            <VisMenu role={role} label={c.name} settings={settings} onChange={(ch) => setVis({ component: c.id, ...ch })} />
             <Button variant="secondary" onClick={copyImport} ariaLabel={`Copy the import line for ${c.name}`}>
               Copy import
             </Button>
@@ -886,6 +890,8 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
               <Sandbox bella={bella} c={c} draft={draft} setDraft={setDraft} heights={heights} theme={theme} notify={setToast}>
                 {plainStage}
               </Sandbox>
+            ) : view === 'spec' ? (
+              <SpecStage c={c} overrides={overrides} />
             ) : view === 'exploded' ? (
               <Exploded name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} overrides={overrides} />
             ) : parts.length ? (

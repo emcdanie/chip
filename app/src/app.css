@@ -2014,3 +2014,89 @@ body {
   background: var(--color-semantic-surface-inset);
   color: var(--color-semantic-text-secondary);
 }
+
+/* ---------- Spec ---------- */
+.spec-frame--measure {
+  position: relative;
+  padding: var(--spacing-16) calc(var(--spacing-20) * 1.6) var(--spacing-16) var(--spacing-20);
+}
+
+.redlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* the padding, tinted where it is measured (a highlight, never a dim) */
+.rl-band {
+  position: absolute;
+  background: color-mix(in srgb, var(--color-semantic-accent) 40%, transparent);
+}
+
+.rl-tag {
+  position: absolute;
+  padding: 0 var(--spacing-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-semantic-surface-card);
+  color: var(--color-semantic-text-primary);
+  font-family: var(--typography-font-family-mono);
+  font-size: var(--typography-font-size-mono);
+  line-height: var(--typography-line-height-snug);
+  white-space: nowrap;
+}
+
+.rl-tag--left { transform: translate(-100%, -50%); }
+.rl-tag--right { transform: translate(0, -50%); }
+.rl-tag--above { transform: translate(-50%, -100%); }
+.rl-tag--below { transform: translate(-50%, 0); }
+.rl-tag--corner { transform: translate(-100%, -100%); }
+
+.rl-vline {
+  position: absolute;
+  inline-size: var(--border-width-medium);
+  background: var(--color-semantic-text-primary);
+}
+
+.rl-vline::before,
+.rl-vline::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--spacing-1));
+  inline-size: var(--spacing-3);
+  block-size: var(--border-width-medium);
+  background: var(--color-semantic-text-primary);
+}
+
+.rl-vline::before { inset-block-start: 0; }
+.rl-vline::after { inset-block-end: 0; }
+
+.rl-leader {
+  position: absolute;
+  inline-size: var(--spacing-10);
+  block-size: var(--border-width-thin);
+  background: var(--color-semantic-text-primary);
+  transform-origin: 100% 50%;
+  transform: rotate(45deg);
+}
+
+.spec-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(var(--spacing-20) * 3)), 1fr));
+  gap: var(--layout-stack-md) var(--layout-gutter);
+  margin: 0;
+}
+
+.spec-legend > div {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+.spec-legend dt {
+  font-size: var(--typography-font-size-sm);
+  color: var(--color-semantic-text-secondary);
+}
+
+.spec-legend dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
