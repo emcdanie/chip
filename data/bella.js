@@ -2,8 +2,8 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "df0fbbd",
-    "committedAt": "2026-10-03T11:28:22+02:00",
+    "commit": "a158e42",
+    "committedAt": "2026-10-03T12:14:28+02:00",
     "version": "0.3.0"
   },
   "counts": {
@@ -411,6 +411,18 @@ window.BELLA = {
     {
       "commit": "df0fbbd",
       "committedAt": "2026-10-03T11:28:22+02:00",
+      "components": 27,
+      "storyCoverage": 93,
+      "contractCoverage": 93,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true
+      }
+    },
+    {
+      "commit": "a158e42",
+      "committedAt": "2026-10-03T12:14:28+02:00",
       "components": 27,
       "storyCoverage": 93,
       "contractCoverage": 93,
@@ -1198,6 +1210,7 @@ window.BELLA = {
     ],
     "--typography-font-size-sm": [
       "Combobox",
+      "DataTable",
       "Input",
       "ScoreStrip"
     ],
@@ -1231,18 +1244,6 @@ window.BELLA = {
       "DataTable",
       "Link",
       "ScoreStrip"
-    ],
-    "--typography-font-family-mono": [
-      "DataTable"
-    ],
-    "--typography-font-feature-mono": [
-      "DataTable",
-      "NavList",
-      "ScoreStrip",
-      "Stat"
-    ],
-    "--typography-font-size-mono": [
-      "DataTable"
     ],
     "--typography-font-weight-medium": [
       "DataTable",
@@ -1414,17 +1415,6 @@ window.BELLA = {
     "--component-input-min-height": [
       "Input"
     ],
-    "--typography-font-size-tag": [
-      "Input"
-    ],
-    "--typography-font-weight-bold": [
-      "Input"
-    ],
-    "--typography-letter-spacing-wide": [
-      "Input",
-      "SegmentedControl",
-      "Select"
-    ],
     "--component-kbd-background": [
       "Kbd"
     ],
@@ -1447,10 +1437,7 @@ window.BELLA = {
       "Kbd"
     ],
     "--typography-letter-spacing-mono": [
-      "Kbd",
-      "NavList",
-      "ScoreStrip",
-      "Stat"
+      "Kbd"
     ],
     "--component-link-default-foreground": [
       "Link"
@@ -2763,7 +2750,7 @@ window.BELLA = {
         "Icon"
       ],
       "tokens": {
-        "count": 26,
+        "count": 24,
         "component": 6,
         "semantic": 3,
         "list": [
@@ -2788,9 +2775,7 @@ window.BELLA = {
           "--spacing-4",
           "--spacing-touch-target",
           "--typography-font-family-body",
-          "--typography-font-family-mono",
-          "--typography-font-feature-mono",
-          "--typography-font-size-mono",
+          "--typography-font-size-sm",
           "--typography-font-weight-medium",
           "--typography-letter-spacing-body"
         ]
@@ -2910,7 +2895,7 @@ window.BELLA = {
       "id": "eyebrow",
       "name": "Eyebrow",
       "category": "Layout",
-      "description": "Eyebrow (style unify, 2026-09-22): the Geist Mono label above a heading.\n13px, ss09, no tracking, no caps. Never an accent: wayfinding is not action.",
+      "description": "Eyebrow: the sans label above a heading (2026-10-03; was Geist Mono).\n13px, ss09, no tracking, no caps. Never an accent: wayfinding is not action.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": false,
@@ -3573,7 +3558,7 @@ window.BELLA = {
         "Icon"
       ],
       "tokens": {
-        "count": 26,
+        "count": 23,
         "component": 4,
         "semantic": 9,
         "list": [
@@ -3598,10 +3583,7 @@ window.BELLA = {
           "--spacing-4",
           "--typography-font-family-body",
           "--typography-font-size-sm",
-          "--typography-font-size-tag",
-          "--typography-font-weight-bold",
           "--typography-font-weight-medium",
-          "--typography-letter-spacing-wide",
           "--typography-line-height-normal"
         ]
       },
@@ -3942,7 +3924,7 @@ window.BELLA = {
         "Icon"
       ],
       "tokens": {
-        "count": 26,
+        "count": 24,
         "component": 7,
         "semantic": 5,
         "list": [
@@ -3967,11 +3949,9 @@ window.BELLA = {
           "--spacing-2",
           "--spacing-3",
           "--spacing-6",
-          "--typography-font-feature-mono",
           "--typography-font-weight-medium",
           "--typography-font-weight-regular",
-          "--typography-letter-spacing-body",
-          "--typography-letter-spacing-mono"
+          "--typography-letter-spacing-body"
         ]
       },
       "compositionDepth": 1,
@@ -4263,7 +4243,7 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-scorestrip--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 38,
+        "count": 36,
         "component": 9,
         "semantic": 7,
         "list": [
@@ -4295,13 +4275,11 @@ window.BELLA = {
           "--spacing-8",
           "--typography-font-family-body",
           "--typography-font-family-display",
-          "--typography-font-feature-mono",
           "--typography-font-size-sm",
           "--typography-font-weight-light",
           "--typography-font-weight-medium",
           "--typography-font-weight-regular",
           "--typography-letter-spacing-h2",
-          "--typography-letter-spacing-mono",
           "--typography-letter-spacing-title",
           "--typography-line-height-heading",
           "--typography-line-height-snug"
@@ -4457,7 +4435,7 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-segmentedcontrol--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 22,
+        "count": 21,
         "component": 5,
         "semantic": 8,
         "list": [
@@ -4481,8 +4459,7 @@ window.BELLA = {
           "--ring-focus-width",
           "--seg-inset",
           "--spacing-2",
-          "--spacing-4",
-          "--typography-letter-spacing-wide"
+          "--spacing-4"
         ]
       },
       "compositionDepth": 0,
@@ -4563,7 +4540,7 @@ window.BELLA = {
         "Icon"
       ],
       "tokens": {
-        "count": 17,
+        "count": 16,
         "component": 5,
         "semantic": 4,
         "list": [
@@ -4582,8 +4559,7 @@ window.BELLA = {
           "--spacing-2",
           "--spacing-3",
           "--spacing-8",
-          "--typography-font-family-body",
-          "--typography-letter-spacing-wide"
+          "--typography-font-family-body"
         ]
       },
       "compositionDepth": 1,
@@ -4644,12 +4620,12 @@ window.BELLA = {
           "key": "label",
           "n": 1,
           "title": "Label",
-          "detail": "Geist Mono 13, muted",
+          "detail": "Geist 14, muted",
           "token": "--component-stat-label-font-size",
           "value": {
-            "light": "13px",
-            "dark": "13px",
-            "warm": "13px"
+            "light": "14px",
+            "dark": "14px",
+            "warm": "14px"
           },
           "kind": "content",
           "trigger": null,
@@ -4729,7 +4705,7 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-stat--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 20,
+        "count": 18,
         "component": 9,
         "semantic": 2,
         "list": [
@@ -4748,10 +4724,8 @@ window.BELLA = {
           "--spacing-1",
           "--spacing-2",
           "--typography-font-family-body",
-          "--typography-font-feature-mono",
           "--typography-letter-spacing-body",
           "--typography-letter-spacing-h2",
-          "--typography-letter-spacing-mono",
           "--typography-line-height-heading"
         ]
       },
