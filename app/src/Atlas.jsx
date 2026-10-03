@@ -20,7 +20,7 @@ import SegmentedControl from '@bella/components/SegmentedControl/SegmentedContro
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import AtlasDocs from './AtlasDocs.jsx';
 import AtlasHistory from './AtlasHistory.jsx';
-import { SpecStage, SpecSection } from './AtlasSpec.jsx';
+import { SpecStage, SpecSection, LintSection, lintSummary } from './AtlasSpec.jsx';
 import { Badges, VisMenu, canSee, settingsOf } from './visibility.jsx';
 import { SPECIMENS, VARIANTS } from './specimens.jsx';
 import { layout, targetsOf } from './anatomy.js';
@@ -743,6 +743,25 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
   const reduced = useReducedMotion();
   const [mode, setMode] = useState('anatomy'); // anatomy | exploded | try | spec (no anatomy: specimen | try | spec)
   const [sendOpen, setSendOpen] = useState(false); // Send spec to Figma: the preview
+  // Figma lint, read once per component; Read Figma again re-reads
+  const [lint, setLint] = useState(null);
+  const [lintReading, setLintReading] = useState(false);
+  const readLint = useCallback(
+    (refresh) => {
+      if (!c) return;
+      setLintReading(true);
+      fetch(`/figma-lint/${c.id}${refresh ? '?refresh=1' : ''}`)
+        .then((r) => r.json())
+        .then(setLint)
+        .catch(() => setLint({ read: false, at: new Date().toISOString(), reason: "The CHIP server didn't answer." }))
+        .finally(() => setLintReading(false));
+    },
+    [c?.id]
+  );
+  useEffect(() => {
+    setLint(null);
+    readLint(false);
+  }, [c?.id]);
   const [hl, setHl] = useState(null);
   const [toast, setToast] = useState('');
   const [zoom, setZoom] = useState(1);
@@ -873,7 +892,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
       />
 
       <nav className="on-page" aria-label="On this page">
-        {[['specimen', 'Specimen'], ['examples', 'Examples'], ['spec', 'Spec'], ['documentation', 'Documentation'], ['tokens', 'Tokens'], ['history', 'History'], ['gate', 'What the gate caught']].map(([id, label]) => (
+        {[['specimen', 'Specimen'], ['examples', 'Examples'], ['spec', 'Spec'], ['lint', 'Figma lint'], ['documentation', 'Documentation'], ['tokens', 'Tokens'], ['history', 'History'], ['gate', 'What the gate caught']].map(([id, label]) => (
           <Link key={id} href={`#${id}`}>
             {label}
           </Link>
@@ -925,7 +944,11 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
       </Section>
 
       <Section id="spec" heading="Spec" lede="Generated from code: BELLA's props, its contract and the rendered component. Code is the source of truth.">
-        <SpecSection c={c} onSend={setSendOpen} sendOpen={sendOpen} />
+        <SpecSection c={c} onSend={setSendOpen} sendOpen={sendOpen} figmaNames={lint?.found ? lint.figmaNames : null} />
+      </Section>
+
+      <Section id="lint" heading="Figma lint" lede="Figma compared with code: bindings, names, states, target size and contrast. Read only.">
+        <LintSection c={c} lint={lint} reading={lintReading} onRefresh={() => readLint(true)} />
       </Section>
 
       <Section id="documentation" heading="Documentation" lede="Guidance, the contract and the rules agents follow, from BELLA. A change goes through a branch, the gate and a draft pull request.">

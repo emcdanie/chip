@@ -2117,3 +2117,50 @@ body {
   gap: var(--layout-stack-md);
   align-content: start;
 }
+
+/* Figma lint */
+.lint-score {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-2);
+}
+
+.lint-score b {
+  font-family: var(--typography-font-family-display);
+  font-weight: var(--typography-font-weight-light);
+  font-size: var(--typography-font-size-4xl);
+  line-height: 1;
+}
+
+.lint-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+}
+
+.lint-list > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--spacing-1) var(--layout-stack-md);
+  align-items: baseline;
+  padding-block: var(--layout-stack-md);
+  border-block-start: var(--border-width-thin) solid var(--color-semantic-border);
+}
+
+.lint-body {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+.lint-body p,
+.lint-fix {
+  margin: 0;
+}
+
+.lint-preview {
+  display: grid;
+  gap: var(--spacing-2);
+  margin-block-start: var(--spacing-2);
+}

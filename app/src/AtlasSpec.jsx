@@ -9,6 +9,8 @@ import { SPECIMENS } from './specimens.jsx';
 import Card from '@bella/components/Card/Card';
 import Columns from '@bella/components/Columns/Columns';
 import Button from '@bella/components/Button/Button';
+import ActionChip from '@bella/components/ActionChip/ActionChip';
+import StatusPill from '@bella/components/StatusPill/StatusPill';
 import { Token } from './Atlas.jsx';
 
 const px = (v) => Math.round(parseFloat(v) * 10) / 10;
@@ -262,5 +264,77 @@ export function SpecSection({ c, figmaNames = null, onSend, sendOpen }) {
         )}
       </Card>
     </div>
+  );
+}
+
+/* ---------- Figma lint ---------- */
+const when = (iso) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+export function lintSummary(lint) {
+  if (!lint) return 'reading';
+  if (!lint.read) return 'Figma not read';
+  if (!lint.found) return 'not in this file';
+  return lint.score == null ? 'read' : `${lint.score}`;
+}
+
+export function LintSection({ c, lint, reading, onRefresh }) {
+  const [preview, setPreview] = React.useState(null);
+  const again = (
+    <ActionChip onClick={onRefresh} disabled={reading}>
+      {reading ? 'Reading Figma…' : 'Read Figma again'}
+    </ActionChip>
+  );
+  if (!lint) return <p className="label">Reading Figma…</p>;
+  if (!lint.read || !lint.found) {
+    return (
+      <Card innerClassName="spec-card">
+        <div className="card-row">
+          <h3 className="card-title">{!lint.read ? 'Figma not read' : `No ${c.name} in this Figma file`}</h3>
+          {again}
+        </div>
+        <p>{lint.reason}</p>
+        <p className="label">No score until {c.name} is read from Figma. Checked at {when(lint.at)}.</p>
+      </Card>
+    );
+  }
+  return (
+    <Card innerClassName="spec-card">
+      <div className="card-row">
+        <p className="lint-score">
+          <b>{lint.score ?? 'n/a'}</b> <span className="label">Figma readiness</span>
+        </p>
+        {again}
+      </div>
+      <p className="label">
+        {lint.where} · {lint.variants} variant{lint.variants === 1 ? '' : 's'} · read at {when(lint.at)}. Bindings and states weigh most, then names and target size, then contrast.
+      </p>
+      <ul className="lint-list">
+        {lint.findings.map((f, i) => (
+          <li key={i}>
+            <StatusPill variant={f.ok ? 'success' : 'neutral'}>{f.ok == null ? 'n/a' : f.ok ? 'pass' : 'fail'}</StatusPill>
+            <div className="lint-body">
+              <p>
+                <b>{f.check}.</b> {f.what}
+              </p>
+              <p className="label">{f.where}</p>
+              {f.fix ? (
+                <p className="lint-fix">
+                  <span className="label">Change:</span> {f.fix}{' '}
+                  {f.preview ? <ActionChip onClick={() => setPreview(preview === i ? null : i)}>Preview fix</ActionChip> : null}
+                </p>
+              ) : null}
+              {preview === i && f.preview ? (
+                <div className="lint-preview">
+                  <p>
+                    <span className="label">Now</span> <span className="mono">{f.preview.before}</span> → <span className="label">After</span> {f.preview.after}
+                  </p>
+                  <p className="doc-blocked">Writes are off: preview only. CHIP reads Figma but doesn't change it.</p>
+                </div>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
