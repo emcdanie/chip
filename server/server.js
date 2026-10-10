@@ -16,6 +16,7 @@ import * as host from './host/registry.js';
 import { logUsage, claudeToday, usageWeek } from './lib/usage.mjs';
 import { CHIP_CLAUDE_DAILY } from './lib/config.mjs';
 import * as bellaWork from './lib/bella-work.mjs';
+import { barState, barStream, barImg } from './lib/bar.mjs';
 import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
 import { specOf, figmaLint } from './lib/spec-lint.mjs';
 
@@ -29,6 +30,11 @@ app.use(cors({ origin: true, credentials: false }));
 // static bridge is archived in docs/archive/chip-bridge-v0.
 app.use(express.static(join(ROOT, 'app/dist')));
 app.use('/data', express.static(join(ROOT, 'data'), { index: false }));
+
+// The Bar: lane state, SSE stream, and image proxy.
+app.get('/bar/state', barState);
+app.get('/bar/stream', barStream);
+app.get('/bar/img', barImg);
 
 app.get('/health', (_req, res) => {
   const index = loadIndex();

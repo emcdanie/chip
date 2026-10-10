@@ -11,6 +11,8 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import DataTable from '@bella/components/DataTable/DataTable';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Combobox from '@bella/components/Combobox/Combobox';
+import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import { useBar, TheBar } from './TheBar.jsx';
 import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor, summarizeTool, usageLines } from './answers.js';
 import Select from '@bella/components/Select/Select';
 import { baseOf } from './Sandbox.jsx';
@@ -825,65 +827,85 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
     ...models.filter((m) => m.place === 'cloud' && m.kind !== 'decider').map((m) => ({ value: m.id, label: `${m.label} · your plan, cloud${m.available ? '' : ' (not available)'}` })),
   ];
 
+  const [dockView, setDockView] = useState('obi');
+  const bar = useBar();
+
+  // activate SSE and mark items read when bar tab opens
+  useEffect(() => {
+    bar.setActive(dockView === 'bar');
+    if (dockView === 'bar') bar.markRead();
+  }, [dockView, bar.needsItems.length]);
+
+  const dockOptions = [
+    { value: 'obi', label: 'OBI' },
+    { value: 'bar', label: bar.unread > 0 ? `The Bar (${bar.unread})` : 'The Bar' },
+  ];
+
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight });
   }, [obi.turns]);
 
   return (
-    <section className="obi" aria-labelledby="obi-h">
+    <section className="obi" aria-label={dockView === 'bar' ? 'The Bar' : 'OBI'}>
       <header className="obi-head">
-        <h2 id="obi-h" className="obi-title">
-          OBI
-        </h2>
-        <Tag>Looking at {page}</Tag>
+        <h2 className="sr-only">{dockView === 'bar' ? 'The Bar' : 'OBI'}</h2>
+        <SegmentedControl options={dockOptions} value={dockView} onChange={setDockView} label="Dock view" className="obi-dock-tabs" />
+        {dockView === 'obi' ? <Tag>Looking at {page}</Tag> : null}
         <span className="obi-grow" />
-        <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
-        <ActionChip onClick={onClose} ariaLabel="Hide OBI (Escape or Command J)">
+        {dockView === 'obi' ? (
+          <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
+        ) : null}
+        <ActionChip onClick={onClose} ariaLabel="Hide (Escape or Command J)">
           Hide
         </ActionChip>
       </header>
 
-      <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
-        {obi.turns.length === 0 ? (
-          <li className="obi-empty">
-            <p>Ask about {page === 'Health' ? 'BELLA' : page.replace('Atlas · ', '')}, or type / for a command.</p>
-            {suggestions.length ? (
-              <div className="obi-suggest" aria-label="Suggested questions">
-                {suggestions.map((sg) => (
-                  <ActionChip key={sg} onClick={() => obi.send(sg)} disabled={obi.busy}>
-                    {sg}
-                  </ActionChip>
-                ))}
-              </div>
+      {dockView === 'bar' ? (
+        <TheBar lanes={bar.lanes} needsItems={bar.needsItems} notify={notify} />
+      ) : (
+        <>
+          <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
+            {obi.turns.length === 0 ? (
+              <li className="obi-empty">
+                <p>Ask about {page === 'Health' ? 'BELLA' : page.replace('Atlas · ', '')}, or type / for a command.</p>
+                {suggestions.length ? (
+                  <div className="obi-suggest" aria-label="Suggested questions">
+                    {suggestions.map((sg) => (
+                      <ActionChip key={sg} onClick={() => obi.send(sg)} disabled={obi.busy}>
+                        {sg}
+                      </ActionChip>
+                    ))}
+                  </div>
+                ) : null}
+              </li>
             ) : null}
-          </li>
-        ) : null}
-        {obi.turns.map((t) =>
-          t.kind === 'cmd' ? (
-            <CmdTurn key={t.id} t={t} />
-          ) : t.kind === 'tool' ? (
-            <ToolTurn key={t.id} t={t} onConfirm={obi.confirmTool} onCancel={obi.cancelTool} />
-          ) : (
-            <AskTurn
-              key={t.id}
-              t={t}
-              bella={bella}
-              page={page}
-              claudeOk={claudeOk}
-              budget={budget}
-              onOpenAtlas={onOpenAtlas}
-              onSandbox={onSandbox}
-              onSave={obi.save}
-              onSaveDoc={obi.saveAsDoc}
-              onCompare={obi.compare}
-              onIncludePrivate={obi.includeAndRetry}
-              notify={notify}
-            />
-          )
-        )}
-      </ol>
-
-      <div className="obi-input" ref={inputSlot} />
+            {obi.turns.map((t) =>
+              t.kind === 'cmd' ? (
+                <CmdTurn key={t.id} t={t} />
+              ) : t.kind === 'tool' ? (
+                <ToolTurn key={t.id} t={t} onConfirm={obi.confirmTool} onCancel={obi.cancelTool} />
+              ) : (
+                <AskTurn
+                  key={t.id}
+                  t={t}
+                  bella={bella}
+                  page={page}
+                  claudeOk={claudeOk}
+                  budget={budget}
+                  onOpenAtlas={onOpenAtlas}
+                  onSandbox={onSandbox}
+                  onSave={obi.save}
+                  onSaveDoc={obi.saveAsDoc}
+                  onCompare={obi.compare}
+                  onIncludePrivate={obi.includeAndRetry}
+                  notify={notify}
+                />
+              )
+            )}
+          </ol>
+          <div className="obi-input" ref={inputSlot} />
+        </>
+      )}
     </section>
   );
 }

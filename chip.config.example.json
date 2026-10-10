@@ -1,6 +1,12 @@
 {
   "$comment": "Copy to chip.config.local.json (gitignored). claudeModel: the Claude Code model OBI's Claude route uses. notesDir: the private OBI Docs folder, outside this repo. servers: MCP servers and CLI tools CHIP can call; secrets come from server/.env by name, written as ${NAME}, never pasted here. See docs/host.md.",
   "claudeModel": "sonnet",
+  "notesDir": "~/DEV/obi-notes",
+  "bar": {
+    "$comment": "The Bar watcher. cadInbox: the ctrl_alt_design repo's inbox dir. bellaInbox: BELLA's inbox dir. Paths expand ~.",
+    "cadInbox": "~/DEV/ctrl-alt-design/docs/reference/inbox",
+    "bellaInbox": "~/DEV/bella/docs/reference/inbox"
+  },
   "servers": [
     {
       "name": "figma",

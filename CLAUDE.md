@@ -4,8 +4,8 @@ CHIP is the local bridge for the BELLA design system (`~/DEV/bella`). The app in
 
 ## Relay
 
-- Instructions arrive in `docs/reference/inbox/next.md` (gitignored). When Elleta says "go", read it and do it.
-- Reports go to `docs/reference/inbox/report.md`: under 15 lines, then a "Needs Elleta" list (empty if none). Screenshots go to `docs/reference/screens/` and are named in the report.
+- Instructions arrive in `docs/reference/inbox/liam-next.md` (gitignored). When Elleta says "go", read it and do it.
+- Reports go to `docs/reference/inbox/liam-report.md`: under 15 lines, then a "Needs Elleta" list (empty if none). Screenshots go to `docs/reference/screens/` and are named in the report.
 - When a step finishes, move `next.md` to `docs/reference/inbox/done/<date>-<short-name>.md`.
 - **Decide alone** and log it in `docs/reference/decisions-while-away.md` (one line: what, why, how to undo):
   - anything the house rules already answer (highlight never dim, ochre for fill and highlight only, ochre-deep for focus only, 44px targets, BELLA's type floor, BELLA components and tokens only);

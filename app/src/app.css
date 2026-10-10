@@ -2210,3 +2210,114 @@ body {
   gap: var(--spacing-2);
   margin-block-start: var(--spacing-2);
 }
+
+/* ---------- sr-only ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- The Bar ---------- */
+.obi-dock-tabs {
+  flex: none;
+}
+
+.bar-panel {
+  box-sizing: border-box;
+  block-size: 100%;
+  min-block-size: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 0;
+}
+
+.bar-strip {
+  padding: var(--spacing-3) var(--spacing-5) var(--spacing-2);
+  border-block-end: var(--border-width-thin) solid var(--color-semantic-border);
+}
+
+.bar-lanes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-6);
+}
+
+.bar-lane {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.bar-lane-name {
+  font-size: var(--typography-font-size-sm);
+  font-weight: var(--typography-font-weight-medium);
+  white-space: nowrap;
+}
+
+.bar-waiting {
+  padding: var(--spacing-3) var(--spacing-5) var(--spacing-2);
+  border-block-end: var(--border-width-thin) solid var(--color-semantic-border);
+  display: grid;
+  gap: var(--spacing-2);
+  align-content: start;
+}
+
+.bar-waiting-label {
+  margin: 0;
+  font-size: var(--typography-font-size-sm);
+  font-weight: var(--typography-font-weight-medium);
+  color: var(--color-semantic-text-secondary);
+}
+
+.bar-empty {
+  margin: 0;
+  color: var(--color-semantic-text-secondary);
+  font-size: var(--typography-font-size-sm);
+}
+
+.bar-needs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.bar-needs-item {
+  display: grid;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.bar-needs-lane {
+  font-size: var(--typography-font-size-sm);
+  color: var(--color-semantic-text-secondary);
+}
+
+.bar-needs-text {
+  font-size: var(--typography-font-size-base);
+  overflow-wrap: anywhere;
+}
+
+.bar-needs-cmds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.bar-chat-placeholder {
+  margin: 0;
+  padding: var(--spacing-3) var(--spacing-5);
+  font-size: var(--typography-font-size-sm);
+  color: var(--color-semantic-text-secondary);
+  align-self: end;
+}

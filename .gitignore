@@ -53,5 +53,9 @@ Thumbs.db
 /data/notes.json
 /data/usage.jsonl
 
+# The Bar: watcher state, never committed
+/data/bar-history.jsonl
+/data/bar-seen.json
+
 # local CHIP settings (copy chip.config.example.json)
 /chip.config.local.json
