@@ -105,7 +105,7 @@ export default function App() {
     ro.observe(bar);
     return () => ro.disconnect();
   }, []);
-  const [dockH, setDockH] = useState(() => Number(stored(DOCK_KEY, '')) || Math.round(window.innerHeight * 0.34));
+  const [dockH, setDockH] = useState(() => Number(stored(DOCK_KEY, '')) || Math.round(window.innerHeight * 0.46));
   // the bar folds when SidebarLayout stacks: its width under 768px, the
   // viewport under 832px with the container's 32px padding
   const narrow = useMedia('(max-width: 831px)');
