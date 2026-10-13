@@ -235,6 +235,36 @@ if (chromium) {
         await ctx.close();
       }
     }
+    // 5. Wee Dote: confirm --color-semantic-ground resolves to #CBD5CC
+    const wdCtx = await browser.newContext({ viewport: { width: 1440, height: 960 } });
+    await wdCtx.addInitScript(() => {
+      localStorage.setItem('chip-theme', 'wee-dote');
+      localStorage.setItem('chip-obi-open', 'closed');
+    });
+    const wdPage = await wdCtx.newPage();
+    await wdPage.goto(`${APP}/#/health`, { waitUntil: 'networkidle' });
+    await wdPage.waitForTimeout(600);
+    // Compare resolved color via canvas pixel read (works for oklch, hex, rgb alike).
+    const wdOk = await wdPage.evaluate(() => {
+      const toPixel = (cssValue) => {
+        const cv = document.createElement('canvas');
+        cv.width = 1; cv.height = 1;
+        const ctx2d = cv.getContext('2d');
+        ctx2d.fillStyle = cssValue;
+        ctx2d.fillRect(0, 0, 1, 1);
+        return Array.from(ctx2d.getImageData(0, 0, 1, 1).data.slice(0, 3));
+      };
+      const raw = getComputedStyle(document.documentElement).getPropertyValue('--color-semantic-ground').trim();
+      const actual = toPixel(raw);
+      const expected = toPixel('#CBD5CC');
+      // allow ±2 per channel for rounding
+      const ok = actual.every((v, i) => Math.abs(v - expected[i]) <= 2);
+      return { actual, expected, ok };
+    });
+    log(`5. wee-dote ground: rgb(${wdOk.actual}) (expected rgb(${wdOk.expected})) → ${wdOk.ok ? 'OK' : 'FAIL'}`);
+    if (!wdOk.ok) failures.push('wee-dote theme not applied: --color-semantic-ground');
+    await wdCtx.close();
+
     await browser.close();
     log(`4. screens in docs/reference/screens/checkpoint/`);
   }

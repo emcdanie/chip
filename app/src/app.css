@@ -2265,19 +2265,32 @@ body {
   white-space: nowrap;
 }
 
-.bar-waiting {
-  padding: var(--spacing-3) var(--spacing-5) var(--spacing-2);
+/* <details> at narrow: collapsible; at 1024+ forced open (the `open` attr) */
+details.bar-waiting {
+  padding: 0;
   border-block-end: var(--border-width-thin) solid var(--color-semantic-border);
   display: grid;
   gap: var(--spacing-2);
   align-content: start;
+  overflow-y: auto;
 }
 
+details.bar-waiting[open] {
+  padding: var(--spacing-3) var(--spacing-5) var(--spacing-3);
+}
+
+/* reset browser <details> marker */
+details.bar-waiting > summary { list-style: none; }
+details.bar-waiting > summary::-webkit-details-marker { display: none; }
+
 .bar-waiting-label {
+  cursor: pointer;
+  padding: var(--spacing-3) var(--spacing-5);
   margin: 0;
   font-size: var(--typography-font-size-sm);
   font-weight: var(--typography-font-weight-medium);
   color: var(--color-semantic-text-secondary);
+  user-select: none;
 }
 
 .bar-empty {
@@ -2316,58 +2329,42 @@ body {
   gap: var(--spacing-2);
 }
 
+/* ---- The Bar · two-column layout at 1024+ ---- */
+
+@media (min-width: 1024px) {
+  .bar-panel {
+    grid-template-columns: 1fr minmax(220px, 280px);
+    grid-template-rows: auto 1fr;
+  }
+
+  .bar-strip { grid-column: 1 / -1; }
+
+  details.bar-waiting {
+    grid-row: 2;
+    grid-column: 2;
+    border-block-end: none;
+    border-inline-start: var(--border-width-thin) solid var(--color-semantic-border);
+  }
+
+  /* hide the disclosure toggle at wide: it's always open via JS */
+  details.bar-waiting > summary.bar-waiting-label {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .bar-chat {
+    grid-row: 2;
+    grid-column: 1;
+  }
+}
+
 /* ---- The Bar · chat stream ---- */
 
 .bar-chat {
   display: flex;
   flex-direction: column;
-  flex: 1;
   min-block-size: 0;
   overflow: hidden;
-}
-
-.bar-chat-hd {
-  padding: var(--spacing-3) var(--spacing-5) var(--spacing-2);
-  border-block-end: var(--border-width-thin) solid var(--color-semantic-border);
-  display: grid;
-  gap: var(--spacing-2);
-  justify-items: center;
-  text-align: center;
-}
-
-.bar-chat-gname {
-  margin: 0;
-  font-size: var(--typography-font-size-label);
-  font-weight: var(--typography-font-weight-medium);
-}
-
-.bar-chat-gsub {
-  margin: 0;
-  font-size: var(--typography-font-size-label);
-  color: var(--color-semantic-text-secondary);
-  margin-block-start: calc(-1 * var(--spacing-1));
-}
-
-.bar-chat-controls {
-  display: flex;
-  gap: var(--spacing-2);
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.bar-chat-btn {
-  font: var(--typography-font-weight-medium) var(--typography-font-size-label) / 1 var(--typography-font-family-body);
-  border: 0;
-  border-radius: var(--radius-full);
-  padding: var(--spacing-1) var(--spacing-3);
-  background: var(--color-semantic-surface-inset);
-  color: var(--color-semantic-text-primary);
-  cursor: pointer;
-}
-
-.bar-chat-btn:focus-visible {
-  outline: var(--ring-focus-width) solid var(--ring-focus-color);
-  outline-offset: 2px;
 }
 
 .bar-chat-log {
@@ -2407,10 +2404,32 @@ body {
   color: var(--color-semantic-text-secondary);
 }
 
-/* confetti canvas: fixed full-screen overlay */
-.bar-chat-fx {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 100;
+/* "Full report" expand toggle inside a bubble */
+.bar-chat-expand {
+  display: block;
+  margin-block-start: var(--spacing-2);
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: var(--typography-font-size-label);
+  color: var(--color-semantic-text-secondary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* full report pre inside a bubble */
+.bar-chat-pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: var(--typography-font-size-label);
+  font-family: var(--typography-font-family-mono);
+}
+
+/* screenshot image inside a bubble: tap to open full-size */
+.bar-chat-img {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  cursor: zoom-in;
 }

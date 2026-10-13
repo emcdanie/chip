@@ -862,7 +862,7 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
       </header>
 
       {dockView === 'bar' ? (
-        <TheBar lanes={bar.lanes} needsItems={bar.needsItems} notify={notify} />
+        <TheBar lanes={bar.lanes} events={bar.events} needsItems={bar.needsItems} notify={notify} />
       ) : (
         <>
           <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
