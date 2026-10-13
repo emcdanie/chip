@@ -2232,7 +2232,7 @@ body {
   box-sizing: border-box;
   block-size: 100%;
   min-block-size: 0;
-  overflow-y: auto;
+  overflow: hidden;
   display: grid;
   grid-template-rows: auto auto 1fr;
   gap: 0;
@@ -2316,10 +2316,101 @@ body {
   gap: var(--spacing-2);
 }
 
-.bar-chat-placeholder {
+/* ---- The Bar · chat stream ---- */
+
+.bar-chat {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.bar-chat-hd {
+  padding: var(--spacing-3) var(--spacing-5) var(--spacing-2);
+  border-block-end: var(--border-width-thin) solid var(--color-semantic-border);
+  display: grid;
+  gap: var(--spacing-2);
+  justify-items: center;
+  text-align: center;
+}
+
+.bar-chat-gname {
   margin: 0;
-  padding: var(--spacing-3) var(--spacing-5);
-  font-size: var(--typography-font-size-sm);
+  font-size: var(--typography-font-size-label);
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.bar-chat-gsub {
+  margin: 0;
+  font-size: var(--typography-font-size-label);
   color: var(--color-semantic-text-secondary);
-  align-self: end;
+  margin-block-start: calc(-1 * var(--spacing-1));
+}
+
+.bar-chat-controls {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.bar-chat-btn {
+  font: var(--typography-font-weight-medium) var(--typography-font-size-label) / 1 var(--typography-font-family-body);
+  border: 0;
+  border-radius: var(--radius-full);
+  padding: var(--spacing-1) var(--spacing-3);
+  background: var(--color-semantic-surface-inset);
+  color: var(--color-semantic-text-primary);
+  cursor: pointer;
+}
+
+.bar-chat-btn:focus-visible {
+  outline: var(--ring-focus-width) solid var(--ring-focus-color);
+  outline-offset: 2px;
+}
+
+.bar-chat-log {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* suppress ChatThread's own scroll; parent .bar-chat-log handles it */
+.bar-chat-log [data-bella-component="chat-thread"] {
+  overflow-y: visible;
+}
+
+/* wrapper for received bubbles: indent 30px for the 24px avatar */
+.bar-chat-recv {
+  position: relative;
+  padding-inline-start: 30px;
+  align-self: flex-start;
+  max-width: calc(80% + 30px);
+}
+
+/* avatar pinned bottom-left of last received bubble in a run */
+.bar-chat-av {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-end: 0;
+  inline-size: 24px !important;
+  block-size: 24px !important;
+}
+
+/* sender name above the first bubble in a run */
+.bar-chat-who {
+  margin: var(--spacing-2) 0 var(--spacing-1) 0;
+  padding-inline-start: var(--spacing-2);
+  font-size: var(--typography-font-size-label);
+  color: var(--color-semantic-text-secondary);
+}
+
+/* confetti canvas: fixed full-screen overlay */
+.bar-chat-fx {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
 }
