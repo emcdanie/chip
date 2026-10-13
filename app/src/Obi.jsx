@@ -70,15 +70,16 @@ function Cite({ n, source }) {
   );
 }
 
-function inline(text, sources, key) {
+export function inline(text, sources = [], key = 0) {
   const out = [];
-  const re = /(\*\*[^*]+\*\*|\[\d+\])/g;
+  const re = /(\*\*[^*]+\*\*|`[^`]+`|\[\d+\])/g;
   let last = 0;
   let m;
   while ((m = re.exec(text))) {
     if (m.index > last) out.push(text.slice(last, m.index));
     const t = m[0];
     if (t.startsWith('**')) out.push(<b key={`${key}-${m.index}`}>{t.slice(2, -2)}</b>);
+    else if (t.startsWith('`')) out.push(<code key={`${key}-${m.index}`}>{t.slice(1, -1)}</code>);
     else {
       const n = +t.slice(1, -1);
       out.push(<Cite key={`${key}-${m.index}`} n={n} source={sources.find((s) => s.n === n)} />);
@@ -846,7 +847,7 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
   }, [obi.turns]);
 
   return (
-    <section className="obi" aria-label={dockView === 'bar' ? 'The Bar' : 'OBI'}>
+    <section className="obi" data-theme={dockView !== 'bar' ? 'dark' : undefined} aria-label={dockView === 'bar' ? 'The Bar' : 'OBI'}>
       <header className="obi-head">
         <h2 className="sr-only">{dockView === 'bar' ? 'The Bar' : 'OBI'}</h2>
         <SegmentedControl options={dockOptions} value={dockView} onChange={setDockView} label="Dock view" className="obi-dock-tabs" />

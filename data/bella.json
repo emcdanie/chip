@@ -1,15 +1,15 @@
 {
   "source": {
     "repo": "bella",
-    "commit": "dcaf801",
-    "committedAt": "2026-10-03T14:37:25+02:00",
+    "commit": "bb47876",
+    "committedAt": "2026-10-13T15:32:22+02:00",
     "version": "0.3.0"
   },
   "counts": {
-    "components": 28,
-    "withStory": 26,
-    "withDocs": 28,
-    "withContract": 26,
+    "components": 33,
+    "withStory": 31,
+    "withDocs": 33,
+    "withContract": 33,
     "semanticTokenGroups": {
       "light": [
         "blur",
@@ -24,14 +24,14 @@
       ]
     },
     "cssVars": {
-      "light": 596,
+      "light": 696,
       "darkOverrides": 0
     }
   },
   "gates": {
     "contrastPairs": {
       "ok": true,
-      "summary": "contrast pairs: 161 checked (light, dark, warm), OK"
+      "summary": "contrast pairs: 305 checked (light, dark, warm, wee-dote), OK; inset rule: 10 exempt, every consumer classified"
     },
     "contractParity": {
       "ok": true,
@@ -50,6 +50,7 @@
         "eyebrow",
         "input",
         "link",
+        "section",
         "brand-wordmark",
         "pattern-field",
         "tabs",
@@ -61,11 +62,16 @@
         "drawer",
         "combobox",
         "disclosure",
-        "action-chip"
+        "action-chip",
+        "page-header",
+        "sidebar-layout",
+        "columns",
+        "slider",
+        "section-header",
+        "scaled-frame"
       ],
       "exemptContracts": [
         "nav-link",
-        "section",
         "modal",
         "callout"
       ]
@@ -93,9 +99,9 @@
     {
       "id": "a11y",
       "name": "A11y",
-      "score": 93,
+      "score": 94,
       "assessment": "measured",
-      "basis": "26/28 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
+      "basis": "31/33 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -121,23 +127,23 @@
     {
       "id": "governance",
       "name": "Governance",
-      "score": 93,
+      "score": 100,
       "assessment": "measured",
-      "basis": "26/28 components: Tier 3 contract checked by contract-parity and passing"
+      "basis": "33/33 components: Tier 3 contract checked by contract-parity and passing"
     },
     {
       "id": "docs",
       "name": "Docs",
-      "score": 93,
+      "score": 94,
       "assessment": "measured",
-      "basis": "26/28 components: Storybook story and a docs description in the manifest"
+      "basis": "31/33 components: Storybook story and a docs description in the manifest"
     },
     {
       "id": "machine-readable",
       "name": "Machine-readable",
-      "score": 79,
+      "score": 100,
       "assessment": "measured",
-      "basis": "22/28 components: DSDS component entry and react-docgen props in the manifest"
+      "basis": "33/33 components: DSDS component entry and react-docgen props in the manifest"
     },
     {
       "id": "agent-access",
@@ -265,9 +271,9 @@
       }
     },
     {
-      "commit": "17be1f1",
-      "committedAt": "2026-10-03T07:22:34+02:00",
-      "components": 19,
+      "commit": "4c12e2e",
+      "committedAt": "2026-10-03T18:46:40+02:00",
+      "components": 18,
       "storyCoverage": 89,
       "contractCoverage": 89,
       "gate": {
@@ -277,11 +283,11 @@
       }
     },
     {
-      "commit": "51b8d0e",
-      "committedAt": "2026-10-03T07:22:36+02:00",
-      "components": 20,
-      "storyCoverage": 90,
-      "contractCoverage": 90,
+      "commit": "c9332b1",
+      "committedAt": "2026-10-04T17:21:15+02:00",
+      "components": 33,
+      "storyCoverage": 94,
+      "contractCoverage": 94,
       "gate": {
         "contrastPairs": true,
         "contractParity": true,
@@ -289,233 +295,126 @@
       }
     },
     {
-      "commit": "f751fda",
-      "committedAt": "2026-10-03T07:24:57+02:00",
-      "components": 21,
-      "storyCoverage": 90,
-      "contractCoverage": 90,
+      "commit": "fc2c100",
+      "committedAt": "2026-10-04T18:57:30+02:00",
+      "components": 33,
+      "storyCoverage": 94,
+      "contractCoverage": 94,
       "gate": {
-        "contrastPairs": true,
+        "contrastPairs": false,
         "contractParity": true,
-        "ok": true
+        "ok": false
       }
     },
     {
-      "commit": "d9cdc91",
-      "committedAt": "2026-10-03T07:24:58+02:00",
-      "components": 22,
-      "storyCoverage": 91,
-      "contractCoverage": 91,
+      "commit": "bcbfba7",
+      "committedAt": "2026-10-05T14:02:55+02:00",
+      "components": 33,
+      "storyCoverage": 94,
+      "contractCoverage": 94,
       "gate": {
-        "contrastPairs": true,
+        "contrastPairs": false,
         "contractParity": true,
-        "ok": true
+        "ok": false
       }
     },
     {
-      "commit": "94a8e81",
-      "committedAt": "2026-10-03T07:26:50+02:00",
-      "components": 23,
-      "storyCoverage": 91,
-      "contractCoverage": 91,
+      "commit": "77a57f3",
+      "committedAt": "2026-10-05T14:03:27+02:00",
+      "components": 33,
+      "storyCoverage": 94,
+      "contractCoverage": 94,
       "gate": {
-        "contrastPairs": true,
+        "contrastPairs": false,
         "contractParity": true,
-        "ok": true
+        "ok": false
       }
     },
     {
-      "commit": "9451293",
-      "committedAt": "2026-10-03T07:28:48+02:00",
-      "components": 23,
-      "storyCoverage": 91,
-      "contractCoverage": 91,
+      "commit": "571fc0e",
+      "committedAt": "2026-10-08T13:24:21+02:00",
+      "components": 33,
+      "storyCoverage": 94,
+      "contractCoverage": 94,
       "gate": {
-        "contrastPairs": true,
+        "contrastPairs": false,
         "contractParity": true,
-        "ok": true
+        "ok": false
       }
     },
     {
-      "commit": "e72a8d0",
-      "committedAt": "2026-10-03T07:30:54+02:00",
-      "components": 23,
-      "storyCoverage": 91,
-      "contractCoverage": 91,
+      "commit": "0085360",
+      "committedAt": "2026-10-09T09:49:01+02:00",
+      "components": 33,
+      "storyCoverage": 94,
+      "contractCoverage": 100,
       "gate": {
-        "contrastPairs": true,
+        "contrastPairs": false,
         "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "988418d",
-      "committedAt": "2026-10-03T08:07:29+02:00",
-      "components": 24,
-      "storyCoverage": 92,
-      "contractCoverage": 92,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "526a1e0",
-      "committedAt": "2026-10-03T08:09:57+02:00",
-      "components": 24,
-      "storyCoverage": 92,
-      "contractCoverage": 92,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "98a96b7",
-      "committedAt": "2026-10-03T09:34:03+02:00",
-      "components": 24,
-      "storyCoverage": 92,
-      "contractCoverage": 92,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "b647b24",
-      "committedAt": "2026-10-03T09:57:44+02:00",
-      "components": 25,
-      "storyCoverage": 92,
-      "contractCoverage": 92,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "3127923",
-      "committedAt": "2026-10-03T11:02:06+02:00",
-      "components": 27,
-      "storyCoverage": 93,
-      "contractCoverage": 93,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "df0fbbd",
-      "committedAt": "2026-10-03T11:28:22+02:00",
-      "components": 27,
-      "storyCoverage": 93,
-      "contractCoverage": 93,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "a158e42",
-      "committedAt": "2026-10-03T12:14:28+02:00",
-      "components": 27,
-      "storyCoverage": 93,
-      "contractCoverage": 93,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "b15f03e",
-      "committedAt": "2026-10-03T13:10:54+02:00",
-      "components": 27,
-      "storyCoverage": 93,
-      "contractCoverage": 93,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "9040221",
-      "committedAt": "2026-10-03T13:55:36+02:00",
-      "components": 27,
-      "storyCoverage": 93,
-      "contractCoverage": 93,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "6fea00c",
-      "committedAt": "2026-10-03T14:24:34+02:00",
-      "components": 28,
-      "storyCoverage": 93,
-      "contractCoverage": 93,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
-      }
-    },
-    {
-      "commit": "dcaf801",
-      "committedAt": "2026-10-03T14:37:25+02:00",
-      "components": 28,
-      "storyCoverage": 93,
-      "contractCoverage": 93,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true
+        "ok": false
       }
     }
   ],
   "palette": {
+    "--color-semantic-text-body": {
+      "light": "#2b2f3d",
+      "dark": "#eceef3",
+      "warm": "#2b2f3d"
+    },
+    "--color-semantic-hover-fill": {
+      "light": "#f6f7f9",
+      "dark": "#0f1117",
+      "warm": "#f6f7f9"
+    },
+    "--color-semantic-icon-muted": {
+      "light": "#686d7d",
+      "dark": "#858b9f",
+      "warm": "#686d7d"
+    },
     "--color-semantic-background": {
-      "light": "#ffffff",
-      "dark": "#0d0d0d",
+      "light": "#f0eeeb",
+      "dark": "#0f1117",
       "warm": "#f6f1e8"
     },
     "--color-semantic-background-inverse": {
-      "light": "#121212",
-      "dark": "#ededed",
-      "warm": "#121212"
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
     },
     "--color-semantic-surface": {
-      "light": "#f2f2f2",
-      "dark": "#161616",
+      "light": "#ffffff",
+      "dark": "#171a22",
       "warm": "#f0ede8"
     },
     "--color-semantic-surface-card": {
-      "light": "#f2f2f2",
-      "dark": "#161616",
+      "light": "#fcfcfa",
+      "dark": "#171a22",
       "warm": "#fbfaf7"
     },
     "--color-semantic-surface-elevated": {
-      "light": "#f2f2f2",
-      "dark": "#262626",
+      "light": "#ffffff",
+      "dark": "#262a35",
       "warm": "#fbfaf7"
     },
     "--color-semantic-surface-inset": {
-      "light": "#e8e8e8",
-      "dark": "#1f1f1f",
+      "light": "#eceef3",
+      "dark": "#1d2030",
       "warm": "#ebe4d6"
     },
+    "--color-semantic-ground": {
+      "light": "#f0eeeb",
+      "dark": "#0f1117",
+      "warm": "#e3dbcf"
+    },
+    "--color-semantic-raised": {
+      "light": "#fcfcfa",
+      "dark": "#262a35",
+      "warm": "#fbfaf7"
+    },
     "--color-semantic-surface-inverse": {
-      "light": "#161616",
-      "dark": "#f2f2f2",
-      "warm": "#161616"
+      "light": "#171a22",
+      "dark": "#f6f7f9",
+      "warm": "#171a22"
     },
     "--color-semantic-surface-glass": {
       "light": "linear-gradient(180deg, #FFFFFFD1 0%, #FFFFFFAD 100%)",
@@ -548,29 +447,29 @@
       "warm": "#FFFFFF8C"
     },
     "--color-semantic-text-primary": {
-      "light": "#121212",
-      "dark": "#ededed",
-      "warm": "#121212"
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
     },
     "--color-semantic-text-secondary": {
-      "light": "#4b4b4b",
-      "dark": "#b1b1b1",
+      "light": "#474c5e",
+      "dark": "#b1b7c7",
       "warm": "#4f463d"
     },
     "--color-semantic-text-muted": {
-      "light": "#4b4b4b",
-      "dark": "#b1b1b1",
+      "light": "#474c5e",
+      "dark": "#b1b7c7",
       "warm": "#4f463d"
     },
     "--color-semantic-text-inverse": {
-      "light": "#ededed",
-      "dark": "#121212",
-      "warm": "#ededed"
+      "light": "#eceef3",
+      "dark": "#1d2030",
+      "warm": "#eceef3"
     },
     "--color-semantic-text-accent": {
-      "light": "#121212",
-      "dark": "#ededed",
-      "warm": "#121212"
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
     },
     "--color-semantic-accent": {
       "light": "#e8a83e",
@@ -583,49 +482,64 @@
       "warm": "#b97a14"
     },
     "--color-semantic-text-on-accent": {
-      "light": "#121212",
-      "dark": "#121212",
-      "warm": "#121212"
+      "light": "#1d2030",
+      "dark": "#1d2030",
+      "warm": "#1d2030"
     },
     "--color-semantic-accent-subtle": {
-      "light": "#e8e8e8",
-      "dark": "#1f1f1f",
+      "light": "#e6e4e1",
+      "dark": "#262a35",
       "warm": "#ebe4d6"
     },
     "--color-semantic-accent-border": {
-      "light": "#838383",
-      "dark": "#707070",
+      "light": "#858b9f",
+      "dark": "#686d7d",
       "warm": "#857a6a"
     },
     "--color-semantic-border": {
-      "light": "#e3e3e3",
-      "dark": "#2a2a2a",
+      "light": "#e4e6ec",
+      "dark": "#2e3240",
       "warm": "#e3dbcf"
     },
     "--color-semantic-border-subtle": {
-      "light": "#e3e3e3",
-      "dark": "#2a2a2a",
+      "light": "#e4e6ec",
+      "dark": "#262a35",
       "warm": "#e3dbcf"
     },
     "--color-semantic-border-faint": {
-      "light": "#e3e3e3",
-      "dark": "#2a2a2a",
+      "light": "#eceef3",
+      "dark": "#262a35",
       "warm": "#e3dbcf"
     },
     "--color-semantic-border-strong": {
-      "light": "#838383",
-      "dark": "#707070",
+      "light": "#686d7d",
+      "dark": "#858b9f",
       "warm": "#857a6a"
     },
     "--color-semantic-border-ink": {
-      "light": "#121212",
-      "dark": "#ededed",
-      "warm": "#121212"
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
     },
     "--color-semantic-scrim": {
       "light": "#1A172038",
       "dark": "#1B191699",
       "warm": "#1A172038"
+    },
+    "--color-semantic-highlight-wash": {
+      "light": "#1d203014",
+      "dark": "#eceef31f",
+      "warm": "#1d203014"
+    },
+    "--color-semantic-highlight-edge": {
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
+    },
+    "--color-semantic-highlight-text": {
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
     },
     "--color-semantic-focus-ring": {
       "light": "#b97a14",
@@ -682,15 +596,35 @@
       "dark": "#17191a",
       "warm": "#17191a"
     },
+    "--color-semantic-lane-a": {
+      "light": "#cfe0ef",
+      "dark": "#cfe0ef",
+      "warm": "#cfe0ef"
+    },
+    "--color-semantic-lane-b": {
+      "light": "#f6c9a8",
+      "dark": "#f6c9a8",
+      "warm": "#f6c9a8"
+    },
+    "--color-semantic-lane-c": {
+      "light": "#cfe8dc",
+      "dark": "#cfe8dc",
+      "warm": "#cfe8dc"
+    },
+    "--color-semantic-lane-d": {
+      "light": "#e8a83e",
+      "dark": "#e8a83e",
+      "warm": "#e8a83e"
+    },
     "--color-semantic-link": {
-      "light": "#121212",
-      "dark": "#ededed",
-      "warm": "#121212"
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
     },
     "--color-semantic-link-hover": {
-      "light": "#121212",
-      "dark": "#ededed",
-      "warm": "#121212"
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
     },
     "--color-semantic-success": {
       "light": "#4A7C6F",
@@ -713,24 +647,24 @@
       "warm": "#6495C54D"
     },
     "--color-semantic-accent-raised-hi": {
-      "light": "#121212",
-      "dark": "#ededed",
-      "warm": "#121212"
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
     },
     "--color-semantic-accent-raised-lo": {
-      "light": "#121212",
-      "dark": "#ededed",
-      "warm": "#121212"
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
     },
     "--color-semantic-accent-raised-hover": {
-      "light": "#343434",
-      "dark": "#cdcdcd",
-      "warm": "#343434"
+      "light": "#3a3f50",
+      "dark": "#c3c7d2",
+      "warm": "#3a3f50"
     },
     "--color-semantic-accent-raised-edge": {
-      "light": "#121212",
-      "dark": "#ededed",
-      "warm": "#121212"
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
     }
   },
   "ring": {
@@ -742,8 +676,8 @@
     },
     "ground": {
       "token": "--color-semantic-background",
-      "light": "#ffffff",
-      "dark": "#0d0d0d",
+      "light": "#f0eeeb",
+      "dark": "#0f1117",
       "warm": "#f6f1e8"
     }
   },
@@ -767,6 +701,7 @@
       "DataTable",
       "NavList",
       "SegmentedControl",
+      "StatusPill",
       "Tabs"
     ],
     "--color-semantic-border-ink": [
@@ -774,6 +709,7 @@
       "Combobox",
       "FilterChip",
       "Input",
+      "Slider",
       "Tabs"
     ],
     "--color-semantic-text-muted": [
@@ -781,6 +717,18 @@
       "Button",
       "Combobox",
       "Input"
+    ],
+    "--color-semantic-text-secondary": [
+      "ActionChip",
+      "Combobox",
+      "DataTable",
+      "NavList",
+      "ScoreStrip",
+      "Section",
+      "Select",
+      "Slider",
+      "Stat",
+      "Tabs"
     ],
     "--component-action-chip-border": [
       "ActionChip"
@@ -798,6 +746,9 @@
       "ActionChip"
     ],
     "--component-action-chip-min-height": [
+      "ActionChip"
+    ],
+    "--component-action-chip-quiet-hover-background": [
       "ActionChip"
     ],
     "--motion-duration-fast": [
@@ -833,6 +784,8 @@
       "NavList",
       "SegmentedControl",
       "Select",
+      "SidebarLayout",
+      "Slider",
       "Tabs"
     ],
     "--color-semantic-focus-ring": [
@@ -848,6 +801,8 @@
       "NavList",
       "SegmentedControl",
       "Select",
+      "SidebarLayout",
+      "Slider",
       "Tabs"
     ],
     "--ring-focus-offset": [
@@ -860,7 +815,9 @@
       "FilterChip",
       "Input",
       "Link",
-      "Select"
+      "Select",
+      "SidebarLayout",
+      "Slider"
     ],
     "--ring-focus-width": [
       "ActionChip",
@@ -875,6 +832,8 @@
       "NavList",
       "SegmentedControl",
       "Select",
+      "SidebarLayout",
+      "Slider",
       "Tabs"
     ],
     "--spacing-2": [
@@ -887,13 +846,30 @@
       "FilterChip",
       "Input",
       "NavList",
+      "PageHeader",
       "ResourceCard",
       "ScoreStrip",
       "SegmentedControl",
       "Select",
+      "Slider",
       "Stat",
       "StatusPill",
       "Tabs"
+    ],
+    "--spacing-3": [
+      "ActionChip",
+      "BrandWordmark",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "Drawer",
+      "FilterChip",
+      "Input",
+      "NavList",
+      "ResourceCard",
+      "ScoreStrip",
+      "Select",
+      "Slider"
     ],
     "--spacing-4": [
       "ActionChip",
@@ -914,9 +890,12 @@
       "Disclosure",
       "Drawer",
       "Input",
+      "PageHeader",
       "ResourceCard",
       "ScoreStrip",
+      "Section",
       "Select",
+      "Slider",
       "Stat"
     ],
     "--typography-font-weight-regular": [
@@ -990,7 +969,10 @@
       "Avatar"
     ],
     "--typography-letter-spacing-normal": [
-      "Avatar"
+      "Avatar",
+      "Input",
+      "SegmentedControl",
+      "Select"
     ],
     "--color-semantic-text-primary": [
       "BrandWordmark",
@@ -999,29 +981,20 @@
       "Input",
       "NavList",
       "ScoreStrip",
+      "Section",
       "Select",
+      "Slider",
       "Stat",
       "Tabs"
     ],
     "--component-brand-wordmark-nav-height": [
       "BrandWordmark"
     ],
-    "--spacing-3": [
-      "BrandWordmark",
-      "Combobox",
-      "DataTable",
-      "Disclosure",
-      "Drawer",
-      "Input",
-      "NavList",
-      "ResourceCard",
-      "ScoreStrip",
-      "Select"
-    ],
     "--color-semantic-surface-inset": [
       "Button",
       "Input",
-      "NavList"
+      "NavList",
+      "StatusPill"
     ],
     "--component-button-motion-press": [
       "Button"
@@ -1152,6 +1125,7 @@
       "NavList",
       "ResourceCard",
       "ScoreStrip",
+      "Slider",
       "Stat",
       "StatusPill",
       "Tabs"
@@ -1174,6 +1148,9 @@
     "--color-neutral-ink-muted": [
       "Card"
     ],
+    "--color-neutral-ink-soft": [
+      "Card"
+    ],
     "--color-neutral-paper": [
       "Card"
     ],
@@ -1183,10 +1160,20 @@
     "--color-semantic-border-faint": [
       "Card"
     ],
+    "--color-semantic-border-subtle": [
+      "Card",
+      "FilterChip",
+      "NavList",
+      "SegmentedControl",
+      "Tabs"
+    ],
     "--color-semantic-surface-card": [
       "Card"
     ],
     "--component-card-trace-width": [
+      "Card"
+    ],
+    "--layout-card-padding": [
       "Card"
     ],
     "--motion-duration-lift": [
@@ -1198,27 +1185,14 @@
     "--radius-card": [
       "Card"
     ],
+    "--shadow-card": [
+      "Card"
+    ],
     "--shadow-hover": [
       "Card"
     ],
-    "--spacing-6": [
-      "Card",
-      "Kbd",
-      "NavList"
-    ],
-    "--color-semantic-text-secondary": [
-      "Combobox",
-      "DataTable",
-      "Heading",
-      "Input",
-      "NavList",
-      "ScoreStrip",
-      "SectionHeader",
-      "SegmentedControl",
-      "Select",
-      "Stat",
-      "StatusPill",
-      "Tabs"
+    "--component-columns-gap": [
+      "Columns"
     ],
     "--component-combobox-active-background": [
       "Combobox"
@@ -1254,7 +1228,8 @@
       "Combobox"
     ],
     "--radius-md": [
-      "Combobox"
+      "Combobox",
+      "Slider"
     ],
     "--shadow-lg": [
       "Combobox"
@@ -1273,13 +1248,16 @@
       "DataTable",
       "Disclosure",
       "Input",
-      "ScoreStrip"
+      "ScoreStrip",
+      "Slider"
     ],
     "--typography-line-height-normal": [
       "Combobox",
       "Input",
       "Kbd",
+      "PageHeader",
       "ResourceCard",
+      "Section",
       "SectionHeader",
       "Tag"
     ],
@@ -1315,7 +1293,8 @@
       "Drawer",
       "Input",
       "NavList",
-      "ScoreStrip"
+      "ScoreStrip",
+      "Slider"
     ],
     "--component-disclosure-border": [
       "Disclosure"
@@ -1407,12 +1386,6 @@
     "--color-semantic-background-inverse": [
       "FilterChip"
     ],
-    "--color-semantic-border-subtle": [
-      "FilterChip",
-      "NavList",
-      "SegmentedControl",
-      "Tabs"
-    ],
     "--color-semantic-text-inverse": [
       "FilterChip"
     ],
@@ -1420,6 +1393,9 @@
       "FilterChip"
     ],
     "--component-filter-chip-border-radius": [
+      "FilterChip"
+    ],
+    "--component-filter-chip-compact-font-size": [
       "FilterChip"
     ],
     "--component-filter-chip-font-family": [
@@ -1436,6 +1412,14 @@
     ],
     "--component-filter-chip-min-height": [
       "FilterChip"
+    ],
+    "--color-semantic-text-body": [
+      "Heading",
+      "Input",
+      "SectionHeader",
+      "SegmentedControl",
+      "Select",
+      "StatusPill"
     ],
     "--component-heading-font-family": [
       "Heading"
@@ -1472,6 +1456,7 @@
       "ScoreStrip",
       "SegmentedControl",
       "Select",
+      "Slider",
       "Tabs"
     ],
     "--color-semantic-danger-border": [
@@ -1485,7 +1470,8 @@
       "Input",
       "ResourceCard",
       "SegmentedControl",
-      "Select"
+      "Select",
+      "Slider"
     ],
     "--component-icon-size-sm": [
       "Input"
@@ -1497,6 +1483,13 @@
       "Input"
     ],
     "--component-input-min-height": [
+      "Input"
+    ],
+    "--typography-font-size-tag": [
+      "Input",
+      "Slider"
+    ],
+    "--typography-font-weight-bold": [
       "Input"
     ],
     "--component-kbd-background": [
@@ -1519,6 +1512,11 @@
     ],
     "--component-kbd-foreground": [
       "Kbd"
+    ],
+    "--spacing-6": [
+      "Kbd",
+      "NavList",
+      "Slider"
     ],
     "--typography-letter-spacing-mono": [
       "Kbd"
@@ -1558,6 +1556,53 @@
     ],
     "--component-nav-list-min-height": [
       "NavList"
+    ],
+    "--component-page-header-foreground": [
+      "PageHeader"
+    ],
+    "--component-page-header-gap": [
+      "PageHeader"
+    ],
+    "--component-page-header-lede-font-size": [
+      "PageHeader"
+    ],
+    "--component-page-header-lede-max-width": [
+      "PageHeader"
+    ],
+    "--component-page-header-meta-font-size": [
+      "PageHeader"
+    ],
+    "--component-page-header-meta-foreground": [
+      "PageHeader"
+    ],
+    "--component-page-header-title-font-size": [
+      "PageHeader"
+    ],
+    "--component-page-header-title-font-weight": [
+      "PageHeader"
+    ],
+    "--component-page-header-title-letter-spacing": [
+      "PageHeader"
+    ],
+    "--component-page-header-title-line-height": [
+      "PageHeader"
+    ],
+    "--component-section-space": [
+      "PageHeader",
+      "Section"
+    ],
+    "--layout-stack-md": [
+      "PageHeader",
+      "Section"
+    ],
+    "--layout-stack-sm": [
+      "PageHeader",
+      "Section"
+    ],
+    "--typography-font-family-display": [
+      "PageHeader",
+      "ScoreStrip",
+      "Section"
     ],
     "--component-pattern-field-opacity": [
       "PatternField"
@@ -1643,6 +1688,7 @@
     "--radius-full": [
       "ResourceCard",
       "ScoreStrip",
+      "Slider",
       "Tabs"
     ],
     "--border-width-thick": [
@@ -1692,9 +1738,6 @@
       "ScoreStrip",
       "Select"
     ],
-    "--typography-font-family-display": [
-      "ScoreStrip"
-    ],
     "--typography-font-weight-light": [
       "ScoreStrip"
     ],
@@ -1704,12 +1747,37 @@
     ],
     "--typography-line-height-heading": [
       "ScoreStrip",
+      "Section",
       "Stat"
     ],
-    "--spacing-12": [
-      "SectionHeader"
+    "--component-section-body-gap": [
+      "Section"
+    ],
+    "--component-section-heading-font-size": [
+      "Section"
+    ],
+    "--component-section-heading-font-weight": [
+      "Section"
+    ],
+    "--component-section-heading-letter-spacing": [
+      "Section"
+    ],
+    "--header-height": [
+      "Section",
+      "SidebarLayout"
+    ],
+    "--layout-measure-body": [
+      "Section"
+    ],
+    "--layout-stack-lg": [
+      "Section",
+      "SidebarLayout"
     ],
     "--typography-font-size-body": [
+      "Section",
+      "SectionHeader"
+    ],
+    "--spacing-12": [
       "SectionHeader"
     ],
     "--color-semantic-accent-border": [
@@ -1756,6 +1824,57 @@
     ],
     "--component-select-min-height": [
       "Select"
+    ],
+    "--component-sidebar-layout-columns": [
+      "SidebarLayout"
+    ],
+    "--component-sidebar-layout-gap": [
+      "SidebarLayout"
+    ],
+    "--dock-height": [
+      "SidebarLayout"
+    ],
+    "--border-width-medium": [
+      "Slider"
+    ],
+    "--component-slider-fill": [
+      "Slider"
+    ],
+    "--component-slider-mark": [
+      "Slider"
+    ],
+    "--component-slider-min-height": [
+      "Slider"
+    ],
+    "--component-slider-thumb-background": [
+      "Slider"
+    ],
+    "--component-slider-thumb-border": [
+      "Slider"
+    ],
+    "--component-slider-thumb-size": [
+      "Slider"
+    ],
+    "--component-slider-track": [
+      "Slider"
+    ],
+    "--component-slider-track-height": [
+      "Slider"
+    ],
+    "--mark-f": [
+      "Slider"
+    ],
+    "--slider-pct": [
+      "Slider"
+    ],
+    "--spacing-16": [
+      "Slider"
+    ],
+    "--thumb": [
+      "Slider"
+    ],
+    "--typography-font-size-base": [
+      "Slider"
     ],
     "--component-stat-delta-font-size": [
       "Stat"
@@ -1893,9 +2012,13 @@
         "disabled",
         "href",
         "linkComponent",
-        "onClick"
+        "onClick",
+        "variant"
       ],
-      "variants": [],
+      "variants": [
+        "default",
+        "quiet"
+      ],
       "states": [
         "default",
         "hover",
@@ -1907,7 +2030,8 @@
       "usage": [
         "OBI suggestions and answer actions",
         "Component chips that open Atlas",
-        "Small actions on a tile (Which have none?)"
+        "Small actions on a tile (Which have none?)",
+        "quiet: an icon action beside content, such as the ⋯ visibility menu (no border at rest)"
       ],
       "dont": [
         "Do not set it in caps: sentence case is the point",
@@ -1931,9 +2055,9 @@
         "paddingX": null,
         "label": {
           "token": "--component-action-chip-foreground",
-          "light": "#121212",
-          "dark": "#ededed",
-          "warm": "#121212"
+          "light": "#1d2030",
+          "dark": "#eceef3",
+          "warm": "#1d2030"
         },
         "background": null,
         "backgroundPair": null,
@@ -1955,26 +2079,29 @@
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-actionchip--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 21,
-        "component": 6,
-        "semantic": 3,
+        "count": 24,
+        "component": 7,
+        "semantic": 4,
         "list": [
           "--border-width-thin",
           "--color-semantic-border",
           "--color-semantic-border-ink",
           "--color-semantic-text-muted",
+          "--color-semantic-text-secondary",
           "--component-action-chip-border",
           "--component-action-chip-border-radius",
           "--component-action-chip-font-size",
           "--component-action-chip-foreground",
           "--component-action-chip-hover-background",
           "--component-action-chip-min-height",
+          "--component-action-chip-quiet-hover-background",
           "--motion-duration-fast",
           "--motion-easing-standard",
           "--ring-focus-color",
           "--ring-focus-offset",
           "--ring-focus-width",
           "--spacing-2",
+          "--spacing-3",
           "--spacing-4",
           "--typography-font-family-body",
           "--typography-font-weight-regular",
@@ -1987,7 +2114,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 5,
+          "pairs": 13,
           "failing": []
         },
         "contract": {
@@ -2044,14 +2171,14 @@
         "paddingX": null,
         "label": {
           "token": "--component-avatar-default-foreground",
-          "light": "#4b4b4b",
-          "dark": "#b1b1b1",
-          "warm": "#4f463d"
+          "light": "#2b2f3d",
+          "dark": "#eceef3",
+          "warm": "#2b2f3d"
         },
         "background": {
           "token": "--component-avatar-default-background",
-          "light": "#e8e8e8",
-          "dark": "#1f1f1f",
+          "light": "#eceef3",
+          "dark": "#1d2030",
           "warm": "#ebe4d6"
         },
         "backgroundPair": null,
@@ -2091,7 +2218,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 10,
+          "pairs": 13,
           "failing": []
         },
         "contract": {
@@ -2111,7 +2238,7 @@
       "description": "BrandWordmark (brand refresh, 2026-09-22): the custom E, L, T, A, B\nglyphs as stroke paths at the locked settings (weight 12, width 58,\nheight 130, tracking 16, soft corners), filled with the seeded brand\npattern and a grain, or in plain ink. A labelled image: the pattern\nlayers are aria-hidden. It never moves, so reduced motion needs nothing.",
       "hasStory": false,
       "hasDocs": true,
-      "inDsds": false,
+      "inDsds": true,
       "hasContract": true,
       "hasA11yNotes": true,
       "props": [
@@ -2176,7 +2303,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 6,
+          "pairs": 8,
           "failing": []
         },
         "contract": {
@@ -2193,7 +2320,7 @@
       "id": "button",
       "name": "Button",
       "category": "Actions",
-      "description": "Keycaps with real hierarchy: two colour treatments, three tiers, one\nprimary per view. Labels are Geist caps, never Unique. One job per\nstate: hover and focus-visible roll the label, active presses the\nkeycap; a button never lifts on hover (lift is for cards).",
+      "description": "Keycaps with real hierarchy: two colour treatments, three tiers, one\nprimary per view. Labels are Figtree SemiBold 16px, sentence case, never Unique. One job per\nstate: hover and focus-visible roll the label, active presses the\nkeycap; a button never lifts on hover (lift is for cards).",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -2259,9 +2386,9 @@
         },
         "paddingY": {
           "token": "--component-button-primary-padding-y",
-          "light": "12px",
-          "dark": "12px",
-          "warm": "12px"
+          "light": "0px",
+          "dark": "0px",
+          "warm": "0px"
         },
         "paddingX": {
           "token": "--component-button-primary-padding-x",
@@ -2271,21 +2398,21 @@
         },
         "label": {
           "token": "--component-button-primary-foreground",
-          "light": "#ededed",
-          "dark": "#121212",
-          "warm": "#ededed"
+          "light": "#eceef3",
+          "dark": "#1d2030",
+          "warm": "#eceef3"
         },
         "background": {
           "token": "--component-button-primary-fill-hi",
-          "light": "#121212",
-          "dark": "#ededed",
-          "warm": "#121212"
+          "light": "#1d2030",
+          "dark": "#eceef3",
+          "warm": "#1d2030"
         },
         "backgroundPair": {
           "token": "--component-button-primary-fill-lo",
-          "light": "#121212",
-          "dark": "#ededed",
-          "warm": "#121212"
+          "light": "#1d2030",
+          "dark": "#eceef3",
+          "warm": "#1d2030"
         },
         "ringWidth": {
           "token": "--ring-focus-width",
@@ -2305,12 +2432,12 @@
           "key": "shadow",
           "n": 1,
           "title": "Key shadow",
-          "detail": "1px 3px 0 ink, soft drop, inset highlight (primary)",
+          "detail": "0 2px 0 key edge one step darker than the face, soft drop, inset highlight (primary)",
           "token": "--shadow-key-resting",
           "value": {
-            "light": "1px 3px 0 #121212, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66",
-            "dark": "1px 3px 0 #121212, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66",
-            "warm": "1px 3px 0 #121212, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66"
+            "light": "0 2px 0 #171a22, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66",
+            "dark": "0 2px 0 #e4e6ec, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66",
+            "warm": "0 2px 0 #171a22, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66"
           },
           "kind": "shadow",
           "trigger": null,
@@ -2330,9 +2457,9 @@
           "detail": "ink plate, 1px edge, white-alpha gloss",
           "token": "--component-button-primary-fill-hi",
           "value": {
-            "light": "#121212",
-            "dark": "#ededed",
-            "warm": "#121212"
+            "light": "#1d2030",
+            "dark": "#eceef3",
+            "warm": "#1d2030"
           },
           "kind": "fill",
           "trigger": null,
@@ -2369,12 +2496,12 @@
           "key": "label",
           "n": 4,
           "title": "Label",
-          "detail": "Geist 13, 700, caps, 0.08em",
+          "detail": "Figtree 16, 600, sentence case (font-size.tag)",
           "token": "--component-button-primary-font-size",
           "value": {
-            "light": "13px",
-            "dark": "13px",
-            "warm": "13px"
+            "light": "16px",
+            "dark": "16px",
+            "warm": "16px"
           },
           "kind": "content",
           "trigger": null,
@@ -2474,7 +2601,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 9,
+          "pairs": 11,
           "failing": []
         },
         "contract": {
@@ -2491,7 +2618,7 @@
       "id": "card",
       "name": "Card",
       "category": "Layout",
-      "description": "The one-card system: every card surface renders through this. Flat at\nrest (surface-card, a faint border, no shadow), theme-aware by\nconstruction; only interactive cards lift on hover and focus. The only\nfixed-light path is Peek, on purpose.",
+      "description": "The one-card system: every card surface renders through this. At rest\nit wears shadow.card over surface-card and a faint border (Colour B,\n2026-10-04; peek stays flat), theme-aware by\nconstruction; only interactive cards lift on hover and focus. The only\nfixed-light path is Peek, on purpose.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -2534,8 +2661,8 @@
         "Do not nest links or buttons inside an interactive card: the card is ONE link or ONE button",
         "Do not build a fixed-dark card, no fixed-dark path exists; peek (fixed always-light paper on navy) is the one recorded fixed-context exception"
       ],
-      "restNote": "FLAT AT REST is a contract (surface rules, 2026-09-19): only these layers may paint before hover/focus. audit:quality asserts the invariants on every story that renders the component (root carries data-bella-component=card).",
-      "a11y": "Interactive cards render as a single anchor or button: one tab stop, no nested interactives. Name a card via ariaLabel when its visible content isn't the right name; media is aria-hidden when ariaLabel is set. Focus shows a visible ring (asserted in CI, both themes). Only interactive cards lift on hover and focus; prefers-reduced-motion keeps them still (the shadow still marks hover and focus). Card text sits on surface-card: text-muted 4.64:1 light / 6.03:1 dark, the worst pair (AA).",
+      "restNote": "The rest state is a contract (Colour B, Elleta, 2026-10-04; flat from 2026-09-19): only these layers may paint before hover/focus, and the shadow at rest is exactly shadow.card (peek re-scopes it to none and stays flat). audit:quality asserts the invariants on every story that renders the component (root carries data-bella-component=card).",
+      "a11y": "Interactive cards render as a single anchor or button: one tab stop, no nested interactives. Name a card via ariaLabel when its visible content isn't the right name; media is aria-hidden when ariaLabel is set. Focus shows a visible ring (asserted in CI, both themes). Every card wears shadow.card at rest (peek stays flat); only interactive cards lift on hover and focus; prefers-reduced-motion keeps them still (the shadow still marks hover and focus). Card text sits on surface-card: text-muted 4.64:1 light / 6.03:1 dark, the worst pair (AA).",
       "minTarget": null,
       "sandbox": {
         "minHeight": null,
@@ -2581,14 +2708,36 @@
           "anchor": null
         },
         {
-          "key": "surface",
+          "key": "rest-shadow",
           "n": 2,
+          "title": "Rest shadow",
+          "detail": "every card but peek (re-scoped to none), Colour B, 2026-10-04",
+          "token": "--shadow-card",
+          "value": {
+            "light": "0 1px 3px #1d20300f, 0 12px 28px #1d20301a",
+            "dark": "0 1px 3px rgba(4, 5, 10, 0.32), 0 12px 28px rgba(4, 5, 10, 0.44)",
+            "warm": "0 1px 3px #1d20300f, 0 12px 28px #1d20301a"
+          },
+          "kind": "shadow",
+          "trigger": "rest",
+          "target": ":scope",
+          "zone": {
+            "edge": "bottom",
+            "size": 12
+          },
+          "z": 1,
+          "pin": null,
+          "anchor": null
+        },
+        {
+          "key": "surface",
+          "n": 3,
           "title": "Surface",
-          "detail": "the card fill, flat at rest",
+          "detail": "the card fill",
           "token": "--color-semantic-surface-card",
           "value": {
-            "light": "#f2f2f2",
-            "dark": "#161616",
+            "light": "#fcfcfa",
+            "dark": "#171a22",
             "warm": "#fbfaf7"
           },
           "kind": "fill",
@@ -2597,19 +2746,19 @@
           "zone": {
             "inset": 12
           },
-          "z": 1,
+          "z": 2,
           "pin": null,
           "anchor": null
         },
         {
           "key": "edge",
-          "n": 3,
+          "n": 4,
           "title": "Edge",
-          "detail": "1px hairline, radius 16 (--radius-card)",
-          "token": "--color-semantic-border-faint",
+          "detail": "1px border-subtle hairline, radius 16 (--radius-card)",
+          "token": "--color-semantic-border-subtle",
           "value": {
-            "light": "#e3e3e3",
-            "dark": "#2a2a2a",
+            "light": "#e4e6ec",
+            "dark": "#262a35",
             "warm": "#e3dbcf"
           },
           "kind": "edge",
@@ -2618,13 +2767,13 @@
           "zone": {
             "inset": -3
           },
-          "z": 2,
+          "z": 3,
           "pin": null,
           "anchor": null
         },
         {
           "key": "padding",
-          "n": 4,
+          "n": 5,
           "title": "Padding",
           "detail": "24px all round",
           "token": "--spacing-6",
@@ -2639,13 +2788,13 @@
           "zone": {
             "inset": 0
           },
-          "z": 3,
+          "z": 4,
           "pin": null,
           "anchor": null
         },
         {
           "key": "ring",
-          "n": 5,
+          "n": 6,
           "title": "Focus ring",
           "detail": "interactive cards only: 3px, 3px offset, focus-visible only",
           "token": "--ring-focus-color",
@@ -2660,7 +2809,7 @@
           "zone": {
             "inset": -8
           },
-          "z": 4,
+          "z": 5,
           "pin": null,
           "anchor": null
         }
@@ -2669,9 +2818,9 @@
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-card--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 21,
+        "count": 24,
         "component": 1,
-        "semantic": 2,
+        "semantic": 3,
         "list": [
           "--color-alpha-ink-10",
           "--color-alpha-ink-6",
@@ -2679,11 +2828,14 @@
           "--color-neutral-border",
           "--color-neutral-ink-faint",
           "--color-neutral-ink-muted",
+          "--color-neutral-ink-soft",
           "--color-neutral-paper",
           "--color-neutral-surface",
           "--color-semantic-border-faint",
+          "--color-semantic-border-subtle",
           "--color-semantic-surface-card",
           "--component-card-trace-width",
+          "--layout-card-padding",
           "--motion-duration-lift",
           "--motion-easing-standard",
           "--motion-transform-hover-lift",
@@ -2691,9 +2843,9 @@
           "--ring-focus-color",
           "--ring-focus-offset",
           "--ring-focus-width",
+          "--shadow-card",
           "--shadow-hover",
-          "--spacing-2",
-          "--spacing-6"
+          "--spacing-2"
         ]
       },
       "compositionDepth": 0,
@@ -2703,7 +2855,80 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 15,
+          "pairs": 19,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "columns",
+      "name": "Columns",
+      "category": "Layout",
+      "description": "Equal columns that collapse by their own width (layout foundation,\n2026-10-03): 3 become 2 under 1200px and 1 under 768px; 2 become 1 under\n768px. split=\"wide-start\" makes two columns 2:1 from 768px. Cells stretch\nto the row so cards line up.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "children",
+        "className",
+        "count",
+        "split"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": "a grid of equal columns",
+      "usage": [
+        "Atlas: the specimen beside its facts (wide-start), the examples under them (even)",
+        "Health stat cards"
+      ],
+      "dont": [
+        "Do not use it for a sidebar: that is SidebarLayout",
+        "Do not nest Columns inside Columns"
+      ],
+      "restNote": "Layout only, entirely static.",
+      "a11y": "Verified 2026-10-03: no landmark or role of its own; reading order is source order at every width.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.columns.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-columns--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 1,
+        "component": 1,
+        "semantic": 0,
+        "list": [
+          "--component-columns-gap"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -2776,14 +3001,14 @@
         "paddingX": null,
         "label": {
           "token": "--component-combobox-foreground",
-          "light": "#121212",
-          "dark": "#ededed",
-          "warm": "#121212"
+          "light": "#1d2030",
+          "dark": "#eceef3",
+          "warm": "#1d2030"
         },
         "background": {
           "token": "--component-combobox-background",
-          "light": "#f2f2f2",
-          "dark": "#161616",
+          "light": "#fcfcfa",
+          "dark": "#171a22",
           "warm": "#fbfaf7"
         },
         "backgroundPair": null,
@@ -2846,7 +3071,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 11,
+          "pairs": 13,
           "failing": []
         },
         "contract": {
@@ -2971,7 +3196,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 14,
+          "pairs": 18,
           "failing": []
         },
         "contract": {
@@ -3039,9 +3264,9 @@
         "paddingX": null,
         "label": {
           "token": "--component-disclosure-foreground",
-          "light": "#121212",
-          "dark": "#ededed",
-          "warm": "#121212"
+          "light": "#1d2030",
+          "dark": "#eceef3",
+          "warm": "#1d2030"
         },
         "background": null,
         "backgroundPair": null,
@@ -3152,14 +3377,14 @@
         "paddingX": null,
         "label": {
           "token": "--component-drawer-foreground",
-          "light": "#121212",
-          "dark": "#ededed",
-          "warm": "#121212"
+          "light": "#1d2030",
+          "dark": "#eceef3",
+          "warm": "#1d2030"
         },
         "background": {
           "token": "--component-drawer-background",
-          "light": "#f2f2f2",
-          "dark": "#262626",
+          "light": "#ffffff",
+          "dark": "#262a35",
           "warm": "#fbfaf7"
         },
         "backgroundPair": null,
@@ -3217,10 +3442,10 @@
       "id": "eyebrow",
       "name": "Eyebrow",
       "category": "Layout",
-      "description": "Eyebrow: the sans label above a heading (2026-10-03; was Geist Mono).\n13px, ss09, no tracking, no caps. Never an accent: wayfinding is not action.",
+      "description": "Eyebrow (style unify, 2026-09-22): the label above a heading; Figtree 16px, sentence case since the type lock (2026-10-04).\n13px, ss09, no tracking, no caps. Never an accent: wayfinding is not action.",
       "hasStory": true,
       "hasDocs": true,
-      "inDsds": false,
+      "inDsds": true,
       "hasContract": true,
       "hasA11yNotes": true,
       "props": [
@@ -3257,9 +3482,9 @@
         "paddingX": null,
         "label": {
           "token": "--component-eyebrow-muted-foreground",
-          "light": "#4b4b4b",
-          "dark": "#b1b1b1",
-          "warm": "#4f463d"
+          "light": "#2b2f3d",
+          "dark": "#eceef3",
+          "warm": "#2b2f3d"
         },
         "background": null,
         "backgroundPair": null,
@@ -3325,7 +3550,8 @@
         "children",
         "className",
         "onClick",
-        "pressed"
+        "pressed",
+        "size"
       ],
       "variants": [],
       "states": [
@@ -3338,7 +3564,8 @@
       "rendersAs": "a button with aria-pressed",
       "usage": [
         "Work library skill/type filters",
-        "Any multi-select narrowing row"
+        "Any multi-select narrowing row",
+        "size compact: a long wrapping row of tag filters (CHIP Docs); the 44px target stays"
       ],
       "dont": [
         "Do not use for mutually exclusive views: that is SegmentedControl",
@@ -3362,9 +3589,9 @@
         "paddingX": null,
         "label": {
           "token": "--component-filter-chip-foreground",
-          "light": "#4b4b4b",
-          "dark": "#b1b1b1",
-          "warm": "#4f463d"
+          "light": "#2b2f3d",
+          "dark": "#eceef3",
+          "warm": "#2b2f3d"
         },
         "background": null,
         "backgroundPair": null,
@@ -3410,8 +3637,8 @@
           "detail": "1px border-strong, never raised",
           "token": "--component-filter-chip-border",
           "value": {
-            "light": "#838383",
-            "dark": "#707070",
+            "light": "#686d7d",
+            "dark": "#858b9f",
             "warm": "#857a6a"
           },
           "kind": "edge",
@@ -3431,8 +3658,8 @@
           "detail": "border-subtle wash, the edge goes ink",
           "token": "--color-semantic-border-subtle",
           "value": {
-            "light": "#e3e3e3",
-            "dark": "#2a2a2a",
+            "light": "#e4e6ec",
+            "dark": "#262a35",
             "warm": "#e3dbcf"
           },
           "kind": "state",
@@ -3452,9 +3679,9 @@
           "detail": "inverse fill, label text-inverse; aria-pressed is the state",
           "token": "--color-semantic-background-inverse",
           "value": {
-            "light": "#121212",
-            "dark": "#ededed",
-            "warm": "#121212"
+            "light": "#1d2030",
+            "dark": "#eceef3",
+            "warm": "#1d2030"
           },
           "kind": "fill",
           "trigger": "pressed",
@@ -3473,9 +3700,9 @@
           "detail": "Geist 14, 500, text-secondary",
           "token": "--component-filter-chip-foreground",
           "value": {
-            "light": "#4b4b4b",
-            "dark": "#b1b1b1",
-            "warm": "#4f463d"
+            "light": "#2b2f3d",
+            "dark": "#eceef3",
+            "warm": "#2b2f3d"
           },
           "kind": "content",
           "trigger": "rest",
@@ -3513,8 +3740,8 @@
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-filterchip--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 19,
-        "component": 7,
+        "count": 21,
+        "component": 8,
         "semantic": 4,
         "list": [
           "--color-semantic-background-inverse",
@@ -3523,6 +3750,7 @@
           "--color-semantic-text-inverse",
           "--component-filter-chip-border",
           "--component-filter-chip-border-radius",
+          "--component-filter-chip-compact-font-size",
           "--component-filter-chip-font-family",
           "--component-filter-chip-font-size",
           "--component-filter-chip-font-weight",
@@ -3535,6 +3763,7 @@
           "--ring-focus-width",
           "--spacing-1",
           "--spacing-2",
+          "--spacing-3",
           "--spacing-4"
         ]
       },
@@ -3560,7 +3789,7 @@
       "id": "heading",
       "name": "Heading",
       "category": "Layout",
-      "description": "Geist Light carries every heading tier; Unique is the wordmark only.\n32px floor, never inside a card.",
+      "description": "Figtree SemiBold 600 carries every heading tier (heading weight, 2026-10-04); Unique is the wordmark only.\n32px floor, never inside a card.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -3593,9 +3822,8 @@
         "The hero headline"
       ],
       "dont": [
-        "Never inside a card: cards carry titles (Geist 500), not headings (contract-enforced by audit:quality)",
-        "Never below 32px: the section tier floors at 32px",
-        "Never Unique: the wordmark is the only Unique"
+        "Never inside a card: cards carry titles (Figtree 600), not headings (contract-enforced by audit:quality)",
+        "Never below 32px: the section tier floors at 32px"
       ],
       "restNote": "Type only, entirely static; and a Heading may never sit inside a Card. audit:quality asserts both (root carries data-bella-component=heading).",
       "a11y": "Verified 2026-09-22: text-primary 18.73:1 light (bg) / 16.60:1 dark (bg), AAA. The accent segment is the muted half-line, text-secondary, 7.09:1 light / 7.06:1 dark (AAA): ochre is a fill, never text. Semantic level decouples from the visual tier via the as prop, so the outline stays honest.",
@@ -3619,8 +3847,8 @@
         "component": 8,
         "semantic": 2,
         "list": [
+          "--color-semantic-text-body",
           "--color-semantic-text-primary",
-          "--color-semantic-text-secondary",
           "--component-heading-font-family",
           "--component-heading-font-weight",
           "--component-heading-hero-font-size",
@@ -3638,7 +3866,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 11,
+          "pairs": 12,
           "failing": []
         },
         "contract": {
@@ -3785,14 +4013,14 @@
       "a11y": "Verified 2026-07-22: real label element (for/id), 8.33:1 light / 9.20:1 dark (AAA). Field text text-primary on surface, 16.92:1 light (AAA); placeholder text-muted, 4.67:1 worst (AA, opacity reset for Firefox). Errors (status tokens, 2026-09-22): aria-invalid + role=alert message via aria-describedby; 2px danger-border (3:1+ on every surface), WarningCircle icon, message in danger-text (5.84:1 light on panel, 6.86:1 dark on raised; AA). Focus: the 3px focus ring (3px offset) plus an ink edge; an invalid field keeps its danger edge under the ring. 44px min-height.",
       "minTarget": {
         "token": "--component-input-min-height",
-        "value": "44px"
+        "value": "60px"
       },
       "sandbox": {
         "minHeight": {
           "token": "--component-input-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
+          "light": "60px",
+          "dark": "60px",
+          "warm": "60px"
         },
         "paddingY": null,
         "paddingX": null,
@@ -3820,8 +4048,8 @@
           "detail": "Geist 13, 700, caps; a real label wired for/id",
           "token": "--color-semantic-text-secondary",
           "value": {
-            "light": "#4b4b4b",
-            "dark": "#b1b1b1",
+            "light": "#474c5e",
+            "dark": "#b1b7c7",
             "warm": "#4f463d"
           },
           "kind": "content",
@@ -3841,8 +4069,8 @@
           "detail": "surface, padding 12 / 16, radius 8",
           "token": "--color-semantic-surface",
           "value": {
-            "light": "#f2f2f2",
-            "dark": "#161616",
+            "light": "#ffffff",
+            "dark": "#171a22",
             "warm": "#f0ede8"
           },
           "kind": "fill",
@@ -3862,8 +4090,8 @@
           "detail": "1px border-strong, the 3:1 control edge",
           "token": "--color-semantic-border-strong",
           "value": {
-            "light": "#838383",
-            "dark": "#707070",
+            "light": "#686d7d",
+            "dark": "#858b9f",
             "warm": "#857a6a"
           },
           "kind": "edge",
@@ -3883,9 +4111,9 @@
           "detail": "44px min, field text 16px",
           "token": "--component-input-min-height",
           "value": {
-            "light": "44px",
-            "dark": "44px",
-            "warm": "44px"
+            "light": "60px",
+            "dark": "60px",
+            "warm": "60px"
           },
           "kind": "box",
           "trigger": "rest",
@@ -3904,8 +4132,8 @@
           "detail": "text-muted, opacity reset for Firefox; never the label",
           "token": "--color-semantic-text-muted",
           "value": {
-            "light": "#4b4b4b",
-            "dark": "#b1b1b1",
+            "light": "#474c5e",
+            "dark": "#b1b7c7",
             "warm": "#4f463d"
           },
           "kind": "content",
@@ -3946,7 +4174,7 @@
         "Icon"
       ],
       "tokens": {
-        "count": 23,
+        "count": 26,
         "component": 4,
         "semantic": 9,
         "list": [
@@ -3956,9 +4184,9 @@
           "--color-semantic-danger-text",
           "--color-semantic-surface",
           "--color-semantic-surface-inset",
+          "--color-semantic-text-body",
           "--color-semantic-text-muted",
           "--color-semantic-text-primary",
-          "--color-semantic-text-secondary",
           "--component-icon-size-sm",
           "--component-input-border-radius",
           "--component-input-font-size",
@@ -3971,7 +4199,10 @@
           "--spacing-4",
           "--typography-font-family-body",
           "--typography-font-size-sm",
+          "--typography-font-size-tag",
+          "--typography-font-weight-bold",
           "--typography-font-weight-medium",
+          "--typography-letter-spacing-normal",
           "--typography-line-height-normal"
         ]
       },
@@ -3980,7 +4211,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 22,
+          "pairs": 25,
           "failing": []
         },
         "contract": {
@@ -4033,14 +4264,14 @@
         "paddingX": null,
         "label": {
           "token": "--component-kbd-foreground",
-          "light": "#4b4b4b",
-          "dark": "#b1b1b1",
+          "light": "#474c5e",
+          "dark": "#b1b7c7",
           "warm": "#4f463d"
         },
         "background": {
           "token": "--component-kbd-background",
-          "light": "#e8e8e8",
-          "dark": "#1f1f1f",
+          "light": "#eceef3",
+          "dark": "#1d2030",
           "warm": "#ebe4d6"
         },
         "backgroundPair": null,
@@ -4095,7 +4326,7 @@
       "description": "Link (brand refresh, 2026-09-22): the inline text link. Ink with an\nunderline at rest; hover thickens the underline to 2px; focus-visible is\nthe shared ochre ring (3px, 3px offset). Visited stays ink. Never colour\nalone: the underline is the affordance.",
       "hasStory": true,
       "hasDocs": true,
-      "inDsds": false,
+      "inDsds": true,
       "hasContract": true,
       "hasA11yNotes": true,
       "props": [
@@ -4130,9 +4361,9 @@
         "paddingX": null,
         "label": {
           "token": "--component-link-default-foreground",
-          "light": "#121212",
-          "dark": "#ededed",
-          "warm": "#121212"
+          "light": "#1d2030",
+          "dark": "#eceef3",
+          "warm": "#1d2030"
         },
         "background": null,
         "backgroundPair": null,
@@ -4157,9 +4388,9 @@
           "detail": "ink; visited stays ink",
           "token": "--component-link-default-foreground",
           "value": {
-            "light": "#121212",
-            "dark": "#ededed",
-            "warm": "#121212"
+            "light": "#1d2030",
+            "dark": "#eceef3",
+            "warm": "#1d2030"
           },
           "kind": "content",
           "trigger": "rest",
@@ -4384,7 +4615,105 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 14,
+          "pairs": 19,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "page-header",
+      "name": "PageHeader",
+      "category": "Layout",
+      "description": "The top of every page (layout foundation, 2026-10-03). One fixed title\nsize on every page, not the display ramp: an app page title is a label\nfor the page, not a hero. The title balances; the lede wraps pretty and\nstops at 70ch. Actions sit beside the title when there is room.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "actions",
+        "className",
+        "id",
+        "lede",
+        "meta",
+        "title",
+        "titleAside"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": "a header with the page's one h1",
+      "usage": [
+        "The first block of every page template: Overview, Object page, Library and Settings",
+        "Atlas: the component name, its category and number as meta"
+      ],
+      "dont": [
+        "Do not use a display Heading tier for an app page title: display is for editorial heroes",
+        "Do not put more than one keycap Button in actions: the main action only; the rest are secondary Buttons or ActionChips",
+        "Do not use it twice on a page: one h1"
+      ],
+      "restNote": "Type only, entirely static.",
+      "a11y": "Verified 2026-10-03: one h1; the title is text-primary (AAA); meta and lede are text-secondary (AAA on the page ground in light, warm and dark); the lede holds to 70ch; the title balances its lines.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": {
+          "token": "--component-page-header-foreground",
+          "light": "#1d2030",
+          "dark": "#eceef3",
+          "warm": "#1d2030"
+        },
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.page-header.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-pageheader--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 17,
+        "component": 11,
+        "semantic": 0,
+        "list": [
+          "--component-page-header-foreground",
+          "--component-page-header-gap",
+          "--component-page-header-lede-font-size",
+          "--component-page-header-lede-max-width",
+          "--component-page-header-meta-font-size",
+          "--component-page-header-meta-foreground",
+          "--component-page-header-title-font-size",
+          "--component-page-header-title-font-weight",
+          "--component-page-header-title-letter-spacing",
+          "--component-page-header-title-line-height",
+          "--component-section-space",
+          "--layout-stack-md",
+          "--layout-stack-sm",
+          "--spacing-2",
+          "--typography-font-family-body",
+          "--typography-font-family-display",
+          "--typography-line-height-normal"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 2,
           "failing": []
         },
         "contract": {
@@ -4404,7 +4733,7 @@
       "description": "PatternField (brand refresh, 2026-09-22): the brand pattern as a quiet\nhero background. Greyscale at about 7% (inverted grey at about 6% in\ndark), fading out radially from the upper right. Decorative only:\naria-hidden, no interaction, never moves. It fills its positioned\nparent; put it first inside a `position: relative` hero. Replaces the\ndot grid.",
       "hasStory": false,
       "hasDocs": true,
-      "inDsds": false,
+      "inDsds": true,
       "hasContract": true,
       "hasA11yNotes": true,
       "props": [
@@ -4508,7 +4837,7 @@
         "Do not write the description longer than two lines: it clamps, and a clamped third line reads as a bug",
         "Do not colour the status dot yet: the ladder is unresolved (issue #1) and the neutral dot is the honest placeholder"
       ],
-      "restNote": "At rest the card is the cover, the sheet, the tab and the notch. Flat at rest like Card: no shadow; the lift and shadow are hover and focus only, inherited from Card. The notch is painted from the same semantic surface token as the sheet, so it flips with the theme instead of biting a light hole in the navy card.",
+      "restNote": "At rest the card is the cover, the sheet, the tab and the notch, under Card's rest shadow (shadow.card, 2026-10-04); the lift and shadow.hover are hover and focus only, inherited from Card. The notch is painted from the same semantic surface token as the sheet, so it flips with the theme instead of biting a light hole in the navy card.",
       "a11y": "Verified 2026-07-30: title is text-primary on the surface, 12.81:1 light and 12.61:1 worst dark, AAA. Description is text-secondary, 7.74:1 light and 7.33:1 worst dark, AAA. Tab label and footer meta sit at the 13px metadata tier, text-secondary, same ratios. The Open action is text-accent, 5.96:1 light and 5.30:1 worst dark, AA, and never stands on colour alone: it carries the word Open beside the arrow. One link per card, so one tab stop.",
       "minTarget": null,
       "sandbox": {
@@ -4595,8 +4924,8 @@
       "description": "THE scaled frame, ported from the portfolio (2026-09-21): the full canvas\nrenders at its intrinsic design size and scales down to the container.\nNo internal scrolling, no cropping, at any width.\n\nTheme: live children read the BELLA tokens through [data-theme] like\neverything else on the page. An embedded page (src) gets the current\n[data-theme] mirrored over postMessage ({ type: \"theme\" }); the portfolio's\n?theme= query param is gone.",
       "hasStory": true,
       "hasDocs": true,
-      "inDsds": false,
-      "hasContract": false,
+      "inDsds": true,
+      "hasContract": true,
       "hasA11yNotes": false,
       "props": [
         "children",
@@ -4612,8 +4941,14 @@
       "states": [],
       "shapes": [],
       "rendersAs": null,
-      "usage": [],
-      "dont": [],
+      "usage": [
+        "Storybook and Atlas specimens that must show at full design size",
+        "Embedding a page as a preview (src prop)",
+        "Any context where a component must render at its design size and scale to fit"
+      ],
+      "dont": [
+        "Do not use it as a general iframe wrapper: interactive=false (the default) makes the frame inert"
+      ],
       "restNote": null,
       "a11y": null,
       "minTarget": null,
@@ -4646,7 +4981,7 @@
           "failing": []
         },
         "contract": {
-          "status": "no-contract",
+          "status": "pass",
           "issues": []
         },
         "visual": {
@@ -4757,7 +5092,100 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 20,
+          "pairs": 24,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "section",
+      "name": "Section",
+      "category": "Layout",
+      "description": "A vertical slice of a page (layout foundation, 2026-10-03). A section\nnamed by its h2, then the lede and body. Two sections in a row are spaced\nby the section space; nothing else sets margins between them.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "actions",
+        "children",
+        "className",
+        "heading",
+        "id",
+        "lede"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": "a section labelled by its h2",
+      "usage": [
+        "Every block of a page below the PageHeader",
+        "Case-study sections",
+        "Health: Readiness map, Usage, Open failures, Components"
+      ],
+      "dont": [
+        "Do not nest sections inside sections: inside a section, use Card titles",
+        "Do not leave out the heading: a block with no heading is a Columns or a Card",
+        "Do not set your own margins between sections: the section space is the rhythm"
+      ],
+      "restNote": "Type only, entirely static.",
+      "a11y": "Verified 2026-10-03: a section element named by its h2 (aria-labelledby); the h2 is 32px text-primary (AAA, the section-heading floor); the lede is text-secondary (AAA) held to 70ch; scroll-margin keeps an anchored heading clear of a sticky header.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.section.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-section--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 17,
+        "component": 5,
+        "semantic": 2,
+        "list": [
+          "--color-semantic-text-primary",
+          "--color-semantic-text-secondary",
+          "--component-section-body-gap",
+          "--component-section-heading-font-size",
+          "--component-section-heading-font-weight",
+          "--component-section-heading-letter-spacing",
+          "--component-section-space",
+          "--header-height",
+          "--layout-measure-body",
+          "--layout-stack-lg",
+          "--layout-stack-md",
+          "--layout-stack-sm",
+          "--typography-font-family-body",
+          "--typography-font-family-display",
+          "--typography-font-size-body",
+          "--typography-line-height-heading",
+          "--typography-line-height-normal"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 15,
           "failing": []
         },
         "contract": {
@@ -4777,8 +5205,8 @@
       "description": "The section header, ported from the portfolio's layout copy (2026-09-21).\nNo site imports: the glossary lookup became the optional `term` prop.\nSplit is decided by the header's own width (a named container), not the\nwindow, so the header behaves the same in any column it is placed in.",
       "hasStory": true,
       "hasDocs": true,
-      "inDsds": false,
-      "hasContract": false,
+      "inDsds": true,
+      "hasContract": true,
       "hasA11yNotes": false,
       "props": [
         "accent",
@@ -4797,8 +5225,15 @@
       "states": [],
       "shapes": [],
       "rendersAs": null,
-      "usage": [],
-      "dont": [],
+      "usage": [
+        "Page openings (as=\"h1\", layout=\"stacked\")",
+        "Section openings (as=\"h2\", layout=\"split\" or stacked)",
+        "A glossary or definition section (heading + accent term + after)"
+      ],
+      "dont": [
+        "Do not nest a Heading inside a SectionHeader: the heading is built in",
+        "Do not use it for card titles or inline titles: those are Heading or a plain element"
+      ],
       "restNote": null,
       "a11y": null,
       "minTarget": null,
@@ -4824,7 +5259,7 @@
         "component": 0,
         "semantic": 1,
         "list": [
-          "--color-semantic-text-secondary",
+          "--color-semantic-text-body",
           "--spacing-12",
           "--spacing-4",
           "--spacing-5",
@@ -4840,11 +5275,11 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 5,
+          "pairs": 4,
           "failing": []
         },
         "contract": {
-          "status": "no-contract",
+          "status": "pass",
           "issues": []
         },
         "visual": {
@@ -4919,7 +5354,7 @@
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-segmentedcontrol--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 21,
+        "count": 22,
         "component": 5,
         "semantic": 8,
         "list": [
@@ -4930,7 +5365,7 @@
           "--color-semantic-border-subtle",
           "--color-semantic-surface",
           "--color-semantic-text-accent",
-          "--color-semantic-text-secondary",
+          "--color-semantic-text-body",
           "--component-segmented-control-border-radius",
           "--component-segmented-control-font-family",
           "--component-segmented-control-font-size",
@@ -4943,7 +5378,8 @@
           "--ring-focus-width",
           "--seg-inset",
           "--spacing-2",
-          "--spacing-4"
+          "--spacing-4",
+          "--typography-letter-spacing-normal"
         ]
       },
       "compositionDepth": 0,
@@ -4951,7 +5387,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 11,
+          "pairs": 10,
           "failing": []
         },
         "contract": {
@@ -5036,12 +5472,13 @@
         "Icon"
       ],
       "tokens": {
-        "count": 16,
+        "count": 18,
         "component": 5,
-        "semantic": 4,
+        "semantic": 5,
         "list": [
           "--color-semantic-border-strong",
           "--color-semantic-surface",
+          "--color-semantic-text-body",
           "--color-semantic-text-primary",
           "--color-semantic-text-secondary",
           "--component-select-border-radius",
@@ -5055,7 +5492,8 @@
           "--spacing-2",
           "--spacing-3",
           "--spacing-8",
-          "--typography-font-family-body"
+          "--typography-font-family-body",
+          "--typography-letter-spacing-normal"
         ]
       },
       "compositionDepth": 1,
@@ -5063,7 +5501,234 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 17,
+          "pairs": 25,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "sidebar-layout",
+      "name": "SidebarLayout",
+      "category": "Layout",
+      "description": "The aside, the content and an optional rail on the page grid (layout\nfoundation, 2026-10-03). The layout follows its own width, not the\nwindow: 12 columns from 1200px (aside 3, content 9 or 6 + rail 3),\n8 from 768px (aside 3, content 5, the rail under the content), one column\nbelow. The aside sticks under the header and scrolls on its own when it is\ntaller than the screen.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "aside",
+        "asideLabel",
+        "children",
+        "className",
+        "rail",
+        "railLabel"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": "a grid of an aside, the content and an optional rail",
+      "usage": [
+        "Atlas: the library beside the component",
+        "Docs: the list, the reader, the doc rail",
+        "Health: On this page, then the sections"
+      ],
+      "dont": [
+        "Do not put the page title in the aside: the PageHeader sits in the content column",
+        "Do not add another scroll container: only the aside list, code blocks and tables scroll on their own"
+      ],
+      "restNote": "Layout only, entirely static.",
+      "a11y": "Verified 2026-10-03: the aside and rail are complementary landmarks named by asideLabel and railLabel; source order is aside, content, rail, so reading and keyboard order follow the visual order at every width; a scrolling aside is focusable so the keyboard can scroll it.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": {
+          "token": "--ring-focus-width",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        },
+        "ringOffset": {
+          "token": "--ring-focus-offset",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        }
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.sidebar-layout.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-sidebarlayout--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 8,
+        "component": 2,
+        "semantic": 0,
+        "list": [
+          "--component-sidebar-layout-columns",
+          "--component-sidebar-layout-gap",
+          "--dock-height",
+          "--header-height",
+          "--layout-stack-lg",
+          "--ring-focus-color",
+          "--ring-focus-offset",
+          "--ring-focus-width"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 2,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "slider",
+      "name": "Slider",
+      "category": "Inputs",
+      "description": "A native range with its value beside it (and editable), the 44px target,\narrow keys from the browser, and optional marks where a rule lives\n(Atlas v4, 2026-10-03). The value is read out with its unit.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "disabled",
+        "hint",
+        "id",
+        "label",
+        "marks",
+        "max",
+        "min",
+        "onChange",
+        "step",
+        "unit",
+        "value"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "hover",
+        "focus",
+        "disabled"
+      ],
+      "shapes": [],
+      "rendersAs": "a native range input, with a number field for its value",
+      "usage": [
+        "Atlas Try a change: one slider per tunable token, marks at the rules (24px WCAG 2.5.8, 44px BELLA floor)",
+        "Any bounded number people tune by feel and then fine-tune by typing"
+      ],
+      "dont": [
+        "Do not use it for a choice between a few named options: that is SegmentedControl or Select",
+        "Do not hide the number: the value always shows beside the track and can be typed",
+        "Do not put a mark without a label: a mark says which rule lives there"
+      ],
+      "restNote": "Flat: the track, the fill to the value, the thumb, the value field and any marks.",
+      "a11y": "Verified 2026-10-03: a native range (slider role, arrow keys, Home and End from the browser) labelled by its visible label, aria-valuetext with the unit, marks listed and referenced by aria-describedby; the number field is labelled too. The input is the 44px target; the thumb border is ink and the track the 3:1 control border; focus is the shared ring.",
+      "minTarget": {
+        "token": "--component-slider-min-height",
+        "value": "44px"
+      },
+      "sandbox": {
+        "minHeight": {
+          "token": "--component-slider-min-height",
+          "light": "44px",
+          "dark": "44px",
+          "warm": "44px"
+        },
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": {
+          "token": "--ring-focus-width",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        },
+        "ringOffset": {
+          "token": "--ring-focus-offset",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        }
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.slider.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-slider--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 32,
+        "component": 8,
+        "semantic": 5,
+        "list": [
+          "--border-width-medium",
+          "--color-semantic-border-ink",
+          "--color-semantic-border-strong",
+          "--color-semantic-surface",
+          "--color-semantic-text-primary",
+          "--color-semantic-text-secondary",
+          "--component-slider-fill",
+          "--component-slider-mark",
+          "--component-slider-min-height",
+          "--component-slider-thumb-background",
+          "--component-slider-thumb-border",
+          "--component-slider-thumb-size",
+          "--component-slider-track",
+          "--component-slider-track-height",
+          "--mark-f",
+          "--radius-full",
+          "--radius-md",
+          "--ring-focus-color",
+          "--ring-focus-offset",
+          "--ring-focus-width",
+          "--slider-pct",
+          "--spacing-1",
+          "--spacing-16",
+          "--spacing-2",
+          "--spacing-3",
+          "--spacing-6",
+          "--thumb",
+          "--typography-font-family-body",
+          "--typography-font-size-base",
+          "--typography-font-size-sm",
+          "--typography-font-size-tag",
+          "--typography-font-weight-medium"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 24,
           "failing": []
         },
         "contract": {
@@ -5133,9 +5798,9 @@
           "detail": "Geist 14, muted",
           "token": "--component-stat-label-font-size",
           "value": {
-            "light": "14px",
-            "dark": "14px",
-            "warm": "14px"
+            "light": "18px",
+            "dark": "18px",
+            "warm": "18px"
           },
           "kind": "content",
           "trigger": null,
@@ -5154,9 +5819,9 @@
           "detail": "Geist 300, 32, tabular numerals",
           "token": "--component-stat-value-font-size",
           "value": {
-            "light": "32px",
-            "dark": "32px",
-            "warm": "32px"
+            "light": "clamp(34px, 34px + 6 * (100vw - 390px) / 1050, 40px)",
+            "dark": "clamp(34px, 34px + 6 * (100vw - 390px) / 1050, 40px)",
+            "warm": "clamp(34px, 34px + 6 * (100vw - 390px) / 1050, 40px)"
           },
           "kind": "content",
           "trigger": null,
@@ -5175,9 +5840,9 @@
           "detail": "Geist 14, muted; arrow hidden, direction spoken",
           "token": "--component-stat-delta-font-size",
           "value": {
-            "light": "14px",
-            "dark": "14px",
-            "warm": "14px"
+            "light": "18px",
+            "dark": "18px",
+            "warm": "18px"
           },
           "kind": "content",
           "trigger": null,
@@ -5196,9 +5861,9 @@
           "detail": "1px ink line and end dot, 80 by 24; shown with two or more points",
           "token": "--component-stat-trend-stroke",
           "value": {
-            "light": "#121212",
-            "dark": "#ededed",
-            "warm": "#121212"
+            "light": "#1d2030",
+            "dark": "#eceef3",
+            "warm": "#1d2030"
           },
           "kind": "content",
           "trigger": "rest",
@@ -5244,7 +5909,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 12,
+          "pairs": 16,
           "failing": []
         },
         "contract": {
@@ -5275,7 +5940,8 @@
       "variants": [
         "accent",
         "success",
-        "info"
+        "info",
+        "neutral"
       ],
       "states": [
         "default"
@@ -5285,7 +5951,8 @@
       "usage": [
         "Current-focus marker",
         "Project state rows",
-        "Availability notes"
+        "Availability notes",
+        "neutral: a state that is neither good nor bad (not tested, draft, disabled), no tint (CHIP, 2026-10-03)"
       ],
       "dont": [
         "Do not make it clickable: a pill that toggles is a FilterChip",
@@ -5301,9 +5968,9 @@
         "paddingX": null,
         "label": {
           "token": "--component-status-pill-accent-foreground",
-          "light": "#121212",
-          "dark": "#121212",
-          "warm": "#121212"
+          "light": "#1d2030",
+          "dark": "#1d2030",
+          "warm": "#1d2030"
         },
         "background": {
           "token": "--component-status-pill-accent-background",
@@ -5320,14 +5987,16 @@
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-statuspill--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 14,
+        "count": 16,
         "component": 8,
-        "semantic": 4,
+        "semantic": 6,
         "list": [
+          "--color-semantic-border",
           "--color-semantic-info-border",
           "--color-semantic-info-subtle",
           "--color-semantic-success",
-          "--color-semantic-text-secondary",
+          "--color-semantic-surface-inset",
+          "--color-semantic-text-body",
           "--component-status-pill-accent-background",
           "--component-status-pill-accent-foreground",
           "--component-status-pill-border-radius",
@@ -5345,7 +6014,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 5,
+          "pairs": 8,
           "failing": []
         },
         "contract": {
@@ -5430,8 +6099,8 @@
           "detail": "1px decorative rule under the list",
           "token": "--color-semantic-border",
           "value": {
-            "light": "#e3e3e3",
-            "dark": "#2a2a2a",
+            "light": "#e4e6ec",
+            "dark": "#2e3240",
             "warm": "#e3dbcf"
           },
           "kind": "edge",
@@ -5452,9 +6121,9 @@
           "detail": "2px ink bar under the selected tab",
           "token": "--component-tabs-indicator",
           "value": {
-            "light": "#121212",
-            "dark": "#ededed",
-            "warm": "#121212"
+            "light": "#1d2030",
+            "dark": "#eceef3",
+            "warm": "#1d2030"
           },
           "kind": "part",
           "trigger": null,
@@ -5474,9 +6143,9 @@
           "detail": "Geist 14, 500; muted at rest, ink when selected",
           "token": "--component-tabs-font-size",
           "value": {
-            "light": "14px",
-            "dark": "14px",
-            "warm": "14px"
+            "light": "18px",
+            "dark": "18px",
+            "warm": "18px"
           },
           "kind": "content",
           "trigger": null,
@@ -5495,9 +6164,9 @@
           "detail": "ink fill running, control ring idle",
           "token": "--color-semantic-border-ink",
           "value": {
-            "light": "#121212",
-            "dark": "#ededed",
-            "warm": "#121212"
+            "light": "#1d2030",
+            "dark": "#eceef3",
+            "warm": "#1d2030"
           },
           "kind": "part",
           "trigger": null,
@@ -5548,7 +6217,7 @@
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 18,
+          "pairs": 22,
           "failing": []
         },
         "contract": {
@@ -5615,14 +6284,14 @@
         },
         "label": {
           "token": "--component-tag-default-foreground",
-          "light": "#4b4b4b",
-          "dark": "#b1b1b1",
-          "warm": "#4f463d"
+          "light": "#2b2f3d",
+          "dark": "#eceef3",
+          "warm": "#2b2f3d"
         },
         "background": {
           "token": "--component-tag-default-background",
-          "light": "#e8e8e8",
-          "dark": "#1f1f1f",
+          "light": "#eceef3",
+          "dark": "#1d2030",
           "warm": "#ebe4d6"
         },
         "backgroundPair": null,

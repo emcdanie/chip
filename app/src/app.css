@@ -1156,6 +1156,8 @@ body {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   font-size: var(--typography-font-size-base);
+  background: var(--color-semantic-background);
+  color: var(--color-semantic-text-primary);
 }
 
 /* one row, like a terminal tab bar: OBI · what it is looking at · model · Hide */

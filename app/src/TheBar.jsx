@@ -5,6 +5,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import Avatar from '@bella/components/Avatar/Avatar';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
+import { inline } from './Obi.jsx';
+
+// Lane identity colours. Primitives so they don't flip with light/dark/warm.
+// Yellow/blue/pink/red: set text transparent — disc carries colour, not a letter (AAA constraint).
+// Ink lanes: fixed dark disc, fixed cream text.
+const LANE_AVATAR = {
+  dara:    { background: 'var(--color-wee-dote-lane-a)', color: 'transparent' },
+  bernie:  { background: 'var(--color-wee-dote-lane-b)', color: 'transparent' },
+  saoirse: { background: 'var(--color-wee-dote-lane-c)', color: 'transparent' },
+  frankie: { background: 'var(--color-wee-dote-lane-d)', color: 'transparent' },
+  seamus:  { background: 'var(--color-light-ink)',        color: 'var(--color-navy-ink)' },
+  liam:    { background: 'var(--color-light-ink)',        color: 'var(--color-navy-ink)' },
+};
 
 const STATUS_VARIANT = {
   working: 'accent',
@@ -80,7 +93,7 @@ export function TheBar({ lanes, needsItems, notify }) {
         <ul className="bar-lanes">
           {lanes.map((l) => (
             <li key={l.id} className="bar-lane">
-              <Avatar name={l.name} size="sm" />
+              <Avatar name={l.name} size="sm" style={LANE_AVATAR[l.id]} />
               <span className="bar-lane-name">{l.name}</span>
               <StatusPill variant={STATUS_VARIANT[l.status] ?? 'neutral'}>
                 {STATUS_LABEL[l.status] ?? l.status}
@@ -99,7 +112,7 @@ export function TheBar({ lanes, needsItems, notify }) {
             {needsItems.map((item, i) => (
               <li key={i} className="bar-needs-item">
                 <span className="bar-needs-lane">{item.laneName}</span>
-                <span className="bar-needs-text">{item.text}</span>
+                <span className="bar-needs-text">{inline(item.text, [], i)}</span>
                 {item.cmds.length > 0 ? (
                   <span className="bar-needs-cmds">
                     {item.cmds.map((cmd) => (

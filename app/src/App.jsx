@@ -350,7 +350,7 @@ export default function App() {
             </div>
           </main>
 
-          <aside className="dock" data-theme="dark" hidden={!obiOpen} aria-label="OBI">
+          <aside className="dock" hidden={!obiOpen} aria-label="OBI">
             {!narrow ? (
               <div
                 className="dock-handle"

@@ -8,6 +8,7 @@ export const THEMES = [
   { value: 'warm', label: 'Warm' },
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
+  { value: 'wee-dote', label: 'Wee Dote' },
 ];
 
 function initial() {
