@@ -2,15 +2,15 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "bb47876",
-    "committedAt": "2026-10-13T15:32:22+02:00",
+    "commit": "c2d6bd9",
+    "committedAt": "2026-10-13T21:23:25+02:00",
     "version": "0.3.0"
   },
   "counts": {
-    "components": 33,
-    "withStory": 31,
-    "withDocs": 33,
-    "withContract": 33,
+    "components": 37,
+    "withStory": 35,
+    "withDocs": 37,
+    "withContract": 37,
     "semanticTokenGroups": {
       "light": [
         "blur",
@@ -25,14 +25,14 @@ window.BELLA = {
       ]
     },
     "cssVars": {
-      "light": 696,
+      "light": 731,
       "darkOverrides": 0
     }
   },
   "gates": {
     "contrastPairs": {
       "ok": true,
-      "summary": "contrast pairs: 305 checked (light, dark, warm, wee-dote), OK; inset rule: 10 exempt, every consumer classified"
+      "summary": "contrast pairs: 309 checked (light, dark, warm, wee-dote), OK; inset rule: 11 exempt, every consumer classified"
     },
     "contractParity": {
       "ok": true,
@@ -69,7 +69,11 @@ window.BELLA = {
         "columns",
         "slider",
         "section-header",
-        "scaled-frame"
+        "scaled-frame",
+        "chat-bubble",
+        "avatar-stack",
+        "typing-dots",
+        "chat-thread"
       ],
       "exemptContracts": [
         "nav-link",
@@ -100,9 +104,9 @@ window.BELLA = {
     {
       "id": "a11y",
       "name": "A11y",
-      "score": 94,
+      "score": 95,
       "assessment": "measured",
-      "basis": "31/33 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
+      "basis": "35/37 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -130,21 +134,21 @@ window.BELLA = {
       "name": "Governance",
       "score": 100,
       "assessment": "measured",
-      "basis": "33/33 components: Tier 3 contract checked by contract-parity and passing"
+      "basis": "37/37 components: Tier 3 contract checked by contract-parity and passing"
     },
     {
       "id": "docs",
       "name": "Docs",
-      "score": 94,
+      "score": 95,
       "assessment": "measured",
-      "basis": "31/33 components: Storybook story and a docs description in the manifest"
+      "basis": "35/37 components: Storybook story and a docs description in the manifest"
     },
     {
       "id": "machine-readable",
       "name": "Machine-readable",
-      "score": 100,
+      "score": 89,
       "assessment": "measured",
-      "basis": "33/33 components: DSDS component entry and react-docgen props in the manifest"
+      "basis": "33/37 components: DSDS component entry and react-docgen props in the manifest"
     },
     {
       "id": "agent-access",
@@ -348,6 +352,54 @@ window.BELLA = {
       "committedAt": "2026-10-09T09:49:01+02:00",
       "components": 33,
       "storyCoverage": 94,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": true,
+        "ok": false
+      }
+    },
+    {
+      "commit": "d7c59d5",
+      "committedAt": "2026-10-13T15:57:03+02:00",
+      "components": 37,
+      "storyCoverage": 95,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": true,
+        "ok": false
+      }
+    },
+    {
+      "commit": "5d1ff6b",
+      "committedAt": "2026-10-13T17:45:57+02:00",
+      "components": 37,
+      "storyCoverage": 95,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": true,
+        "ok": false
+      }
+    },
+    {
+      "commit": "15a5e20",
+      "committedAt": "2026-10-13T20:56:47+02:00",
+      "components": 37,
+      "storyCoverage": 95,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": true,
+        "ok": false
+      }
+    },
+    {
+      "commit": "c2d6bd9",
+      "committedAt": "2026-10-13T21:23:25+02:00",
+      "components": 37,
+      "storyCoverage": 95,
       "contractCoverage": 100,
       "gate": {
         "contrastPairs": false,
@@ -666,6 +718,11 @@ window.BELLA = {
       "light": "#1d2030",
       "dark": "#eceef3",
       "warm": "#1d2030"
+    },
+    "--color-semantic-chat-surface-received": {
+      "light": "#eceef3",
+      "dark": "#1d2030",
+      "warm": "#ebe4d6"
     }
   },
   "ring": {
@@ -721,6 +778,9 @@ window.BELLA = {
     ],
     "--color-semantic-text-secondary": [
       "ActionChip",
+      "AvatarStack",
+      "ChatBubble",
+      "ChatThread",
       "Combobox",
       "DataTable",
       "NavList",
@@ -729,7 +789,8 @@ window.BELLA = {
       "Select",
       "Slider",
       "Stat",
-      "Tabs"
+      "Tabs",
+      "TypingDots"
     ],
     "--component-action-chip-border": [
       "ActionChip"
@@ -841,6 +902,7 @@ window.BELLA = {
       "ActionChip",
       "Button",
       "Card",
+      "ChatBubble",
       "Combobox",
       "DataTable",
       "Disclosure",
@@ -855,11 +917,13 @@ window.BELLA = {
       "Slider",
       "Stat",
       "StatusPill",
-      "Tabs"
+      "Tabs",
+      "TypingDots"
     ],
     "--spacing-3": [
       "ActionChip",
       "BrandWordmark",
+      "ChatBubble",
       "Combobox",
       "DataTable",
       "Disclosure",
@@ -870,7 +934,8 @@ window.BELLA = {
       "ResourceCard",
       "ScoreStrip",
       "Select",
-      "Slider"
+      "Slider",
+      "TypingDots"
     ],
     "--spacing-4": [
       "ActionChip",
@@ -886,6 +951,9 @@ window.BELLA = {
     ],
     "--typography-font-family-body": [
       "ActionChip",
+      "AvatarStack",
+      "ChatBubble",
+      "ChatThread",
       "Combobox",
       "DataTable",
       "Disclosure",
@@ -922,7 +990,8 @@ window.BELLA = {
       "SectionHeader"
     ],
     "--color-semantic-background": [
-      "Avatar"
+      "Avatar",
+      "ChatBubble"
     ],
     "--component-avatar-default-background": [
       "Avatar"
@@ -967,13 +1036,51 @@ window.BELLA = {
       "Avatar"
     ],
     "--component-avatar-sm-size": [
-      "Avatar"
+      "Avatar",
+      "AvatarStack"
     ],
     "--typography-letter-spacing-normal": [
       "Avatar",
       "Input",
       "SegmentedControl",
       "Select"
+    ],
+    "--avatar-stack-ring": [
+      "AvatarStack"
+    ],
+    "--color-semantic-surface-inset": [
+      "AvatarStack",
+      "Button",
+      "Input",
+      "NavList",
+      "StatusPill"
+    ],
+    "--component-avatar-stack-default-overlap": [
+      "AvatarStack"
+    ],
+    "--component-avatar-stack-default-ring-color": [
+      "AvatarStack"
+    ],
+    "--component-avatar-stack-default-ring-width": [
+      "AvatarStack"
+    ],
+    "--radius-full": [
+      "AvatarStack",
+      "ChatBubble",
+      "ResourceCard",
+      "ScoreStrip",
+      "Slider",
+      "Tabs",
+      "TypingDots"
+    ],
+    "--typography-font-size-label": [
+      "AvatarStack",
+      "ChatBubble",
+      "ChatThread"
+    ],
+    "--typography-font-weight-bold": [
+      "AvatarStack",
+      "Input"
     ],
     "--color-semantic-text-primary": [
       "BrandWordmark",
@@ -990,12 +1097,6 @@ window.BELLA = {
     ],
     "--component-brand-wordmark-nav-height": [
       "BrandWordmark"
-    ],
-    "--color-semantic-surface-inset": [
-      "Button",
-      "Input",
-      "NavList",
-      "StatusPill"
     ],
     "--component-button-motion-press": [
       "Button"
@@ -1119,6 +1220,8 @@ window.BELLA = {
     ],
     "--spacing-1": [
       "Button",
+      "ChatBubble",
+      "ChatThread",
       "Combobox",
       "DataTable",
       "FilterChip",
@@ -1191,6 +1294,105 @@ window.BELLA = {
     ],
     "--shadow-hover": [
       "Card"
+    ],
+    "--color-semantic-surface": [
+      "ChatBubble",
+      "Input",
+      "ResourceCard",
+      "SegmentedControl",
+      "Select",
+      "Slider"
+    ],
+    "--component-chat-bubble-default-border-radius": [
+      "ChatBubble",
+      "TypingDots"
+    ],
+    "--component-chat-bubble-default-code-font-size": [
+      "ChatBubble"
+    ],
+    "--component-chat-bubble-default-code-radius": [
+      "ChatBubble"
+    ],
+    "--component-chat-bubble-default-disc-size": [
+      "ChatBubble"
+    ],
+    "--component-chat-bubble-default-padding-block": [
+      "ChatBubble"
+    ],
+    "--component-chat-bubble-default-padding-inline": [
+      "ChatBubble"
+    ],
+    "--component-chat-bubble-default-tail-radius": [
+      "ChatBubble"
+    ],
+    "--component-chat-bubble-received-background": [
+      "ChatBubble",
+      "TypingDots"
+    ],
+    "--component-chat-bubble-received-foreground": [
+      "ChatBubble"
+    ],
+    "--component-chat-bubble-sent-background": [
+      "ChatBubble"
+    ],
+    "--component-chat-bubble-sent-foreground": [
+      "ChatBubble"
+    ],
+    "--component-chat-thread-default-avatar-gutter": [
+      "ChatBubble"
+    ],
+    "--component-chat-thread-default-row-max-width": [
+      "ChatBubble"
+    ],
+    "--motion-duration-pop": [
+      "ChatBubble"
+    ],
+    "--motion-duration-slam": [
+      "ChatBubble"
+    ],
+    "--motion-easing-pop-enter": [
+      "ChatBubble"
+    ],
+    "--motion-easing-slam-enter": [
+      "ChatBubble"
+    ],
+    "--shadow-ui": [
+      "ChatBubble"
+    ],
+    "--typography-font-family-code": [
+      "ChatBubble"
+    ],
+    "--typography-font-size-body": [
+      "ChatBubble",
+      "Section",
+      "SectionHeader"
+    ],
+    "--typography-font-size-hero": [
+      "ChatBubble"
+    ],
+    "--typography-line-height-body": [
+      "ChatBubble"
+    ],
+    "--component-chat-thread-default-gap": [
+      "ChatThread"
+    ],
+    "--component-chat-thread-default-padding-block-end": [
+      "ChatThread"
+    ],
+    "--component-chat-thread-default-padding-block-start": [
+      "ChatThread"
+    ],
+    "--component-chat-thread-default-padding-inline": [
+      "ChatThread"
+    ],
+    "--component-chat-thread-default-stamp-margin-bottom": [
+      "ChatThread"
+    ],
+    "--component-chat-thread-default-stamp-margin-top": [
+      "ChatThread"
+    ],
+    "--typography-font-weight-semibold": [
+      "ChatThread"
     ],
     "--component-columns-gap": [
       "Columns"
@@ -1467,13 +1669,6 @@ window.BELLA = {
     "--color-semantic-danger-text": [
       "Input"
     ],
-    "--color-semantic-surface": [
-      "Input",
-      "ResourceCard",
-      "SegmentedControl",
-      "Select",
-      "Slider"
-    ],
     "--component-icon-size-sm": [
       "Input"
     ],
@@ -1489,9 +1684,6 @@ window.BELLA = {
     "--typography-font-size-tag": [
       "Input",
       "Slider"
-    ],
-    "--typography-font-weight-bold": [
-      "Input"
     ],
     "--component-kbd-background": [
       "Kbd"
@@ -1686,12 +1878,6 @@ window.BELLA = {
     "--component-resource-card-default-title-letter-spacing": [
       "ResourceCard"
     ],
-    "--radius-full": [
-      "ResourceCard",
-      "ScoreStrip",
-      "Slider",
-      "Tabs"
-    ],
     "--border-width-thick": [
       "ScoreStrip"
     ],
@@ -1773,10 +1959,6 @@ window.BELLA = {
     "--layout-stack-lg": [
       "Section",
       "SidebarLayout"
-    ],
-    "--typography-font-size-body": [
-      "Section",
-      "SectionHeader"
     ],
     "--spacing-12": [
       "SectionHeader"
@@ -1993,6 +2175,18 @@ window.BELLA = {
     ],
     "--component-tag-default-padding-y": [
       "Tag"
+    ],
+    "--component-typing-dots-default-delay-2": [
+      "TypingDots"
+    ],
+    "--component-typing-dots-default-delay-3": [
+      "TypingDots"
+    ],
+    "--component-typing-dots-default-dot-size": [
+      "TypingDots"
+    ],
+    "--component-typing-dots-default-gap": [
+      "TypingDots"
     ]
   },
   "components": [
@@ -2143,6 +2337,7 @@ window.BELLA = {
         "className",
         "name",
         "ring",
+        "showInitials",
         "size",
         "src",
         "style"
@@ -2215,11 +2410,97 @@ window.BELLA = {
         ]
       },
       "compositionDepth": 0,
-      "composesInto": [],
+      "composesInto": [
+        "AvatarStack"
+      ],
       "health": {
         "contrast": {
           "status": "pass",
           "pairs": 13,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "avatar-stack",
+      "name": "AvatarStack",
+      "category": "Chat",
+      "description": "Overlapping Avatars with a separating ring in the column surface colour.\nExtends Avatar; see component-contract:avatar-stack.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": false,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "max",
+        "members",
+        "size",
+        "surfaceColor"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Group header in The Bar"
+      ],
+      "dont": [
+        "Do not use as a standalone avatar — use Avatar for that"
+      ],
+      "restNote": null,
+      "a11y": "Each Avatar carries its name as aria-label (role=img). Stack root is aria-label listing all names.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.avatar-stack.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-chat-avatarstack--docs",
+      "composedFrom": [
+        "Avatar"
+      ],
+      "tokens": {
+        "count": 11,
+        "component": 4,
+        "semantic": 2,
+        "list": [
+          "--avatar-stack-ring",
+          "--color-semantic-surface-inset",
+          "--color-semantic-text-secondary",
+          "--component-avatar-sm-size",
+          "--component-avatar-stack-default-overlap",
+          "--component-avatar-stack-default-ring-color",
+          "--component-avatar-stack-default-ring-width",
+          "--radius-full",
+          "--typography-font-family-body",
+          "--typography-font-size-label",
+          "--typography-font-weight-bold"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 10,
           "failing": []
         },
         "contract": {
@@ -2857,6 +3138,193 @@ window.BELLA = {
         "contrast": {
           "status": "pass",
           "pairs": 19,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "chat-bubble",
+      "name": "ChatBubble",
+      "category": "Chat",
+      "description": "A single message bubble. Geometry and motion values from the-bar-source.html;\nevery value resolves through a BELLA token. See component-contract:chat-bubble.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": false,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "actions",
+        "children",
+        "className",
+        "disc",
+        "emojiLabel",
+        "kind",
+        "senderName",
+        "side",
+        "tail",
+        "tapback"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "A line of chat in The Bar replay"
+      ],
+      "dont": [
+        "Do not nest another bubble inside a bubble"
+      ],
+      "restNote": null,
+      "a11y": "text-secondary on card surface >= 7.95:1 AAA; white on ink 16.26:1 AAA. Tapback is decorative aria-hidden. Kind=big-emoji: aria-label on bubble. Reduced motion: no pop or slam animation. Disc is aria-hidden (decorative). senderName label uses label font-size.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.chat-bubble.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-chat-chatbubble--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 31,
+        "component": 13,
+        "semantic": 3,
+        "list": [
+          "--color-semantic-background",
+          "--color-semantic-surface",
+          "--color-semantic-text-secondary",
+          "--component-chat-bubble-default-border-radius",
+          "--component-chat-bubble-default-code-font-size",
+          "--component-chat-bubble-default-code-radius",
+          "--component-chat-bubble-default-disc-size",
+          "--component-chat-bubble-default-padding-block",
+          "--component-chat-bubble-default-padding-inline",
+          "--component-chat-bubble-default-tail-radius",
+          "--component-chat-bubble-received-background",
+          "--component-chat-bubble-received-foreground",
+          "--component-chat-bubble-sent-background",
+          "--component-chat-bubble-sent-foreground",
+          "--component-chat-thread-default-avatar-gutter",
+          "--component-chat-thread-default-row-max-width",
+          "--motion-duration-pop",
+          "--motion-duration-slam",
+          "--motion-easing-pop-enter",
+          "--motion-easing-slam-enter",
+          "--radius-full",
+          "--shadow-ui",
+          "--spacing-1",
+          "--spacing-2",
+          "--spacing-3",
+          "--typography-font-family-body",
+          "--typography-font-family-code",
+          "--typography-font-size-body",
+          "--typography-font-size-hero",
+          "--typography-font-size-label",
+          "--typography-line-height-body"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 19,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "chat-thread",
+      "name": "ChatThread",
+      "category": "Chat",
+      "description": "Column layout for a sequence of ChatBubble rows.\nFluid from 320px, no fixed heights, no breakpoints outside BELLA's four.\nSee component-contract:chat-thread.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": false,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "children",
+        "className",
+        "label"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "The scrollable message log in The Bar"
+      ],
+      "dont": [
+        "Do not put interactive controls directly inside ChatThread rows — use ActionChips via the ChatBubble slot"
+      ],
+      "restNote": null,
+      "a11y": "aria-live=polite on the log region. Timestamps are aria-hidden (they are visual aids; the message order itself is the reading order). Delivered line is aria-live=assertive on its own.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.chat-thread.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-chat-chatthread--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 11,
+        "component": 6,
+        "semantic": 1,
+        "list": [
+          "--color-semantic-text-secondary",
+          "--component-chat-thread-default-gap",
+          "--component-chat-thread-default-padding-block-end",
+          "--component-chat-thread-default-padding-block-start",
+          "--component-chat-thread-default-padding-inline",
+          "--component-chat-thread-default-stamp-margin-bottom",
+          "--component-chat-thread-default-stamp-margin-top",
+          "--spacing-1",
+          "--typography-font-family-body",
+          "--typography-font-size-label",
+          "--typography-font-weight-semibold"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 7,
           "failing": []
         },
         "contract": {
@@ -3867,7 +4335,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 12,
+          "pairs": 13,
           "failing": []
         },
         "contract": {
@@ -4212,7 +4680,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 25,
+          "pairs": 26,
           "failing": []
         },
         "contract": {
@@ -5276,7 +5744,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 4,
+          "pairs": 5,
           "failing": []
         },
         "contract": {
@@ -5388,7 +5856,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 10,
+          "pairs": 11,
           "failing": []
         },
         "contract": {
@@ -5502,7 +5970,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 25,
+          "pairs": 26,
           "failing": []
         },
         "contract": {
@@ -6015,7 +6483,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 8,
+          "pairs": 9,
           "failing": []
         },
         "contract": {
@@ -6329,6 +6797,84 @@ window.BELLA = {
         "contrast": {
           "status": "not-covered",
           "pairs": 0,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "typing-dots",
+      "name": "TypingDots",
+      "category": "Chat",
+      "description": "Three animated dots indicating a lane is composing a message.\nStill under reduced-motion (no animation, dots remain visible).\nSee component-contract:typing-dots.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": false,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "name"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Typing indicator in chat replay"
+      ],
+      "dont": [
+        "Do not show for more than a few seconds without a message following"
+      ],
+      "restNote": null,
+      "a11y": "aria-label=\"typing\" on root. aria-live=polite on the chat log handles the message arrival; this component is decorative once the message lands.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/component.json → component.typing-dots.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-chat-typingdots--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 10,
+        "component": 6,
+        "semantic": 1,
+        "list": [
+          "--color-semantic-text-secondary",
+          "--component-chat-bubble-default-border-radius",
+          "--component-chat-bubble-received-background",
+          "--component-typing-dots-default-delay-2",
+          "--component-typing-dots-default-delay-3",
+          "--component-typing-dots-default-dot-size",
+          "--component-typing-dots-default-gap",
+          "--radius-full",
+          "--spacing-2",
+          "--spacing-3"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 7,
           "failing": []
         },
         "contract": {
