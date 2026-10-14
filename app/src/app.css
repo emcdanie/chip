@@ -2426,10 +2426,21 @@ details.bar-waiting > summary::-webkit-details-marker { display: none; }
   font-family: var(--typography-font-family-mono);
 }
 
-/* screenshot image inside a bubble: tap to open full-size */
+/* filename label sits above the image thumbnail */
+.bar-chat-img-label {
+  display: block;
+  font-size: var(--typography-font-size-label);
+  color: var(--color-semantic-text-secondary);
+  margin-block-end: var(--spacing-1);
+  overflow-wrap: anywhere;
+}
+
+/* screenshot image inside a bubble: capped to one avatar-lg height; tap to open full-size */
 .bar-chat-img {
   display: block;
   max-width: 100%;
+  max-block-size: var(--component-avatar-lg-size);
+  object-fit: contain;
   border-radius: var(--radius-sm);
   cursor: zoom-in;
 }

@@ -9,16 +9,24 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import { inline } from './Obi.jsx';
 
-// Lane identity colours. Primitives so they don't flip with light/dark/warm.
-// Yellow/blue/pink/red: transparent text — disc carries colour, no letter (AAA constraint).
-// Ink lanes: fixed dark disc, fixed cream text.
-const LANE_AVATAR = {
-  dara:    { background: 'var(--color-wee-dote-lane-a)', color: 'transparent' },
-  bernie:  { background: 'var(--color-wee-dote-lane-b)', color: 'transparent' },
-  saoirse: { background: 'var(--color-wee-dote-lane-c)', color: 'transparent' },
-  frankie: { background: 'var(--color-wee-dote-lane-d)', color: 'transparent' },
-  seamus:  { background: 'var(--color-light-ink)',        color: 'var(--color-navy-ink)' },
-  liam:    { background: 'var(--color-light-ink)',        color: 'var(--color-navy-ink)' },
+// Lane photo sources (160×160, circular mask, transparent bg).
+const LANE_SRC = {
+  seamus:  '/avatars/seamus.png',
+  dara:    '/avatars/dara.png',
+  bernie:  '/avatars/bernie.png',
+  saoirse: '/avatars/saoirse.png',
+  frankie: '/avatars/frankie.png',
+  liam:    '/avatars/liam.png',
+};
+
+// Lane ring colours. Override the Avatar ring token per-instance; no new CSS values.
+const LANE_RING = {
+  dara:    { '--component-avatar-default-ring-color': 'var(--color-wee-dote-lane-a)' },
+  bernie:  { '--component-avatar-default-ring-color': 'var(--color-wee-dote-lane-b)' },
+  saoirse: { '--component-avatar-default-ring-color': 'var(--color-wee-dote-lane-c)' },
+  frankie: { '--component-avatar-default-ring-color': 'var(--color-wee-dote-lane-d)' },
+  seamus:  { '--component-avatar-default-ring-color': 'var(--color-semantic-text-primary)' },
+  liam:    { '--component-avatar-default-ring-color': 'var(--color-wee-dote-lane-e)' },
 };
 
 const LANE_NAMES = {
@@ -48,8 +56,10 @@ function formatTime(ms) {
   const d = new Date(ms);
   const now = new Date();
   const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  if (d.toDateString() === now.toDateString()) return time;
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + time;
+  if (d.toDateString() === now.toDateString()) return { text: time };
+  const boldWord = d.toLocaleDateString('en-GB', { weekday: 'long' });
+  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return { boldWord, text: `${date} · ${time}` };
 }
 
 function parseNeeds(text) {
@@ -81,14 +91,22 @@ function useMediaQuery(query) {
 // ---- bubble sub-components ----
 
 function RecvWrap({ lane, tail, children }) {
-  const laneStyle = LANE_AVATAR[lane];
   const name = LANE_NAMES[lane] ?? lane;
   return (
     <div className="bar-chat-recv">
       <ChatBubble side="received" tail={tail}>
         {children}
       </ChatBubble>
-      {tail && <Avatar name={name} size="sm" className="bar-chat-av" style={laneStyle} />}
+      {tail && (
+        <Avatar
+          name={name}
+          size="sm"
+          src={LANE_SRC[lane]}
+          ring
+          className="bar-chat-av"
+          style={LANE_RING[lane]}
+        />
+      )}
     </div>
   );
 }
@@ -146,10 +164,12 @@ function JobBubble({ ev }) {
 function ImageBubble({ ev }) {
   const name = LANE_NAMES[ev.lane] ?? ev.lane;
   const src = `/bar/img?src=${encodeURIComponent(ev.src)}&p=${encodeURIComponent(ev.path)}`;
+  const label = ev.path ? ev.path.split('/').pop() : '';
   return (
     <>
       <p className="bar-chat-who">{name}</p>
       <RecvWrap lane={ev.lane} tail>
+        {label && <span className="bar-chat-img-label">{label}</span>}
         <img
           src={src}
           alt={ev.path}
@@ -171,7 +191,7 @@ function BarChat({ events, lanes }) {
     let prev = null;
     events.forEach((ev, i) => {
       if (!prev || ev.t - prev.t > 30 * 60 * 1000) {
-        items.push({ type: 'stamp', text: formatTime(ev.t), key: `s${i}` });
+        items.push({ type: 'stamp', ...formatTime(ev.t), key: `s${i}` });
       }
       items.push({ type: ev.kind, ev, key: ev.id ?? `e${i}` });
       prev = ev;
@@ -203,7 +223,7 @@ function BarChat({ events, lanes }) {
         <ChatThread label="The Bar chat">
           {chatItems.map(item => {
             if (item.type === 'stamp') {
-              return <ChatThreadTimestamp key={item.key}>{item.text}</ChatThreadTimestamp>;
+              return <ChatThreadTimestamp key={item.key} boldWord={item.boldWord}>{item.text}</ChatThreadTimestamp>;
             }
             if (item.type === 'report') return <ReportBubbles key={item.key} ev={item.ev} />;
             if (item.type === 'job')    return <JobBubble    key={item.key} ev={item.ev} />;
@@ -218,7 +238,7 @@ function BarChat({ events, lanes }) {
                 <ChatBubble side="received" tail>
                   <TypingDots name={l.name} />
                 </ChatBubble>
-                <Avatar name={l.name} size="sm" className="bar-chat-av" style={LANE_AVATAR[l.id]} />
+                <Avatar name={l.name} size="sm" src={LANE_SRC[l.id]} ring className="bar-chat-av" style={LANE_RING[l.id]} />
               </div>
             </React.Fragment>
           ))}
@@ -301,7 +321,7 @@ export function TheBar({ lanes, events, needsItems, notify }) {
         <ul className="bar-lanes">
           {lanes.map((l) => (
             <li key={l.id} className="bar-lane">
-              <Avatar name={l.name} size="sm" style={LANE_AVATAR[l.id]} />
+              <Avatar name={l.name} size="sm" src={LANE_SRC[l.id]} ring style={LANE_RING[l.id]} />
               <span className="bar-lane-name">{l.name}</span>
               <StatusPill variant={STATUS_VARIANT[l.status] ?? 'neutral'}>
                 {STATUS_LABEL[l.status] ?? l.status}

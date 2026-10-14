@@ -2,8 +2,8 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "c2d6bd9",
-    "committedAt": "2026-10-13T21:23:25+02:00",
+    "commit": "2c07275",
+    "committedAt": "2026-10-14T09:33:46+02:00",
     "version": "0.3.0"
   },
   "counts": {
@@ -398,6 +398,18 @@ window.BELLA = {
     {
       "commit": "c2d6bd9",
       "committedAt": "2026-10-13T21:23:25+02:00",
+      "components": 37,
+      "storyCoverage": 95,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": true,
+        "ok": false
+      }
+    },
+    {
+      "commit": "2c07275",
+      "committedAt": "2026-10-14T09:33:46+02:00",
       "components": 37,
       "storyCoverage": 95,
       "contractCoverage": 100,
