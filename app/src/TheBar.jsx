@@ -35,17 +35,19 @@ const LANE_NAMES = {
 };
 
 const STATUS_VARIANT = {
-  working: 'accent',
-  'waiting on you': 'info',
+  working: 'info',
+  'waiting on you': 'attention',
   done: 'success',
-  parked: 'neutral',
-  serving: 'success',
+  failed: 'danger',
+  parked: 'quiet',
+  serving: 'serving',
 };
 
 const STATUS_LABEL = {
   working: 'Working',
   'waiting on you': 'Waiting on you',
   done: 'Done',
+  failed: 'Failed',
   parked: 'Parked',
   serving: 'Serving',
 };
