@@ -2254,9 +2254,40 @@ body {
 
 .bar-lane {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-1);
+  min-width: 0;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-sm);
+}
+
+.bar-lane-head {
+  display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  min-width: 0;
+}
+
+.bar-lane--danger {
+  background: var(--color-semantic-danger-subtle);
+  outline: var(--border-width-thin) solid var(--color-semantic-danger-border);
+}
+
+.bar-lane-ci {
+  font-size: var(--typography-font-size-sm);
+  padding-inline-start: calc(32px + var(--spacing-2));
+}
+
+.bar-lane-ci--danger {
+  color: var(--color-semantic-danger-text);
+}
+
+.bar-lane-ci--success {
+  color: var(--color-semantic-success-text);
+}
+
+.bar-lane-ci--quiet {
+  color: var(--color-semantic-text-secondary);
 }
 
 .bar-lane-name {

@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { homedir } from 'node:os';
 import { ROOT, DATA_DIR, INBOX_DIR } from './config.mjs';
+import { spawnSync } from 'node:child_process';
 
 // ---------- config ----------
 function readLocalConfig() {
@@ -37,6 +38,63 @@ const LANES = [
   { id: 'liam',    name: 'Liam',    role: 'CHIP',            report: path.join(CHIP_INBOX, 'liam-report.md'), now: path.join(CHIP_INBOX, 'liam-next.md') },
 ];
 const SCREEN_DIRS = [['cad', 'screens'], ['bella', 'screens']];
+
+// ---------- CI truth ----------
+// PR numbers: #170, PR #170, PR170, OK #170 anywhere in the report text.
+export function extractPrNums(text) {
+  if (!text) return [];
+  const nums = new Set();
+  for (const m of (text || '').matchAll(/(?:PR\s*#?|OK\s*#|#)(\d{2,4})\b/gi)) nums.add(Number(m[1]));
+  return [...nums];
+}
+
+// Claim: what the lane says about its own CI result.
+export function parseClaim(text) {
+  if (!text) return 'none';
+  if (/\b(CI green|CI passed|CI pass\b|tests pass(?:ed)?|checks pass(?:ed)?|gate(?:s)? pass(?:ed)?|all green|passed|green)\b/i.test(text)) return 'green';
+  if (/\b(CI red|CI fail(?:ed)?|tests fail(?:ed)?|gate(?:s)? fail(?:ed)?|failed|red)\b/i.test(text)) return 'red';
+  if (/\b(running|in.?progress|pending)\b/i.test(text)) return 'running';
+  return 'none';
+}
+
+// Mismatch: claim ≠ ci, and both are meaningful (not none/unknown/merged).
+export function isMismatch(claim, ci) {
+  if (claim === 'none' || ci === 'unknown' || ci === 'merged') return false;
+  return claim !== ci;
+}
+
+// Derive CI status from gh output (synchronous, call only at scan/report-change time).
+function ghCiStatus(n) {
+  try {
+    const r = spawnSync('gh', ['pr', 'view', String(n), '--repo', 'emcdanie/ctrl-alt-design', '--json', 'number,state,statusCheckRollup'],
+      { encoding: 'utf8', timeout: 12000 });
+    if (r.status !== 0 || !r.stdout) return 'unknown';
+    const d = JSON.parse(r.stdout);
+    if (d.state === 'MERGED') return 'merged';
+    if (d.state === 'CLOSED') return 'unknown';
+    const checks = (d.statusCheckRollup ?? []);
+    if (!checks.length) return 'unknown';
+    for (const c of checks) {
+      if (c.__typename === 'CheckRun' && c.conclusion === 'FAILURE') return 'red';
+      if (c.__typename === 'StatusContext' && (c.state === 'FAILURE' || c.state === 'ERROR')) return 'red';
+    }
+    for (const c of checks) {
+      if (c.status === 'IN_PROGRESS' || c.status === 'QUEUED' || c.status === 'PENDING') return 'running';
+      if (c.__typename === 'StatusContext' && c.state === 'PENDING') return 'running';
+    }
+    return 'green';
+  } catch { return 'unknown'; }
+}
+
+// ciCache: laneId → { reportMtime: number, prs: [{n, claim, ci, checkedAt}] }
+const ciCache = {};
+
+function refreshCiForLane(laneId, reportText, reportMtime) {
+  const nums = extractPrNums(reportText);
+  const claim = parseClaim(reportText);
+  const prs = nums.map((n) => ({ n, claim, ci: ghCiStatus(n), checkedAt: Date.now() }));
+  ciCache[laneId] = { reportMtime, prs };
+}
 
 // ---------- state ----------
 let events = [];
@@ -108,7 +166,7 @@ export function laneState() {
       const rv = reportVersion(rep);
       let status = 'done';
       if (n.length) status = 'waiting on you';
-      return { id: l.id, name: l.name, role: l.role, status, needs: status === 'working' || status === 'parked' ? [] : n, reportVersion: rv, updated: mtime(frankieRep.path), frankieSource: frankieRep.source };
+      return { id: l.id, name: l.name, role: l.role, status, needs: status === 'working' || status === 'parked' ? [] : n, reportVersion: rv, updated: mtime(frankieRep.path), frankieSource: frankieRep.source, prs: (ciCache['frankie']?.prs ?? []) };
     }
     if (!l.report) return { ...l, status: 'serving', needs: [] };
     const rep = read(l.report);
@@ -120,7 +178,7 @@ export function laneState() {
     if (nowText && /\bPARKED\b/.test(nowFirstLine(nowText)?.line || '')) status = 'parked';
     else if (nowNewer || (nv && rv && nv > rv)) status = 'working';
     else if (n.length) status = 'waiting on you';
-    return { id: l.id, name: l.name, role: l.role, status, needs: status === 'working' || status === 'parked' ? [] : n, nowVersion: nv, reportVersion: rv, updated: mtime(l.report) };
+    return { id: l.id, name: l.name, role: l.role, status, needs: status === 'working' || status === 'parked' ? [] : n, nowVersion: nv, reportVersion: rv, updated: mtime(l.report), prs: (ciCache[l.id]?.prs ?? []) };
   });
 }
 
@@ -159,6 +217,7 @@ export function scan() {
         if (m && seen[key] !== m) {
           const text = read(fp);
           if (text) push({ t: m, lane: 'frankie', kind: 'report', text: text.trim() });
+          refreshCiForLane('frankie', text, m);
           seen[key] = m;
         }
       }
@@ -177,6 +236,7 @@ export function scan() {
       if (m && seen[key] !== m) {
         const text = read(p);
         if (text) push({ t: m, lane: l.id, kind: 'report', text: text.trim() });
+        refreshCiForLane(l.id, text, m);
         seen[key] = m;
       }
     }
@@ -226,6 +286,8 @@ export function barImg(req, res) {
 }
 
 // ---------- start ----------
-scan();
-setInterval(scan, 2000);
-setInterval(() => broadcast({ type: 'ping' }), 25000);
+if (process.env.BAR_TEST !== '1') {
+  scan();
+  setInterval(scan, 2000);
+  setInterval(() => broadcast({ type: 'ping' }), 25000);
+}

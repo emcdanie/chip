@@ -183,6 +183,16 @@ function ImageBubble({ ev }) {
   );
 }
 
+function prRole(pr) {
+  if (pr.ci === 'merged') return 'success';
+  if (pr.claim !== 'none' && pr.ci !== 'unknown' && pr.ci !== 'none' && pr.claim !== pr.ci) return 'danger';
+  return 'quiet';
+}
+
+function laneMismatch(lane) {
+  return (lane.prs ?? []).some(pr => prRole(pr) === 'danger');
+}
+
 // ---- BarChat ----
 
 function BarChat({ events, lanes }) {
@@ -317,17 +327,29 @@ export function TheBar({ lanes, events, needsItems, notify }) {
   const [waitOpen, setWaitOpen] = useState(false);
   const isWaitOpen = wide || waitOpen;
 
+  const mismatchNames = useMemo(
+    () => new Set(lanes.filter(laneMismatch).map(l => l.name)),
+    [lanes]
+  );
+
   return (
     <div className="bar-panel">
       <section className="bar-strip" aria-label="Lane strip">
         <ul className="bar-lanes">
           {lanes.map((l) => (
-            <li key={l.id} className="bar-lane">
-              <Avatar name={l.name} size="sm" src={LANE_SRC[l.id]} ring style={LANE_RING[l.id]} />
-              <span className="bar-lane-name">{l.name}</span>
-              <StatusPill variant={STATUS_VARIANT[l.status] ?? 'neutral'}>
-                {STATUS_LABEL[l.status] ?? l.status}
-              </StatusPill>
+            <li key={l.id} className={`bar-lane${laneMismatch(l) ? ' bar-lane--danger' : ''}`}>
+              <div className="bar-lane-head">
+                <Avatar name={l.name} size="sm" src={LANE_SRC[l.id]} ring style={LANE_RING[l.id]} />
+                <span className="bar-lane-name">{l.name}</span>
+                <StatusPill variant={STATUS_VARIANT[l.status] ?? 'neutral'}>
+                  {STATUS_LABEL[l.status] ?? l.status}
+                </StatusPill>
+              </div>
+              {(l.prs ?? []).filter(pr => pr.ci !== 'unknown' || pr.claim !== 'none').map(pr => (
+                <span key={pr.n} className={`bar-lane-ci bar-lane-ci--${prRole(pr)}`}>
+                  #{pr.n}{pr.claim !== 'none' ? ` · claims ${pr.claim}` : ''} · CI {pr.ci}
+                </span>
+              ))}
             </li>
           ))}
         </ul>
@@ -353,7 +375,12 @@ export function TheBar({ lanes, events, needsItems, notify }) {
                 {item.cmds.length > 0 && (
                   <span className="bar-needs-cmds">
                     {item.cmds.map((cmd) => (
-                      <ActionChip key={cmd} onClick={() => copyText(cmd, notify)}>
+                      <ActionChip
+                        key={cmd}
+                        disabled={mismatchNames.has(item.laneName) && /^OK #/.test(cmd)}
+                        title={mismatchNames.has(item.laneName) && /^OK #/.test(cmd) ? 'Blocked: claim does not match CI' : undefined}
+                        onClick={() => copyText(cmd, notify)}
+                      >
                         {cmd}
                       </ActionChip>
                     ))}
