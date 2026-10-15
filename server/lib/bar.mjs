@@ -52,11 +52,28 @@ const LANES = [
 const SCREEN_DIRS = [['cad', 'screens'], ['bella', 'screens']];
 
 // ---------- CI truth ----------
-// PR numbers: #170, PR #170, PR170, OK #170 anywhere in the report text.
+// PR numbers: only from lines that carry a claim word or start with #/PR/OK.
+// Strips: everything after "Needs Elleta", inline backtick/quote/paren content,
+// and Markdown bold-label lines (**label**: — liam-style summary headers).
 export function extractPrNums(text) {
   if (!text) return [];
+  const needsIdx = text.search(/^(?:#{1,2}\s+)?Needs Elleta\b/im);
+  const body = needsIdx >= 0 ? text.slice(0, needsIdx) : text;
+  const stripped = body
+    .replace(/`[^`\n]*`/g, '')
+    .replace(/"[^"\n]*"/g, '')
+    .replace(/\([^)\n]*\)/g, '');
+  const CLAIM     = /\b(green|red|running|merged|passed|failed|in.?progress|pending|CI)\b/i;
+  const BOLD_LABEL = /^\*\*[^*\n]+\*\*\s*:/;
+  const PR_START  = /^(?:PR\s*#?|OK\s*#|#)\d{2,4}/i;
+  const PR_PAT    = /(?:PR\s*#?|OK\s*#|#)(\d{2,4})\b/gi;
   const nums = new Set();
-  for (const m of (text || '').matchAll(/(?:PR\s*#?|OK\s*#|#)(\d{2,4})\b/gi)) nums.add(Number(m[1]));
+  for (const raw of stripped.split('\n')) {
+    const line = raw.trim();
+    if (!line || BOLD_LABEL.test(line)) continue;
+    if (!CLAIM.test(line) && !PR_START.test(line)) continue;
+    for (const m of line.matchAll(PR_PAT)) nums.add(Number(m[1]));
+  }
   return [...nums];
 }
 

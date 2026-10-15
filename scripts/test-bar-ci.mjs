@@ -5,12 +5,26 @@ import assert from 'node:assert/strict';
 import { extractPrNums, parseClaim, isMismatch } from '../server/lib/bar.mjs';
 
 // extractPrNums
-test('extractPrNums: #nnn', () => assert.deepEqual(extractPrNums('fixed in #170'), [170]));
-test('extractPrNums: PR #nnn', () => assert.deepEqual(extractPrNums('PR #171 running'), [171]));
-test('extractPrNums: OK #nnn', () => assert.deepEqual(extractPrNums('OK #166 merged'), [166]));
+test('extractPrNums: line starting with #nnn', () => assert.deepEqual(extractPrNums('#170 fix ready'), [170]));
+test('extractPrNums: PR #nnn with claim word', () => assert.deepEqual(extractPrNums('PR #171 running'), [171]));
+test('extractPrNums: OK #nnn with claim', () => assert.deepEqual(extractPrNums('OK #166 merged'), [166]));
 test('extractPrNums: dedupes', () => assert.deepEqual(extractPrNums('#170 and #170 again'), [170]));
-test('extractPrNums: multiple', () => { const r = extractPrNums('#170 and #171'); assert.ok(r.includes(170) && r.includes(171)); });
+test('extractPrNums: multiple on #-start line', () => { const r = extractPrNums('#170 and #171'); assert.ok(r.includes(170) && r.includes(171)); });
+test('extractPrNums: no claim and no start → empty', () => assert.deepEqual(extractPrNums('fixed in #170'), []));
+test('extractPrNums: claim word extracts adjacent #nnn', () => assert.deepEqual(extractPrNums('CI running on #176'), [176]));
 test('extractPrNums: empty', () => assert.deepEqual(extractPrNums('no PRs here'), []));
+// Needs Elleta strip
+test('extractPrNums: drops everything after Needs Elleta', () => assert.deepEqual(extractPrNums('Gate: green\n\nNeeds Elleta:\n1. OK #171 once CI is green'), []));
+// bold-label strip — liam narrative
+test('extractPrNums: liam narrative **Live today**: yields zero', () => {
+  const line = '**Live today**: Bernie → #171 + #170 both claim green, CI red → danger card.';
+  assert.deepEqual(extractPrNums(line), []);
+});
+// spec test: job-5 liam-report must yield zero
+test('extractPrNums: job-5 liam-report yields zero PRs', () => {
+  const report = `**Commit**: \`aadb1ed\` on chip-2.0\n\n**What shipped**:\n- \`server/lib/bar.mjs\`: extractPrNums, parseClaim\n\n**Live today**: Bernie → #171 + #170 both claim green, CI red → danger card. Frankie → #64 + #65 merged → success.\n\n**bar-06 screenshots**: 6 files.\n\n## Needs Elleta\n1. Bar screenshots\n2. Repo configurable?`;
+  assert.deepEqual(extractPrNums(report), []);
+});
 
 // parseClaim
 test('parseClaim: "CI green" → green', () => assert.equal(parseClaim('PR #170 CI green done'), 'green'));
