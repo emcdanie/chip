@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { homedir } from 'node:os';
 import { ROOT, DATA_DIR, INBOX_DIR } from './config.mjs';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, execFileSync } from 'node:child_process';
 
 // ---------- config ----------
 function readLocalConfig() {
@@ -17,6 +17,18 @@ const expand = (p) => (typeof p === 'string' ? p.replace(/^~\//, `${homedir()}/`
 const CAD = expand(barCfg.cadInbox) || path.join(homedir(), 'DEV', 'ctrl-alt-design', 'docs', 'reference', 'inbox');
 const BELLA = expand(barCfg.bellaInbox) || path.join(homedir(), 'DEV', 'bella', 'docs', 'reference', 'inbox');
 const CHIP_INBOX = INBOX_DIR;
+const BELLA_ROOT = path.resolve(BELLA, '../../..');
+
+function gitRemoteRepo(dir) {
+  try {
+    const url = execFileSync('git', ['-C', dir, 'remote', 'get-url', 'origin'], { encoding: 'utf8' }).trim();
+    const m = url.match(/github\.com[:/](.+?)(?:\.git)?$/);
+    return m ? m[1] : null;
+  } catch { return null; }
+}
+const CAD_REPO = 'emcdanie/ctrl-alt-design';
+const BELLA_REPO = gitRemoteRepo(BELLA_ROOT);
+const CHIP_REPO  = gitRemoteRepo(ROOT);
 
 const IMG = /\.(png|jpe?g|webp|gif)$/i;
 const HIST = path.join(DATA_DIR, 'bar-history.jsonl');
@@ -30,12 +42,12 @@ const FRANKIE_REPORT_PATHS = [
 ];
 
 const LANES = [
-  { id: 'seamus',  name: 'Seamus',  role: 'barman · Cowork' },
-  { id: 'dara',    name: 'Dara',    role: 'lane a · site',   report: path.join(CAD, 'reports/a.md'),     now: path.join(CAD, 'lanes/a.md') },
-  { id: 'bernie',  name: 'Bernie',  role: 'lane b · fixes',  report: path.join(CAD, 'reports/b.md'),     now: path.join(CAD, 'lanes/b.md') },
-  { id: 'saoirse', name: 'Saoirse', role: 'Figma',           report: path.join(CAD, 'reports/figma.md'), now: path.join(CAD, 'lanes/figma.md') },
-  { id: 'frankie', name: 'Frankie', role: 'BELLA', frankieDual: true },
-  { id: 'liam',    name: 'Liam',    role: 'CHIP',            report: path.join(CHIP_INBOX, 'liam-report.md'), now: path.join(CHIP_INBOX, 'liam-next.md') },
+  { id: 'seamus',  name: 'Seamus',  role: 'barman · Cowork', repo: null },
+  { id: 'dara',    name: 'Dara',    role: 'lane a · site',   report: path.join(CAD, 'reports/a.md'),     now: path.join(CAD, 'lanes/a.md'),          repo: CAD_REPO },
+  { id: 'bernie',  name: 'Bernie',  role: 'lane b · fixes',  report: path.join(CAD, 'reports/b.md'),     now: path.join(CAD, 'lanes/b.md'),          repo: CAD_REPO },
+  { id: 'saoirse', name: 'Saoirse', role: 'Figma',           report: path.join(CAD, 'reports/figma.md'), now: path.join(CAD, 'lanes/figma.md'),      repo: CAD_REPO },
+  { id: 'frankie', name: 'Frankie', role: 'BELLA', frankieDual: true,                                                                                 repo: BELLA_REPO },
+  { id: 'liam',    name: 'Liam',    role: 'CHIP',            report: path.join(CHIP_INBOX, 'liam-report.md'), now: path.join(CHIP_INBOX, 'liam-next.md'), repo: CHIP_REPO },
 ];
 const SCREEN_DIRS = [['cad', 'screens'], ['bella', 'screens']];
 
@@ -48,13 +60,18 @@ export function extractPrNums(text) {
   return [...nums];
 }
 
-// Claim: what the lane says about its own CI result.
+// Claim: what the lane says about its own CI result. Last status word wins.
 export function parseClaim(text) {
   if (!text) return 'none';
-  if (/\b(CI green|CI passed|CI pass\b|tests pass(?:ed)?|checks pass(?:ed)?|gate(?:s)? pass(?:ed)?|all green|passed|green)\b/i.test(text)) return 'green';
-  if (/\b(CI red|CI fail(?:ed)?|tests fail(?:ed)?|gate(?:s)? fail(?:ed)?|failed|red)\b/i.test(text)) return 'red';
-  if (/\b(running|in.?progress|pending)\b/i.test(text)) return 'running';
-  return 'none';
+  const hits = [];
+  const G = /\b(CI green|CI passed|CI pass\b|tests pass(?:ed)?|checks pass(?:ed)?|gate(?:s)? pass(?:ed)?|all green|succeed(?:ed)?|passed|green)\b/gi;
+  const R = /\b(CI red|CI fail(?:ed)?|tests fail(?:ed)?|gate(?:s)? fail(?:ed)?|failed|red)\b/gi;
+  const W = /\b(CI running|in.?progress|running|pending)\b/gi;
+  for (const m of text.matchAll(G)) hits.push({ pos: m.index, val: 'green' });
+  for (const m of text.matchAll(R)) hits.push({ pos: m.index, val: 'red' });
+  for (const m of text.matchAll(W)) hits.push({ pos: m.index, val: 'running' });
+  if (!hits.length) return 'none';
+  return hits.reduce((a, b) => b.pos > a.pos ? b : a).val;
 }
 
 // Mismatch: claim ≠ ci, and both are meaningful (not none/unknown/merged).
@@ -64,9 +81,10 @@ export function isMismatch(claim, ci) {
 }
 
 // Derive CI status from gh output (synchronous, call only at scan/report-change time).
-function ghCiStatus(n) {
+function ghCiStatus(n, repo) {
+  if (!repo) return 'unknown';
   try {
-    const r = spawnSync('gh', ['pr', 'view', String(n), '--repo', 'emcdanie/ctrl-alt-design', '--json', 'number,state,statusCheckRollup'],
+    const r = spawnSync('gh', ['pr', 'view', String(n), '--repo', repo, '--json', 'number,state,statusCheckRollup'],
       { encoding: 'utf8', timeout: 12000 });
     if (r.status !== 0 || !r.stdout) return 'unknown';
     const d = JSON.parse(r.stdout);
@@ -89,10 +107,10 @@ function ghCiStatus(n) {
 // ciCache: laneId → { reportMtime: number, prs: [{n, claim, ci, checkedAt}] }
 const ciCache = {};
 
-function refreshCiForLane(laneId, reportText, reportMtime) {
+function refreshCiForLane(laneId, reportText, reportMtime, repo) {
   const nums = extractPrNums(reportText);
   const claim = parseClaim(reportText);
-  const prs = nums.map((n) => ({ n, claim, ci: ghCiStatus(n), checkedAt: Date.now() }));
+  const prs = repo ? nums.map((n) => ({ n, claim, ci: ghCiStatus(n, repo), checkedAt: Date.now() })) : [];
   ciCache[laneId] = { reportMtime, prs };
 }
 
@@ -217,7 +235,7 @@ export function scan() {
         if (m && seen[key] !== m) {
           const text = read(fp);
           if (text) push({ t: m, lane: 'frankie', kind: 'report', text: text.trim() });
-          refreshCiForLane('frankie', text, m);
+          refreshCiForLane('frankie', text, m, BELLA_REPO);
           seen[key] = m;
         }
       }
@@ -236,7 +254,7 @@ export function scan() {
       if (m && seen[key] !== m) {
         const text = read(p);
         if (text) push({ t: m, lane: l.id, kind: 'report', text: text.trim() });
-        refreshCiForLane(l.id, text, m);
+        refreshCiForLane(l.id, text, m, l.repo);
         seen[key] = m;
       }
     }

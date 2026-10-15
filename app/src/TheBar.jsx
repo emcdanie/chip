@@ -183,6 +183,8 @@ function ImageBubble({ ev }) {
   );
 }
 
+const CI_ICON = { green: '✓', merged: '✓', red: '✕', running: '◌', unknown: '?' };
+
 function prRole(pr) {
   if (pr.ci === 'merged') return 'success';
   if (pr.claim !== 'none' && pr.ci !== 'unknown' && pr.ci !== 'none' && pr.claim !== pr.ci) return 'danger';
@@ -347,7 +349,7 @@ export function TheBar({ lanes, events, needsItems, notify }) {
               </div>
               {(l.prs ?? []).filter(pr => pr.ci !== 'unknown' || pr.claim !== 'none').map(pr => (
                 <span key={pr.n} className={`bar-lane-ci bar-lane-ci--${prRole(pr)}`}>
-                  #{pr.n}{pr.claim !== 'none' ? ` · claims ${pr.claim}` : ''} · CI {pr.ci}
+                  {CI_ICON[pr.ci] ?? '?'} #{pr.n}{pr.claim !== 'none' ? ` · claims ${pr.claim}` : ''} · CI {pr.ci}
                 </span>
               ))}
             </li>

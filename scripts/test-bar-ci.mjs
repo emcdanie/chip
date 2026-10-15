@@ -19,6 +19,13 @@ test('parseClaim: "failed" → red', () => assert.equal(parseClaim('CI failed'),
 test('parseClaim: "running" → running', () => assert.equal(parseClaim('CI running'), 'running'));
 test('parseClaim: no claim → none', () => assert.equal(parseClaim('submitted PR #170'), 'none'));
 test('parseClaim: null → none', () => assert.equal(parseClaim(null), 'none'));
+// last-wins: status word that appears latest in text wins
+test('parseClaim: succeeded then in progress → running (Bernie 05:45)', () => {
+  const report = `Workflow run 38688180341 succeeded.\nCI run 38688489847 started 05:45 UTC — in progress.`;
+  assert.equal(parseClaim(report), 'running');
+});
+test('parseClaim: failed then all green → green (last wins)', () => assert.equal(parseClaim('gate failed, then all green'), 'green'));
+test('parseClaim: running then passed → green (last wins)', () => assert.equal(parseClaim('CI running ... later gate passed'), 'green'));
 
 // isMismatch — the three real cases from 14 Oct
 test('Dara #170: claims green, CI red → mismatch', () => assert.ok(isMismatch('green', 'red')));
