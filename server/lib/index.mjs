@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, statSync, renameSync } from 'node:fs';
 import { join, dirname, basename, relative } from 'node:path';
 import { createHash } from 'node:crypto';
+import { homedir } from 'node:os';
 import { docSources } from './docs.mjs';
 import { ROOT, BELLA_DIR, NOTION_DIR, INDEX_FILE, BELLA_JSON, CHIP_EMBED_MODEL, COWORK_DIR } from './config.mjs';
 import { embed } from './llm.js';
@@ -104,22 +105,37 @@ export function chunk(text) {
 
 const sha = (s) => createHash('sha1').update(s).digest('hex').slice(0, 16);
 
+// ---- NDA ------------------------------------------------------------------
+// A chunk that names a forbidden term never enters the index and never comes
+// back from search, so OBI can't put it on screen. Same terms file and match
+// rule as the pre-commit hook: word boundary, case-insensitive, # lines skipped.
+const NDA_FILE = join(homedir(), '.claude/nda-terms.txt');
+export function ndaTerms() {
+  if (!existsSync(NDA_FILE)) return [];
+  return readFileSync(NDA_FILE, 'utf8').split('\n').map((t) => t.trim()).filter((t) => t && !t.startsWith('#'))
+    .map((t) => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'));
+}
+export const ndaHit = (terms, c) => terms.some((re) => re.test(c.title) || re.test(c.text));
+
 // ---- build ----------------------------------------------------------------
 export async function buildIndex({ log = () => {} } = {}) {
   const prev = loadIndex();
   const cache = new Map((prev?.model === CHIP_EMBED_MODEL ? prev.chunks : []).map((c) => [c.hash, c.embedding]));
 
+  const terms = ndaTerms();
   const pending = [];
+  let held = 0;
   for (const src of collectSources()) {
     const pieces = src.single ? [src.text] : chunk(src.text);
     pieces.forEach((text, i) => {
+      if (ndaHit(terms, { title: src.title, text })) { held++; return; }
       const embedText = `${src.title}\n\n${text}`;
       pending.push({ id: `${src.path}#${src.part ?? i}`, title: src.title, url: src.url, path: src.path, hash: sha(embedText), text, embedText, ...(src.localOnly ? { localOnly: true } : {}) });
     });
   }
 
   const fresh = pending.filter((c) => !cache.has(c.hash));
-  log(`index: ${pending.length} chunks from ${new Set(pending.map((c) => c.path)).size} files · ${fresh.length} to embed`);
+  log(`index: ${pending.length} chunks from ${new Set(pending.map((c) => c.path)).size} files · ${fresh.length} to embed · ${held} held back (NDA)`);
   if (fresh.length) {
     const vectors = await embed(fresh.map((c) => c.embedText), 'document');
     fresh.forEach((c, i) => cache.set(c.hash, vectors[i].map((v) => Math.round(v * 1e6) / 1e6)));
@@ -155,7 +171,9 @@ export async function search(query, k = 6) {
   const index = loadIndex();
   if (!index || !index.chunks.length) throw new Error('No index yet. Run `chip sync`.');
   const [q] = await embed([query], 'query');
+  const terms = ndaTerms(); // also guards an index built before this filter existed
   return index.chunks
+    .filter((c) => !ndaHit(terms, c))
     .map((c) => ({ ...c, score: cosine(q, c.embedding) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, k)

@@ -5,6 +5,7 @@
 //   2. the app builds
 //   3. NDA scan: added lines of unpushed commits vs ~/.claude/nda-terms.txt
 //      (prints term numbers, never terms)
+//  3b. NDA scan of OBI's search index (data/index/chunks.json)
 //   4. in the browser (Playwright from the BELLA repo, like the app's
 //      components): the checkpoint screens at 1440 and 390 in warm and dark,
 //      axe on each, no sideways scroll, no console errors, nothing cut off
@@ -72,6 +73,17 @@ if (!existsSync(termsFile)) {
   const n = hasBase ? execFileSync('git', ['-C', ROOT, 'rev-list', '--count', range], { encoding: 'utf8' }).trim() : 0;
   if (hasBase) log(`3. NDA scan (${range}, ${n} commits, ${terms.length} terms): ${hits.size ? `HITS term#${[...hits].join(', #')}` : 'clean'}`);
   if (hits.size) failures.push('NDA term in unpushed commits');
+}
+
+// 3b. NDA scan of OBI's search index: what OBI can quote on screen
+const indexFile = join(ROOT, 'data/index/chunks.json');
+if (existsSync(indexFile)) {
+  const { ndaTerms, ndaHit } = await import('../server/lib/index.mjs');
+  const { chunks } = JSON.parse(readFileSync(indexFile, 'utf8'));
+  const terms = ndaTerms();
+  const held = chunks.filter((c) => ndaHit(terms, c)).length;
+  log(`3b. NDA scan of the index (${chunks.length} chunks): ${held ? `${held} chunks with a term` : 'clean'}`);
+  if (held) failures.push('NDA term in data/index/chunks.json (re-run chip sync)');
 }
 
 // 4. the browser
