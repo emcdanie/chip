@@ -1396,6 +1396,17 @@ body {
   padding-inline-start: var(--spacing-5);
 }
 
+.search-results {
+  margin: 0;
+  padding-inline-start: var(--spacing-5);
+  display: grid;
+  gap: var(--spacing-3);
+}
+
+.search-results .label {
+  max-inline-size: var(--layout-measure-body);
+}
+
 .turn-chips,
 .turn-actions {
   display: flex;

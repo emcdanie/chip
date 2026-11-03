@@ -167,7 +167,7 @@ function cosine(a, b) {
   return dot / (Math.sqrt(na) * Math.sqrt(nb) || 1);
 }
 
-export async function search(query, k = 6) {
+async function scored(query) {
   const index = loadIndex();
   if (!index || !index.chunks.length) throw new Error('No index yet. Run `chip sync`.');
   const [q] = await embed([query], 'query');
@@ -175,7 +175,21 @@ export async function search(query, k = 6) {
   return index.chunks
     .filter((c) => !ndaHit(terms, c))
     .map((c) => ({ ...c, score: cosine(q, c.embedding) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, k)
-    .map(({ embedding, ...c }) => c);
+    .sort((a, b) => b.score - a.score);
+}
+
+export async function search(query, k = 6) {
+  return (await scored(query)).slice(0, k).map(({ embedding, ...c }) => c);
+}
+
+// The library search: one hit per page (its best chunk), so a long page with
+// many matching chunks can't push every other page off the list. No model call.
+export async function searchDocs(query, k = 8) {
+  const best = new Map();
+  for (const c of await scored(query)) {
+    const key = c.url || c.path;
+    if (!best.has(key)) best.set(key, c);
+    if (best.size >= k) break;
+  }
+  return [...best.values()].map(({ embedding, ...c }) => c);
 }

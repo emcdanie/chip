@@ -23,6 +23,7 @@ const COMMANDS = [
   { cmd: 'plan', arg: '<goal>', note: 'start a plan in Docs' },
   { cmd: 'decision', arg: '<what was decided>', note: 'record a decision in Docs' },
   { cmd: 'handoff', note: 'save this thread as a handoff doc' },
+  { cmd: 'search', arg: '<words>', note: 'search your library, no model' },
   { cmd: 'usage', note: 'this week: answers by route, tokens kept local' },
   { cmd: 'tools', note: 'connected tools and their status' },
   { cmd: 'tool', arg: '<server> <tool>', note: '/tool <server> <tool> {json args}' },
@@ -31,6 +32,8 @@ const COMMANDS = [
   { cmd: 'sync', note: 'BELLA and Notion, then re-index' },
   { cmd: 'ask', arg: '<question>', note: 'ask through the terminal path' },
 ];
+
+const STOP = new Set(['the', 'and', 'for', 'how', 'what', 'why', 'who', 'when', 'where', 'which', 'should', 'could', 'would', 'does', 'can', 'are', 'was', 'with', 'about', 'this', 'that', 'from', 'into', 'show', 'need', 'needs', 'want', 'have', 'has', 'you', 'your', 'our', 'any', 'all']);
 
 /* ---------- streams ---------- */
 async function* lines(res) {
@@ -323,6 +326,46 @@ function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onS
   );
 }
 
+// a library search: one row per page, best first, each with its match score
+// and the passage that matched. A weak best match says so before the list.
+const dayOf = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never');
+function SearchTurn({ t }) {
+  const results = t.results ?? [];
+  return (
+    <li className="turn">
+      <p className="you">
+        <span className="you-label">Search</span>
+        <span>{t.q}</span>
+      </p>
+      <div className="answer">
+        {t.error ? <p role="alert">{t.error}</p> : null}
+        {!t.error && !t.done ? <p className="label">Searching your library…</p> : null}
+        {t.done && !results.length ? <p>Nothing in your library matches that.</p> : null}
+        {t.done && results.length ? (
+          <p>{t.weak ? `No strong match. The closest ${results.length} pages, all under 0.60, so likely not what you want:` : `${results.length} pages, best match first.`}</p>
+        ) : null}
+        {results.length ? (
+          <ol className="search-results">
+            {results.map((r) => (
+              <li key={r.url ?? r.path}>
+                <Link href={sourceHref(r)} external>
+                  {r.title}
+                </Link>{' '}
+                <span className="label">
+                  match {r.score.toFixed(2)}
+                  {r.strength === 'weak' ? ' · weak' : r.strength === 'loose' ? ' · loose' : ''}
+                </span>
+                <p className="label">{r.passage}</p>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+      </div>
+      {t.done ? <p className="label">Library search · no model · index built {dayOf(t.indexedAt)}</p> : null}
+    </li>
+  );
+}
+
 // a tool call: who ran what, how long, its output; a write waits for Confirm
 function ToolTurn({ t, onConfirm, onCancel }) {
   return (
@@ -525,6 +568,20 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
     }
   }
 
+  /** Searches the library (GET /search): pages, scores and passages, no model. */
+  async function search(q) {
+    const id = Date.now() + Math.random();
+    setTurns((ts) => [...ts, { id, kind: 'search', q }]);
+    try {
+      const res = await fetch(`/search?q=${encodeURIComponent(q)}`);
+      const r = await res.json();
+      if (!res.ok) throw new Error(r.error ?? `The CHIP server answered ${res.status}`);
+      patch(id, () => ({ done: true, results: r.results, weak: r.weak, indexedAt: r.indexedAt }));
+    } catch (err) {
+      patch(id, () => ({ done: true, error: /fetch/i.test(err.message) ? 'The CHIP server is not answering on 127.0.0.1:3100. Start it with npm start.' : err.message }));
+    }
+  }
+
   /** Runs a tool through the host (POST /host/call); a write comes back as a preview. */
   async function runTool(q, { server, tool, args = {}, label = null, why = null }) {
     const id = Date.now() + Math.random();
@@ -642,7 +699,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
       const flag = arg.match(/^--(claude|local)\s+(.+)$/);
       const localId = (models.find((m) => m.place === 'local' && m.isDefault) ?? models.find((m) => m.place === 'local'))?.id;
       const titleOf = (t) => (t.split('\n')[0].length > 70 ? `${t.split('\n')[0].slice(0, 70).replace(/\s+\S*$/, '')}…` : t.split('\n')[0]);
-      const needsText = { note: 'Write the note after /note.', plan: 'Name the goal after /plan.', decision: 'Say what was decided after /decision.' };
+      const needsText = { search: 'Type what to look for after /search.', note: 'Write the note after /note.', plan: 'Name the goal after /plan.', decision: 'Say what was decided after /decision.' };
       if (needsText[word] && !arg) setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: needsText[word] }]);
       else if (word === 'note') saveToDocs(text, { title: titleOf(arg), body: arg, kind: 'note', tags: ['note'], status: 'in-progress' });
       else if (word === 'plan') saveToDocs(text, { title: `Plan: ${titleOf(arg)}`, body: `## Goal\n${arg}\n\n## Steps\n- First step\n\n## Risks\n- None named yet`, kind: 'plan', tags: ['plan'], status: 'draft' });
@@ -650,7 +707,8 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
       else if (word === 'handoff') {
         if (!turns.length) setTurns((ts) => [...ts, { id: Date.now(), kind: 'ask', q: text, path: 'error', text: 'Nothing in this thread to hand off yet.' }]);
         else saveToDocs(text, handoffOf(turns, page, arg));
-      } else if (word === 'usage') showUsage(text);
+      } else if (word === 'search') search(arg);
+      else if (word === 'usage') showUsage(text);
       else if (word === 'tools') listTools(text);
       else if (word === 'tool') {
         // /tool <server> <tool> {json args}
@@ -689,7 +747,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
   // an answer built on Cowork sources stays local only as a doc too
   const saveAsDoc = (t) =>
     saveToDocs(`Save as doc: ${t.q}`, { title: titleCase(t.q), body: proposalOf(t), kind: 'answer', tags: ['answer'], status: 'in-progress', localOnly: (t.sources ?? []).some((s) => s.localOnly || s.path?.startsWith('docs/reference/cowork/')) });
-  return { turns, busy, send, save, saveAsDoc, history, compare, includeAndRetry, confirmTool: (t) => settle(t, true), cancelTool: (t) => settle(t, false) };
+  return { turns, busy, send, search, save, saveAsDoc, history, compare, includeAndRetry, confirmTool: (t) => settle(t, true), cancelTool: (t) => settle(t, false) };
 }
 
 /* ---------- the one input ---------- */
@@ -717,10 +775,11 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
       ];
     }
     const comps = (bella?.components ?? []).filter((c) => c.name.toLowerCase().includes(needle)).slice(0, 6);
-    const words = needle.split(/\s+/).filter((w) => w.length > 2);
+    // title words only; "how", "what" and the like matched half the library
+    const words = needle.split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w));
     const docHits = docs
       .map((d) => ({ d, hits: words.filter((w) => d.title.toLowerCase().includes(w)).length }))
-      .filter((x) => x.hits > 0 || x.d.title.toLowerCase().includes(needle))
+      .filter((x) => (words.length && x.hits >= Math.ceil(words.length / 2)) || x.d.title.toLowerCase().includes(needle))
       .sort((a, b) => b.hits - a.hits)
       .slice(0, 4);
     return [
@@ -733,6 +792,7 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
         ],
       },
       { id: 'ask', label: 'Ask OBI', options: [{ id: 'ask', label: `Ask OBI: ${query}`, meta: askMeta }] },
+      { id: 'search', label: 'Search', options: [{ id: 'search', label: `Search your library: ${query}`, meta: 'Pages and passages · no model' }] },
     ];
   }, [query, needle, bella, docs, page, askMeta]);
 
@@ -751,6 +811,8 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
       setQ(`/${o.id.slice(4)} `);
     } else if (o.id.startsWith('cmd:')) {
       if (obi.send(`/${o.id.slice(4)}`)) setQ('');
+    } else if (o.id === 'search') {
+      if (obi.send(`/search ${query}`)) setQ('');
     } else if (o.id === 'ask') {
       if (obi.send(query)) setQ('');
     }
@@ -883,6 +945,8 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
             {obi.turns.map((t) =>
               t.kind === 'cmd' ? (
                 <CmdTurn key={t.id} t={t} />
+              ) : t.kind === 'search' ? (
+                <SearchTurn key={t.id} t={t} />
               ) : t.kind === 'tool' ? (
                 <ToolTurn key={t.id} t={t} onConfirm={obi.confirmTool} onCancel={obi.cancelTool} />
               ) : (

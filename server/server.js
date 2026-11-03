@@ -6,9 +6,9 @@ import { join, resolve, relative } from 'node:path';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { ROOT, PORT, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL, NOTES_DIR } from './lib/config.mjs';
-import { ask, askStream } from './lib/ask.mjs';
+import { ask, askStream, WEAK_SCORE } from './lib/ask.mjs';
 import { warm } from './lib/llm.js';
-import { loadIndex, buildIndex } from './lib/index.mjs';
+import { loadIndex, buildIndex, searchDocs } from './lib/index.mjs';
 import { listDocs, readDoc, saveDoc, STATUSES } from './lib/docs.mjs';
 import { homedir } from 'node:os';
 import { listAll } from './providers/index.mjs';
@@ -227,6 +227,40 @@ app.get('/bella-baseline', (req, res) => {
     res.type('png').send(bellaWork.baseline(String(req.query.rev ?? ''), String(req.query.path ?? '')));
   } catch (e) {
     res.status(404).end();
+  }
+});
+
+// GET /search?q=<text>&k=<1..20>: the library search, no model call.
+// -> { query, top, weak, indexedAt, results: [{ title, url | path, passage, score, strength }] }
+// One result per page. weak is true when the best match is under WEAK_SCORE
+// (the same line OBI uses before it refuses to answer): the page says so
+// instead of presenting the closest pages as answers. strength per result:
+// weak under that line, loose more than LOOSE_GAP below the best match
+// (measured 3 Nov: off-topic second hits sat 0.10 to 0.13 under the top).
+const LOOSE_GAP = 0.1;
+const strengthOf = (score, top) => (score < WEAK_SCORE ? 'weak' : score < top - LOOSE_GAP ? 'loose' : 'strong');
+const passageFor = (text, query) => {
+  // plain text: no heading marks, bold or link syntax in a passage
+  const t = text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/^#+\s*/gm, '').replace(/\*\*|__/g, '').replace(/\s+/g, ' ').trim();
+  const words = query.toLowerCase().split(/[^a-z0-9-]+/).filter((w) => w.length > 3);
+  const at = words.map((w) => t.toLowerCase().indexOf(w)).filter((i) => i >= 0).sort((a, b) => a - b)[0] ?? 0;
+  const start = Math.max(0, at - 80);
+  const cut = t.slice(start, start + 320);
+  return (start > 0 ? '…' + cut.replace(/^\S*\s/, '') : cut).replace(/\s+\S*$/, '') + (start + 320 < t.length ? '…' : '');
+};
+app.get('/search', async (req, res) => {
+  const query = String(req.query.q ?? '').trim().slice(0, 300);
+  if (!query) return res.status(400).json({ error: 'q is required' });
+  const k = Math.min(20, Math.max(1, Number(req.query.k) || 8));
+  try {
+    const hits = await searchDocs(query, k);
+    const top = hits[0]?.score ?? 0;
+    res.json({
+      query, top: +top.toFixed(3), weak: top < WEAK_SCORE, indexedAt: loadIndex()?.builtAt ?? null,
+      results: hits.map((c) => ({ title: c.title, ...(c.url ? { url: c.url } : {}), path: c.path, passage: passageFor(c.text, query), score: +c.score.toFixed(3), strength: strengthOf(c.score, top) })),
+    });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
   }
 });
 

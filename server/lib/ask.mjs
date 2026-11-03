@@ -35,6 +35,7 @@ const withPack = (system) => {
 };
 
 const TOP_K = 6;
+const MAX_PER_PAGE = 2;
 // Below this cosine score the best match is weak: no model call, the closest
 // three are shown instead. Measured 2026-10-03: off-topic questions top out
 // at 0.51 to 0.55, on-topic ones start around 0.64.
@@ -130,14 +131,21 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const history = stored.filter(keep).map(({ role, content }) => ({ role, content }));
   const keptLocal = cloud ? stored.filter((m) => m.role === 'assistant' && !keep(m)).length : 0;
   const withPage = pointsAt(message, page);
-  let found = await retrieve(message, TOP_K * (cloud ? 3 : 1), page, withPage);
+  let found = await retrieve(message, TOP_K * 3, page, withPage); // extra room for the per-page cap and the cloud filters
   let heldBack = 0;
   if (cloud) found = found.filter((c) => !isLocalOnly(c));
   if (cloud && !includePrivate) {
     heldBack = found.filter(isPrivate).length;
     found = found.filter((c) => !isPrivate(c));
   }
-  found = found.slice(0, TOP_K);
+  // at most two chunks per page, so one long page can't fill every slot and
+  // the answer still hears from the next-best pages
+  const perPage = new Map();
+  found = found.filter((c) => {
+    const n = (perPage.get(keyOf(c)) ?? 0) + 1;
+    perPage.set(keyOf(c), n);
+    return n <= MAX_PER_PAGE;
+  }).slice(0, TOP_K);
   const top = found[0]?.score ?? 0;
   if (top < WEAK_SCORE) {
     return { id, weak: true, top, heldBack, keptLocal, closest: [...numbered(found.slice(0, 3)).values()] };
