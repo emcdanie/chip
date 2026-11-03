@@ -360,7 +360,7 @@ function Exploded({ name, parts, hl, setHl, zoom, overrides }) {
 }
 
 /* ---------- the specimen library ---------- */
-const CATEGORIES = ['Actions', 'Inputs', 'Layout', 'Data', 'Brand'];
+const CATEGORIES = ['Actions', 'Inputs', 'Layout', 'Data', 'Chat', 'Brand'];
 // not a category: the group of components with no contract, always last
 const NO_CONTRACT = 'Missing a contract';
 const complete = (c) => c.hasStory && c.hasDocs;
@@ -373,7 +373,9 @@ export function Library({ bella, current, onOpen, vis = { components: {} }, role
   const shown = bella.components.filter((c) => canSee(role, settingsOf(vis, c).visibleTo));
   const by = {};
   for (const c of shown) (by[c.category ?? NO_CONTRACT] ??= []).push(c);
-  const groups = [...CATEGORIES, NO_CONTRACT].filter((g) => by[g]).map((g) => ({
+  // a category BELLA adds later still shows, after the known ones
+  const extra = Object.keys(by).filter((g) => g !== NO_CONTRACT && !CATEGORIES.includes(g));
+  const groups = [...CATEGORIES, ...extra, NO_CONTRACT].filter((g) => by[g]).map((g) => ({
     label: g,
     items: by[g].map((c) => {
       const d = dotOf(c);

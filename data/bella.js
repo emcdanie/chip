@@ -2,8 +2,8 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "2c07275",
-    "committedAt": "2026-10-14T09:33:46+02:00",
+    "commit": "8e8d4d2",
+    "committedAt": "2026-10-15T09:21:20+02:00",
     "version": "0.3.0"
   },
   "counts": {
@@ -25,14 +25,14 @@ window.BELLA = {
       ]
     },
     "cssVars": {
-      "light": 731,
+      "light": 740,
       "darkOverrides": 0
     }
   },
   "gates": {
     "contrastPairs": {
-      "ok": true,
-      "summary": "contrast pairs: 309 checked (light, dark, warm, wee-dote), OK; inset rule: 11 exempt, every consumer classified"
+      "ok": false,
+      "summary": "contrast pairs: 1 failing"
     },
     "contractParity": {
       "ok": true,
@@ -106,7 +106,7 @@ window.BELLA = {
       "name": "A11y",
       "score": 95,
       "assessment": "measured",
-      "basis": "35/37 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
+      "basis": "35/37 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: FAILED)"
     },
     {
       "id": "shared-language",
@@ -410,6 +410,54 @@ window.BELLA = {
     {
       "commit": "2c07275",
       "committedAt": "2026-10-14T09:33:46+02:00",
+      "components": 37,
+      "storyCoverage": 95,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": true,
+        "ok": false
+      }
+    },
+    {
+      "commit": "23fd8da",
+      "committedAt": "2026-10-14T09:50:32+02:00",
+      "components": 37,
+      "storyCoverage": 95,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": true,
+        "ok": false
+      }
+    },
+    {
+      "commit": "387d2da",
+      "committedAt": "2026-10-14T10:15:49+02:00",
+      "components": 37,
+      "storyCoverage": 95,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": true,
+        "ok": false
+      }
+    },
+    {
+      "commit": "d2e5b69",
+      "committedAt": "2026-10-14T15:58:10+02:00",
+      "components": 37,
+      "storyCoverage": 95,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": true,
+        "ok": false
+      }
+    },
+    {
+      "commit": "8e8d4d2",
+      "committedAt": "2026-10-15T09:21:20+02:00",
       "components": 37,
       "storyCoverage": 95,
       "contractCoverage": 100,
@@ -735,6 +783,46 @@ window.BELLA = {
       "light": "#eceef3",
       "dark": "#1d2030",
       "warm": "#ebe4d6"
+    },
+    "--color-semantic-action": {
+      "light": "#1d2030",
+      "dark": "#eceef3",
+      "warm": "#1d2030"
+    },
+    "--color-semantic-action-on": {
+      "light": "#eceef3",
+      "dark": "#1d2030",
+      "warm": "#eceef3"
+    },
+    "--color-semantic-attention": {
+      "light": "#e8a83e",
+      "dark": "#e8a83e",
+      "warm": "#e8a83e"
+    },
+    "--color-semantic-attention-on": {
+      "light": "#1d2030",
+      "dark": "#1d2030",
+      "warm": "#1d2030"
+    },
+    "--color-semantic-success-on": {
+      "light": "#1d2030",
+      "dark": "#1d2030",
+      "warm": "#1d2030"
+    },
+    "--color-semantic-danger": {
+      "light": "#b3261e",
+      "dark": "#ff8f84",
+      "warm": "#b3261e"
+    },
+    "--color-semantic-quiet": {
+      "light": "#cfe8dc",
+      "dark": "#cfe8dc",
+      "warm": "#cfe8dc"
+    },
+    "--color-semantic-quiet-on": {
+      "light": "#1d2030",
+      "dark": "#1d2030",
+      "warm": "#1d2030"
     }
   },
   "ring": {
@@ -849,6 +937,7 @@ window.BELLA = {
       "ActionChip",
       "Button",
       "Card",
+      "ChatThread",
       "Combobox",
       "DataTable",
       "Disclosure",
@@ -866,6 +955,7 @@ window.BELLA = {
       "ActionChip",
       "Button",
       "Card",
+      "ChatThread",
       "Combobox",
       "DataTable",
       "Disclosure",
@@ -883,6 +973,7 @@ window.BELLA = {
       "ActionChip",
       "Button",
       "Card",
+      "ChatThread",
       "Combobox",
       "DataTable",
       "Disclosure",
@@ -897,6 +988,7 @@ window.BELLA = {
       "ActionChip",
       "Button",
       "Card",
+      "ChatThread",
       "Combobox",
       "DataTable",
       "Disclosure",
@@ -2098,10 +2190,25 @@ window.BELLA = {
     "--component-stat-value-font-weight": [
       "Stat"
     ],
+    "--color-semantic-attention": [
+      "StatusPill"
+    ],
+    "--color-semantic-attention-on": [
+      "StatusPill"
+    ],
+    "--color-semantic-danger": [
+      "StatusPill"
+    ],
     "--color-semantic-info-border": [
       "StatusPill"
     ],
     "--color-semantic-info-subtle": [
+      "StatusPill"
+    ],
+    "--color-semantic-quiet": [
+      "StatusPill"
+    ],
+    "--color-semantic-quiet-on": [
       "StatusPill"
     ],
     "--color-semantic-success": [
@@ -3273,7 +3380,7 @@ window.BELLA = {
       "id": "chat-thread",
       "name": "ChatThread",
       "category": "Chat",
-      "description": "Column layout for a sequence of ChatBubble rows.\nFluid from 320px, no fixed heights, no breakpoints outside BELLA's four.\nSee component-contract:chat-thread.",
+      "description": "Column layout for a sequence of ChatBubble rows.\nFluid from 320px, no fixed heights, no breakpoints outside BELLA's four.\ntabIndex=0: the log scrolls, so keyboard users must be able to focus it\n(Safari does not make scroll containers focusable on its own).\nSee component-contract:chat-thread.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": false,
@@ -3306,15 +3413,25 @@ window.BELLA = {
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": null,
-        "ringOffset": null
+        "ringWidth": {
+          "token": "--ring-focus-width",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        },
+        "ringOffset": {
+          "token": "--ring-focus-offset",
+          "light": "3px",
+          "dark": "3px",
+          "warm": "3px"
+        }
       },
       "parts": [],
       "anatomySource": "tokens/component.json → component.chat-thread.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-chat-chatthread--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 11,
+        "count": 14,
         "component": 6,
         "semantic": 1,
         "list": [
@@ -3325,6 +3442,9 @@ window.BELLA = {
           "--component-chat-thread-default-padding-inline",
           "--component-chat-thread-default-stamp-margin-bottom",
           "--component-chat-thread-default-stamp-margin-top",
+          "--ring-focus-color",
+          "--ring-focus-offset",
+          "--ring-focus-width",
           "--spacing-1",
           "--typography-font-family-body",
           "--typography-font-size-label",
@@ -3336,7 +3456,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 7,
+          "pairs": 9,
           "failing": []
         },
         "contract": {
@@ -6422,7 +6542,11 @@ window.BELLA = {
         "accent",
         "success",
         "info",
-        "neutral"
+        "neutral",
+        "attention",
+        "danger",
+        "quiet",
+        "serving"
       ],
       "states": [
         "default"
@@ -6468,13 +6592,18 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-statuspill--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 16,
+        "count": 21,
         "component": 8,
-        "semantic": 6,
+        "semantic": 11,
         "list": [
+          "--color-semantic-attention",
+          "--color-semantic-attention-on",
           "--color-semantic-border",
+          "--color-semantic-danger",
           "--color-semantic-info-border",
           "--color-semantic-info-subtle",
+          "--color-semantic-quiet",
+          "--color-semantic-quiet-on",
           "--color-semantic-success",
           "--color-semantic-surface-inset",
           "--color-semantic-text-body",
