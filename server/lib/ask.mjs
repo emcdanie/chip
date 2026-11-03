@@ -106,7 +106,7 @@ const isLocalOnly = (c) => (c.path || '').startsWith('docs/reference/cowork/') |
 // private sources may go to a cloud model.
 function pointsAt(message, page) {
   if (!page) return false;
-  const name = page.match(/^Atlas · (\w+)$/)?.[1];
+  const name = page.match(/^(?:Atlas|Components) · (\w+)$/)?.[1];
   return /\b(this|here|it|its)\b/i.test(message) || (name ? new RegExp(`\\b${name}\\b`, 'i').test(message) : false);
 }
 

@@ -8,21 +8,25 @@ import Select from '@bella/components/Select/Select';
 import Health from './Health.jsx';
 import Atlas, { Library } from './Atlas.jsx';
 import Connectors from './Connectors.jsx';
-import Docs from './Docs.jsx';
+import History from './History.jsx';
+import ReviewSheet from './ReviewSheet.jsx';
+import { useNeeds } from './TheBar.jsx';
 import { useObi, OneInput, ObiPanel } from './Obi.jsx';
 import { useTheme } from './theme.js';
 import { ROLES, useRole, useVisibility } from './visibility.jsx';
 
+// plain names (3 Nov pm): the route ids stay, so old links still open
 const WORKSPACES = [
-  { id: 'health', label: 'Health' },
-  { id: 'atlas', label: 'Atlas' },
-  { id: 'docs', label: 'Docs' },
+  { id: 'health', label: 'Overview' },
+  { id: 'atlas', label: 'Components' },
+  { id: 'docs', label: 'History' },
   { id: 'connectors', label: 'Connectors' },
 ];
 
 const HEALTH_SECTIONS = [
-  { href: '#overview', label: 'Overview' },
-  { href: '#failures', label: 'Open failures' },
+  { href: '#coverage', label: 'Coverage' },
+  { href: '#checks', label: 'Checks' },
+  { href: '#failures', label: 'Gaps to close' },
   { href: '#components', label: 'Components' },
   { href: '#readiness', label: 'Readiness map' },
   { href: '#usage', label: 'Usage' },
@@ -30,7 +34,9 @@ const HEALTH_SECTIONS = [
 
 const WS_KEYS = { Digit1: 'health', Digit2: 'atlas', Digit3: 'docs', Digit4: 'connectors' };
 const OBI_KEY = 'chip-obi-open';
-const MODEL_KEY = 'chip-model';
+// v2: Claude answers by default (Elleta, 3 Nov: the local model isn't good
+// enough on stage); the local model stays one pick away
+const MODEL_KEY = 'chip-model-v2';
 const DOCK_KEY = 'chip-dock-height';
 const DOCK_MIN = 160; // px, the brief's floor
 const PAGE_MIN = 320; // px the page keeps above the dock
@@ -59,6 +65,7 @@ function failuresOf(bella) {
     if (!c.hasDocs) out.push(`${c.name}: no docs description`);
     // the same definition Atlas's gate panel uses: a missing DSDS spec entry is a failure
     if (!c.inDsds) out.push(`${c.name}: no DSDS spec entry (bella.dsds.yaml)`);
+    if (!c.hasA11yNotes) out.push(`${c.name}: no accessibility notes in its contract`);
     if (c.health?.contract?.status === 'fail') out.push(`${c.name}: contract ${c.health.contract.issues.join('; ')}`);
     if (c.health?.contrast?.status === 'fail') out.push(`${c.name}: contrast ${c.health.contrast.failing.join('; ')}`);
   }
@@ -113,7 +120,7 @@ export default function App() {
   const narrow = useMedia('(max-width: 831px)');
   const [models, setModels] = useState([]);
   const [budget, setBudget] = useState(null);
-  const [picked, setPicked] = useState(() => stored(MODEL_KEY, 'auto'));
+  const [picked, setPicked] = useState(() => stored(MODEL_KEY, 'claude'));
   useEffect(() => store(MODEL_KEY, picked), [picked]);
   useEffect(() => store(OBI_KEY, obiOpen ? 'open' : 'closed'), [obiOpen]);
   useEffect(() => store(DOCK_KEY, String(dockH)), [dockH]);
@@ -165,7 +172,8 @@ export default function App() {
 
   const failures = failuresOf(bella);
   const atlas = bella?.components.find((c) => c.id === atlasId) ?? null;
-  const page = ws === 'atlas' ? `Atlas · ${atlas?.name ?? '…'}` : ws === 'connectors' ? 'Connectors' : ws === 'docs' ? 'Docs' : 'Health';
+  const page = ws === 'atlas' ? `Components · ${atlas?.name ?? '…'}` : ws === 'connectors' ? 'Connectors' : ws === 'docs' ? 'History' : 'Overview';
+  const needs = useNeeds();
   const obi = useObi({ bella, page, notify: setToast, onSaved: loadNotes, models, budget, picked, onAnswered: loadModels, onDocSaved: () => setDocsVersion((v) => v + 1) });
   // asking opens OBI, so the answer has somewhere to land
   const send = (text) => {
@@ -271,13 +279,30 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  function openAtlas(idOrName) {
+  function openAtlas(idOrName, section) {
     const c = idOrName ? bella?.components.find((x) => x.id === idOrName || x.name === idOrName) : null;
     if (c) setAtlasId(c.id);
     setWs('atlas');
     setNavOpen(false);
     if (narrow) setObiOpen(false); // the sheet covers the page at phone width
+    if (section) setTimeout(() => document.getElementById(section)?.scrollIntoView({ block: 'start' }), 300);
   }
+  // a Needs-you action can open the dock on The Bar or a terminal
+  useEffect(() => {
+    const open = () => setObiOpen(true);
+    window.addEventListener('chip:dock', open);
+    window.addEventListener('chip:terminal', open);
+    return () => {
+      window.removeEventListener('chip:dock', open);
+      window.removeEventListener('chip:terminal', open);
+    };
+  }, []);
+  const openBar = () => {
+    setObiOpen(true);
+    requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('chip:dock', { detail: { view: 'bar' } })));
+  };
+  const needCount = needs?.items.length ?? 0;
+  const needLabel = needCount ? `The Bar · ${needCount} need${needCount === 1 ? 's' : ''} you` : 'The Bar · nothing needs you';
 
   const onNavigate = (href, e) => {
     const r = routeOf(href);
@@ -326,7 +351,7 @@ export default function App() {
             </ActionChip>
             <p className="brand">CHIP</p>
             {/* the page name only; it wraps or shrinks, never cuts off */}
-            <p className="here">{ws === 'atlas' ? atlas?.name ?? 'Atlas' : page}</p>
+            <p className="here">{ws === 'atlas' ? atlas?.name ?? 'Components' : page}</p>
             <ActionChip onClick={() => setObiOpen((o) => !o)} ariaLabel={obiOpen ? 'OBI: close' : 'OBI: open'}>
               OBI
             </ActionChip>
@@ -344,6 +369,7 @@ export default function App() {
                 </ActionChip>
               ) : null}
             </div>
+            <ActionChip onClick={openBar}>{needLabel}</ActionChip>
             <Select label="View as" value={role} onChange={setRole} options={ROLES} className="theme-select view-as" />
           </>
         )}
@@ -362,7 +388,7 @@ export default function App() {
             <div {...tabPanelProps('ws', 'health', ws === 'health')}>
               <Health bella={bella} health={health} failures={failures} onOpenAtlas={openAtlas} onAsk={send} onRun={send} narrow={narrow} />
             </div>
-            <div {...tabPanelProps('ws', 'docs', ws === 'docs')}>{ws === 'docs' ? <Docs docId={docId} version={docsVersion} narrow={narrow} /> : null}</div>
+            <div {...tabPanelProps('ws', 'docs', ws === 'docs')}>{ws === 'docs' ? <History docId={docId} version={docsVersion} narrow={narrow} bella={bella} onOpenAtlas={openAtlas} /> : null}</div>
             <div {...tabPanelProps('ws', 'connectors', ws === 'connectors')}>{ws === 'connectors' ? <Connectors narrow={narrow} /> : null}</div>
             <div {...tabPanelProps('ws', 'atlas', ws === 'atlas')}>
               {ws === 'atlas' ? (
@@ -403,6 +429,7 @@ export default function App() {
               picked={picked}
               setPicked={setPicked}
               budget={budget}
+              needs={needs}
             />
           </aside>
         </div>
@@ -440,6 +467,8 @@ export default function App() {
           </div>
         </Drawer>
       ) : null}
+
+      <ReviewSheet />
 
       <p className="toast" role="status" aria-live="polite" data-show={toast ? '' : undefined}>
         {toast}

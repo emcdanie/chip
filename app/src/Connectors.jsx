@@ -12,6 +12,8 @@ import NavList from '@bella/components/NavList/NavList';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import Tag from '@bella/components/Tag/Tag';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
+import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
+import SystemMap from './SystemMap.jsx';
 
 // a URL or path breaks only after "/" or ".", never mid-word
 function Breakable({ text }) {
@@ -71,6 +73,7 @@ function Server({ s, onTest, testing }) {
 }
 
 export default function Connectors({ narrow }) {
+  const [tab, setTab] = useState('map');
   const [servers, setServers] = useState(null);
   const [testing, setTesting] = useState(null);
   const [error, setError] = useState(null);
@@ -110,8 +113,21 @@ export default function Connectors({ narrow }) {
       <PageHeader
         meta="Settings"
         title="Connectors"
-        lede="MCP servers and CLI tools from chip.config.local.json. Read tools run when OBI needs them; a write shows a preview and waits for Confirm. Every call is logged."
+        lede="The tools CHIP reads from, whether each one answers, and what depends on them. Set in chip.config.local.json; a write shows a preview and waits for Confirm."
       />
+      <Tabs
+        tabs={[
+          { id: 'map', label: 'System map' },
+          { id: 'list', label: `Connectors ${servers?.length ?? ''}`.trim() },
+        ]}
+        value={tab}
+        onChange={setTab}
+        label="Connectors"
+        idBase="conn"
+      />
+      <div {...tabPanelProps('conn', 'map', tab === 'map')}>{tab === 'map' ? <SystemMap /> : null}</div>
+      <div {...tabPanelProps('conn', 'list', tab === 'list')}>
+      {tab === 'list' ? (<>
       {error ? <p role="alert">{error}</p> : null}
       {servers && !servers.length ? <p>No servers yet. Copy chip.config.example.json to chip.config.local.json.</p> : null}
       {mcp.length ? (
@@ -124,13 +140,15 @@ export default function Connectors({ narrow }) {
           {rows(cli)}
         </Section>
       ) : null}
+      </>) : null}
+      </div>
     </>
   );
 
   // the same aside as every page, so the title stays put across the tabs
   return (
     <div className="connectors">
-      {narrow ? content : <SidebarLayout aside={<NavList label="On this page" groups={[{ label: 'On this page', items: sections }]} />} asideLabel="On this page">{content}</SidebarLayout>}
+      {narrow || tab === 'map' ? content : <SidebarLayout aside={<NavList label="On this page" groups={[{ label: 'On this page', items: sections }]} />} asideLabel="On this page">{content}</SidebarLayout>}
     </div>
   );
 }

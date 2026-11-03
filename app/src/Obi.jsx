@@ -204,11 +204,11 @@ function metaLine(t) {
 function aboutComponent(t, name) {
   if (!name) return false;
   if (new RegExp(`\\b${name}\\b`, 'i').test(t.q)) return true;
-  return t.page === `Atlas · ${name}` && /\b(here|this|it|its)\b/i.test(t.q);
+  return /^(?:Atlas|Components) · /.test(t.page) && t.page.endsWith(` · ${name}`) && /\b(here|this|it|its)\b/i.test(t.q);
 }
 
 function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onSave, onSaveDoc, onCompare, onIncludePrivate, notify }) {
-  const here = page?.match(/^Atlas · (\w+)$/)?.[1];
+  const here = page?.match(/^(?:Atlas|Components) · (\w+)$/)?.[1];
   const done = t.path !== 'docs' || t.total != null;
   const miss = t.path === 'weak' || (t.path === 'docs' && done && isMiss(t.text));
   const answered = done && !miss && (t.path === 'data' || (t.path === 'docs' && t.text));
@@ -881,7 +881,7 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
 }
 
 /* ---------- the panel ---------- */
-export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, onClose, notify, models = [], picked, setPicked, budget }) {
+export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, onClose, notify, models = [], picked, setPicked, budget, needs }) {
   const thread = useRef(null);
   const claudeOk = models.some((m) => m.id === 'claude' && m.available);
   const suggestions = useMemo(() => suggestionsFor(page, bella), [page, bella]);
@@ -893,6 +893,22 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
 
   const [dockView, setDockView] = useState('obi');
   const bar = useBar();
+  // other pages open a dock tab: Needs you opens The Bar; a Needs-you item
+  // opens a terminal with its command typed (never run: she presses Return)
+  const [inject, setInject] = useState(null);
+  useEffect(() => {
+    const dock = (e) => setDockView(e.detail.view);
+    const term = (e) => {
+      setInject({ ...e.detail, at: Date.now() });
+      setDockView('term');
+    };
+    window.addEventListener('chip:dock', dock);
+    window.addEventListener('chip:terminal', term);
+    return () => {
+      window.removeEventListener('chip:dock', dock);
+      window.removeEventListener('chip:terminal', term);
+    };
+  }, []);
 
   // activate SSE and mark items read when bar tab opens
   useEffect(() => {
@@ -904,7 +920,7 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
     { value: 'obi', label: 'OBI' },
     { value: 'claude', label: 'Claude' },
     { value: 'term', label: 'Terminal' },
-    { value: 'bar', label: bar.unread > 0 ? `The Bar (${bar.unread})` : 'The Bar' },
+    { value: 'bar', label: needs?.items.length ? `The Bar (${needs.items.length})` : 'The Bar' },
   ];
   // a terminal starts the first time its tab opens, then keeps running
   // (hidden) while other tabs are shown, until Restart or the page closes
@@ -938,15 +954,15 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
         </ActionChip>
       </header>
 
-      {['claude', 'term'].map((k) => (started[k] ? <TermView key={k} kind={k} repos={repos} active={dockView === k} /> : null))}
+      {['claude', 'term'].map((k) => (started[k] || (k === 'term' && inject) ? <TermView key={k} kind={k} repos={repos} active={dockView === k} inject={k === 'term' ? inject : null} /> : null))}
       {isTerm ? null : dockView === 'bar' ? (
-        <TheBar lanes={bar.lanes} events={bar.events} needsItems={bar.needsItems} staleCount={bar.staleCount} notify={notify} />
+        <TheBar lanes={bar.lanes} events={bar.events} needsItems={bar.needsItems} staleCount={bar.staleCount} notify={notify} needs={needs} />
       ) : (
         <>
           <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
             {obi.turns.length === 0 ? (
               <li className="obi-empty">
-                <p>Ask about {page === 'Health' ? 'BELLA' : page.replace('Atlas · ', '')}, or type / for a command.</p>
+                <p>Ask about {page === 'Overview' ? 'BELLA' : page.replace(/^(?:Atlas|Components) · /, '')}, or type / for a command.</p>
                 {suggestions.length ? (
                   <div className="obi-suggest" aria-label="Suggested questions">
                     {suggestions.map((sg) => (

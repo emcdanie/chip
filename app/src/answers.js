@@ -18,7 +18,7 @@ export function tokensIn(text) {
 function named(q, bella, page) {
   const inQ = componentsIn(q, bella);
   if (inQ.length) return bella.components.find((c) => c.name === inQ[0]);
-  const m = page?.match(/^Atlas · (\w+)$/);
+  const m = page?.match(/^(?:Atlas|Components) · (\w+)$/);
   return m ? bella.components.find((c) => c.name === m[1]) : null;
 }
 
@@ -129,7 +129,7 @@ export function clarify(q, turns, page) {
 /** 2 or 3 questions built from the real gaps on the page. */
 export function suggestionsFor(page, bella) {
   if (!bella) return [];
-  const m = page?.match(/^Atlas · (\w+)$/);
+  const m = page?.match(/^(?:Atlas|Components) · (\w+)$/);
   if (m) {
     const c = bella.components.find((x) => x.name === m[1]);
     if (!c) return [];

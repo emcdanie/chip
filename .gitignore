@@ -59,3 +59,7 @@ Thumbs.db
 
 # local CHIP settings (copy chip.config.example.json)
 /chip.config.local.json
+
+# Check results and CHIP review-card actions: local state, read by sessions (phase 6, 3 Nov)
+/data/checks/
+/data/actions.jsonl

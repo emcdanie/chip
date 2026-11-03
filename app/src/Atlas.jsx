@@ -12,6 +12,7 @@ import Columns from '@bella/components/Columns/Columns';
 import Card from '@bella/components/Card/Card';
 import Link from '@bella/components/Link/Link';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
+import { openReview } from './ReviewSheet.jsx';
 import NavList from '@bella/components/NavList/NavList';
 import Button from '@bella/components/Button/Button';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
@@ -758,6 +759,49 @@ function specimenHeight() {
   return el ? el.offsetHeight : null;
 }
 
+// Tests (phase 6, 3 Nov late): this component's stories file in the last
+// visual audit and the per-component checks, pass or fail, with the review
+// card when a failing one has a change ready (GET /component-tests/:id).
+const TEST_WORD = { pass: '✓ Passes', fail: '✕ Fails', 'not-run': '– Not run' };
+const TEST_VARIANT = { pass: 'success', fail: 'danger', 'not-run': 'neutral' };
+function ComponentTests({ c }) {
+  const [t, setT] = useState(null);
+  useEffect(() => {
+    setT(null);
+    const load = () => fetch(`/component-tests/${c.id}`).then((r) => r.json()).then(setT).catch(() => setT({ error: true }));
+    load();
+    window.addEventListener('chip:changed', load);
+    return () => window.removeEventListener('chip:changed', load);
+  }, [c.id]);
+  if (!t) return <p className="label">Reading the tests…</p>;
+  if (t.error) return <p className="label">The tests could not be read.</p>;
+  const rows = [...t.tests].sort((a, b) => (a.status === 'fail' ? -1 : 0) - (b.status === 'fail' ? -1 : 0));
+  const fails = rows.filter((r) => r.status === 'fail').length;
+  const run = (check) => fetch(`/checks/${check}/run`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).then(() => setT({ ...t, running: true }));
+  return (
+    <Card>
+      <div className="ctests">
+        <p className="ctests-sum">
+          <strong>{fails ? `${fails} of ${rows.length} fail${fails === 1 ? 's' : ''}` : `All ${rows.length} pass`}</strong>
+          {t.running ? ' · the stories audit is running; Overview shows it when it lands' : ''}
+        </p>
+        <ul className="ctests-list">
+          {rows.map((r) => (
+            <li key={r.name} data-status={r.status}>
+              <span className="ctests-name">{r.name}</span>
+              <StatusPill variant={TEST_VARIANT[r.status]}>{TEST_WORD[r.status]}</StatusPill>
+              <span className="label ctests-detail">{r.detail}</span>
+              {r.action ? (
+                <ActionChip onClick={() => (r.action.type === 'review' ? openReview(r.action.check) : run(r.action.check))}>{r.action.label}</ActionChip>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </Card>
+  );
+}
+
 export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary = true, trySignal, onTryUsed, role = 'admin', vis = { components: {} }, setVis = () => {} }) {
   const reduced = useReducedMotion();
   const [mode, setMode] = useState('anatomy'); // anatomy | exploded | try | spec (no anatomy: specimen | try | spec)
@@ -950,6 +994,10 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
           <Facts c={c} notes={notes} role={role} vis={vis} setVis={setVis} bella={bella} theme={theme} lint={lint} trial={view === 'try' ? { draft, height: heights.now } : null} />
         </Columns>
       </div>
+
+      <Section id="tests" heading="Tests" lede="Its stories in the gate's visual audit, and the checks BELLA runs on it. Failing first.">
+        <ComponentTests c={c} />
+      </Section>
 
       <Section id="examples" heading="Examples">
         {examples.length ? <Columns count={2} className="examples-cols">{examples}</Columns> : (

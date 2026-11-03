@@ -36,7 +36,7 @@ function themeOf(el) {
 
 const STATUS = { connecting: 'Starting…', open: 'Running', closed: 'Stopped' };
 
-function TermScreen({ repo, run, active, label, onStatus }) {
+function TermScreen({ repo, run, active, label, onStatus, typeOnOpen }) {
   const box = useRef(null);
   const live = useRef(null); // { term, fit, ws }
 
@@ -61,7 +61,12 @@ function TermScreen({ repo, run, active, label, onStatus }) {
     const q = new URLSearchParams({ repo, cols: String(term.cols), rows: String(term.rows), ...(run ? { run } : {}) });
     const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/term?${q}`);
     onStatus('connecting');
-    ws.onopen = () => onStatus('open');
+    ws.onopen = () => {
+      onStatus('open');
+      // a command from Needs you: typed once the login shell has drawn its
+      // prompt, never followed by Return
+      if (typeOnOpen) setTimeout(() => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ type: 'input', data: typeOnOpen })), 900);
+    };
     ws.onclose = () => onStatus('closed');
     ws.onmessage = (e) => term.write(typeof e.data === 'string' ? e.data : '');
     const send = (m) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(m));
@@ -105,9 +110,17 @@ function TermScreen({ repo, run, active, label, onStatus }) {
 }
 
 /** One terminal tab: repo picker, status, Restart, and the screen. */
-export function TermView({ kind, repos, active }) {
-  const [repo, setRepo] = useState('chip');
+export function TermView({ kind, repos, active, inject }) {
+  const [repo, setRepo] = useState(inject?.repo ?? 'chip');
   const [run, setRun] = useState(0); // bumped by Restart: a fresh shell
+  const [typed, setTyped] = useState(inject?.command ?? null);
+  // a new command from Needs you: a fresh shell in its repo with it typed
+  useEffect(() => {
+    if (!inject) return;
+    setRepo(inject.repo);
+    setTyped(inject.command);
+    setRun((n) => n + 1);
+  }, [inject?.at]);
   const [status, setStatus] = useState('connecting');
   const name = kind === 'claude' ? 'Claude' : 'Terminal';
   const options = repos.length ? repos.map((r) => ({ value: r.id, label: r.label })) : [{ value: 'chip', label: 'CHIP' }];
@@ -121,9 +134,14 @@ export function TermView({ kind, repos, active }) {
           {STATUS[status]} · {kind === 'claude' ? `claude in ${where}` : `your shell in ${where}`}
         </span>
         <span className="obi-grow" />
-        <ActionChip onClick={() => setRun((n) => n + 1)}>{status === 'closed' ? 'Start again' : 'Restart'}</ActionChip>
+        <ActionChip onClick={() => (setTyped(null), setRun((n) => n + 1))}>{status === 'closed' ? 'Start again' : 'Restart'}</ActionChip>
       </div>
-      <TermScreen key={`${repo}:${run}`} repo={repo} run={kind === 'claude' ? 'claude' : undefined} active={active} label={`${name} in ${where}`} onStatus={setStatus} />
+      {typed ? (
+        <p className="label term-typed">
+          Typed for you, not run: <span className="mono">{typed}</span>. Press Return in the terminal to run it.
+        </p>
+      ) : null}
+      <TermScreen key={`${repo}:${run}`} repo={repo} run={kind === 'claude' ? 'claude' : undefined} active={active} label={`${name} in ${where}`} onStatus={setStatus} typeOnOpen={typed} />
     </div>
   );
 }

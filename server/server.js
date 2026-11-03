@@ -20,6 +20,11 @@ import { barState, barStream, barImg } from './lib/bar.mjs';
 import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
 import { specOf, figmaLint } from './lib/spec-lint.mjs';
 import { attachTerminal, repoList } from './lib/term.mjs';
+import { listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
+import { accept, fixableChecks, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
+import { needsYou } from './lib/needs.mjs';
+import { historyRecord, searchHistory } from './lib/history.mjs';
+import { systemMap } from './lib/map.mjs';
 
 const app = express();
 app.use(express.json());
@@ -403,6 +408,96 @@ app.post('/cmd', (req, res) => {
   });
 });
 
+// Checks, review cards, Needs you, History and the system map (phase 6 G, H,
+// I, 3 Nov late). Reads are open to the page; anything that writes to BELLA
+// (run a check, Accept, Undo) must come from CHIP's own page.
+const errorOut = (res, e, code = 400) => res.status(code).json({ error: e.message });
+app.get('/checks', (_req, res) => {
+  const rerun = refreshIfStale();
+  res.json({ ...listChecks({ waiting: waitingChecks(), fixable: fixableChecks() }), rerun });
+});
+app.post('/checks/:id/run', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(runCheck(String(req.params.id)));
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+app.get('/review/:check', (req, res) => {
+  try {
+    res.json(reviewCard(String(req.params.check)));
+  } catch (e) {
+    errorOut(res, e, 500);
+  }
+});
+app.post('/review/:check/accept', async (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(await accept(String(req.params.check), { baselines: req.body?.baselines ?? [] }));
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+app.post('/review/:check/undo', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(undo(String(req.params.check)));
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+app.get('/review-img/:dir/:file', (req, res) => {
+  try {
+    res.type('png').send(reviewImage(String(req.params.dir), String(req.params.file)));
+  } catch {
+    res.status(404).end();
+  }
+});
+app.get('/needs', (_req, res) => {
+  try {
+    res.json(needsYou());
+  } catch (e) {
+    errorOut(res, e, 500);
+  }
+});
+app.get('/history', (req, res) => res.json(searchHistory(req.query)));
+app.get('/history/record', (req, res) => {
+  const r = historyRecord(String(req.query.id ?? ''));
+  return r ? res.json(r) : res.status(404).json({ error: 'No such record' });
+});
+app.get('/map', async (_req, res) => {
+  try {
+    res.json(await systemMap());
+  } catch (e) {
+    errorOut(res, e, 500);
+  }
+});
+// one component's tests: its stories file in the last visual run, plus the
+// per-component facts the sync measured (contract, contrast, DSDS, docs)
+app.get('/component-tests/:id', (req, res) => {
+  const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
+  const c = bella.components.find((x) => x.id === req.params.id);
+  if (!c) return res.status(404).json({ error: 'No such component' });
+  const visual = readResult('visual');
+  const contrast = readResult('contrast');
+  const suite = Object.entries(visual?.suites ?? {}).find(([p]) => p.endsWith(`/${c.name}/${c.name}.stories.tsx`));
+  const usesFailing = (contrast?.failures ?? []).some((f) => (c.tokens?.list ?? []).some((t) => f.includes(t)));
+  const row = (name, status, detail, action) => ({ name, status, detail, action: action ?? null });
+  res.json({
+    id: c.id,
+    name: c.name,
+    ranAt: visual?.ranAt ?? null,
+    tests: [
+      row('Stories: axe and interactions', !c.hasStory ? 'fail' : !suite ? 'not-run' : suite[1], !c.hasStory ? `${c.name} has no story, so nothing renders it in the gate.` : suite ? `${suite[0]} in the visual audit of ${visual.commit}.` : 'The visual audit has not run since CHIP started keeping per-story results.', !suite && c.hasStory ? { type: 'run', check: 'visual', label: 'Run the stories' } : null),
+      row('Contrast of its tokens', usesFailing ? 'fail' : c.health?.contrast?.status === 'fail' ? 'fail' : 'pass', usesFailing ? (contrast.failures.find((f) => (c.tokens?.list ?? []).some((t) => f.includes(t)))) : `${c.health?.contrast?.pairs ?? 0} pairs checked on the tokens it reads.`, usesFailing ? { type: 'review', check: 'contrast', label: 'Review the fix' } : null),
+      row('Contract matches the code', c.health?.contract?.status === 'fail' ? 'fail' : 'pass', c.health?.contract?.issues?.join('; ') || 'Props, variants and states agree with tokens/component.json.'),
+      row('DSDS spec entry', c.inDsds ? 'pass' : 'fail', c.inDsds ? 'bella.dsds.yaml has it.' : 'Missing from bella.dsds.yaml.'),
+      row('Docs page', c.hasDocs ? 'pass' : 'fail', c.hasDocs ? `docs/components/${c.id}.md` : 'No guidance page yet.'),
+    ],
+  });
+});
+
 // GET /term/repos: the folders a workspace terminal may open in.
 app.get('/term/repos', (_req, res) => res.json(repoList()));
 
@@ -414,3 +509,8 @@ const server = app.listen(PORT, '127.0.0.1', () => {
     .catch((err) => console.error('[CHIP] warm-up failed:', err.message));
 });
 attachTerminal(server, { port: PORT, origins: APP_ORIGINS });
+
+// Overview should never open on "Not run yet": run the fast checks once at
+// start when they have no result (the stories audit takes minutes; it waits
+// for Run now)
+refreshIfStale();

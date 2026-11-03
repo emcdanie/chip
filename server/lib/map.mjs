@@ -1,0 +1,114 @@
+// The system map on Connectors (phase 6 I, 3 Nov late): BELLA's pipeline as
+// a tree, every node's state from real data (bella.json, the checks, the
+// connectors' last test, git), and what each one blocks when it fails.
+// Edges point from what a node reads to the node. A node whose source is
+// failing says "Blocked by …", like a status page greys what depends on it.
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { ROOT, OLLAMA_URL, CHIP_CLAUDE_BIN } from './config.mjs';
+import { BELLA } from './bella-work.mjs';
+import { BASE, listChecks } from './checks.mjs';
+import { waitingChecks } from './review.mjs';
+import * as host from '../host/registry.js';
+
+const git = (args) => {
+  try {
+    return execFileSync('git', ['-C', BELLA, '--no-optional-locks', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  } catch {
+    return null;
+  }
+};
+const lastChange = (paths) => git(['log', '-1', '--format=%h · %ad · %s', '--date=short', BASE, '--', ...paths]);
+const has = (cmd) => {
+  try {
+    execFileSync('/bin/sh', ['-c', `command -v ${cmd}`], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const fromCheck = (c) => (!c ? 'unknown' : c.status === 'passed' ? 'ok' : c.status === 'failed' ? 'bad' : c.status === 'waiting' ? 'warn' : 'unknown');
+const fromServer = (s) => (!s ? 'unknown' : s.disabled ? 'off' : s.status === 'connected' ? 'ok' : s.status === 'error' ? 'bad' : 'unknown');
+
+/** GET /map */
+export async function systemMap() {
+  const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
+  const { checks, gate } = listChecks({ waiting: waitingChecks() });
+  const ck = Object.fromEntries(checks.map((c) => [c.id, c]));
+  // live status: a Figma connector never tested this run gets one quick test
+  // (the map is where "is Figma down?" gets asked)
+  for (const s of host.servers()) {
+    if (['figma', 'figma-console'].includes(s.name) && !s.disabled && s.status === 'not tested') {
+      await Promise.race([host.test(s.name), new Promise((r) => setTimeout(r, 4000))]).catch(() => {});
+    }
+  }
+  const servers = Object.fromEntries(host.servers().map((s) => [s.name, s]));
+  let ollama = 'unknown';
+  try {
+    const r = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(1500) });
+    ollama = r.ok ? 'ok' : 'bad';
+  } catch {
+    ollama = 'bad';
+  }
+  const n = bella.counts;
+  const node = (o) => ({ deps: [], ...o });
+  const nodes = [
+    // Design
+    node({ id: 'figma', group: 'Design', name: 'Figma MCP', state: fromServer(servers.figma), detail: servers.figma ? `${servers.figma.status}${servers.figma.error ? `: ${servers.figma.error}` : ''}. ${servers.figma.note}` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma', label: 'Test it' } }),
+    node({ id: 'figma-console', group: 'Design', name: 'figma-console', state: fromServer(servers['figma-console']), detail: servers['figma-console'] ? `${servers['figma-console'].status}. ${servers['figma-console'].note}` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma-console', label: 'Test it' } }),
+    // Source
+    node({ id: 'tokens', group: 'Source', name: 'Tokens', state: fromCheck(ck['tokens-built']), detail: `${n.cssVars.light} CSS variables, four themes. ${ck['tokens-built']?.summary ?? 'Not checked yet.'}`, source: `tokens/*.json · ${lastChange(['tokens']) ?? ''}` }),
+    node({ id: 'contracts', group: 'Source', name: 'Contracts', state: fromCheck(ck.contract), detail: `${n.withContract} of ${n.components} components have one. ${ck.contract?.summary ?? ''}`, source: `tokens/component.json · ${lastChange(['tokens/component.json']) ?? ''}`, deps: ['tokens'] }),
+    node({ id: 'components', group: 'Source', name: 'Components', state: 'ok', detail: `${n.components} components in src/components.`, source: `src/components · ${lastChange(['src/components']) ?? ''}`, deps: ['tokens', 'contracts'] }),
+    // Checks
+    node({ id: 'contrast', group: 'Checks', name: 'Contrast pairs', state: fromCheck(ck.contrast), detail: ck.contrast?.failures?.[0] ?? ck.contrast?.summary ?? 'Not run yet.', source: 'scripts/contrast-pairs.mjs · data/checks/contrast.json', deps: ['tokens'], action: { type: 'review', check: 'contrast', label: 'Open the review card' } }),
+    node({ id: 'stories', group: 'Checks', name: 'Stories & tests', state: fromCheck(ck.visual), detail: `${n.withStory} of ${n.components} components have a story. ${ck.visual?.summary ?? 'Not run yet.'}`, source: 'npm run audit:visual · data/checks/visual.json', deps: ['components'], action: { type: 'run', check: 'visual', label: 'Run the stories' } }),
+    node({ id: 'agents', group: 'Checks', name: 'AGENTS.md', state: fromCheck(ck['agents-md']), detail: ck['agents-md']?.summary ?? 'Not run yet.', source: `AGENTS.md · ${lastChange(['AGENTS.md']) ?? ''}`, deps: ['components'] }),
+    node({ id: 'gate', group: 'Checks', name: 'Gate', state: { passed: 'ok', failed: 'bad', waiting: 'warn' }[gate.status] ?? 'unknown', detail: gate.summary, source: 'npm run gate · the pre-commit hook', deps: ['contrast', 'contracts', 'agents', 'tokens', 'stories'] }),
+    node({ id: 'bench', group: 'Checks', name: 'Bench', state: ck['bench-static']?.status === 'not-run' ? 'unknown' : ck['bench-static']?.score >= 70 ? 'ok' : 'warn', detail: ck['bench-static']?.summary ?? 'Not run yet.', source: '~/DEV/tools/odsb · data/checks/bench-static.json', deps: ['components', 'agents'], action: { type: 'run', check: 'bench-static', label: 'Run the bench now' } }),
+    node({ id: 'compare', group: 'Checks', name: 'Compare with Figma', state: 'unknown', detail: 'Reads the component frame through the Figma MCP.', source: 'Components · Compare tab', deps: ['figma', 'components'] }),
+    // Review and ship
+    node({ id: 'review', group: 'Review', name: 'Review card', state: 'ok', detail: 'Accept makes a local chip/fix-* branch; Undo deletes it.', source: 'server/lib/review.mjs', deps: ['gate'] }),
+    node({ id: 'ci', group: 'Review', name: 'CI', state: 'unknown', detail: `GitHub runs the gate after a push. ${git(['rev-list', '--count', `${BASE}@{upstream}..${BASE}`]) === '0' ? `${BASE} has nothing unpushed.` : 'Local commits are not pushed yet.'}`, source: 'GitHub Actions (read only through gh)', deps: ['gate'] }),
+    node({ id: 'ship', group: 'Ship', name: 'Merge and release', state: 'unknown', detail: 'Elleta merges. CHIP never merges or pushes.', source: 'git', deps: ['review', 'ci'] }),
+    // Context
+    node({ id: 'git', group: 'Context', name: 'git', state: git(['rev-parse', BASE]) ? 'ok' : 'bad', detail: `${BASE} @ ${git(['rev-parse', '--short', BASE]) ?? '?'}.`, source: BELLA.replace(process.env.HOME, '~') }),
+    node({ id: 'ollama', group: 'Context', name: 'Local model', state: ollama, detail: ollama === 'ok' ? `Ollama answers at ${OLLAMA_URL}.` : `Ollama is not answering at ${OLLAMA_URL}.`, source: 'OBI (search, local answers)' }),
+    node({ id: 'claude', group: 'Context', name: 'Claude', state: has(CHIP_CLAUDE_BIN) ? 'ok' : 'bad', detail: has(CHIP_CLAUDE_BIN) ? 'Claude Code is installed; OBI answers through it by default, and the Claude tab runs it.' : 'The claude command is not on PATH.', source: 'OBI · the Claude tab' }),
+    node({ id: 'notion', group: 'Context', name: 'Notion', state: existsSync(join(ROOT, 'data/notion')) ? 'ok' : 'unknown', detail: 'Read through CHIP’s own sync into data/notion; the MCP is off.', source: 'npm run sync:notion' }),
+  ];
+  // a failing source blocks what reads it, all the way down
+  const byId = Object.fromEntries(nodes.map((x) => [x.id, x]));
+  const blockedBy = (x, seen = new Set()) => {
+    for (const d of x.deps) {
+      if (seen.has(d)) continue;
+      seen.add(d);
+      const dep = byId[d];
+      if (!dep) continue;
+      if (dep.state === 'bad') return dep;
+      const up = blockedBy(dep, seen);
+      if (up) return up;
+    }
+    return null;
+  };
+  for (const x of nodes) {
+    const b = x.state !== 'bad' ? blockedBy(x) : null;
+    if (b) {
+      x.blockedBy = { id: b.id, name: b.name };
+      x.state = 'blocked';
+    }
+    x.dependents = nodes.filter((o) => o.deps.includes(x.id)).map((o) => o.name);
+  }
+  const groups = [...new Set(nodes.map((x) => x.group))].map((g) => {
+    const kids = nodes.filter((x) => x.group === g);
+    const worst = ['bad', 'blocked', 'warn', 'unknown', 'off', 'ok'].find((s) => kids.some((k) => k.state === s));
+    return { id: g, name: g, state: worst, healthy: Math.round((kids.filter((k) => k.state === 'ok').length / kids.length) * 100) };
+  });
+  const bad = nodes.filter((x) => x.state === 'bad');
+  const sentence = bad.length
+    ? bad.map((b) => `${b.name} is failing, so ${nodes.filter((x) => x.blockedBy?.id === b.id).map((x) => x.name).join(', ') || 'nothing else'} ${nodes.filter((x) => x.blockedBy?.id === b.id).length === 1 ? 'is' : 'are'} blocked.`).join(' ')
+    : 'Nothing is failing.';
+  return { nodes, groups, sentence, base: BASE };
+}

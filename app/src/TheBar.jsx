@@ -8,6 +8,8 @@ import TypingDots from '@bella/components/TypingDots/TypingDots';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import { inline } from './Obi.jsx';
+import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
+import { openReview } from './ReviewSheet.jsx';
 
 // Lane photo sources (160×160, circular mask, transparent bg).
 const LANE_SRC = {
@@ -329,7 +331,75 @@ async function copyText(text, notify) {
 
 // ---- TheBar ----
 
-export function TheBar({ lanes, events, needsItems, staleCount = 0, notify }) {
+// ---- Needs you (phase 6, 3 Nov late) ----
+// GET /needs: what waits on Elleta from the checks, fix branches, git state
+// and fresh lane notes, ranked High → Low. A row opens in place: the detail,
+// why that risk, "This will · Undo", and one button.
+export function useNeeds() {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    const load = () => fetch('/needs').then((r) => r.json()).then(setData).catch(() => {});
+    load();
+    const t = setInterval(load, 15000);
+    window.addEventListener('chip:changed', load);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener('chip:changed', load);
+    };
+  }, []);
+  return data;
+}
+
+const RISK_VARIANT = { High: 'danger', Medium: 'attention', Low: 'neutral' };
+const RISK_SHAPE = { High: '▲', Medium: '●', Low: '○' };
+
+export function NeedsYou({ needs, onLane }) {
+  const [open, setOpen] = useState(null);
+  if (!needs) return <p className="bar-empty">Reading what needs you…</p>;
+  const act = (a) => {
+    if (a.type === 'review') openReview(a.check);
+    else if (a.type === 'terminal') window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: a.repo, command: a.command } }));
+    else if (a.type === 'lane') onLane?.(a.lane);
+  };
+  return (
+    <div className="needs">
+      {needs.items.length === 0 ? <p className="bar-empty">Nothing needs you.</p> : null}
+      <ol className="needs-list">
+        {needs.items.map((n) => (
+          <li key={n.id} className="needs-item" data-open={open === n.id || undefined}>
+            <button type="button" className="needs-head" aria-expanded={open === n.id} onClick={() => setOpen(open === n.id ? null : n.id)}>
+              <span className="needs-kind">
+                <StatusPill variant={RISK_VARIANT[n.risk]}>
+                  {RISK_SHAPE[n.risk]} {n.risk} risk
+                </StatusPill>{' '}
+                <span className="label">{n.kind}</span>
+              </span>
+              <span className="needs-what">{n.what}</span>
+            </button>
+            {open === n.id ? (
+              <div className="needs-body">
+                <p>{n.detail}</p>
+                <p className="label">{n.riskWhy}</p>
+                <p className="this-will">
+                  <strong>This will:</strong> {n.thisWill}. <strong>Undo:</strong> {n.undo}.
+                </p>
+                <ActionChip onClick={() => act(n.action)}>{n.action.label}</ActionChip>
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+      {needs.staleLaneNotes ? (
+        <p className="label">
+          {needs.staleLaneNotes} older lane question{needs.staleLaneNotes === 1 ? '' : 's'} from reports quiet for over {needs.freshDays} days are not listed; Lanes has them.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function TheBar({ lanes, events, needsItems, staleCount = 0, notify, needs }) {
+  const [tab, setTab] = useState('needs');
   const wide = useMediaQuery('(min-width: 1024px)');
   const [waitOpen, setWaitOpen] = useState(false);
   const isWaitOpen = wide || waitOpen;
@@ -341,6 +411,19 @@ export function TheBar({ lanes, events, needsItems, staleCount = 0, notify }) {
 
   return (
     <div className="bar-panel">
+      <Tabs
+        tabs={[
+          { id: 'needs', label: `Needs you${needs ? ` ${needs.items.length}` : ''}` },
+          { id: 'lanes', label: `Lanes ${lanes.length}` },
+        ]}
+        value={tab}
+        onChange={setTab}
+        label="The Bar"
+        idBase="bar"
+      />
+      <div {...tabPanelProps('bar', 'needs', tab === 'needs')}>{tab === 'needs' ? <NeedsYou needs={needs} onLane={() => setTab('lanes')} /> : null}</div>
+      <div {...tabPanelProps('bar', 'lanes', tab === 'lanes')}>
+      {tab === 'lanes' ? (<>
       <section className="bar-strip" aria-label="Lane strip">
         <ul className="bar-lanes">
           {lanes.map((l) => (
@@ -400,6 +483,8 @@ export function TheBar({ lanes, events, needsItems, staleCount = 0, notify }) {
       </details>
 
       <BarChat events={events} lanes={lanes} />
+      </>) : null}
+      </div>
     </div>
   );
 }

@@ -10,7 +10,9 @@ import ScoreStrip, { ScoreLegend } from '@bella/components/ScoreStrip/ScoreStrip
 import DataTable from '@bella/components/DataTable/DataTable';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
-import Link from '@bella/components/Link/Link';
+import Button from '@bella/components/Button/Button';
+import { Checks, Coverage, failingTokens, useChecks } from './Checks.jsx';
+import { openReview } from './ReviewSheet.jsx';
 
 // the gap is the loud one: passing states stay quiet, so a row's problem is what you see
 function Pill({ ok, word }) {
@@ -39,32 +41,6 @@ const COLUMNS = [
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const time = (iso) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-// one stat tile: the figure, its change since the previous BELLA commit and
-// the sparkline over the history (only when there are two real points)
-function trendOf(history, key, unit = '') {
-  const pts = history.filter((h) => h[key] != null);
-  if (pts.length < 2) return {};
-  const series = pts.map((h) => h[key]);
-  const diff = series.at(-1) - series.at(-2);
-  return {
-    series,
-    trend: diff > 0 ? 'up' : diff < 0 ? 'down' : undefined,
-    // a flat line says nothing: only a real change gets words
-    delta: diff ? `${Math.abs(diff)}${unit} since the previous BELLA commit` : undefined,
-    seriesLabel: (label) => `${label}: ${series[0]}${unit} to ${series.at(-1)}${unit} over ${series.length} commits`,
-  };
-}
-
-function Tile({ label, value, t, action }) {
-  return (
-    <div className="tile">
-      <Stat label={label} value={value} delta={t.delta} trend={t.trend} series={t.series} seriesLabel={t.seriesLabel?.(label)} />
-      {/* one 44px row for every action, so a link and a chip share a baseline */}
-      <div className="tile-action">{action}</div>
-    </div>
-  );
-}
-
 // What stayed on this machine this week, from data/usage.jsonl (GET /usage).
 function Usage() {
   const [u, setU] = useState(null);
@@ -91,8 +67,9 @@ function Usage() {
 }
 
 const SECTIONS = [
-  { href: '#overview', label: 'Overview' },
-  { href: '#failures', label: 'Open failures' },
+  { href: '#coverage', label: 'Coverage' },
+  { href: '#checks', label: 'Checks' },
+  { href: '#failures', label: 'Gaps to close' },
   { href: '#components', label: 'Components' },
   { href: '#readiness', label: 'Readiness map' },
   { href: '#usage', label: 'Usage' },
@@ -101,16 +78,15 @@ const SECTIONS = [
 // The Overview template (layout foundation): On this page beside the
 // sections; the page header, then one Section per block.
 export default function Health({ bella, health, failures, onOpenAtlas, onAsk, onRun, narrow }) {
+  const checks = useChecks();
   if (!bella) return <p className="loading">Loading BELLA health…</p>;
+  const gate = checks.data?.gate;
+  const failing = failingTokens(checks);
+  // the sync's gaps plus what the last contrast check says, so Coverage and
+  // Gaps count the same things
+  const gaps = [...failures, ...bella.components.filter((c) => (c.tokens?.list ?? []).some((t) => failing.includes(t)) && c.health?.contrast?.status !== 'fail').map((c) => `${c.name}: contrast (${failing.filter((t) => c.tokens.list.includes(t)).join(', ')} fails in the last check)`)];
+  const firstFail = checks.data?.checks.find((c) => c.gate && (c.status === 'failed' || c.status === 'waiting'));
 
-  const history = bella.history ?? [];
-  const pct = (n) => Math.round((n / bella.counts.components) * 100);
-  const gateOk = bella.gates.contrastPairs.ok && bella.gates.contractParity.ok;
-  // green or red per commit, from the gate scripts that existed at that commit
-  const gateHistory = history.filter((h) => h.gate).map((h) => ({ ok: h.gate.ok }));
-  const greenCommits = gateHistory.filter((h) => h.ok).length;
-  // the reason the gate is red, in BELLA's own words
-  const gateWhy = [bella.gates.contrastPairs, bella.gates.contractParity].filter((g) => !g.ok).map((g) => g.summary ?? 'contract parity failing').join('; ');
   const stations = bella.stations;
   const measured = stations.filter((s) => s.score !== null);
   const overall = measured.length
@@ -136,49 +112,43 @@ export default function Health({ bella, health, failures, onOpenAtlas, onAsk, on
             {source} · synced {health?.indexedAt ? `${day(health.indexedAt)}, ${time(health.indexedAt)}` : 'never'}
           </>
         }
-        title="System health"
-        lede="BELLA read from the repo, checked by its own gate scripts, on this machine."
+        title="Overview"
+        lede="BELLA read from the repo and checked by its own gate scripts, on this machine. What needs you is at the top."
       />
 
-      <Section id="overview" heading="Overview">
-        <Card>
-          <div className="hero-stats">
-            <Tile
-              label="Gate"
-              value={gateOk ? 'Green' : 'Red'}
-              t={{ series: gateHistory.length >= 2 ? gateHistory.map((h) => (h.ok ? 1 : 0)) : undefined, seriesLabel: () => `Gate over ${gateHistory.length} commits: ${greenCommits} green, ${gateHistory.length - greenCommits} red`, delta: gateOk ? `${greenCommits} of ${gateHistory.length} recent commits green` : gateWhy }}
-              action={<ActionChip onClick={() => onRun('/audit')}>Run /audit</ActionChip>}
-            />
-            <Tile label="Components" value={bella.counts.components} t={trendOf(history, 'components')} action={<Link href="#/atlas">Open Atlas</Link>} />
-            <Tile
-              label="Story coverage"
-              value={`${pct(bella.counts.withStory)}%`}
-              t={trendOf(history, 'storyCoverage', '%')}
-              action={bella.counts.withStory < bella.counts.components ? <ActionChip onClick={() => onAsk('Which components have no story?')}>Which have none?</ActionChip> : null}
-            />
-            <Tile
-              label="Token contracts"
-              value={`${pct(bella.counts.withContract)}%`}
-              t={trendOf(history, 'contractCoverage', '%')}
-              action={bella.counts.withContract < bella.counts.components ? <ActionChip onClick={() => onAsk('Which components have no contract?')}>Which have none?</ActionChip> : null}
-            />
-          </div>
-        </Card>
+      {gate && firstFail ? (
+        <div className="alert" role="status">
+          <p>
+            <strong>{firstFail.status === 'waiting' ? 'Waiting on you.' : 'Not ready to merge.'}</strong>{' '}
+            {firstFail.status === 'waiting' ? `A fix for ${firstFail.name.toLowerCase()} is on its own branch, gate green: merge it or undo it.` : `${firstFail.failures?.[0] ?? firstFail.summary}. ${gate.summary}`}
+          </p>
+          <Button variant="primary" onClick={() => openReview(firstFail.id)}>
+            {firstFail.status === 'waiting' ? 'Open the review card' : 'Review the fix'}
+          </Button>
+        </div>
+      ) : null}
+
+      <Section id="coverage" heading="Coverage" lede="What each component has, from BELLA's repo. Select a column to see what is missing.">
+        <Coverage bella={bella} onOpenAtlas={onOpenAtlas} failing={failing} />
       </Section>
 
-      {failures.length ? (
-        <Section id="failures" heading={`Open failures (${failures.length})`} lede="From BELLA's own checks. Fix these first.">
+      <Section id="checks" heading="Checks" lede="BELLA's gate scripts and the Design System Bench, run against BELLA as its next commit would be. Select one to see its last run.">
+        <Checks checks={checks} />
+      </Section>
+
+      {gaps.length ? (
+        <Section id="failures" heading={`Gaps to close (${gaps.length})`} lede="Per component: what Coverage counts as missing, one row each.">
           <DataTable
             columns={[
               { key: 'name', label: 'Component' },
               { key: 'issue', label: 'What fails' },
             ]}
-            rows={failures.map((f, i) => {
+            rows={gaps.map((f, i) => {
               const at = f.indexOf(': ');
               return { id: i, name: f.slice(0, at), issue: f.slice(at + 2) };
             })}
             rowKey="id"
-            caption="Open failures"
+            caption="Gaps to close"
           />
         </Section>
       ) : null}
