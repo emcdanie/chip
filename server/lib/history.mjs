@@ -107,7 +107,9 @@ function decisionRecords() {
 }
 
 function actionRecords() {
-  return readActions().filter((a) => a.kind === 'accept' || a.kind === 'undo').map((a, i) => ({
+  const all = readActions();
+  const undone = new Set(all.filter((a) => a.kind === 'undo').map((a) => a.sha));
+  return all.filter((a) => a.kind === 'accept' || a.kind === 'undo').map((a, i) => ({
     id: `chip:${a.kind}:${i}`,
     source: 'CHIP review card',
     repo: 'bella',
@@ -115,10 +117,10 @@ function actionRecords() {
     date: a.at,
     who: 'Elleta, in CHIP',
     title: a.kind === 'accept' ? `Accepted: ${a.title}` : `Undone: ${a.title}`,
-    why: a.kind === 'accept' ? `${a.sentence} On local branch ${a.branch} (${a.sha}), gate green; ${a.base} unchanged.` : `Deleted local branch ${a.branch} (${a.sha}). ${a.base} never moved.`,
+    why: a.kind === 'accept' ? `${a.sentence} On local branch ${a.branch} (${a.sha}), gate green; ${a.base} unchanged.${undone.has(a.sha) ? ' Undone later.' : ''}` : `Undid the Accept: deleted local branch ${a.branch} (${a.sha}). ${a.base} never moved.`,
     type: 'Fix',
     breaking: false,
-    status: a.kind === 'accept' ? 'On a branch' : 'Undone',
+    status: a.kind === 'accept' && !undone.has(a.sha) ? 'On a branch' : 'Undone',
     branch: a.branch,
     files: a.files ?? [],
     measured: a.measured ?? null,

@@ -72,7 +72,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-3) var(--spacing-6);
+  gap: var(--spacing-3) var(--spacing-5);
   padding-block: var(--spacing-3);
 }
 
@@ -91,7 +91,8 @@ body {
 /* the one input sits centred in the bar; when OBI is open it moves into the
    panel and the bar shows the quiet OBI chip instead */
 .bar-slot {
-  flex: 1 1 calc(var(--spacing-20) * 4);
+  /* shrinks before anything wraps: one row from 1280 with the Needs-you chip */
+  flex: 1 1 calc(var(--spacing-20) * 2);
   max-width: calc(var(--spacing-20) * 8);
   margin-inline: auto;
   display: flex;
@@ -3204,4 +3205,39 @@ dialog.sheet[data-side] {
 .map-panel h2 {
   font-size: var(--typography-font-size-xl);
   margin-block: var(--spacing-2) 0;
+}
+/* coverage meters in BELLA's status colours, not the browser's */
+.coverage-col meter {
+  appearance: none;
+  block-size: var(--spacing-2);
+  background: var(--color-semantic-surface-card);
+  border-radius: var(--radius-full);
+}
+.coverage-col meter::-webkit-meter-bar {
+  background: var(--color-semantic-surface-card);
+  border: var(--border-width-thin) solid var(--color-semantic-border);
+  border-radius: var(--radius-full);
+}
+.coverage-col meter::-webkit-meter-optimum-value {
+  background: var(--color-semantic-success-border);
+  border-radius: var(--radius-full);
+}
+.coverage-col meter::-webkit-meter-suboptimum-value,
+.coverage-col meter::-webkit-meter-even-less-good-value {
+  background: var(--color-semantic-attention);
+  border-radius: var(--radius-full);
+}
+.coverage-col meter::-moz-meter-bar {
+  background: var(--color-semantic-success-border);
+}
+/* under 1440 the View as label is for assistive tech only, so the bar keeps one row */
+@media (max-width: 1439px) {
+  .view-as > span:first-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 }
