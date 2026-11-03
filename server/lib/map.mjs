@@ -107,8 +107,9 @@ export async function systemMap() {
     return { id: g, name: g, state: worst, healthy: Math.round((kids.filter((k) => k.state === 'ok').length / kids.length) * 100) };
   });
   const bad = nodes.filter((x) => x.state === 'bad');
+  const blocking = bad.map((b) => ({ b, hit: nodes.filter((x) => x.blockedBy?.id === b.id).map((x) => x.name) })).filter((x) => x.hit.length);
   const sentence = bad.length
-    ? bad.map((b) => `${b.name} is failing, so ${nodes.filter((x) => x.blockedBy?.id === b.id).map((x) => x.name).join(', ') || 'nothing else'} ${nodes.filter((x) => x.blockedBy?.id === b.id).length === 1 ? 'is' : 'are'} blocked.`).join(' ')
+    ? `Failing: ${bad.map((b) => b.name).join(', ')}.${blocking.length ? ` Blocked because of that: ${blocking.map((x) => `${x.hit.join(', ')} (by ${x.b.name})`).join('; ')}.` : ''}`
     : 'Nothing is failing.';
   return { nodes, groups, sentence, base: BASE };
 }

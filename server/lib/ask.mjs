@@ -7,6 +7,8 @@ import { search } from './index.mjs';
 import { chat } from './llm.js';
 import { resolve, providers } from '../providers/index.mjs';
 import { readFileSync, existsSync } from 'node:fs';
+import { listChecks } from './checks.mjs';
+import { reviewCard, waitingChecks } from './review.mjs';
 import { CHIP_CONTEXT_WORDS, CONTEXT_PACK } from './config.mjs';
 
 // The Cowork context pack opens every local-model prompt (background on
@@ -121,6 +123,28 @@ async function retrieve(query, k, page, withPage) {
   }
   return [...best.values()].sort((a, b) => b.score - a.score).slice(0, k);
 }
+// A question about the gate, a check or a failure gets the live check
+// results as its first source (data/checks, the review card's why and fix),
+// so OBI answers from what the gate said tonight, not from the docs' general
+// rules. Public BELLA data: it may go to Claude.
+const ABOUT_CHECKS = /\b(gate|checks?|fail\w*|pass\w*|contrast|wash|bench|stor(y|ies)|tests?|wee-dote|blocked|merge|baseline)\b/i;
+function checksChunk() {
+  const { gate, checks, base, head, staged } = listChecks({ waiting: waitingChecks() });
+  const lines = [
+    `The gate: ${gate.word}. ${gate.summary} Checked on ${base} @ ${head}${staged ? ` plus ${staged.files} staged files` : ''}.`,
+    ...checks.map((c) => `${c.name}: ${c.word}. ${(c.status === 'failed' ? c.failures?.join('; ') : c.summary) ?? ''}`),
+  ];
+  for (const c of checks.filter((x) => x.status === 'failed')) {
+    try {
+      const card = reviewCard(c.id);
+      if (card.why) lines.push(`Why ${c.name.toLowerCase()} fails: ${card.why}`);
+      if (card.change?.sentence) lines.push(`The change CHIP proposes: ${card.change.sentence}`);
+      if (card.lastAttempt?.rules?.length) lines.push(`Last Accept was refused by the gate: ${card.lastAttempt.rules.map((r) => `${r.story}: ${r.rule} (${r.measured})`).join('; ')}.`);
+    } catch {}
+  }
+  return { title: 'CHIP checks · live', path: 'data/checks', text: lines.join('\n'), score: 1 };
+}
+
 async function prepare(message, sessionId, page, { cloud = false, includePrivate = false } = {}) {
   const id = sessionId || randomUUID();
   // a cloud model sees a locally answered turn only when that answer used no
@@ -146,6 +170,11 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
     perPage.set(keyOf(c), n);
     return n <= MAX_PER_PAGE;
   }).slice(0, TOP_K);
+  if (ABOUT_CHECKS.test(message)) {
+    try {
+      found = [checksChunk(), ...found].slice(0, TOP_K);
+    } catch {}
+  }
   const top = found[0]?.score ?? 0;
   if (top < WEAK_SCORE) {
     return { id, weak: true, top, heldBack, keptLocal, closest: [...numbered(found.slice(0, 3)).values()] };

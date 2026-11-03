@@ -61,7 +61,9 @@ const COVERAGE = [
 
 /** Tokens named in the last contrast check's failures: one definition of a
  * contrast failure for Coverage, Gaps and each component's tests. */
-export const failingTokens = (checks) => [...new Set((checks?.data?.checks.find((c) => c.id === 'contrast')?.failures ?? []).flatMap((f) => f.match(/--[\w-]+/g) ?? []))];
+// the first token in a failure line is the one judged ("wash vs the page":
+// the wash fails, not the page)
+export const failingTokens = (checks) => [...new Set((checks?.data?.checks.find((c) => c.id === 'contrast')?.failures ?? []).map((f) => f.match(/--[\w-]+/)?.[0]).filter(Boolean))];
 
 export function Coverage({ bella, onOpenAtlas, failing = [] }) {
   const [open, setOpen] = useState(null);
@@ -121,19 +123,19 @@ function Row({ c, open, onToggle, onRun }) {
   const st = STATUS[c.status] ?? STATUS['not-run'];
   const reviewable = c.status === 'failed' || c.status === 'waiting' || !!c.improve;
   return (
-    <li className="check" data-open={open || undefined}>
-      <div className="check-row">
-        <button type="button" className="check-name" aria-expanded={open} onClick={onToggle}>
+    <li className="ck" data-open={open || undefined}>
+      <div className="ck-row">
+        <button type="button" className="ck-name" aria-expanded={open} onClick={onToggle}>
           {c.name}
         </button>
         <StatusPill variant={st.variant}>{st.word}</StatusPill>
-        <span className="check-result">{c.status === 'running' ? 'Running now…' : (c.status === 'failed' ? c.failures?.[0] : null) ?? c.summary ?? 'No result yet.'}</span>
-        <span className="label check-when">
+        <span className="ck-result">{c.status === 'running' ? 'Running now…' : (c.status === 'failed' ? c.failures?.[0] : null) ?? c.summary ?? 'No result yet.'}</span>
+        <span className="label ck-when">
           {c.schedule} · last {when(c.ranAt)}
         </span>
       </div>
       {open ? (
-        <div className="check-detail">
+        <div className="ck-detail">
           <p>{c.plain}</p>
           {c.improve ? <p><strong>A change is ready:</strong> {c.improve}.</p> : null}
           {c.failures?.length > 1 || (c.failures?.length && c.status !== 'failed') ? (
@@ -161,7 +163,7 @@ function Row({ c, open, onToggle, onRun }) {
             {c.cost}.
             {c.previous ? ` Before: ${c.previous.ok ? 'passed' : 'failed'}${c.previous.score != null ? ` (${c.previous.score})` : ''}, ${when(c.previous.ranAt)}.` : ''}
           </p>
-          <div className="check-actions">
+          <div className="ck-actions">
             {reviewable && c.id !== 'bench-agents' ? (
               <Button variant="primary" onClick={() => openReview(c.id)}>
                 Open the review card
@@ -198,8 +200,8 @@ export function Checks({ checks }) {
   return (
     <>
       <Card>
-        <div className="check-gate">
-          <p className="check-gate-head">
+        <div className="ck-gate">
+          <p className="ck-gate-head">
             <span className="card-title">The gate</span>
             <StatusPill variant={gst.variant}>{gst.word}</StatusPill>
           </p>
@@ -208,7 +210,7 @@ export function Checks({ checks }) {
             Checked on {data.base} @ <span className="mono">{data.head}</span>
             {data.staged ? ` plus the ${data.staged.files} files staged in ~/DEV/bella: what the next commit would carry` : ''}.
           </p>
-          <div className="check-actions">
+          <div className="ck-actions">
             <Button variant="secondary" onClick={() => run('gate')}>
               Run the whole gate (about 3 min)
             </Button>
@@ -220,7 +222,7 @@ export function Checks({ checks }) {
           {runErr}
         </p>
       ) : null}
-      <ul className="checks">
+      <ul className="ck-list">
         {data.checks.map((c) => (
           <Row key={c.id} c={c} open={open === c.id} onToggle={() => setOpen(open === c.id ? null : c.id)} onRun={run} />
         ))}

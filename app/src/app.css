@@ -2289,8 +2289,23 @@ body {
   min-block-size: 0;
   overflow: hidden;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 0;
+}
+/* the two tabs' panels: Needs you scrolls; Lanes keeps strip, pin and chat */
+.bar-panel > [role='tabpanel'] {
+  min-block-size: 0;
+}
+.bar-panel > [role='tabpanel'][hidden] {
+  display: none;
+}
+.bar-panel > #bar-panel-needs {
+  overflow-y: auto;
+  padding-inline: var(--spacing-5);
+}
+.bar-panel > #bar-panel-lanes {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .bar-strip {
@@ -2418,9 +2433,9 @@ details.bar-waiting > summary::-webkit-details-marker { display: none; }
 /* ---- The Bar · two-column layout at 1024+ ---- */
 
 @media (min-width: 1024px) {
-  .bar-panel {
+  .bar-panel > #bar-panel-lanes {
     grid-template-columns: 1fr minmax(220px, 280px);
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .bar-strip { grid-column: 1 / -1; }
@@ -2735,7 +2750,7 @@ dialog.sheet[data-side] {
   padding-block-start: var(--spacing-2);
 }
 .review-actions,
-.check-actions,
+.ck-actions,
 .hcard-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2781,7 +2796,7 @@ dialog.sheet[data-side] {
   border-color: var(--color-semantic-border-strong);
 }
 .coverage-col:focus-visible,
-.check-name:focus-visible,
+.ck-name:focus-visible,
 .needs-head:focus-visible,
 .map-node:focus-visible,
 .timeline button:focus-visible {
@@ -2805,38 +2820,38 @@ dialog.sheet[data-side] {
 .coverage-gap p {
   margin: 0;
 }
-.check-gate {
+.ck-gate {
   display: grid;
   gap: var(--spacing-2);
 }
-.check-gate p {
+.ck-gate p {
   margin: 0;
 }
-.check-gate-head {
+.ck-gate-head {
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
 }
-.checks {
+.ck-list {
   list-style: none;
   margin: var(--layout-stack-sm) 0 0;
   padding: 0;
   display: grid;
   gap: var(--spacing-2);
 }
-.check {
+.ck {
   border: var(--border-width-thin) solid var(--color-semantic-border);
   border-radius: var(--radius-md);
   background: var(--color-semantic-surface-card);
 }
-.check-row {
+.ck-row {
   display: grid;
   grid-template-columns: minmax(12rem, 1.2fr) auto minmax(0, 2fr) minmax(10rem, 1fr);
   align-items: center;
   gap: var(--spacing-3);
   padding: var(--spacing-2) var(--spacing-4);
 }
-.check-name,
+.ck-name,
 .needs-head {
   min-block-size: var(--spacing-touch-target);
   padding: 0;
@@ -2851,25 +2866,25 @@ dialog.sheet[data-side] {
   text-underline-offset: 0.2em;
   text-decoration-thickness: var(--border-width-thin);
 }
-.check-result {
+.ck-result {
   min-inline-size: 0;
   overflow-wrap: anywhere;
 }
-.check-detail {
+.ck-detail {
   display: grid;
   gap: var(--spacing-2);
   padding: 0 var(--spacing-4) var(--spacing-4);
 }
-.check-detail p {
+.ck-detail p {
   margin: 0;
   max-inline-size: var(--layout-measure-body);
 }
 @media (max-width: 1100px) {
-  .check-row {
+  .ck-row {
     grid-template-columns: minmax(0, 1fr) auto;
   }
-  .check-result,
-  .check-when {
+  .ck-result,
+  .ck-when {
     grid-column: 1 / -1;
   }
 }
@@ -2914,8 +2929,8 @@ dialog.sheet[data-side] {
   margin: 0;
   max-inline-size: var(--layout-measure-body);
 }
-.bar-panel > [role='tablist'] {
-  margin-block-end: var(--spacing-2);
+.bar-panel > :first-child {
+  padding-inline: var(--spacing-5);
 }
 
 /* History */
@@ -3181,4 +3196,12 @@ dialog.sheet[data-side] {
 }
 .term-typed {
   margin: 0;
+}
+
+/* headings inside a sheet: a step down from the page's section headings */
+.review h2,
+.record h2,
+.map-panel h2 {
+  font-size: var(--typography-font-size-xl);
+  margin-block: var(--spacing-2) 0;
 }

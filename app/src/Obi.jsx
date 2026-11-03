@@ -871,7 +871,7 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
       placement={inPanel ? 'above' : 'below'}
       placeholder={
         cloud
-          ? inPanel ? 'Sent to Anthropic · ask a follow-up, or / for a command' : 'Ask OBI (sent to Anthropic) or jump to…'
+          ? inPanel ? 'Sent to Anthropic · ask a follow-up, or / for a command' : 'Ask OBI · Claude, or jump to…'
           : inPanel ? 'Ask a follow-up, or / for a command' : 'Ask OBI or jump to…'
       }
       hint={inPanel ? null : <Kbd keys={['⌘', 'K']} label="Command K" />}

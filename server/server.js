@@ -482,7 +482,10 @@ app.get('/component-tests/:id', (req, res) => {
   const visual = readResult('visual');
   const contrast = readResult('contrast');
   const suite = Object.entries(visual?.suites ?? {}).find(([p]) => p.endsWith(`/${c.name}/${c.name}.stories.tsx`));
-  const usesFailing = (contrast?.failures ?? []).some((f) => (c.tokens?.list ?? []).some((t) => f.includes(t)));
+  // the first token in a failure line is the one judged (the wash, not the page)
+  const judged = (f) => f.match(/--[\w-]+/)?.[0];
+  const failingLine = (contrast?.failures ?? []).find((f) => (c.tokens?.list ?? []).includes(judged(f)));
+  const usesFailing = !!failingLine;
   const row = (name, status, detail, action) => ({ name, status, detail, action: action ?? null });
   res.json({
     id: c.id,
@@ -490,7 +493,7 @@ app.get('/component-tests/:id', (req, res) => {
     ranAt: visual?.ranAt ?? null,
     tests: [
       row('Stories: axe and interactions', !c.hasStory ? 'fail' : !suite ? 'not-run' : suite[1], !c.hasStory ? `${c.name} has no story, so nothing renders it in the gate.` : suite ? `${suite[0]} in the visual audit of ${visual.commit}.` : 'The visual audit has not run since CHIP started keeping per-story results.', !suite && c.hasStory ? { type: 'run', check: 'visual', label: 'Run the stories' } : null),
-      row('Contrast of its tokens', usesFailing ? 'fail' : c.health?.contrast?.status === 'fail' ? 'fail' : 'pass', usesFailing ? (contrast.failures.find((f) => (c.tokens?.list ?? []).some((t) => f.includes(t)))) : `${c.health?.contrast?.pairs ?? 0} pairs checked on the tokens it reads.`, usesFailing ? { type: 'review', check: 'contrast', label: 'Review the fix' } : null),
+      row('Contrast of its tokens', usesFailing ? 'fail' : c.health?.contrast?.status === 'fail' ? 'fail' : 'pass', usesFailing ? failingLine : `${c.health?.contrast?.pairs ?? 0} pairs checked on the tokens it reads.`, usesFailing ? { type: 'review', check: 'contrast', label: 'Review the fix' } : null),
       row('Contract matches the code', c.health?.contract?.status === 'fail' ? 'fail' : 'pass', c.health?.contract?.issues?.join('; ') || 'Props, variants and states agree with tokens/component.json.'),
       row('DSDS spec entry', c.inDsds ? 'pass' : 'fail', c.inDsds ? 'bella.dsds.yaml has it.' : 'Missing from bella.dsds.yaml.'),
       row('Docs page', c.hasDocs ? 'pass' : 'fail', c.hasDocs ? `docs/components/${c.id}.md` : 'No guidance page yet.'),

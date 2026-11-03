@@ -72,7 +72,7 @@ function checkItems() {
       const card = reviewCard(c.id);
       out.push({
         id: `check-${c.id}`, kind: c.gate ? 'Gate' : 'Check', risk: c.gate ? 'High' : 'Medium', at: Date.parse(c.ranAt),
-        what: `${c.gate ? 'Gate' : c.name}: ${c.failures?.[0] ?? c.summary}`,
+        what: `${c.name}: ${c.failures?.[0] ?? c.summary}`,
         detail: c.gate ? gate.summary : c.summary,
         riskWhy: c.gate ? 'High: while the gate fails, BELLA accepts no commit, so nothing can be merged safely.' : 'Medium: the bench grades, it does not block.',
         thisWill: card.thisWill ? 'open the review card: why it fails, the exact change, who it reaches' : 'open the review card with a brief for a Claude session',

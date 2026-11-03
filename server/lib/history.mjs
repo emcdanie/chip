@@ -121,6 +121,7 @@ function actionRecords() {
     status: a.kind === 'accept' ? 'On a branch' : 'Undone',
     branch: a.branch,
     files: a.files ?? [],
+    measured: a.measured ?? null,
   }));
 }
 

@@ -301,8 +301,9 @@ export default function App() {
     setObiOpen(true);
     requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('chip:dock', { detail: { view: 'bar' } })));
   };
+  // short enough that the bar stays one row at 1280 with the input in it
   const needCount = needs?.items.length ?? 0;
-  const needLabel = needCount ? `The Bar · ${needCount} need${needCount === 1 ? 's' : ''} you` : 'The Bar · nothing needs you';
+  const needLabel = needs ? (needCount ? `Needs you · ${needCount}` : 'Nothing needs you') : 'The Bar';
 
   const onNavigate = (href, e) => {
     const r = routeOf(href);

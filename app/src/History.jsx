@@ -216,11 +216,11 @@ function Changes({ onOpenAtlas, bella }) {
 
       <div className="history-filters">
         <div className="chips" role="group" aria-label="Quick filters">
-          <FilterChip pressed={!types.length && !breaking} onClick={() => (setTypes([]), setBreaking(false))}>
+          <FilterChip pressed={!types.length && !breaking && !data?.parsed?.types?.length && !data?.parsed?.breaking} onClick={() => (setTypes([]), setBreaking(false))}>
             All
           </FilterChip>
           {QUICK.filter((t) => data?.counts?.types?.[t] || types.includes(t)).map((t) => (
-            <FilterChip key={t} pressed={types.includes(t)} onClick={() => toggle(types, setTypes, t)}>
+            <FilterChip key={t} pressed={types.includes(t) || !!data?.parsed?.types?.includes(t)} onClick={() => toggle(types, setTypes, t)}>
               {SHAPE[t]} {t} {data?.counts?.types?.[t] ?? ''}
             </FilterChip>
           ))}

@@ -42,7 +42,22 @@ export const portBusy = (port) =>
 
 /** What is staged in the shared checkout, when it sits on the base branch:
  * the work its next commit would carry, and so what the gate will judge. */
+let stagedCache = { key: null, value: null };
 export function staged() {
+  // the staged patch is only re-read when BELLA's index or HEAD changes
+  let key;
+  try {
+    const gitDir = git(['rev-parse', '--absolute-git-dir']).trim();
+    key = `${statSync(join(gitDir, 'index')).mtimeMs}:${readFileSync(join(gitDir, 'HEAD'), 'utf8').trim()}:${git(['rev-parse', BASE]).trim()}`;
+  } catch {
+    key = null;
+  }
+  if (key && stagedCache.key === key) return stagedCache.value;
+  const value = readStaged();
+  if (key) stagedCache = { key, value };
+  return value;
+}
+function readStaged() {
   try {
     if (git(['rev-parse', '--abbrev-ref', 'HEAD']).trim() !== BASE) return null;
     const patch = execFileSync('git', ['-C', BELLA, '--no-optional-locks', 'diff', '--cached', '--binary'], { maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -151,7 +166,12 @@ export const CHECKS = [
       if (await portBusy(6006)) return { ok: false, summary: 'Not run: port 6006 is in use', failures: ['A Storybook is already running on 6006 (another session?). The audit serves its own build there; stop that one and run again.'], ms: 0 };
       const r = await run('npm', ['run', 'audit:visual'], dir);
       const m = r.out.match(/Tests:\s+(.*)/);
-      const fails = [...r.out.matchAll(/✕\s+(.+)/g)].map((x) => x[1].trim()).slice(0, 12);
+      // the failing stories files, each with what the runner said first
+      const fails = [...new Set([...r.out.matchAll(/FAIL\s+(?:browser: \w+\s+)?(src\/\S+\.stories\.tsx)/g)].map((x) => x[1]))].map((f) => {
+        const at = r.out.indexOf(f);
+        const why = r.out.slice(at).match(/was ([\d.]+)% different from snapshot|\[audit:visual\] [\w-]+: ([^(\n]+)/);
+        return `${f.split('/').at(-1).replace('.stories.tsx', '')}: ${why ? (why[1] ? `a picture is ${Number(why[1]).toFixed(1)}% different from its baseline` : why[2].trim()) : 'a test failed'}`;
+      });
       // one verdict per stories file, so each component page can show its own
       const suites = Object.fromEntries([...r.out.matchAll(/\b(PASS|FAIL)\b.*?(src\/\S+\.stories\.tsx)/g)].map((x) => [x[2], x[1] === 'PASS' ? 'pass' : 'fail']));
       const snaps = r.out.match(/Snapshots:\s+(.*)/)?.[1]?.trim() ?? null;

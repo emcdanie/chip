@@ -287,7 +287,16 @@ function grepCount(dir, needle, exts = /\.(css|jsx?|tsx?)$/) {
   return hits;
 }
 
+const blastCache = new Map();
 function blastRadius(fix) {
+  const key = `${fix.token}:${staged()?.hash ?? ''}`;
+  const hit = blastCache.get(key);
+  if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.value;
+  const value = measureBlast(fix);
+  blastCache.set(key, { at: Date.now(), value });
+  return value;
+}
+function measureBlast(fix) {
   const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
   const files = grepCount(join(BELLA, 'src'), fix.token).filter((f) => !f.includes('__image_snapshots__'));
   const direct = [...new Set(files.map((f) => f.match(/components\/([^/]+)\//)?.[1]).filter(Boolean))];
@@ -312,8 +321,17 @@ function blastRadius(fix) {
 const branchOf = (fix) => `chip/fix-${fix.slug}`;
 const jobs = new Map(); // check id -> { status, step, log, branch, startedAt }
 
+const fixCache = new Map(); // check id -> { key, value }
 function fixFor(checkId) {
-  const r = readResult(checkId);
+  const r0 = readResult(checkId);
+  const key = `${r0?.ranAt}:${staged()?.hash ?? ''}`;
+  const hit = fixCache.get(checkId);
+  if (hit?.key === key) return hit.value;
+  const value = findFix(checkId, r0);
+  fixCache.set(checkId, { key, value });
+  return value;
+}
+function findFix(checkId, r) {
   if (!r) return { r, fix: null };
   for (const f of FIXERS[checkId] ?? []) for (const line of r.failures ?? []) {
     const fix = f(line);
@@ -375,7 +393,11 @@ export function reviewCard(checkId) {
     target: fix.withStaged !== false && staged() ? { kind: 'staged', files: staged().files.length } : { kind: 'committed' },
     thisWill: `make the local branch ${branch} from ${BASE}${fix.withStaged !== false && staged() ? ` with the ${staged().files.length} files you have staged in BELLA` : ''}, ${fix.kind === 'llms' ? 'write llms.txt' : 'change two token files, rebuild'}, and commit through BELLA's gate (about 3 minutes)${fix.remeasure ? ', then re-run the bench on the branch' : ''}. Nothing is pushed or merged, and your BELLA checkout is not touched.`,
     undo: `delete the branch ${branch}. ${BASE} never moved, so BELLA is exactly as it was.`,
-    job,
+    // after a restart the job is gone: the action log keeps what Accept measured
+    job: job ?? (accepted ? (() => {
+      const a = readActions().reverse().find((x) => x.kind === 'accept' && x.branch === branch && x.sha === sha);
+      return a ? { status: 'done', measured: a.measured ?? null, diff: a.diff ?? null, sha } : null;
+    })() : null),
     lastAttempt: job?.status === 'running' ? null : lastAttempt(checkId),
   };
 }
@@ -461,7 +483,7 @@ export async function accept(checkId, { baselines = [] } = {}) {
       mkdirSync(join(tmpdir(), 'chip-fixes'), { recursive: true });
       const { target } = prepare(dir, { branch, withStaged: fix.withStaged !== false });
       job.target = target;
-      step('Changing the token files');
+      step(fix.kind === 'llms' ? 'Writing llms.txt from the contracts' : 'Changing the token files');
       const files = fix.apply(dir);
       if (fix.kind === 'apart') {
         step('Rebuilding the generated files');
@@ -518,7 +540,7 @@ export async function accept(checkId, { baselines = [] } = {}) {
       try {
         unlinkSync(attemptFile(checkId));
       } catch {}
-      logAction({ kind: 'accept', check: checkId, title: fix.title, branch, sha: job.sha, base: BASE, files: changed, sentence: fix.change.sentence + (baselines.length ? ` New baselines for ${baselines.join(', ')}.` : '') + (job.measured ? ` Bench ${job.measured.before} → ${job.measured.after}.` : '') });
+      logAction({ kind: 'accept', check: checkId, title: fix.title, branch, sha: job.sha, base: BASE, files: changed, measured: job.measured ?? null, diff: job.diff, sentence: fix.change.sentence + (baselines.length ? ` New baselines for ${baselines.join(', ')}.` : '') + (job.measured ? ` Bench ${job.measured.before} → ${job.measured.after}.` : '') });
     } catch (e) {
       job.status = 'failed';
       job.error = e.message;
