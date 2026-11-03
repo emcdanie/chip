@@ -714,7 +714,7 @@ function Tokens({ c, theme, hl, setHl, notify }) {
     return (
       <tr key={`${part?.key ?? ''}${t}`} data-picked={part && hl === part.key ? '' : undefined}>
         <td>{part ? (
-          <FilterChip size="compact" pressed={hl === part.key} onClick={() => setHl(hl === part.key ? null : part.key)} ariaLabel={`Show ${part.title} on the stage`}>
+          <FilterChip size="compact" pressed={hl === part.key} onClick={() => setHl(hl === part.key ? null : part.key)} ariaLabel={`${part.n} · ${part.title}: show on the stage`}>
             {part.n} · {part.title}
           </FilterChip>
         ) : null}</td>
@@ -898,7 +898,7 @@ export default function Atlas({ c, bella, theme, notes = [], onOpen, showLibrary
         lede={c.description || null}
         actions={
           <>
-            <Button variant="secondary" onClick={copyImport} ariaLabel={`Copy the import line for ${c.name}`}>
+            <Button variant="secondary" onClick={copyImport} ariaLabel={`Copy import: ${c.name}`}>
               Copy import
             </Button>
             {c.storyUrl ? (

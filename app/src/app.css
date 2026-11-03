@@ -222,7 +222,8 @@ body {
 }
 
 .dock-handle {
-  block-size: var(--spacing-3);
+  /* 24px hit area (2.5.8) */
+  block-size: var(--spacing-6);
   cursor: row-resize;
   display: grid;
   place-items: center;
@@ -375,6 +376,18 @@ body {
   container-type: inline-size;
 }
 
+/* 1.4.10 reflow: a grid track never grows past the card to fit a child's
+   min-content (ChatThread scrolled sideways at 320px) */
+.specimen-card,
+.docs-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.specimen-card > *,
+.docs-list > * {
+  min-inline-size: 0;
+}
+
 .specimen-card,
 .facts-card,
 .example,
@@ -397,6 +410,7 @@ body {
 /* an empty state says what to add; it never disappears */
 .empty {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--layout-stack-sm);
   justify-items: start;
   padding: var(--layout-stack-lg);
@@ -586,6 +600,9 @@ body {
   margin: 0;
   font-size: var(--typography-font-size-sm);
   color: var(--color-semantic-text-secondary);
+  /* paths in a note break, never push the page sideways (1.4.10) */
+  overflow-wrap: anywhere;
+  min-inline-size: 0;
 }
 
 .stage,
@@ -1685,6 +1702,21 @@ body {
   gap: var(--layout-stack-md);
 }
 
+/* a long path in the note breaks rather than pushing the page sideways */
+.stage-top > * {
+  min-inline-size: 0;
+}
+
+/* the status filter wraps whole segments at narrow widths, never one label
+   across two lines */
+.docs-list > ul {
+  flex-wrap: wrap;
+}
+
+.docs-list > ul button {
+  white-space: nowrap;
+}
+
 .on-page {
   display: flex;
   flex-wrap: wrap;
@@ -2017,8 +2049,10 @@ body {
 }
 
 .shot img {
-  inline-size: 100%;
-  min-inline-size: min(100%, calc(var(--spacing-20) * 4));
+  /* never upscale a crop: natural size, shrunk only to fit (it was 4x and blurry) */
+  inline-size: auto;
+  max-inline-size: 100%;
+  justify-self: start;
   border-radius: var(--radius-md);
   border: var(--border-width-thin) solid var(--color-semantic-border);
   background: var(--color-semantic-surface-card);
@@ -2484,4 +2518,40 @@ details.bar-waiting > summary::-webkit-details-marker { display: none; }
   object-fit: contain;
   border-radius: var(--radius-sm);
   cursor: zoom-in;
+}
+
+/* ---- Phase 6 A: targets and measure (audit 3 Nov 2026) ---- */
+
+/* links that stand alone get the 44px row the On this page links have (2.5.5) */
+.shot figcaption a,
+.related-list a,
+.tile-action a,
+.facts-card a,
+.doc-actions a,
+main [class*='_inner_'] > a,
+.connector summary,
+.one-input-holder input {
+  min-block-size: var(--spacing-touch-target);
+}
+
+.shot figcaption a,
+.related-list a,
+.tile-action a,
+.facts-card a,
+.doc-actions a,
+main [class*='_inner_'] > a {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 1.4.8: ledes stop near 68 characters. 70ch measured about 90 real
+   characters at 22px Figtree (ch is the width of "0"), so ledes use em */
+main [class*='_lede_'] {
+  max-inline-size: 34em;
+}
+
+/* long history lines and tool rows stop at the body measure */
+.tl-entry > *,
+.connector .tool-rows li {
+  max-inline-size: var(--layout-measure-body);
 }

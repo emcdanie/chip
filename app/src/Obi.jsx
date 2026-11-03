@@ -856,7 +856,7 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
         {dockView === 'obi' ? (
           <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
         ) : null}
-        <ActionChip onClick={onClose} ariaLabel="Hide (Escape or Command J)">
+        <ActionChip onClick={onClose} ariaLabel="Hide OBI (Escape or Command J)">
           Hide
         </ActionChip>
       </header>

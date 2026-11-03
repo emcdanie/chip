@@ -61,12 +61,13 @@ function useCropped(src) {
   return out;
 }
 
-function Shot({ rev, path, label }) {
+function Shot({ rev, path, label, what }) {
   const full = shotUrl(rev, path);
   const src = useCropped(full);
   return (
     <figure className="shot">
-      {src ? <img src={src} alt={`${label}: the ${path.split('--')[1].replace(/-light\.png$/, '').replace(/-/g, ' ')} story`} /> : <div className="shot-wait">{src === false ? 'No baseline' : 'Loading'}</div>}
+      {/* the alt says what changed (the commit's words), so before and after differ for a screen reader too */}
+      {src ? <img src={src} alt={`${label}: the ${path.split('--')[1].replace(/-light\.png$/, '').replace(/-/g, ' ')} story${what ? `, ${label === 'Before' ? 'before' : 'after'} "${what}"` : ''}`} /> : <div className="shot-wait">{src === false ? 'No baseline' : 'Loading'}</div>}
       <figcaption className="label">
         {label} · <Link href={full} external>View full size</Link>
       </figcaption>
@@ -133,8 +134,8 @@ function Entry({ e }) {
       ) : null}
       {e.images ? (
         <div className="shots">
-          {e.images.before ? <Shot rev={e.images.before} path={e.images.path} label="Before" /> : null}
-          <Shot rev={e.images.after} path={e.images.path} label={e.images.before ? 'After' : 'New baseline'} />
+          {e.images.before ? <Shot rev={e.images.before} path={e.images.path} label="Before" what={e.explanation} /> : null}
+          <Shot rev={e.images.after} path={e.images.path} label={e.images.before ? 'After' : 'New baseline'} what={e.explanation} />
         </div>
       ) : null}
     </li>

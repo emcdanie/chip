@@ -75,7 +75,7 @@ function DocCard({ title, copy, notify, children }) {
     <Card innerClassName="doc-card">
       <div className="card-row">
         <h3 className="card-title">{title}</h3>
-        <ActionChip onClick={copyMd} ariaLabel={`Copy ${title} as markdown`}>
+        <ActionChip onClick={copyMd} ariaLabel={`Copy as markdown: ${title}`}>
           Copy as markdown
         </ActionChip>
       </div>

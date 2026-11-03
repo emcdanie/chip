@@ -192,10 +192,20 @@ export default function App() {
     e.preventDefault();
     const y0 = e.clientY;
     const h0 = dockH;
-    const move = (ev) => setDockH(capH(h0 + (y0 - ev.clientY)));
+    let moved = false;
+    const move = (ev) => {
+      if (Math.abs(y0 - ev.clientY) > 3) moved = true;
+      setDockH(capH(h0 + (y0 - ev.clientY)));
+    };
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
+      // 2.5.7: a click with no drag steps through three heights, so resizing
+      // never needs a dragging movement
+      if (!moved) {
+        const stops = [DOCK_MIN, capH(Math.round(window.innerHeight * 0.4)), capH(Number.MAX_SAFE_INTEGER)];
+        setDockH(stops.find((h) => h > h0 + 8) ?? stops[0]);
+      }
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
@@ -207,6 +217,16 @@ export default function App() {
     else return;
     e.preventDefault();
   }
+
+  // 2.4.3: opening or closing the dock puts focus on the one input (in the
+  // dock when open, in the bar when closed) unless focus already sits on a control
+  const firstDockRun = useRef(true);
+  useEffect(() => {
+    if (firstDockRun.current) { firstDockRun.current = false; return; }
+    const a = document.activeElement;
+    // the layout effect above has already moved the input, so focus it now
+    if (!a || a === document.body || (!obiOpen && a.closest?.('.dock'))) holder.querySelector('input')?.focus();
+  }, [obiOpen]);
 
   /* ---- the one input: one element, moved between the bar and the dock ---- */
   const [holder] = useState(() => {
@@ -301,13 +321,13 @@ export default function App() {
         {narrow ? (
           <>
             {/* sentence case: Button keeps its caps keycap label, these are quiet actions */}
-            <ActionChip onClick={() => setNavOpen(true)} ariaLabel="Open the menu">
+            <ActionChip onClick={() => setNavOpen(true)} ariaLabel="Menu: open">
               Menu
             </ActionChip>
             <p className="brand">CHIP</p>
             {/* the page name only; it wraps or shrinks, never cuts off */}
             <p className="here">{ws === 'atlas' ? atlas?.name ?? 'Atlas' : page}</p>
-            <ActionChip onClick={() => setObiOpen((o) => !o)} ariaLabel={obiOpen ? 'Close OBI' : 'Open OBI'}>
+            <ActionChip onClick={() => setObiOpen((o) => !o)} ariaLabel={obiOpen ? 'OBI: close' : 'OBI: open'}>
               OBI
             </ActionChip>
           </>
@@ -357,7 +377,7 @@ export default function App() {
                 className="dock-handle"
                 role="separator"
                 aria-orientation="horizontal"
-                aria-label="Resize OBI"
+                aria-label="Resize OBI (click to step, or arrow keys)"
                 aria-valuemin={DOCK_MIN}
                 aria-valuemax={capH(Number.MAX_SAFE_INTEGER)}
                 aria-valuenow={dockH}

@@ -36,7 +36,7 @@ function Server({ s, onTest, testing }) {
         <StatusPill variant={ok ? 'success' : 'neutral'}>{s.status}</StatusPill>
         <span className="connector-spacer" />
         {!s.disabled ? (
-          <ActionChip onClick={() => onTest(s.name)} disabled={testing} ariaLabel={`Test ${s.name}`}>
+          <ActionChip onClick={() => onTest(s.name)} disabled={testing} ariaLabel={testing ? undefined : `Test ${s.name}`}>
             {testing ? 'Testing…' : 'Test'}
           </ActionChip>
         ) : null}
@@ -56,7 +56,7 @@ function Server({ s, onTest, testing }) {
       {s.tools?.length ? (
         <details className="facts-tokens">
           <summary>Tools ({s.tools.length})</summary>
-          <ul className="tool-rows">
+          <ul className="tool-rows" tabIndex={0} role="region" aria-label={`${s.name} tools`}>
             {s.tools.map((t) => (
               <li key={t.name}>
                 <span className="mono">{t.name}</span> <Tag>{t.kind === 'read' ? 'read' : t.allowed ? 'write · allowed' : 'write · blocked'}</Tag>
