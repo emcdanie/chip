@@ -23,11 +23,15 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
     "@notionhq/client": "^5.27.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "node-pty": "^1.1.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "ws": "^8.22.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.1",

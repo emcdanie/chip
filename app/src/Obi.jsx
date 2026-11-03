@@ -16,6 +16,7 @@ import { useBar, TheBar } from './TheBar.jsx';
 import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor, summarizeTool, usageLines } from './answers.js';
 import Select from '@bella/components/Select/Select';
 import { baseOf } from './Sandbox.jsx';
+import { TermView } from './Terminal.jsx';
 
 // arg: the command takes text; picking it from the list fills "/cmd " to type on
 const COMMANDS = [
@@ -901,17 +902,31 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
 
   const dockOptions = [
     { value: 'obi', label: 'OBI' },
+    { value: 'claude', label: 'Claude' },
+    { value: 'term', label: 'Terminal' },
     { value: 'bar', label: bar.unread > 0 ? `The Bar (${bar.unread})` : 'The Bar' },
   ];
+  // a terminal starts the first time its tab opens, then keeps running
+  // (hidden) while other tabs are shown, until Restart or the page closes
+  const isTerm = dockView === 'claude' || dockView === 'term';
+  const [started, setStarted] = useState({});
+  useEffect(() => {
+    if (isTerm && !started[dockView]) setStarted((s) => ({ ...s, [dockView]: true }));
+  }, [dockView]);
+  const [repos, setRepos] = useState([]);
+  useEffect(() => {
+    if (isTerm && !repos.length) fetch('/term/repos').then((r) => r.json()).then(setRepos).catch(() => {});
+  }, [isTerm]);
+  const viewName = { obi: 'OBI', claude: 'Claude', term: 'Terminal', bar: 'The Bar' }[dockView];
 
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight });
   }, [obi.turns]);
 
   return (
-    <section className="obi" aria-label={dockView === 'bar' ? 'The Bar' : 'OBI'}>
+    <section className="obi" aria-label={viewName}>
       <header className="obi-head">
-        <h2 className="sr-only">{dockView === 'bar' ? 'The Bar' : 'OBI'}</h2>
+        <h2 className="sr-only">{viewName}</h2>
         <SegmentedControl options={dockOptions} value={dockView} onChange={setDockView} label="Dock view" className="obi-dock-tabs" />
         {dockView === 'obi' ? <Tag>Looking at {page}</Tag> : null}
         <span className="obi-grow" />
@@ -923,7 +938,8 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
         </ActionChip>
       </header>
 
-      {dockView === 'bar' ? (
+      {['claude', 'term'].map((k) => (started[k] ? <TermView key={k} kind={k} repos={repos} active={dockView === k} /> : null))}
+      {isTerm ? null : dockView === 'bar' ? (
         <TheBar lanes={bar.lanes} events={bar.events} needsItems={bar.needsItems} staleCount={bar.staleCount} notify={notify} />
       ) : (
         <>
@@ -968,9 +984,11 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
               )
             )}
           </ol>
-          <div className="obi-input" ref={inputSlot} />
         </>
       )}
+      {/* always mounted, hidden off the OBI tab: App moves the one input here
+          only when the dock opens, so an unmounted slot lost it for good */}
+      <div className="obi-input" ref={inputSlot} hidden={dockView !== 'obi'} />
     </section>
   );
 }

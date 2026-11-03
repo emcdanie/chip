@@ -19,6 +19,7 @@ import * as bellaWork from './lib/bella-work.mjs';
 import { barState, barStream, barImg } from './lib/bar.mjs';
 import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
 import { specOf, figmaLint } from './lib/spec-lint.mjs';
+import { attachTerminal, repoList } from './lib/term.mjs';
 
 const app = express();
 app.use(express.json());
@@ -402,10 +403,14 @@ app.post('/cmd', (req, res) => {
   });
 });
 
-// Bound to localhost: nothing on the network can reach /ask or /cmd.
-app.listen(PORT, '127.0.0.1', () => {
+// GET /term/repos: the folders a workspace terminal may open in.
+app.get('/term/repos', (_req, res) => res.json(repoList()));
+
+// Bound to localhost: nothing on the network can reach /ask, /cmd or /term.
+const server = app.listen(PORT, '127.0.0.1', () => {
   console.log(`[CHIP] http://localhost:${PORT} · model ${CHIP_MODEL} · embeddings ${CHIP_EMBED_MODEL} · ${OLLAMA_URL}`);
   const t = Date.now();
   warm().then(() => console.log(`[CHIP] models warm (${((Date.now() - t) / 1000).toFixed(1)}s)`))
     .catch((err) => console.error('[CHIP] warm-up failed:', err.message));
 });
+attachTerminal(server, { port: PORT, origins: APP_ORIGINS });
