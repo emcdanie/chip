@@ -10,7 +10,7 @@ import Atlas, { Library } from './Atlas.jsx';
 import Connectors from './Connectors.jsx';
 import Docs from './Docs.jsx';
 import { useObi, OneInput, ObiPanel } from './Obi.jsx';
-import { useTheme, THEMES } from './theme.js';
+import { useTheme } from './theme.js';
 import { ROLES, useRole, useVisibility } from './visibility.jsx';
 
 const WORKSPACES = [
@@ -22,10 +22,10 @@ const WORKSPACES = [
 
 const HEALTH_SECTIONS = [
   { href: '#overview', label: 'Overview' },
-  { href: '#readiness', label: 'Readiness map' },
-  { href: '#usage', label: 'Usage' },
   { href: '#failures', label: 'Open failures' },
   { href: '#components', label: 'Components' },
+  { href: '#readiness', label: 'Readiness map' },
+  { href: '#usage', label: 'Usage' },
 ];
 
 const WS_KEYS = { Digit1: 'health', Digit2: 'atlas', Digit3: 'docs', Digit4: 'connectors' };
@@ -57,6 +57,8 @@ function failuresOf(bella) {
   for (const c of bella?.components ?? []) {
     if (!c.hasStory) out.push(`${c.name}: no story`);
     if (!c.hasDocs) out.push(`${c.name}: no docs description`);
+    // the same definition Atlas's gate panel uses: a missing DSDS spec entry is a failure
+    if (!c.inDsds) out.push(`${c.name}: no DSDS spec entry (bella.dsds.yaml)`);
     if (c.health?.contract?.status === 'fail') out.push(`${c.name}: contract ${c.health.contract.issues.join('; ')}`);
     if (c.health?.contrast?.status === 'fail') out.push(`${c.name}: contrast ${c.health.contrast.failing.join('; ')}`);
   }
@@ -77,7 +79,7 @@ const store = (key, value) => {
 };
 
 export default function App() {
-  const [theme, setTheme] = useTheme();
+  const [theme] = useTheme();
   // simulated until CHIP is hosted: who you are viewing as, and what each role may see
   const [role, setRole] = useRole();
   const [vis, setVis] = useVisibility();
@@ -317,13 +319,12 @@ export default function App() {
               {/* the input lives in this empty node when OBI is closed; React never manages it */}
               <div ref={barSlot} className="bar-input" />
               {obiOpen ? (
-                <ActionChip onClick={() => setObiOpen(false)} ariaLabel="OBI is open. Hide it (Command J)">
+                <ActionChip onClick={() => setObiOpen(false)} ariaLabel="OBI open, Command J: hide OBI">
                   OBI open · ⌘J
                 </ActionChip>
               ) : null}
             </div>
             <Select label="View as" value={role} onChange={setRole} options={ROLES} className="theme-select view-as" />
-            <Select label="Theme" value={theme} onChange={setTheme} options={THEMES} className="theme-select" />
           </>
         )}
         </div>
@@ -415,7 +416,6 @@ export default function App() {
             />
             {ws === 'atlas' && bella ? <Library bella={bella} current={atlasId} onOpen={openAtlas} vis={vis} role={role} /> : null}
             <Select label="View as" value={role} onChange={setRole} options={ROLES} />
-            <Select label="Theme" value={theme} onChange={setTheme} options={THEMES} />
             {sourceLine}
           </div>
         </Drawer>

@@ -109,7 +109,10 @@ export async function figmaLint(c, { refresh = false, codeProps = [] } = {}) {
   // no variants: the component itself is the one size there is
   const sized = variants.length ? variants : [hit.node];
   const short = sized.filter((v) => v.height != null && v.height < FLOOR);
-  findings.push(short.length
+  // no height in the metadata: say so and leave it out of the score, never pass it by default
+  findings.push(!sized.some((v) => v.height != null)
+    ? { check: 'Target size', ok: null, what: 'Not measured: Figma gave no height for this component.', where: where() }
+    : short.length
     ? { check: 'Target size', ok: false, what: `${short.length} variant${short.length === 1 ? ' is' : 's are'} under ${FLOOR}px (${short.slice(0, 3).map((v) => `${v.name}: ${v.height}px`).join('; ')}).`, where: where(short[0].name), fix: `Raise them to ${FLOOR}px.` }
     : { check: 'Target size', ok: true, what: variants.length ? `Every variant is at least ${FLOOR}px tall.` : `It is ${hit.node.height}px tall, at least ${FLOOR}px.`, where: where() });
   // bindings: colours in the design that no variable explains
@@ -123,7 +126,9 @@ export async function figmaLint(c, { refresh = false, codeProps = [] } = {}) {
       ? { check: 'Bindings', ok: false, what: `${loose.length} colour${loose.length === 1 ? ' is' : 's are'} hard-coded, not bound to a variable (${loose.slice(0, 4).join(', ')}).`, where: where(), fix: 'Bind each to its BELLA variable.', preview: { before: loose[0], after: 'the matching BELLA variable' } }
       : { check: 'Bindings', ok: true, what: 'Every colour is bound to a variable.', where: where() });
   } catch (e) {
-    findings.unshift({ check: 'Bindings', ok: null, what: `Couldn't read the bindings (${e.message.slice(0, 80)}).`, where: where() });
+    // the raw error is often a JSON schema dump: log it, show words
+    console.warn('figma lint bindings:', e.message);
+    findings.unshift({ check: 'Bindings', ok: null, what: "Not measured: Figma didn't return this component's variables.", where: where() });
   }
   // contrast: from code (the contract's verified pairs)
   findings.push({ check: 'Contrast', ok: c.health.contrast.status !== 'fail', what: c.health.contrast.status === 'fail' ? `Failing pairs in code: ${c.health.contrast.failing.join('; ')}` : `${c.health.contrast.pairs} pairs pass in code; Figma matches once its colours are bound.`, where: 'BELLA contrast pairs' });

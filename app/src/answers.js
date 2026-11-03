@@ -54,9 +54,15 @@ export function answerFromData(q, bella, page) {
     const rows = all.filter((c) => !c.hasStory).map((c) => ({ name: c.name, docs: yes(c.hasDocs) }));
     return list(`${rows.length} of ${all.length} components have no story`, rows, [{ key: 'docs', label: 'Docs' }]);
   }
-  if (without('contracts?')) {
-    const rows = all.filter((c) => !c.hasContract).map((c) => ({ name: c.name, story: yes(c.hasStory) }));
-    return list(`${rows.length} of ${all.length} components have no contract`, rows, [{ key: 'story', label: 'Story' }]);
+  // "contract" means two things in BELLA: the token contract (tokens/component.json)
+  // and the DSDS spec entry (bella.dsds.yaml). Answer both, never just one.
+  if (without('(contracts?|dsds|spec)')) {
+    const rows = all.filter((c) => !c.hasContract || !c.inDsds)
+      .map((c) => ({ name: c.name, tokens: yes(c.hasContract), dsds: yes(c.inDsds) }));
+    const noTokens = all.filter((c) => !c.hasContract).length;
+    const noDsds = all.filter((c) => !c.inDsds).length;
+    return list(`${noDsds} of ${all.length} components have no DSDS spec; ${noTokens} have no token contract`, rows,
+      [{ key: 'tokens', label: 'Token contract' }, { key: 'dsds', label: 'DSDS spec' }]);
   }
   if (without('(docs|description)')) {
     const rows = all.filter((c) => !c.hasDocs).map((c) => ({ name: c.name, story: yes(c.hasStory) }));
@@ -137,7 +143,7 @@ export function suggestionsFor(page, bella) {
   }
   const out = [];
   if (bella.counts.withStory < bella.counts.components) out.push('Which components have no story?');
-  if (bella.counts.withContract < bella.counts.components) out.push('Which components have no contract?');
+  if (bella.counts.withContract < bella.counts.components || bella.components.some((c) => !c.inDsds)) out.push('Which components have no contract?');
   const lowest = bella.stations.filter((st) => st.score !== null).sort((a, b) => a.score - b.score)[0];
   if (lowest) out.push(`How could BELLA raise its ${lowest.name} score?`);
   return out.slice(0, 3);

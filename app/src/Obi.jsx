@@ -847,7 +847,7 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
   }, [obi.turns]);
 
   return (
-    <section className="obi" data-theme={dockView !== 'bar' ? 'dark' : undefined} aria-label={dockView === 'bar' ? 'The Bar' : 'OBI'}>
+    <section className="obi" aria-label={dockView === 'bar' ? 'The Bar' : 'OBI'}>
       <header className="obi-head">
         <h2 className="sr-only">{dockView === 'bar' ? 'The Bar' : 'OBI'}</h2>
         <SegmentedControl options={dockOptions} value={dockView} onChange={setDockView} label="Dock view" className="obi-dock-tabs" />
@@ -862,7 +862,7 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
       </header>
 
       {dockView === 'bar' ? (
-        <TheBar lanes={bar.lanes} events={bar.events} needsItems={bar.needsItems} notify={notify} />
+        <TheBar lanes={bar.lanes} events={bar.events} needsItems={bar.needsItems} staleCount={bar.staleCount} notify={notify} />
       ) : (
         <>
           <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">

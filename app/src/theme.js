@@ -1,31 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
-// BELLA themes by [data-theme] on <html>: light is :root, dark and warm
-// override it. Warm is CHIP's default (2026-10-03, Elleta); a pick is
-// remembered for this browser only.
-const KEY = 'chip-theme';
-export const THEMES = [
-  { value: 'warm', label: 'Warm' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'wee-dote', label: 'Wee Dote' },
-];
-
-function initial() {
-  try {
-    const saved = localStorage.getItem(KEY);
-    if (THEMES.some((t) => t.value === saved)) return saved;
-  } catch {}
-  return 'warm';
-}
+// One look for now: BELLA's light ground, the same palette as elleta.design
+// (Elleta, 3 Nov 2026: "the updated colors from my portfolio and no themes").
+// data-theme="light" is set explicitly so an OS dark setting can't flip it.
+// Warm, dark and Wee Dote stay in BELLA; CHIP just doesn't offer them.
+const THEME = 'light';
 
 export function useTheme() {
-  const [theme, setTheme] = useState(initial);
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-theme', THEME);
     try {
-      localStorage.setItem(KEY, theme);
+      localStorage.removeItem('chip-theme');
     } catch {}
-  }, [theme]);
-  return [theme, setTheme];
+  }, []);
+  return [THEME];
 }

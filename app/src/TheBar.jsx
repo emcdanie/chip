@@ -302,15 +302,20 @@ export function useBar() {
     return () => es.close();
   }, [active]);
 
-  const needsItems = lanes
+  // a question from a lane quiet for over a week is stale: it no longer counts
+  // as waiting on you (15 Oct lanes kept showing "(10)" into November)
+  const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+  const allNeeds = lanes
     .flatMap((l) => (l.needs ?? []).map((item) => ({ ...item, laneName: l.name, laneUpdated: l.updated ?? 0 })))
     .sort((a, b) => b.laneUpdated - a.laneUpdated);
+  const needsItems = allNeeds.filter((n) => Date.now() - n.laneUpdated < STALE_MS);
+  const staleCount = allNeeds.length - needsItems.length;
 
   const totalNeeds = needsItems.length;
   const unread = Math.max(0, totalNeeds - seenCount);
   const markRead = () => setSeenCount(totalNeeds);
 
-  return { lanes, events, needsItems, unread, markRead, setActive };
+  return { lanes, events, needsItems, staleCount, unread, markRead, setActive };
 }
 
 async function copyText(text, notify) {
@@ -324,7 +329,7 @@ async function copyText(text, notify) {
 
 // ---- TheBar ----
 
-export function TheBar({ lanes, events, needsItems, notify }) {
+export function TheBar({ lanes, events, needsItems, staleCount = 0, notify }) {
   const wide = useMediaQuery('(min-width: 1024px)');
   const [waitOpen, setWaitOpen] = useState(false);
   const isWaitOpen = wide || waitOpen;
@@ -367,7 +372,7 @@ export function TheBar({ lanes, events, needsItems, notify }) {
           {!wide && needsItems.length > 0 && ` · ${needsItems.length}`}
         </summary>
         {needsItems.length === 0 ? (
-          <p className="bar-empty">Nothing waiting.</p>
+          <p className="bar-empty">Nothing waiting.{staleCount ? ` ${staleCount} older questions from lanes quiet for over a week are hidden.` : ''}</p>
         ) : (
           <ul className="bar-needs">
             {needsItems.map((item, i) => (

@@ -1,6 +1,16 @@
 /* CHIP app layout. BELLA semantic tokens only: no hex, no raw sizes. The
  * components bring their own styles; this file only places them. */
 
+/* CHIP opts in to BELLA's signal blue (Elleta, 3 Nov 2026: the elleta.design
+ * palette): links, the current tab and the focus ring. One block, after the
+ * BELLA import, so it beats bella.css's :root. */
+:root {
+  --ring-focus-color: var(--color-semantic-signal);
+  --component-link-default-foreground: var(--color-semantic-signal);
+  --component-link-default-foreground-hover: var(--color-semantic-signal);
+  --component-tabs-indicator: var(--color-semantic-signal);
+}
+
 html,
 body {
   margin: 0;
@@ -629,8 +639,8 @@ body {
 }
 
 .zone[data-hl] {
-  background: color-mix(in srgb, var(--color-semantic-accent) 22%, transparent);
-  box-shadow: 0 0 0 var(--border-width-medium) var(--color-semantic-accent);
+  background: color-mix(in srgb, var(--color-semantic-pin) 22%, transparent);
+  box-shadow: 0 0 0 var(--border-width-medium) var(--color-semantic-pin);
 }
 
 .leaders {
@@ -646,12 +656,12 @@ body {
 }
 
 .leaders g[data-hl] line {
-  stroke: var(--color-semantic-accent);
+  stroke: var(--color-semantic-pin);
   stroke-width: 2;
 }
 
 .leaders g[data-hl] .anc {
-  fill: var(--color-semantic-accent);
+  fill: var(--color-semantic-pin);
 }
 
 .leaders .anc {
@@ -668,9 +678,9 @@ body {
   border-radius: var(--radius-full);
   display: grid;
   place-items: center;
-  /* ink at rest; ochre only on the part that is selected or hovered */
-  background: var(--color-semantic-text-primary);
-  color: var(--color-semantic-background);
+  /* pink at rest, the hero's pin 02; ink on the part that is selected or hovered */
+  background: var(--color-semantic-pin);
+  color: var(--color-semantic-text-primary);
   box-shadow: 0 0 0 var(--border-width-thick) var(--color-semantic-surface-card);
   font-family: var(--typography-font-family-body);
   font-size: var(--typography-font-size-sm);
@@ -679,8 +689,8 @@ body {
 }
 
 .pin[data-hl] {
-  background: var(--color-semantic-accent);
-  color: var(--color-semantic-text-on-accent);
+  background: var(--color-semantic-text-primary);
+  color: var(--color-semantic-pin);
 }
 
 .legend,
@@ -787,11 +797,11 @@ body {
   overflow-wrap: anywhere;
 }
 
-/* highlight, never dim: the row fills ochre, everything on it goes ink */
+/* highlight, never dim: the row fills pink, everything on it goes ink */
 .legend button[aria-pressed='true'],
 .ex-labels .label[aria-pressed='true'] {
-  background: var(--color-semantic-accent);
-  color: var(--color-semantic-text-on-accent);
+  background: var(--color-semantic-pin);
+  color: var(--color-semantic-text-primary);
 }
 
 .legend button[aria-pressed='true'] small,
@@ -855,7 +865,7 @@ body {
 
 .exploded[data-open] .card[data-hl] {
   border-color: var(--color-semantic-border-ink);
-  background: color-mix(in srgb, var(--color-semantic-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--color-semantic-pin) 22%, transparent);
 }
 
 .exploded[data-drag] .rig,
@@ -886,7 +896,7 @@ body {
 }
 
 .ex-lines circle {
-  fill: var(--color-semantic-accent);
+  fill: var(--color-semantic-pin);
 }
 
 .ex-labels .label {
