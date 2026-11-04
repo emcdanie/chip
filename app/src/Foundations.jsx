@@ -257,11 +257,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
     <div className="fd-page k-chrome">
       <PageHeader
         title="Foundations"
-        lede={
-          <>
-            Every token, which components use it, and what still isn't a token. Read from <code>primitive.json</code>, <code>semantic</code>, <code>component.json</code> and each component's CSS.
-          </>
-        }
+        lede="Every token, who uses it, and what isn’t a token yet."
       />
 
       <div className="fd-tabs">
@@ -269,20 +265,6 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
       </div>
 
       <div {...panel('colours')} tabIndex={0} className="fd-panel">
-        <p className="fd-sublede">One row per colour role, light and dark, with its contrast against the pairs BELLA’s gate declares. A role that fails a pair opens its fix; select the count to see who uses it.</p>
-        {orphans.length ? (
-          <div className="fd-actline">
-            <p>
-              <b>
-                {orphans.length} colour role{orphans.length === 1 ? ' isn’t' : 's aren’t'} used by any component.
-              </b>{' '}
-              Some only the site uses; some are dead. Review them to retire the dead ones and mark the rest app-only, and this count goes to zero.
-            </p>
-            <Button variant="primary" onClick={() => setSheet({ kicker: 'Colour roles · unused', title: `${orphans.length} roles no component uses`, body: <OrphanList /> })}>
-              Review the {orphans.length}
-            </Button>
-          </div>
-        ) : null}
         <div className="fd-tok">
           <DataTable
             label="colour roles"
@@ -290,7 +272,17 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
             chips={[
               { id: 'all', label: 'All', test: () => true },
               { id: 'used', label: 'Used', test: (r) => r.usedBy.length > 0 },
-              { id: 'orphan', label: 'Used by nothing', test: (r) => !r.usedBy.length },
+              {
+                id: 'orphan',
+                label: 'Used by nothing',
+                test: (r) => !r.usedBy.length,
+                // the old callout, folded in: the same rows, and the review that clears them
+                action: orphans.length ? (
+                  <Button variant="primary" onClick={() => setSheet({ kicker: 'Colour roles · unused', title: `${orphans.length} roles no component uses`, body: <OrphanList /> })}>
+                    Review the {orphans.length}
+                  </Button>
+                ) : null,
+              },
             ]}
             onRow={openWho}
             cols={[
@@ -347,31 +339,29 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
       </div>
 
       <div {...panel('matrix')} tabIndex={0} className="fd-panel">
-        <p className="fd-sublede">Roles down, components across. Hover a cell to follow its row and column.</p>
         <Matrix roles={roles} bella={bella} />
       </div>
 
       <div {...panel('type')} tabIndex={0} className="fd-panel">
-        <p className="fd-sublede">
-          BELLA’s type scale from <code>primitive.json</code>, each step drawn at its real size.
-        </p>
         {f ? <TypePanel f={f} onSession={onSession} setSheet={setSheet} close={close} /> : <NotMeasured what={failed ? 'data/foundations.json is missing: run node scripts/sync-foundations.mjs.' : 'Loading…'} />}
       </div>
 
       <div {...panel('shape')} tabIndex={0} className="fd-panel">
-        <p className="fd-sublede">Radius and spacing, drawn to scale.</p>
         {f ? <ShapePanel f={f} /> : <NotMeasured what={failed ? 'data/foundations.json is missing: run node scripts/sync-foundations.mjs.' : 'Loading…'} />}
       </div>
 
       <div {...panel('motion')} tabIndex={0} className="fd-panel">
-        <p className="fd-sublede">Durations to scale, easings as their curve. Select any one to play it: durations run linear, easings run over 900ms.</p>
+        <p className="fd-sublede">Select a duration or easing to play it.</p>
         {f ? <MotionPanel f={f} /> : <NotMeasured what={failed ? 'data/foundations.json is missing: run node scripts/sync-foundations.mjs.' : 'Loading…'} />}
       </div>
 
       <div {...panel('tokenized')} tabIndex={0} className="fd-panel">
-        <p className="fd-sublede">Every declaration in BELLA’s component CSS, by property: how many read a token, and the ones that don’t.</p>
         {f ? <TokenizedPanel f={f} roles={roles.length} onColour={() => setTab('colours')} onSession={onSession} setSheet={setSheet} close={close} /> : <NotMeasured what={failed ? 'No CSS count: data/foundations.json is missing (node scripts/sync-foundations.mjs).' : 'Loading…'} />}
       </div>
+
+      <p className="fd-src">
+        Read from <code>primitive.json</code>, <code>semantic</code>, <code>component.json</code> and each component’s CSS.
+      </p>
 
       <Sheet open={!!sheet} kicker={sheet?.kicker} title={sheet?.title ?? ''} onClose={close} footer={sheet?.footer} actions={sheet?.actions}>
         {sheet?.body}

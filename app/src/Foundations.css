@@ -32,9 +32,6 @@
 .fd-ticon { font: 600 var(--fs-16)/var(--lh-body) var(--sans); }
 
 /* the "Review the 24" line */
-.fd-actline { display: flex; flex-wrap: wrap; gap: var(--s-12) var(--s-24); align-items: center; justify-content: space-between; margin-bottom: var(--s-16); padding: var(--s-24); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
-.fd-actline p { margin: 0; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); max-width: 52em; }
-.fd-actline b { color: var(--ink); font-weight: 600; }
 
 /* colour table cells (the mock's #tokTable) */
 .fd-tok { container: fdtok / inline-size; }

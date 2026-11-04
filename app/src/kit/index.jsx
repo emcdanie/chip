@@ -462,10 +462,12 @@ export function DataTable({ label, cols, rows, chips, onRow, search = true, rowK
             <input placeholder={`Filter ${label}…`} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
           </label>
         )}
-        {chips && <Chips label="Show" value={chip} onChange={setChip} items={chips.map((c) => ({ ...c, count: rows.filter(c.test).length }))} />}
+        {chips && <Chips label="Show" value={chip} onChange={setChip} items={chips.map(({ action, ...c }) => ({ ...c, count: rows.filter(c.test).length }))} />}
         <span className="k-count" aria-live="polite">
           {list.length} of {rows.length}
         </span>
+        {/* a chip may carry the action its filtered rows lead to (Foundations: Review the 39) */}
+        {chips?.find((c) => c.id === chip)?.action ?? null}
         <div
           className="k-cols"
           ref={colsRef}
