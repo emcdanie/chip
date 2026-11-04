@@ -295,10 +295,8 @@ function TermDetail({ t, name, handle, onGoTerm, onStop, notify }) {
   );
 }
 
-function Sessions({ lanes, terms, labelOf, branchOf, handles, onGoTerm, onStop, onReply, notify, live }) {
+function Sessions({ lanes, terms, runs, labelOf, branchOf, handles, onGoTerm, onStop, onReply, notify, live }) {
   const [sel, setSel] = useState(null);
-  // headless Claude runs ("Fix with Claude"): CHIP's own sessions with a result
-  const runs = useRuns(live);
   useEffect(() => {
     const on = (e) => setSel(`r${e.detail.id}`);
     window.addEventListener('chip:run-started', on);
@@ -420,7 +418,7 @@ function Sessions({ lanes, terms, labelOf, branchOf, handles, onGoTerm, onStop, 
                       state={state}
                       line={laneLine(l)}
                       branch={l.updated ? prs || 'branch not reported' : null}
-                      last={l.updated ? `report ${ago(l.updated)}` : 'no report file'}
+                      last={l.updated ? `report ${ago(l.updated)}` : 'never'}
                     >
                       <p className="line">
                         <b>Latest report</b>
@@ -825,6 +823,10 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
   }, [dragging]);
 
   const count = needs?.items.length;
+  // headless Claude runs ("Fix with Claude"): CHIP's own sessions with a result
+  const runs = useRuns(open && tab === 'sessions');
+  // the badge counts the tree's rows: CHIP, its runs and terminals, Relay lanes and each lane
+  const sessionRows = 2 + runs.length + terms.length + lanes.length;
   const tabs = (
     <Segmented
       id="wp"
@@ -844,7 +846,7 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
           id: 'sessions',
           label: (
             <>
-              Sessions <span className="n">{terms.length + lanes.length}</span>
+              Sessions <span className="n">{sessionRows}</span>
             </>
           ),
         },
@@ -902,6 +904,7 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
         <Sessions
           lanes={lanes}
           terms={terms}
+          runs={runs}
           labelOf={labelOf}
           branchOf={branchOf}
           handles={handles}

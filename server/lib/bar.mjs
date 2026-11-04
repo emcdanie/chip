@@ -199,12 +199,15 @@ export function laneState() {
       const rep = frankieRep.text;
       const n = needs(rep).map((t) => ({ text: t, cmds: commands(t) }));
       const rv = reportVersion(rep);
-      let status = 'done';
+      // no report file read: nothing is known, so say so rather than "done"
+      let status = rep == null ? 'no report' : 'done';
       if (n.length) status = 'waiting on you';
       return { id: l.id, name: l.name, role: l.role, status, needs: status === 'working' || status === 'parked' ? [] : n, reportVersion: rv, updated: mtime(frankieRep.path), frankieSource: frankieRep.source, prs: (ciCache['frankie']?.prs ?? []) };
     }
-    if (!l.report) return { ...l, status: 'serving', needs: [] };
+    // no report file to read: "no report", never a status CHIP can't see
+    if (!l.report) return { ...l, status: 'no report', needs: [] };
     const rep = read(l.report);
+    if (rep == null) return { id: l.id, name: l.name, role: l.role, status: 'no report', needs: [], updated: 0, prs: ciCache[l.id]?.prs ?? [] };
     const nowText = l.now ? read(l.now) : null;
     const nv = nowVersion(nowText), rv = reportVersion(rep);
     const n = needs(rep).map((t) => ({ text: t, cmds: commands(t) }));
