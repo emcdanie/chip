@@ -28,9 +28,13 @@
 .cn-links { position: absolute; left: 0; top: 0; overflow: visible; }
 .cn-links path { fill: none; stroke: color-mix(in srgb, var(--ink) 30%, var(--card)); stroke-width: 1.6; }
 .cn-links path.bl { stroke: var(--fail); stroke-dasharray: 4 4; }
-.cn-links path.flow { stroke: var(--action); stroke-width: 2.4; stroke-dasharray: 6 6; animation: cn-flow 0.9s linear infinite; }
+/* Every working link flows on its own, so the map reads as live without a
+   click (Elleta, 4 Nov). A blocked link stays still and red: nothing moves
+   past a failing part. Selecting a card brightens its own links. */
+.cn-links path.run { stroke-dasharray: 6 6; animation: cn-flow 1.6s linear infinite; }
+.cn-links path.flow { stroke: var(--action); stroke-width: 2.4; animation-duration: 0.9s; }
 @keyframes cn-flow { to { stroke-dashoffset: -24; } }
-@media (prefers-reduced-motion: reduce) { .cn-links path.flow { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cn-links path.run { animation: none; } }
 
 /* a card: icon, name, the short line, the pill; the toggle hangs below it */
 .cn-nodes { margin: 0; padding: 0; list-style: none; }
@@ -46,8 +50,12 @@
 .cn-tx { display: grid; min-width: 0; }
 .cn-tx b { font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cn-tx small { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cn-tog { position: absolute; left: 50%; bottom: -18px; transform: translateX(-50%); z-index: 1; display: grid; place-items: center; width: var(--h-compact); height: var(--h-compact); padding: 0; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); font-size: var(--fs-14); line-height: var(--lh-body); cursor: pointer; }
-.cn-tog:hover { border-color: var(--action); }
+.cn-tog { position: absolute; left: var(--s-12); bottom: var(--s-8); display: grid; place-items: center; width: var(--h-compact); height: 32px; padding: 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--muted); cursor: pointer; }
+.cn-tog:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
+.cn-tog:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.cn-tog svg { transition: transform 0.2s ease-out; }
+.cn-tog[aria-expanded='true'] svg { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .cn-tog svg { transition: none; } }
 
 /* the sheets: a status line, the parts of a group, the steps to try */
 .cn-sline { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-12); align-items: center; }
