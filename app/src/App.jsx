@@ -264,6 +264,12 @@ export default function App() {
     return ok;
   };
   const obiApi = { ...obi, send };
+  // any run started anywhere (a page, a review card) opens Work on Sessions, where its result lands
+  useEffect(() => {
+    const on = () => setWork({ open: true, tab: 'sessions' });
+    window.addEventListener('chip:run-started', on);
+    return () => window.removeEventListener('chip:run-started', on);
+  }, [setWork]);
   // "Fix in a session": Claude Code runs the brief headless on a BELLA
   // branch (Runs.jsx); its progress and result show in the panel's Sessions
   // tree, and its row opens the report with Accept or Undo. Before 4 Nov the
@@ -595,12 +601,11 @@ export default function App() {
 
       <ReviewSheet />
       <RunSheet />
+      <SourceSheet />
 
       <p className={`toast${toast ? ' on' : ''}`} role="status" aria-live="polite">
         {toast}
       </p>
     </div>
   );
-      <SourceSheet />
-      <SourceSheet />
 }

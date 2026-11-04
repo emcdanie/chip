@@ -10,6 +10,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import { Facts, Sheet, SheetPart, StatusPill } from './kit/index.jsx';
+import { startRun } from './Runs.jsx';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
 export const openReview = (check) => window.dispatchEvent(new CustomEvent('chip:review', { detail: { check } }));
@@ -134,6 +135,18 @@ export default function ReviewSheet() {
   const att = card?.job?.status === 'failed' ? { fresh: true, blockers: card.job.blockers, rules: card.job.rules, at: card.job.startedAt } : card?.lastAttempt ?? null;
   const close = () => setCheck(null);
   const copy = (text) => navigator.clipboard?.writeText(text).then(() => setNote('Brief copied.'));
+  // no one-click fix: Claude Code runs the brief headless, as every "Fix in a session" does
+  const fixWithClaude = async () => {
+    setBusy(true);
+    try {
+      await startRun(card.brief, card.title, 'Needs you');
+      close();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // the buttons, each with what it changes and its undo, in the card's own words
   const actions = card?.change
@@ -144,7 +157,10 @@ export default function ReviewSheet() {
           { label: 'Not now', variant: 'tertiary', onClick: close, changes: 'Nothing. The check stays failing until you come back.' },
         ]
     : card?.noFix
-      ? [{ label: 'Copy the brief', onClick: () => copy(card.brief), changes: 'Puts the brief on your clipboard, for a session to fix by hand.', undo: 'Nothing to undo.' }]
+      ? [
+          { label: busy ? 'Starting…' : 'Fix in a session', onClick: fixWithClaude, disabled: busy, changes: 'Claude Code runs the brief headless on a BELLA branch, then BELLA’s gate. The result shows in Work › Sessions to Accept or Undo; nothing merges.', undo: 'Undo in the result deletes the branch.' },
+          { label: 'Copy the brief', variant: 'tertiary', onClick: () => copy(card.brief), changes: 'Puts the brief on your clipboard, for a session to fix by hand.', undo: 'Nothing to undo.' },
+        ]
       : null;
 
   return (
@@ -333,7 +349,7 @@ export default function ReviewSheet() {
             </SheetPart>
           ) : card.noFix ? (
             <SheetPart label="What to do" fix>
-              <p>Copy the brief below into a session; it names what failed and the commit it failed on.</p>
+              <p>Fix in a session runs the brief below; it names what failed and the commit it failed on.</p>
               <pre>{card.brief}</pre>
             </SheetPart>
           ) : null}
