@@ -18,12 +18,13 @@ import { CHIP_CLAUDE_DAILY } from './lib/config.mjs';
 import * as bellaWork from './lib/bella-work.mjs';
 import { barState, barStream, barImg } from './lib/bar.mjs';
 import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
-import { specOf, figmaLint } from './lib/spec-lint.mjs';
+import { specOf, figmaLint, readBaseline, runBaseline } from './lib/spec-lint.mjs';
 import { attachTerminal, repoList } from './lib/term.mjs';
 import { listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
-import { accept, fixableChecks, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
+import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou } from './lib/needs.mjs';
-import { gapFixes } from './lib/gaps.mjs';
+import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
+import { decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, searchHistory } from './lib/history.mjs';
 import { systemMap } from './lib/map.mjs';
 import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
@@ -130,7 +131,22 @@ const sameApp = (req, res, { post = true } = {}) => {
 const session = (req) => String(req.get('x-chip-session') ?? '').slice(0, 64) || null;
 app.get('/host', (req, res) => {
   if (!sameApp(req, res, { post: false })) return;
-  res.json({ servers: host.servers() });
+  const servers = host.servers();
+  res.json({ servers, figma: host.figmaSummary(servers) });
+});
+// Refresh: every connector that is on, tested again
+app.post('/host/test-all', async (req, res) => {
+  if (!sameApp(req, res)) return;
+  const servers = await host.testAll();
+  res.json({ servers, figma: host.figmaSummary(servers) });
+});
+app.post('/host/enable', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(host.setEnabled(String(req.body?.server ?? ''), req.body?.enabled !== false));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
 });
 app.post('/host/test', async (req, res) => {
   if (!sameApp(req, res)) return;
@@ -223,6 +239,13 @@ app.get('/figma-lint/:id', async (req, res) => {
   if (!c) return res.status(404).json({ error: 'No such component' });
   const props = specOf(c).props?.map((p) => p.name) ?? c.props ?? [];
   res.json(await figmaLint(c, { refresh: req.query.refresh === '1', codeProps: props }));
+});
+// Compare with Figma for every component: the baseline the Connectors page shows
+const propsOf = (c) => specOf(c).props?.map((p) => p.name) ?? c.props ?? [];
+app.get('/figma-baseline', (_req, res) => res.json(readBaseline()));
+app.post('/figma-baseline/run', (req, res) => {
+  if (!sameApp(req, res)) return;
+  res.json(runBaseline(propsOf));
 });
 app.get('/bella-history/:id', (req, res) => {
   try {
@@ -450,6 +473,39 @@ app.post('/review/:check/undo', (req, res) => {
     errorOut(res, e);
   }
 });
+app.post('/review/:check/keep', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(keep(String(req.params.check)));
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+// Runs: a brief handed to Claude Code headless, reported back as an outcome
+app.get('/runs', (_req, res) => res.json({ runs: listRuns() }));
+app.get('/runs/ready', (_req, res) => res.json(claudeReady()));
+app.get('/runs/:id', (req, res) => {
+  const r = getRun(String(req.params.id));
+  r ? res.json(r) : res.status(404).json({ error: 'No such run (runs are kept until CHIP restarts)' });
+});
+app.post('/runs', async (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(await startRun({ brief: req.body?.brief, title: typeof req.body?.title === 'string' ? req.body.title.slice(0, 120) : null, from: typeof req.body?.from === 'string' ? req.body.from.slice(0, 60) : null }));
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+for (const [verb, fn] of [['stop', stopRun], ['keep', keepRun], ['undo', undoRun]]) {
+  app.post(`/runs/:id/${verb}`, (req, res) => {
+    if (!sameApp(req, res)) return;
+    try {
+      res.json(fn(String(req.params.id)));
+    } catch (e) {
+      errorOut(res, e);
+    }
+  });
+}
 app.get('/review-img/:dir/:file', (req, res) => {
   try {
     res.type('png').send(reviewImage(String(req.params.dir), String(req.params.file)));
@@ -470,6 +526,23 @@ app.get('/gaps', (_req, res) => {
     res.json(gapFixes());
   } catch (e) {
     errorOut(res, e, 500);
+  }
+});
+// the report behind "Review the fix": ?items=story:Kbd,dsds:AvatarStack
+app.get('/gaps/report', (req, res) => {
+  try {
+    res.json(gapReport(String(req.query.items ?? '').split(',').filter(Boolean).map((x) => x.split(':'))));
+  } catch (e) {
+    errorOut(res, e, 500);
+  }
+});
+// Skip, or take a skip back: { gap, name, decision: 'skip' | null }
+app.post('/gaps/decide', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(decideGap(req.body ?? {}));
+  } catch (e) {
+    errorOut(res, e);
   }
 });
 app.get('/history', (req, res) => res.json(searchHistory(req.query)));
@@ -585,6 +658,8 @@ const server = app.listen(PORT, '127.0.0.1', () => {
     .catch((err) => console.error('[CHIP] warm-up failed:', err.message));
 });
 attachTerminal(server, { port: PORT, origins: APP_ORIGINS });
+// every connector gets a real test at start, so none sits at "not tested"
+host.testAll().then((list) => console.log(`[CHIP] connectors: ${list.map((s) => `${s.name} ${s.status}`).join(', ')}`));
 startPlayProxy([...APP_ORIGINS]);
 
 // Overview should never open on "Not run yet": run the fast checks once at

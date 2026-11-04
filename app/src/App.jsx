@@ -15,6 +15,7 @@ import History from './History.jsx';
 import Playground from './Playground.jsx';
 import Projects from './Projects.jsx';
 import ReviewSheet from './ReviewSheet.jsx';
+import RunSheet, { startRun } from './Runs.jsx';
 import { WorkPanel, useWork, useNeeds, useLanes, clampW, clampH, maxW, maxH } from './WorkPanel.jsx';
 import { useObi, OneInput } from './Obi.jsx';
 import { useTheme } from './theme.js';
@@ -260,16 +261,17 @@ export default function App() {
     return ok;
   };
   const obiApi = { ...obi, send };
-  // "Fix in a session": the brief goes on the clipboard and Claude opens in
-  // the Terminal tab (the one already running, or a new one in CHIP)
-  const session = async (brief) => {
+  // "Fix in a session": Claude Code runs the brief headless on a BELLA
+  // branch (Runs.jsx); its progress and result show in the panel's Sessions
+  // tree, and its row opens the report with Accept or Undo. Before 4 Nov the
+  // brief only went to the clipboard and Claude opened empty.
+  const session = async (brief, title) => {
     try {
-      await navigator.clipboard.writeText(brief);
-      setToast('Brief copied. Paste it into Claude.');
-    } catch {
-      setToast('Could not copy the brief.');
+      await startRun(brief, title, NAME[ws] ?? 'a page');
+      setWork({ open: true, tab: 'sessions' });
+    } catch (e) {
+      setToast(e.message);
     }
-    window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { kind: 'claude', repo: 'chip', brief, from: NAME[ws] ?? 'a page' } }));
   };
 
   // the top bar's Find is hidden under 1101px, as the mock does: ⌘K asks in the panel there
@@ -589,6 +591,7 @@ export default function App() {
         />
 
       <ReviewSheet />
+      <RunSheet />
 
       <p className={`toast${toast ? ' on' : ''}`} role="status" aria-live="polite">
         {toast}

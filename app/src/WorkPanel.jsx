@@ -21,6 +21,7 @@ import { Segmented, segPanelProps } from './kit/index.jsx';
 import { openReview } from './ReviewSheet.jsx';
 import { OneInput, ObiThread } from './Obi.jsx';
 import { Terminals, MAX_TERMS, termName, STATUS } from './Terminal.jsx';
+import { openRun, runLine, runState, useRuns } from './Runs.jsx';
 
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
 const FACE = { dara: 'lane-a', bernie: 'lane-c', saoirse: 'lane-b', frankie: 'lane-d' };
@@ -290,6 +291,14 @@ function TermDetail({ t, name, handle, onGoTerm, onStop, notify }) {
 
 function Sessions({ lanes, terms, labelOf, branchOf, handles, onGoTerm, onStop, onReply, notify, live }) {
   const [sel, setSel] = useState(null);
+  // headless Claude runs ("Fix with Claude"): CHIP's own sessions with a result
+  const runs = useRuns(live);
+  useEffect(() => {
+    const on = (e) => setSel(`r${e.detail.id}`);
+    window.addEventListener('chip:run-started', on);
+    return () => window.removeEventListener('chip:run-started', on);
+  }, []);
+  const rs = runs.map((r) => [r, runState(r)]);
   // states and "x s ago" move with the clock while the tab shows
   const [, tick] = useState(0);
   useEffect(() => {
@@ -297,7 +306,7 @@ function Sessions({ lanes, terms, labelOf, branchOf, handles, onGoTerm, onStop, 
     const t = setInterval(() => tick((n) => n + 1), 5000);
     return () => clearInterval(t);
   }, [live]);
-  const ts = terms.map((t) => [t, termState(t)]);
+  const ts = [...terms.map((t) => [t, termState(t)]), ...rs];
   const ls = lanes.map((l) => [l, laneState(l)]);
   const last = (xs, of) => Math.max(0, ...xs.map(of));
   return (
@@ -314,20 +323,37 @@ function Sessions({ lanes, terms, labelOf, branchOf, handles, onGoTerm, onStop, 
               sub="this page · coordinator"
               state={ts.some(([, s]) => s[0] === 'working') ? ['working', 'Working'] : ts.some(([, s]) => s[0] === 'you') ? ['you', 'Waiting on you'] : ['idle', terms.length ? 'Quiet' : 'Idle']}
               line={
-                terms.length
-                  ? `Started ${terms.length} session${terms.length === 1 ? '' : 's'}: ${tally(ts.map(([, s]) => s))}`
+                ts.length
+                  ? `Started ${ts.length} session${ts.length === 1 ? '' : 's'}: ${tally(ts.map(([, s]) => s))}`
                   : 'Hasn’t started a session. Fix in a session, the Playground or Terminal starts one.'
               }
               branch={branchOf('chip') ?? 'branch unknown'}
               last={ago(last(terms, (t) => t.last))}
             >
               <p className="line">
-                CHIP sees only the sessions it started in this page: Fix in a session, the Playground, Needs you and Terminal. They run in a shell here and end when the page reloads or closes.
+                CHIP sees only the sessions it started: Fix with Claude runs headless and reports back here (kept across reloads); the Playground, Needs you and Terminal run in a shell here and end when the page reloads or closes.
               </p>
             </Row>
             <li className="skids">
               <ul>
-                {ts.map(([t, state]) => {
+                {rs.map(([r, state]) => (
+                  <Row key={r.id} id={`r${r.id}`} sel={sel} setSel={setSel} face="C" name={r.title} sub={`Claude, headless · from ${r.from ?? 'a page'}`} state={state} line={runLine(r)} branch={r.branch} last={ago(Date.parse(r.startedAt))}>
+                    {r.steps?.some((x) => x.claude) ? (
+                      <ol className="lneeds">
+                        {r.steps
+                          .filter((x) => x.claude)
+                          .slice(-4)
+                          .map((x, i) => (
+                            <li key={i}>{x.step}</li>
+                          ))}
+                      </ol>
+                    ) : null}
+                    <Button variant={r.status === 'passed' ? 'primary' : 'secondary'} onClick={() => openRun(r.id)}>
+                      {r.status === 'passed' ? 'Review: Accept or Undo' : 'Open the report'}
+                    </Button>
+                  </Row>
+                ))}
+                {terms.map((t) => [t, termState(t)]).map(([t, state]) => {
                   const name = termName(t, labelOf(t.repo));
                   return (
                     <Row

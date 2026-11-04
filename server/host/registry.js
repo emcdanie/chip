@@ -5,14 +5,15 @@
 // Servers come from chip.config.local.json ("servers"; see
 // chip.config.example.json). Secrets never sit in that file: write
 // "${FIGMA_ACCESS_TOKEN}" and the value comes from server/.env or the shell.
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { ROOT } from '../lib/config.mjs';
+import { DATA_DIR, ROOT } from '../lib/config.mjs';
 import { logUsage, lastToolUses } from '../lib/usage.mjs';
 import { McpServer } from './mcp.js';
 import { CliServer } from './cli.js';
 import { FigmaRestServer } from './figma-rest.js';
+import { NotionApiServer } from './notion-api.js';
 import { guard, take, writeBlocked } from './guard.js';
 
 // "${NAME}" -> process.env.NAME; "~/" -> the home folder
@@ -36,14 +37,82 @@ const BUILT_IN = [
     allow: ['read'],
     note: 'Figma REST API with a personal access token from server/.env. Works without the Figma app open. Read only.',
   },
+  // Notion's hosted MCP needs a browser sign-in CHIP can't do; an internal
+  // integration token can be read from server/.env like Figma's. The same
+  // token npm run sync:notion uses.
+  {
+    name: 'notion',
+    kind: 'notion',
+    url: 'https://api.notion.com/v1',
+    env: { NOTION_API_TOKEN: '${NOTION_API_TOKEN}' },
+    allow: ['read'],
+    note: 'Notion API with an internal integration token from server/.env. Reads the pages shared with that integration. Read only.',
+  },
 ];
+
+// what each connector is for, in plain words, for the Connectors page
+const ABOUT = {
+  figma: { purpose: 'Reads the BELLA library from the Figma desktop app: components, variants, variables.', needs: 'The Figma app open with the file, and Dev Mode MCP on.', group: 'figma', path: 'Desktop app' },
+  'figma-console': { purpose: 'Reads and edits Figma through the Desktop Bridge plugin: variables, components, screenshots.', needs: 'The Desktop Bridge plugin running in Figma.', group: 'figma', path: 'Desktop Bridge' },
+  'figma-rest': { purpose: 'Reads the BELLA library over the internet, with no Figma app open.', needs: 'A personal access token in server/.env.', group: 'figma', path: 'REST API', optional: true },
+  'figma-cli': { purpose: 'A Figma command-line tool. CHIP does not use one yet.', needs: 'A CLI named in chip.config.local.json.', unused: true },
+  notion: { purpose: 'Reads your Notion pages shared with CHIP’s integration: notes, decisions, research.', needs: 'An internal integration token in server/.env, and the pages shared with it.' },
+  git: { purpose: 'Reads git status and log for this repo. The test that CLI tools work.', needs: 'git on the PATH.' },
+  'design-systems': { purpose: 'Searches Southleft’s open design-systems knowledge base for how other systems do it.', needs: 'The internet.' },
+};
+
+// a second read after the test, for what the connector can see right now
+const PROBE = {
+  // tools list without the plugin; the Desktop Bridge is what does the work
+  'figma-console': async (a) => {
+    const st = JSON.parse(await a.call('figma_get_status', {}));
+    const f = st.transport?.websocket?.connectedFile ?? (st.currentFileName ? { fileName: st.currentFileName } : null);
+    const others = st.transport?.websocket?.otherInstances?.length ?? 0;
+    return f?.fileName && !f.fileName.startsWith('(')
+      ? `Desktop Bridge connected to “${f.fileName}”.`
+      : `Tools answer, but the Desktop Bridge isn’t connected to this CHIP: open the plugin in Figma${others ? ` (${others} other figma-console instance${others === 1 ? '' : 's'} running; the plugin may be talking to one of those)` : ''}.`;
+  },
+  figma: async (a) => {
+    const xml = await a.call('get_metadata', { nodeId: '0:0' });
+    const pages = (xml.match(/<canvas\s/g) ?? []).length;
+    const vars = (xml.match(/<variable\s/g) ?? []).length;
+    return `Reads the file open in Figma: ${pages} pages, ${vars} variables.`;
+  },
+};
+
+// connectors turned on from the Connectors page, kept outside her config file
+const OVERRIDES = join(DATA_DIR, 'connectors.json');
+const overrides = () => {
+  try {
+    return JSON.parse(readFileSync(OVERRIDES, 'utf8'));
+  } catch {
+    return { enabled: {} };
+  }
+};
+
+// Notion's hosted MCP (mcp.notion.com) can't sign in from CHIP: the built-in
+// token connector takes its place
+const hostedNotion = (c) => /mcp\.notion\.com/.test(c.url ?? '');
 
 function rawConfig() {
   let list = [];
   try {
     list = JSON.parse(readFileSync(join(ROOT, 'chip.config.local.json'), 'utf8')).servers ?? [];
   } catch {}
-  return [...list, ...BUILT_IN.filter((b) => !list.some((c) => c.name === b.name))];
+  list = list.filter((c) => !hostedNotion(c));
+  const on = overrides().enabled ?? {};
+  return [...list, ...BUILT_IN.filter((b) => !list.some((c) => c.name === b.name))].map((c) => (c.disabled && on[c.name] ? { ...c, disabled: false } : c));
+}
+
+/** Turns a connector that is off in the config on (or back off), from the page. */
+export function setEnabled(name, enabled) {
+  const o = overrides();
+  o.enabled = { ...(o.enabled ?? {}), [name]: Boolean(enabled) };
+  if (!enabled) delete o.enabled[name];
+  mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(OVERRIDES, JSON.stringify(o, null, 2));
+  if (!enabled) live.delete(name);
+  return servers().find((s) => s.name === name);
 }
 const loadConfig = () => rawConfig().map(fill);
 
@@ -69,8 +138,8 @@ const live = new Map(); // name -> { adapter, status, error, tools }
 
 function entry(cfg) {
   if (!live.has(cfg.name)) {
-    const adapter = cfg.kind === 'cli' ? new CliServer(cfg) : cfg.kind === 'rest' ? new FigmaRestServer(cfg) : new McpServer(cfg);
-    live.set(cfg.name, { adapter, status: 'not tested', error: null, tools: null });
+    const adapter = cfg.kind === 'cli' ? new CliServer(cfg) : cfg.kind === 'rest' ? new FigmaRestServer(cfg) : cfg.kind === 'notion' ? new NotionApiServer(cfg) : new McpServer(cfg);
+    live.set(cfg.name, { adapter, status: 'not tested', error: null, tools: null, testedAt: null, detail: null });
   }
   return live.get(cfg.name);
 }
@@ -85,7 +154,7 @@ export function servers() {
     return {
       name: cfg.name,
       kind: cfg.kind,
-      transport: cfg.kind === 'cli' ? 'cli' : cfg.kind === 'rest' ? 'https' : cfg.transport,
+      transport: cfg.kind === 'cli' ? 'cli' : ['rest', 'notion'].includes(cfg.kind) ? 'https' : cfg.transport,
       where: r.url ?? [r.command, ...(r.args ?? [])].join(' '), // as written: ${NAME}, never the value
       allow: cfg.allow ?? [],
       note: cfg.note ?? null,
@@ -94,8 +163,35 @@ export function servers() {
       error: redact(e?.error ?? null),
       tools: e?.tools ?? null,
       lastUsed: used[cfg.name] ?? null,
+      testedAt: e?.testedAt ?? null,
+      detail: e?.detail ?? null, // what the test read: a file name, a page count
+      about: ABOUT[cfg.name] ?? null,
+      // not set up yet (a missing token), rather than broken
+      setup: Boolean(e?.status === 'error' && /^Add \w+=/.test(e.error ?? '')),
     };
   });
+}
+
+/** Figma as one thing: connected when any read path answers. */
+export function figmaSummary(list = servers()) {
+  const paths = list.filter((s) => ABOUT[s.name]?.group === 'figma');
+  const up = paths.filter((s) => s.status === 'connected');
+  return {
+    connected: up.length > 0,
+    via: up.map((s) => s.name),
+    sentence: up.length
+      ? `Connected through ${up.map((s) => ABOUT[s.name].path.toLowerCase()).join(' and ')}.`
+      : paths.some((s) => s.status === 'not tested')
+        ? 'Not tested yet.'
+        : 'No Figma path answers. Open the Figma app with the BELLA library, or add a REST token.',
+  };
+}
+
+/** Tests every connector that is on, at start and on Refresh. */
+export async function testAll() {
+  const on = loadConfig().filter((c) => !c.disabled);
+  await Promise.all(on.map((c) => test(c.name).catch(() => {})));
+  return servers();
 }
 
 function configOf(name) {
@@ -114,11 +210,15 @@ export async function test(name) {
     e.tools = (await e.adapter.listTools()).map((t) => ({ ...t, allowed: t.kind === 'read' || !writeBlocked(cfg, t.name) }));
     e.status = 'connected';
     e.error = null;
+    e.detail = e.adapter.detail ?? null;
+    if (PROBE[name]) e.detail = await PROBE[name](e.adapter).catch(() => null);
   } catch (err) {
     e.status = 'error';
     e.error = err.message;
+    e.detail = null;
     await e.adapter.close?.();
   }
+  e.testedAt = new Date().toISOString();
   return servers().find((s) => s.name === name);
 }
 

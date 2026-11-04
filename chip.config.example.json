@@ -62,17 +62,6 @@
       "note": "Which Figma CLI is still open; turned off until it is named."
     },
     {
-      "name": "notion",
-      "kind": "mcp",
-      "transport": "http",
-      "url": "https://mcp.notion.com/mcp",
-      "allow": [
-        "read"
-      ],
-      "disabled": true,
-      "note": "Needs Notion's sign-in flow; not wired yet. CHIP reads Notion through its own sync for now."
-    },
-    {
       "name": "git",
       "kind": "cli",
       "command": "git",
