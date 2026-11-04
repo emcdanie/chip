@@ -32,6 +32,9 @@ import Tag from '@bella/components/Tag/Tag';
 
 const noop = () => {};
 
+// every component imported here, by its name: Atlas writes a specimen out as JSX with these
+export const COMPONENTS = { ActionChip, Avatar, Combobox, BrandWordmark, Button, Card, DataTable, Disclosure, Eyebrow, FilterChip, Heading, Icon, Input, Kbd, Link, NavList, PatternField, ResourceCard, ScaledFrame, ScoreStrip, SectionHeader, SegmentedControl, Select, Stat, StatusPill, Tabs, Tag };
+
 export const SPECIMENS = {
   Avatar: () => <Avatar name="Ada Lovelace" size="lg" ring />,
   BrandWordmark: () => <BrandWordmark word="BELLA" variant="ink" size="nav" />,
@@ -152,8 +155,29 @@ export const SPECIMENS = {
 // One render per contract variant, for Atlas's variants card. Only where the
 // contract's variants map straight to a prop; anything else gets no card.
 export const VARIANTS = {
-  Button: (v) => <Button variant={v}>{v}</Button>,
+  Button: (v) => <Button variant={v}>{v[0].toUpperCase() + v.slice(1)}</Button>,
   Tag: (v) => <Tag variant={v}>{v}</Tag>,
   StatusPill: (v) => <StatusPill variant={v}>{v}</StatusPill>,
   Eyebrow: (v) => <Eyebrow variant={v}>{v}</Eyebrow>,
+};
+
+// One render per contract shape, for Atlas's Variants tab. The pill's label is
+// the contract's own ("Let's talk", Button usage).
+export const SHAPES = {
+  Button: (s) => (
+    <Button variant="primary" shape={s}>
+      {s === 'pill' ? 'Let’s talk' : 'Save changes'}
+    </Button>
+  ),
+};
+
+// The component itself and the specimen's props, for Atlas's Playground: its
+// prop controls render this, not the fixed specimen.
+export const PLAY = {
+  Button: { C: Button, children: 'Save changes' },
+  FilterChip: { C: FilterChip, children: 'Accessible', props: { pressed: false, onClick: noop } },
+  ActionChip: { C: ActionChip, children: 'Try in sandbox', props: { onClick: noop } },
+  Tag: { C: Tag, children: 'Case study' },
+  StatusPill: { C: StatusPill, children: 'Passing' },
+  Eyebrow: { C: Eyebrow, children: 'Design system' },
 };

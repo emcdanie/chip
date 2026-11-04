@@ -169,7 +169,7 @@ const ROLE = {
 };
 const unquote = (v) => (v == null ? null : String(v).replace(/'/g, ''));
 
-function keyboardOf(c) {
+export function keyboardOf(c) {
   const r = (c.rendersAs ?? '').toLowerCase();
   if (/\bbutton\b/.test(r) && /anchor|link/.test(r)) return 'Tab reaches it; Enter and Space press it (Enter only when it renders as a link).';
   if (/\bbutton\b/.test(r)) return 'Tab reaches it; Enter and Space press it.';
