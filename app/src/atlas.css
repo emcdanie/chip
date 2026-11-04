@@ -293,8 +293,9 @@
 .atlas .dm-detail .ttab { font-size: var(--fs-14); }
 .atlas .dm-detail .ttab th, .atlas .dm-detail .ttab td { padding: var(--s-4) var(--s-8) var(--s-4) 0; }
 /* ask */
-.atlas .dm-ask form { display: flex; gap: var(--s-8); }
-.atlas .dm-ask input { flex: 1; min-width: 0; min-height: var(--h-control); padding: 0 var(--s-12); border: 1px solid var(--muted); border-radius: var(--r); background: var(--card); font: 400 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
+/* the field keeps room for its whole placeholder question; Ask wraps under it first */
+.atlas .dm-ask form { display: flex; flex-wrap: wrap; gap: var(--s-8); }
+.atlas .dm-ask input { flex: 1 1 18em; min-width: 0; min-height: var(--h-control); padding: 0 var(--s-12); border: 1px solid var(--muted); border-radius: var(--r); background: var(--card); font: 400 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
 .atlas .dm-sugg { display: flex; flex-wrap: wrap; gap: 6px; }
 .atlas .dm-sugg button { min-height: 32px; padding: 0 var(--s-12); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); font: 400 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
 .atlas .dm-sugg button:hover { border-color: var(--action); }
@@ -340,7 +341,7 @@
 .atlas .dm-behind summary b { color: var(--ink); white-space: nowrap; }
 .atlas .dm-behind summary b::before { content: '▸'; display: inline-block; width: 1.2em; color: var(--muted); }
 .atlas .dm-behind details[open] > summary b::before { content: '▾'; }
-.atlas .dm-behind summary span { font-size: var(--fs-14); color: var(--body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atlas .dm-behind summary span { font-size: var(--fs-14); color: var(--body); overflow-wrap: anywhere; } /* the summaries and paths wrap, never cut */
 .atlas .dm-behind summary em { font-style: normal; font-size: var(--fs-14); color: var(--muted); }
 .atlas .dm-behind summary:hover { background: color-mix(in srgb, var(--action) 6%, var(--card)); }
 .atlas .dm-behind summary:focus-visible { outline-offset: -3px; }
