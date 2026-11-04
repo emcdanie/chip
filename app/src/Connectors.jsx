@@ -6,7 +6,7 @@
 // explains how to add a connector.
 import React, { useCallback, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, LinkButton } from './kit/index.jsx';
+import { PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, SheetPart, Facts, NotMeasured } from './kit/index.jsx';
 import SystemMap, { useMapControls } from './SystemMap.jsx';
 import { changed } from './ReviewSheet.jsx';
 import './Connectors.css';
@@ -43,6 +43,78 @@ const figmaRestSteps = [
 ];
 
 const copy = (t) => navigator.clipboard?.writeText(t).catch(() => {});
+const kindOf = (s) => (s.kind === 'cli' ? 'Connector · CLI tool' : s.kind === 'rest' ? 'Connector · REST API' : `Connector · MCP over ${s.transport}`);
+
+// a connector's sheet: what it is, whether it answers, what reads it, what to do
+function ServerSheet({ s, feeds, note }) {
+  const st = statusOf(s);
+  const steps = s.status === 'error' ? (s.name === 'figma' ? figmaSteps(s.where) : s.name === 'figma-rest' ? figmaRestSteps : null) : null;
+  const tools = s.tools ? `${s.tools.filter((t) => t.kind === 'read').length} read · ${s.tools.filter((t) => t.kind !== 'read').length} write` : null;
+  const fix =
+    s.status === 'error'
+      ? steps
+        ? s.name === 'figma'
+          ? 'Open Figma desktop with a design file in front, turn on its MCP server, then Reconnect. It is optional: figma-rest reads Figma without the app.'
+          : 'Add the token and the file key to server/.env, restart CHIP, then Test.'
+        : 'Check the server runs at the address below, then Reconnect. The error above is what it last said.'
+      : s.status === 'not tested'
+        ? 'Test it once, so CHIP knows whether it answers before anything leans on it.'
+        : s.disabled
+          ? `It is off in chip.config.local.json. Leave it off until ${feeds ? 'you need what it feeds' : 'something needs it'}; turning it on is a one-line change there.`
+          : 'Nothing. Test again only if what it feeds looks stale.';
+  return (
+    <>
+      <SheetPart label="What this is">
+        <p>{s.note ?? <NotMeasured what="The config gives no description." />}</p>
+      </SheetPart>
+      <SheetPart label="State" pill={<StatusPill tone={st.tone}>{st.word}</StatusPill>}>
+        {s.error ? <pre>{s.error}</pre> : null}
+        <Facts
+          rows={[
+            ['Last answered', s.lastUsed ? when(s.lastUsed) : null],
+            ['Access', access(s)],
+            tools && ['Tools', tools],
+            [
+              'Address',
+              <span className="cn-reach">
+                <code>{s.where}</code>
+              </span>,
+            ],
+          ]}
+        />
+      </SheetPart>
+      <SheetPart label="Why it matters" source={<code>chip.config.local.json</code>}>
+        <p>{feeds ? `${feeds} ${feeds.includes(',') ? 'read' : 'reads'} from it. While it doesn’t answer, ${feeds.includes(',') ? 'they show' : 'that shows'} as blocked on the system map.` : 'Nothing on the system map reads from it, so CHIP works the same without it.'}</p>
+        <p>
+          Allowed to {access(s)}
+          {s.allow.includes('write') ? ': it can change files, so CHIP asks before any write.' : ': it can’t change anything.'}
+        </p>
+      </SheetPart>
+      <SheetPart label="What to do" fix>
+        <p>{fix}</p>
+        {steps ? (
+          <ol className="cn-steps">
+            {steps.map(([t, w, cmd]) => (
+              <li key={t}>
+                <b>{t}</b>
+                <span>{w}</span>
+                {cmd ? (
+                  <span className="cn-cmd">
+                    <code>{cmd}</code>
+                    <Button onClick={() => copy(cmd)} ariaLabel={`Copy ${cmd}`}>
+                      Copy
+                    </Button>
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        ) : null}
+      </SheetPart>
+      {note ? <p role="status">{note}</p> : null}
+    </>
+  );
+}
 
 export default function Connectors() {
   const [tab, setTab] = useState('map');
@@ -122,6 +194,26 @@ export default function Connectors() {
     { key: 'act', label: 'Action', hideLabel: true, sort: false, end: true, render: (s) => actButton(s) },
   ];
   const sheetServer = servers?.find((s) => s.name === open);
+  // the sheet's buttons: the one test, and copying where it lives
+  const sheetActions = (s) => {
+    const a = actionOf(s);
+    return [
+      a && {
+        label: testing === s.name ? busyWord(s) : a,
+        variant: s.status === 'error' ? 'primary' : 'secondary',
+        disabled: !!testing,
+        onClick: () => test(s),
+        changes: 'CHIP calls the server once and records whether it answered. Nothing in BELLA or the config changes.',
+        undo: 'Nothing to undo.',
+      },
+      {
+        label: 'Copy the address',
+        variant: a ? 'secondary' : 'primary',
+        onClick: () => copy(s.where),
+        changes: 'Puts the address on your clipboard.',
+      },
+    ].filter(Boolean);
+  };
 
   const mapBar = (
     <div className="cn-bar">
@@ -204,64 +296,8 @@ export default function Connectors() {
         </p>
       </section>
 
-      <Sheet open={!!sheetServer} title={sheetServer?.name ?? ''} onClose={() => setOpen(null)} footer={sheetServer ? actButton(sheetServer, true) : null}>
-        {sheetServer ? (
-          <>
-            <p className="cn-sline">
-              <StatusPill tone={statusOf(sheetServer).tone}>{statusOf(sheetServer).word}</StatusPill>
-              {sheetServer.error ? <span>{sheetServer.error}</span> : null}
-            </p>
-            {sheetServer.note ? <p>{sheetServer.note}</p> : null}
-            <dl>
-              {feeds(sheetServer.name) ? (
-                <>
-                  <dt>Feeds</dt>
-                  <dd>{feeds(sheetServer.name)}</dd>
-                </>
-              ) : null}
-              <dt>Kind</dt>
-              <dd>{sheetServer.kind === 'cli' ? 'CLI tool' : sheetServer.kind === 'rest' ? 'REST API over https' : `MCP over ${sheetServer.transport}`}</dd>
-              <dt>Access</dt>
-              <dd>{access(sheetServer)}</dd>
-              <dt>Last answered</dt>
-              <dd>{when(sheetServer.lastUsed)}</dd>
-              <dt>Reach</dt>
-              <dd className="cn-reach">
-                <code>{sheetServer.where}</code> <LinkButton onClick={() => copy(sheetServer.where)}>Copy</LinkButton>
-              </dd>
-              {sheetServer.tools ? (
-                <>
-                  <dt>Tools</dt>
-                  <dd>
-                    {sheetServer.tools.filter((t) => t.kind === 'read').length} read · {sheetServer.tools.filter((t) => t.kind !== 'read').length} write
-                  </dd>
-                </>
-              ) : null}
-            </dl>
-            {sheetServer.status === 'error' && ['figma', 'figma-rest'].includes(sheetServer.name) ? (
-              <>
-                <h3>{sheetServer.name === 'figma' ? 'If it won’t answer' : 'To connect it'}</h3>
-                {sheetServer.name === 'figma' ? <p>Optional: figma-rest reads Figma without the app.</p> : null}
-                <ol className="cn-steps">
-                  {(sheetServer.name === 'figma' ? figmaSteps(sheetServer.where) : figmaRestSteps).map(([t, w, cmd]) => (
-                    <li key={t}>
-                      <b>{t}</b>
-                      <span>{w}</span>
-                      {cmd ? (
-                        <span className="cn-cmd">
-                          <code>{cmd}</code>
-                          <Button onClick={() => copy(cmd)} ariaLabel={`Copy ${cmd}`}>
-                            Copy
-                          </Button>
-                        </span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ol>
-              </>
-            ) : null}
-          </>
-        ) : null}
+      <Sheet open={!!sheetServer} kicker={sheetServer ? kindOf(sheetServer) : null} title={sheetServer?.name ?? ''} onClose={() => setOpen(null)} actions={sheetServer ? sheetActions(sheetServer) : null}>
+        {sheetServer ? <ServerSheet s={sheetServer} feeds={feeds(sheetServer.name)} note={note} /> : null}
       </Sheet>
     </div>
   );

@@ -3,7 +3,7 @@
 // map's nodes (/map); the card and the pills are BELLA's checks (/checks).
 import React, { useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { Card, DataTable, Drawer, FilterGroup, PageHeader, Segmented, Sheet, StatusPill, Toggle, segPanelProps } from './kit/index.jsx';
+import { Card, DataTable, Drawer, Facts, FilterGroup, NotMeasured, PageHeader, Segmented, Sheet, SheetPart, StatusPill, Toggle, segPanelProps } from './kit/index.jsx';
 
 const STATE = { ok: ['pass', 'Healthy'], bad: ['fail', 'Failing'], blocked: ['needs', 'Blocked'] };
 const stateOf = (s) => STATE[s] ?? ['neutral', s];
@@ -191,29 +191,33 @@ export default function Kit() {
 
       <Sheet
         open={!!node}
+        kicker={node ? `Pipeline part · ${node.group}` : null}
         title={node?.name}
         onClose={() => setRow(null)}
-        footer={node?.action && <Button variant="primary">{node.action.label}</Button>}
+        actions={node?.action ? [{ label: node.action.label, changes: 'A specimen: on #/kit this button does nothing.', undo: 'Nothing to undo.' }] : null}
       >
         {node && (
           <>
-            <p>
-              <StatusPill tone={stateOf(node.state)[0]}>{stateOf(node.state)[1]}</StatusPill>
-            </p>
-            <p>{node.detail}</p>
-            <dl>
-              <dt>Group</dt>
-              <dd>{node.group}</dd>
-              <dt>Source</dt>
-              <dd>
-                <code>{node.source}</code>
-              </dd>
-              <dt>Reads from</dt>
-              <dd>{node.deps?.length ? node.deps.join(', ') : 'Nothing'}</dd>
-              <dt>If this breaks</dt>
-              <dd>{node.dependents?.length ? node.dependents.join(', ') : 'Nothing else stops'}</dd>
-            </dl>
-            {checks && <p className="k-sub">Checks last ran {when(checks.checks[0]?.ranAt)}.</p>}
+            <SheetPart label="What this is">
+              <p>
+                Part of {node.group}. It comes from <code>{node.source}</code>.
+              </p>
+            </SheetPart>
+            <SheetPart label="State" pill={<StatusPill tone={stateOf(node.state)[0]}>{stateOf(node.state)[1]}</StatusPill>}>
+              <p>{node.detail ?? <NotMeasured />}</p>
+              <Facts
+                rows={[
+                  ['Reads from', node.deps?.length ? node.deps.join(', ') : 'Nothing'],
+                  ['Checks ran', checks ? when(checks.checks[0]?.ranAt) : null],
+                ]}
+              />
+            </SheetPart>
+            <SheetPart label="Why it matters" source={<code>{node.source}</code>}>
+              <p>{node.dependents?.length ? `If this breaks, ${node.dependents.join(', ')} stop${node.dependents.length === 1 ? 's' : ''} too.` : 'Nothing else stops if this breaks.'}</p>
+            </SheetPart>
+            <SheetPart label="What to do" fix>
+              <p>{node.state === 'ok' ? 'Nothing. It is healthy.' : node.action ? `${node.action.label}.` : 'Fix it at its source.'}</p>
+            </SheetPart>
           </>
         )}
       </Sheet>

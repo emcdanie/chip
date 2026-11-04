@@ -147,8 +147,6 @@
 .fd-link { padding: 0; border: 0; background: none; font: inherit; color: var(--body); text-align: left; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 
 /* sheets */
-.fd-plain { display: grid; margin: 0; padding: 0; list-style: none; }
-.fd-plain li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-4) var(--s-12); min-height: 48px; padding: var(--s-4) 0; border-bottom: 1px solid var(--line); }
 .fd-muted { color: var(--muted); }
 .fd-row2 { display: flex; flex-wrap: wrap; gap: var(--s-12); }
 .fd-meta { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }

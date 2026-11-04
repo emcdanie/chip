@@ -102,7 +102,8 @@ export function Chips({ label, items, value, onChange }) {
 
 /* ---------- segmented control: the tabs pattern. Arrow keys, Home and End move
    and select; only the selected tab is in the tab order. Pair each panel with
-   segPanelProps(id, item) ---------- */
+   segPanelProps(id, item). With panels={false} it picks a value instead (the
+   Playground's width and mode): a radio group, same look, same keys ---------- */
 export const segPanelProps = (id, item, value) => ({
   role: 'tabpanel',
   id: `${id}-p-${item}`,
@@ -110,27 +111,26 @@ export const segPanelProps = (id, item, value) => ({
   hidden: item !== value,
 });
 
-export function Segmented({ id, label, items, value, onChange }) {
+export function Segmented({ id, label, items, value, onChange, panels = true }) {
   const ref = useRef(null);
   function onKeyDown(e) {
     const i = items.findIndex((t) => t.id === value);
-    const n = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: items.length - 1 }[e.key];
+    const n = { ArrowRight: i + 1, ArrowDown: panels ? undefined : i + 1, ArrowLeft: i - 1, ArrowUp: panels ? undefined : i - 1, Home: 0, End: items.length - 1 }[e.key];
     if (n === undefined) return;
     e.preventDefault();
     const next = items[(n + items.length) % items.length];
     onChange(next.id);
     ref.current.querySelector(`#${CSS.escape(`${id}-t-${next.id}`)}`)?.focus();
   }
+  const on = (t) => (panels ? { role: 'tab', 'aria-controls': `${id}-p-${t.id}`, 'aria-selected': t.id === value } : { role: 'radio', 'aria-checked': t.id === value });
   return (
-    <div className="k-seg" role="tablist" aria-label={label} ref={ref} onKeyDown={onKeyDown}>
+    <div className="k-seg" role={panels ? 'tablist' : 'radiogroup'} aria-label={label} ref={ref} onKeyDown={onKeyDown}>
       {items.map((t) => (
         <button
           key={t.id}
           type="button"
-          role="tab"
           id={`${id}-t-${t.id}`}
-          aria-controls={`${id}-p-${t.id}`}
-          aria-selected={t.id === value}
+          {...on(t)}
           tabIndex={t.id === value ? 0 : -1}
           onClick={() => onChange(t.id)}
         >
@@ -143,8 +143,85 @@ export function Segmented({ id, label, items, value, onChange }) {
 }
 
 /* ---------- side sheet: a modal <dialog>. Esc, the backdrop and Close all
-   close it, and focus goes back to whatever opened it ---------- */
-export function Sheet({ open, title, onClose, children, footer, className, keepMounted, onCancel, head }) {
+   close it, and focus goes back to whatever opened it.
+   Every sheet that explains something reads the same way, top to bottom:
+     kicker + title   what kind of thing this is, and its name
+     <SheetPart label="What this is">       one or two sentences
+     <SheetPart label="State" pill={…}>     the state, with the evidence
+     <SheetPart label="Why it matters" source="…">   names the rule or source
+     <SheetPart label="What to do" fix>     the recommended fix
+     actions=[{ label, onClick, changes, undo }]   the buttons in the footer;
+                                            what each changes and its undo close the body
+   Where a fact isn't measured, say so with <NotMeasured />; don't pad. ---------- */
+export const NotMeasured = ({ what = 'Not measured' }) => <span className="k-nm">{what}</span>;
+
+export function SheetPart({ label, pill, source, fix, children }) {
+  const id = useId();
+  return (
+    <section className={cx('k-part', fix && 'k-part-fix')} aria-labelledby={id}>
+      <div className="k-part-h">
+        <h3 id={id}>{label}</h3>
+        {pill}
+      </div>
+      {children}
+      {source ? (
+        <p className="k-part-src">
+          <span>Source</span> {source}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+// label/value rows for the evidence; a null value says Not measured
+export function Facts({ rows }) {
+  const list = rows.filter(Boolean);
+  if (!list.length) return null;
+  return (
+    <dl className="k-facts">
+      {list.map(([k, v]) => (
+        <React.Fragment key={k}>
+          <dt>{k}</dt>
+          <dd>{v ?? <NotMeasured />}</dd>
+        </React.Fragment>
+      ))}
+    </dl>
+  );
+}
+
+// the actions: the buttons sit in the footer, always in reach; what each one
+// changes and how to undo it closes the body, so a long consequence never
+// pushes the sheet's content off screen
+const actKey = (a, i) => a.key ?? (typeof a.label === 'string' ? a.label : i);
+function SheetActionTerms({ actions }) {
+  const told = actions.filter((a) => a.changes || a.undo);
+  if (!told.length) return null;
+  return (
+    <SheetPart label={told.length === 1 ? 'What the button does' : 'What the buttons do'}>
+      <dl className="k-facts k-terms">
+        {told.map((a, i) => (
+          <React.Fragment key={actKey(a, i)}>
+            <dt>{a.label}</dt>
+            <dd>
+              {a.changes ? (
+                <span>
+                  <b>Changes</b> {a.changes}
+                </span>
+              ) : null}
+              {a.undo ? (
+                <span>
+                  <b>Undo</b> {a.undo}
+                </span>
+              ) : null}
+            </dd>
+          </React.Fragment>
+        ))}
+      </dl>
+    </SheetPart>
+  );
+}
+
+export function Sheet({ open, title, kicker, onClose, children, footer, actions, className, keepMounted, onCancel, head }) {
   const ref = useRef(null);
   const back = useRef(null);
   const id = useId();
@@ -153,6 +230,10 @@ export function Sheet({ open, title, onClose, children, footer, className, keepM
     if (open && !d.open) {
       back.current = document.activeElement;
       d.showModal();
+      // start on the title, not the Close button: the screen reader reads
+      // what opened, and Tab goes on to Close, then the body, then the actions.
+      // A working panel (k-wide: OBI, Claude, the terminal) keeps its own focus
+      if (!d.classList.contains('k-wide')) d.querySelector('.k-sheet-h h2')?.focus();
     } else if (!open && d.open) d.close();
   }, [open]);
   useEffect(() => {
@@ -168,14 +249,32 @@ export function Sheet({ open, title, onClose, children, footer, className, keepM
   return (
     <dialog ref={ref} className={cx('k-sheet', className)} aria-labelledby={id} onCancel={onCancel} onClick={(e) => e.target === ref.current && ref.current.close()}>
       <div className="k-sheet-h">
-        <h2 id={id}>{title}</h2>
+        <div className="k-sheet-t">
+          {kicker ? <p className="k-sheet-k">{kicker}</p> : null}
+          <h2 id={id} tabIndex={-1}>
+            {title}
+          </h2>
+        </div>
         {head}
         <button type="button" className="k-iconbtn" onClick={() => ref.current.close()}>
           <span aria-hidden="true">✕</span> Close
         </button>
       </div>
-      <div className="k-sheet-b">{(open || keepMounted) && children}</div>
-      {footer && <div className="k-sheet-f">{footer}</div>}
+      <div className="k-sheet-b">
+        {(open || keepMounted) && children}
+        {open && actions?.length ? <SheetActionTerms actions={actions} /> : null}
+      </div>
+      {footer ? (
+        <div className="k-sheet-f">{footer}</div>
+      ) : actions?.length ? (
+        <div className="k-sheet-f">
+          {actions.map((a, i) => (
+            <Button key={actKey(a, i)} variant={a.variant ?? (i ? 'secondary' : 'primary')} onClick={a.onClick} disabled={a.disabled} ariaLabel={a.ariaLabel}>
+              {a.label}
+            </Button>
+          ))}
+        </div>
+      ) : null}
     </dialog>
   );
 }

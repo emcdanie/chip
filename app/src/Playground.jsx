@@ -9,20 +9,20 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
 import Select from '@bella/components/Select/Select';
-import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { PageHeader, Segmented, segPanelProps, StatusPill, LinkButton } from './kit/index.jsx';
 import { contrast } from './Sandbox.jsx';
 import './Playground.css';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
+// the kit's segmented control, picking a value (no panels), as every page draws it
 const WIDTHS = [
-  { value: '1440', label: '1440' },
-  { value: '1024', label: '1024' },
-  { value: '390', label: '390' },
+  { id: '1440', label: '1440' },
+  { id: '1024', label: '1024' },
+  { id: '390', label: '390' },
 ];
 const MODES = [
-  { value: 'use', label: 'Use the page' },
-  { value: 'mark', label: 'Mark up' },
+  { id: 'use', label: 'Use the page' },
+  { id: 'mark', label: 'Mark up' },
 ];
 
 /* ---------- BELLA's rules, run on what the probe measured ---------- */
@@ -260,8 +260,8 @@ export default function Playground({ onToast }) {
       <div className="pg-work">
         <section className="pg-stagecol" aria-label="The page">
           <div className="pg-bar">
-            <SegmentedControl label="Width" value={width} onChange={setWidth} options={WIDTHS} />
-            <SegmentedControl label="Mode" value={mode} onChange={setMode} options={MODES} />
+            <Segmented id="pgw" label="Width" panels={false} items={WIDTHS} value={width} onChange={setWidth} />
+            <Segmented id="pgm" label="Mode" panels={false} items={MODES} value={mode} onChange={setMode} />
             <span className="pg-src">
               {pages ? (
                 <>
