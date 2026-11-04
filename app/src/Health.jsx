@@ -1,8 +1,10 @@
-// Overview, as the approved mock draws it (chip-mock-03 #overview): the
-// banner, Now and This week, the Coverage · Gate · Drift card, Checks, Scout,
-// By component and Gaps to close. Every number comes from bella.json
-// (components, history[].gate) or GET /checks; where nothing measures what
-// the mock shows, the page says "Not measured" instead of a number.
+// Overview, in the mock's style but ordered by action (4 Nov): the blocking
+// banner, Gaps to close, the Coverage · Gate · Drift card, This week, Checks,
+// the breakdown and Scout. Colour flags only exceptions (Desbarats: no
+// "Christmas tree"): red for failing, yellow for needs-you, ink and grey for
+// normal; green only for a pass Refresh just found. Every number comes from
+// bella.json (components, history[].gate) or GET /checks; where nothing
+// measures it, the page says "Not measured" instead of a number.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import { Segmented, segPanelProps, Sheet } from './kit/index.jsx';
@@ -24,6 +26,26 @@ const GAP_ORDER = [3, 4, 0, 5, 1, 2];
 
 const fmt = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const STATUS_WORD = { failed: 'failing', passed: 'passing', waiting: 'waiting on you', running: 'running', 'not-run': 'not run' };
+
+// what Refresh compares: BELLA's version, each check's status, the gap count
+function snapshot(bella, checksData) {
+  const failing = failingTokens({ data: checksData });
+  const comps = bella?.components ?? [];
+  const gaps = comps.reduce((s, c) => s + COLS.filter((k) => !k.of(c, failing)).length, 0);
+  return { version: bella?.source?.version, gaps, checks: Object.fromEntries((checksData?.checks ?? []).map((c) => [c.id, { name: c.name, status: c.status }])) };
+}
+function changesBetween(a, b) {
+  const out = [];
+  if (a.version !== b.version) out.push({ text: `BELLA ${a.version} → ${b.version}` });
+  for (const [id, c] of Object.entries(b.checks)) {
+    const was = a.checks[id]?.status;
+    if (was && was !== c.status) out.push({ text: `${c.name} is now ${STATUS_WORD[c.status] ?? c.status}`, good: c.status === 'passed', bad: c.status === 'failed' });
+  }
+  if (a.gaps !== b.gaps) out.push({ text: `Gaps ${a.gaps} → ${b.gaps}`, good: b.gaps < a.gaps, bad: b.gaps > a.gaps });
+  return out;
+}
 
 const ICON = {
   cov: (
@@ -62,40 +84,6 @@ function gateRuns(bella) {
     });
 }
 
-function Rings({ rings }) {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setOn(true), 80);
-    return () => clearTimeout(t);
-  }, []);
-  return (
-    <div className="ringwrap">
-      <svg className="rings" viewBox="0 0 168 168" role="img" aria-label={rings.map((x) => `${x.k} ${x.n} of ${x.of} ${x.unit}`).join(', ')}>
-        {rings.map((x) => (
-          <React.Fragment key={x.k}>
-            <circle className={`trk ${x.cls}`} r={x.r} cx="84" cy="84" pathLength="100" />
-            <circle className={`val ${x.cls}`} r={x.r} cx="84" cy="84" pathLength="100" strokeDasharray={on ? `${((x.n / x.of) * 100).toFixed(1)} 100` : '0 100'} />
-          </React.Fragment>
-        ))}
-      </svg>
-      <dl className="rleg">
-        {rings.map((x) => (
-          <div key={x.k}>
-            <dt>{x.k}</dt>
-            <dd>
-              <b>
-                {x.n}
-                <small>/{x.of}</small>
-              </b>
-              {x.unit}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
 export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   const checks = useChecks();
   const failing = failingTokens(checks);
@@ -104,6 +92,8 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   const [sheet, setSheet] = useState(null); // { title, body, footer }
   const [checkId, setCheckId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [sync, setSync] = useState(null); // { at, changes } | { at, error }
+  const lastLook = useRef(Date.now());
 
   const comps = bella?.components ?? [];
   const rows = useMemo(
@@ -161,9 +151,9 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
       big: `${withStory} of ${n}`,
       what: 'components have a story',
       note: storyDelta == null ? 'Not measured: BELLA’s history has no earlier snapshot.' : storyDelta === 0 ? `Same as on ${weekDay} (${storiesThen}).` : `${Math.abs(storyDelta)} ${storyDelta > 0 ? 'more' : 'fewer'} than on ${weekDay} (${storiesThen}).`,
-      k: 'ok',
+      k: '',
     },
-    { big: `${gaps}`, what: 'gaps left to close', note: `Not measured on ${weekDay}: BELLA’s history keeps no gap count.`, k: 'ok' },
+    { big: `${gaps}`, what: 'gaps left to close', note: `Not measured on ${weekDay}: BELLA’s history keeps no gap count.`, k: '' },
     latestGate && !latestGate.pass
       ? {
           big: 'Failing',
@@ -171,7 +161,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
           note: redSince ? `It passed every commit until ${fmt(redSince.day)}. ${plural(red, 'commit')} since ${red === 1 ? 'has' : 'have'} failed it.` : 'It has not passed yet.',
           k: 'bad',
         }
-      : { big: 'Passing', what: 'the gate', note: latestGate ? `Every commit since ${fmt(G[G.map((g) => g.pass).lastIndexOf(false) + 1]?.day ?? latestGate.day)}.` : 'Not measured.', k: 'ok' },
+      : { big: 'Passing', what: 'the gate', note: latestGate ? `Every commit since ${fmt(G[G.map((g) => g.pass).lastIndexOf(false) + 1]?.day ?? latestGate.day)}.` : 'Not measured.', k: '' },
   ];
 
   /* ---------- sheets ---------- */
@@ -250,9 +240,20 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
     </>
   ) : null;
 
+  // Refresh re-reads BELLA and the checks, then says what changed since the last look
   const refresh = async () => {
+    if (refreshing) return;
+    const before = snapshot(bella, data);
+    const since = lastLook.current;
     setRefreshing(true);
-    await Promise.all([checks.reload(), onRefresh?.()]);
+    try {
+      const [d, b] = await Promise.all([checks.reload(), onRefresh?.()]);
+      const at = Date.now();
+      setSync({ at, since, changes: changesBetween(before, snapshot(b ?? bella, d)) });
+      lastLook.current = at;
+    } catch (e) {
+      setSync({ at: Date.now(), since, error: e.message || 'the CHIP server did not answer' });
+    }
     setRefreshing(false);
   };
   const lastRan = list.reduce((m, c) => (c.ranAt && c.ranAt > m ? c.ranAt : m), '');
@@ -274,10 +275,36 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
     { k: 'Docs', s: withDocs === n ? '✓' : '!', v: `${withDocs}/${n}` },
     { k: 'Tokens', s: !tokensBuilt ? '?' : tokensBuilt.status === 'passed' ? '✓' : '!', v: !tokensBuilt ? 'Not measured' : tokensBuilt.status === 'passed' ? 'built' : tokensBuilt.word },
   ];
-  const SUB = { cov: 'Checks passed · Components missing one', gate: redSince ? `Checks per commit · ${red} red since ${fmt(redSince.day)}` : 'Checks per commit', drift: 'Figma · Storybook · Code' };
+  const SUB = { cov: 'Components passing each check · yellow where under 90%', gate: redSince ? `Checks per commit · ${red} red since ${fmt(redSince.day)}` : 'Checks per commit', drift: 'Figma · Storybook · Code' };
   const TITLE = { cov: 'Coverage', gate: 'Gate', drift: 'Drift' };
   const DLT = { cov: 'By component', gate: 'By day', drift: 'By pair' };
   const days = [...new Set(G.map((g) => g.day))].slice(-6).reverse();
+
+  // failing first, then waiting on you, then the rest in schedule order
+  const RANK = { failed: 0, waiting: 1, running: 2 };
+  const sorted = [...list].sort((a, b) => (RANK[a.status] ?? 3) - (RANK[b.status] ?? 3));
+  const syncLine = refreshing ? (
+    'Checking BELLA and the checks…'
+  ) : !sync ? null : sync.error ? (
+    <>
+      <b>Refresh failed:</b> {sync.error}. Showing what CHIP read at {hhmm(sync.since)}.
+    </>
+  ) : sync.changes.length ? (
+    <>
+      <b>{plural(sync.changes.length, 'change')}</b> · Checked {hhmm(sync.at)}:{' '}
+      {sync.changes.map((c, k) => (
+        <React.Fragment key={k}>
+          {k ? '; ' : ''}
+          <span className={c.good ? 'up' : c.bad ? 'down' : undefined}>
+            {c.good ? '✓ ' : ''}
+            {c.text}
+          </span>
+        </React.Fragment>
+      ))}
+    </>
+  ) : (
+    `No change since ${hhmm(sync.since)} · Checked ${hhmm(sync.at)}`
+  );
 
   return (
     <div className="ov-page k-chrome">
@@ -288,14 +315,17 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
           </h1>
           <div className="hsync">
             <p className="k-meta">
-              <b>BELLA {bella.source.version}</b> · checked {lastRan ? when(lastRan) : 'never'}
+              <b>BELLA {bella.source.version}</b> · checks last ran {lastRan ? when(lastRan) : 'never'}
             </p>
-            <Button onClick={refresh} disabled={refreshing}>
-              {ICON.refresh}
-              {refreshing ? 'Refreshing…' : 'Refresh'}
+            <Button onClick={refresh}>
+              <span className={refreshing ? 'spin' : undefined}>{ICON.refresh}</span>
+              {refreshing ? 'Checking…' : 'Refresh'}
             </Button>
           </div>
         </div>
+        <p className={`syncline${sync?.error ? ' err' : ''}`} role="status" aria-live="polite">
+          {syncLine}
+        </p>
         {gateFailed && banner ? (
           <div className="alertline" role="alert">
             <p>{banner}</p>
@@ -306,32 +336,44 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
         ) : null}
       </div>
 
-      <div className="sumgrid ov">
-        <section className="scard2 c-health" aria-labelledby="ovRT">
-          <h2 id="ovRT" className="ovh">
-            Now
-          </h2>
-          <Rings
-            rings={[
-              { k: 'Coverage', n: passed, of: cells, unit: 'checks', r: 70, cls: 'rc' },
-              { k: 'Contracts', n: withContract, of: n, unit: 'components', r: 46, cls: 'rk' },
-            ]}
-          />
-        </section>
-        <section className="scard2 c-trend" aria-labelledby="ovTT">
-          <h2 id="ovTT" className="ovh">
-            This week, compared with {weekDay}
-          </h2>
-          <ul className="trends">
-            {trends.map((t) => (
-              <li key={t.what} className={t.k}>
-                <b>{t.big}</b> <span className="w">{t.what}</span>
-                <span className="d">{t.note}</span>
+      {acts.length ? (
+        <section className="gapsec" aria-labelledby="gapT">
+          <div className="actline">
+            <div>
+              <h2 className="dlt" id="gapT">
+                Gaps to close
+              </h2>
+              <p>
+                {gaps} gaps across {withGaps.length} components, biggest first. None blocks a merge; each makes BELLA harder for an agent or a reviewer to use.
+              </p>
+            </div>
+            <Button onClick={() => onSession(`Close BELLA's ${gaps} coverage gaps, biggest first: ${acts.map((a) => `${COLS[a.i].fix} (${a.who.join(', ')})`).join('; ')}.`)}>Close all {gaps} in a session</Button>
+          </div>
+          <ol className="gaplist">
+            {acts.map((a, k) => (
+              <li key={a.i} className={`gap1${k ? '' : ' first'}`}>
+                <span className="n">
+                  {a.who.length}
+                  <small>component{a.who.length === 1 ? '' : 's'}</small>
+                </span>
+                <div>
+                  <button type="button" className="rowbtn" id={`gap-${k}`} aria-haspopup="dialog" onClick={() => colSheet(a.i)}>
+                    {COLS[a.i].fix}
+                  </button>
+                  {k ? null : <span className="k-pill needs">Do next</span>}
+                  <span className="why">{COLS[a.i].why}</span>
+                  <span className="who">
+                    {a.who.map((w) => (
+                      <span key={w}>{w}</span>
+                    ))}
+                  </span>
+                </div>
+                <Button onClick={() => onSession(`${COLS[a.i].fix} in BELLA for ${a.who.join(', ')}.`)}>Fix in a session</Button>
               </li>
             ))}
-          </ul>
+          </ol>
         </section>
-      </div>
+      ) : null}
 
       <section className="wx-card" aria-labelledby="wcTitle">
         <div className="wc-head">
@@ -358,14 +400,15 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
             {COLS.map((k, i) => {
               const ok = rows.filter((r) => r.v[i]).length;
               const pct = n ? ok / n : 0;
+              const low = pct < 0.9;
               return (
-                <button type="button" key={k.short} className={`hcol${pct < 0.9 ? ' low' : ''}`} style={{ gridColumn: i + 1 }} aria-label={`${k.long}, ${ok} of ${n}`} aria-haspopup="dialog" onClick={() => colSheet(i)}>
+                <button type="button" key={k.short} className={`hcol${low ? ' low' : ''}`} style={{ gridColumn: i + 1 }} aria-label={`${k.long}, ${ok} of ${n}${low ? ', under 90%' : ''}`} aria-haspopup="dialog" onClick={() => colSheet(i)}>
                   <span className="hl">{k.short}</span>
                   <span className="tube">
                     <i style={{ height: filled ? `calc((100% - 8px) * ${pct})` : 0 }} />
                   </span>
                   <span className="hv">
-                    <i className={`vdot ${pct < 0.9 ? 'low' : 'ok'}`} aria-hidden="true" />
+                    {low ? <i className="vdot low" aria-hidden="true" /> : null}
                     {ok}/{n}
                   </span>
                 </button>
@@ -377,7 +420,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
         <div {...segPanelProps('hv', 'gate', view)}>
           <div className="hstrip wind" role="img" aria-label={`Gate, last ${lastG.length} commits${lastG.length ? `: the latest passed ${lastG[lastG.length - 1].ok} of ${lastG[lastG.length - 1].of} checks` : ''}. Over all ${G.length} commits with a gate, ${G.filter((g) => g.pass).length} passed${redSince ? `, then ${red} failed from ${fmt(redSince.day)}` : ''}.`}>
             {lastG.map((g, k) => (
-              <span key={g.sha} className="wcol" aria-hidden="true">
+              <span key={g.sha} className={`wcol${g.pass ? '' : ' bad'}`} aria-hidden="true">
                 <span className="hl">{k === lastG.length - 1 ? 'Now' : fmt(g.day)}</span>
                 <span className="wv">
                   {g.ok}/{g.of}
@@ -408,53 +451,54 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
         </div>
       </section>
 
-      <div className="sumgrid ov ov2">
-        <section className="scard2 c-checks" aria-labelledby="ckT">
-          <h2 id="ckT" className="ovh">
-            Checks <span className="sub2">{list.length} scheduled checks. Select one to see its last run.</span>
-          </h2>
-          {checks.error ? (
-            <p className="k-sub">The checks could not be read (is the CHIP server running?).</p>
-          ) : !data ? (
-            <p className="k-sub">Reading the checks…</p>
-          ) : (
-            <ul className="cklist">
-              <li className="ckhead" aria-hidden="true">
-                <span>Check</span>
-                <span>Status</span>
-                <span>Last result</span>
-                <span>Runs</span>
-              </li>
-              {list.map((c) => {
-                const v = c.status === 'failed' ? ['bad', '✕ Failed'] : c.status === 'waiting' ? ['you', '● Waiting on you'] : c.status === 'passed' ? ['ok', '✓ Passed'] : ['', c.word];
-                return (
-                  <li key={c.id} className="rowlink" onClick={(e) => e.target.closest('button') || setCheckId(c.id)}>
-                    <button type="button" className="rowbtn" aria-haspopup="dialog" onClick={() => setCheckId(c.id)}>
-                      {c.name}
-                    </button>
-                    <span className={`ckv ${v[0]}`}>{v[1]}</span>
-                    <span className="ckres">{c.status === 'running' ? 'Running now…' : (c.status === 'failed' ? c.failures?.[0] : null) ?? c.summary ?? 'No result yet.'}</span>
-                    <span className="cksched">
-                      {c.schedule} · last {c.ranAt ? fmt(c.ranAt) : 'never'}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-        <section className="scard2 c-scout" aria-labelledby="sScT">
-          <h2 id="sScT" className="ovh">
-            Scout · this week
-          </h2>
-          <div className="scoutrow">
-            <p>
-              <b>Not measured.</b> CHIP has no scout yet: nothing reads new standards and tools each week and tries them on BELLA.
-            </p>
-            <span className="k-pill">Not built</span>
-          </div>
-        </section>
-      </div>
+      <section className="scard2 c-trend" aria-labelledby="ovTT">
+        <h2 id="ovTT" className="ovh">
+          This week, compared with {weekDay}
+        </h2>
+        <ul className="trends">
+          {trends.map((t) => (
+            <li key={t.what} className={t.k}>
+              <b>{t.big}</b> <span className="w">{t.what}</span>
+              <span className="d">{t.note}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="scard2 c-checks" aria-labelledby="ckT">
+        <h2 id="ckT" className="ovh">
+          Checks <span className="sub2">{list.length} scheduled checks, failing first. Select one to see its last run.</span>
+        </h2>
+        {checks.error && !data ? (
+          <p className="k-sub">The checks could not be read (is the CHIP server running?).</p>
+        ) : !data ? (
+          <p className="k-sub">Reading the checks…</p>
+        ) : (
+          <ul className="cklist">
+            <li className="ckhead" aria-hidden="true">
+              <span>Check</span>
+              <span>Status</span>
+              <span>Last result</span>
+              <span>Runs</span>
+            </li>
+            {sorted.map((c) => {
+              const v = c.status === 'failed' ? ['bad', '✕ Failed'] : c.status === 'waiting' ? ['you', '● Waiting on you'] : c.status === 'passed' ? ['', '✓ Passed'] : ['', c.word];
+              return (
+                <li key={c.id} className="rowlink" onClick={(e) => e.target.closest('button') || setCheckId(c.id)}>
+                  <button type="button" className="rowbtn" aria-haspopup="dialog" onClick={() => setCheckId(c.id)}>
+                    {c.name}
+                  </button>
+                  <span className={`ckv ${v[0]}`}>{v[1]}</span>
+                  <span className="ckres">{c.status === 'running' ? 'Running now…' : (c.status === 'failed' ? c.failures?.[0] : null) ?? c.summary ?? 'No result yet.'}</span>
+                  <span className="cksched">
+                    {c.schedule} · last {c.ranAt ? fmt(c.ranAt) : 'never'}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <section className="wx-card daily" aria-labelledby="dlT">
         <h2 className="dlt" id="dlT">
@@ -514,7 +558,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                       ))}
                     </span>
                     <span className="d1">{plural(cs.length, 'commit')}</span>
-                    <span className="d2">{bad ? `${bad} red` : 'green'}</span>
+                    <span className={`d2${bad ? ' bad' : ''}`}>{bad ? `${bad} failed` : 'all passed'}</span>
                   </div>
                 );
               })}
@@ -552,44 +596,17 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
         </div>
       </section>
 
-      {acts.length ? (
-        <section className="gapsec" aria-labelledby="gapT">
-          <div className="actline">
-            <div>
-              <h2 className="dlt" id="gapT">
-                Gaps to close
-              </h2>
-              <p>
-                {gaps} gaps across {withGaps.length} components, biggest first. None blocks a merge; each makes BELLA harder for an agent or a reviewer to use.
-              </p>
-            </div>
-            <Button onClick={() => onSession(`Close BELLA's ${gaps} coverage gaps, biggest first: ${acts.map((a) => `${COLS[a.i].fix} (${a.who.join(', ')})`).join('; ')}.`)}>Close all {gaps} in a session</Button>
-          </div>
-          <ol className="gaplist">
-            {acts.map((a, k) => (
-              <li key={a.i} className={`gap1${k ? '' : ' first'}`}>
-                <span className="n">
-                  {a.who.length}
-                  <small>component{a.who.length === 1 ? '' : 's'}</small>
-                </span>
-                <div>
-                  <button type="button" className="rowbtn" id={`gap-${k}`} aria-haspopup="dialog" onClick={() => colSheet(a.i)}>
-                    {COLS[a.i].fix}
-                  </button>
-                  {k ? null : <span className="k-pill needs">Do next</span>}
-                  <span className="why">{COLS[a.i].why}</span>
-                  <span className="who">
-                    {a.who.map((w) => (
-                      <span key={w}>{w}</span>
-                    ))}
-                  </span>
-                </div>
-                <Button onClick={() => onSession(`${COLS[a.i].fix} in BELLA for ${a.who.join(', ')}.`)}>Fix in a session</Button>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
+      <section className="scard2 c-scout" aria-labelledby="sScT">
+        <h2 id="sScT" className="ovh">
+          Scout · this week
+        </h2>
+        <div className="scoutrow">
+          <p>
+            <b>Not measured.</b> CHIP has no scout yet: nothing reads new standards and tools each week and tries them on BELLA.
+          </p>
+          <span className="k-pill">Not built</span>
+        </div>
+      </section>
 
       <Sheet open={!!sheet} title={sheet?.title ?? ''} onClose={() => setSheet(null)} footer={sheet?.footer}>
         {sheet?.body}

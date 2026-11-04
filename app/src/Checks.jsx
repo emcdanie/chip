@@ -23,14 +23,22 @@ const dur = (ms) => (ms == null ? '' : ms < 1000 ? `${ms} ms` : ms < 90000 ? `${
 export function useChecks() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
-  const load = () =>
+  // strict (Refresh) hands the error and the new data back to the caller
+  const load = (strict) =>
     fetch('/checks')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`/checks answered ${r.status}`);
+        return r.json();
+      })
       .then((d) => {
         setData(d);
         setError(false);
+        return d;
       })
-      .catch(() => setError(true));
+      .catch((e) => {
+        setError(true);
+        if (strict) throw e;
+      });
   useEffect(() => {
     load();
     const on = () => load();
@@ -49,7 +57,7 @@ export function useChecks() {
     load();
     return j?.error ?? null;
   };
-  return { data, error, reload: load, run };
+  return { data, error, reload: () => load(true), run };
 }
 
 /** Tokens named in the last contrast check's failures: one definition of a
