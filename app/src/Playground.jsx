@@ -3,14 +3,20 @@
 // (synced, the site's own copy, or site only); and BELLA's rules run on what
 // the browser measured, each finding naming its rule and its source. Send to
 // Claude writes a brief and types `claude` with it in the site's terminal;
-// CHIP never edits the site. The page arrives through CHIP's proxy (play.mjs),
+// CHIP never edits the site. Every note says what it is pinned to, the rule
+// there and a suggested change, with its own send. BELLA components dragged
+// from the Components tab drop as placed proposals: drawn for real in the
+// overlay, moved, resized, swapped, optionally replacing the section under
+// them, checked against the same rules, and written into the brief. The page arrives through CHIP's proxy (play.mjs),
 // which adds the probe that posts the measurements here.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
 import Select from '@bella/components/Select/Select';
 import { PageHeader, Segmented, segPanelProps, StatusPill, LinkButton } from './kit/index.jsx';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import { contrast } from './Sandbox.jsx';
+import { SPECIMENS, VARIANTS } from './specimens.jsx';
 import './Playground.css';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
@@ -37,9 +43,26 @@ const worst = (list, key, dir = 1) => list.reduce((a, b) => (dir * (b[key] - a[k
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const quote = (t) => (t ? `“${t.length > 40 ? t.slice(0, 40) + '…' : t}”` : 'an unnamed control');
 
-export function findingsOf(map, probe) {
+// placed components: the size they drop at, and which ones are controls
+const DROP = { Button: [220, 72], ActionChip: [200, 64], FilterChip: [180, 64], Link: [200, 64], Input: [360, 96], Select: [280, 96], Card: [360, 240], ResourceCard: [360, 220], Heading: [560, 96], SectionHeader: [640, 140], Stat: [240, 120], DataTable: [640, 240], Tabs: [480, 120] };
+const sizeOf = (name) => DROP[name] ?? [320, 120];
+const CONTROL = new Set(['Actions', 'Inputs']);
+const GROUP_ORDER = ['Actions', 'Inputs', 'Layout', 'Data', 'Chat', 'Brand', 'Other'];
+const inside = (t, b) => t.x + t.w / 2 >= b.x && t.x + t.w / 2 <= b.x + b.w && t.y + t.h / 2 >= b.y && t.y + t.h / 2 <= b.y + b.h;
+const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+export function findingsOf(map, probe, placed = [], cats = {}) {
   if (!map || !probe) return [];
   const out = [];
+  // a section a placement replaces is hidden: what it measured no longer counts
+  const gone = placed.filter((p) => p.replaces).map((p) => probe.sections.find((s) => s.id === p.replaces)).filter(Boolean);
+  const kept = (t) => !gone.some((g) => inside(t, g));
+  const tag = (p) => ({ text: `placed ${p.component}`, x: p.x, y: p.y, w: p.w, h: p.h, section: p.section, pid: p.id });
+  probe = {
+    ...probe,
+    targets: [...probe.targets.filter(kept), ...placed.filter((p) => CONTROL.has(cats[p.component])).map((p) => ({ ...tag(p), primary: p.component === 'Button' && p.variant === 'primary' }))],
+    texts: probe.texts.filter(kept),
+  };
   const per = (list, f) => {
     const by = new Map();
     for (const x of list) by.set(x.section ?? null, [...(by.get(x.section ?? null) ?? []), x]);
@@ -95,8 +118,27 @@ export function findingsOf(map, probe) {
         : { key: `site-${name}`, tone: 'neutral', section: ids[0], rule: `${name} isn’t in BELLA’s catalogue`, source: `BELLA ${c.source}`, detail: `${c.note} (${c.file}), in ${sections}`, instead: 'Compose it from BELLA parts; if no part fits, name the missing component (AGENTS.md rule 3)' },
     );
   }
+  // a placement on top of a section it doesn't replace
+  for (const p of placed) {
+    if (p.replaces) continue;
+    const under = probe.sections.find((s) => s.id === p.section && overlaps(p, s));
+    if (under) out.push({ key: `over-${p.id}`, tone: 'needs', section: under.id, rule: `Placed ${p.component} sits on #${under.id} without replacing it`, source: 'Playground · placed component', detail: `It covers part of #${under.id}, so Claude can’t tell whether it goes beside the content or instead of it`, instead: 'Choose “Replace this section”, or move it into open space', at: [tag(p)] });
+  }
   const rank = { fail: 0, needs: 1, neutral: 2 };
   return out.sort((a, b) => rank[a.tone] - rank[b.tone]);
+}
+
+// a note's suggested change and its reasoning: the rule broken where it sits,
+// or what the component it is pinned to is
+function suggestFor(n, findings, map) {
+  const f = findings.find((x) => x.section && x.section === n.section && x.tone === 'fail') ?? findings.find((x) => x.section === n.section);
+  if (f) return { change: f.instead, why: `${f.rule}: ${f.detail} (${f.source})`, rule: f };
+  const c = map?.components[n.component];
+  if (!n.section) return null;
+  if (c?.kind === 'copy') return { change: `Sync BELLA’s ${n.component} through the site’s sync-bella.mjs instead of editing the site’s copy`, why: `${c.note}, so a change here drifts from BELLA (${c.source})` };
+  if (c?.kind === 'site') return { change: `Compose it from BELLA parts; if none fits, name the missing component`, why: `${c.note}: BELLA AGENTS.md rule 3` };
+  if (c?.kind === 'bella') return { change: `Change ${n.component} in BELLA, not on the site`, why: `${c.note}: the site only syncs it (${c.source})` };
+  return null;
 }
 
 /* ---------- the page ---------- */
@@ -110,12 +152,19 @@ export default function Playground({ onToast }) {
   const [mode, setMode] = useState('use');
   const [tab, setTab] = useState('map');
   const [notes, setNotes] = useState([]);
+  const [placed, setPlaced] = useState([]); // BELLA components dropped on the page
+  const [catalogue, setCatalogue] = useState(null);
+  const [q, setQ] = useState('');
+  const [dragging, setDragging] = useState(null); // a component name on its way from the list
+  const [grab, setGrab] = useState(null); // moving or resizing a placement
   const [draft, setDraft] = useState(null); // the box being drawn
   const [hot, setHot] = useState(null); // a section or finding being pointed at
+  const [preview, setPreview] = useState(null);
   const [error, setError] = useState(null);
   const [sending, setSending] = useState(false);
   const frame = useRef(null);
   const stage = useRef(null);
+  const over = useRef(null);
   const [stageW, setStageW] = useState(0);
   const [winH, setWinH] = useState(() => window.innerHeight);
   useEffect(() => {
@@ -129,11 +178,16 @@ export default function Playground({ onToast }) {
       .then((r) => r.json())
       .then(setPages)
       .catch(() => setError('The CHIP server is not answering.'));
+    fetch('/data/bella.json')
+      .then((r) => r.json())
+      .then((b) => setCatalogue(b.components))
+      .catch(() => setCatalogue([]));
   }, []);
   useEffect(() => {
     setMap(null);
     setProbe(null);
     setNotes([]);
+    setPlaced([]);
     fetch(`/play/map?route=${encodeURIComponent(route)}`)
       .then((r) => r.json())
       .then((m) => (m.error ? setError(m.error) : setMap(m)))
@@ -174,19 +228,22 @@ export default function Playground({ onToast }) {
   const scale = stageW ? Math.min(1, stageW / W) : 1;
   // the page's own viewport, in page px: tall enough that the scaled stage fills the window
   const VIEW_H = Math.round(Math.max(640, (winH - 300) / scale));
-  const findings = useMemo(() => findingsOf(map, probe), [map, probe]);
+  const cats = useMemo(() => Object.fromEntries((catalogue ?? []).map((c) => [c.name, c.category ?? 'Other'])), [catalogue]);
+  const findings = useMemo(() => findingsOf(map, probe, placed, cats), [map, probe, placed, cats]);
   const fails = findings.filter((f) => f.tone === 'fail').length;
   const box = (id) => probe?.sections.find((s) => s.id === id);
   const send = (m) => proxyOrigin && frame.current?.contentWindow?.postMessage(m, proxyOrigin);
+  const sectionAt = (y) => probe?.sections.find((s) => y >= s.y && y <= s.y + s.h)?.id ?? null;
+  const rulesOf = (pid) => findings.filter((f) => f.at?.some((x) => x.pid === pid));
 
   /* ---- drawing a note: drag on the overlay in Mark up; or "Note on this section" ---- */
-  const at = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
+  const pageAt = (e) => {
+    const r = over.current.getBoundingClientRect();
     return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale + scrollY };
   };
   const addNote = (b, section) => {
     const id = `n${Date.now()}`;
-    setNotes((ns) => [...ns, { id, ...b, text: '', section, component: map.sections.find((s) => s.id === section)?.component }]);
+    setNotes((ns) => [...ns, { id, ...b, text: '', section, inBrief: true, component: map.sections.find((s) => s.id === section)?.component }]);
     send({ type: 'chip:pick', id, ...b });
     setTab('notes');
     requestAnimationFrame(() => document.getElementById(`note-${id}`)?.focus());
@@ -194,22 +251,22 @@ export default function Playground({ onToast }) {
   const down = (e) => {
     if (mode !== 'mark' || e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    const p = at(e);
+    const p = pageAt(e);
     setDraft({ x0: p.x, y0: p.y, x: p.x, y: p.y, w: 0, h: 0 });
   };
   const move = (e) => {
+    if (grab) return moveGrab(e);
     if (!draft) return;
-    const p = at(e);
+    const p = pageAt(e);
     setDraft((d) => ({ ...d, x: Math.min(d.x0, p.x), y: Math.min(d.y0, p.y), w: Math.abs(p.x - d.x0), h: Math.abs(p.y - d.y0) }));
   };
   const up = () => {
+    if (grab) return setGrab(null);
     if (!draft) return;
     const { x, y, w, h } = draft;
     setDraft(null);
     if (w < 12 || h < 12) return;
-    const mid = y + h / 2;
-    const section = probe?.sections.find((s) => mid >= s.y && mid <= s.y + s.h)?.id ?? null;
-    addNote({ x, y, w, h }, section);
+    addNote({ x, y, w, h }, sectionAt(y + h / 2));
   };
   const wheel = (e) => send({ type: 'chip:scrollby', dy: e.deltaY });
   const noteOn = (s) => {
@@ -217,11 +274,71 @@ export default function Playground({ onToast }) {
     if (b) addNote({ x: b.x, y: b.y, w: b.w, h: b.h }, s.id);
   };
   const goTo = (id) => id && send({ type: 'chip:scrollto', id });
+  const setNote = (id, patch) => setNotes((ns) => ns.map((x) => (x.id === id ? { ...x, ...patch } : x)));
 
-  async function toClaude() {
+  /* ---- placing BELLA components: drop from the list, then move, resize, swap ---- */
+  const place = (component, cx, cy) => {
+    const [w, h] = sizeOf(component);
+    const x = Math.max(0, Math.min(W - w, cx - w / 2));
+    const y = Math.max(0, cy - h / 2);
+    const id = `p${Date.now()}`;
+    setPlaced((ps) => [...ps, { id, component, variant: component === 'Button' ? 'primary' : null, x, y, w, h, section: sectionAt(y + h / 2), replaces: null, note: '' }]);
+    setTab('notes');
+    onToast?.(`${component} placed. Drag it to move it; the corner resizes it.`);
+  };
+  const setPlace = (id, patch) =>
+    setPlaced((ps) =>
+      ps.map((p) => {
+        if (p.id !== id) return p;
+        const n = { ...p, ...patch };
+        const section = sectionAt(n.y + n.h / 2);
+        // a placement moved off the section it replaced no longer replaces it
+        return { ...n, section, replaces: n.replaces && n.replaces === section ? n.replaces : null };
+      }),
+    );
+  const onDrop = (e) => {
+    e.preventDefault();
+    const name = e.dataTransfer.getData('text/plain') || dragging;
+    setDragging(null);
+    if (!name) return;
+    const p = pageAt(e);
+    place(name, p.x, p.y);
+  };
+  const startGrab = (e, p, kind) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    over.current.setPointerCapture(e.pointerId);
+    setGrab({ id: p.id, kind, from: pageAt(e), box: { x: p.x, y: p.y, w: p.w, h: p.h } });
+  };
+  function moveGrab(e) {
+    const pt = pageAt(e);
+    const dx = pt.x - grab.from.x;
+    const dy = pt.y - grab.from.y;
+    const b = grab.box;
+    if (grab.kind === 'move') setPlace(grab.id, { x: Math.max(0, Math.min(W - b.w, b.x + dx)), y: Math.max(0, b.y + dy) });
+    // resize within sensible limits: a 44px target at least, never wider than the page
+    else setPlace(grab.id, { w: Math.max(88, Math.min(W - b.x, b.w + dx)), h: Math.max(44, Math.min(1200, b.h + dy)) });
+  }
+  const nudge = (e, p) => {
+    const step = e.shiftKey ? 40 : 8;
+    const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    setPlace(p.id, { x: Math.max(0, Math.min(W - p.w, p.x + d[0])), y: Math.max(0, p.y + d[1]) });
+  };
+
+  /* ---- the brief ---- */
+  const inBrief = notes.filter((n) => n.inBrief);
+  const noteBody = (n) => ({ ...n, kind: KIND[map?.components[n.component]?.kind]?.word, suggest: suggestFor(n, findings, map) && { change: suggestFor(n, findings, map).change, why: suggestFor(n, findings, map).why } });
+  const plain = (fs) => fs.map(({ at: _, ...f }) => f);
+  const bodyOf = (only) =>
+    only
+      ? { route, width: W, scope: 'note', notes: [noteBody(only)], proposals: [], findings: plain(findings.filter((f) => f.section === only.section || (!f.section && f.tone === 'fail'))) }
+      : { route, width: W, notes: inBrief.map(noteBody), proposals: placed, findings: plain(findings) };
+  async function toClaude(only) {
     setSending(true);
     try {
-      const r = await fetch('/play/brief', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ route, width: W, notes, findings: findings.map(({ at: _, ...f }) => f) }) });
+      const r = await fetch('/play/brief', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(bodyOf(only)) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
       window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: 'site', command: `claude "Read ${j.file} and follow it."` } }));
@@ -232,24 +349,46 @@ export default function Playground({ onToast }) {
       setSending(false);
     }
   }
+  // the preview: the same brief, not written; refreshed while the notes tab shows
+  const briefKey = JSON.stringify(map && tab === 'notes' ? bodyOf(null) : null);
+  useEffect(() => {
+    if (!map || tab !== 'notes') return;
+    const t = setTimeout(() => {
+      fetch('/play/brief', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ ...bodyOf(null), dry: true }) })
+        .then((r) => r.json())
+        .then((j) => setPreview(j.text ?? null))
+        .catch(() => setPreview(null));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [briefKey]);
 
   const tabs = [
     { id: 'map', label: 'Map' },
     { id: 'rules', label: `Rules${findings.length ? ` · ${fails}` : ''}` },
-    { id: 'notes', label: `Notes${notes.length ? ` · ${notes.length}` : ''}` },
+    { id: 'parts', label: 'Components' },
+    { id: 'notes', label: `Notes${notes.length + placed.length ? ` · ${notes.length + placed.length}` : ''}` },
   ];
   const live = probe && probe.url === route;
+  const groups = useMemo(() => {
+    const ql = q.trim().toLowerCase();
+    const g = {};
+    for (const c of catalogue ?? []) if (!ql || `${c.name} ${c.description ?? ''}`.toLowerCase().includes(ql)) (g[c.category ?? 'Other'] ??= []).push(c);
+    return GROUP_ORDER.filter((k) => g[k]).map((k) => [k, g[k].sort((a, b) => a.name.localeCompare(b.name))]);
+  }, [catalogue, q]);
+  const nBrief = inBrief.length + placed.length;
+  const sendLabel = `Send ${plural(inBrief.length, 'note')}${placed.length ? ` and ${plural(placed.length, 'placed component')}` : ''} to Claude`;
+  const draw = (p) => (p.component === 'Button' && p.variant ? VARIANTS.Button(p.variant) : SPECIMENS[p.component]?.() ?? <span className="pg-nospec">{p.component}</span>);
 
   return (
     <div className="pg-page k-chrome">
       <PageHeader
         meta="Playground"
         title="Playground"
-        lede="Load a page from your site and use it live. Mark it up, see which parts are BELLA, and where it breaks BELLA’s rules. Send it to Claude when you know what you want."
+        lede="Load a page from your site and use it live. Mark it up, drop BELLA components on it, see where it breaks BELLA’s rules. Send it to Claude when you know what you want."
         actions={
           <div className="pg-actions">
             {pages?.pages?.length ? <Select label="Page" value={route} onChange={setRoute} options={pages.pages.map((p) => ({ value: p.route, label: p.route }))} /> : null}
-            <Button variant="primary" onClick={toClaude} disabled={sending || !map}>
+            <Button variant="primary" onClick={() => toClaude()} disabled={sending || !map}>
               {sending ? 'Writing the brief…' : 'Send to Claude'}
             </Button>
           </div>
@@ -281,37 +420,67 @@ export default function Playground({ onToast }) {
             <div className="pg-scaled" style={{ width: W * scale, height: VIEW_H * scale }}>
               <div className="pg-frame" style={{ width: W, height: VIEW_H, transform: `scale(${scale})` }}>
                 {proxy ? <iframe ref={frame} title={`Site page ${route}`} src={`${proxy}${route}`} width={W} height={VIEW_H} onLoad={hello} /> : null}
-                <div className={`pg-over${mode === 'mark' ? ' mark' : ''}`} onPointerDown={down} onPointerMove={move} onPointerUp={up} onWheel={mode === 'mark' ? wheel : undefined} aria-hidden="true">
+                <div
+                  ref={over}
+                  className={['pg-over', mode === 'mark' && 'mark', (dragging || grab) && 'drop'].filter(Boolean).join(' ')}
+                  onPointerDown={down}
+                  onPointerMove={move}
+                  onPointerUp={up}
+                  onWheel={mode === 'mark' || grab ? wheel : undefined}
+                  onDragOver={(e) => e.dataTransfer.types.includes('text/plain') && e.preventDefault()}
+                  onDrop={onDrop}
+                >
                   {map?.sections.map((s) => {
                     const b = box(s.id);
                     if (!b) return null;
                     const k = map.components[s.component]?.kind ?? 'site';
                     const on = hot?.section === s.id || hot?.id === s.id;
+                    const by = placed.find((p) => p.replaces === s.id);
                     return (
-                      <div key={s.id} className={`pg-sec k-${k}${on ? ' on' : ''}`} style={{ left: b.x, top: b.y - scrollY, width: b.w, height: b.h }}>
-                        {mode === 'mark' || on ? <span className="pg-tag">#{s.id} · {s.component}</span> : null}
+                      <div key={s.id} className={`pg-sec k-${k}${on ? ' on' : ''}${by ? ' gone' : ''}`} style={{ left: b.x, top: b.y - scrollY, width: b.w, height: b.h }} aria-hidden="true">
+                        {by ? <span className="pg-gone">#{s.id} replaced by {by.component}</span> : mode === 'mark' || on ? <span className="pg-tag">#{s.id} · {s.component}</span> : null}
                       </div>
                     );
                   })}
                   {hot?.at?.map((x, i) => (
-                    <div key={i} className="pg-hit" style={{ left: x.x, top: x.y - scrollY, width: x.w, height: x.h }} />
+                    <div key={i} className="pg-hit" style={{ left: x.x, top: x.y - scrollY, width: x.w, height: x.h }} aria-hidden="true" />
                   ))}
                   {notes.map((n, i) => (
-                    <div key={n.id} className="pg-note" style={{ left: n.x, top: n.y - scrollY, width: n.w, height: n.h }}>
+                    <div key={n.id} className="pg-note" style={{ left: n.x, top: n.y - scrollY, width: n.w, height: n.h }} aria-hidden="true">
                       <span className="pg-pin">{i + 1}</span>
                     </div>
                   ))}
-                  {draft ? <div className="pg-note draft" style={{ left: draft.x, top: draft.y - scrollY, width: draft.w, height: draft.h }} /> : null}
+                  {placed.map((p, i) => (
+                    <div
+                      key={p.id}
+                      className={`pg-prop${rulesOf(p.id).some((f) => f.tone === 'fail') ? ' fail' : ''}${hot?.pid === p.id ? ' on' : ''}`}
+                      style={{ left: p.x, top: p.y - scrollY, width: p.w, height: p.h }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Placed ${p.component} ${i + 1}: drag or use the arrow keys to move it`}
+                      onPointerDown={(e) => startGrab(e, p, 'move')}
+                      onKeyDown={(e) => nudge(e, p)}
+                    >
+                      <span className="pg-pin prop">P{i + 1}</span>
+                      <div className="pg-prop-b">{draw(p)}</div>
+                      <span className="pg-grip" aria-hidden="true" onPointerDown={(e) => startGrab(e, p, 'size')} />
+                    </div>
+                  ))}
+                  {draft ? <div className="pg-note draft" style={{ left: draft.x, top: draft.y - scrollY, width: draft.w, height: draft.h }} aria-hidden="true" /> : null}
                 </div>
               </div>
             </div>
           </div>
           <p className="pg-cap">
-            {mode === 'mark' ? 'Drag a box over anything to add a note. The scroll wheel still moves the page.' : 'The real page, running from your site. Click, open, turn the cards over. Switch to Mark up to draw.'}
+            {dragging
+              ? `Drop ${dragging} where it should go on the page.`
+              : mode === 'mark'
+                ? 'Drag a box over anything to add a note. The scroll wheel still moves the page.'
+                : 'The real page, running from your site. Click, open, turn the cards over. Switch to Mark up to draw, or drag a component in from Components.'}
           </p>
         </section>
 
-        <aside className="pg-insp" aria-label="Map, rules and notes">
+        <aside className="pg-insp" aria-label="Map, rules, components and notes">
           <Segmented id="pgtab" label="Inspector" items={tabs} value={tab} onChange={setTab} />
 
           {tab === 'map' ? (
@@ -352,7 +521,7 @@ export default function Playground({ onToast }) {
 
           {tab === 'rules' ? (
             <div {...segPanelProps('pgtab', 'rules', tab)} className="pg-panel">
-              <p className="pg-sub">{live ? `Measured in the page at ${probe.width}px. Every line names its rule and where the rule lives.` : 'Waiting for the page to report its measurements…'}</p>
+              <p className="pg-sub">{live ? `Measured in the page at ${probe.width}px, with your placed components. Every line names its rule and where the rule lives.` : 'Waiting for the page to report its measurements…'}</p>
               <ul className="pg-list">
                 {findings.map((f) => (
                   <li key={f.key} className={`pg-row pg-f ${f.tone}`} onMouseEnter={() => setHot(f)} onMouseLeave={() => setHot(null)}>
@@ -382,33 +551,167 @@ export default function Playground({ onToast }) {
             </div>
           ) : null}
 
+          {tab === 'parts' ? (
+            <div {...segPanelProps('pgtab', 'parts', tab)} className="pg-panel">
+              <p className="pg-sub">BELLA’s components. Drag one onto the page, or use Place. It lands as a proposal: Claude builds it, CHIP never edits the site.</p>
+              <Input label="Find a component" value={q} onChange={setQ} placeholder="Button, Card…" />
+              {catalogue === null ? <p className="pg-sub">Reading BELLA…</p> : null}
+              {groups.map(([g, list]) => (
+                <section key={g} className="pg-group" aria-label={g}>
+                  <h3>{g}</h3>
+                  <ul className="pg-parts">
+                    {list.map((c) => (
+                      <li
+                        key={c.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', c.name);
+                          e.dataTransfer.effectAllowed = 'copy';
+                          // the overlay takes the drop at once, before React redraws
+                          over.current?.classList.add('drop');
+                          setDragging(c.name);
+                        }}
+                        onDragEnd={() => {
+                          over.current?.classList.remove('drop');
+                          setDragging(null);
+                        }}
+                      >
+                        <span className="pg-cn">
+                          <b>{c.name}</b>
+                          <small>{c.description?.split(/[.:\n]/)[0]}</small>
+                        </span>
+                        <LinkButton onClick={() => place(c.name, W / 2, scrollY + VIEW_H / 3)} aria-label={`Place ${c.name} on the page`}>
+                          Place
+                        </LinkButton>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+              {catalogue && !groups.length ? <p className="pg-sub">No component matches “{q}”.</p> : null}
+            </div>
+          ) : null}
+
           {tab === 'notes' ? (
             <div {...segPanelProps('pgtab', 'notes', tab)} className="pg-panel">
-              {notes.length ? (
-                <ol className="pg-list">
-                  {notes.map((n, i) => (
-                    <li key={n.id} className="pg-row pg-noterow">
-                      <div className="pg-rowhead">
-                        <span className="pg-pin static">{i + 1}</span>
-                        <span className="pg-where">
-                          {n.section ? <code>#{n.section}</code> : 'Outside a section'}
-                          {n.picked?.[0] ? <small>{n.picked[0].text || n.picked[0].selector}</small> : null}
-                        </span>
-                        <LinkButton onClick={() => setNotes((ns) => ns.filter((x) => x.id !== n.id))}>
-                          Remove note {i + 1}
-                        </LinkButton>
-                      </div>
-                      <Input id={`note-${n.id}`} label="What should change?" multiline value={n.text} onChange={(v) => setNotes((ns) => ns.map((x) => (x.id === n.id ? { ...x, text: v } : x)))} />
-                    </li>
-                  ))}
-                </ol>
-              ) : (
+              {notes.length || placed.length ? null : (
                 <div className="pg-empty">
-                  <b>No notes yet</b>
-                  <p>Switch to Mark up and drag a box on the page, or use “Note on this section” in Map.</p>
+                  <b>Nothing to send yet</b>
+                  <p>Mark up the page or drop BELLA components on it, then send it to Claude. CHIP writes the brief; Claude makes the change in the site’s terminal once you press Return.</p>
                 </div>
               )}
-              <p className="pg-sub">Send to Claude writes your notes, the rules that break and the section map into one brief, then types <code>claude</code> with it in the site’s terminal. Claude works by the site’s own process: a branch, a plan, your go, a PR.</p>
+              {notes.length ? (
+                <ol className="pg-list" aria-label="Notes">
+                  {notes.map((n, i) => {
+                    const c = map?.components[n.component];
+                    const k = KIND[c?.kind];
+                    const sg = suggestFor(n, findings, map);
+                    const el = n.picked?.[0];
+                    return (
+                      <li key={n.id} className={`pg-row pg-noterow${n.inBrief ? '' : ' out'}`}>
+                        <div className="pg-rowhead">
+                          <span className="pg-pin static">{i + 1}</span>
+                          <span className="pg-where">
+                            <span>
+                              Pinned to {n.section ? <code>#{n.section}</code> : 'no section'}
+                              {n.component ? <> · {n.component}</> : null}
+                            </span>
+                            <small>{el ? el.text || el.selector : 'Element not reported yet'}</small>
+                          </span>
+                          {k ? <StatusPill tone={k.tone}>{k.word}</StatusPill> : null}
+                        </div>
+                        <Input id={`note-${n.id}`} label="What should change?" multiline value={n.text} onChange={(v) => setNote(n.id, { text: v })} />
+                        <dl className="pg-why">
+                          <dt>Rule here</dt>
+                          <dd>{sg?.rule ? <>{sg.rule.rule} <span className="pg-source">({sg.rule.source})</span></> : n.section ? 'No BELLA rule broken in this section' : 'Not measured: draw the box inside a section'}</dd>
+                          <dt>CHIP suggests</dt>
+                          <dd>{sg ? <>{sg.change}. <span className="pg-source">Why: {sg.why}.</span></> : 'Not measured'}</dd>
+                        </dl>
+                        <div className="pg-noteacts">
+                          <Button onClick={() => toClaude(n)} disabled={sending}>
+                            Send this note to Claude
+                          </Button>
+                          <Button variant="tertiary" onClick={() => setNote(n.id, { inBrief: !n.inBrief })}>
+                            {n.inBrief ? 'Leave out of brief' : 'Add to brief'}
+                          </Button>
+                          <LinkButton onClick={() => setNotes((ns) => ns.filter((x) => x.id !== n.id))} aria-label={`Delete note ${i + 1}`}>
+                            Delete
+                          </LinkButton>
+                        </div>
+                        {n.inBrief ? null : <p className="pg-sub">Left out of the brief.</p>}
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : null}
+              {placed.length ? (
+                <>
+                  <h3 className="pg-h">Placed components</h3>
+                  <ol className="pg-list" aria-label="Placed components">
+                    {placed.map((p, i) => {
+                      const rs = rulesOf(p.id);
+                      const under = p.section;
+                      return (
+                        <li key={p.id} className="pg-row pg-proprow" onMouseEnter={() => setHot({ pid: p.id, at: [p] })} onMouseLeave={() => setHot(null)}>
+                          <div className="pg-rowhead">
+                            <span className="pg-pin static prop">P{i + 1}</span>
+                            <span className="pg-where">
+                              <span>
+                                {p.component}
+                                {under ? <> in <code>#{under}</code></> : ' outside a section'}
+                              </span>
+                              <small>
+                                {Math.round(p.x)},{Math.round(p.y)} · {Math.round(p.w)}×{Math.round(p.h)} page px
+                              </small>
+                            </span>
+                            <StatusPill tone="pass">BELLA</StatusPill>
+                          </div>
+                          <div className="pg-propctl">
+                            <Select label="Component" value={p.component} onChange={(v) => setPlace(p.id, { component: v, variant: v === 'Button' ? p.variant ?? 'primary' : null })} options={(catalogue ?? []).map((c) => ({ value: c.name, label: c.name }))} />
+                            {p.component === 'Button' ? <Select label="Variant" value={p.variant ?? 'primary'} onChange={(v) => setPlace(p.id, { variant: v })} options={['primary', 'secondary', 'tertiary'].map((v) => ({ value: v, label: v }))} /> : null}
+                          </div>
+                          {under ? (
+                            <label className="k-chk">
+                              <input type="checkbox" checked={p.replaces === under} onChange={(e) => setPlace(p.id, { replaces: e.target.checked ? under : null })} />
+                              <span>
+                                Replace this section, <code>#{under}</code>
+                              </span>
+                            </label>
+                          ) : null}
+                          {rs.length ? (
+                            <ul className="pg-prules">
+                              {rs.map((f) => (
+                                <li key={f.key} className={f.tone}>
+                                  <StatusPill tone={f.tone}>{f.tone === 'fail' ? 'Breaks' : 'Check'}</StatusPill> <b>{f.rule}</b>. {f.instead}. <span className="pg-source">Source: {f.source}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="pg-sub">No BELLA rule broken by this placement.</p>
+                          )}
+                          <Input label="Note for Claude" multiline value={p.note} onChange={(v) => setPlace(p.id, { note: v })} />
+                          <div className="pg-noteacts">
+                            <LinkButton onClick={() => setPlaced((ps) => ps.filter((x) => x.id !== p.id))} aria-label={`Delete placed ${p.component} P${i + 1}`}>
+                              Delete
+                            </LinkButton>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </>
+              ) : null}
+              <Disclosure title="Preview the brief" summary={preview ? `${preview.split('\n').length} lines` : undefined}>
+                <pre className="pg-brief">{preview ?? 'Writing the preview…'}</pre>
+              </Disclosure>
+              <div className="pg-send">
+                <Button variant="primary" onClick={() => toClaude()} disabled={sending || !nBrief}>
+                  {sending ? 'Writing the brief…' : sendLabel}
+                </Button>
+                <p className="pg-sub">
+                  Writes one brief, then types <code>claude</code> with it in the site’s terminal. You press Return; Claude branches, plans and waits for your go.
+                </p>
+              </div>
             </div>
           ) : null}
         </aside>

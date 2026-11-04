@@ -8,8 +8,9 @@
 .pg-actions [data-bella-component='select'] { min-width: 180px; }
 .pg-error { margin: 0; padding: var(--s-12) var(--s-16); border: 1px solid var(--fail); border-radius: var(--r); background: color-mix(in srgb, var(--fail) 8%, var(--card)); color: var(--ink); }
 
-.pg-work { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px); gap: var(--s-24); align-items: start; min-width: 0; }
-@container pg (max-width: 1000px) { .pg-work { grid-template-columns: minmax(0, 1fr); } }
+.pg-work { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: var(--s-24); align-items: start; min-width: 0; }
+/* the inspector stays beside the page down to 900px, so a component can be dragged across */
+@container pg (max-width: 900px) { .pg-work { grid-template-columns: minmax(0, 1fr); } }
 
 /* the stage */
 .pg-stagecol { display: grid; gap: var(--s-12); min-width: 0; }
@@ -25,6 +26,7 @@
 /* the overlay: invisible to the pointer while she uses the page */
 .pg-over { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .pg-over.mark { pointer-events: auto; cursor: crosshair; touch-action: none; }
+.pg-over.drop { pointer-events: auto; }
 .pg-sec { position: absolute; box-sizing: border-box; border: 2px dashed transparent; }
 .pg-over.mark .pg-sec, .pg-sec.on { border-color: color-mix(in srgb, var(--ink) 40%, transparent); }
 .pg-over.mark .pg-sec.k-copy, .pg-sec.on.k-copy { border-color: var(--needs); }
@@ -36,11 +38,28 @@
 .pg-note.draft { border-style: dashed; }
 .pg-pin { position: absolute; left: calc(-1 * var(--s-16)); top: calc(-1 * var(--s-16)); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--note); color: var(--ink); font: 700 var(--fs-16)/1 var(--sans); box-shadow: var(--shadow); }
 .pg-pin.static { position: static; flex: none; box-shadow: none; }
+.pg-pin.prop { width: auto; min-width: 32px; padding: 0 var(--s-8); border-radius: var(--r-control); font-size: var(--fs-14); }
+
+/* a placed BELLA component: drawn for real, outlined in the annotation style.
+   Its insides don't take the pointer, so a drag always moves the box */
+.pg-prop { position: absolute; box-sizing: border-box; display: grid; place-items: center; padding: var(--s-8); border: 3px dashed var(--note); border-radius: var(--r); background: color-mix(in srgb, var(--card) 88%, transparent); pointer-events: auto; cursor: grab; touch-action: none; overflow: visible; }
+.pg-prop:active { cursor: grabbing; }
+.pg-prop.on, .pg-prop:focus-visible { border-style: solid; }
+.pg-prop.fail { border-color: var(--fail); }
+.pg-prop .pg-pin { left: calc(-1 * var(--s-12)); top: calc(-1 * var(--s-16)); }
+.pg-prop.fail .pg-pin { background: var(--fail); }
+.pg-prop-b { max-width: 100%; max-height: 100%; overflow: hidden; pointer-events: none; }
+.pg-grip { position: absolute; right: -8px; bottom: -8px; width: 20px; height: 20px; border-radius: 50%; background: var(--note); border: 2px solid var(--card); cursor: nwse-resize; }
+.pg-nospec { font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
+/* a section a placement replaces: hidden in the preview, and labelled */
+.pg-sec.gone { background: var(--canvas); border: 2px dashed var(--note); }
+.pg-gone { position: absolute; right: var(--s-8); bottom: var(--s-8); padding: var(--s-4) var(--s-8); border-radius: var(--r); background: var(--ink); color: var(--card); font: 400 var(--fs-16)/var(--lh-body) var(--code); }
 
 /* the inspector */
 .pg-insp { display: grid; gap: var(--s-16); align-content: start; min-width: 0; padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
-@container pg (min-width: 1001px) { .pg-insp { position: sticky; top: calc(var(--frame-top) + var(--s-16)); max-height: calc(100vh - var(--frame-top) - var(--s-32)); overflow: auto; } }
-.pg-insp > .k-seg { justify-self: start; }
+@container pg (min-width: 901px) { .pg-insp { position: sticky; top: calc(var(--frame-top) + var(--s-16)); max-height: calc(100vh - var(--frame-top) - var(--s-32)); overflow: auto; } }
+.pg-insp > .k-seg { justify-self: start; flex-wrap: nowrap; }
+.pg-insp > .k-seg button { padding: 0 var(--s-12); white-space: nowrap; }
 .pg-panel { display: grid; gap: var(--s-16); min-width: 0; }
 .pg-sub, .pg-key { margin: 0; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
 .pg-key b { color: var(--ink); font-weight: 600; }
@@ -65,3 +84,25 @@
 .pg-empty { display: grid; gap: var(--s-4); padding: var(--s-24) var(--s-16); border: 1px dashed var(--line); border-radius: var(--r); text-align: center; color: var(--body); }
 .pg-empty b { color: var(--ink); }
 .pg-empty p { margin: 0; }
+
+/* a note's purpose: where it sits, the rule there, the suggestion, its actions */
+.pg-where > span { color: var(--ink); }
+.pg-noterow.out { border-style: dashed; }
+.pg-why { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-4) var(--s-12); margin: 0; font-size: var(--fs-14); line-height: var(--lh-body); }
+.pg-why dt { color: var(--muted); font-weight: 600; }
+.pg-why dd { margin: 0; color: var(--ink); }
+.pg-noteacts { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-12); align-items: center; }
+.pg-h { margin: var(--s-8) 0 0; font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
+.pg-propctl { display: flex; flex-wrap: wrap; gap: var(--s-12); }
+.pg-prules { display: grid; gap: var(--s-8); margin: 0; padding: 0; list-style: none; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
+.pg-prules li.fail { padding-left: var(--s-12); box-shadow: inset 3px 0 0 var(--fail); }
+/* the send footer: one button, what it does, the brief it will write */
+.pg-send { position: sticky; bottom: calc(-1 * var(--s-16)); display: grid; gap: var(--s-12); margin: 0 calc(-1 * var(--s-16)) calc(-1 * var(--s-16)); padding: var(--s-16); border-top: 1px solid var(--line); background: var(--card); }
+.pg-brief { margin: 0; max-height: 320px; overflow: auto; padding: var(--s-12); border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* the components list: grouped as the left nav groups them, each one draggable */
+.pg-group { display: grid; gap: var(--s-8); }
+.pg-group h3 { margin: 0; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
+.pg-parts { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.pg-parts li { display: flex; gap: var(--s-12); align-items: center; justify-content: space-between; min-height: 48px; padding: var(--s-4) 0; border-bottom: 1px solid var(--line); cursor: grab; }
+.pg-parts li:hover { background: color-mix(in srgb, var(--action) 6%, var(--card)); }
