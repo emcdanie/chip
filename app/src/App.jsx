@@ -17,7 +17,7 @@ import Projects from './Projects.jsx';
 import ReviewSheet from './ReviewSheet.jsx';
 import RunSheet, { startRun } from './Runs.jsx';
 import { WorkPanel, useWork, useNeeds, useLanes, clampW, clampH, maxW, maxH, minH } from './WorkPanel.jsx';
-import { useObi, OneInput } from './Obi.jsx';
+import { useObi, OneInput, SourceSheet } from './Obi.jsx';
 import { useTheme } from './theme.js';
 import { useRole, useVisibility } from './visibility.jsx';
 import './shell.css';
@@ -601,4 +601,5 @@ export default function App() {
       </p>
     </div>
   );
+      <SourceSheet />
 }

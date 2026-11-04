@@ -15,6 +15,7 @@ import Combobox from '@bella/components/Combobox/Combobox';
 import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor, summarizeTool, usageLines } from './answers.js';
 import Select from '@bella/components/Select/Select';
 import { baseOf } from './Sandbox.jsx';
+import { Sheet, SheetPart } from './kit/index.jsx';
 
 // arg: the command takes text; picking it from the list fills "/cmd " to type on
 const COMMANDS = [
@@ -815,8 +816,11 @@ export function OneInput({ bella, docs, pages = [], page, obi, find, onJump, onE
       onJump(o.id.slice(2), o.id[0] === 'p' ? 'page' : 'component');
       setQ('');
     } else if (o.id.startsWith('d:')) {
+      // a doc opens inside CHIP: an OBI note as its History record, any other indexed file in a sheet
       const href = o.id.split(':').slice(2).join(':');
-      window.open(href.startsWith('http') ? href : sourceHref({ path: href }), '_blank', 'noopener');
+      if (href.startsWith('http')) openSource({ url: href }, o.label);
+      else if (href.startsWith('obi-notes/')) window.location.hash = `#/docs/${href.slice(10).replace(/\.md$/, '')}`;
+      else openSource({ path: href }, o.label);
       setQ('');
     } else if (COMMANDS.some((c) => c.arg && o.id === `cmd:${c.cmd}`)) {
       setQ(`/${o.id.slice(4)} `);
@@ -959,5 +963,40 @@ export function ObiThread({ bella, page, obi, onOpenAtlas, onSandbox, notify, mo
         )}
       </ol>
     </section>
+  );
+}
+
+/* ---------- a doc from Find, read inside CHIP: the indexed file's text in a sheet ---------- */
+export const openSource = (where, title) => window.dispatchEvent(new CustomEvent('chip:source', { detail: { ...where, title } }));
+export function SourceSheet() {
+  const [src, setSrc] = useState(null);
+  const [text, setText] = useState(null);
+  useEffect(() => {
+    const on = (e) => setSrc(e.detail);
+    window.addEventListener('chip:source', on);
+    return () => window.removeEventListener('chip:source', on);
+  }, []);
+  useEffect(() => {
+    if (!src) return;
+    setText(null);
+    fetch(src.url ? `/source/web?url=${encodeURIComponent(src.url)}` : `/source?path=${encodeURIComponent(src.path)}`)
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error('not an indexed source'))))
+      .then(setText)
+      .catch((e) => setText(`Could not read ${src.url ?? src.path}: ${e.message}.`));
+  }, [src]);
+  // a web doc's text is what OBI indexed; the page itself stays one press away
+  const actions = !src
+    ? null
+    : src.url
+      ? [{ label: src.url.includes('notion') ? 'Open in Notion' : 'Open the page', onClick: () => window.open(src.url, '_blank', 'noopener'), changes: 'Opens the page in a new tab.', undo: 'Close the tab.' }]
+      : [{ label: 'Copy the path', onClick: () => navigator.clipboard?.writeText(src.path), changes: 'Puts the file path on your clipboard.', undo: 'Nothing to undo.' }];
+  return (
+    <Sheet open={!!src} onClose={() => setSrc(null)} kicker={src?.url ? 'Doc · the text OBI indexed' : 'Doc · from the library OBI reads'} title={src?.title ?? ''} actions={actions}>
+      {src ? (
+        <SheetPart label="Text" source={src.url ?? src.path}>
+          {text == null ? <p className="k-sub">Reading…</p> : <pre className="src-text">{text}</pre>}
+        </SheetPart>
+      ) : null}
+    </Sheet>
   );
 }

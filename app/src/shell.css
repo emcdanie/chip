@@ -470,3 +470,6 @@ html.wp-dragging .xterm { pointer-events: none; }
   .spin svg, .hstrip .tube i, .toast, .cgh::before { transition: none; }
 }
 .top .search kbd > span { gap: 0; }
+
+/* a library doc opened from Find (SourceSheet) */
+.k-sheet pre.src-text { margin: 0; padding: 0; background: none; white-space: pre-wrap; overflow-wrap: anywhere; font: 400 var(--fs-16)/var(--lh-body) var(--sans); color: var(--body); }

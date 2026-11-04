@@ -349,6 +349,13 @@ app.put('/obi-docs/:id', (req, res) => saveRoute(req, res, String(req.params.id)
 
 // GET /source?path=<indexed path>: the text of one source, so a citation can
 // open it. Only paths that are in the search index; nothing else on disk.
+// a web doc (Notion) in the index: its indexed passages, in order, for Find's sheet
+app.get('/source/web', (req, res) => {
+  const url = String(req.query.url || '');
+  const chunks = (loadIndex()?.chunks ?? []).filter((c) => c.url === url);
+  if (!chunks.length) return res.status(404).type('text/plain').send('Not an indexed source.');
+  res.type('text/plain; charset=utf-8').send(chunks.map((c) => c.text).join('\n\n'));
+});
 app.get('/source', (req, res) => {
   const index = loadIndex();
   const path = String(req.query.path || '');
@@ -520,13 +527,6 @@ app.get('/needs', (_req, res) => {
     errorOut(res, e, 500);
   }
 });
-// Do next: per component, what each Overview gap needs and the suggested fix
-app.get('/gaps', (_req, res) => {
-  try {
-    res.json(gapFixes());
-  } catch (e) {
-    errorOut(res, e, 500);
-  }
 // Foundations' contrast column: the pairs the gate declares, measured as it does
 app.get('/contrast-pairs', (_req, res) => {
   try {
@@ -535,6 +535,13 @@ app.get('/contrast-pairs', (_req, res) => {
     errorOut(res, e, 500);
   }
 });
+// Do next: per component, what each Overview gap needs and the suggested fix
+app.get('/gaps', (_req, res) => {
+  try {
+    res.json(gapFixes());
+  } catch (e) {
+    errorOut(res, e, 500);
+  }
 });
 // the report behind "Review the fix": ?items=story:Kbd,dsds:AvatarStack
 app.get('/gaps/report', (req, res) => {
