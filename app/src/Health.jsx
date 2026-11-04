@@ -474,7 +474,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
     { k: 'Docs', s: withDocs === n ? '✓' : '!', v: `${withDocs}/${n}` },
     { k: 'Tokens', s: !tokensBuilt ? '?' : tokensBuilt.status === 'passed' ? '✓' : '!', v: !tokensBuilt ? 'Not measured' : tokensBuilt.status === 'passed' ? 'built' : tokensBuilt.word },
   ];
-  const SUB = { cov: 'Components passing each check · yellow where under 90%', gate: redSince ? `Checks per commit · ${red} red since ${fmt(redSince.day)}` : 'Checks per commit', drift: 'Figma · Storybook · Code' };
+  const SUB = { cov: 'Components passing each check · yellow under 90%', gate: redSince ? `Checks per commit · ${red} red since ${fmt(redSince.day)}` : 'Checks per commit', drift: 'Figma · Storybook · Code' };
   const TITLE = { cov: 'Coverage', gate: 'Gate', drift: 'Drift' };
   const DLT = { cov: 'By component', gate: 'By day', drift: 'By pair' };
   const days = [...new Set(G.map((g) => g.day))].slice(-6).reverse();
