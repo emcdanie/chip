@@ -164,11 +164,18 @@ export default function App() {
   const [picked, setPicked] = useState(() => stored(MODEL_KEY, 'claude'));
   useEffect(() => store(MODEL_KEY, picked), [picked]);
 
-  const loadBella = () =>
+  // strict (Overview's Refresh) hands the error back instead of only flagging offline
+  const loadBella = (strict) =>
     fetch('/data/bella.json')
-      .then((r) => r.json())
-      .then(setBella)
-      .catch(() => setOffline(true));
+      .then((r) => {
+        if (!r.ok) throw new Error(`bella.json answered ${r.status}`);
+        return r.json();
+      })
+      .then((b) => (setBella(b), setOffline(false), b))
+      .catch((e) => {
+        if (strict) throw e;
+        setOffline(true);
+      });
   const loadModels = () =>
     fetch('/models')
       .then((r) => r.json())
@@ -500,6 +507,13 @@ export default function App() {
         {/* the input lives in this empty node unless OBI is open; React never manages it */}
         <div className="search" ref={topSlot} hidden={!searchShown} />
         <Lens value={lens} onChange={setLens} />
+        <button type="button" className="bartoggle termtoggle" aria-expanded={work === 'term'} aria-haspopup="dialog" onClick={() => setWork((w) => (w === 'term' ? null : 'term'))}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="m7 9 3 3-3 3M13 15h4" />
+          </svg>
+          Terminal
+        </button>
         <button type="button" className="bartoggle" ref={barToggle} aria-expanded={barOn} aria-controls="the-bar" onClick={() => setBar(!barOn)}>
           <span className="thebar">The </span>Bar <span className="count">{needs ? needCount : '…'}</span>
           <span className="k-vh"> need you</span>
@@ -515,7 +529,7 @@ export default function App() {
               The CHIP server is not answering. Start it with npm start.
             </p>
           ) : null}
-          {ws === 'health' ? <Health bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={loadBella} /> : null}
+          {ws === 'health' ? <Health bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={() => loadBella(true)} /> : null}
           {ws === 'foundations' ? <Foundations bella={bella} onSession={session} onOpenAtlas={openAtlas} /> : null}
           {ws === 'docs' ? <History docId={docId} version={docsVersion} bella={bella} lens={lens} onOpenAtlas={openAtlas} onSession={session} /> : null}
           {ws === 'connectors' ? <Connectors narrow={narrow} /> : null}
