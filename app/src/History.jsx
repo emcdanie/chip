@@ -1062,10 +1062,11 @@ function WrittenDown({ bella, docId, version, onOpenAtlas, decisions }) {
                 </div>
               ),
             },
-            { key: 'kind', label: 'Type', render: (r) => <StatusPill>{r.kind}</StatusPill> },
+            { key: 'kind', label: 'Type', prio: 2, render: (r) => <StatusPill>{r.kind}</StatusPill> },
             {
               key: 'agents',
               label: 'Agents',
+              prio: 3,
               sortVal: (r) => (r.agents === 'OBI cites it' ? 0 : 1),
               render: (r) =>
                 r.agents === 'OBI cites it' ? (

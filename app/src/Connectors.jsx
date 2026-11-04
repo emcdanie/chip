@@ -338,9 +338,9 @@ export default function Connectors() {
       sortVal: (s) => statusOf(s).word,
       render: (s) => <StatusPill tone={statusOf(s).tone}>{statusOf(s).word}</StatusPill>,
     },
-    { key: 'allow', label: 'Access', sortVal: access, render: access },
-    { key: 'testedAt', label: 'Tested', sortVal: (s) => s.testedAt ?? '', render: (s) => (s.disabled ? '—' : when(s.testedAt)) },
-    { key: 'act', label: 'Action', hideLabel: true, sort: false, end: true, render: (s) => actButton(s) },
+    { key: 'allow', label: 'Access', prio: 3, sortVal: access, render: access },
+    { key: 'testedAt', label: 'Tested', prio: 2, sortVal: (s) => s.testedAt ?? '', render: (s) => (s.disabled ? '—' : when(s.testedAt)) },
+    { key: 'act', label: 'Action', hideLabel: true, sort: false, end: true, pin: true, render: (s) => actButton(s) },
   ];
   const sheetServer = servers?.find((s) => s.name === open);
   // the sheet's buttons: the one action, and copying where it lives

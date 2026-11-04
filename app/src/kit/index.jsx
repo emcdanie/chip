@@ -329,7 +329,11 @@ export function FilterGroup({ legend, options, selected, onChange }) {
    sort by any column, hide columns, sticky head, scrolls inside itself, and a
    row opens a sheet through onRow.
    cols: { key, label, render(row), sortVal(row), sort: false, open: true
-   (the cell is the row's button), end: true (right-aligned), hideLabel }
+   (the cell is the row's button), end: true (right-aligned), hideLabel,
+   prio: 2 or 3 (drops when the table is narrow, 3 first; the row's sheet
+   still has it), pin: true (an action column: sticks to the right edge) }.
+   The first column sticks to the left; a shadow marks the edge that has
+   more table past it.
    chips: [{ id, label, test(row) }], the first one shows everything ---------- */
 const SORT_ICON = {
   none: { d: 'M8 9l4-4 4 4M8 15l4 4 4-4', w: 2.6 },
@@ -357,6 +361,26 @@ export function DataTable({ label, cols, rows, chips, onRow, search = true, rowK
   }, [KEY, off]);
   const [colsOpen, setColsOpen] = useState(false);
   const colsRef = useRef(null);
+  // which edges have more table past them: k-ovl / k-ovr draw the shadow
+  const dtRef = useRef(null);
+  useEffect(() => {
+    const el = dtRef.current;
+    if (!el) return;
+    const edge = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      el.classList.toggle('k-ovl', el.scrollLeft > 1);
+      el.classList.toggle('k-ovr', max - el.scrollLeft > 1);
+    };
+    edge();
+    el.addEventListener('scroll', edge, { passive: true });
+    const ro = new ResizeObserver(edge);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    return () => {
+      el.removeEventListener('scroll', edge);
+      ro.disconnect();
+    };
+  }, []);
   useEffect(() => {
     if (!colsOpen) return;
     const away = (e) => !colsRef.current?.contains(e.target) && setColsOpen(false);
@@ -437,7 +461,7 @@ export function DataTable({ label, cols, rows, chips, onRow, search = true, rowK
           </div>
         </div>
       </div>
-      <div className="k-dt" tabIndex={0} role="region" aria-label={label}>
+      <div className="k-dt" tabIndex={0} role="region" aria-label={label} ref={dtRef}>
         <table>
           <thead>
             <tr>
@@ -445,7 +469,7 @@ export function DataTable({ label, cols, rows, chips, onRow, search = true, rowK
                 const s = c.sort === false ? null : sort.i === i ? (sort.dir > 0 ? 'ascending' : 'descending') : 'none';
                 const lab = c.hideLabel ? <span className="k-vh">{c.label}</span> : c.label;
                 return (
-                  <th key={i} scope="col" aria-sort={s ?? undefined} className={c.end ? 'k-end' : undefined}>
+                  <th key={i} scope="col" aria-sort={s ?? undefined} className={cx(c.end && 'k-end', c.pin && 'k-pin')} data-prio={c.prio}>
                     {s ? (
                       <button type="button" onClick={() => setSort((p) => ({ i, dir: p.i === i ? -p.dir : 1 }))}>
                         {lab}
@@ -466,7 +490,7 @@ export function DataTable({ label, cols, rows, chips, onRow, search = true, rowK
               list.map((r) => (
                 <tr key={rowKey(r, rows.indexOf(r))} className={onRow ? 'k-rowlink' : undefined} onClick={openRow}>
                   {vis.map(([c, i]) => (
-                    <td key={i} className={c.end ? 'k-end' : undefined}>
+                    <td key={i} className={cx(c.end && 'k-end', c.pin && 'k-pin') || undefined} data-prio={c.prio}>
                       {cell(c, r)}
                     </td>
                   ))}

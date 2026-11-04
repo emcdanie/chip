@@ -338,6 +338,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
                 key: 'n',
                 label: 'Used by',
                 end: true,
+                pin: true,
                 sortVal: (r) => r.usedBy.length,
                 render: (r) =>
                   r.usedBy.length ? (
@@ -790,7 +791,7 @@ function TokenizedPanel({ f, roles, onColour, onSession, setSheet, close }) {
           ]}
           cols={[
             { key: 'p', label: 'Property', render: (r) => <b className="fd-ink">{r.p}</b> },
-            { key: 'tokens', label: 'Tokens' },
+            { key: 'tokens', label: 'Tokens', prio: 3 },
             {
               key: 'pct',
               label: 'Read a token',
@@ -831,6 +832,7 @@ function TokenizedPanel({ f, roles, onColour, onSession, setSheet, close }) {
               key: 'act',
               label: 'Action',
               sort: false,
+              pin: true,
               render: (r) =>
                 r.not.length ? (
                   <Button className="fd-tzact" onClick={() => see(r)}>
