@@ -318,6 +318,8 @@ html.wp-dragging .xterm { pointer-events: none; }
 .hcol .hv { grid-row: 4; padding-top: var(--s-4); white-space: normal; overflow-wrap: anywhere; text-align: center; }
 .hcol:hover .tube { outline: 2px solid var(--action); outline-offset: 3px; }
 .hcol:focus-visible .tube { outline: var(--focus); outline-offset: 3px; }
+.hcol.full { cursor: default; }
+.hcol.full:hover .tube { outline: none; }
 .hcol:focus-visible { outline: none; }
 .hstrip .tube { position: relative; width: min(64px, 100%); height: 136px; overflow: hidden; border-radius: var(--r); background: var(--tint); }
 .hstrip .tube::before, .hstrip .tube::after { content: ''; position: absolute; left: 0; right: 0; z-index: 2; border-top: 1px dotted color-mix(in srgb, var(--card) 75%, transparent); }

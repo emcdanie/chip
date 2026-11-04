@@ -365,6 +365,12 @@ export default function SystemMap({ controls, map, onReload }) {
       focusCard(t);
     }
   }
+  // a press on a card: a healthy stage opens or closes its parts, anything else its sheet
+  function press(id, quiet) {
+    if (!quiet) return select(id);
+    if (dragged.current) dragged.current = false;
+    else toggle(id);
+  }
   function select(id) {
     if (dragged.current) {
       dragged.current = false;
@@ -450,6 +456,8 @@ export default function SystemMap({ controls, map, onReload }) {
                 const bl = isBlocked(n);
                 const st = bl ? 'blocked' : n.state;
                 const open = n.kids?.length && !closed.has(id);
+                // a healthy stage has nothing to fix: its card shows its parts instead of a sheet
+                const quiet = n.kids?.length && st === 'ok';
                 return (
                   <li
                     key={id}
@@ -459,7 +467,7 @@ export default function SystemMap({ controls, map, onReload }) {
                     {/* the card is a box holding two targets side by side: the
                         chevron in the icon column, the card's button beside it.
                         A press on the box's spare space still selects the card. */}
-                    <div className="cn-card" title={n.detail ?? undefined} onPointerDown={(e) => !e.target.closest('.cn-tog') && onCardDown(e, id)} onClick={(e) => !e.target.closest('button') && select(id)}>
+                    <div className="cn-card" title={n.detail ?? undefined} onPointerDown={(e) => !e.target.closest('.cn-tog') && onCardDown(e, id)} onClick={(e) => !e.target.closest('button') && press(id, quiet)}>
                       <span className="cn-ic" aria-hidden="true">
                         {n.icon ?? ICON[n.id] ?? '●'}
                       </span>
@@ -468,7 +476,15 @@ export default function SystemMap({ controls, map, onReload }) {
                           <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                         </button>
                       ) : null}
-                      <button type="button" className="cn-open" data-sel={id} aria-haspopup="dialog" onClick={() => select(id)} onKeyDown={(e) => onCardKey(e, id)}>
+                      <button
+                        type="button"
+                        className="cn-open"
+                        data-sel={id}
+                        aria-haspopup={quiet ? undefined : 'dialog'}
+                        aria-expanded={quiet ? !!open : undefined}
+                        onClick={() => press(id, quiet)}
+                        onKeyDown={(e) => onCardKey(e, id)}
+                      >
                         <span className="cn-tx">
                           <b>{n.name}</b>
                           <small>{n.blockedBy ? `Blocked by ${n.blockedBy.name}` : n.sub}</small>

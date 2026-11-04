@@ -603,7 +603,9 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
               const pct = n ? ok / n : 0;
               const low = pct < 0.9;
               return (
-                <button type="button" key={k.short} className={`hcol${low ? ' low' : ''}`} style={{ gridColumn: i + 1 }} aria-label={`${k.short} ${ok}/${n}, ${k.long}${low ? ', under 90%' : ''}`} aria-haspopup="dialog" onClick={() => colSheet(i)}>
+                // a column every component passes has nothing to fix: it reads, it doesn't open
+                ok === n ? (
+                  <div key={k.short} className="hcol full" style={{ gridColumn: i + 1 }} role="group" aria-label={`${k.short} ${ok}/${n}, ${k.long}, all pass`}>
                   <span className="hl">{k.short}</span>
                   <span className="tube">
                     <i style={{ height: filled ? `calc((100% - 8px) * ${pct})` : 0 }} />
@@ -612,7 +614,24 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                     {low ? <i className="vdot low" aria-hidden="true" /> : null}
                     {ok}/{n}
                   </span>
+                </div>
+                ) : (
+                // named by its own text ("DSDS 33/37"), the long name and the warning after it
+                <button type="button" key={k.short} className={`hcol${low ? ' low' : ''}`} style={{ gridColumn: i + 1 }} aria-haspopup="dialog" onClick={() => colSheet(i)}>
+                  <span className="hl">{k.short}</span>{' '}
+                  <span className="tube">
+                    <i style={{ height: filled ? `calc((100% - 8px) * ${pct})` : 0 }} />
+                  </span>
+                  <span className="hv">
+                    {low ? <i className="vdot low" aria-hidden="true" /> : null}
+                    {ok}/{n}
+                  </span>
+                  <span className="k-vh">
+                    , {k.long}
+                    {low ? ', under 90%' : ''}
+                  </span>
                 </button>
+                )
               );
             })}
             <span className="hrule" aria-hidden="true" />
@@ -660,7 +679,8 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
           {trends.map((t, k) => {
             // every line leads somewhere: the stories, the gap report, the gate
             const act = [
-              withStory < n ? ['Review the missing stories', () => driftSheet('story')] : null,
+              // straight to the review, every missing story already picked: no sheet that ends "select them"
+              withStory < n ? ['Review the missing stories', () => setReport(rows.filter((r) => !r.c.hasStory).map((r) => ['story', r.name]))] : null,
               gaps ? [`Review all ${gaps}`, () => setReport(acts.flatMap((a) => a.who.map((nm) => [COLS[a.i].short.toLowerCase(), nm])))] : null,
               latestGate ? [latestGate.pass ? 'See the gate' : 'Review the fix', () => (latestGate.pass ? gateSheet(latestGate.day) : failingGate[0] ? openReview(failingGate[0].id) : gateSheet(latestGate.day))] : null,
             ][k];
