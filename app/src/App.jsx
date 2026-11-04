@@ -151,8 +151,11 @@ export default function App() {
   // under 961px the panel always docks at the bottom (no room beside the page)
   const dock = wide ? work.dock : 'bottom';
   const right = work.open && dock === 'right';
-  // the panel docked right on a window under 1281px folds the nav, so the page keeps its columns
-  const collapsed = sidePref === 'col' || (sidePref !== 'open' && (winW < 1180 || (right && winW < 1281)));
+  // the panel docked right folds the nav to the rail whenever the full nav
+  // would leave the page under 600px, at any width and over an Expand: the
+  // page keeps its columns, and Expand hides until there is room for it
+  const cramped = right && winW - 256 - clampW(work.w, winW, 256) < 600;
+  const collapsed = sidePref === 'col' || cramped || (sidePref !== 'open' && winW < 1180);
   const navW = !wide ? 0 : collapsed ? 104 : 256;
   const wpW = clampW(work.w, winW, navW);
   const wpH = clampH(work.h, win.h);
@@ -418,7 +421,7 @@ export default function App() {
 
   const side = (
     <nav className="side" id="side" aria-label="CHIP">
-      {wide ? (
+      {wide && !cramped ? (
         <button type="button" className="sidecol" aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>
           <span aria-hidden="true">{collapsed ? '⇥' : '⇤'}</span> <span className="nlab">{collapsed ? 'Expand' : 'Collapse'}</span>
         </button>
