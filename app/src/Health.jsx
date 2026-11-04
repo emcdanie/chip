@@ -94,6 +94,11 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   const [sheet, setSheet] = useState(null); // { title, body, footer }
   const [checkId, setCheckId] = useState(null);
   const [report, setReport] = useState(null); // [[gap, Name], …] in the gap report
+  const [focus, setFocus] = useState(null); // { gap, names, at }: the gap card a detail points at
+  const [baseline, setBaseline] = useState(null); // Compare with Figma, every component (Connectors)
+  useEffect(() => {
+    fetch('/figma-baseline').then((r) => r.json()).then(setBaseline).catch(() => {});
+  }, []);
   const [refreshing, setRefreshing] = useState(false);
   const [sync, setSync] = useState(null); // { at, changes } | { at, error }
   const lastLook = useRef(Date.now());
@@ -168,64 +173,244 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   ];
 
   /* ---------- sheets ---------- */
-  const compSheet = (r) =>
+  // the gap behind a coverage column, and who can fix one component's
+  const gapKey = (i) => COLS[i].short.toLowerCase();
+  const canOf = (i, name) => fixes.data?.gaps?.[gapKey(i)]?.[name]?.can;
+  const CanPill = ({ can }) => (can ? <span className={`k-pill ${can.who === 'chip' ? 'pass' : 'needs'}`}>{can.label}</span> : null);
+  // point at a gap card: highlight it, select these components, scroll to it
+  const showOnCard = (gap, names) => {
+    setSheet(null);
+    setFocus({ gap, names, at: Date.now() });
+    requestAnimationFrame(() => document.getElementById(`gapcard-${gap}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  };
+  const compSheet = (r) => {
+    const miss = r.v.map((x, i) => (x ? null : i)).filter((i) => i != null);
     setSheet({
       title: r.name,
       body: (
-        <>
-          <p>{r.n} of 6 checks pass.</p>
+        <div className="ov-detail">
+          <p>
+            <b>{r.n === 6 ? 'Every check passes.' : `${r.n} of 6 checks pass; ${miss.length} gap${miss.length === 1 ? '' : 's'} to close.`}</b> Each gap below is also on its card in Gaps to close.
+          </p>
           <ul className="plain">
             {r.v.map((x, i) => (
               <li key={i}>
-                <span>{COLS[i].long}</span>
-                <span className={x ? 'pass' : 'fail'}>{x ? '✓ passes' : '✕ missing'}</span>
+                <span>
+                  {COLS[i].long}
+                  {x ? null : <span className="ov-why">{fixes.data?.gaps?.[gapKey(i)]?.[r.name]?.missing ?? COLS[i].why}</span>}
+                </span>
+                {x ? <span className="pass">✓ passes</span> : <CanPill can={canOf(i, r.name)} />}
               </li>
             ))}
           </ul>
-          {r.n < 6 ? <p>{r.v.map((x, i) => (x ? '' : COLS[i].why)).filter(Boolean).join(' ')}</p> : null}
-        </>
+        </div>
       ),
       footer: (
         <>
-          <Button variant="primary" onClick={() => (setSheet(null), onOpenAtlas(r.c.id))}>
+          {miss.length ? (
+            <Button variant="primary" onClick={() => (setSheet(null), setReport(miss.map((i) => [gapKey(i), r.name])))}>
+              Review the fix{miss.length > 1 ? 'es' : ''}
+            </Button>
+          ) : null}
+          <Button variant={miss.length ? 'secondary' : 'primary'} onClick={() => (setSheet(null), onOpenAtlas(r.c.id))}>
             Open in Components
           </Button>
-          {r.n < 6 ? <Button onClick={() => (setSheet(null), onSession(`Fix ${r.name} in BELLA: ${r.v.map((x, i) => (x ? '' : COLS[i].long.toLowerCase())).filter(Boolean).join(', ')}.`))}>Fix in a session</Button> : null}
         </>
       ),
     });
+  };
   const colSheet = (i) => {
     const miss = rows.filter((r) => !r.v[i]);
+    const gap = gapKey(i);
+    const items = fixes.data?.gaps?.[gap] ?? {};
+    const rule = Object.values(items)[0]?.why;
+    const nClaude = miss.filter((r) => items[r.name]?.can?.who === 'claude').length;
+    setFocus({ gap, names: [], at: Date.now() });
     setSheet({
-      title: `${COLS[i].long}: ${miss.length} missing`,
+      title: `${COLS[i].long}: ${miss.length ? `${miss.length} missing` : 'all pass'}`,
       body: (
-        <>
-          <p>{COLS[i].why}</p>
-          <ul className="plain">
-            {miss.length ? (
-              miss.map((r) => (
-                <li key={r.name}>
-                  <span>{r.name}</span>
-                  <span className="k-pill fail">✕ missing</span>
-                </li>
-              ))
-            ) : (
-              <li>Every component passes.</li>
-            )}
-          </ul>
-        </>
+        <div className="ov-detail">
+          <section>
+            <h3>What it means</h3>
+            <p>
+              <b>{COLS[i].why}</b> {rule ? `${rule.rule} ` : ''}
+              {rule ? <span className="ov-src">{rule.source}</span> : null}
+            </p>
+          </section>
+          <section>
+            <h3>Which components</h3>
+            <ul className="plain">
+              {miss.length ? (
+                miss.map((r) => (
+                  <li key={r.name}>
+                    <span>
+                      {r.name}
+                      {items[r.name]?.missing ? <span className="ov-why">{items[r.name].missing}</span> : null}
+                    </span>
+                    <CanPill can={items[r.name]?.can} />
+                  </li>
+                ))
+              ) : (
+                <li>Every component passes.</li>
+              )}
+            </ul>
+          </section>
+          {miss.length ? (
+            <section>
+              <h3>On the Overview</h3>
+              <p>The same {miss.length} are the “{COLS[i].fix}” card in Gaps to close, highlighted behind this sheet.</p>
+            </section>
+          ) : null}
+        </div>
       ),
       footer: miss.length ? (
         <>
-          <Button variant="primary" onClick={() => (setSheet(null), setReport(miss.map((r) => [COLS[i].short.toLowerCase(), r.name])))}>
+          <Button variant="primary" onClick={() => (setSheet(null), setReport(miss.map((r) => [gap, r.name])))}>
             Review the fix{miss.length > 1 ? 'es' : ''}
           </Button>
-          <Button variant="tertiary" onClick={() => (setSheet(null), onSession(`${COLS[i].fix} in BELLA for ${miss.map((r) => r.name).join(', ')}.`))}>
-            Open in a session
-          </Button>
+          <Button onClick={() => showOnCard(gap, miss.map((r) => r.name))}>Select them on the card</Button>
+          {nClaude ? (
+            <Button variant="tertiary" onClick={() => (setSheet(null), onSession(`${COLS[i].fix} in BELLA for ${miss.filter((r) => items[r.name]?.can?.who === 'claude').map((r) => r.name).join(', ')} only.\n\n${miss.map((r) => items[r.name]?.brief).filter(Boolean).join('\n\n')}`, `${COLS[i].fix}: ${nClaude}`))}>
+              Fix {nClaude} with Claude
+            </Button>
+          ) : null}
         </>
       ) : null,
     });
+  };
+  // a day on the gate strip: which commits failed, which check, and the fix
+  const gateSheet = (d) => {
+    const cs = G.filter((g) => g.day === d);
+    const bad = cs.filter((g) => !g.pass);
+    setSheet({
+      title: `Gate on ${fmt(d)}`,
+      body: (
+        <div className="ov-detail">
+          <section>
+            <h3>What it means</h3>
+            <p>
+              <b>{bad.length ? `${bad.length} of ${plural(cs.length, 'commit')} failed BELLA’s gate.` : `All ${plural(cs.length, 'commit')} passed BELLA’s gate.`}</b> The gate runs every check below on each commit; a red one means that commit isn’t proven safe to merge.
+            </p>
+          </section>
+          <section>
+            <h3>Commits</h3>
+            <ul className="plain">
+              {cs.map((g) => (
+                <li key={g.sha}>
+                  <span className="mono">{g.sha.slice(0, 7)}</span>
+                  <span className={g.pass ? 'pass' : 'fail'}>
+                    {g.pass ? '✓' : '✕'} {g.ok}/{g.of} checks
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          {failingGate.length ? (
+            <section>
+              <h3>Failing now</h3>
+              <ul className="plain">
+                {failingGate.map((c) => (
+                  <li key={c.id}>
+                    <span>
+                      {c.name}
+                      <span className="ov-why">{c.failures?.[0] ?? c.summary}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </div>
+      ),
+      footer: failingGate.length ? (
+        <>
+          <Button variant="primary" onClick={() => (setSheet(null), openReview(failingGate[0].id))}>
+            Review the fix
+          </Button>
+          <Button onClick={() => (setSheet(null), setCheckId(failingGate[0].id))}>See the check</Button>
+        </>
+      ) : null,
+    });
+  };
+  // a drift pair: what it compares, what differs, and what to do about it
+  const driftSheet = (k) => {
+    const storyMiss = rows.filter((r) => !r.c.hasStory).map((r) => r.name);
+    const fig = baseline?.at ? baseline : null;
+    const diff = fig ? fig.rows.filter((r) => r.found && r.score != null && r.score < 100).sort((a, b) => a.score - b.score) : [];
+    const absent = fig ? fig.rows.filter((r) => !r.found) : [];
+    const body = {
+      figma: (
+        <div className="ov-detail">
+          <section>
+            <h3>What it means</h3>
+            <p>
+              <b>{fig ? `${fig.found} of ${fig.total} components are in Figma; average match with code ${fig.average}%.` : 'Not compared yet.'}</b> Compare with Figma reads each component set and checks its property names, states, target size and colour bindings against code.
+            </p>
+          </section>
+          {diff.length ? (
+            <section>
+              <h3>Differ from code</h3>
+              <ul className="plain">
+                {diff.map((r) => (
+                  <li key={r.id}>
+                    <span>
+                      <button type="button" className="k-link" onClick={() => (setSheet(null), onOpenAtlas(r.id))}>
+                        {r.name}
+                      </button>
+                      <span className="ov-why">{r.failing.map((f) => f.what).join(' ')}</span>
+                    </span>
+                    <span className="k-pill needs">{r.score}%</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          {absent.length ? (
+            <section>
+              <h3>Not in the Figma file</h3>
+              <p>{absent.map((r) => r.name).join(', ')}.</p>
+            </section>
+          ) : null}
+        </div>
+      ),
+      story: (
+        <div className="ov-detail">
+          <section>
+            <h3>What it means</h3>
+            <p>
+              <b>{storyMiss.length ? `${plural(storyMiss.length, 'component')} without a story.` : 'Every component has a story.'}</b> Storybook is where code is reviewed visually; the gate renders every story.
+            </p>
+          </section>
+          {storyMiss.length ? <p>The same components are the “Write stories” card in Gaps to close: {storyMiss.join(', ')}.</p> : null}
+        </div>
+      ),
+    }[k];
+    const footer = {
+      figma: (
+        <>
+          <Button
+            variant="primary"
+            onClick={() =>
+              fetch('/figma-baseline/run', { method: 'POST', headers: { 'content-type': 'application/json' } })
+                .then((r) => r.json())
+                .then((b) => (setBaseline(b), setSheet(null)))
+            }
+          >
+            Compare with Figma again
+          </Button>
+          {diff[0] ? <Button onClick={() => (setSheet(null), onOpenAtlas(diff[0].id))}>Open {diff[0].name}</Button> : null}
+        </>
+      ),
+      story: storyMiss.length ? (
+        <>
+          <Button variant="primary" onClick={() => (setSheet(null), setReport(storyMiss.map((n) => ['story', n])))}>
+            Review the fix{storyMiss.length > 1 ? 'es' : ''}
+          </Button>
+          <Button onClick={() => showOnCard('story', storyMiss)}>Select them on the card</Button>
+        </>
+      ) : null,
+    }[k];
+    setSheet({ title: k === 'figma' ? 'Figma ↔ code' : 'Storybook ↔ code', body, footer });
   };
   const acts = GAP_ORDER.map((i) => ({ i, who: rows.filter((r) => !r.v[i]).map((r) => r.name) }))
     .filter((a) => a.who.length)
@@ -276,7 +461,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   const tokensBuilt = byId['tokens-built'];
   const contract = byId.contract;
   const SRC = [
-    { k: 'Figma', s: '?', v: 'Not measured' },
+    baseline?.at ? { k: 'Figma', s: baseline.average >= 90 ? '✓' : '!', v: `${baseline.average}% match` } : { k: 'Figma', s: '?', v: 'Not compared' },
     { k: 'Storybook', s: withStory === n ? '✓' : '!', v: `${withStory}/${n}` },
     { k: 'Code', s: '✓', v: `${n}/${n}` },
     { k: 'Contract', s: withContract === n ? '✓' : '!', v: `${withContract}/${n}` },
@@ -372,6 +557,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                   fixes={fixes.data?.gaps?.[gap]}
                   fixesError={fixes.error}
                   decisions={fixes.data?.decisions}
+                  focus={focus?.gap === gap ? focus : null}
                   onOpen={() => colSheet(a.i)}
                   onReview={setReport}
                   onSession={onSession}
@@ -463,12 +649,25 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
           This week, compared with {weekDay}
         </h2>
         <ul className="trends">
-          {trends.map((t) => (
-            <li key={t.what} className={t.k}>
-              <b>{t.big}</b> <span className="w">{t.what}</span>
-              <span className="d">{t.note}</span>
-            </li>
-          ))}
+          {trends.map((t, k) => {
+            // every line leads somewhere: the stories, the gap report, the gate
+            const act = [
+              withStory < n ? ['Review the missing stories', () => driftSheet('story')] : null,
+              gaps ? [`Review all ${gaps}`, () => setReport(acts.flatMap((a) => a.who.map((nm) => [COLS[a.i].short.toLowerCase(), nm])))] : null,
+              latestGate ? [latestGate.pass ? 'See the gate' : 'Review the fix', () => (latestGate.pass ? gateSheet(latestGate.day) : failingGate[0] ? openReview(failingGate[0].id) : gateSheet(latestGate.day))] : null,
+            ][k];
+            return (
+              <li key={t.what} className={t.k}>
+                <b>{t.big}</b> <span className="w">{t.what}</span>
+                <span className="d">{t.note}</span>
+                {act ? (
+                  <button type="button" className="k-link ov-act" onClick={act[1]}>
+                    {act[0]}
+                  </button>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -558,7 +757,9 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                 const bad = cs.filter((g) => !g.pass).length;
                 return (
                   <div className="drow" role="listitem" key={d}>
-                    <span className="dn">{k === 0 ? 'Latest' : fmt(d)}</span>
+                    <button type="button" className="dn rowbtn" aria-haspopup="dialog" onClick={() => gateSheet(d)}>
+                      {k === 0 ? 'Latest' : fmt(d)}
+                    </button>
                     <span className="track" aria-hidden="true">
                       {cs.map((g) => (
                         <i key={g.sha} className={g.pass ? 'y' : 'f'} style={{ height: `${(g.ok / Math.max(1, g.of)) * 100}%` }} />
@@ -573,13 +774,19 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
           ) : (
             <div role="list">
               <div className="drow" role="listitem">
-                <span className="dn">Figma ↔ code</span>
-                <span className="range" aria-hidden="true" />
-                <span className="d1">Not measured</span>
-                <span className="d2">—</span>
+                <button type="button" className="dn rowbtn" aria-haspopup="dialog" onClick={() => driftSheet('figma')}>
+                  Figma ↔ code
+                </button>
+                <span className="range" aria-hidden="true">
+                  {baseline?.at && baseline.average < 100 ? <i className="warn" style={{ left: 0, width: `${100 - baseline.average}%` }} /> : null}
+                </span>
+                <span className="d1">{baseline?.at ? `${baseline.found} of ${baseline.total} in Figma · ${baseline.rows.filter((r) => r.found && r.score < 100).length} differ` : 'Not compared yet'}</span>
+                <span className="d2">{!baseline?.at ? '—' : baseline.average === 100 ? 'in step' : 'differs'}</span>
               </div>
               <div className="drow" role="listitem">
-                <span className="dn">Storybook ↔ code</span>
+                <button type="button" className="dn rowbtn" aria-haspopup="dialog" onClick={() => driftSheet('story')}>
+                  Storybook ↔ code
+                </button>
                 <span className="range" aria-hidden="true">
                   {withStory < n ? <i className="warn" style={{ left: 0, width: `${((n - withStory) / n) * 100}%` }} /> : null}
                 </span>
@@ -587,13 +794,17 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                 <span className="d2">{withStory < n ? 'differs' : 'in step'}</span>
               </div>
               <div className="drow" role="listitem">
-                <span className="dn">Contract ↔ code</span>
+                <button type="button" className="dn rowbtn" aria-haspopup="dialog" onClick={() => setCheckId('contract')}>
+                  Contract ↔ code
+                </button>
                 <span className="range" aria-hidden="true" />
                 <span className="d1">{contract?.summary ?? 'Not measured'}</span>
                 <span className="d2">{!contract ? '—' : contract.status === 'passed' ? 'in step' : 'differs'}</span>
               </div>
               <div className="drow" role="listitem">
-                <span className="dn">Tokens ↔ built files</span>
+                <button type="button" className="dn rowbtn" aria-haspopup="dialog" onClick={() => setCheckId('tokens-built')}>
+                  Tokens ↔ built files
+                </button>
                 <span className="range" aria-hidden="true" />
                 <span className="d1">{tokensBuilt?.summary ?? 'Not measured'}</span>
                 <span className="d2">{!tokensBuilt ? '—' : tokensBuilt.status === 'passed' ? 'in step' : 'differs'}</span>
@@ -603,23 +814,11 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
         </div>
       </section>
 
-      <section className="scard2 c-scout" aria-labelledby="sScT">
-        <h2 id="sScT" className="ovh">
-          Scout · this week
-        </h2>
-        <div className="scoutrow">
-          <p>
-            <b>Not measured.</b> CHIP has no scout yet: nothing reads new standards and tools each week and tries them on BELLA.
-          </p>
-          <span className="k-pill">Not built</span>
-        </div>
-      </section>
-
       <Sheet open={!!sheet} title={sheet?.title ?? ''} onClose={() => setSheet(null)} footer={sheet?.footer}>
         {sheet?.body}
       </Sheet>
       <CheckSheet c={checkId ? byId[checkId] : null} onClose={() => setCheckId(null)} run={checks.run} />
-      <GapReport items={report} onClose={() => setReport(null)} onSession={(b) => (setReport(null), onSession(b))} />
+      <GapReport items={report} onClose={() => setReport(null)} onSession={(b, t) => (setReport(null), onSession(b, t))} />
     </div>
   );
 }

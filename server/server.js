@@ -23,6 +23,7 @@ import { attachTerminal, repoList } from './lib/term.mjs';
 import { listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
 import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou } from './lib/needs.mjs';
+import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
 import { decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, searchHistory } from './lib/history.mjs';
 import { systemMap } from './lib/map.mjs';
@@ -479,6 +480,31 @@ app.post('/review/:check/keep', (req, res) => {
     errorOut(res, e);
   }
 });
+// Runs: a brief handed to Claude Code headless, reported back as an outcome
+app.get('/runs', (_req, res) => res.json({ runs: listRuns() }));
+app.get('/runs/ready', (_req, res) => res.json(claudeReady()));
+app.get('/runs/:id', (req, res) => {
+  const r = getRun(String(req.params.id));
+  r ? res.json(r) : res.status(404).json({ error: 'No such run (runs are kept until CHIP restarts)' });
+});
+app.post('/runs', async (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(await startRun({ brief: req.body?.brief, title: typeof req.body?.title === 'string' ? req.body.title.slice(0, 120) : null }));
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+for (const [verb, fn] of [['stop', stopRun], ['keep', keepRun], ['undo', undoRun]]) {
+  app.post(`/runs/:id/${verb}`, (req, res) => {
+    if (!sameApp(req, res)) return;
+    try {
+      res.json(fn(String(req.params.id)));
+    } catch (e) {
+      errorOut(res, e);
+    }
+  });
+}
 app.get('/review-img/:dir/:file', (req, res) => {
   try {
     res.type('png').send(reviewImage(String(req.params.dir), String(req.params.file)));

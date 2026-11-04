@@ -65,6 +65,7 @@ Thumbs.db
 
 # Check results and CHIP review-card actions: local state, read by sessions (phase 6, 3 Nov)
 /data/checks/
+/data/runs/
 /data/actions.jsonl
 
 # Playground briefs: her notes on her pages, local only

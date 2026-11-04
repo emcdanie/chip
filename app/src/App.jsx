@@ -15,6 +15,7 @@ import Foundations from './Foundations.jsx';
 import History from './History.jsx';
 import Playground from './Playground.jsx';
 import ReviewSheet from './ReviewSheet.jsx';
+import RunSheet, { startRun } from './Runs.jsx';
 import { TheBar, useBar, useNeeds } from './TheBar.jsx';
 import { useObi, OneInput, ObiPanel } from './Obi.jsx';
 import { PageHeader, Sheet } from './kit/index.jsx';
@@ -246,15 +247,15 @@ export default function App() {
     return ok;
   };
   const obiApi = { ...obi, send };
-  // "Fix in a session": the brief goes on the clipboard and Claude opens
-  const session = async (brief) => {
+  // "Fix in a session": Claude Code runs the brief headless on a BELLA
+  // branch and the run sheet reports the outcome (Runs.jsx). Before 4 Nov the
+  // brief only went to the clipboard and the Claude tab opened empty.
+  const session = async (brief, title) => {
     try {
-      await navigator.clipboard.writeText(brief);
-      setToast('Brief copied. Paste it into Claude.');
-    } catch {
-      setToast('Could not copy the brief.');
+      await startRun(brief, title);
+    } catch (e) {
+      setToast(e.message);
     }
-    setWork('claude');
   };
   useEffect(() => {
     const term = (e) => {
@@ -592,6 +593,7 @@ export default function App() {
       )}
 
       <ReviewSheet />
+      <RunSheet />
 
       <p className={`toast${toast ? ' on' : ''}`} role="status" aria-live="polite">
         {toast}

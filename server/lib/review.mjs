@@ -417,7 +417,7 @@ export function reviewCard(checkId) {
   };
 }
 
-const sh = (cmd, args, cwd) =>
+export const sh = (cmd, args, cwd) =>
   new Promise((resolve) => {
     const p = spawn(cmd, args, { cwd, env: { ...process.env, NO_COLOR: '1' } });
     let out = '';
@@ -429,7 +429,7 @@ const sh = (cmd, args, cwd) =>
 
 // the gate's visual audit serves Storybook on 6006; a Storybook already
 // running there (another session's) would make it test the wrong build
-const portBusy = (port) =>
+export const portBusy = (port) =>
   new Promise((resolve) => {
     const s = createConnection({ port, host: '127.0.0.1' });
     s.once('connect', () => (s.destroy(), resolve(true)));
@@ -451,12 +451,12 @@ function lastAttempt(id) {
 }
 // rule failures in the audit's own words: "[audit:visual] <story>: <rule> (mean luminance …)"
 const ruleFailures = (log) => [...strip(log ?? '').matchAll(/\[audit:visual\] ([\w-]+): ([^(\n]+?)\s*\(([^)]*)\)/g)].map((m) => ({ story: m[1], rule: m[2].trim(), measured: m[3] })).filter((v, i, a) => a.findIndex((x) => x.story === v.story && x.rule === v.rule) === i);
-const strip = (t) => t.replace(/\x1b\[[0-9;]*m/g, ''); // eslint-disable-line no-control-regex
+export const strip = (t) => t.replace(/\x1b\[[0-9;]*m/g, ''); // eslint-disable-line no-control-regex
 
 // what the gate's visual audit refused: suites, and the diff pictures
 // jest-image-snapshot wrote (expected | difference | received), kept after
 // the temporary worktree goes
-function visualBlockers(dir, log, branch) {
+export function visualBlockers(dir, log, branch) {
   const text = strip(log);
   const suites = [...new Set([...text.matchAll(/FAIL\s+(?:browser: \w+\s+)?(src\/\S+\.stories\.tsx)/g)].map((m) => m[1]))];
   const pct = [...text.matchAll(/was ([\d.]+)% different from snapshot/g)].map((m) => Number(m[1]));

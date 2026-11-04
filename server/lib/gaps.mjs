@@ -504,7 +504,22 @@ export function gapFixes() {
     out.contrast[c.name] = contrastGap(c, ctx);
     if (!c.hasA11yNotes) out.a11y[c.name] = a11yGap(c, ctx);
   }
-  // who can fix each one, said on the card before anything opens
-  for (const [gap, byName] of Object.entries(out)) for (const it of Object.values(byName)) it.can = canFor(gap, it);
+  // who can fix each one, said on the card before anything opens; and a
+  // brief that carries everything CHIP knows, so Claude needs no questions
+  for (const [gap, byName] of Object.entries(out))
+    for (const [name, it] of Object.entries(byName)) {
+      it.can = canFor(gap, it);
+      it.brief = [
+        `${name} in BELLA: ${GAP_TITLE[gap] ?? gap}.`,
+        `Missing: ${it.missing}`,
+        `Where: ${it.where.map((w) => `${w.file} (${w.field})`).join('; ')}`,
+        `Do: ${it.brief}`,
+        it.suggest ? `CHIP's suggestion: ${it.suggest.text}` : `CHIP has no suggestion: ${it.noSuggest.why} Needed: ${it.noSuggest.needed}`,
+        it.suggest?.code ? `Start from:\n${it.suggest.code}` : null,
+        it.suggest?.caveat ? `Careful: ${it.suggest.caveat}` : null,
+        `Rule: ${it.why.rule} (${it.why.source})`,
+        'Leave every other component alone.',
+      ].filter(Boolean).join('\n');
+    }
   return { at: new Date().toISOString(), bellaVersion: ctx.bella.source?.version, gaps: out, decisions: readDecisions() };
 }

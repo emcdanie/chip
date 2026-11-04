@@ -91,8 +91,12 @@ function whoLine(items) {
 }
 
 // one card: { gap, title, why, who, first, fixes, fixesError, decisions, onOpen, onReview, onSession }
-export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, decisions, onOpen, onReview, onSession }) {
+export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, decisions, focus, onOpen, onReview, onSession }) {
   const [sel, setSel] = useState([]);
+  // a Coverage or Drift detail pointing here: highlight the card, select its components
+  useEffect(() => {
+    if (focus?.names?.length) setSel(focus.names.filter((n) => who.includes(n)));
+  }, [focus?.at]);
   // keep the selection to components still missing this check after a refresh
   useEffect(() => setSel((s) => s.filter((n) => who.includes(n))), [who.join()]);
   const skipped = (n) => decisions?.[`${gap}:${n}`]?.decision === 'skip';
@@ -100,13 +104,11 @@ export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, d
   const picked = who.filter((n) => sel.includes(n));
   const toggle = (n) => setSel((s) => (s.includes(n) ? s.filter((x) => x !== n) : [...s, n]));
   const brief = () =>
-    `${title} in BELLA (~/DEV/bella) for ${picked.join(', ')} only. Leave every other component alone.\n\n` +
-    picked.map((n) => fixes?.[n]?.brief ?? `${n}: ${title.toLowerCase()}.`).join('\n\n') +
-    '\n\nRun npm run gate before committing. Don’t push.';
+    `${title} in BELLA for ${picked.join(', ')} only. Leave every other component alone.\n\n` + picked.map((n) => fixes?.[n]?.brief ?? `${n}: ${title.toLowerCase()}.`).join('\n\n');
   const status = picked.length ? `${picked.length} of ${who.length} selected` : `Select one or more, then review the fix`;
   const can = fixesError ? null : fixes ? whoLine(who.map((n) => fixes[n])) : 'Reading who can fix them…';
   return (
-    <li className={`gap1 dn${first ? ' first' : ''}`}>
+    <li className={`gap1 dn${first ? ' first' : ''}${focus ? ' focus' : ''}`} id={`gapcard-${gap}`}>
       <span className="n">
         {who.length}
         <small>component{who.length === 1 ? '' : 's'}</small>
@@ -141,9 +143,9 @@ export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, d
               Clear
             </button>
           ) : null}
-          {picked.length ? (
-            <button type="button" className="k-link" onClick={() => onSession(brief())}>
-              Open in a session
+          {picked.some((n) => fixes?.[n]?.can?.who === 'claude') ? (
+            <button type="button" className="k-link" onClick={() => onSession(brief(), `${title}: ${picked.join(', ')}`)}>
+              Fix with Claude
             </button>
           ) : null}
         </div>
@@ -186,12 +188,14 @@ function Figma({ f }) {
   );
 }
 
-const Row = ({ label, children }) => (
-  <div>
-    <dt>{label}</dt>
-    <dd>{children}</dd>
-  </div>
-);
+// the one-line verdict after what's missing: who does it, and how
+const VERDICT = {
+  chip: () => 'CHIP can make this change itself: Apply puts it on a branch and runs BELLA’s gate.',
+  claude: () => 'Claude writes it: Fix with Claude runs it and reports back here with the diff and the gate.',
+  you: (it) => `It needs your call first${it.alternatives[0] ? `: ${it.alternatives[0].text.replace(/\.$/, '')}, or Skip it` : ''}.`,
+};
+const evidenceSummary = (it) =>
+  [it.evidence.where.length && `${it.evidence.where.length} file${it.evidence.where.length === 1 ? '' : 's'}`, it.evidence.pairs && `${it.evidence.pairs.length} measured pairs`, it.evidence.figma ? (it.evidence.figma.missing ? 'not in Figma' : `Figma ${it.evidence.figma.score}% match`) : 'not compared with Figma'].filter(Boolean).join(' · ');
 
 function ReportItem({ it, busyId, setBusyId, onSkip, onLater, onSession }) {
   const [card, load] = useCard(it.id);
@@ -229,66 +233,14 @@ function ReportItem({ it, busyId, setBusyId, onSkip, onLater, onSession }) {
         <StatusPill tone={CAN_TONE[it.can.who]}>{it.can.label}</StatusPill>
         {it.decision?.decision === 'skip' ? <StatusPill tone="neutral">Skipped {when(it.decision.at)}</StatusPill> : null}
       </h3>
-      <dl>
-        <Row label="Missing">
-          <p>{it.missing}</p>
-        </Row>
-        <Row label="Evidence">
-          <ul className="dn-where">
-            {it.evidence.where.map((w) => (
-              <li key={w.file + w.field}>
-                <code>{w.file}</code> · {w.field}
-              </li>
-            ))}
-          </ul>
-          {it.evidence.pairs ? <Pairs pairs={it.evidence.pairs} /> : null}
-          {it.evidence.model ? (
-            <blockquote className="dn-model">
-              <span>{it.evidence.model.name}’s note</span>
-              {it.evidence.model.text}
-            </blockquote>
-          ) : null}
-          <Figma f={it.evidence.figma} />
-        </Row>
-        <Row label="Fix">
-          <p>
-            <b>Recommended:</b> {it.recommend.text}
-          </p>
-          {it.recommend.needed ? (
-            <p>
-              <b>Needed:</b> {it.recommend.needed}
-            </p>
-          ) : null}
-          {(card?.change?.preview ?? it.recommend.code) ? (
-            <pre className="dn-code" tabIndex={0} aria-label="Lines it adds">
-              {card?.change?.preview ?? it.recommend.code}
-            </pre>
-          ) : null}
-          {card?.change?.sentence && card.change.sentence !== it.recommend.text ? <p>{card.change.sentence}</p> : null}
-          {it.recommend.caveat ? <p className="dn-caveat">{it.recommend.caveat}</p> : null}
-          <p>
-            <b>Why:</b> {it.why.rule} <span className="dn-src">{it.why.source}</span>
-          </p>
-        </Row>
-        <Row label="Or">
-          <ul className="gr-alts">
-            {it.alternatives.map((a) => (
-              <li key={a.text}>
-                {a.text} <span className="gr-who">{a.can.label}</span>
-              </li>
-            ))}
-          </ul>
-        </Row>
-        <Row label="Changes">
-          <p>{it.change}</p>
-          {it.id || (it.undo && it.undo !== '—') ? (
-            <p>
-              <b>Undo:</b> {it.id ? `Undo deletes the branch ${card?.branch ?? ''}; ${card?.base ?? 'the base'} never moves.` : it.undo}
-            </p>
-          ) : null}
-          <p className="gr-how">{it.can.how}</p>
-        </Row>
-      </dl>
+      <p className="gr-verdict">
+        <b>{it.missing}</b> {VERDICT[it.can.who](it)}
+      </p>
+      <p className="gr-rec">
+        <b>Recommended:</b> {it.recommend.text}
+        {it.recommend.needed ? ` Needed: ${it.recommend.needed}` : ''}
+      </p>
+      {it.recommend.caveat ? <p className="dn-caveat">{it.recommend.caveat}</p> : null}
       <div className="gr-acts">
         {error ? (
           <p className="dn-caveat" role="alert">
@@ -339,8 +291,8 @@ function ReportItem({ it, busyId, setBusyId, onSkip, onLater, onSession }) {
             </Button>
           ) : null}
           {it.can.who === 'claude' ? (
-            <Button variant="primary" onClick={() => onSession(it.brief)}>
-              Open in a session
+            <Button variant="primary" onClick={() => onSession(it.brief, `${it.name}: ${it.gapTitle.toLowerCase()}`)}>
+              Fix with Claude
             </Button>
           ) : null}
           {!accepted && !running ? (
@@ -352,12 +304,60 @@ function ReportItem({ it, busyId, setBusyId, onSkip, onLater, onSession }) {
             </Button>
           ) : null}
           {it.can.who !== 'claude' && !accepted && !running ? (
-            <Button variant="tertiary" onClick={() => onSession(it.brief)}>
-              Open in a session
+            <Button variant="tertiary" onClick={() => onSession(it.brief, `${it.name}: ${it.gapTitle.toLowerCase()}`)}>
+              Fix with Claude instead
             </Button>
           ) : null}
         </div>
         {it.id && busyId && busyId !== it.id && !accepted ? <p className="gr-how">Another fix is running BELLA’s gate; Apply waits for it.</p> : null}
+      </div>
+      <div className="gr-more">
+        <Disclosure title="Evidence" summary={evidenceSummary(it)}>
+          <ul className="dn-where">
+            {it.evidence.where.map((w) => (
+              <li key={w.file + w.field}>
+                <code>{w.file}</code> · {w.field}
+              </li>
+            ))}
+          </ul>
+          {it.evidence.pairs ? <Pairs pairs={it.evidence.pairs} /> : null}
+          {it.evidence.model ? (
+            <blockquote className="dn-model">
+              <span>{it.evidence.model.name}’s note</span>
+              {it.evidence.model.text}
+            </blockquote>
+          ) : null}
+          <Figma f={it.evidence.figma} />
+        </Disclosure>
+        {(card?.change?.preview ?? it.recommend.code) ? (
+          <Disclosure title="Exactly what it adds">
+            {card?.change?.sentence ? <p>{card.change.sentence}</p> : null}
+            <pre className="dn-code" tabIndex={0} aria-label="Lines it adds">
+              {card?.change?.preview ?? it.recommend.code}
+            </pre>
+          </Disclosure>
+        ) : null}
+        <Disclosure title="Why this fix" summary={it.why.source}>
+          <p>{it.why.rule}</p>
+        </Disclosure>
+        <Disclosure title="Other ways" summary={`${it.alternatives.length}`}>
+          <ul className="gr-alts">
+            {it.alternatives.map((a) => (
+              <li key={a.text}>
+                {a.text} <span className="gr-who">{a.can.label}</span>
+              </li>
+            ))}
+          </ul>
+        </Disclosure>
+        <Disclosure title="What changes, and undo">
+          <p>{it.change}</p>
+          {it.id || (it.undo && it.undo !== '—') ? (
+            <p>
+              <b>Undo:</b> {it.id ? `Undo deletes the branch ${card?.branch ?? ''}; ${card?.base ?? 'the base'} never moves.` : it.undo}
+            </p>
+          ) : null}
+          <p className="gr-how">{it.can.how}</p>
+        </Disclosure>
       </div>
     </article>
   );
@@ -392,8 +392,8 @@ export function GapReport({ items, onClose, onSession }) {
     load();
   };
   const shown = (report?.items ?? []).filter((it) => !it.gone && !later.includes(`${it.gap}:${it.name}`));
-  const rest = shown.filter((it) => !it.id);
-  const restBrief = () => `Close these BELLA gaps (~/DEV/bella), nothing else:\n\n${rest.map((it) => it.brief).join('\n\n')}\n\nRun npm run gate before committing. Don’t push.`;
+  const rest = shown.filter((it) => it.can.who === 'claude' && it.decision?.decision !== 'skip');
+  const restBrief = () => `Close these BELLA gaps, nothing else:\n\n${rest.map((it) => it.brief).join('\n\n')}`;
   return (
     <Sheet
       open={!!items}
@@ -402,7 +402,7 @@ export function GapReport({ items, onClose, onSession }) {
       className="gr-sheet"
       footer={
         <>
-          {rest.length > 1 ? <Button onClick={() => onSession(restBrief())}>Open the {rest.length} CHIP can’t do in one session</Button> : null}
+          {rest.length > 1 ? <Button onClick={() => onSession(restBrief(), `${rest.length} gaps for Claude`)}>Fix the {rest.length} that need Claude in one run</Button> : null}
           <Button variant="tertiary" onClick={onClose}>
             Close
           </Button>

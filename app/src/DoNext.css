@@ -82,3 +82,29 @@
 @container acts (max-width: 640px) {
   .gr-item dl > div { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
 }
+
+/* the run report: verdict first, then what Claude did, the rest collapsed */
+.run-verdict { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-12); align-items: baseline; margin: 0; font: 400 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
+.run-verdict b { font-weight: 600; flex: 1 1 320px; }
+.run-sec { display: grid; gap: var(--s-8); }
+.run-summary { margin: 0; white-space: pre-wrap; font: 400 var(--fs-16)/var(--lh-body) var(--sans); color: var(--body); max-width: 72ch; }
+.run-shot { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--r); }
+
+/* report hierarchy: what's missing and the verdict, the fix, the actions; detail folded */
+.gr-item .gr-verdict, .gr-item .gr-rec, .gr-item > .dn-caveat { margin: 0; padding: 0 var(--s-24) var(--s-8); font: 400 var(--fs-16)/var(--lh-body) var(--sans); color: var(--body); max-width: 76ch; }
+.gr-item > .dn-caveat { margin: 0 var(--s-24) var(--s-8); padding: var(--s-8) var(--s-12); font-size: var(--fs-14); }
+.gr-verdict b { color: var(--ink); font-weight: 600; }
+.gr-rec b { color: var(--ink); font-weight: 600; }
+.gr-more { display: grid; gap: var(--s-4); padding: var(--s-8) var(--s-24) var(--s-16); border-top: 1px solid var(--line); }
+.gr-more p { margin: 0; font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--body); }
+
+/* a gap card a Coverage or Drift detail points at */
+.gap1.dn.focus { box-shadow: 0 0 0 2px var(--action); }
+/* the Overview's details: same shape as the report */
+.ov-detail { display: grid; gap: var(--s-16); }
+.ov-detail section { display: grid; gap: var(--s-8); }
+.ov-detail b { color: var(--ink); font-weight: 600; }
+.ov-why { display: block; font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
+.ov-src { font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--muted); }
+.ov-act { justify-self: start; min-height: var(--h-control); padding-left: 0; }
+.drow .dn.rowbtn { justify-self: start; text-align: left; }
