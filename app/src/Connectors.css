@@ -9,13 +9,9 @@
 .cn-panel { min-width: 0; }
 
 /* the map's controls, top right of the header */
-.cn-bar { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
+
 .cn-zoom { display: inline-flex; gap: var(--s-4); }
-.cn-keys { position: relative; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
-.cn-keys summary { display: inline-flex; align-items: center; min-height: var(--h-control); padding: 0 var(--s-16); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); list-style: none; cursor: pointer; }
-.cn-keys summary::-webkit-details-marker { display: none; }
-.cn-keys summary:hover, .cn-keys[open] summary { background: color-mix(in srgb, var(--action) 8%, var(--card)); border-color: var(--action); }
-.cn-keys ul { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; width: min(320px, 80vw); margin: 0; padding: var(--s-12) var(--s-12) var(--s-12) var(--s-32); display: grid; gap: var(--s-4); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
+.cn-keys { width: min(320px, 80vw); margin: 0; padding-left: var(--s-16); display: grid; gap: var(--s-4); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
 .cn-keys kbd { font: 400 var(--fs-14)/var(--lh-body) var(--code); border: 1px solid var(--line); border-radius: var(--r); padding: 0 var(--s-4); }
 
 /* the map: one sentence, then the canvas */

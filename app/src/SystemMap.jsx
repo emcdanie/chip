@@ -426,7 +426,8 @@ export default function SystemMap({ controls, map, onReload }) {
 
   return (
     <div className="cn-map">
-      <p className="cn-sub" aria-live="polite">
+      {/* the map's badges say it; the sentence stays for a screen reader */}
+      <p className="cn-sub k-vh" aria-live="polite">
         {sentenceOf(map.nodes)}
       </p>
       <div

@@ -6,7 +6,7 @@
 // explains how to add a connector.
 import React, { useCallback, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, SheetPart, Facts, NotMeasured, LinkButton, Card } from './kit/index.jsx';
+import { Overflow, PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, SheetPart, Facts, NotMeasured, LinkButton, Card } from './kit/index.jsx';
 import SystemMap, { useMapControls } from './SystemMap.jsx';
 import { changed } from './ReviewSheet.jsx';
 import './Connectors.css';
@@ -366,8 +366,10 @@ export default function Connectors() {
     ];
   };
 
+  // map controls she rarely needs: one ⋯ menu (the map already fits)
   const mapBar = (
-    <div className="cn-bar">
+    <Overflow label="Map controls" className="cn-bar">
+      <b>Map</b>
       <div className="cn-zoom" role="group" aria-label="Zoom">
         <Button onClick={controls.zoomOut} ariaLabel="Zoom out">
           −
@@ -378,34 +380,28 @@ export default function Connectors() {
         </Button>
       </div>
       <Button onClick={controls.reset}>Reset layout</Button>
-      <details className="cn-keys">
-        <summary>Keys</summary>
-        <ul>
-          <li>Drag the canvas to move around; drag a card to rearrange it.</li>
-          <li>
-            With the map focused, <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> pan it.
-          </li>
-          <li>
-            <kbd>+</kbd> <kbd>−</kbd> zoom, <kbd>0</kbd> fits the map.
-          </li>
-          <li>
-            <kbd>Tab</kbd> moves through cards; <kbd>Enter</kbd> selects. Arrows: ↑ parent, ↓ first child, ← → siblings.
-          </li>
-          <li>Pills: green healthy, yellow needs attention, red failing.</li>
-        </ul>
-      </details>
-    </div>
+      <b>Keys</b>
+      <ul className="cn-keys">
+        <li>Drag the canvas to move around; drag a card to rearrange it.</li>
+        <li>
+          With the map focused, <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> pan it.
+        </li>
+        <li>
+          <kbd>+</kbd> <kbd>−</kbd> zoom, <kbd>0</kbd> fits the map.
+        </li>
+        <li>
+          <kbd>Tab</kbd> moves through cards; <kbd>Enter</kbd> selects. Arrows: ↑ parent, ↓ first child, ← → siblings.
+        </li>
+        <li>Pills: green healthy, yellow needs attention, red failing.</li>
+      </ul>
+    </Overflow>
   );
 
   return (
     <div className="cn-page k-chrome">
       <PageHeader
         title="Connectors"
-        lede={
-          <>
-            The tools CHIP reads from, whether each one answers, and what it is allowed to do. Set in <code>chip.config.local.json</code>.
-          </>
-        }
+        lede="The tools CHIP reads from, and whether each one answers."
         actions={
           tab === 'map' ? (
             mapBar
