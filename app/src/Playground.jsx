@@ -259,10 +259,22 @@ export default function Playground({ onToast, project: askedProject, route: aske
   const proxy = running ? map.proxy : null;
   const KIND = kindsOf(map?.short);
   const proxyOrigin = proxy ? new URL(proxy).origin : null;
+  // post only once the frame holds the proxied page: before its src loads it is
+  // a blank page on CHIP's own origin, and posting there logs an origin warning
+  const toFrame = useCallback(
+    (m) => {
+      const w = frame.current?.contentWindow;
+      if (!w || !proxyOrigin) return;
+      try {
+        if (w.location.href) return; // readable: still CHIP's blank page, not the proxy's
+      } catch {}
+      w.postMessage(m, proxyOrigin);
+    },
+    [proxyOrigin],
+  );
   const hello = useCallback(() => {
-    if (!map || !proxyOrigin) return;
-    frame.current?.contentWindow?.postMessage({ type: 'chip:hello', sections: map.sections.map((s) => s.id) }, proxyOrigin);
-  }, [map, proxyOrigin]);
+    if (map) toFrame({ type: 'chip:hello', sections: map.sections.map((s) => s.id) });
+  }, [map, toFrame]);
 
   useEffect(() => {
     const on = (e) => {
@@ -287,7 +299,7 @@ export default function Playground({ onToast, project: askedProject, route: aske
   const findings = useMemo(() => findingsOf(map, probe, placed, cats), [map, probe, placed, cats]);
   const fails = findings.filter((f) => f.tone === 'fail').length;
   const box = (id) => probe?.sections.find((s) => s.id === id);
-  const send = (m) => proxyOrigin && frame.current?.contentWindow?.postMessage(m, proxyOrigin);
+  const send = toFrame;
   const sectionAt = (y) => probe?.sections.find((s) => y >= s.y && y <= s.y + s.h)?.id ?? null;
   const rulesOf = (pid) => findings.filter((f) => f.at?.some((x) => x.pid === pid));
 
