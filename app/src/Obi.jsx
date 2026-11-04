@@ -12,7 +12,6 @@ import DataTable from '@bella/components/DataTable/DataTable';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Combobox from '@bella/components/Combobox/Combobox';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
-import { useBar, TheBar } from './TheBar.jsx';
 import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor, summarizeTool, usageLines } from './answers.js';
 import Select from '@bella/components/Select/Select';
 import { baseOf } from './Sandbox.jsx';
@@ -881,7 +880,7 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
 }
 
 /* ---------- the panel ---------- */
-export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, onClose, notify, models = [], picked, setPicked, budget, needs }) {
+export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, notify, models = [], picked, setPicked, budget, view: dockView, setView: setDockView, inject }) {
   const thread = useRef(null);
   const claudeOk = models.some((m) => m.id === 'claude' && m.available);
   const suggestions = useMemo(() => suggestionsFor(page, bella), [page, bella]);
@@ -891,36 +890,13 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
     ...models.filter((m) => m.place === 'cloud' && m.kind !== 'decider').map((m) => ({ value: m.id, label: `${m.label} · your plan, cloud${m.available ? '' : ' (not available)'}` })),
   ];
 
-  const [dockView, setDockView] = useState('obi');
-  const bar = useBar();
-  // other pages open a dock tab: Needs you opens The Bar; a Needs-you item
-  // opens a terminal with its command typed (never run: she presses Return)
-  const [inject, setInject] = useState(null);
-  useEffect(() => {
-    const dock = (e) => setDockView(e.detail.view);
-    const term = (e) => {
-      setInject({ ...e.detail, at: Date.now() });
-      setDockView('term');
-    };
-    window.addEventListener('chip:dock', dock);
-    window.addEventListener('chip:terminal', term);
-    return () => {
-      window.removeEventListener('chip:dock', dock);
-      window.removeEventListener('chip:terminal', term);
-    };
-  }, []);
-
-  // activate SSE and mark items read when bar tab opens
-  useEffect(() => {
-    bar.setActive(dockView === 'bar');
-    if (dockView === 'bar') bar.markRead();
-  }, [dockView, bar.needsItems.length]);
-
+  // the work sheet's three views; App owns which one shows, so The Bar and
+  // a Needs-you item can open Claude or the terminal (a command arrives
+  // typed, never run: she presses Return)
   const dockOptions = [
     { value: 'obi', label: 'OBI' },
     { value: 'claude', label: 'Claude' },
     { value: 'term', label: 'Terminal' },
-    { value: 'bar', label: needs?.items.length ? `The Bar (${needs.items.length})` : 'The Bar' },
   ];
   // a terminal starts the first time its tab opens, then keeps running
   // (hidden) while other tabs are shown, until Restart or the page closes
@@ -933,31 +909,24 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
   useEffect(() => {
     if (isTerm && !repos.length) fetch('/term/repos').then((r) => r.json()).then(setRepos).catch(() => {});
   }, [isTerm]);
-  const viewName = { obi: 'OBI', claude: 'Claude', term: 'Terminal', bar: 'The Bar' }[dockView];
 
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight });
   }, [obi.turns]);
 
   return (
-    <section className="obi" aria-label={viewName}>
+    <section className="obi">
       <header className="obi-head">
-        <h2 className="sr-only">{viewName}</h2>
         <SegmentedControl options={dockOptions} value={dockView} onChange={setDockView} label="Dock view" className="obi-dock-tabs" />
         {dockView === 'obi' ? <Tag>Looking at {page}</Tag> : null}
         <span className="obi-grow" />
         {dockView === 'obi' ? (
           <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
         ) : null}
-        <ActionChip onClick={onClose} ariaLabel="Hide OBI (Escape or Command J)">
-          Hide
-        </ActionChip>
       </header>
 
       {['claude', 'term'].map((k) => (started[k] || (k === 'term' && inject) ? <TermView key={k} kind={k} repos={repos} active={dockView === k} inject={k === 'term' ? inject : null} /> : null))}
-      {isTerm ? null : dockView === 'bar' ? (
-        <TheBar lanes={bar.lanes} events={bar.events} needsItems={bar.needsItems} staleCount={bar.staleCount} notify={notify} needs={needs} />
-      ) : (
+      {isTerm ? null : (
         <>
           <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
             {obi.turns.length === 0 ? (

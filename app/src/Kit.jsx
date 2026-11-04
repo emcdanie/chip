@@ -2,7 +2,8 @@
 // be checked against the mock one piece at a time. The table is the system
 // map's nodes (/map); the card and the pills are BELLA's checks (/checks).
 import React, { useEffect, useState } from 'react';
-import { Button, Card, DataTable, Drawer, FilterGroup, PageHeader, Segmented, Sheet, StatusPill, segPanelProps } from './kit/index.jsx';
+import Button from '@bella/components/Button/Button';
+import { Card, DataTable, Drawer, FilterGroup, PageHeader, Segmented, Sheet, StatusPill, Toggle, segPanelProps } from './kit/index.jsx';
 
 const STATE = { ok: ['pass', 'Healthy'], bad: ['fail', 'Failing'], blocked: ['needs', 'Blocked'] };
 const stateOf = (s) => STATE[s] ?? ['neutral', s];
@@ -90,7 +91,7 @@ export default function Kit() {
   const node = nodes.find((n) => n.id === row);
 
   return (
-    <main className="k-main">
+    <main className="k-main k-chrome">
       <PageHeader
         meta={
           <>
@@ -108,12 +109,12 @@ export default function Kit() {
         lede="Each piece from the approved mock, on live data from CHIP’s server: the system map’s nodes and BELLA’s checks."
         actions={
           <>
-            <Button size="sm" quiet onClick={load}>
+            <Button onClick={load}>
               Refresh
             </Button>
-            <Button size="sm" quiet aria-haspopup="dialog" onClick={() => (setDraft(groups), setDrawer(true))}>
+            <Toggle expanded={drawer} aria-haspopup="dialog" onClick={() => (setDraft(groups), setDrawer(true))}>
               Filters{groups.length ? ` · ${groups.length}` : ''}
-            </Button>
+            </Toggle>
           </>
         }
       />
@@ -124,15 +125,11 @@ export default function Kit() {
           Buttons and pills
         </h2>
         <div className="k-row">
-          <Button>Fix it</Button>
-          <Button quiet>Open the review</Button>
-          <Button size="sm">Run now</Button>
-          <Button size="sm" quiet>
-            Copy
-          </Button>
-          <Button size="sm" busy>
-            Testing…
-          </Button>
+          <Button variant="primary">Fix it</Button>
+          <Button>Open the review</Button>
+          <Button variant="tertiary">Run now</Button>
+          <Button>Copy</Button>
+          <Button disabled>Testing…</Button>
         </div>
         <div className="k-row">
           <StatusPill tone="fail">Failed</StatusPill>
@@ -182,7 +179,7 @@ export default function Kit() {
                 end: true,
                 render: (r) =>
                   r.action ? (
-                    <Button size="sm" quiet={r.state !== 'bad'} onClick={() => setRow(r.id)}>
+                    <Button variant={r.state === 'bad' ? 'primary' : 'secondary'} onClick={() => setRow(r.id)}>
                       {r.action.label}
                     </Button>
                   ) : null,
@@ -196,7 +193,7 @@ export default function Kit() {
         open={!!node}
         title={node?.name}
         onClose={() => setRow(null)}
-        footer={node?.action && <Button>{node.action.label}</Button>}
+        footer={node?.action && <Button variant="primary">{node.action.label}</Button>}
       >
         {node && (
           <>

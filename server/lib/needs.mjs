@@ -22,6 +22,26 @@ const git = (dir, args) => {
   }
 };
 
+// The Bar shows each item as "status · risk", then one short bold title
+// (the mock's card); `what` stays the full sentence for the detail.
+const short = (text, n = 64) => {
+  const t = String(text).split(/ \(|; /)[0].trim();
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n);
+  return `${cut.slice(0, cut.lastIndexOf(' ')).replace(/[,:;]$/, '')}…`;
+};
+function failureTitle(c) {
+  const f = c.failures?.[0] ?? c.summary;
+  const prefix = c.gate ? 'Gate' : c.name;
+  // contrast: "wee-dote: selected wash vs the page is 1.04:1, … (needs 1.08:1; …)"
+  const pair = f.match(/^([\w-]+): (.+?) is ([\d.]+:1).*?needs ([\d.]+:1)/);
+  if (pair) return `${prefix}: ${pair[1].replace(/-/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase())} ${pair[2]} ${pair[3]}, needs ${pair[4]}`;
+  // a story's picture: "…: ChatThread: a picture is 30.5% different from its baseline"
+  const shot = f.match(/(\w+): a picture is ([\d.]+%) different/);
+  if (shot) return `${prefix}: ${shot[1]} story is ${shot[2]} off its baseline`;
+  return `${prefix}: ${short(f.replace(`${c.name}: `, ''), 56)}`;
+}
+
 function gitItems() {
   const out = [];
   const repos = [
@@ -39,7 +59,8 @@ function gitItems() {
     if (behind) {
       const subj = git(r.dir, ['log', '-1', '--format=%s', up]);
       out.push({
-        id: `behind-${r.id}`, kind: 'Git', risk: 'Medium', at: Date.parse(git(r.dir, ['log', '-1', '--format=%cI', up]) ?? '') || Date.now(),
+        id: `behind-${r.id}`, kind: 'Git', risk: 'Medium', status: 'Waiting on you',
+        title: `Pull ${r.name}? ${behind} commit${behind === 1 ? '' : 's'} behind GitHub`, at: Date.parse(git(r.dir, ['log', '-1', '--format=%cI', up]) ?? '') || Date.now(),
         what: `${r.name}'s ${branch} is ${behind} commit${behind === 1 ? '' : 's'} behind GitHub`,
         detail: `GitHub has "${subj}" that this machine hasn't pulled, so the checks ran on the older tip.`,
         riskWhy: 'Medium: the checks may be answering for a version that is no longer the latest.',
@@ -50,7 +71,8 @@ function gitItems() {
     }
     if (ahead) {
       out.push({
-        id: `ahead-${r.id}`, kind: 'Git', risk: 'High', at: Date.parse(git(r.dir, ['log', '-1', '--format=%cI', branch]) ?? '') || Date.now(),
+        id: `ahead-${r.id}`, kind: 'Git', risk: 'High', status: 'Waiting on you',
+        title: `Push ${branch}? CI hasn't run ${ahead === 1 ? 'it' : 'them'}`, at: Date.parse(git(r.dir, ['log', '-1', '--format=%cI', branch]) ?? '') || Date.now(),
         what: `Push ${branch}? ${ahead} commit${ahead === 1 ? '' : 's'} CI hasn't run`,
         detail: `${r.name} has ${ahead} local commit${ahead === 1 ? '' : 's'} on ${branch} that GitHub hasn't seen. The gate ran locally; CI hasn't.`,
         riskWhy: 'High: a push is outward-facing and other people see it.',
@@ -72,6 +94,7 @@ function checkItems() {
       const card = reviewCard(c.id);
       out.push({
         id: `check-${c.id}`, kind: c.gate ? 'Gate' : 'Check', risk: c.gate ? 'High' : 'Medium', at: Date.parse(c.ranAt),
+        status: 'Failed', title: failureTitle(c),
         what: `${c.name}: ${c.failures?.[0] ?? c.summary}`,
         detail: c.gate ? gate.summary : c.summary,
         riskWhy: c.gate ? 'High: while the gate fails, BELLA accepts no commit, so nothing can be merged safely.' : 'Medium: the bench grades, it does not block.',
@@ -82,6 +105,7 @@ function checkItems() {
     } else if (c.status === 'waiting' && c.manual) {
       out.push({
         id: `check-${c.id}`, kind: 'Bench', risk: 'Low', at: Date.parse(c.ranAt),
+        status: 'Waiting on you', title: `${c.name} is due`,
         what: `${c.name} is due: last run ${new Date(c.ranAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`,
         detail: `${c.summary} ${c.cost}.`,
         riskWhy: 'Low: it only reads BELLA, but it spends plan usage, so it waits for your yes.',
@@ -93,6 +117,7 @@ function checkItems() {
       const card = reviewCard(c.id);
       out.push({
         id: `fix-${c.id}`, kind: 'Fix', risk: 'Medium', at: Date.now(),
+        status: 'Ready to review', title: `Merge ${card.branch}?`,
         what: `Merge ${card.branch}? ${card.title}, gate green on the branch`,
         detail: `${card.change?.sentence ?? ''} The branch is local; ${BASE} hasn't moved.`,
         riskWhy: 'Medium: merging changes what every consumer of BELLA renders in that theme.',
@@ -105,6 +130,7 @@ function checkItems() {
   for (const f of fixableChecks()) {
     out.push({
       id: `improve-${f.id}`, kind: 'Bench', risk: 'Low', at: Date.now() - 1,
+      status: 'Ready to review', title: short(f.line.replace(/^[^:]+: /, '').replace(/\.$/, '')),
       what: `${f.line.replace(/\.$/, '')}: CHIP can make the change`,
       detail: `${f.title}. The check passes; this is a finding the bench scores, with a change ready to review.`,
       riskWhy: 'Low: it adds a file and changes nothing anything renders.',
@@ -129,6 +155,7 @@ function laneItems() {
     for (const [i, n] of l.needs.entries()) {
       out.push({
         id: `lane-${l.id}-${i}`, kind: l.name, risk: /\bmerge|push|deploy\b/i.test(n.text) ? 'High' : 'Low', at: l.updated,
+        status: 'Waiting on you', title: `${l.name}: ${short(n.text.split(/(?<=[?.!])\s/)[0], 56)}`,
         what: n.text.length > 140 ? `${n.text.slice(0, 137)}…` : n.text,
         detail: n.text,
         riskWhy: /\bmerge|push|deploy\b/i.test(n.text) ? 'High: it asks to merge, push or deploy.' : 'Low: a question; nothing runs until you answer.',

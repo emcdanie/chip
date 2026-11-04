@@ -6,25 +6,32 @@
 // anywhere with openReview(check): Overview, Needs you, a component's tests,
 // the system map.
 import React, { useEffect, useRef, useState } from 'react';
-import Drawer from '@bella/components/Drawer/Drawer';
 import Button from '@bella/components/Button/Button';
-import StatusPill from '@bella/components/StatusPill/StatusPill';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
-import Section from '@bella/components/Section/Section';
+import { Sheet, StatusPill } from './kit/index.jsx';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
 export const openReview = (check) => window.dispatchEvent(new CustomEvent('chip:review', { detail: { check } }));
 // tell the rest of the page a check, a branch or Needs you changed
 export const changed = () => window.dispatchEvent(new CustomEvent('chip:changed'));
 
+// the kit pill adds the mark (✓ ! ●) from its tone
 const STATE = {
-  failed: { variant: 'danger', word: '✕ Failed' },
-  accepting: { variant: 'attention', word: '● Accepting' },
-  accepted: { variant: 'attention', word: '● Waiting on you: merge or undo' },
-  passed: { variant: 'success', word: '✓ Passed' },
-  improve: { variant: 'success', word: '✓ Passes · a change is ready' },
-  'not-run': { variant: 'neutral', word: 'Not run yet' },
+  failed: { tone: 'fail', word: 'Failed' },
+  accepting: { tone: 'needs', word: 'Accepting' },
+  accepted: { tone: 'needs', word: 'Waiting on you: merge or undo' },
+  passed: { tone: 'pass', word: 'Passed' },
+  improve: { tone: 'pass', word: 'Passes · a change is ready' },
+  'not-run': { tone: 'neutral', word: 'Not run yet' },
 };
+
+// one heading and its body, the sheet's h3 rhythm
+const Section = ({ heading, children }) => (
+  <section className="review-sec">
+    <h3>{heading}</h3>
+    {children}
+  </section>
+);
 const fmt = (r) => `${r.toFixed(2)}:1`;
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const secs = (a, b) => Math.max(1, Math.round((Date.parse(b) - Date.parse(a)) / 1000));
@@ -135,13 +142,40 @@ export default function ReviewSheet() {
   const copy = (text) => navigator.clipboard?.writeText(text).then(() => setNote('Brief copied.'));
 
   return (
-    <Drawer open={!!check} onClose={close} label={card?.title ?? (card ? 'Review' : 'Opening the review…')} side="right" className="sheet">
+    <Sheet
+      open={!!check}
+      onClose={close}
+      title={card?.title ?? (card ? 'Review' : 'Opening the review…')}
+      className="review-sheet"
+      footer={
+        card?.change ? (
+          <>
+            {card.state === 'accepted' ? (
+              <Button variant="primary" onClick={() => act('undo')} disabled={busy}>
+                {busy ? 'Undoing…' : `Undo: delete ${card.branch}`}
+              </Button>
+            ) : (
+              <Button variant="primary" onClick={() => act('accept')} disabled={busy || card.state === 'accepting'}>
+                {card.state === 'accepting' ? 'Accepting… the gate is running' : busy ? 'Starting…' : 'Accept'}
+              </Button>
+            )}
+            <Button variant="tertiary" onClick={close}>
+              Not now
+            </Button>
+          </>
+        ) : card?.noFix ? (
+          <Button variant="primary" onClick={() => copy(card.brief)}>
+            Copy the brief
+          </Button>
+        ) : null
+      }
+    >
       {!card ? (
         <p className="label">{error ?? 'Reading the check…'}</p>
       ) : (
         <div className="review">
           <p className="review-state">
-            <StatusPill variant={st.variant}>{st.word}</StatusPill>
+            <StatusPill tone={st.tone}>{st.word}</StatusPill>
             <span className="label">
               {card.ranAt ? `Checked ${when(card.ranAt)} on ${card.base ?? 'BELLA'} @ ${card.commit}` : null}
               {card.target?.kind === 'staged' ? ` plus ${card.target.files} staged files` : ''}
@@ -171,11 +205,6 @@ export default function ReviewSheet() {
               </Section>
               <p>{card.noFix}</p>
               <pre className="review-code">{card.brief}</pre>
-              <div className="review-actions">
-                <Button variant="primary" onClick={() => copy(card.brief)}>
-                  Copy the brief
-                </Button>
-              </div>
             </>
           ) : null}
 
@@ -292,11 +321,11 @@ export default function ReviewSheet() {
                   ) : null}
                   <div className="review-actions">
                     {att.blockers?.suites?.length && !att.rules?.length ? (
-                      <Button variant="primary" onClick={() => act('accept', { baselines: att.blockers.suites })} disabled={busy}>
+                      <Button onClick={() => act('accept', { baselines: att.blockers.suites })} disabled={busy}>
                         Accept the change and the new baseline
                       </Button>
                     ) : null}
-                    <Button variant={att.rules?.length ? 'primary' : 'secondary'} onClick={() => copy(brief(card, att))}>
+                    <Button onClick={() => copy(brief(card, att))}>
                       Copy a brief for a session
                     </Button>
                   </div>
@@ -330,24 +359,10 @@ export default function ReviewSheet() {
                 <strong>This will:</strong> {card.state === 'accepted' ? `nothing more until you merge ${card.branch} into ${card.base} yourself.` : card.thisWill}{' '}
                 <strong>Undo:</strong> {card.undo}
               </p>
-              <div className="review-actions">
-                {card.state === 'accepted' ? (
-                  <Button variant="primary" onClick={() => act('undo')} disabled={busy}>
-                    {busy ? 'Undoing…' : `Undo: delete ${card.branch}`}
-                  </Button>
-                ) : (
-                  <Button variant="primary" onClick={() => act('accept')} disabled={busy || card.state === 'accepting'}>
-                    {card.state === 'accepting' ? 'Accepting… the gate is running' : busy ? 'Starting…' : 'Accept'}
-                  </Button>
-                )}
-                <Button variant="tertiary" onClick={close}>
-                  Not now
-                </Button>
-              </div>
             </>
           ) : null}
         </div>
       )}
-    </Drawer>
+    </Sheet>
   );
 }

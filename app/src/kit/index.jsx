@@ -2,14 +2,17 @@
 // table, one set of chips, one sheet, one segmented control, so every page
 // rebuild reuses them instead of inventing its own. Styles in kit.css.
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import Button from '@bella/components/Button/Button';
 import './kit.css';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
 
-/* ---------- Button: action (blue) or quiet; 44 tall, or 36 with size="sm" ---------- */
-export function Button({ quiet, size, busy, className, type = 'button', children, ...rest }) {
+/* Buttons are BELLA's Button (@bella/components/Button/Button), in the mock's
+   blue through tokens.css. The one exception is a disclosure toggle, which
+   needs aria-expanded that BELLA's Button doesn't take: <Toggle>. */
+export function Toggle({ expanded, className, children, ...rest }) {
   return (
-    <button type={type} className={cx('k-btn', quiet && 'quiet', size === 'sm' && 'sm', className)} aria-busy={busy || undefined} {...rest}>
+    <button type="button" className={cx('k-toggle', className)} aria-expanded={expanded} {...rest}>
       {children}
     </button>
   );
@@ -141,7 +144,7 @@ export function Segmented({ id, label, items, value, onChange }) {
 
 /* ---------- side sheet: a modal <dialog>. Esc, the backdrop and Close all
    close it, and focus goes back to whatever opened it ---------- */
-export function Sheet({ open, title, onClose, children, footer, className }) {
+export function Sheet({ open, title, onClose, children, footer, className, keepMounted, onCancel, head }) {
   const ref = useRef(null);
   const back = useRef(null);
   const id = useId();
@@ -163,14 +166,15 @@ export function Sheet({ open, title, onClose, children, footer, className }) {
     return () => d.removeEventListener('close', closed);
   }, [onClose]);
   return (
-    <dialog ref={ref} className={cx('k-sheet', className)} aria-labelledby={id} onClick={(e) => e.target === ref.current && ref.current.close()}>
+    <dialog ref={ref} className={cx('k-sheet', className)} aria-labelledby={id} onCancel={onCancel} onClick={(e) => e.target === ref.current && ref.current.close()}>
       <div className="k-sheet-h">
         <h2 id={id}>{title}</h2>
+        {head}
         <button type="button" className="k-iconbtn" onClick={() => ref.current.close()}>
           <span aria-hidden="true">✕</span> Close
         </button>
       </div>
-      <div className="k-sheet-b">{open && children}</div>
+      <div className="k-sheet-b">{(open || keepMounted) && children}</div>
       {footer && <div className="k-sheet-f">{footer}</div>}
     </dialog>
   );
@@ -186,7 +190,9 @@ export function Drawer({ open, title = 'Filters', onClose, onApply, applyLabel =
       className="k-drawer"
       footer={
         <>
-          <Button onClick={onApply}>{applyLabel}</Button>
+          <Button variant="primary" onClick={onApply}>
+            {applyLabel}
+          </Button>
           {onClear && <LinkButton onClick={onClear}>Clear all</LinkButton>}
         </>
       }
@@ -316,9 +322,9 @@ export function DataTable({ label, cols, rows, chips, onRow, search = true, rowK
             }
           }}
         >
-          <Button size="sm" quiet aria-expanded={colsOpen} onClick={() => setColsOpen((o) => !o)}>
+          <Toggle expanded={colsOpen} onClick={() => setColsOpen((o) => !o)}>
             Columns <span className="n">{off.length ? `· ${off.length} hidden` : ''}</span>
-          </Button>
+          </Toggle>
           <div className="k-colsp" hidden={!colsOpen}>
             <p className="k-sub">Show these columns</p>
             {cols.map((c, i) =>

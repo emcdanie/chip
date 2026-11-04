@@ -1,340 +1,38 @@
-// The Bar: lane strip, "Waiting on you" pin, and live chat stream.
-// Subscribes to GET /bar/stream and polls GET /bar/state for live data.
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Avatar from '@bella/components/Avatar/Avatar';
-import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
-import ChatThread, { ChatThreadTimestamp } from '@bella/components/ChatThread/ChatThread';
-import TypingDots from '@bella/components/TypingDots/TypingDots';
-import StatusPill from '@bella/components/StatusPill/StatusPill';
-import ActionChip from '@bella/components/ActionChip/ActionChip';
-import { inline } from './Obi.jsx';
-import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
+// The Bar (the mock's right-hand column): Needs you and Lanes, then one
+// input to ask or tell a session. Needs you is GET /needs (the checks, fix
+// branches, git state and fresh lane notes, High → Low); each item reads
+// "status · risk", then a short bold title. A review item opens the review
+// card; any other opens in place with "This will · Undo" and one button.
+// Lanes is GET /bar/state plus the two sessions on this machine (Claude and
+// the terminal), which open the work sheet.
+import React, { useEffect, useState } from 'react';
+import Button from '@bella/components/Button/Button';
+import { Segmented, segPanelProps } from './kit/index.jsx';
 import { openReview } from './ReviewSheet.jsx';
 
-// Lane photo sources (160×160, circular mask, transparent bg).
-const LANE_SRC = {
-  seamus:  '/avatars/seamus.png',
-  dara:    '/avatars/dara.png',
-  bernie:  '/avatars/bernie.png',
-  saoirse: '/avatars/saoirse.png',
-  frankie: '/avatars/frankie.png',
-  liam:    '/avatars/liam.png',
-};
+const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+const FACE = { dara: 'lane-a', bernie: 'lane-c', saoirse: 'lane-b', frankie: 'lane-d' };
+const day = (ms) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+// a lane's claim and its PR's CI disagree: the mock's "Claim ≠ CI"
+const mismatch = (l) => (l.prs ?? []).some((pr) => pr.claim !== 'none' && pr.ci !== 'unknown' && pr.ci !== 'none' && pr.ci !== 'merged' && pr.claim !== pr.ci);
 
-// Lane ring colours. Override the Avatar ring token per-instance; no new CSS values.
-const LANE_RING = {
-  dara:    { '--component-avatar-default-ring-color': 'var(--color-wee-dote-lane-a)' },
-  bernie:  { '--component-avatar-default-ring-color': 'var(--color-wee-dote-lane-b)' },
-  saoirse: { '--component-avatar-default-ring-color': 'var(--color-wee-dote-lane-c)' },
-  frankie: { '--component-avatar-default-ring-color': 'var(--color-wee-dote-lane-d)' },
-  seamus:  { '--component-avatar-default-ring-color': 'var(--color-semantic-text-primary)' },
-  liam:    { '--component-avatar-default-ring-color': 'var(--color-wee-dote-lane-e)' },
-};
-
-const LANE_NAMES = {
-  seamus: 'Seamus', dara: 'Dara', bernie: 'Bernie',
-  saoirse: 'Saoirse', frankie: 'Frankie', liam: 'Liam',
-};
-
-const STATUS_VARIANT = {
-  working: 'info',
-  'waiting on you': 'attention',
-  done: 'success',
-  failed: 'danger',
-  parked: 'quiet',
-  serving: 'serving',
-};
-
-const STATUS_LABEL = {
-  working: 'Working',
-  'waiting on you': 'Waiting on you',
-  done: 'Done',
-  failed: 'Failed',
-  parked: 'Parked',
-  serving: 'Serving',
-};
-
-// ---- helpers ----
-
-function formatTime(ms) {
-  const d = new Date(ms);
-  const now = new Date();
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  if (d.toDateString() === now.toDateString()) return { text: time };
-  const boldWord = d.toLocaleDateString('en-GB', { weekday: 'long' });
-  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  return { boldWord, text: `${date} · ${time}` };
-}
-
-function parseNeeds(text) {
-  if (!text) return [];
-  const idx = text.search(/Needs Elleta/i);
-  if (idx < 0) return [];
-  const out = [];
-  for (const raw of text.slice(idx).split('\n').slice(1)) {
-    const line = raw.trim();
-    if (!line) { if (out.length) break; else continue; }
-    if (/^(—|--|tuts|cheers|right|grand)/i.test(line) && out.length) break;
-    const m = line.match(/^(?:\d+[.)]|[-*•])\s+(.*)/);
-    if (m) out.push(m[1]); else if (out.length) out[out.length - 1] += ' ' + line;
-  }
-  return out.filter((s) => !/^(none|nothing|n\/a)\b|standing by/i.test(s));
-}
-
-function useMediaQuery(query) {
-  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const h = (e) => setMatches(e.matches);
-    mq.addEventListener('change', h);
-    return () => mq.removeEventListener('change', h);
-  }, [query]);
-  return matches;
-}
-
-// ---- bubble sub-components ----
-
-function RecvWrap({ lane, tail, children }) {
-  const name = LANE_NAMES[lane] ?? lane;
-  return (
-    <div className="bar-chat-recv">
-      <ChatBubble side="received" tail={tail}>
-        {children}
-      </ChatBubble>
-      {tail && (
-        <Avatar
-          name={name}
-          size="sm"
-          src={LANE_SRC[lane]}
-          ring
-          className="bar-chat-av"
-          style={LANE_RING[lane]}
-        />
-      )}
-    </div>
-  );
-}
-
-function ReportBubbles({ ev }) {
-  const [expanded, setExpanded] = useState(false);
-  const name = LANE_NAMES[ev.lane] ?? ev.lane;
-  const text = ev.text ?? '';
-  const needs = parseNeeds(text);
-
-  // first 3 non-empty, non-header lines before the Needs section
-  const needsIdx = text.search(/Needs Elleta/i);
-  const bodyText = needsIdx >= 0 ? text.slice(0, needsIdx) : text;
-  const introLines = bodyText.split('\n').filter(l => l.trim() && !l.trim().startsWith('#')).slice(0, 3);
-
-  return (
-    <>
-      <p className="bar-chat-who">{name}</p>
-      <RecvWrap lane={ev.lane} tail={!needs.length}>
-        {introLines.map((l, i) => (
-          <React.Fragment key={i}>{i > 0 && <br />}{inline(l, [], i)}</React.Fragment>
-        ))}
-        {text && (
-          <button type="button" className="bar-chat-expand" onClick={() => setExpanded(x => !x)}>
-            {expanded ? 'Less' : 'Full report'}
-          </button>
-        )}
-      </RecvWrap>
-      {expanded && (
-        <RecvWrap lane={ev.lane} tail={false}>
-          <pre className="bar-chat-pre">{text}</pre>
-        </RecvWrap>
-      )}
-      {needs.map((need, i) => (
-        <RecvWrap key={i} lane={ev.lane} tail={i === needs.length - 1}>
-          {inline(need, [], i)}
-        </RecvWrap>
-      ))}
-    </>
-  );
-}
-
-function JobBubble({ ev }) {
-  const name = LANE_NAMES[ev.lane] ?? ev.lane;
-  return (
-    <>
-      <p className="bar-chat-who">{name}</p>
-      <RecvWrap lane={ev.lane} tail>
-        {inline(ev.text ?? '', [], 0)}
-      </RecvWrap>
-    </>
-  );
-}
-
-function ImageBubble({ ev }) {
-  const name = LANE_NAMES[ev.lane] ?? ev.lane;
-  const src = `/bar/img?src=${encodeURIComponent(ev.src)}&p=${encodeURIComponent(ev.path)}`;
-  const label = ev.path ? ev.path.split('/').pop() : '';
-  return (
-    <>
-      <p className="bar-chat-who">{name}</p>
-      <RecvWrap lane={ev.lane} tail>
-        {label && <span className="bar-chat-img-label">{label}</span>}
-        <img
-          src={src}
-          alt={ev.path}
-          className="bar-chat-img"
-          onClick={() => window.open(src, '_blank')}
-        />
-      </RecvWrap>
-    </>
-  );
-}
-
-const CI_ICON = { green: '✓', merged: '✓', red: '✕', running: '◌', unknown: '?' };
-
-function prRole(pr) {
-  if (pr.ci === 'merged') return 'success';
-  if (pr.claim !== 'none' && pr.ci !== 'unknown' && pr.ci !== 'none' && pr.claim !== pr.ci) return 'danger';
-  return 'quiet';
-}
-
-function laneMismatch(lane) {
-  return (lane.prs ?? []).some(pr => prRole(pr) === 'danger');
-}
-
-// ---- BarChat ----
-
-function BarChat({ events, lanes }) {
-  const logRef = useRef(null);
-
-  const chatItems = useMemo(() => {
-    const items = [];
-    let prev = null;
-    events.forEach((ev, i) => {
-      if (!prev || ev.t - prev.t > 30 * 60 * 1000) {
-        items.push({ type: 'stamp', ...formatTime(ev.t), key: `s${i}` });
-      }
-      items.push({ type: ev.kind, ev, key: ev.id ?? `e${i}` });
-      prev = ev;
-    });
-    return items;
-  }, [events]);
-
-  const workingLanes = lanes.filter(l => l.status === 'working');
-
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-    });
-  }, [chatItems, workingLanes.length]);
-
-  if (events.length === 0 && workingLanes.length === 0) {
-    return (
-      <div className="bar-chat">
-        <div className="bar-chat-log" ref={logRef}>
-          <p className="bar-empty">Nothing yet.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bar-chat">
-      <div className="bar-chat-log" ref={logRef}>
-        <ChatThread label="The Bar chat">
-          {chatItems.map(item => {
-            if (item.type === 'stamp') {
-              return <ChatThreadTimestamp key={item.key} boldWord={item.boldWord}>{item.text}</ChatThreadTimestamp>;
-            }
-            if (item.type === 'report') return <ReportBubbles key={item.key} ev={item.ev} />;
-            if (item.type === 'job')    return <JobBubble    key={item.key} ev={item.ev} />;
-            if (item.type === 'image')  return <ImageBubble  key={item.key} ev={item.ev} />;
-            return null;
-          })}
-
-          {workingLanes.map(l => (
-            <React.Fragment key={l.id}>
-              <p className="bar-chat-who">{l.name}</p>
-              <div className="bar-chat-recv">
-                <ChatBubble side="received" tail>
-                  <TypingDots name={l.name} />
-                </ChatBubble>
-                <Avatar name={l.name} size="sm" src={LANE_SRC[l.id]} ring className="bar-chat-av" style={LANE_RING[l.id]} />
-              </div>
-            </React.Fragment>
-          ))}
-        </ChatThread>
-      </div>
-    </div>
-  );
-}
-
-// ---- live data hook ----
-
+/** GET /bar/state every 10 s: the lanes and what each last reported. */
 export function useBar() {
   const [lanes, setLanes] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [seenCount, setSeenCount] = useState(0);
-  const [active, setActive] = useState(false);
-
-  // Poll every 10s; networkidle-safe (quick requests, no persistent connection).
   useEffect(() => {
     const poll = () =>
       fetch('/bar/state')
         .then((r) => r.json())
-        .then((d) => {
-          if (Array.isArray(d.lanes)) setLanes(d.lanes);
-          if (Array.isArray(d.events)) setEvents(d.events);
-        })
+        .then((d) => Array.isArray(d.lanes) && setLanes(d.lanes))
         .catch(() => {});
     poll();
     const t = setInterval(poll, 10000);
     return () => clearInterval(t);
   }, []);
-
-  // SSE only when bar tab is visible.
-  useEffect(() => {
-    if (!active) return;
-    const es = new EventSource('/bar/stream');
-    es.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'state' && Array.isArray(msg.lanes)) setLanes(msg.lanes);
-        if (msg.type === 'event') setEvents(d => {
-          if (d.some(x => x.id === msg.event.id)) return d;
-          return [...d, msg.event];
-        });
-      } catch {}
-    };
-    return () => es.close();
-  }, [active]);
-
-  // a question from a lane quiet for over a week is stale: it no longer counts
-  // as waiting on you (15 Oct lanes kept showing "(10)" into November)
-  const STALE_MS = 7 * 24 * 60 * 60 * 1000;
-  const allNeeds = lanes
-    .flatMap((l) => (l.needs ?? []).map((item) => ({ ...item, laneName: l.name, laneUpdated: l.updated ?? 0 })))
-    .sort((a, b) => b.laneUpdated - a.laneUpdated);
-  const needsItems = allNeeds.filter((n) => Date.now() - n.laneUpdated < STALE_MS);
-  const staleCount = allNeeds.length - needsItems.length;
-
-  const totalNeeds = needsItems.length;
-  const unread = Math.max(0, totalNeeds - seenCount);
-  const markRead = () => setSeenCount(totalNeeds);
-
-  return { lanes, events, needsItems, staleCount, unread, markRead, setActive };
+  return lanes;
 }
 
-async function copyText(text, notify) {
-  try {
-    await navigator.clipboard.writeText(text);
-    notify(`Copied: ${text.length > 40 ? text.slice(0, 40) + '…' : text}`);
-  } catch {
-    notify('Could not copy');
-  }
-}
-
-// ---- TheBar ----
-
-// ---- Needs you (phase 6, 3 Nov late) ----
-// GET /needs: what waits on Elleta from the checks, fix branches, git state
-// and fresh lane notes, ranked High → Low. A row opens in place: the detail,
-// why that risk, "This will · Undo", and one button.
+/** GET /needs every 15 s, and whenever a review changes BELLA. */
 export function useNeeds() {
   const [data, setData] = useState(null);
   useEffect(() => {
@@ -350,141 +48,181 @@ export function useNeeds() {
   return data;
 }
 
-const RISK_VARIANT = { High: 'danger', Medium: 'attention', Low: 'neutral' };
-const RISK_SHAPE = { High: '▲', Medium: '●', Low: '○' };
+function run(a, onLane) {
+  if (a.type === 'review') openReview(a.check);
+  else if (a.type === 'terminal') window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: a.repo, command: a.command } }));
+  else if (a.type === 'lane') onLane(a.lane);
+}
 
-export function NeedsYou({ needs, onLane }) {
+function NeedsList({ needs, onLane }) {
   const [open, setOpen] = useState(null);
   if (!needs) return <p className="bar-empty">Reading what needs you…</p>;
-  const act = (a) => {
-    if (a.type === 'review') openReview(a.check);
-    else if (a.type === 'terminal') window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: a.repo, command: a.command } }));
-    else if (a.type === 'lane') onLane?.(a.lane);
-  };
   return (
-    <div className="needs">
-      {needs.items.length === 0 ? <p className="bar-empty">Nothing needs you.</p> : null}
-      <ol className="needs-list">
-        {needs.items.map((n) => (
-          <li key={n.id} className="needs-item" data-open={open === n.id || undefined}>
-            <button type="button" className="needs-head" aria-expanded={open === n.id} onClick={() => setOpen(open === n.id ? null : n.id)}>
-              <span className="needs-kind">
-                <StatusPill variant={RISK_VARIANT[n.risk]}>
-                  {RISK_SHAPE[n.risk]} {n.risk} risk
-                </StatusPill>{' '}
-                <span className="label">{n.kind}</span>
-              </span>
-              <span className="needs-what">{n.what}</span>
-            </button>
-            {open === n.id ? (
-              <div className="needs-body">
-                <p>{n.detail}</p>
-                <p className="label">{n.riskWhy}</p>
-                <p className="this-will">
-                  <strong>This will:</strong> {n.thisWill}. <strong>Undo:</strong> {n.undo}.
-                </p>
-                <ActionChip onClick={() => act(n.action)}>{n.action.label}</ActionChip>
-              </div>
-            ) : null}
-          </li>
-        ))}
-      </ol>
+    <>
+      <ul className="nylist">
+        {needs.items.length === 0 ? <li className="bar-empty">Nothing needs you.</li> : null}
+        {needs.items.map((n) => {
+          const inPlace = n.action.type !== 'review';
+          const on = open === n.id;
+          return (
+            <li key={n.id} className="ny">
+              <button
+                type="button"
+                className="nyrow"
+                aria-expanded={inPlace ? on : undefined}
+                aria-haspopup={inPlace ? undefined : 'dialog'}
+                onClick={() => (inPlace ? setOpen(on ? null : n.id) : run(n.action, onLane))}
+              >
+                <span className="nyk">
+                  {n.status} · <span className={`risk r-${n.risk.toLowerCase()}`}>{n.risk} risk</span>
+                </span>
+                <span className="nyw">{n.title ?? n.what}</span>
+              </button>
+              {on ? (
+                <div className="nydet">
+                  <p>{n.detail}</p>
+                  <p className={`riskwhy r-${n.risk.toLowerCase()}`}>{n.riskWhy}</p>
+                  <p className="will">
+                    This will: {n.thisWill} · Undo: {n.undo}
+                  </p>
+                  <Button variant="primary" onClick={() => run(n.action, onLane)}>
+                    {n.action.label}
+                  </Button>
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
       {needs.staleLaneNotes ? (
-        <p className="label">
-          {needs.staleLaneNotes} older lane question{needs.staleLaneNotes === 1 ? '' : 's'} from reports quiet for over {needs.freshDays} days are not listed; Lanes has them.
+        <p className="autolow">
+          {needs.staleLaneNotes} older lane question{needs.staleLaneNotes === 1 ? '' : 's'} <small>(reports quiet for over {needs.freshDays} days) are in Lanes.</small>
         </p>
       ) : null}
+    </>
+  );
+}
+
+function laneLine(l) {
+  const n = l.needs?.length ?? 0;
+  const when = l.updated ? `last report ${day(l.updated)}` : 'no report yet';
+  if (mismatch(l)) return `Says green; CI disagrees · ${when}`;
+  if (l.status === 'waiting on you' && n) return `${n} question${n === 1 ? '' : 's'} for you${Date.now() - l.updated > STALE_MS ? ', older than a week' : ''} · ${when}`;
+  return `${l.status[0].toUpperCase()}${l.status.slice(1)} · ${when}`;
+}
+
+function Lanes({ lanes, openLane, setOpenLane, onWork }) {
+  const local = [
+    { id: 'claude', name: 'Claude', role: 'session · this machine', face: 'C', line: 'claude in a terminal, in the repo you pick', work: 'claude' },
+    { id: 'term', name: 'Terminal', role: 'session · this machine', face: '>', line: 'Your shell. Needs-you commands arrive typed, never run.', work: 'term' },
+  ];
+  return (
+    <div className="sessions">
+      {local.map((x) => (
+        <div key={x.id} className="sess lane">
+          <button type="button" className="lrowb" aria-haspopup="dialog" onClick={() => onWork(x.work)}>
+            <span className="face" aria-hidden="true">
+              {x.face}
+            </span>
+            <span className="lwho">
+              <span className="name">{x.name}</span>
+              <span className="ljob">{x.role}</span>
+            </span>
+            <span className="line">{x.line}</span>
+          </button>
+        </div>
+      ))}
+      {lanes.map((l) => {
+        const st = mismatch(l) ? 'fail' : l.status === 'waiting on you' && l.needs?.length ? 'you' : '';
+        const on = openLane === l.id;
+        return (
+          <div key={l.id} className={`sess lane ${st}`}>
+            <button type="button" className="lrowb" aria-expanded={on} onClick={() => setOpenLane(on ? null : l.id)}>
+              <span className="face" data-face={FACE[l.id]} aria-hidden="true">
+                {l.name[0]}
+              </span>
+              <span className="lwho">
+                <span className="name">{l.name}</span>
+                <span className="ljob">{l.role}</span>
+              </span>
+              {st ? <span className="adot">{st === 'fail' ? 'Failed' : 'Waiting on you'}</span> : null}
+              <span className="line">{laneLine(l)}</span>
+            </button>
+            {on ? (
+              <div className="lthread">
+                {l.repo ? <span className="where">{l.repo}</span> : null}
+                {l.needs?.length ? (
+                  <ul className="lneeds">
+                    {l.needs.map((n, i) => (
+                      <li key={i}>{n.text}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="line">Nothing asked.</p>
+                )}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-export function TheBar({ lanes, events, needsItems, staleCount = 0, notify, needs }) {
+export function TheBar({ needs, lanes, onClose, onWork, onAsk }) {
   const [tab, setTab] = useState('needs');
-  const wide = useMediaQuery('(min-width: 1024px)');
-  const [waitOpen, setWaitOpen] = useState(false);
-  const isWaitOpen = wide || waitOpen;
-
-  const mismatchNames = useMemo(
-    () => new Set(lanes.filter(laneMismatch).map(l => l.name)),
-    [lanes]
-  );
-
+  const [openLane, setOpenLane] = useState(null);
+  const [q, setQ] = useState('');
+  const onLane = (id) => {
+    setTab('lanes');
+    setOpenLane(id);
+  };
+  const count = needs?.items.length;
   return (
-    <div className="bar-panel">
-      <Tabs
-        tabs={[
-          { id: 'needs', label: `Needs you${needs ? ` ${needs.items.length}` : ''}` },
-          { id: 'lanes', label: `Lanes ${lanes.length}` },
-        ]}
+    <aside className="bar" id="the-bar" aria-label="The Bar" onKeyDown={(e) => e.key === 'Escape' && !e.defaultPrevented && onClose(true)}>
+      <div className="barhead">
+        <h2>The Bar</h2>
+        <button type="button" className="k-iconbtn" onClick={() => onClose(true)} aria-label="Close The Bar">
+          <span aria-hidden="true">✕</span> Close
+        </button>
+      </div>
+      <Segmented
+        id="bar"
+        label="The Bar"
         value={tab}
         onChange={setTab}
-        label="The Bar"
-        idBase="bar"
+        items={[
+          { id: 'needs', label: <>Needs you <span className="n">{count ?? '…'}</span></> },
+          { id: 'lanes', label: <>Lanes <span className="n">{lanes.length + 2}</span></> },
+        ]}
       />
-      <div {...tabPanelProps('bar', 'needs', tab === 'needs')}>{tab === 'needs' ? <NeedsYou needs={needs} onLane={() => setTab('lanes')} /> : null}</div>
-      <div {...tabPanelProps('bar', 'lanes', tab === 'lanes')}>
-      {tab === 'lanes' ? (<>
-      <section className="bar-strip" aria-label="Lane strip">
-        <ul className="bar-lanes">
-          {lanes.map((l) => (
-            <li key={l.id} className={`bar-lane${laneMismatch(l) ? ' bar-lane--danger' : ''}`}>
-              <div className="bar-lane-head">
-                <Avatar name={l.name} size="sm" src={LANE_SRC[l.id]} ring style={LANE_RING[l.id]} />
-                <span className="bar-lane-name">{l.name}</span>
-                <StatusPill variant={STATUS_VARIANT[l.status] ?? 'neutral'}>
-                  {STATUS_LABEL[l.status] ?? l.status}
-                </StatusPill>
-              </div>
-              {(l.prs ?? []).filter(pr => pr.ci !== 'unknown' || pr.claim !== 'none').map(pr => (
-                <span key={pr.n} className={`bar-lane-ci bar-lane-ci--${prRole(pr)}`}>
-                  {CI_ICON[pr.ci] ?? '?'} #{pr.n}{pr.claim !== 'none' ? ` · claims ${pr.claim}` : ''} · CI {pr.ci}
-                </span>
-              ))}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <details
-        className="bar-waiting"
-        open={isWaitOpen || undefined}
-        onToggle={(e) => { if (!wide) setWaitOpen(e.currentTarget.open); }}
-      >
-        <summary className="bar-waiting-label">
-          Waiting on you
-          {!wide && needsItems.length > 0 && ` · ${needsItems.length}`}
-        </summary>
-        {needsItems.length === 0 ? (
-          <p className="bar-empty">Nothing waiting.{staleCount ? ` ${staleCount} older questions from lanes quiet for over a week are hidden.` : ''}</p>
-        ) : (
-          <ul className="bar-needs">
-            {needsItems.map((item, i) => (
-              <li key={i} className="bar-needs-item">
-                <span className="bar-needs-lane">{item.laneName}</span>
-                <span className="bar-needs-text">{inline(item.text, [], i)}</span>
-                {item.cmds.length > 0 && (
-                  <span className="bar-needs-cmds">
-                    {item.cmds.map((cmd) => (
-                      <ActionChip
-                        key={cmd}
-                        disabled={mismatchNames.has(item.laneName) && /^OK #/.test(cmd)}
-                        title={mismatchNames.has(item.laneName) && /^OK #/.test(cmd) ? 'Blocked: claim does not match CI' : undefined}
-                        onClick={() => copyText(cmd, notify)}
-                      >
-                        {cmd}
-                      </ActionChip>
-                    ))}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </details>
-
-      <BarChat events={events} lanes={lanes} />
-      </>) : null}
+      <div className="barscroll">
+        <div {...segPanelProps('bar', 'needs', tab)}>
+          <NeedsList needs={needs} onLane={onLane} />
+        </div>
+        <div {...segPanelProps('bar', 'lanes', tab)}>
+          <Lanes lanes={lanes} openLane={openLane} setOpenLane={setOpenLane} onWork={onWork} />
+        </div>
       </div>
-    </div>
+      <form
+        className="barask"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (q.trim() && onAsk(q.trim())) setQ('');
+        }}
+      >
+        <label className="k-vh" htmlFor="barQ">
+          Ask OBI or tell a session
+        </label>
+        <input id="barQ" placeholder="Ask or tell a session…" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
+        <button type="button" className="mic" disabled title="Not built: CHIP has no voice input yet">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="12" rx="3" fill="currentColor" />
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
+          </svg>
+          <span>Talk</span>
+        </button>
+      </form>
+    </aside>
   );
 }
