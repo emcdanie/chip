@@ -1,154 +1,259 @@
-// Connectors: every MCP server and CLI tool CHIP can call, from
-// chip.config.local.json, with its status, its tools, when it was last used
-// and a Test button, on the Settings/list template (layout foundation): a
-// section per kind, one full-width Card row per item. docs/host.md explains
-// how to add one.
-import React, { useEffect, useState } from 'react';
-import PageHeader from '@bella/components/PageHeader/PageHeader';
-import Section from '@bella/components/Section/Section';
-import Card from '@bella/components/Card/Card';
-import SidebarLayout from '@bella/components/SidebarLayout/SidebarLayout';
-import NavList from '@bella/components/NavList/NavList';
-import StatusPill from '@bella/components/StatusPill/StatusPill';
-import Tag from '@bella/components/Tag/Tag';
-import ActionChip from '@bella/components/ActionChip/ActionChip';
-import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
-import SystemMap from './SystemMap.jsx';
+// Connectors (chip-mock-03): the tools CHIP reads from, whether each one
+// answers, and what it is allowed to do. Two tabs: System map (the pipeline
+// from GET /map, a map only) and Connectors (every server from GET /host, as
+// the shared data table; a row opens its sheet). The map's controls sit top
+// right, beside the title, and only while the map shows. docs/host.md
+// explains how to add a connector.
+import React, { useCallback, useEffect, useState } from 'react';
+import Button from '@bella/components/Button/Button';
+import { PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, LinkButton } from './kit/index.jsx';
+import SystemMap, { useMapControls } from './SystemMap.jsx';
+import { changed } from './ReviewSheet.jsx';
+import './Connectors.css';
 
-// a URL or path breaks only after "/" or ".", never mid-word
-function Breakable({ text }) {
-  return text.split(/(?<=[/.])/).map((part, i) => (
-    <React.Fragment key={i}>
-      {part}
-      <wbr />
-    </React.Fragment>
-  ));
-}
-
+const JSON_HEADERS = { 'content-type': 'application/json' };
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never');
 
-function Server({ s, onTest, testing }) {
-  const ok = s.status === 'connected';
-  return (
-    <Card innerClassName="connector">
-      <header className="connector-head">
-        <h3 id={`srv-${s.name}`} className="card-title">
-          {s.name}
-        </h3>
-        <StatusPill variant={ok ? 'success' : 'neutral'}>{s.status}</StatusPill>
-        <span className="connector-spacer" />
-        {!s.disabled ? (
-          <ActionChip onClick={() => onTest(s.name)} disabled={testing} ariaLabel={testing ? undefined : `Test ${s.name}`}>
-            {testing ? 'Testing…' : 'Test'}
-          </ActionChip>
-        ) : null}
-      </header>
-      {s.note ? <p className="label">{s.note}</p> : null}
-      <dl className="row-dl">
-        <div><dt>Kind</dt><dd>{s.kind === 'cli' ? 'CLI tool' : `MCP over ${s.transport}`}</dd></div>
-        <div className="where"><dt>Where</dt><dd><span className="mono"><Breakable text={s.where} /></span></dd></div>
-        <div><dt>Allowed</dt><dd>{s.allow.length ? s.allow.join(' and ') : 'nothing'}</dd></div>
-        <div><dt>Tools</dt><dd>{s.tools ? `${s.tools.filter((t) => t.kind === 'read').length} read` : 'not listed yet'}</dd></div>
-        {s.tools ? (
-          <div><dt>Writes</dt><dd>{`${s.tools.filter((t) => t.kind !== 'read').length} write tools · ${s.tools.filter((t) => t.kind !== 'read' && t.allowed).length} allowed`}</dd></div>
-        ) : null}
-        <div><dt>Last used</dt><dd>{when(s.lastUsed)}</dd></div>
-      </dl>
-      {s.error ? <p role="alert">{s.error}</p> : null}
-      {s.tools?.length ? (
-        <details className="facts-tokens">
-          <summary>Tools ({s.tools.length})</summary>
-          <ul className="tool-rows" tabIndex={0} role="region" aria-label={`${s.name} tools`}>
-            {s.tools.map((t) => (
-              <li key={t.name}>
-                <span className="mono">{t.name}</span> <Tag>{t.kind === 'read' ? 'read' : t.allowed ? 'write · allowed' : 'write · blocked'}</Tag>
-                {t.description ? <span className="label"> {t.description}</span> : null}
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-    </Card>
-  );
-}
+// the server's status, in the mock's words
+const STATUS = {
+  error: { tone: 'fail', word: 'Not answering' },
+  connected: { tone: 'pass', word: 'Answering' },
+  disabled: { tone: 'neutral', word: 'Off' },
+  'not tested': { tone: 'neutral', word: 'Not tested' },
+};
+const statusOf = (s) => STATUS[s.status] ?? { tone: 'neutral', word: s.status };
+// the row's one action: Reconnect a failing server, Test the rest; an off one has none
+const actionOf = (s) => (s.disabled ? null : s.status === 'error' ? 'Reconnect' : s.status === 'connected' ? 'Test again' : 'Test');
+const access = (s) => (s.allow.length ? s.allow.join(' and ') : 'nothing');
 
-export default function Connectors({ narrow }) {
+// the steps to try when the Figma desktop MCP won't answer
+const figmaSteps = (where) => [
+  ['Open the Figma desktop app', 'The MCP server runs inside the app, not in the browser.'],
+  ['Turn on the MCP server', 'Figma menu › Preferences › Enable Dev Mode MCP Server.'],
+  ['Check it answers', 'Should print a JSON line, not “connection refused”.', `curl -s ${where}`],
+  ['Reconnect', 'If it still times out, quit Figma fully and start it again.'],
+];
+
+const copy = (t) => navigator.clipboard?.writeText(t).catch(() => {});
+
+export default function Connectors() {
   const [tab, setTab] = useState('map');
   const [servers, setServers] = useState(null);
+  const [map, setMap] = useState(null);
   const [testing, setTesting] = useState(null);
+  const [open, setOpen] = useState(null);
+  const [note, setNote] = useState('');
   const [error, setError] = useState(null);
+  const controls = useMapControls();
 
-  const load = () =>
-    fetch('/host')
-      .then((r) => r.json())
-      .then((r) => setServers(r.servers))
-      .catch(() => setError('The CHIP server is not answering on 127.0.0.1:3100.'));
+  const loadHost = useCallback(
+    () =>
+      fetch('/host')
+        .then((r) => r.json())
+        .then((r) => setServers(r.servers))
+        .catch(() => setError('The CHIP server is not answering.')),
+    [],
+  );
+  const loadMap = useCallback(
+    () =>
+      fetch('/map')
+        .then((r) => r.json())
+        .then(setMap)
+        .catch(() => setMap({ error: true })),
+    [],
+  );
   useEffect(() => {
-    load();
-  }, []);
+    // the map tests the Figma servers first, so the list reads after it
+    loadMap().then(loadHost);
+    const again = () => (loadMap(), loadHost());
+    window.addEventListener('chip:changed', again);
+    return () => window.removeEventListener('chip:changed', again);
+  }, [loadMap, loadHost]);
 
-  async function test(name) {
-    setTesting(name);
+  async function test(s) {
+    setTesting(s.name);
+    setNote('');
     try {
-      await fetch('/host/test', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ server: name }) });
+      const r = await fetch('/host/test', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ server: s.name }) });
+      const j = await r.json();
+      setNote(j.status === 'connected' ? `${s.name}: answering` : `${s.name}: still not answering${j.error ? `. ${j.error}` : ''}`);
     } finally {
       setTesting(null);
-      load();
+      await Promise.all([loadHost(), loadMap()]);
+      changed();
     }
   }
 
-  const mcp = (servers ?? []).filter((s) => s.kind !== 'cli');
-  const cli = (servers ?? []).filter((s) => s.kind === 'cli');
-  const rows = (list) => (
-    <div className="connector-rows">
-      {list.map((s) => (
-        <Server key={s.name} s={s} onTest={test} testing={testing === s.name} />
-      ))}
+  const busyWord = (s) => (s.status === 'error' ? 'Reconnecting…' : 'Testing…');
+  const actButton = (s, inSheet) => {
+    const a = actionOf(s);
+    if (!a) return null;
+    return (
+      <Button variant={s.status === 'error' ? 'primary' : 'secondary'} onClick={() => test(s)} disabled={!!testing} ariaLabel={inSheet || testing === s.name ? undefined : `${a} ${s.name}`}>
+        {testing === s.name ? busyWord(s) : a}
+      </Button>
+    );
+  };
+
+  // what each server feeds: whatever reads the map node that tests it
+  const feeds = (name) => {
+    const n = map?.nodes?.find((x) => x.action?.type === 'test' && x.action.server === name);
+    return n?.dependents.length ? n.dependents.join(', ') : null;
+  };
+
+  const cols = [
+    { key: 'name', label: 'Connector', open: true },
+    {
+      key: 'status',
+      label: 'Status',
+      sortVal: (s) => statusOf(s).word,
+      render: (s) => <StatusPill tone={statusOf(s).tone}>{statusOf(s).word}</StatusPill>,
+    },
+    { key: 'allow', label: 'Access', sortVal: access, render: access },
+    { key: 'lastUsed', label: 'Last answered', sortVal: (s) => s.lastUsed ?? '', render: (s) => when(s.lastUsed) },
+    { key: 'act', label: 'Action', hideLabel: true, sort: false, end: true, render: (s) => actButton(s) },
+  ];
+  const sheetServer = servers?.find((s) => s.name === open);
+
+  const mapBar = (
+    <div className="cn-bar">
+      <div className="cn-zoom" role="group" aria-label="Zoom">
+        <Button onClick={controls.zoomOut} ariaLabel="Zoom out">
+          −
+        </Button>
+        <Button onClick={controls.fit}>Fit</Button>
+        <Button onClick={controls.zoomIn} ariaLabel="Zoom in">
+          +
+        </Button>
+      </div>
+      <Button onClick={controls.reset}>Reset layout</Button>
+      <details className="cn-keys">
+        <summary>Keys</summary>
+        <ul>
+          <li>Drag the canvas to move around; drag a card to rearrange it.</li>
+          <li>
+            <kbd>+</kbd> <kbd>−</kbd> zoom, <kbd>0</kbd> fits the map.
+          </li>
+          <li>
+            <kbd>Tab</kbd> moves through cards; <kbd>Enter</kbd> selects. Arrows: ↑ parent, ↓ first child, ← → siblings.
+          </li>
+          <li>Pills: green healthy, yellow needs attention, red failing.</li>
+        </ul>
+      </details>
     </div>
   );
 
-  const sections = [mcp.length && { href: '#mcp', label: 'MCP servers' }, cli.length && { href: '#cli', label: 'CLI tools' }].filter(Boolean);
-  const content = (
-    <>
+  return (
+    <div className="cn-page k-chrome">
       <PageHeader
-        meta="Settings"
         title="Connectors"
-        lede="The tools CHIP reads from, whether each one answers, and what depends on them. Set in chip.config.local.json; a write shows a preview and waits for Confirm."
+        lede={
+          <>
+            The tools CHIP reads from, whether each one answers, and what it is allowed to do. Set in <code>chip.config.local.json</code>.
+          </>
+        }
+        actions={tab === 'map' ? mapBar : null}
       />
-      <Tabs
-        tabs={[
-          { id: 'map', label: 'System map' },
-          { id: 'list', label: `Connectors ${servers?.length ?? ''}`.trim() },
-        ]}
+      <Segmented
+        id="conn"
+        label="Connectors"
         value={tab}
         onChange={setTab}
-        label="Connectors"
-        idBase="conn"
+        items={[
+          { id: 'map', label: 'System map' },
+          {
+            id: 'list',
+            label: (
+              <>
+                Connectors <span className="n">{servers?.length ?? ''}</span>
+              </>
+            ),
+          },
+        ]}
       />
-      <div {...tabPanelProps('conn', 'map', tab === 'map')}>{tab === 'map' ? <SystemMap /> : null}</div>
-      <div {...tabPanelProps('conn', 'list', tab === 'list')}>
-      {tab === 'list' ? (<>
-      {error ? <p role="alert">{error}</p> : null}
-      {servers && !servers.length ? <p>No servers yet. Copy chip.config.example.json to chip.config.local.json.</p> : null}
-      {mcp.length ? (
-        <Section id="mcp" heading="MCP servers">
-          {rows(mcp)}
-        </Section>
-      ) : null}
-      {cli.length ? (
-        <Section id="cli" heading="CLI tools">
-          {rows(cli)}
-        </Section>
-      ) : null}
-      </>) : null}
-      </div>
-    </>
-  );
+      <section {...segPanelProps('conn', 'map', tab)} className="cn-panel">
+        {tab === 'map' ? <SystemMap map={map} controls={controls} onReload={() => Promise.all([loadMap(), loadHost()])} /> : null}
+      </section>
+      <section {...segPanelProps('conn', 'list', tab)} className="cn-panel">
+        {error ? <p role="alert">{error}</p> : null}
+        {servers && !servers.length ? <p>No servers yet. Copy chip.config.example.json to chip.config.local.json.</p> : null}
+        {servers?.length ? (
+          <DataTable
+            label="connectors"
+            cols={cols}
+            rows={servers}
+            rowKey={(s) => s.name}
+            onRow={(s) => setOpen(s.name)}
+            chips={[
+              { id: 'all', label: 'All', test: () => true },
+              { id: 'err', label: 'Not answering', test: (s) => s.status === 'error' },
+              { id: 'nt', label: 'Not tested', test: (s) => s.status === 'not tested' },
+            ]}
+          />
+        ) : null}
+        <p className="k-vh" role="status">
+          {note}
+        </p>
+      </section>
 
-  // the same aside as every page, so the title stays put across the tabs
-  return (
-    <div className="connectors">
-      {narrow || tab === 'map' ? content : <SidebarLayout aside={<NavList label="On this page" groups={[{ label: 'On this page', items: sections }]} />} asideLabel="On this page">{content}</SidebarLayout>}
+      <Sheet open={!!sheetServer} title={sheetServer?.name ?? ''} onClose={() => setOpen(null)} footer={sheetServer ? actButton(sheetServer, true) : null}>
+        {sheetServer ? (
+          <>
+            <p className="cn-sline">
+              <StatusPill tone={statusOf(sheetServer).tone}>{statusOf(sheetServer).word}</StatusPill>
+              {sheetServer.error ? <span>{sheetServer.error}</span> : null}
+            </p>
+            {sheetServer.note ? <p>{sheetServer.note}</p> : null}
+            <dl>
+              {feeds(sheetServer.name) ? (
+                <>
+                  <dt>Feeds</dt>
+                  <dd>{feeds(sheetServer.name)}</dd>
+                </>
+              ) : null}
+              <dt>Kind</dt>
+              <dd>{sheetServer.kind === 'cli' ? 'CLI tool' : `MCP over ${sheetServer.transport}`}</dd>
+              <dt>Access</dt>
+              <dd>{access(sheetServer)}</dd>
+              <dt>Last answered</dt>
+              <dd>{when(sheetServer.lastUsed)}</dd>
+              <dt>Reach</dt>
+              <dd className="cn-reach">
+                <code>{sheetServer.where}</code> <LinkButton onClick={() => copy(sheetServer.where)}>Copy</LinkButton>
+              </dd>
+              {sheetServer.tools ? (
+                <>
+                  <dt>Tools</dt>
+                  <dd>
+                    {sheetServer.tools.filter((t) => t.kind === 'read').length} read · {sheetServer.tools.filter((t) => t.kind !== 'read').length} write
+                  </dd>
+                </>
+              ) : null}
+            </dl>
+            {sheetServer.status === 'error' && sheetServer.name === 'figma' ? (
+              <>
+                <h3>If it won’t answer</h3>
+                <ol className="cn-steps">
+                  {figmaSteps(sheetServer.where).map(([t, w, cmd]) => (
+                    <li key={t}>
+                      <b>{t}</b>
+                      <span>{w}</span>
+                      {cmd ? (
+                        <span className="cn-cmd">
+                          <code>{cmd}</code>
+                          <Button onClick={() => copy(cmd)} ariaLabel={`Copy ${cmd}`}>
+                            Copy
+                          </Button>
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+              </>
+            ) : null}
+          </>
+        ) : null}
+      </Sheet>
     </div>
   );
 }
