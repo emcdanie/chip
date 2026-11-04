@@ -17,7 +17,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Combobox from '@bella/components/Combobox/Combobox';
-import { Segmented, segPanelProps } from './kit/index.jsx';
+import { Overflow, Segmented, segPanelProps } from './kit/index.jsx';
 import { openReview } from './ReviewSheet.jsx';
 import { OneInput, ObiThread } from './Obi.jsx';
 import { Terminals, MAX_TERMS, termName, STATUS } from './Terminal.jsx';
@@ -37,6 +37,9 @@ const KEY = 'chip-work';
 const LIM = { w: [360, 760], h: [280, 0.7] };
 // h: null is the bottom dock's default, 40% of the window; a resize stores px
 const DEF = { open: true, dock: 'right', w: 440, h: null, tab: 'needs' };
+// closed by default under 1280px wide (it took half the page at 1024); once
+// she opens or closes it, that choice (chosen) is kept
+const WIDE = 1280;
 const TABS = ['needs', 'sessions', 'term', 'ask'];
 
 /** The panel's layout state, kept in localStorage (chip-work). */
@@ -46,12 +49,20 @@ export function useWork() {
       const s = { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
       // 360 was the fixed default before 4 Nov, stored whether or not it was resized
       if (s.h === 360) s.h = null;
+      if (!s.chosen) s.open = window.innerWidth >= WIDE;
       return TABS.includes(s.tab) ? s : { ...s, tab: DEF.tab };
     } catch {
       return DEF;
     }
   });
-  const set = useCallback((patch) => setSt((s) => ({ ...s, ...(typeof patch === 'function' ? patch(s) : patch) })), []);
+  const set = useCallback(
+    (patch) =>
+      setSt((s) => {
+        const p = typeof patch === 'function' ? patch(s) : patch;
+        return { ...s, ...p, ...('open' in p ? { chosen: true } : null) };
+      }),
+    [],
+  );
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(st));
@@ -581,6 +592,8 @@ function VoiceLine({ v, verb }) {
         <b>Speech stopped.</b> {v.err} Type instead, or try again.
       </>
     );
+  // at rest only a reason the mic is off shows; where speech goes is on Talk's tooltip
+  if (v.mode !== 'none' && v.mode !== 'blocked') return null;
   return (
     <>
       <span className={`mode ${cls}`}>{name}</span> {note}
@@ -629,11 +642,6 @@ const ROUTE_NAME = { health: 'Overview', foundations: 'Foundations', atlas: 'Com
 const routeName = () => ROUTE_NAME[location.hash.match(/^#\/(\w+)/)?.[1]] ?? 'a page';
 
 const WHAT = {
-  needs: (
-    <>
-      <b>Decisions waiting on you</b>, from the checks, git and lane reports. Nothing runs until you press its button.
-    </>
-  ),
   sessions: (
     <>
       <b>Who is working on what.</b> CHIP’s own sessions are live: open, message or stop them. Lanes are read from their report files; CHIP can’t message them.
@@ -889,13 +897,18 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
       <div className="wp-head">
         <h2>Work</h2>
         {right ? null : tabs}
-        {canDock ? <DockPick value={dock} onChange={(d) => set({ dock: d })} /> : null}
+        {canDock ? (
+          <Overflow label="Work panel options" className="wp-more">
+            <b>Dock</b>
+            <DockPick value={dock} onChange={(d) => set({ dock: d })} />
+          </Overflow>
+        ) : null}
         <button type="button" className="k-iconbtn" onClick={onClose} aria-label="Close the Work panel">
           <span aria-hidden="true">✕</span> Close
         </button>
       </div>
       {right ? <div className="wp-tabs">{tabs}</div> : null}
-      <p className="wp-what">{WHAT[tab]}</p>
+      {WHAT[tab] ? <p className="wp-what">{WHAT[tab]}</p> : null}
 
       <div className="wp-body" {...segPanelProps('wp', 'needs', tab)}>
         <NeedsList needs={needs} onLane={onLane} />
@@ -959,21 +972,23 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
           ) : (
             <OneInput {...inputProps} id="wp-ask" describedBy="wp-ask-help" value={q} onValue={setQ} onEscape={() => (voice.listening ? voice.stop() : onClose())} />
           )}
-          <Button
-            onClick={() => (voice.listening ? voice.stop() : voice.start())}
-            disabled={micOff}
-            ariaLabel={micOff ? 'Talk (not available)' : voice.listening ? 'Stop listening' : 'Talk: start speech to text'}
-            className="mic"
-          >
-            {voice.listening ? null : MIC}
-            {voice.listening ? 'Stop' : 'Talk'}
-          </Button>
+          <span className="mic-tip" title={micOff ? undefined : `${MODE[voice.mode][1]}: ${MODE[voice.mode][2]}`}>
+            <Button
+              onClick={() => (voice.listening ? voice.stop() : voice.start())}
+              disabled={micOff}
+              ariaLabel={micOff ? 'Talk (not available)' : voice.listening ? 'Stop listening' : `Talk: start speech to text. ${MODE[voice.mode][1]}: ${MODE[voice.mode][2]}`}
+              className="mic"
+            >
+              {voice.listening ? null : MIC}
+              {voice.listening ? 'Stop' : 'Talk'}
+            </Button>
+          </span>
           <Button variant="primary" type="submit">
             {verb}
           </Button>
         </div>
         {onTerm ? null : (
-          <p className="one-help" id="wp-ask-help">
+          <p className="one-help k-vh" id="wp-ask-help">
             {inputProps.cloud ? 'Sent to Anthropic. ' : ''}Type / for a command.
           </p>
         )}

@@ -30,6 +30,13 @@
 .k-toggle:hover, .k-toggle[aria-expanded='true'] { background: color-mix(in srgb, var(--action) 8%, var(--card)); border-color: var(--action); }
 /* BELLA's Button inside CHIP: an icon before the label keeps the icon size */
 [data-bella-component='button'] svg { width: var(--icon); height: var(--icon); flex: none; }
+/* overflow: the ⋯ button and its panel */
+.k-ovf { position: relative; display: inline-flex; }
+.k-ovf-btn.icon { justify-content: center; width: var(--h-control); padding: 0; font-size: var(--fs-20); }
+.k-ovf-p { position: absolute; top: calc(100% + var(--s-4)); z-index: 30; display: grid; gap: var(--s-12); min-width: max-content; padding: var(--s-12); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); }
+.k-ovf-p.end { right: 0; }
+.k-ovf-p.start { left: 0; }
+.k-ovf-p > b { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
 .k-link { border: 0; background: none; padding: var(--s-8) var(--s-4); min-height: 32px; font: 400 var(--fs-14)/var(--lh-body) var(--sans); text-decoration: underline; text-underline-offset: 3px; color: var(--ink); cursor: pointer; }
 .k-iconbtn { display: inline-flex; align-items: center; gap: var(--s-8); height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; cursor: pointer; }
 .k-iconbtn:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }

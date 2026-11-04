@@ -18,6 +18,37 @@ export function Toggle({ expanded, className, children, ...rest }) {
   );
 }
 
+/* ---------- overflow: a "⋯" disclosure for controls she rarely needs (the
+   dock, map zoom, extra filters). The panel holds ordinary controls; Esc or a
+   click outside closes it and focus goes back to the button ---------- */
+export function Overflow({ label, text, className, align = 'end', children }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const away = (e) => !ref.current?.contains(e.target) && setOpen(false);
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [open]);
+  const onKeyDown = (e) => {
+    if (e.key !== 'Escape' || !open) return;
+    e.stopPropagation();
+    setOpen(false);
+    ref.current?.querySelector('.k-ovf-btn')?.focus();
+  };
+  return (
+    <div className={cx('k-ovf', className)} ref={ref} onKeyDown={onKeyDown}>
+      <Toggle className={cx('k-ovf-btn', !text && 'icon')} expanded={open} aria-controls={id} aria-label={text ? undefined : label} title={text ? undefined : label} onClick={() => setOpen((o) => !o)}>
+        {text ?? <span aria-hidden="true">⋯</span>}
+      </Toggle>
+      <div className={cx('k-ovf-p', align)} id={id} hidden={!open}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function LinkButton({ className, children, ...rest }) {
   return (
     <button type="button" className={cx('k-link', className)} {...rest}>
