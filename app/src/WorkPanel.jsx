@@ -948,7 +948,7 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
               className="one-input"
             />
           ) : (
-            <OneInput {...inputProps} id="wp-ask" value={q} onValue={setQ} onEscape={() => (voice.listening ? voice.stop() : onClose())} />
+            <OneInput {...inputProps} id="wp-ask" describedBy="wp-ask-help" value={q} onValue={setQ} onEscape={() => (voice.listening ? voice.stop() : onClose())} />
           )}
           <Button
             onClick={() => (voice.listening ? voice.stop() : voice.start())}
@@ -963,6 +963,11 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
             {verb}
           </Button>
         </div>
+        {onTerm ? null : (
+          <p className="one-help" id="wp-ask-help">
+            {inputProps.cloud ? 'Sent to Anthropic. ' : ''}Type / for a command.
+          </p>
+        )}
       </form>
     </aside>
   );

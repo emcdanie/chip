@@ -753,7 +753,7 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
 // find: the top bar, jump only (components, pages, docs). Otherwise the
 // panel's field: jump, ask, search and the commands. value and onValue let
 // the panel's mic fill the field.
-export function OneInput({ bella, docs, pages = [], page, obi, find, onJump, onEscape, notify, cloud, models = [], budget, picked = 'auto', value, onValue, id = 'one-input' }) {
+export function OneInput({ bella, docs, pages = [], page, obi, find, onJump, onEscape, notify, cloud, models = [], budget, picked = 'auto', value, onValue, id = 'one-input', describedBy }) {
   const [own, setOwn] = useState('');
   const q = value ?? own;
   const setQ = onValue ?? setOwn;
@@ -763,6 +763,11 @@ export function OneInput({ bella, docs, pages = [], page, obi, find, onJump, onE
   // before sending, say where the question goes (Auto may pick Claude)
   const goesToClaude = query && !query.startsWith('/') && (picked === 'claude' || (picked === 'auto' && routeFor(query, models, budget).provider === 'claude'));
   const askMeta = goesToClaude ? `Looking at ${page} · Claude, sent to Anthropic` : `Looking at ${page}`;
+  // BELLA's Combobox takes no aria-describedby: the helper line under the field is tied on here
+  useEffect(() => {
+    const el = document.getElementById(id);
+    if (el && describedBy) el.setAttribute('aria-describedby', describedBy);
+  }, [id, describedBy]);
 
   const groups = useMemo(() => {
     if (!query) return [];
@@ -884,7 +889,7 @@ export function OneInput({ bella, docs, pages = [], page, obi, find, onJump, onE
       onSelect={select}
       onKeyDown={onKeyDown}
       placement={find ? 'below' : 'above'}
-      placeholder={find ? 'Find a component or page' : cloud ? 'Ask about BELLA · sent to Anthropic, or / for a command' : 'Ask about BELLA, or type / for a command'}
+      placeholder={find ? 'Find a component or page' : 'Ask about BELLA'}
       hint={find ? <Kbd keys={['⌘', 'K']} label="Command K" /> : null}
       className="one-input"
     />

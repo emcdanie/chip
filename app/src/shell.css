@@ -246,6 +246,8 @@ html.wp-dragging .xterm { pointer-events: none; }
   --component-combobox-foreground: var(--ink); --component-combobox-font-size: var(--fs-14); --component-combobox-min-height: var(--h-control); }
 .one-row.interim input { color: var(--muted); font-style: italic; }
 .one-row .mic { flex: none; }
+.one-help { margin: 0; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
+.wp-bottom .one-help { grid-column: 2; }
 .voice { flex: 1 1 220px; min-width: 0; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-12); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
 .voice b { color: var(--ink); }
 .voice .mode { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); }
