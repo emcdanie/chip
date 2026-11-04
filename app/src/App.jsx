@@ -1,13 +1,12 @@
-// CHIP's frame, as the approved mock draws it (chip-mock-03): a top bar
-// (wordmark, Ask OBI or jump to ⌘K, Lead with, The Bar toggle), the left nav
+// CHIP's frame, as the approved mocks draw it (chip-mock-03, chip-workpanel-01):
+// a top bar (wordmark, Find ⌘K, Lead with, the Work toggle ⌘J), the left nav
 // (icons, counts, pins, Collapse; an icon rail under 1180px; Components opens
-// the library tree) and The Bar docked on the right. Pages drop into <main>.
-// OBI, Claude and the terminal open in the work sheet: from the top-bar
-// input, The Bar's input and Lanes, ⌘J, or a Needs-you item. A page rebuilt
+// the library tree) and the Work panel, docked right or along the bottom, the
+// page making room for it. Pages drop into <main>. Needs you, the sessions,
+// the terminals and OBI all live in the panel (WorkPanel.jsx). A page rebuilt
 // on the kit marks its root k-chrome, so BELLA's Button takes CHIP's blue
 // there and nowhere near a specimen (tokens.css).
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Health, { COLS } from './Health.jsx';
 import Atlas from './Atlas.jsx';
 import Connectors from './Connectors.jsx';
@@ -16,9 +15,8 @@ import History from './History.jsx';
 import Playground from './Playground.jsx';
 import Projects from './Projects.jsx';
 import ReviewSheet from './ReviewSheet.jsx';
-import { TheBar, useBar, useNeeds } from './TheBar.jsx';
-import { useObi, OneInput, ObiPanel } from './Obi.jsx';
-import { PageHeader, Sheet } from './kit/index.jsx';
+import { WorkPanel, useWork, useNeeds, useLanes, clampW, clampH, maxW, maxH } from './WorkPanel.jsx';
+import { useObi, OneInput } from './Obi.jsx';
 import { useTheme } from './theme.js';
 import { useRole, useVisibility } from './visibility.jsx';
 import './shell.css';
@@ -44,7 +42,6 @@ const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digi
 // v2: Claude answers by default (Elleta, 3 Nov: the local model isn't good
 // enough on stage); the local model stays one pick away
 const MODEL_KEY = 'chip-model-v2';
-const WORK_NAME = { obi: 'OBI', claude: 'Claude', term: 'Terminal' };
 
 // #/play/<project>?route=<page> opens a project's page in the Playground
 function routeOf(hash) {
@@ -138,40 +135,39 @@ export default function App() {
   const [lens, setLens] = useState(() => stored('chip-lens', 'visual'));
   useEffect(() => store('chip-lens', lens), [lens]);
 
-  /* ---- the frame: nav collapse, The Bar, the narrow drawer ---- */
+  /* ---- the frame: nav collapse, the Work panel, the narrow drawer ---- */
   const wide = useMedia('(min-width: 961px)');
   const narrow = !wide;
   const [sidePref, setSidePref] = useState(() => stored('chip-side', ''));
-  const [winW, setWinW] = useState(window.innerWidth);
+  const [win, setWin] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }));
   useEffect(() => {
-    const f = () => setWinW(window.innerWidth);
+    const f = () => setWin({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', f);
     return () => window.removeEventListener('resize', f);
   }, []);
-  const [barOn, setBarOn] = useState(() => stored('chip-bar', '1') === '1' && wide);
-  // opening The Bar on a window under 1281px folds the nav, so the page keeps its columns
-  const [barFolded, setBarFolded] = useState(false);
-  const collapsed = sidePref === 'col' || (sidePref !== 'open' && (winW < 1180 || barFolded));
+  const winW = win.w;
+  const [work, setWork] = useWork();
+  // under 961px the panel always docks at the bottom (no room beside the page)
+  const dock = wide ? work.dock : 'bottom';
+  const right = work.open && dock === 'right';
+  // the panel docked right on a window under 1281px folds the nav, so the page keeps its columns
+  const collapsed = sidePref === 'col' || (sidePref !== 'open' && (winW < 1180 || (right && winW < 1281)));
+  const navW = !wide ? 0 : collapsed ? 104 : 256;
+  const wpW = clampW(work.w, winW, navW);
+  const wpH = clampH(work.h, win.h);
   const [navOn, setNavOn] = useState(false);
-  const barToggle = useRef(null);
-  const setBar = (on, focusBack) => {
-    setBarOn(on);
-    store('chip-bar', on ? '1' : '0');
-    if (on && winW < 1281) setBarFolded(true);
-    if (!on) setBarFolded(false);
-    if (focusBack) barToggle.current?.focus();
+  const workToggle = useRef(null);
+  const setOpen = (open) => {
+    setWork({ open });
+    if (open) requestAnimationFrame(() => document.querySelector('#work [role=tab][aria-selected=true]')?.focus());
+    else requestAnimationFrame(() => workToggle.current?.focus());
   };
   const setCollapsed = (on) => {
     setSidePref(on ? 'col' : 'open');
     store('chip-side', on ? 'col' : 'open');
   };
-  useEffect(() => {
-    if (!wide) setBarOn(false);
-  }, [wide]);
 
-  /* ---- OBI, Claude and the terminal: one work sheet ---- */
-  const [work, setWork] = useState(null); // null | 'obi' | 'claude' | 'term'
-  const [inject, setInject] = useState(null);
+  /* ---- OBI ---- */
   const [models, setModels] = useState([]);
   const [budget, setBudget] = useState(null);
   const [picked, setPicked] = useState(() => stored(MODEL_KEY, 'claude'));
@@ -254,17 +250,18 @@ export default function App() {
   const atlas = bella?.components.find((c) => c.id === atlasId) ?? null;
   const page = ws === 'atlas' ? `Components · ${atlas?.name ?? '…'}` : NAME[ws];
   const needs = useNeeds();
-  const lanes = useBar();
+  const lanes = useLanes();
   const obi = useObi({ bella, page, notify: setToast, onSaved: loadNotes, models, budget, picked, onAnswered: loadModels, onDocSaved: () => setDocsVersion((v) => v + 1) });
-  // asking opens the work sheet on OBI, so the answer has somewhere to land
+  // asking opens the panel on Ask OBI, so the answer has somewhere to land
   const send = (text) => {
     const ok = obi.send(text);
-    if (ok) setWork('obi');
+    if (ok) setWork({ open: true, tab: 'ask' });
     else if (obi.busy) setToast('OBI is still answering. Try again in a moment.');
     return ok;
   };
   const obiApi = { ...obi, send };
-  // "Fix in a session": the brief goes on the clipboard and Claude opens
+  // "Fix in a session": the brief goes on the clipboard and Claude opens in
+  // the Terminal tab (the one already running, or a new one in CHIP)
   const session = async (brief) => {
     try {
       await navigator.clipboard.writeText(brief);
@@ -272,40 +269,10 @@ export default function App() {
     } catch {
       setToast('Could not copy the brief.');
     }
-    setWork('claude');
+    window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { kind: 'claude', repo: 'chip', brief, from: NAME[ws] ?? 'a page' } }));
   };
-  useEffect(() => {
-    const term = (e) => {
-      setInject({ ...e.detail, at: Date.now() });
-      setWork('term');
-    };
-    window.addEventListener('chip:terminal', term);
-    return () => window.removeEventListener('chip:terminal', term);
-  }, []);
 
-  /* ---- the one input: one element, moved between the top bar and the work sheet ---- */
-  const [holder] = useState(() => {
-    const d = document.createElement('div');
-    d.className = 'one-input-holder';
-    return d;
-  });
-  const topSlot = useRef(null);
-  const panelSlot = useRef(null);
-  const inPanel = work === 'obi';
-  useLayoutEffect(() => {
-    const target = inPanel ? panelSlot.current : topSlot.current;
-    if (!target || holder.parentNode === target) return;
-    // moving a node drops its focus; carry focus and the caret across
-    const input = holder.querySelector('input');
-    const had = input && document.activeElement === input;
-    const sel = had ? [input.selectionStart, input.selectionEnd] : null;
-    target.append(holder);
-    if (had) {
-      input.focus();
-      input.setSelectionRange(...sel);
-    }
-  });
-  // the top bar hides the input under 1101px, as the mock does: ⌘K opens OBI there
+  // the top bar's Find is hidden under 1101px, as the mock does: ⌘K asks in the panel there
   const searchShown = useMedia('(min-width: 1101px)');
 
   useEffect(() => {
@@ -313,11 +280,14 @@ export default function App() {
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        if (!searchShown && !work) setWork('obi');
-        requestAnimationFrame(() => holder.querySelector('input')?.focus());
+        if (searchShown) document.getElementById('find')?.focus();
+        else {
+          setWork({ open: true, tab: 'ask' });
+          requestAnimationFrame(() => document.getElementById('wp-ask')?.focus());
+        }
       } else if (mod && e.key.toLowerCase() === 'j') {
         e.preventDefault();
-        setWork((w) => (w ? null : 'obi'));
+        setOpen(!work.open);
       } else if (e.altKey && WS_KEYS[e.code]) {
         e.preventDefault();
         go(WS_KEYS[e.code]);
@@ -502,9 +472,14 @@ export default function App() {
   );
 
   const needCount = needs?.items.length ?? 0;
+  const resize = (px) => setWork(dock === 'right' ? { w: clampW(px, winW, navW) } : { h: clampH(px, win.h) });
 
   return (
-    <div className={`app${barOn ? ' baron' : ''}${collapsed && wide ? ' navcollapsed' : ''}${navOn ? ' navon' : ''}`} data-lead={lens}>
+    <div
+      className={`app${work.open ? ` wpon dock-${dock}` : ''}${collapsed && wide ? ' navcollapsed' : ''}${navOn ? ' navon' : ''}`}
+      style={{ '--wp-w': `${wpW}px`, '--wp-h': `${wpH}px` }}
+      data-lead={lens}
+    >
       <a className="skip" href="#main">
         Skip to the page
       </a>
@@ -524,19 +499,29 @@ export default function App() {
             Menu
           </button>
         ) : null}
-        {/* the input lives in this empty node unless OBI is open; React never manages it */}
-        <div className="search" ref={topSlot} hidden={!searchShown} />
+        <div className="search" hidden={!searchShown}>
+          <OneInput
+            find
+            id="find"
+            bella={bella}
+            docs={docs}
+            pages={PAGES}
+            page={page}
+            obi={obiApi}
+            onJump={(id, kind) => (kind === 'page' ? go(id) : openAtlas(id))}
+            onEscape={() => document.activeElement?.blur()}
+            notify={setToast}
+          />
+        </div>
         <Lens value={lens} onChange={setLens} />
-        <button type="button" className="bartoggle termtoggle" aria-expanded={work === 'term'} aria-haspopup="dialog" onClick={() => setWork((w) => (w === 'term' ? null : 'term'))}>
+        <button type="button" className="wtoggle" ref={workToggle} aria-expanded={work.open} aria-controls="work" onClick={() => setOpen(!work.open)}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="3" y="4" width="18" height="16" rx="2" />
-            <path d="m7 9 3 3-3 3M13 15h4" />
+            {dock === 'right' ? <path d="M15 4v16" /> : <path d="M3 15h18" />}
           </svg>
-          Terminal
-        </button>
-        <button type="button" className="bartoggle" ref={barToggle} aria-expanded={barOn} aria-controls="the-bar" onClick={() => setBar(!barOn)}>
-          <span className="thebar">The </span>Bar <span className="count">{needs ? needCount : '…'}</span>
+          Work <span className="count">{needs ? needCount : '…'}</span>
           <span className="k-vh"> need you</span>
+          <kbd aria-hidden="true">⌘J</kbd>
         </button>
       </header>
 
@@ -559,56 +544,49 @@ export default function App() {
         </div>
       </main>
 
-      {barOn ? <TheBar needs={needs} lanes={lanes} onClose={(back) => setBar(false, back)} onWork={setWork} onAsk={send} /> : null}
-
-      <Sheet
-        open={!!work}
-        title={WORK_NAME[work] ?? 'OBI'}
-        onClose={() => setWork(null)}
-        className="k-wide work-sheet"
-        keepMounted
-        // Escape belongs to the terminal while it has focus (claude uses it)
-        onCancel={(e) => document.activeElement?.closest('.xterm') && e.preventDefault()}
-      >
-        <ObiPanel
-          bella={bella}
-          page={page}
-          obi={obiApi}
-          inputSlot={panelSlot}
-          onOpenAtlas={(n) => (setWork(null), openAtlas(n))}
-          onSandbox={(n) => {
-            setWork(null);
-            openAtlas(n);
-            setTrySignal({ at: Date.now() });
+      {/* mounted while closed too: the terminals keep running behind ⌘J */}
+      <WorkPanel
+          open={work.open}
+          st={work}
+          set={setWork}
+          dock={dock}
+          canDock={wide}
+          size={dock === 'right' ? wpW : wpH}
+          limits={dock === 'right' ? [360, maxW(winW, navW)] : [280, maxH(win.h)]}
+          onResize={resize}
+          onClose={() => setOpen(false)}
+          needs={needs}
+          lanes={lanes}
+          notify={setToast}
+          obiProps={{
+            bella,
+            page,
+            obi: obiApi,
+            onOpenAtlas: openAtlas,
+            onSandbox: (n) => {
+              openAtlas(n);
+              setTrySignal({ at: Date.now() });
+            },
+            notify: setToast,
+            models,
+            picked,
+            setPicked,
+            budget,
           }}
-          notify={setToast}
-          models={models}
-          picked={picked}
-          setPicked={setPicked}
-          budget={budget}
-          view={work ?? 'obi'}
-          setView={setWork}
-          inject={inject}
+          inputProps={{
+            bella,
+            docs,
+            pages: PAGES,
+            page,
+            obi: obiApi,
+            onJump: (id, kind) => (kind === 'page' ? go(id) : openAtlas(id)),
+            notify: setToast,
+            cloud: models.find((m) => m.id === picked)?.place === 'cloud',
+            models,
+            budget,
+            picked,
+          }}
         />
-      </Sheet>
-
-      {createPortal(
-        <OneInput
-          bella={bella}
-          docs={docs}
-          page={page}
-          obi={obiApi}
-          inPanel={inPanel}
-          onJump={(id) => (setWork(null), openAtlas(id))}
-          onEscape={() => (work ? setWork(null) : document.activeElement?.blur())}
-          notify={setToast}
-          cloud={models.find((m) => m.id === picked)?.place === 'cloud'}
-          models={models}
-          budget={budget}
-          picked={picked}
-        />,
-        holder,
-      )}
 
       <ReviewSheet />
 

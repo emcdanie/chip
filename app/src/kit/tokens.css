@@ -65,16 +65,15 @@
   --on-action: rgb(29 32 48); /* text on the action blue, in every theme: 5.3:1 */
   --frame-nav: 256px; /* the left nav; 104px as an icon rail */
   --frame-rail: 104px;
-  --frame-bar: 380px; /* The Bar; 340px between 961 and 1280 */
   --frame-top: 64px;
 }
 
 /* BELLA's Button, in the mock's colours: the primary keycap is the action
    blue with dark text, the secondary is the card with a hairline. The label
    roll, the keycap press and reduced motion stay BELLA's. Only CHIP's own
-   chrome takes it: the top bar, The Bar, every sheet and any page root
+   chrome takes it: the top bar, the Work panel (k-chrome), every sheet and any page root
    marked k-chrome. A BELLA specimen outside those keeps BELLA's own Button. */
-.top, .bar, .k-sheet, .k-chrome {
+.top, .k-sheet, .k-chrome {
   --component-button-primary-fill-hi: var(--action);
   --component-button-primary-fill-lo: var(--action);
   --component-button-primary-fill-hi-hover: color-mix(in srgb, var(--action) 70%, rgb(255 255 255));

@@ -1,8 +1,9 @@
 // OBI: ask or run. useObi holds the thread and the two paths (BELLA data
 // questions answered from data/bella.json with no model call; the rest
 // retrieved and sent to the model, back with numbered citations) and the
-// four commands (POST /cmd, one at a time). OneInput is CHIP's only field;
-// ObiPanel shows the thread and floats over the right edge.
+// four commands (POST /cmd, one at a time). OneInput is the Work panel's
+// ask field and, as Find, the top bar's jump field; ObiThread is the Ask OBI
+// tab of the Work panel.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Kbd from '@bella/components/Kbd/Kbd';
 import Link from '@bella/components/Link/Link';
@@ -11,11 +12,9 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import DataTable from '@bella/components/DataTable/DataTable';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Combobox from '@bella/components/Combobox/Combobox';
-import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor, summarizeTool, usageLines } from './answers.js';
 import Select from '@bella/components/Select/Select';
 import { baseOf } from './Sandbox.jsx';
-import { TermView } from './Terminal.jsx';
 
 // arg: the command takes text; picking it from the list fills "/cmd " to type on
 const COMMANDS = [
@@ -751,8 +750,13 @@ export function useObi({ bella, page, notify, onSaved, models = [], budget, pick
 }
 
 /* ---------- the one input ---------- */
-export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, notify, cloud, models = [], budget, picked = 'auto' }) {
-  const [q, setQ] = useState('');
+// find: the top bar, jump only (components, pages, docs). Otherwise the
+// panel's field: jump, ask, search and the commands. value and onValue let
+// the panel's mic fill the field.
+export function OneInput({ bella, docs, pages = [], page, obi, find, onJump, onEscape, notify, cloud, models = [], budget, picked = 'auto', value, onValue, id = 'one-input' }) {
+  const [own, setOwn] = useState('');
+  const q = value ?? own;
+  const setQ = onValue ?? setOwn;
   const histAt = useRef(-1);
   const query = q.trim();
   const needle = query.toLowerCase();
@@ -763,7 +767,7 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
   const groups = useMemo(() => {
     if (!query) return [];
     // a command with arguments is complete: no list, Enter sends it
-    if (query.startsWith('/') && query.includes(' ')) return [];
+    if (query.startsWith('/') && (find || query.includes(' '))) return [];
     if (query.startsWith('/')) {
       const word = needle.slice(1).split(' ')[0];
       return [
@@ -775,6 +779,7 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
       ];
     }
     const comps = (bella?.components ?? []).filter((c) => c.name.toLowerCase().includes(needle)).slice(0, 6);
+    const pageHits = pages.filter((p) => p.label.toLowerCase().includes(needle));
     // title words only; "how", "what" and the like matched half the library
     const words = needle.split(/\s+/).filter((w) => w.length > 2 && !STOP.has(w));
     const docHits = docs
@@ -787,21 +792,22 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
         id: 'jump',
         label: 'Jump to',
         options: [
+          ...pageHits.map((p) => ({ id: `p:${p.id}`, label: p.label, meta: 'Page' })),
           ...comps.map((c) => ({ id: `c:${c.id}`, label: c.name, meta: c.parts.length ? `Component · ${c.parts.length} parts` : 'Component' })),
           ...docHits.map(({ d }, i) => ({ id: `d:${i}:${d.url ?? d.path}`, label: d.title, meta: 'Doc' })),
         ],
       },
-      { id: 'ask', label: 'Ask OBI', options: [{ id: 'ask', label: `Ask OBI: ${query}`, meta: askMeta }] },
-      { id: 'search', label: 'Search', options: [{ id: 'search', label: `Search your library: ${query}`, meta: 'Pages and passages · no model' }] },
-    ];
-  }, [query, needle, bella, docs, page, askMeta]);
+      ...(find ? [] : [{ id: 'ask', label: 'Ask OBI', options: [{ id: 'ask', label: `Ask OBI: ${query}`, meta: askMeta }] },
+      { id: 'search', label: 'Search', options: [{ id: 'search', label: `Search your library: ${query}`, meta: 'Pages and passages · no model' }] }]),
+    ].filter((g) => g.options.length);
+  }, [query, needle, bella, docs, pages, page, askMeta, find]);
 
   const exact = bella?.components.find((c) => c.name.toLowerCase() === needle);
-  const preferred = query.startsWith('/') ? groups[0]?.options[0]?.id : exact ? `c:${exact.id}` : 'ask';
+  const preferred = query.startsWith('/') ? groups[0]?.options[0]?.id : exact ? `c:${exact.id}` : find ? groups[0]?.options[0]?.id : 'ask';
 
   function select(o) {
-    if (o.id.startsWith('c:')) {
-      onJump(o.id.slice(2));
+    if (o.id.startsWith('p:') || o.id.startsWith('c:')) {
+      onJump(o.id.slice(2), o.id[0] === 'p' ? 'page' : 'component');
       setQ('');
     } else if (o.id.startsWith('d:')) {
       const href = o.id.split(':').slice(2).join(':');
@@ -820,6 +826,16 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
 
   function onKeyDown(e) {
     const open = e.currentTarget.getAttribute('aria-expanded') === 'true';
+    if (find) {
+      // Find only jumps: Enter takes the first match, nothing is ever sent
+      if (e.key === 'Enter' && !open && query) {
+        e.preventDefault();
+        const o = groups[0]?.options[0];
+        if (o) select(o);
+        else notify(`Nothing called ${query}. Ask OBI in the Work panel (⌘J).`);
+      } else if (e.key === 'Escape' && !open) onEscape();
+      return;
+    }
     const h = obi.history.current;
     // history wins over the list while browsing it (the list opens as soon as a
     // recalled entry fills the field)
@@ -858,8 +874,8 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
 
   return (
     <Combobox
-      id="one-input"
-      label="Ask OBI or jump to"
+      id={id}
+      label={find ? 'Find a component or page' : 'Ask OBI'}
       hideLabel
       value={q}
       onChange={setQ}
@@ -867,20 +883,16 @@ export function OneInput({ bella, docs, page, obi, inPanel, onJump, onEscape, no
       defaultOptionId={preferred}
       onSelect={select}
       onKeyDown={onKeyDown}
-      placement={inPanel ? 'above' : 'below'}
-      placeholder={
-        cloud
-          ? inPanel ? 'Sent to Anthropic · ask a follow-up, or / for a command' : 'Ask OBI · Claude, or jump to…'
-          : inPanel ? 'Ask a follow-up, or / for a command' : 'Ask OBI or jump to…'
-      }
-      hint={inPanel ? null : <Kbd keys={['⌘', 'K']} label="Command K" />}
+      placement={find ? 'below' : 'above'}
+      placeholder={find ? 'Find a component or page' : cloud ? 'Ask about BELLA · sent to Anthropic, or / for a command' : 'Ask about BELLA, or type / for a command'}
+      hint={find ? <Kbd keys={['⌘', 'K']} label="Command K" /> : null}
       className="one-input"
     />
   );
 }
 
-/* ---------- the panel ---------- */
-export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, notify, models = [], picked, setPicked, budget, view: dockView, setView: setDockView, inject }) {
+/* ---------- the Ask OBI tab ---------- */
+export function ObiThread({ bella, page, obi, onOpenAtlas, onSandbox, notify, models = [], picked, setPicked, budget }) {
   const thread = useRef(null);
   const claudeOk = models.some((m) => m.id === 'claude' && m.available);
   const suggestions = useMemo(() => suggestionsFor(page, bella), [page, bella]);
@@ -890,26 +902,6 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
     ...models.filter((m) => m.place === 'cloud' && m.kind !== 'decider').map((m) => ({ value: m.id, label: `${m.label} · your plan, cloud${m.available ? '' : ' (not available)'}` })),
   ];
 
-  // the work sheet's three views; App owns which one shows, so The Bar and
-  // a Needs-you item can open Claude or the terminal (a command arrives
-  // typed, never run: she presses Return)
-  const dockOptions = [
-    { value: 'obi', label: 'OBI' },
-    { value: 'claude', label: 'Claude' },
-    { value: 'term', label: 'Terminal' },
-  ];
-  // a terminal starts the first time its tab opens, then keeps running
-  // (hidden) while other tabs are shown, until Restart or the page closes
-  const isTerm = dockView === 'claude' || dockView === 'term';
-  const [started, setStarted] = useState({});
-  useEffect(() => {
-    if (isTerm && !started[dockView]) setStarted((s) => ({ ...s, [dockView]: true }));
-  }, [dockView]);
-  const [repos, setRepos] = useState([]);
-  useEffect(() => {
-    if (isTerm && !repos.length) fetch('/term/repos').then((r) => r.json()).then(setRepos).catch(() => {});
-  }, [isTerm]);
-
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight });
   }, [obi.turns]);
@@ -917,63 +909,50 @@ export function ObiPanel({ bella, page, obi, inputSlot, onOpenAtlas, onSandbox, 
   return (
     <section className="obi">
       <header className="obi-head">
-        <SegmentedControl options={dockOptions} value={dockView} onChange={setDockView} label="Dock view" className="obi-dock-tabs" />
-        {dockView === 'obi' ? <Tag>Looking at {page}</Tag> : null}
-        <span className="obi-grow" />
-        {dockView === 'obi' ? (
-          <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
-        ) : null}
+        <Tag>Looking at {page}</Tag>
+        <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
       </header>
-
-      {['claude', 'term'].map((k) => (started[k] || (k === 'term' && inject) ? <TermView key={k} kind={k} repos={repos} active={dockView === k} inject={k === 'term' ? inject : null} /> : null))}
-      {isTerm ? null : (
-        <>
-          <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
-            {obi.turns.length === 0 ? (
-              <li className="obi-empty">
-                <p>Ask about {page === 'Overview' ? 'BELLA' : page.replace(/^(?:Atlas|Components) · /, '')}, or type / for a command.</p>
-                {suggestions.length ? (
-                  <div className="obi-suggest" aria-label="Suggested questions">
-                    {suggestions.map((sg) => (
-                      <ActionChip key={sg} onClick={() => obi.send(sg)} disabled={obi.busy}>
-                        {sg}
-                      </ActionChip>
-                    ))}
-                  </div>
-                ) : null}
-              </li>
+      <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
+        {obi.turns.length === 0 ? (
+          <li className="obi-empty">
+            <p>Ask about {page === 'Overview' ? 'BELLA' : page.replace(/^(?:Atlas|Components) · /, '')}, or type / for a command.</p>
+            {suggestions.length ? (
+              <div className="obi-suggest" aria-label="Suggested questions">
+                {suggestions.map((sg) => (
+                  <ActionChip key={sg} onClick={() => obi.send(sg)} disabled={obi.busy}>
+                    {sg}
+                  </ActionChip>
+                ))}
+              </div>
             ) : null}
-            {obi.turns.map((t) =>
-              t.kind === 'cmd' ? (
-                <CmdTurn key={t.id} t={t} />
-              ) : t.kind === 'search' ? (
-                <SearchTurn key={t.id} t={t} />
-              ) : t.kind === 'tool' ? (
-                <ToolTurn key={t.id} t={t} onConfirm={obi.confirmTool} onCancel={obi.cancelTool} />
-              ) : (
-                <AskTurn
-                  key={t.id}
-                  t={t}
-                  bella={bella}
-                  page={page}
-                  claudeOk={claudeOk}
-                  budget={budget}
-                  onOpenAtlas={onOpenAtlas}
-                  onSandbox={onSandbox}
-                  onSave={obi.save}
-                  onSaveDoc={obi.saveAsDoc}
-                  onCompare={obi.compare}
-                  onIncludePrivate={obi.includeAndRetry}
-                  notify={notify}
-                />
-              )
-            )}
-          </ol>
-        </>
-      )}
-      {/* always mounted, hidden off the OBI tab: App moves the one input here
-          only when the dock opens, so an unmounted slot lost it for good */}
-      <div className="obi-input" ref={inputSlot} hidden={dockView !== 'obi'} />
+          </li>
+        ) : null}
+        {obi.turns.map((t) =>
+          t.kind === 'cmd' ? (
+            <CmdTurn key={t.id} t={t} />
+          ) : t.kind === 'search' ? (
+            <SearchTurn key={t.id} t={t} />
+          ) : t.kind === 'tool' ? (
+            <ToolTurn key={t.id} t={t} onConfirm={obi.confirmTool} onCancel={obi.cancelTool} />
+          ) : (
+            <AskTurn
+              key={t.id}
+              t={t}
+              bella={bella}
+              page={page}
+              claudeOk={claudeOk}
+              budget={budget}
+              onOpenAtlas={onOpenAtlas}
+              onSandbox={onSandbox}
+              onSave={obi.save}
+              onSaveDoc={obi.saveAsDoc}
+              onCompare={obi.compare}
+              onIncludePrivate={obi.includeAndRetry}
+              notify={notify}
+            />
+          )
+        )}
+      </ol>
     </section>
   );
 }

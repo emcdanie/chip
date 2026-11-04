@@ -817,7 +817,7 @@
   color: var(--color-semantic-text-primary);
 }
 
-/* one row, like a terminal tab bar: OBI · what it is looking at · model · Hide */
+/* one row: what OBI is looking at · model */
 .obi-head {
   display: flex;
   flex-wrap: wrap;
@@ -825,10 +825,6 @@
   gap: var(--spacing-3);
   padding: var(--spacing-1) var(--spacing-5) var(--spacing-2);
   border-block-end: var(--border-width-thin) solid var(--color-semantic-border);
-}
-
-.obi-grow {
-  flex: 1;
 }
 
 .obi-suggest {
@@ -935,11 +931,6 @@
   flex-wrap: wrap;
   gap: var(--spacing-2);
   margin-block-start: var(--spacing-2);
-}
-
-.obi-input {
-  min-width: 0;
-  padding: var(--spacing-3) var(--spacing-5) var(--spacing-4);
 }
 
 /* the picker's label is for assistive tech; the pill shows the choice */
@@ -1828,17 +1819,6 @@
   white-space: nowrap;
 }
 
-/* ---------- The Bar ---------- */
-.obi-dock-tabs {
-  flex: none;
-}
-
-.bar-empty {
-  margin: 0;
-  color: var(--color-semantic-text-secondary);
-  font-size: var(--typography-font-size-sm);
-}
-
 /* ---- Phase 6 A: targets and measure (audit 3 Nov 2026) ---- */
 
 /* links that stand alone get the 44px row the On this page links have (2.5.5) */
@@ -1848,8 +1828,7 @@
 .facts-card a,
 .doc-actions a,
 main [class*='_inner_'] > a,
-.connector summary,
-.one-input-holder input {
+.connector summary {
   min-block-size: var(--spacing-touch-target);
 }
 
@@ -1875,28 +1854,7 @@ main [class*='_lede_'] {
   max-inline-size: var(--layout-measure-body);
 }
 
-/* ---------- workspace terminal (Claude, Terminal tabs) ---------- */
-.term-view {
-  box-sizing: border-box;
-  min-block-size: 0;
-  min-inline-size: 0;
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-5) var(--spacing-3);
-}
-
-.term-view[hidden] {
-  display: none;
-}
-
-.term-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-3);
-}
-
+/* ---------- workspace terminal (the Work panel's Terminal tab) ---------- */
 .term-screen {
   box-sizing: border-box;
   min-block-size: 0;
@@ -1912,6 +1870,11 @@ main [class*='_lede_'] {
 
 .term-screen .xterm {
   block-size: 100%;
+}
+
+/* xterm.css paints the viewport black; the rows below the last line showed it */
+.term-screen .xterm .xterm-viewport {
+  background-color: var(--color-semantic-surface-card);
 }
 
 /* ---------- phase 6 (3 Nov late): checks, review card, Needs you, History, map ---------- */
@@ -2317,9 +2280,6 @@ dialog.sheet[data-side] {
   .ctests-detail {
     grid-column: 1 / -1;
   }
-}
-.term-typed {
-  margin: 0;
 }
 
 /* headings inside a sheet: a step down from the page's section headings */
