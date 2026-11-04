@@ -31,7 +31,7 @@ const WORD = { ok: 'Healthy', warn: 'Needs attention', bad: 'Failing', blocked: 
 const RANK = ['bad', 'blocked', 'warn', 'unknown', 'off', 'ok'];
 const ICON = {
   root: '◎', Design: '◐', Source: '▤', Checks: '✓', Review: '◑', Ship: '▲', Context: '☰',
-  figma: '◇', 'figma-console': '◇', tokens: '●', contracts: '▢', components: '▦', contrast: '◐', stories: '▣',
+  'figma-rest': '◇', figma: '◇', 'figma-console': '◇', tokens: '●', contracts: '▢', components: '▦', contrast: '◐', stories: '▣',
   agents: '☰', gate: '⛉', bench: '◔', compare: '⇄', review: '◑', ci: '⟳', ship: '▲', git: '⑂', ollama: '◎', claude: '✳', notion: '☰',
 };
 

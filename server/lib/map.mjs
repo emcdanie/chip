@@ -31,6 +31,8 @@ const has = (cmd) => {
 
 const fromCheck = (c) => (!c ? 'unknown' : c.status === 'passed' ? 'ok' : c.status === 'failed' ? 'bad' : c.status === 'waiting' ? 'warn' : 'unknown');
 const fromServer = (s) => (!s ? 'unknown' : s.disabled ? 'off' : s.status === 'connected' ? 'ok' : s.status === 'error' ? 'bad' : 'unknown');
+// the desktop MCP is optional now that REST reads Figma: closed reads as off, never as failing
+const optional = (s) => (fromServer(s) === 'bad' ? 'off' : fromServer(s));
 
 /** GET /map */
 export async function systemMap() {
@@ -40,7 +42,7 @@ export async function systemMap() {
   // live status: a Figma connector never tested this run gets one quick test
   // (the map is where "is Figma down?" gets asked)
   for (const s of host.servers()) {
-    if (['figma', 'figma-console'].includes(s.name) && !s.disabled && s.status === 'not tested') {
+    if (['figma-rest', 'figma', 'figma-console'].includes(s.name) && !s.disabled && s.status === 'not tested') {
       await Promise.race([host.test(s.name), new Promise((r) => setTimeout(r, 4000))]).catch(() => {});
     }
   }
@@ -56,8 +58,9 @@ export async function systemMap() {
   const node = (o) => ({ deps: [], ...o });
   const nodes = [
     // Design
-    node({ id: 'figma', group: 'Design', name: 'Figma MCP', state: fromServer(servers.figma), detail: servers.figma ? `${servers.figma.status}${servers.figma.error ? `: ${servers.figma.error}` : ''}. ${servers.figma.note}` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma', label: 'Test it' } }),
-    node({ id: 'figma-console', group: 'Design', name: 'figma-console', state: fromServer(servers['figma-console']), detail: servers['figma-console'] ? `${servers['figma-console'].status}. ${servers['figma-console'].note}` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma-console', label: 'Test it' } }),
+    node({ id: 'figma-rest', group: 'Design', name: 'Figma', state: fromServer(servers['figma-rest']), detail: servers['figma-rest']?.status === 'error' ? servers['figma-rest'].error : `${servers['figma-rest']?.status ?? 'not tested'}. ${servers['figma-rest']?.note ?? ''}`, source: 'Figma REST API · server/.env', action: { type: 'test', server: 'figma-rest', label: 'Test it' } }),
+    node({ id: 'figma', group: 'Design', name: 'Figma desktop MCP', state: optional(servers.figma), detail: servers.figma ? `${servers.figma.status === 'error' ? 'Optional, closed now' : servers.figma.status}. Answers only while Figma desktop is open with Dev Mode MCP on; CHIP reads Figma over REST without it.` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma', label: 'Test it' } }),
+    node({ id: 'figma-console', group: 'Design', name: 'figma-console', state: optional(servers['figma-console']), detail: servers['figma-console'] ? `${servers['figma-console'].status}. ${servers['figma-console'].note}` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma-console', label: 'Test it' } }),
     // Source
     node({ id: 'tokens', group: 'Source', name: 'Tokens', state: fromCheck(ck['tokens-built']), detail: `${n.cssVars.light} CSS variables, four themes. ${ck['tokens-built']?.summary ?? 'Not checked yet.'}`, source: `tokens/*.json · ${lastChange(['tokens']) ?? ''}` }),
     node({ id: 'contracts', group: 'Source', name: 'Contracts', state: fromCheck(ck.contract), detail: `${n.withContract} of ${n.components} components have one. ${ck.contract?.summary ?? ''}`, source: `tokens/component.json · ${lastChange(['tokens/component.json']) ?? ''}`, deps: ['tokens'] }),
@@ -68,7 +71,7 @@ export async function systemMap() {
     node({ id: 'agents', group: 'Checks', name: 'AGENTS.md', state: fromCheck(ck['agents-md']), detail: ck['agents-md']?.summary ?? 'Not run yet.', source: `AGENTS.md · ${lastChange(['AGENTS.md']) ?? ''}`, deps: ['components'] }),
     node({ id: 'gate', group: 'Checks', name: 'Gate', state: { passed: 'ok', failed: 'bad', waiting: 'warn' }[gate.status] ?? 'unknown', detail: gate.summary, source: 'npm run gate · the pre-commit hook', deps: ['contrast', 'contracts', 'agents', 'tokens', 'stories'] }),
     node({ id: 'bench', group: 'Checks', name: 'Bench', state: ck['bench-static']?.status === 'not-run' ? 'unknown' : ck['bench-static']?.score >= 70 ? 'ok' : 'warn', detail: ck['bench-static']?.summary ?? 'Not run yet.', source: '~/DEV/tools/odsb · data/checks/bench-static.json', deps: ['components', 'agents'], action: { type: 'run', check: 'bench-static', label: 'Run the bench now' } }),
-    node({ id: 'compare', group: 'Checks', name: 'Compare with Figma', state: 'unknown', detail: 'Reads the component frame through the Figma MCP.', source: 'Components · Compare tab', deps: ['figma', 'components'] }),
+    node({ id: 'compare', group: 'Checks', name: 'Compare with Figma', state: 'unknown', detail: 'Reads the component set over the Figma REST API; falls back to the desktop MCP when REST has no token.', source: 'Components · Compare tab', deps: ['figma-rest', 'components'] }),
     // Review and ship
     node({ id: 'review', group: 'Review', name: 'Review card', state: 'ok', detail: 'Accept makes a local chip/fix-* branch; Undo deletes it.', source: 'server/lib/review.mjs', deps: ['gate'] }),
     node({ id: 'ci', group: 'Review', name: 'CI', state: 'unknown', detail: `GitHub runs the gate after a push. ${git(['rev-list', '--count', `${BASE}@{upstream}..${BASE}`]) === '0' ? `${BASE} has nothing unpushed.` : 'Local commits are not pushed yet.'}`, source: 'GitHub Actions (read only through gh)', deps: ['gate'] }),
