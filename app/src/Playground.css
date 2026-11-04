@@ -106,3 +106,5 @@
 .pg-parts { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
 .pg-parts li { display: flex; gap: var(--s-12); align-items: center; justify-content: space-between; min-height: 48px; padding: var(--s-4) 0; border-bottom: 1px solid var(--line); cursor: grab; }
 .pg-parts li:hover { background: color-mix(in srgb, var(--action) 6%, var(--card)); }
+.pg-down { display: grid; gap: var(--s-12); justify-items: start; margin-bottom: var(--s-16); padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--ink); font-size: var(--fs-16); line-height: var(--lh-body); }
+.pg-down p { margin: 0; max-width: 70ch; }

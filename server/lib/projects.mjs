@@ -38,7 +38,12 @@ export function projectList() {
   const list = Array.isArray(readConfig().projects) ? readConfig().projects : FALLBACK;
   return list
     .filter((p) => p && /^[\w-]+$/.test(p.id ?? '') && p.repo)
-    .map((p) => ({ ...p, short: p.short ?? p.name ?? p.id, repo: home(p.repo) }));
+    .map((p) => {
+      const repo = home(p.repo);
+      // CHIP's pages are read from the checkout this server runs from, the one being served
+      const src = p.id === 'chip' && !p.dev ? ROOT : repo;
+      return { ...p, short: p.short ?? p.name ?? p.id, repo, src };
+    });
 }
 export const projectOf = (id) => projectList().find((p) => p.id === id) ?? null;
 
@@ -101,7 +106,8 @@ function hashPages(repo, file = 'app/src/App.jsx') {
   return [...list.matchAll(/\{\s*id:\s*'([\w-]+)',\s*label:\s*'([^']+)'/g)].map(([, id, label]) => ({ route: `#/${id}`, label, file }));
 }
 
-// BELLA: one entry per stories file, at its docs page in Storybook
+// BELLA: one entry per stories file, at its docs page in Storybook (the
+// preview iframe, so the page measured is the docs, not Storybook's chrome)
 function storyPages(repo) {
   const out = [];
   const walk = (dir) => {
@@ -112,7 +118,7 @@ function storyPages(repo) {
         const title = readFileSync(file, 'utf8').match(/\btitle:\s*['"]([^'"]+)['"]/)?.[1];
         if (!title) continue;
         const id = title.toLowerCase().replace(/[^a-z0-9/]+/g, '-').replace(/\//g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-        out.push({ route: `/?path=/docs/${id}--docs`, label: title, file: relative(repo, file) });
+        out.push({ route: `/iframe.html?viewMode=docs&id=${id}--docs`, label: title, file: relative(repo, file), component: title.split('/').pop().replace(/\W/g, '') });
       }
     }
   };
@@ -120,18 +126,18 @@ function storyPages(repo) {
   return out.sort((a, b) => a.label.localeCompare(b.label));
 }
 
-function pagesOf(p) {
+export function pagesOf(p) {
   const kind = p.pages?.kind;
   try {
-    if (kind === 'next') return nextPages(p.repo, p.pages.expand);
-    if (kind === 'hash') return hashPages(p.repo, p.pages.file);
-    if (kind === 'storybook') return storyPages(p.repo);
+    if (kind === 'next') return nextPages(p.src, p.pages.expand);
+    if (kind === 'hash') return hashPages(p.src, p.pages.file);
+    if (kind === 'storybook') return storyPages(p.src);
   } catch {}
   return [];
 }
 
 /* ---------- which BELLA it uses ---------- */
-function bellaOf(p) {
+export function bellaOf(p) {
   if (p.repo === BELLA_DIR || p.bella === 'self')
     return { kind: 'self', label: 'BELLA itself', detail: 'The design system’s own repo.' };
   const manifest = join(p.repo, 'lib', 'bella', 'sync-manifest.json');
@@ -239,16 +245,18 @@ const started = new Map(); // id → { child, log: [], at }
 function devOf(p) {
   if (p.id === 'chip' && !p.dev) return { self: true, port: PORT, url: `http://127.0.0.1:${PORT}` };
   if (!p.dev) return null;
-  const port = Number(p.dev.port) || null;
-  return { command: p.dev.command ?? null, port, url: p.dev.url ?? (port ? `http://127.0.0.1:${port}` : null) };
+  // CHIP_PLAY_SITE_URL points the site at another dev server (a worktree's)
+  const url = (p.dev.url || (p.id === 'site' && process.env.CHIP_PLAY_SITE_URL) || '').replace(/\/$/, '') || null;
+  const port = url ? Number(new URL(url).port) || 80 : Number(p.dev.port) || null;
+  return { command: p.dev.command ?? null, port, url: url ?? (port ? `http://127.0.0.1:${port}` : null) };
 }
 
-async function runState(p) {
+export async function runState(p) {
   const dev = devOf(p);
   if (!dev) return { state: 'none' };
   if (dev.self) return { ...dev, state: 'running', by: 'self' };
   const mine = started.get(p.id);
-  const up = dev.port ? await portOpen(dev.port) : dev.url ? await portOpen(Number(new URL(dev.url).port) || 80, new URL(dev.url).hostname) : false;
+  const up = dev.url ? await portOpen(Number(new URL(dev.url).port) || 80, new URL(dev.url).hostname) : false;
   return {
     ...dev,
     state: up ? 'running' : mine && mine.child.exitCode == null ? 'starting' : 'stopped',
@@ -318,6 +326,7 @@ function base(p) {
     short: p.short,
     description: p.description ?? '',
     repo: p.repo,
+    src: p.src,
     exists,
     note: p.note ?? '',
     noteAt: p.noteAt ?? null,
