@@ -13,6 +13,7 @@ import Atlas from './Atlas.jsx';
 import Connectors from './Connectors.jsx';
 import Foundations from './Foundations.jsx';
 import History from './History.jsx';
+import Playground from './Playground.jsx';
 import ReviewSheet from './ReviewSheet.jsx';
 import { TheBar, useBar, useNeeds } from './TheBar.jsx';
 import { useObi, OneInput, ObiPanel } from './Obi.jsx';
@@ -26,6 +27,7 @@ const PAGES = [
   { id: 'health', label: 'Overview', icon: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /></> },
   { id: 'foundations', label: 'Foundations', icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor" /></> },
   { id: 'atlas', label: 'Components', icon: <><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" /></> },
+  { id: 'play', label: 'Playground', icon: <><rect x="3.5" y="4.5" width="17" height="13" rx="1.5" /><path d="M9 21h6M12 17.5V21" /><path d="M8 13l3-3 2 2 3-3" /></> },
   { id: 'docs', label: 'History', icon: <><path d="M3 12h18" /><circle cx="7" cy="12" r="2.2" fill="currentColor" /><circle cx="13" cy="12" r="2.2" fill="currentColor" /><circle cx="19" cy="12" r="2.2" /></> },
   { id: 'connectors', label: 'Connectors', icon: <><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M8 7.5l3 8M16 7.5l-3 8" /></> },
 ];
@@ -36,14 +38,14 @@ const LENSES = [
   { id: 'technical', label: 'Technical' },
   { id: 'scope', label: 'Scope' },
 ];
-const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digit4: 'docs', Digit5: 'connectors' };
+const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digit4: 'play', Digit5: 'docs', Digit6: 'connectors' };
 // v2: Claude answers by default (Elleta, 3 Nov: the local model isn't good
 // enough on stage); the local model stays one pick away
 const MODEL_KEY = 'chip-model-v2';
 const WORK_NAME = { obi: 'OBI', claude: 'Claude', term: 'Terminal' };
 
 function routeOf(hash) {
-  const m = hash.match(/^#\/(health|foundations|atlas|docs|connectors)(?:\/([\w-]+))?$/);
+  const m = hash.match(/^#\/(health|foundations|atlas|play|docs|connectors)(?:\/([\w-]+))?$/);
   return m ? { ws: m[1], id: m[2] } : null;
 }
 
@@ -518,6 +520,7 @@ export default function App() {
           {ws === 'health' ? <Health bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={loadBella} /> : null}
           {ws === 'foundations' ? <Foundations bella={bella} onSession={session} onOpenAtlas={openAtlas} /> : null}
           {ws === 'docs' ? <History docId={docId} version={docsVersion} bella={bella} lens={lens} onOpenAtlas={openAtlas} onSession={session} /> : null}
+          {ws === 'play' ? <Playground onToast={setToast} /> : null}
           {ws === 'connectors' ? <Connectors narrow={narrow} /> : null}
           {ws === 'atlas' ? <Atlas c={atlas} bella={bella} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={false} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} role={role} vis={vis} setVis={setVis} /> : null}
         </div>
