@@ -7,8 +7,9 @@
 // - The page's source is parsed (imports + JSX tags, not a full TS parse) into
 //   sections joined to the DOM by id, and each component is classed against
 //   BELLA's catalogue and the site's sync manifest.
-// - A brief (notes, picked elements, findings) is written to
-//   data/playground/briefs/ for Claude in the terminal. CHIP never edits the site.
+// - A brief (notes, picked elements, placed BELLA components, findings) is
+//   written to data/playground/briefs/ for Claude in the terminal; with dry it
+//   only returns the text, for the preview. CHIP never edits the site.
 import http from 'node:http';
 import net from 'node:net';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -188,46 +189,70 @@ export function playMap(route) {
 }
 
 /* ---------- the brief ---------- */
-export function saveBrief({ route, width, notes = [], findings = [] }) {
+const px = (n) => Math.round(n);
+const box = (b) => `${px(b.x)},${px(b.y)} ${px(b.w)}×${px(b.h)}`;
+
+export function saveBrief({ route, width, notes = [], proposals = [], findings = [], dry = false, scope = 'all' }) {
   const map = playMap(route);
   if (!map) throw new Error(`No page at ${route}`);
-  mkdirSync(BRIEFS, { recursive: true });
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const file = join(BRIEFS, `${stamp}${route.replace(/\W+/g, '-')}.md`);
   const line = (fs) => (fs.length ? fs.map((f) => `- ${f.section ? `\`#${f.section}\` · ` : ''}**${f.rule}** (${f.source}): ${f.detail}. Instead: ${f.instead}`) : ['None.']);
+  const one = scope === 'note';
   const lines = [
-    `# Playground brief: ${route}`,
+    `# Playground brief: ${route}${one ? ' (one note)' : ''}`,
     '',
-    `Marked up in CHIP's Playground at ${width}px wide, ${new Date().toDateString()}. Source: \`${map.file}\` in the site repo.`,
+    `Marked up in CHIP's Playground at ${width}px wide, ${new Date().toDateString()}. Source: \`${map.file}\` in the site repo. Boxes are in page px, from the top of the page.`,
     '',
     '## How to work',
     '',
     "Follow this repo's CLAUDE.md: branch as it says, plan first, stop for Elleta's go, then a PR she approves with `OK #n`.",
     "Use BELLA's AGENTS.md rules. Don't change anything that isn't asked for below.",
     '',
-    '## Her notes',
+    one ? '## The note' : '## Her notes',
     '',
     ...(notes.length
       ? notes.flatMap((n, i) => [
           `${i + 1}. **${n.text || '(no note)'}**`,
-          `   - Section \`#${n.section ?? '?'}\`${n.component ? ` (${n.component})` : ''}, box ${Math.round(n.x)},${Math.round(n.y)} ${Math.round(n.w)}×${Math.round(n.h)} in page px`,
+          `   - Pinned to \`#${n.section ?? '?'}\`${n.component ? ` (${n.component}${n.kind ? `, ${n.kind}` : ''})` : ''}, box ${box(n)}`,
           ...(n.picked ?? []).slice(0, 4).map((p) => `   - \`${p.selector}\`${p.text ? `: "${p.text}"` : ''}`),
+          ...(n.suggest ? [`   - CHIP suggests: ${n.suggest.change}. Why: ${n.suggest.why}`] : []),
         ])
       : ['None.']),
     '',
-    "## BELLA's rules this page breaks (measured in the browser)",
-    '',
-    ...line(findings.filter((f) => f.tone === 'fail')),
-    '',
-    "## Parts that aren't BELLA's",
-    '',
-    ...line(findings.filter((f) => f.tone !== 'fail')),
-    '',
-    '## Sections and components',
-    '',
-    ...map.sections.map((s) => `- \`#${s.id}\` · ${[s.component, ...s.children].map((c) => `${c} (${map.components[c]?.note ?? 'not imported'})`).join(', ')}`),
-    '',
+    ...(proposals.length
+      ? [
+          '## BELLA components she placed',
+          '',
+          'Each is a proposal drawn on the page: build it with the BELLA component named, synced into the site the way its other BELLA parts are. Match the box as closely as the layout allows.',
+          '',
+          ...proposals.flatMap((p, i) => [
+            `${i + 1}. **${p.component}**${p.variant ? ` (variant="${p.variant}")` : ''} at ${box(p)}${p.section ? `, in \`#${p.section}\`` : ''}. ${p.replaces ? `It replaces \`#${p.replaces}\`: remove that section's current content.` : 'It is added; nothing it covers is removed.'}`,
+            ...(p.note ? [`   - Her note: ${p.note}`] : []),
+          ]),
+          '',
+        ]
+      : []),
+    ...(one
+      ? ["## BELLA's rules where the note sits", '', ...line(findings), '']
+      : [
+          "## BELLA's rules this page breaks (measured in the browser, with her placements)",
+          '',
+          ...line(findings.filter((f) => f.tone === 'fail')),
+          '',
+          "## Parts that aren't BELLA's",
+          '',
+          ...line(findings.filter((f) => f.tone !== 'fail')),
+          '',
+          '## Sections and components',
+          '',
+          ...map.sections.map((s) => `- \`#${s.id}\` · ${[s.component, ...s.children].map((c) => `${c} (${map.components[c]?.note ?? 'not imported'})`).join(', ')}`),
+          '',
+        ]),
   ];
-  writeFileSync(file, lines.join('\n'));
+  const text = lines.join('\n');
+  if (dry) return { text };
+  mkdirSync(BRIEFS, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const file = join(BRIEFS, `${stamp}${route.replace(/\W+/g, '-')}.md`);
+  writeFileSync(file, text);
   return { file, rel: relative(join(DATA_DIR, '..'), file) };
 }

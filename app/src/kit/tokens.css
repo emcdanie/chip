@@ -100,6 +100,12 @@
   --component-button-secondary-padding-x: var(--s-16);
   --component-button-tertiary-foreground: var(--ink);
   --component-button-shape-default: var(--r-control);
+  /* BELLA's Select in the same chrome: the kit's input box, 14px, 44px tall */
+  --component-select-border-radius: var(--r);
+  --component-select-font-size: var(--fs-14);
+  --component-select-label-font-family: var(--sans);
+  --component-select-label-font-size: var(--fs-14);
+  --component-select-min-height: var(--h-control);
 }
 
 /* dark: the mock has no dark theme; these are BELLA's dark roles (cool 975,

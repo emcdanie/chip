@@ -52,7 +52,7 @@
 /* segmented control (the mock's .iconseg): a tablist; top right in a card head */
 .k-seg { display: inline-flex; flex-wrap: wrap; gap: var(--s-4); padding: var(--s-4); border-radius: var(--r-control); flex: none; background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
 .k-seg button { display: inline-flex; align-items: center; gap: var(--s-8); height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
-.k-seg button[aria-selected='true'] { background: var(--card); box-shadow: var(--shadow); }
+.k-seg button:is([aria-selected='true'], [aria-checked='true']) { background: var(--card); box-shadow: var(--shadow); }
 .k-seg button:focus-visible { outline-offset: -3px; }
 .k-seg svg { width: 20px; height: 20px; }
 .k-seg svg :is(rect, path) { fill: none; stroke: currentColor; stroke-width: 2; }
@@ -108,19 +108,55 @@
 .k-rowbtn { min-height: 28px; padding: 0; border: 0; background: none; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-align: left; cursor: pointer; }
 
 /* side sheet: one modal for every "select it to see more"; Esc closes, focus returns */
-.k-sheet { margin: 0 0 0 auto; width: min(520px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; padding: 0; border: 0; border-left: 1px solid var(--line); background: var(--card); color: var(--body); }
+.k-sheet { margin: 0 0 0 auto; width: min(560px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; padding: 0; border: 0; border-left: 1px solid var(--line); background: var(--card); color: var(--body); overflow: hidden; }
 .k-sheet::backdrop { background: var(--scrim); }
 .k-sheet[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
-.k-sheet-h { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--s-12); padding: var(--s-16) var(--s-16) var(--s-16) var(--s-24); border-bottom: 1px solid var(--line); background: var(--card); }
-.k-sheet-h h2 { margin: 0; font: 600 var(--fs-20)/var(--lh-head) var(--sans); color: var(--ink); }
-.k-sheet-b { display: grid; gap: var(--s-16); align-content: start; padding: var(--s-24) var(--s-24) var(--s-48); overflow: auto; overscroll-behavior: contain; font-size: var(--fs-16); line-height: var(--lh-body); }
+.k-sheet-h { position: sticky; top: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-12); padding: var(--s-24) var(--s-16) var(--s-16) var(--s-32); border-bottom: 1px solid var(--line); background: var(--card); }
+.k-sheet-t { display: grid; gap: var(--s-4); min-width: 0; }
+.k-sheet-k { margin: 0; color: var(--muted); font: 600 var(--fs-14)/var(--lh-body) var(--sans); }
+.k-sheet-h h2 { margin: 0; font: 600 var(--fs-20)/var(--lh-head) var(--sans); color: var(--ink); overflow-wrap: anywhere; }
+.k-sheet-h h2:focus { outline: none; }
+.k-sheet-h .k-iconbtn { margin-top: calc(-1 * var(--s-4)); flex: none; }
+.k-sheet-b { display: grid; gap: var(--s-16); align-content: start; min-width: 0; padding: var(--s-24) var(--s-32) var(--s-48); overflow: auto; overscroll-behavior: contain; font-size: var(--fs-16); line-height: var(--lh-body); }
+.k-sheet-b > * { min-width: 0; }
 .k-sheet-b p { margin: 0; }
 .k-sheet-b h3 { margin: 0; font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
-.k-sheet-b dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--s-8) var(--s-16); }
-.k-sheet-b dt { color: var(--muted); }
-.k-sheet-b dd { margin: 0; color: var(--ink); font-size: var(--fs-14); line-height: var(--lh-body); }
-.k-sheet-b pre { margin: 0; padding: var(--s-16); border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--code); white-space: pre-wrap; }
-.k-sheet-f { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-12); padding: var(--s-16) var(--s-24); border-top: 1px solid var(--line); background: var(--card); }
+.k-sheet-b dl { margin: 0; display: grid; grid-template-columns: minmax(96px, auto) minmax(0, 1fr); gap: var(--s-8) var(--s-16); }
+.k-sheet-b dt { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-sheet-b dd { margin: 0; min-width: 0; color: var(--ink); font-size: var(--fs-14); line-height: var(--lh-body); overflow-wrap: anywhere; }
+.k-sheet-b pre { margin: 0; padding: var(--s-16); border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
+.k-sheet-b code { overflow-wrap: anywhere; }
+/* lists of named rows inside a sheet (the mock's ul.plain), for every caller */
+.k-sheet-b :is(ul.plain, ul.sheet-list) { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.k-sheet-b :is(ul.plain, ul.sheet-list) > li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-4) var(--s-12); min-height: 44px; padding: var(--s-8) 0; border-bottom: 1px solid var(--line); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
+.k-sheet-b :is(.pass, .fail) { font-weight: 600; color: var(--ink); }
+.k-sheet-f { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-12); padding: var(--s-16) var(--s-32) var(--s-24); border-top: 1px solid var(--line); background: var(--card); }
+
+/* the parts of an explaining sheet: what, state, why, what to do */
+.k-part { display: grid; gap: var(--s-12); min-width: 0; }
+.k-part + .k-part { padding-top: var(--s-24); border-top: 1px solid var(--line); }
+.k-sheet-b:has(> .k-part) { gap: var(--s-24); }
+.k-part-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-8) var(--s-12); }
+.k-sheet-b .k-part-h h3 { color: var(--muted); font: 600 var(--fs-14)/var(--lh-body) var(--sans); }
+.k-part > p, .k-part li { color: var(--body); }
+:where(.k-part) :where(ol, ul) { display: grid; gap: var(--s-8); margin: 0; padding-left: var(--s-24); }
+.k-part-src { display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-8); align-items: baseline; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-part-src > span:first-child { font-weight: 600; color: var(--ink); }
+/* the recommended fix: the one highlighted part */
+.k-part-fix { padding: var(--s-16) var(--s-24) var(--s-24); border-radius: var(--r); background: var(--sel); box-shadow: inset 3px 0 0 var(--action); }
+.k-part + .k-part-fix { margin-top: 0; padding-top: var(--s-16); border-top: 0; }
+.k-sheet-b .k-part-fix .k-part-h h3 { color: var(--ink); }
+.k-part-fix > p { color: var(--ink); }
+/* the evidence: label and value rows on hairlines */
+.k-sheet-b dl.k-facts { gap: 0; border-top: 1px solid var(--line); }
+.k-facts > :is(dt, dd) { padding: var(--s-8) 0; border-bottom: 1px solid var(--line); }
+.k-facts > dt { padding-right: var(--s-16); }
+.k-nm { color: var(--muted); font-style: italic; }
+/* what each button changes and how to undo it: the last part of the body */
+.k-terms dd { display: grid; gap: var(--s-4); color: var(--body); }
+.k-terms dt { color: var(--ink); font-weight: 600; }
+.k-terms b { font-weight: 600; color: var(--ink); }
+.k-facts > :is(dt, dd):nth-last-child(-n + 2) { border-bottom: 0; }
 
 /* drawer: the same sheet, holding filters (the mock's .hdrawer) */
 .k-drawer .k-sheet-b { gap: var(--s-24); }
