@@ -188,7 +188,7 @@ export function searchHistory(query) {
     if (skip !== 'types' && f.types.length && !f.types.includes(r.type)) return false;
     if (skip !== 'components' && f.components.length && !f.components.some((c) => r.components.includes(c))) return false;
     if (f.since && r.date < f.since) return false;
-    if (f.breaking && !r.breaking) return false;
+    if (skip !== 'breaking' && f.breaking && !r.breaking) return false;
     if (f.repo && r.repo !== f.repo && !(f.repo === 'chip' && r.source === 'CHIP review card')) return false;
     if (skip !== 'status' && f.status.length && !f.status.includes(r.status)) return false;
     return p.terms.every((t) => r.text.includes(t)) || (p.terms.length > 1 && p.terms.filter((t) => r.text.includes(t)).length >= Math.ceil(p.terms.length * 0.6));
@@ -196,7 +196,8 @@ export function searchHistory(query) {
   let records = all.filter((r) => match(r));
   if (p.terms.length) records = records.map((r) => ({ r, s: p.terms.filter((t) => r.title.toLowerCase().includes(t)).length * 3 + p.terms.filter((t) => r.text.includes(t)).length })).sort((a, b) => b.s - a.s || Date.parse(b.r.date) - Date.parse(a.r.date)).map((x) => x.r);
   if (query.sort === 'oldest') records = [...records].sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
-  // counts for the quick chips and the drawer: what each option would show
+  // counts for the quick chips and the drawer: what each option would show,
+  // with every other filter as it is (so a count always matches its results)
   const typeCounts = Object.fromEntries(TYPES.map((t) => [t, all.filter((r) => match(r, 'types') && r.type === t).length]));
   const compCounts = {};
   for (const r of all.filter((x) => match(x, 'components'))) for (const c of r.components) compCounts[c] = (compCounts[c] ?? 0) + 1;
@@ -208,7 +209,7 @@ export function searchHistory(query) {
     filters: f,
     total: all.length,
     count: records.length,
-    counts: { types: typeCounts, components: compCounts, status: statusCounts, breaking: all.filter((r) => r.breaking).length },
+    counts: { types: typeCounts, anyType: all.filter((r) => match(r, 'types')).length, components: compCounts, status: statusCounts, breaking: all.filter((r) => match(r, 'breaking') && r.breaking).length },
     records: records.slice(0, 80).map(({ text, body, ...r }) => ({ ...r, files: (r.files ?? []).slice(0, 12) })),
     timeline: records.slice(0, 60).map((r) => ({ id: r.id, date: r.date, title: r.title, type: r.type })),
   };

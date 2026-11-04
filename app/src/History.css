@@ -23,7 +23,9 @@
 
 /* the results block */
 .hblock { display: grid; gap: var(--s-24); min-width: 0; }
-.hquick { display: flex; flex-wrap: wrap; gap: var(--s-12) var(--s-16); align-items: center; justify-content: space-between; }
+.hquick { display: flex; flex-wrap: wrap; gap: var(--s-12) var(--s-16); align-items: center; }
+.hquick > :last-child { margin-left: auto; } /* Filters, at the end; Breaking only sits beside the type chips */
+.hquick > .k-chip { margin: 0; }
 .hquick .k-chip .n { margin-left: var(--s-4); }
 .hquick [data-bella-component='button'] .n { margin-left: var(--s-8); font-family: var(--code); font-weight: 400; }
 .hecho { margin-top: calc(-1 * var(--s-8)) !important; color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }

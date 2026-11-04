@@ -18,7 +18,6 @@ const QUICK = [
   ['Visual', 'Visual'],
   ['Contract', 'Contract'],
   ['Fix', 'Fix'],
-  ['brk', 'Breaking'],
 ];
 const STATUSES = ['Decided', 'Merged', 'Shipped', 'On a branch', 'Undone'];
 const SICON = { Decided: '◆', Merged: '●', Shipped: '✓', 'On a branch': '◌', Undone: '↺' };
@@ -678,10 +677,11 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
   const searchName = f.q || applied.map(([, , l]) => l).join(' · ');
   const unapply = (k, v) => set({ [k]: Array.isArray(f[k]) ? f[k].filter((x) => x !== v) : EMPTY[k] });
   const toggle = (k, v, on) => set({ [k]: on ? [...f[k], v] : f[k].filter((x) => x !== v) });
-  const quickOn = f.breaking ? 'brk' : !f.types.length ? 'all' : f.types.length === 1 ? f.types[0] : null;
-  const quickN = (k) => (k === 'all' ? data?.total : k === 'brk' ? counts?.breaking : counts?.types?.[k]);
+  // the type chips pick one type at a time; Breaking is its own on/off filter beside them
+  const quickOn = !f.types.length ? 'all' : f.types.length === 1 ? f.types[0] : null;
+  const quickN = (k) => (k === 'all' ? counts?.anyType : counts?.types?.[k]);
   const quick = QUICK.filter(([k]) => quickN(k) || quickOn === k).map(([id, label]) => ({ id, label, count: quickN(id) ?? '…' }));
-  const onQuick = (k) => (k === 'all' ? set({ types: [], breaking: false }) : k === 'brk' ? set({ breaking: !f.breaking }) : set({ types: quickOn === k ? [] : [k] }));
+  const onQuick = (k) => set({ types: k === 'all' || quickOn === k ? [] : [k] });
 
   // the summary: short first, every claim numbered to its record; says so when there is too little to sum up
   const src = records.slice(0, 4);
@@ -727,6 +727,11 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
       <div className="hblock">
         <div className="hquick">
           <Chips label="Quick filters" items={quick} value={quickOn} onChange={onQuick} />
+          {counts?.breaking || f.breaking ? (
+            <button type="button" className="k-chip" aria-pressed={f.breaking} onClick={() => set({ breaking: !f.breaking })}>
+              Breaking only<span className="n">{counts?.breaking ?? '…'}</span>
+            </button>
+          ) : null}
           <Button onClick={() => setDrawer(true)}>
             Filters{nOn ? <span className="n">{nOn}</span> : null}
           </Button>
