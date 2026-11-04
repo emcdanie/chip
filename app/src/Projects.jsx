@@ -13,8 +13,10 @@ const JSON_HEADERS = { 'content-type': 'application/json' };
 const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '');
 const ago = (iso) => {
   if (!iso) return '';
-  const m = Math.round((Date.now() - new Date(iso)) / 60e3);
-  return m < 60 ? `${Math.max(1, m)} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : day(iso);
+  const s = Math.round((Date.now() - new Date(iso)) / 1e3);
+  if (s < 60) return 'just now';
+  const m = Math.round(s / 60);
+  return m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : day(iso);
 };
 const RUN = {
   running: { tone: 'pass', word: 'Running' },
@@ -209,7 +211,7 @@ function Panel({ p, reload }) {
         <Note p={p} onSaved={() => reload(p.id)} />
       </div>
 
-      <Card title="In progress" sub={lv ? `Read live from git${lv.prs ? ' and GitHub' : ''}, ${ago(new Date().toISOString())}.` : 'Reading git…'} action={<LinkButton onClick={() => reload(p.id, true)}>Read again</LinkButton>}>
+      <Card title="In progress" sub={lv ? `Read live from git${lv.prs ? ' and GitHub' : ''}, ${ago(lv.readAt)}.` : 'Reading git…'} action={<LinkButton onClick={() => reload(p.id, true)}>Read again</LinkButton>}>
         {lv ? (
           <div className="pj-grid">
             <div>

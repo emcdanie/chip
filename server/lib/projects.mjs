@@ -313,7 +313,7 @@ async function live(p, fresh) {
   const hit = cache.get(p.id);
   if (!fresh && hit && Date.now() - hit.at < 30e3) return hit.v;
   const [g, prs] = await Promise.all([gitState(p), prsOf(p)]);
-  const v = { ...g, prs, claude: claudeSessions(p) };
+  const v = { ...g, prs, claude: claudeSessions(p), readAt: new Date().toISOString() };
   cache.set(p.id, { at: Date.now(), v });
   return v;
 }
