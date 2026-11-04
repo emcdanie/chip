@@ -980,18 +980,34 @@ function placePins(geo, widths) {
   const cx = (p) => p.edge.x + p.edge.w / 2;
   const T = ps.filter((p) => !below(p)).sort((a, b) => cx(a) - cx(b));
   const B = ps.filter((p) => below(p)).sort((a, b) => cx(a) - cx(b));
+  // a row too wide for the stage wraps onto more lines, outward from the specimen
+  const room = cw - 2 * PAD;
   for (const [list, row] of [[T, 'T'], [B, 'B']]) {
-    const total = list.reduce((a, p) => a + bwOf(p), 0) + Math.max(0, list.length - 1) * 12;
-    let x = clamp(box.x + box.w / 2 - total / 2, PAD, Math.max(PAD, cw - PAD - total));
-    const y = row === 'T' ? box.y - 72 - CH / 2 : box.y + box.h + 72 - CH / 2;
+    const lines = [[]];
+    let used = 0;
     for (const p of list) {
       const bw = bwOf(p);
-      const e = p.edge;
-      const mid = x + bw / 2;
-      const inset = Math.min(3, e.w / 2);
-      out.push({ p, side: row, x, y, bw, ex: mid, ey: row === 'T' ? y + CH : y, ax: clamp(mid, e.x + inset, e.x + e.w - inset), ay: row === 'T' ? e.y : e.y + e.h });
-      x += bw + 12;
+      if (lines.at(-1).length && used + 12 + bw > room) {
+        lines.push([]);
+        used = 0;
+      }
+      used += (lines.at(-1).length ? 12 : 0) + bw;
+      lines.at(-1).push(p);
     }
+    lines.forEach((line, li) => {
+      const total = line.reduce((a, p) => a + bwOf(p), 0) + Math.max(0, line.length - 1) * 12;
+      let x = clamp(box.x + box.w / 2 - total / 2, PAD, Math.max(PAD, cw - PAD - total));
+      const step = li * (CH + 12);
+      const y = row === 'T' ? box.y - 72 - CH / 2 - step : box.y + box.h + 72 - CH / 2 + step;
+      for (const p of line) {
+        const bw = bwOf(p);
+        const e = p.edge;
+        const mid = x + bw / 2;
+        const inset = Math.min(3, e.w / 2);
+        out.push({ p, side: row, x, y, bw, ex: mid, ey: row === 'T' ? y + CH : y, ax: clamp(mid, e.x + inset, e.x + e.w - inset), ay: row === 'T' ? e.y : e.y + e.h });
+        x += bw + 12;
+      }
+    });
   }
   return out;
 }
