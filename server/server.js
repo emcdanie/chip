@@ -25,6 +25,7 @@ import { accept, fixableChecks, reviewCard, reviewImage, undo, waitingChecks } f
 import { needsYou } from './lib/needs.mjs';
 import { historyRecord, searchHistory } from './lib/history.mjs';
 import { systemMap } from './lib/map.mjs';
+import { playMap, playPages, saveBrief, startPlayProxy, SITE_URL, PLAY_PORT } from './lib/play.mjs';
 
 const app = express();
 app.use(express.json());
@@ -504,6 +505,26 @@ app.get('/component-tests/:id', (req, res) => {
 // GET /term/repos: the folders a workspace terminal may open in.
 app.get('/term/repos', (_req, res) => res.json(repoList()));
 
+// The Playground: a site page live through its own proxy, its source map, and
+// the brief for Claude. Never writes to the site.
+app.get('/play/pages', (_req, res) => res.json({ site: SITE_URL, proxy: `http://127.0.0.1:${PLAY_PORT}`, pages: playPages() }));
+app.get('/play/map', (req, res) => {
+  try {
+    const map = playMap(String(req.query.route || '/about'));
+    map ? res.json(map) : res.status(404).json({ error: 'No such page' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.post('/play/brief', (req, res) => {
+  if (req.headers.origin && !APP_ORIGINS.has(req.headers.origin)) return res.status(403).json({ error: 'Not from CHIP' });
+  try {
+    res.json(saveBrief(req.body ?? {}));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 // Bound to localhost: nothing on the network can reach /ask, /cmd or /term.
 const server = app.listen(PORT, '127.0.0.1', () => {
   console.log(`[CHIP] http://localhost:${PORT} · model ${CHIP_MODEL} · embeddings ${CHIP_EMBED_MODEL} · ${OLLAMA_URL}`);
@@ -512,6 +533,7 @@ const server = app.listen(PORT, '127.0.0.1', () => {
     .catch((err) => console.error('[CHIP] warm-up failed:', err.message));
 });
 attachTerminal(server, { port: PORT, origins: APP_ORIGINS });
+startPlayProxy([...APP_ORIGINS]);
 
 // Overview should never open on "Not run yet": run the fast checks once at
 // start when they have no result (the stories audit takes minutes; it waits

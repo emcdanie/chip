@@ -11,10 +11,9 @@ import Button from '@bella/components/Button/Button';
 import { Segmented, StatusPill, segPanelProps, Chips } from './kit/index.jsx';
 import { SpecStage, keyboardOf } from './AtlasSpec.jsx';
 import { canSee, settingsOf } from './visibility.jsx';
-import { SPECIMENS, VARIANTS, SHAPES, PLAY, COMPONENTS } from './specimens.jsx';
+import { SPECIMENS, VARIANTS, SHAPES, COMPONENTS } from './specimens.jsx';
 import { layout, targetsOf } from './anatomy.js';
 import { forceAttr, installForcedStates } from './forcedStates.js';
-import { checkSet, overridesOf, baseOf } from './Sandbox.jsx';
 import './atlas.css';
 
 function useReducedMotion() {
@@ -327,7 +326,6 @@ function Exploded({ name, parts, hl, setHl, zoom, overrides }) {
 
 const TABS = [
   { id: 'usage', label: 'Usage' },
-  { id: 'play', label: 'Playground' },
   { id: 'anatomy', label: 'Anatomy' },
   { id: 'variants', label: 'Variants' },
   { id: 'states', label: 'States' },
@@ -656,142 +654,6 @@ function UsagePanel({ c, doc, notify, onOpen }) {
   );
 }
 
-// the steps a padding token can take: BELLA's 4px space scale around the current value
-function padSteps(base) {
-  const b = parseFloat(base);
-  if (!Number.isFinite(b)) return [];
-  return [b - 4, b, b + 4, b + 8].filter((n) => n >= 0).map(String);
-}
-
-function PlayPanel({ c, bella, spec, theme }) {
-  const P = PLAY[c.name];
-  const props = (spec?.props ?? []).filter((p) => !['className', 'onClick', 'linkComponent', 'href', 'ariaLabel'].includes(p.name));
-  const controls = props
-    .map((p) => {
-      const opts = [...String(p.values).matchAll(/'([^']+)'/g)].map((m) => m[1]);
-      if (p.name === 'children') return { ...p, kind: 'text' };
-      if (opts.length > 1) return { ...p, kind: 'select', opts };
-      if (p.values === 'boolean') return { ...p, kind: 'check' };
-      return null;
-    })
-    .filter(Boolean);
-  const init = useCallback(() => {
-    const v = { ...(P?.props ?? {}) };
-    for (const k of controls) {
-      if (k.kind === 'select') v[k.name] = String(k.default ?? '').replace(/'/g, '') || k.opts[0];
-      if (k.kind === 'text') v.children = P?.children ?? '';
-    }
-    if (c.name === 'Button' && c.variants?.includes('primary')) v.variant = 'primary';
-    return v;
-  }, [c.id, spec]);
-  const [vals, setVals] = useState(init);
-  useEffect(() => setVals(init()), [init]);
-  const pad = c.sandbox?.paddingX;
-  const base = baseOf(c);
-  const [px, setPx] = useState(base.paddingX ?? null);
-  useEffect(() => setPx(baseOf(c).paddingX ?? null), [c.id]);
-  const [ran, setRan] = useState(false);
-  useEffect(() => setRan(false), [c.id, px]);
-  const draft = { ...base, ...(px != null ? { paddingX: px } : {}) };
-  const overrides = overridesOf(c, draft);
-  const changed = px != null && px !== base.paddingX;
-  const checks = ran ? checkSet(bella, c, draft, null, theme) : [];
-  const { children, ...rest } = vals;
-  const live = P ? <P.C {...rest}>{children}</P.C> : renderOf(c);
-  const set = (k, v) => setVals((o) => ({ ...o, [k]: v }));
-  return (
-    <Panel
-      name="play"
-      label="Props and token"
-      insp={
-        <>
-          <p className="insp-h">Props</p>
-          {P && controls.length ? (
-            controls.map((k) =>
-              k.kind === 'check' ? (
-                <label key={k.name} className="pgf chk2 k-chk">
-                  <input type="checkbox" checked={!!vals[k.name]} onChange={(e) => set(k.name, e.target.checked)} /> <span>{k.name}</span>
-                </label>
-              ) : k.kind === 'select' ? (
-                <label key={k.name} className="pgf">
-                  <span>{k.name}</span>
-                  <select value={vals[k.name] ?? ''} onChange={(e) => set(k.name, e.target.value)}>
-                    {k.opts.map((o) => (
-                      <option key={o}>{o}</option>
-                    ))}
-                  </select>
-                </label>
-              ) : (
-                <label key={k.name} className="pgf">
-                  <span>{k.name}</span>
-                  <input value={vals.children ?? ''} onChange={(e) => set('children', e.target.value)} />
-                </label>
-              )
-            )
-          ) : (
-            <p className="sub2">{spec ? `No props wired for ${c.name} here yet: the preview is its specimen.` : 'Reading the props…'}</p>
-          )}
-          {pad ? (
-            <>
-              <p className="insp-h">Token</p>
-              <div className="pgf">
-                <span>
-                  <code>{pad.token}</code>
-                </span>
-                <RadioSeg label="Padding" items={padSteps(base.paddingX).map((n) => ({ id: n, label: n }))} value={px} onChange={setPx} />
-              </div>
-            </>
-          ) : null}
-          {changed ? (
-            <div className="pgchange k-chrome">
-              <p>
-                <b>1 change</b> · padding-inline {base.paddingX} → {px}
-              </p>
-              <Button variant="secondary" onClick={() => setRan(true)}>
-                Run the checks against it
-              </Button>
-            </div>
-          ) : null}
-        </>
-      }
-    >
-      <p className="cap">Try a change on the real component. Only this preview moves; nothing is written to BELLA.</p>
-      <div className="pgcanvas grid">
-        <div className="a-spec" style={overrides}>
-          {live}
-        </div>
-      </div>
-      <ol className="pgsteps" aria-label="How the playground works">
-        <li>
-          <b>Change</b> {pad ? 'a prop or the padding token' : 'a prop'} on the right. Only this preview moves.
-        </li>
-        <li>
-          <b>Run the checks</b> against the change: contrast, contract, target size.
-        </li>
-        <li>
-          <b>Take it to a session.</b> Nothing is written to BELLA from here.
-        </li>
-      </ol>
-      {ran ? (
-        <section aria-labelledby="pgKT" className="a-checks">
-          <h2 className="h3s" id="pgKT">
-            The checks, run against the change
-          </h2>
-          <ul className="k-list">
-            {checks.map((k) => (
-              <li key={k.key}>
-                <span>
-                  <b>{k.label}</b> · {k.text}
-                </span>
-                <StatusPill tone={k.na ? 'neutral' : k.ok ? 'pass' : 'fail'}>{k.na ? 'Not covered' : k.ok ? 'Passes' : 'Fails'}</StatusPill>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-    </Panel>
-  );
-}
 
 function AnatomyPanel({ c, reduced }) {
   const parts = c.parts ?? [];
@@ -1743,7 +1605,6 @@ export default function Atlas({ c, bella, theme, onOpen, role = 'admin', vis = {
 
   const panel = {
     usage: () => <UsagePanel c={c} doc={doc} notify={setToast} onOpen={onOpen} />,
-    play: () => <PlayPanel c={c} bella={bella} spec={spec} theme={theme} />,
     anatomy: () => <AnatomyPanel c={c} reduced={reduced} />,
     variants: () => <VariantsPanel c={c} doc={doc} />,
     states: () => <StatesPanel c={c} />,
