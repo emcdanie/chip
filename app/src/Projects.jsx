@@ -83,7 +83,6 @@ function Note({ p, onSaved }) {
 }
 
 function Panel({ p, reload }) {
-  const run = RUN[p.run?.state] ?? RUN.none;
   const lv = p.live;
   const [busy, setBusy] = useState('');
   const poll = useRef(null);
@@ -156,16 +155,11 @@ function Panel({ p, reload }) {
   return (
     <div className="pj-panel">
       <section className="pj-hero k-card" aria-labelledby={`pj-h-${p.id}`}>
-        <div className="pj-hero-tx">
-          <div className="pj-tline">
-            <h2 className="pj-name" id={`pj-h-${p.id}`}>
-              {p.name}
-            </h2>
-            <StatusPill tone={run.tone}>{run.word}</StatusPill>
-            {p.run?.by === 'chip' ? <span className="pj-by">started by CHIP</span> : p.run?.by === 'outside' ? <span className="pj-by">already running, CHIP leaves it alone</span> : null}
-          </div>
-          {p.description ? <p className="pj-desc">{p.description}</p> : null}
-        </div>
+        {/* the card above names it and says whether it runs: no second header or badge here */}
+        <h2 className="k-vh" id={`pj-h-${p.id}`}>
+          {p.name}
+        </h2>
+        {p.description ? <p className="pj-desc">{p.description}</p> : null}
         <div className="pj-acts">
           <Button variant="primary" href={playHref(p.id)}>
             Open in Playground
@@ -343,7 +337,7 @@ export default function Projects({ projectId, onProject }) {
       <PageHeader
         meta="Workspace"
         title="Projects"
-        lede="Every repo CHIP works on, CHIP included: how it runs, which BELLA it uses, and what’s in progress right now. Pick one to open its terminal, its pages in the Playground, or its dev server."
+        lede="Every repo CHIP works on: how it runs and what’s in progress."
       />
       {error ? (
         <p className="k-note" role="alert">
@@ -364,6 +358,7 @@ export default function Projects({ projectId, onProject }) {
                     </small>
                     <span className="pj-facts">
                       <StatusPill tone={run.tone}>{run.word}</StatusPill>
+                      {p.id === id && detail[id]?.run?.by === 'chip' ? <span>started by CHIP</span> : p.id === id && detail[id]?.run?.by === 'outside' ? <span>started outside CHIP</span> : null}
                       <span>{p.pageCount} pages</span>
                       <span>{p.bella?.label}</span>
                       {p.prs != null ? <span>{p.prs} open PRs</span> : null}

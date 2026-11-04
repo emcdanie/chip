@@ -16,11 +16,10 @@
 
 /* the selected project */
 .pj-panel { display: grid; gap: var(--s-24); min-width: 0; }
-.pj-hero { display: grid; gap: var(--s-16); }
-.pj-tline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8) var(--s-16); }
-.pj-name { margin: 0; font: 400 var(--fs-28)/var(--lh-head) var(--display); color: var(--ink); }
-.pj-by { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
-.pj-desc { margin: var(--s-8) 0 0; max-width: 70ch; color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
+.pj-hero { display: grid; gap: var(--s-12); }
+/* the selected card's actions: joined to the cards row above */
+.pj-page .pj-panel { margin-top: calc(-1 * var(--s-16)); }
+.pj-desc { margin: 0; max-width: 70ch; color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
 .pj-acts { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
 .pj-err { margin: 0; }
 .pj-log { margin: 0; max-height: 12em; overflow: auto; padding: var(--s-12); border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
