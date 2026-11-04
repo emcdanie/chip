@@ -47,7 +47,7 @@ main h1:focus { outline: none; }
 .count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 var(--s-8); border-radius: var(--r); background: var(--neutral); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--code); }
 
 /* the nav: one list, every component one click away */
-.side { border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: var(--s-4); grid-column: 1; grid-row: 2; position: sticky; top: var(--frame-top); height: calc(100dvh - var(--frame-top)); overflow: auto; padding: var(--s-16) var(--s-12) var(--s-24); background: var(--card); border-right: 1px solid var(--line); overscroll-behavior: contain; }
+.side { display: flex; flex-direction: column; gap: var(--s-4); grid-column: 1; grid-row: 2; position: sticky; top: var(--frame-top); height: calc(100dvh - var(--frame-top)); overflow: auto; padding: var(--s-16) var(--s-12) var(--s-24); background: var(--card); border-right: 1px solid var(--line); overscroll-behavior: contain; }
 .sidecol { align-self: flex-start; min-height: var(--h-compact); padding: 0 var(--s-12); margin: 0 0 var(--s-8); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
 .sidecol:hover { border-color: var(--action); }
 .navrow { position: relative; display: flex; align-items: center; }
