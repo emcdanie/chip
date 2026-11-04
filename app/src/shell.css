@@ -67,9 +67,9 @@ main h1:focus { outline: none; }
 .nico svg { fill: none; stroke: currentColor; stroke-width: 2; }
 .nlab { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adot { display: inline-flex; align-items: center; gap: var(--s-4); padding: var(--s-4) var(--s-12); border-radius: var(--r); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; background: var(--neutral); color: var(--ink); }
-.pinb { flex: none; margin-left: var(--s-4); min-height: var(--h-compact); width: var(--h-compact); padding: 0; display: grid; place-items: center; border: 0; border-radius: var(--r-control); background: none; color: var(--muted); opacity: 0.45; cursor: pointer; }
+.pinb { flex: none; margin-left: var(--s-4); min-height: var(--h-compact); width: var(--h-compact); padding: 0; display: grid; place-items: center; border: 0; border-radius: var(--r-control); background: none; color: var(--muted); opacity: 0; cursor: pointer; }
 .pinb svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
-.pinb.on { opacity: 1; color: var(--ink); }
+.pinb.on { opacity: 1; color: var(--ink); } /* shown only when pinned, or on hover and focus */
 .pinb.on svg { fill: currentColor; }
 .pinb:hover { color: var(--ink); background: color-mix(in srgb, var(--action) 8%, transparent); }
 .navrow:hover .pinb, .navrow:focus-within .pinb, .pinb:focus-visible { opacity: 1; }

@@ -411,7 +411,7 @@ export default function App() {
             </span>
           ) : null}
         </a>
-        {pinRow(`comp:${c.id}`, c.name)}
+        {pinned ? pinRow(`comp:${c.id}`, c.name) : null}
       </li>
     );
   };
@@ -551,7 +551,7 @@ export default function App() {
           {ws === 'play' ? <Playground onToast={setToast} project={playTarget?.project} route={playTarget?.route} onTarget={setPlayTarget} /> : null}
           {ws === 'projects' ? <Projects projectId={projId} onProject={setProjId} /> : null}
           {ws === 'connectors' ? <Connectors narrow={narrow} /> : null}
-          {ws === 'atlas' ? <Atlas c={atlas} bella={bella} lens={lens} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={false} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} role={role} vis={vis} setVis={setVis} /> : null}
+          {ws === 'atlas' ? <Atlas c={atlas} bella={bella} lens={lens} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={false} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} role={role} vis={vis} setVis={setVis} pinned={atlas ? pins.includes(`comp:${atlas.id}`) : false} onPin={atlas ? () => togglePin(`comp:${atlas.id}`) : undefined} /> : null}
         </div>
       </main>
 

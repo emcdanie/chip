@@ -90,6 +90,9 @@ const CopyIcon = () => (
 );
 
 // a radio group drawn as the mock's .seg (a view switch inside a panel, not tabs)
+// the pointer modes' instructions, as tooltips on Inspect and Use
+const HINT = { inspect: 'Hover a part, click to pin it. Arrows move, Esc unpins.', use: 'The real thing: hover, press, tab to it.' };
+
 function RadioSeg({ label, items, value, onChange }) {
   const ref = useRef(null);
   function onKeyDown(e) {
@@ -104,7 +107,7 @@ function RadioSeg({ label, items, value, onChange }) {
   return (
     <div className="seg" role="radiogroup" aria-label={label} ref={ref} onKeyDown={onKeyDown}>
       {items.map((t) => (
-        <button key={t.id} type="button" role="radio" data-id={t.id} aria-checked={t.id === value} tabIndex={t.id === value ? 0 : -1} onClick={() => onChange(t.id)}>
+        <button key={t.id} type="button" role="radio" data-id={t.id} title={t.title} aria-checked={t.id === value} tabIndex={t.id === value ? 0 : -1} onClick={() => onChange(t.id)}>
           {t.label}
         </button>
       ))}
@@ -1446,7 +1449,7 @@ const firstSentence = (s) => {
   return t.match(/^.*?[.!?](\s|$)/)?.[0].trim() ?? t;
 };
 
-export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin', vis = { components: {} } }) {
+export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin', vis = { components: {} }, pinned, onPin }) {
   const reduced = useReducedMotion();
   const cfg = useMemo(() => (c ? cfgOf(c) : null), [c?.id]);
   const parts = useMemo(() => (c ? partsOf(c) : []), [c?.id]);
@@ -1459,6 +1462,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
   const [z, setZ] = useState(2);
   const [theme, setTheme] = useState('light');
   const [all, setAll] = useState(false);
+  const [allChecks, setAllChecks] = useState(false); // passing and not-run checks fold into one "N pass" pill
   const [sel, setSel] = useState(null);
   const [hov, setHov] = useState(null);
   const [live, setLive] = useState(null); // the state the pointer or keyboard put it in, in Use
@@ -1979,7 +1983,6 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       .catch(() => setToast('The CHIP server did not answer'));
   }
 
-  const hint = mode === 'inspect' ? 'Hover a part, click to pin it. Arrows move, Esc unpins.' : 'The real thing: hover, press, tab to it.';
   const sp = { 'data-theme': theme };
 
   return (
@@ -1989,9 +1992,16 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           <p className="k-meta">
             {crumb} · renders as <b>{c.rendersAs ?? 'unknown'}</b> · BELLA {bella.source?.version} @ <code>{bella.source?.commit}</code>
           </p>
-          <h1 className="k-h1" id="dm-h1" tabIndex={-1}>
-            {c.name}
-          </h1>
+          <div className="k-tline">
+            <h1 className="k-h1" id="dm-h1" tabIndex={-1}>
+              {c.name}
+            </h1>
+            {onPin ? (
+              <button type="button" className={`k-toggle dm-pin${pinned ? ' on' : ''}`} aria-pressed={!!pinned} onClick={onPin}>
+                Pin to the nav
+              </button>
+            ) : null}
+          </div>
           <p className="dm-lede">{firstSentence(c.description) || 'No description in the contract yet.'}</p>
           <button type="button" className="k-link" aria-expanded={read} aria-controls="dm-read" onClick={() => setRead(!read)}>
             {read ? 'Hide the description' : 'Read the full description'}
@@ -2007,25 +2017,12 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
             </div>
           ) : null}
         </div>
-        <div className="dm-nums">
-          {[
-            [c.tokens?.count ?? 0, 'tokens'],
-            [(c.props ?? []).length, 'props'],
-            [states.length, 'states'],
-            [(c.dont ?? []).length, 'rules'],
-          ].map(([n, l]) => (
-            <div key={l} className="dm-num">
-              <b>{n}</b>
-              <span>{l}</span>
-            </div>
-          ))}
-        </div>
       </section>
 
       <section aria-label="Checks" className="k-chrome">
         <div className="dm-checks" role="toolbar" aria-label="Live checks on the specimen" ref={ckRef} onKeyDown={(e) => roveKeys(e)}>
           <span className="dm-lbl">Live on the specimen</span>
-          {checks.map((k) => (
+          {checks.filter((k) => allChecks || ckClass(k) === 'fail' || ckClass(k) === 'needs').map((k) => (
             <button
               key={k.id}
               type="button"
@@ -2043,6 +2040,19 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
               {k.label} <small>{k.val}</small>
             </button>
           ))}
+          {checks.some((k) => ckClass(k) === 'pass' || ckClass(k) === 'grey') ? (
+            <button type="button" data-rv="" className={`dm-ck ${allChecks ? 'grey' : 'pass'} dm-more`} aria-expanded={allChecks} onClick={() => setAllChecks(!allChecks)}>
+              {allChecks ? (
+                'Show fewer'
+              ) : (
+                <>
+                  <i aria-hidden="true">✓</i>
+                  {checks.filter((k) => ckClass(k) === 'pass').length} pass
+                  {checks.some((k) => ckClass(k) === 'grey') ? <small>· {checks.filter((k) => ckClass(k) === 'grey').length} not run</small> : null}
+                </>
+              )}
+            </button>
+          ) : null}
         </div>
         <div className="dm-why" id="dm-why" aria-live="polite" hidden={!whyCheck}>
           {whyCheck ? (
@@ -2058,10 +2068,11 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       <section className="dm-work dm-card" aria-label="Specimen">
         <div className="dm-stage">
           <div className="dm-sbar k-chrome">
-            <RadioSeg label="Pointer" items={[{ id: 'inspect', label: 'Inspect' }, { id: 'use', label: 'Use' }]} value={mode} onChange={(v) => (setMode(v), setLive(null), v === 'use' && (setSel(null), setHov(null), setPlaying(false)))} />
-            <span className="dm-hint">{hint}</span>
-            <RadioSeg label="Zoom" items={[{ id: '1', label: '1×' }, { id: '2', label: '2×' }]} value={String(z)} onChange={(v) => setZ(+v)} />
-            <RadioSeg label="Specimen theme" items={[{ id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }]} value={theme} onChange={setTheme} />
+            <RadioSeg label="Pointer" items={[{ id: 'inspect', label: 'Inspect', title: HINT.inspect }, { id: 'use', label: 'Use', title: HINT.use }]} value={mode} onChange={(v) => (setMode(v), setLive(null), v === 'use' && (setSel(null), setHov(null), setPlaying(false)))} />
+            <span className="dm-hint" />
+            <button type="button" className="k-toggle dm-tog" aria-pressed={theme === 'dark'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              Dark
+            </button>
             <button type="button" className="k-toggle dm-tog" aria-pressed={all} onClick={() => setAll(!all)}>
               All at once
             </button>
@@ -2322,7 +2333,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           <p>Where the words still live. Today’s panels, unchanged, one row each.</p>
         </div>
         <div className="dm-behind dm-card">
-          <Row name="Contract" sum={`tokens/component.json → component.${c.id} · ${(c.usage ?? []).length} usage, ${(c.dont ?? []).length} rules, ${(c.parts ?? []).length} parts · ${c.hasContract ? (hl.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code') : NO_CONTRACT}`} hint="overview, compliance, file">
+          <Row name="Contract" sum={`tokens/component.json → component.${c.id} · ${c.tokens?.count ?? 0} tokens, ${(c.props ?? []).length} props, ${states.length} states · ${(c.usage ?? []).length} usage, ${(c.dont ?? []).length} rules, ${(c.parts ?? []).length} parts · ${c.hasContract ? (hl.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code') : NO_CONTRACT}`} hint="overview, compliance, file">
             <ContractPanel c={c} bella={bella} doc={doc} tests={tests} hist={hist} notify={notify} onOpen={onOpen} />
           </Row>
           <Row name="Accessibility" sum={`${c.minTarget ? `${c.minTarget.value} target` : 'no target'} · ${hl.contrast?.status === 'pass' ? `${hl.contrast.pairs} contrast pairs pass` : hl.contrast?.status === 'fail' ? 'contrast fails' : 'no pairs'} · ${keyboardOf(c).split('.')[0]}`} hint="role, name, keyboard">

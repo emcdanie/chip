@@ -370,3 +370,7 @@
 @media (prefers-reduced-motion: reduce) {
   .atlas .dm-specwrap, .atlas .dm-ck, .atlas .dm-verdict, .atlas .dm-anno, .atlas .dm-canvas { transition: none; }
 }
+/* the page's own Pin (the component tree has none) and the folded pass pill */
+.atlas .dm-pin { align-self: start; min-height: var(--h-compact); }
+.atlas .dm-pin.on { background: var(--sel); border-color: var(--action); }
+.atlas .dm-hint:empty { flex: 1 1 auto; min-width: 0; }
