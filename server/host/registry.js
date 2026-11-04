@@ -12,6 +12,7 @@ import { ROOT } from '../lib/config.mjs';
 import { logUsage, lastToolUses } from '../lib/usage.mjs';
 import { McpServer } from './mcp.js';
 import { CliServer } from './cli.js';
+import { FigmaRestServer } from './figma-rest.js';
 import { guard, take, writeBlocked } from './guard.js';
 
 // "${NAME}" -> process.env.NAME; "~/" -> the home folder
@@ -24,12 +25,25 @@ const fill = (v) =>
         ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fill(x)]))
         : v;
 
+// Built in, so it needs no config: Figma read over REST, the path that works
+// without the Figma app open. A config entry with the same name replaces it.
+const BUILT_IN = [
+  {
+    name: 'figma-rest',
+    kind: 'rest',
+    url: 'https://api.figma.com/v1',
+    env: { FIGMA_ACCESS_TOKEN: '${FIGMA_ACCESS_TOKEN}', FIGMA_FILE_KEY: '${FIGMA_FILE_KEY}' },
+    allow: ['read'],
+    note: 'Figma REST API with a personal access token from server/.env. Works without the Figma app open. Read only.',
+  },
+];
+
 function rawConfig() {
+  let list = [];
   try {
-    return JSON.parse(readFileSync(join(ROOT, 'chip.config.local.json'), 'utf8')).servers ?? [];
-  } catch {
-    return [];
-  }
+    list = JSON.parse(readFileSync(join(ROOT, 'chip.config.local.json'), 'utf8')).servers ?? [];
+  } catch {}
+  return [...list, ...BUILT_IN.filter((b) => !list.some((c) => c.name === b.name))];
 }
 const loadConfig = () => rawConfig().map(fill);
 
@@ -55,7 +69,7 @@ const live = new Map(); // name -> { adapter, status, error, tools }
 
 function entry(cfg) {
   if (!live.has(cfg.name)) {
-    const adapter = cfg.kind === 'cli' ? new CliServer(cfg) : new McpServer(cfg);
+    const adapter = cfg.kind === 'cli' ? new CliServer(cfg) : cfg.kind === 'rest' ? new FigmaRestServer(cfg) : new McpServer(cfg);
     live.set(cfg.name, { adapter, status: 'not tested', error: null, tools: null });
   }
   return live.get(cfg.name);
@@ -71,7 +85,7 @@ export function servers() {
     return {
       name: cfg.name,
       kind: cfg.kind,
-      transport: cfg.kind === 'cli' ? 'cli' : cfg.transport,
+      transport: cfg.kind === 'cli' ? 'cli' : cfg.kind === 'rest' ? 'https' : cfg.transport,
       where: r.url ?? [r.command, ...(r.args ?? [])].join(' '), // as written: ${NAME}, never the value
       allow: cfg.allow ?? [],
       note: cfg.note ?? null,
@@ -128,7 +142,7 @@ async function run(cfg, toolName, args, purpose) {
 export async function call({ server, tool, args = {}, purpose = null, session = null }) {
   const cfg = configOf(server);
   const e = entry(cfg);
-  if (!e.tools || !e.adapter.client && cfg.kind !== 'cli') await test(server); // a closed client reconnects
+  if (!e.tools || !e.adapter.client && cfg.kind === 'mcp') await test(server); // a closed client reconnects
   const t = e.tools?.find((x) => x.name === tool);
   if (!t) {
     const why = `${server} has no tool called "${tool}"${e.error ? ` (${e.error})` : ''}`;

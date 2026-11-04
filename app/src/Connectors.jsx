@@ -34,6 +34,14 @@ const figmaSteps = (where) => [
   ['Reconnect', 'If it still times out, quit Figma fully and start it again.'],
 ];
 
+// what figma-rest needs: two lines in server/.env, then a restart (the error names the missing one)
+const figmaRestSteps = [
+  ['Make a token', 'Figma › Settings › Security › Personal access tokens. Scopes: file content and file metadata, read only.'],
+  ['Add it to server/.env', 'The file is gitignored; the token never leaves this machine.', 'FIGMA_ACCESS_TOKEN='],
+  ['Add the library’s file key', 'The part after /design/ in the BELLA library’s Figma link.', 'FIGMA_FILE_KEY='],
+  ['Restart CHIP, then Test', 'CHIP reads server/.env when it starts.'],
+];
+
 const copy = (t) => navigator.clipboard?.writeText(t).catch(() => {});
 
 export default function Connectors() {
@@ -212,7 +220,7 @@ export default function Connectors() {
                 </>
               ) : null}
               <dt>Kind</dt>
-              <dd>{sheetServer.kind === 'cli' ? 'CLI tool' : `MCP over ${sheetServer.transport}`}</dd>
+              <dd>{sheetServer.kind === 'cli' ? 'CLI tool' : sheetServer.kind === 'rest' ? 'REST API over https' : `MCP over ${sheetServer.transport}`}</dd>
               <dt>Access</dt>
               <dd>{access(sheetServer)}</dd>
               <dt>Last answered</dt>
@@ -230,11 +238,12 @@ export default function Connectors() {
                 </>
               ) : null}
             </dl>
-            {sheetServer.status === 'error' && sheetServer.name === 'figma' ? (
+            {sheetServer.status === 'error' && ['figma', 'figma-rest'].includes(sheetServer.name) ? (
               <>
-                <h3>If it won’t answer</h3>
+                <h3>{sheetServer.name === 'figma' ? 'If it won’t answer' : 'To connect it'}</h3>
+                {sheetServer.name === 'figma' ? <p>Optional: figma-rest reads Figma without the app.</p> : null}
                 <ol className="cn-steps">
-                  {figmaSteps(sheetServer.where).map(([t, w, cmd]) => (
+                  {(sheetServer.name === 'figma' ? figmaSteps(sheetServer.where) : figmaRestSteps).map(([t, w, cmd]) => (
                     <li key={t}>
                       <b>{t}</b>
                       <span>{w}</span>
