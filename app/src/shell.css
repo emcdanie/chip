@@ -113,7 +113,8 @@ main h1:focus { outline: none; }
 .wp-bottom { left: 0; right: 0; bottom: 0; height: var(--wp-h); border-top: 1px solid var(--line); grid-template-rows: auto auto minmax(0, 1fr) auto; }
 .grip { position: absolute; z-index: 2; touch-action: none; }
 .grip::after { content: ''; position: absolute; border-radius: var(--r-control); background: transparent; transition: background 0.1s; }
-.grip:hover::after, .grip:focus-visible::after, .wp.dragging .grip::after { background: var(--action); }
+.grip:hover::after, .wp.dragging .grip::after { background: var(--action); }
+.grip:focus-visible::after { background: var(--focus-ring); }
 .grip:focus-visible { outline: none; }
 .wp-right .grip { left: -6px; top: 0; bottom: 0; width: 12px; cursor: col-resize; }
 .wp-right .grip::after { left: 4px; top: 0; bottom: 0; width: 4px; }
@@ -313,7 +314,8 @@ html.wp-dragging .xterm { pointer-events: none; }
 .hcol { display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; justify-items: center; border: 0; background: none; padding: 0; font: inherit; color: inherit; min-width: 0; cursor: pointer; }
 .hcol .hl { white-space: normal; overflow-wrap: anywhere; text-align: center; }
 .hcol .hv { grid-row: 4; padding-top: var(--s-4); white-space: normal; overflow-wrap: anywhere; text-align: center; }
-.hcol:hover .tube, .hcol:focus-visible .tube { outline: 2px solid var(--action); outline-offset: 3px; }
+.hcol:hover .tube { outline: 2px solid var(--action); outline-offset: 3px; }
+.hcol:focus-visible .tube { outline: var(--focus); outline-offset: 3px; }
 .hcol:focus-visible { outline: none; }
 .hstrip .tube { position: relative; width: min(64px, 100%); height: 136px; overflow: hidden; border-radius: var(--r); background: var(--tint); }
 .hstrip .tube::before, .hstrip .tube::after { content: ''; position: absolute; left: 0; right: 0; z-index: 2; border-top: 1px dotted color-mix(in srgb, var(--card) 75%, transparent); }

@@ -55,10 +55,11 @@
   --h-compact: 36px;
   --icon: 18px;
   --shadow: 0 1px 4px rgb(29 32 48 / 0.18); /* the floating selected tab, nothing else */
-  --focus: 3px solid var(--action);
+  --focus-ring: rgb(30 120 200); /* the action blue, darker: 3.9:1 or more on card, canvas, ground and inside a segmented control */
+  --focus: 3px solid var(--focus-ring);
 
   /* BELLA components inside CHIP take CHIP's focus ring and link colours */
-  --ring-focus-color: var(--action);
+  --ring-focus-color: var(--focus-ring);
   --component-link-default-foreground: var(--ink);
   --component-link-default-foreground-hover: var(--ink);
   --component-tabs-indicator: var(--action);
@@ -123,9 +124,9 @@
   --sort-on: rgb(110 182 240);
   --code-ground: rgb(15 17 23);
   --scrim: rgb(0 0 0 / 0.5);
-  --shadow: 0 1px 4px rgb(0 0 0 / 0.5);
   --edge: rgb(0 0 0 / 0.6);
   --focus-ring: var(--action); /* the bright blue already clears 3:1 on the dark grounds */
+  --shadow: 0 1px 4px rgb(0 0 0 / 0.5);
   color-scheme: dark;
 }
 
