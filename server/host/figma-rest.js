@@ -40,6 +40,7 @@ export class FigmaRestServer {
     if (!this.fileKey) throw new Error(MISSING.FIGMA_FILE_KEY);
     const f = await this.get(`/files/${this.fileKey}?depth=1`);
     this.fileName = f.name;
+    this.detail = `Reads “${f.name}”.`;
     const tool = (name, description) => ({ server: this.cfg.name, name, description, kind: 'read', inputSchema: { type: 'object' } });
     return [tool('get_file', `The whole of "${f.name}" as JSON.`), tool('get_nodes', 'Nodes by id: { ids: "1:2,1:3" }.')];
   }

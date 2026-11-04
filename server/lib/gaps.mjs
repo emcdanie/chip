@@ -4,11 +4,12 @@
 // (tokens/component.json), the built tokens (tokens/bella.css), the gate
 // scripts and the component sources. Where those can't suggest a fix, the
 // item says so and names what is needed instead of guessing.
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT } from './config.mjs';
+import { DATA_DIR, ROOT } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
-import { readResult } from './checks.mjs';
+import { BASE, readResult } from './checks.mjs';
+import { lastLint } from './spec-lint.mjs';
 
 const read = (rel) => readFileSync(join(BELLA, rel), 'utf8');
 const lineOf = (text, re) => text.split('\n').findIndex((l) => re.test(l)) + 1;
@@ -330,6 +331,166 @@ function noSuggester(gap, c) {
   };
 }
 
+/* ---------- who can fix it: CHIP on its own, Claude, or you ---------- */
+// Said on every item, so nothing is handed to a terminal without saying so.
+const CAN = {
+  chip: { who: 'chip', label: 'CHIP can fix this', how: 'CHIP makes the change on a local BELLA branch and commits it through BELLA’s gate. You keep it or undo it.' },
+  claude: { who: 'claude', label: 'Needs Claude', how: 'It needs new code or prose written. CHIP writes the brief; a Claude session writes the change.' },
+  you: { who: 'you', label: 'Needs you', how: 'It needs a decision or a check only you can make.' },
+};
+function canFor(gap, item) {
+  if (gap === 'dsds') return item.suggest ? CAN.chip : CAN.you;
+  if (gap === 'contrast') return item.suggest?.pairs?.some((p) => !p.fails.length) ? CAN.chip : CAN.you;
+  if (gap === 'a11y') return item.suggest ? { ...CAN.you, how: 'The facts come from the source, but the note says how it behaves for a screen reader: that needs a real check by you before it is written.' } : CAN.you;
+  return CAN.claude; // story, docs, contract: new code or prose
+}
+
+// the other ways to close it, each with who does it
+function alternativesFor(gap, c, item) {
+  const s = item.suggest;
+  if (gap === 'contrast' && s?.pairs) {
+    const fails = s.pairs.filter((p) => p.fails.length);
+    return [
+      ...(fails.length ? [{ text: `Add all ${s.pairs.length} pairs, the failing ${fails.length === 1 ? 'one' : fails.length} too. The gate then blocks every commit until the token is fixed.`, can: CAN.you }] : []),
+      ...(fails.length ? [{ text: `Fix the failing token${fails.length === 1 ? '' : 's'} first (${fails.map((p) => p.fg).join(', ')}), then add every pair. A token change moves every component that reads it.`, can: CAN.you }] : []),
+      { text: `Mark ${c.name} as checked another way and leave PAIRS alone. BELLA has no field for that yet, so it is a contract change.`, can: CAN.you },
+    ];
+  }
+  if (gap === 'contrast') return [{ text: 'Add a contract field saying it has no colours of its own, which the Contrast column would read.', can: CAN.you }, { text: 'Leave it unchecked and Skip it here.', can: CAN.you }];
+  if (gap === 'dsds') return [{ text: 'Leave it out of the spec on purpose (an internal or experimental component) and Skip it here.', can: CAN.you }];
+  if (gap === 'story') return [{ text: 'Copy the model story by hand in Storybook.', can: CAN.you }, { text: 'Skip it: a component without a story is never rendered by the gate’s visual audit.', can: CAN.you }];
+  if (gap === 'a11y') return [{ text: 'Let a Claude session draft the note from the source facts; you check it with a screen reader before it says “Verified”.', can: CAN.claude }];
+  return [{ text: 'Skip it for now.', can: CAN.you }];
+}
+
+/* ---------- Skip: kept across restarts; Not now is only the page's ---------- */
+const DECISIONS = join(DATA_DIR, 'gap-decisions.json');
+const readDecisions = () => {
+  try {
+    return JSON.parse(readFileSync(DECISIONS, 'utf8'));
+  } catch {
+    return {};
+  }
+};
+export function decideGap({ gap, name, decision }) {
+  if (!/^[a-z0-9]+$/.test(gap ?? '') || !/^[A-Za-z0-9]+$/.test(name ?? '')) throw new Error('gap and name are required');
+  const d = readDecisions();
+  if (decision === 'skip') d[`${gap}:${name}`] = { decision: 'skip', at: new Date().toISOString() };
+  else delete d[`${gap}:${name}`];
+  mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(DECISIONS, JSON.stringify(d, null, 2));
+  return { decisions: d };
+}
+
+/* ---------- the changes CHIP makes itself, for the review card path ---------- */
+// insert lines just before the close of the block that opens at `opener`
+function insertBefore(text, opener, close, lines) {
+  const at = text.indexOf(opener);
+  if (at < 0) throw new Error(`No "${opener}" in the file`);
+  const end = text.indexOf(close, at);
+  return `${text.slice(0, end)}${lines}\n${text.slice(end)}`;
+}
+const reviewId = (gap, name) => `gap-${gap}-${kebab(name)}`;
+
+/** The change for one gap, in review.mjs's fix shape; null when CHIP can't make it. */
+export function gapFix(gap, key) {
+  const ctx = load();
+  const c = ctx.bella.components.find((x) => kebab(x.name) === key);
+  if (!c) return null;
+  const item = gap === 'dsds' ? (!c.inDsds ? dsdsGap(c, ctx) : null) : gap === 'contrast' ? contrastGap(c, ctx) : null;
+  if (!item || canFor(gap, item).who !== 'chip') return null;
+  const base = { kind: `gap-${gap}`, withStaged: false, at: new Date().toISOString(), missing: item.missing, slug: reviewId(gap, c.name), token: null };
+  const blast = (sentence) => ({ sentence, components: [c.name], composedInto: [], sourceFiles: [], apps: [] });
+  if (gap === 'dsds') {
+    const line = item.suggest.code;
+    return {
+      ...base,
+      title: `Add ${c.name} to the DSDS spec`,
+      why: `${item.missing} ${RULES.dsds.rule} (${RULES.dsds.source})`,
+      change: { sentence: `Add ${line.trim()} to IMPL in scripts/build-dsds.mjs and rebuild, so bella.dsds.yaml gains ${c.name}’s entry from its contract.`, files: ['scripts/build-dsds.mjs', 'bella.dsds.yaml (generated)'], preview: line },
+      wontTouch: [`${c.name}’s code, story and contract stay as they are.`, 'No token, no other component’s entry.', `${BASE} and your checkout in ~/DEV/bella, including the uncommitted files there: the change sits on its own branch from ${BASE}’s last commit.`],
+      blast: blast(`Nothing renders differently. Agents reading bella.dsds.yaml find ${c.name}.`),
+      thisWillDo: 'add one line to IMPL, run npm run build',
+      after: [['Rebuilding the generated files (npm run build)', 'npm', ['run', 'build']]],
+      apply(dir) {
+        const f = join(dir, 'scripts/build-dsds.mjs');
+        const text = readFileSync(f, 'utf8');
+        if (new RegExp(`'?${kebab(c.name)}'?:\\s*'${c.name}'`).test(text)) throw new Error(`${c.name} is already in IMPL on ${BASE}`);
+        writeFileSync(f, insertBefore(text, 'const IMPL = {', '\n};', line.replace(/\n$/, '')));
+        return ['scripts/build-dsds.mjs', 'bella.dsds.yaml'];
+      },
+      commitMessage: `feat(dsds): extract ${c.name} into bella.dsds.yaml\n\n${item.missing}\nAdds ${line.trim()} to IMPL. Accepted from a CHIP gap report.`,
+    };
+  }
+  const keep = item.suggest.pairs.filter((p) => !p.fails.length);
+  const left = item.suggest.pairs.filter((p) => p.fails.length);
+  const code = keep.map((p) => `  ['${p.label}', '${p.fg}', '${p.bg}', ${p.min}],`).join('\n');
+  return {
+    ...base,
+    title: `Check ${c.name}’s contrast`,
+    why: `${item.missing} ${RULES.contrast.rule} (${RULES.contrast.source})`,
+    change: {
+      sentence: `Add ${keep.length} pair${keep.length === 1 ? '' : 's'} to PAIRS in scripts/contrast-pairs.mjs, each measured in all four themes and passing.${left.length ? ` ${left.length} failing pair${left.length === 1 ? ' stays' : 's stay'} out: ${left.map((p) => `${p.label} (${p.worst}:1 in ${p.fails.join(', ')})`).join('; ')}.` : ''}`,
+      files: ['scripts/contrast-pairs.mjs'],
+      preview: code,
+    },
+    wontTouch: ['No token changes colour.', `${c.name}’s code, story and contract stay as they are.`, `${BASE} and your checkout in ~/DEV/bella, including the uncommitted files there: the change sits on its own branch from ${BASE}’s last commit.`],
+    blast: blast(`Nothing renders differently. The gate checks ${keep.length} more pair${keep.length === 1 ? '' : 's'} on every commit; a token change that breaks one is refused.`),
+    thisWillDo: `add ${keep.length} line${keep.length === 1 ? '' : 's'} to PAIRS, run contrast-pairs.mjs`,
+    after: [['Checking the pairs (contrast-pairs.mjs)', 'node', ['scripts/contrast-pairs.mjs']]],
+    apply(dir) {
+      const f = join(dir, 'scripts/contrast-pairs.mjs');
+      writeFileSync(f, insertBefore(readFileSync(f, 'utf8'), 'const PAIRS = [', '\n];', code));
+      return ['scripts/contrast-pairs.mjs'];
+    },
+    commitMessage: `feat(contrast): check ${c.name}’s pairs\n\n${item.missing}\n${keep.map((p) => `${p.label}: worst ${p.worst}:1`).join('\n')}\nAccepted from a CHIP gap report.`,
+  };
+}
+
+/* ---------- the report behind "Review the fix" ---------- */
+const GAP_TITLE = { story: 'Story', docs: 'Docs page', contract: 'Token contract', dsds: 'DSDS entry', contrast: 'Contrast pairs', a11y: 'A11y note' };
+/** pairs: [[gap, Name], …] -> one item per pair, with evidence, the fix and who can make it. */
+export function gapReport(pairs) {
+  const all = gapFixes();
+  const ctx = { bella: JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8')) };
+  const decisions = readDecisions();
+  const items = pairs.slice(0, 60).map(([gap, name]) => {
+    const item = all.gaps[gap]?.[name];
+    const c = ctx.bella.components.find((x) => x.name === name);
+    if (!item || !c) return { gap, name, gone: true };
+    const lint = lastLint(c);
+    const can = canFor(gap, item);
+    return {
+      gap,
+      gapTitle: GAP_TITLE[gap] ?? gap,
+      name,
+      id: can.who === 'chip' ? reviewId(gap, name) : null,
+      missing: item.missing,
+      evidence: {
+        where: item.where,
+        pairs: item.suggest?.pairs ?? null,
+        model: item.suggest?.model ?? null,
+        figma: lint
+          ? lint.found
+            ? { via: lint.via, at: lint.at, where: lint.where, score: lint.score, variants: lint.variants, failing: (lint.findings ?? []).filter((f) => f.ok === false).map((f) => `${f.check}: ${f.what}`) }
+            : { via: lint.via ?? null, at: lint.at, missing: lint.reason ?? 'Not found in Figma.' }
+          : null,
+      },
+      recommend: item.suggest
+        ? { text: item.suggest.text, code: item.suggest.code ?? null, caveat: item.suggest.caveat ?? null }
+        : { text: item.noSuggest.why, needed: item.noSuggest.needed },
+      why: item.why,
+      alternatives: alternativesFor(gap, c, item),
+      change: item.change,
+      undo: item.undo,
+      can,
+      brief: item.brief,
+      decision: decisions[`${gap}:${name}`] ?? null,
+    };
+  });
+  return { at: all.at, bellaVersion: all.bellaVersion, base: BASE, items };
+}
+
 // { story: { Name: item }, dsds: {…}, contrast: {…}, a11y: {…}, docs, contract }
 export function gapFixes() {
   const ctx = load();
@@ -343,5 +504,7 @@ export function gapFixes() {
     out.contrast[c.name] = contrastGap(c, ctx);
     if (!c.hasA11yNotes) out.a11y[c.name] = a11yGap(c, ctx);
   }
-  return { at: new Date().toISOString(), bellaVersion: ctx.bella.source?.version, gaps: out };
+  // who can fix each one, said on the card before anything opens
+  for (const [gap, byName] of Object.entries(out)) for (const it of Object.values(byName)) it.can = canFor(gap, it);
+  return { at: new Date().toISOString(), bellaVersion: ctx.bella.source?.version, gaps: out, decisions: readDecisions() };
 }

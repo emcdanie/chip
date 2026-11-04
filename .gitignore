@@ -51,6 +51,9 @@ Thumbs.db
 
 # OBI component notes: personal, local only
 /data/notes.json
+/data/figma-baseline.json
+/data/connectors.json
+/data/gap-decisions.json
 /data/usage.jsonl
 
 # The Bar: watcher state, never committed

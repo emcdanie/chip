@@ -70,3 +70,19 @@
 .cn-steps li > span { font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); }
 .cn-cmd { display: flex; gap: var(--s-8); align-items: center; margin-top: var(--s-4); }
 .cn-cmd code { flex: 1; min-width: 0; padding: var(--s-8) var(--s-12); background: color-mix(in srgb, var(--ink) 5%, var(--card)); border-radius: var(--r); overflow-x: auto; white-space: nowrap; }
+
+/* the list tab: Figma's three read paths and its baseline, above the table */
+.cn-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-24); align-content: start; }
+.cn-for { color: var(--body); }
+.cn-muted { color: var(--muted); }
+.cn-paths { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-12); }
+.cn-paths li { display: grid; grid-template-columns: minmax(176px, auto) minmax(0, 1fr) auto; gap: var(--s-12); align-items: center; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); }
+.cn-paths .k-pill { justify-self: start; }
+.cn-paths b { color: var(--ink); font-weight: 600; }
+.cn-base { display: grid; gap: var(--s-12); margin-top: var(--s-16); padding-top: var(--s-16); border-top: 1px solid var(--line); }
+.cn-base p { margin: 0; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); }
+.cn-base b { color: var(--ink); font-weight: 600; }
+.cn-worst { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-8); }
+.cn-worst li { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
+.cn-score { display: inline-block; min-width: 4ch; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) { .cn-paths li { grid-template-columns: minmax(0, 1fr); } }

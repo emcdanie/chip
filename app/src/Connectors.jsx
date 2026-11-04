@@ -6,7 +6,7 @@
 // explains how to add a connector.
 import React, { useCallback, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, LinkButton } from './kit/index.jsx';
+import { PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, LinkButton, Card } from './kit/index.jsx';
 import SystemMap, { useMapControls } from './SystemMap.jsx';
 import { changed } from './ReviewSheet.jsx';
 import './Connectors.css';
@@ -14,16 +14,25 @@ import './Connectors.css';
 const JSON_HEADERS = { 'content-type': 'application/json' };
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never');
 
-// the server's status, in the mock's words
+// the server's status, in the mock's words. A path that isn't set up (no
+// token) reads as optional while another Figma path answers, never as failing.
 const STATUS = {
   error: { tone: 'fail', word: 'Not answering' },
   connected: { tone: 'pass', word: 'Answering' },
   disabled: { tone: 'neutral', word: 'Off' },
-  'not tested': { tone: 'neutral', word: 'Not tested' },
+  'not tested': { tone: 'neutral', word: 'Testing…' },
 };
-const statusOf = (s) => STATUS[s.status] ?? { tone: 'neutral', word: s.status };
-// the row's one action: Reconnect a failing server, Test the rest; an off one has none
-const actionOf = (s) => (s.disabled ? null : s.status === 'error' ? 'Reconnect' : s.status === 'connected' ? 'Test again' : 'Test');
+let figmaUp = false; // set from GET /host's figma summary on each load
+const statusOf = (s) =>
+  s.disabled && s.about?.unused
+    ? { tone: 'neutral', word: 'Not in use' }
+    : s.setup && s.about?.optional && figmaUp
+      ? { tone: 'neutral', word: 'Optional · not set up' }
+      : s.setup
+        ? { tone: 'needs', word: 'Not set up' }
+        : STATUS[s.status] ?? { tone: 'neutral', word: s.status };
+// the row's one action: Enable an off one, Set up a missing token, Reconnect a failing server, Test the rest
+const actionOf = (s) => (s.disabled ? 'Enable' : s.setup ? 'Set up' : s.status === 'error' ? 'Reconnect' : s.status === 'connected' ? 'Test again' : 'Test');
 const access = (s) => (s.allow.length ? s.allow.join(' and ') : 'nothing');
 
 // the steps to try when the Figma desktop MCP won't answer
@@ -42,11 +51,121 @@ const figmaRestSteps = [
   ['Restart CHIP, then Test', 'CHIP reads server/.env when it starts.'],
 ];
 
+// Notion: CHIP can't do the hosted MCP's browser sign-in, so it reads with an
+// internal integration token, the one npm run sync:notion uses too
+const notionSteps = [
+  ['Create the integration', 'notion.so/profile/integrations › New integration, named CHIP. Type: Internal. Capabilities: Read content only.'],
+  ['Share your pages with it', 'On each page, or one parent page: ••• › Connections › add the integration. It sees only what you share.'],
+  ['Add the secret to server/.env', 'Paste the integration’s secret after the =. The file is gitignored; the token never leaves this machine.', 'NOTION_API_TOKEN='],
+  ['Restart CHIP, then Test', 'CHIP reads server/.env when it starts.'],
+];
+
+// the three ways CHIP reads Figma, in plain words
+const FIGMA_PATHS = [
+  ['figma', 'Desktop app (MCP)', 'Needs the Figma app open with the file. Reads.'],
+  ['figma-console', 'Desktop Bridge (figma-console)', 'Needs the Desktop Bridge plugin running in Figma. Reads and writes.'],
+  ['figma-rest', 'REST API', 'No app needed. Reads. Needs a personal access token.'],
+];
+
+function Steps({ steps }) {
+  return (
+    <ol className="cn-steps">
+      {steps.map(([t, w, cmd]) => (
+        <li key={t}>
+          <b>{t}</b>
+          <span>{w}</span>
+          {cmd ? (
+            <span className="cn-cmd">
+              <code>{cmd}</code>
+              <Button onClick={() => copy(cmd)} ariaLabel={`Copy ${cmd}`}>
+                Copy
+              </Button>
+            </span>
+          ) : null}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 const copy = (t) => navigator.clipboard?.writeText(t).catch(() => {});
+
+// Compare with Figma, every component at once: the baseline and its rerun
+function FigmaCard({ servers, figma, onOpen }) {
+  const [base, setBase] = useState(null);
+  const load = useCallback(() => fetch('/figma-baseline').then((r) => r.json()).then(setBase).catch(() => {}), []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  useEffect(() => {
+    if (!base?.running) return;
+    const t = setInterval(load, 2000);
+    return () => clearInterval(t);
+  }, [base?.running, load]);
+  const run = () => fetch('/figma-baseline/run', { method: 'POST', headers: JSON_HEADERS }).then((r) => r.json()).then(setBase);
+  const by = Object.fromEntries((servers ?? []).map((s) => [s.name, s]));
+  const worst = (base?.rows ?? []).filter((r) => r.found && r.score != null && r.score < 100).sort((a, b) => a.score - b.score);
+  return (
+    <Card
+      className="cn-figma"
+      title="Figma"
+      sub={figma ? `${figma.connected ? 'Connected' : 'Not connected'}. ${figma.connected ? `Any one read path is enough; ${figma.sentence.toLowerCase()}` : figma.sentence}` : 'Reading…'}
+      action={
+        <Button onClick={run} disabled={!figma?.connected || !!base?.running}>
+          {base?.running ? `Comparing ${base.running.done} of ${base.running.total}…` : base?.at ? 'Compare all again' : 'Compare all with Figma'}
+        </Button>
+      }
+    >
+      <ul className="cn-paths">
+        {FIGMA_PATHS.map(([name, label, plain]) => {
+          const s = by[name];
+          if (!s) return null;
+          return (
+            <li key={name}>
+              <StatusPill tone={statusOf(s).tone}>{statusOf(s).word}</StatusPill>
+              <span>
+                <b>{label}.</b> {plain} {s.detail ? <span className="cn-muted">{s.detail}</span> : null}
+              </span>
+              <LinkButton onClick={() => onOpen(name)}>Details</LinkButton>
+            </li>
+          );
+        })}
+      </ul>
+      {base?.at ? (
+        <div className="cn-base">
+          <p>
+            <b>
+              Baseline, {when(base.at)}: {base.found} of {base.total} components found in Figma, average match {base.average}%.
+            </b>{' '}
+            Read through {base.via === 'desktop' ? 'the desktop app' : 'the REST API'}.{' '}
+            {Object.keys(base.byCheck).length ? `Differences: ${Object.entries(base.byCheck).map(([k, n]) => `${k} in ${n}`).join(', ')}.` : 'No differences.'}{' '}
+            {base.total - base.found ? `${base.total - base.found} have no component set in the file (${base.rows.filter((r) => !r.found).map((r) => r.name).join(', ')}).` : ''}
+          </p>
+          {worst.length ? (
+            <ul className="cn-worst">
+              {worst.slice(0, 6).map((r) => (
+                <li key={r.id}>
+                  <span className="cn-score">{r.score}%</span> <b>{r.name}</b> <span className="cn-muted">{r.failing.map((f) => f.what).join(' ')}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <p className="cn-muted">
+            Variables: the desktop app reads them on this plan (per component, and every collection in the file). The REST API’s variables endpoint is Enterprise only, so REST reads components and styles here, not variables.
+          </p>
+        </div>
+      ) : (
+        <p className="cn-muted">{figma?.connected ? 'No baseline yet: compare every component once to see where Figma and code differ.' : 'Connect one read path to compare.'}</p>
+      )}
+    </Card>
+  );
+}
 
 export default function Connectors() {
   const [tab, setTab] = useState('map');
   const [servers, setServers] = useState(null);
+  const [figma, setFigma] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [map, setMap] = useState(null);
   const [testing, setTesting] = useState(null);
   const [open, setOpen] = useState(null);
@@ -58,7 +177,11 @@ export default function Connectors() {
     () =>
       fetch('/host')
         .then((r) => r.json())
-        .then((r) => setServers(r.servers))
+        .then((r) => {
+          figmaUp = !!r.figma?.connected;
+          setFigma(r.figma);
+          setServers(r.servers);
+        })
         .catch(() => setError('The CHIP server is not answering.')),
     [],
   );
@@ -78,6 +201,34 @@ export default function Connectors() {
     return () => window.removeEventListener('chip:changed', again);
   }, [loadMap, loadHost]);
 
+  // Refresh: every connector tested again
+  async function refresh() {
+    setRefreshing(true);
+    setNote('');
+    try {
+      const r = await fetch('/host/test-all', { method: 'POST', headers: JSON_HEADERS }).then((x) => x.json());
+      figmaUp = !!r.figma?.connected;
+      setFigma(r.figma);
+      setServers(r.servers);
+      setNote(`Tested ${r.servers.filter((s) => !s.disabled).length}: ${r.servers.filter((s) => s.status === 'connected').length} answering.`);
+    } finally {
+      setRefreshing(false);
+      loadMap();
+      changed();
+    }
+  }
+
+  async function enable(s, on = true) {
+    setTesting(s.name);
+    try {
+      await fetch('/host/enable', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ server: s.name, enabled: on }) });
+      if (on) await fetch('/host/test', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ server: s.name }) });
+    } finally {
+      setTesting(null);
+      await loadHost();
+    }
+  }
+
   async function test(s) {
     setTesting(s.name);
     setNote('');
@@ -92,13 +243,16 @@ export default function Connectors() {
     }
   }
 
-  const busyWord = (s) => (s.status === 'error' ? 'Reconnecting…' : 'Testing…');
+  const busyWord = (s) => (s.disabled ? 'Enabling…' : s.status === 'error' ? 'Reconnecting…' : 'Testing…');
   const actButton = (s, inSheet) => {
     const a = actionOf(s);
     if (!a) return null;
+    // Set up opens the steps; in the sheet, the steps are showing, so it tests
+    const go = s.disabled ? () => enable(s) : a === 'Set up' && !inSheet ? () => setOpen(s.name) : () => test(s);
+    const label = a === 'Set up' && inSheet ? 'Test again' : a;
     return (
-      <Button variant={s.status === 'error' ? 'primary' : 'secondary'} onClick={() => test(s)} disabled={!!testing} ariaLabel={inSheet || testing === s.name ? undefined : `${a} ${s.name}`}>
-        {testing === s.name ? busyWord(s) : a}
+      <Button variant={s.status === 'error' && !s.setup ? 'primary' : 'secondary'} onClick={go} disabled={!!testing || refreshing} ariaLabel={inSheet || testing === s.name ? undefined : `${label} ${s.name}`}>
+        {testing === s.name ? busyWord(s) : label}
       </Button>
     );
   };
@@ -111,6 +265,7 @@ export default function Connectors() {
 
   const cols = [
     { key: 'name', label: 'Connector', open: true },
+    { key: 'for', label: 'What it’s for', sortVal: (s) => s.about?.purpose ?? '', render: (s) => <span className="cn-for">{s.about?.purpose ?? s.note}</span> },
     {
       key: 'status',
       label: 'Status',
@@ -118,7 +273,7 @@ export default function Connectors() {
       render: (s) => <StatusPill tone={statusOf(s).tone}>{statusOf(s).word}</StatusPill>,
     },
     { key: 'allow', label: 'Access', sortVal: access, render: access },
-    { key: 'lastUsed', label: 'Last answered', sortVal: (s) => s.lastUsed ?? '', render: (s) => when(s.lastUsed) },
+    { key: 'testedAt', label: 'Tested', sortVal: (s) => s.testedAt ?? '', render: (s) => (s.disabled ? '—' : when(s.testedAt)) },
     { key: 'act', label: 'Action', hideLabel: true, sort: false, end: true, render: (s) => actButton(s) },
   ];
   const sheetServer = servers?.find((s) => s.name === open);
@@ -160,7 +315,15 @@ export default function Connectors() {
             The tools CHIP reads from, whether each one answers, and what it is allowed to do. Set in <code>chip.config.local.json</code>.
           </>
         }
-        actions={tab === 'map' ? mapBar : null}
+        actions={
+          tab === 'map' ? (
+            mapBar
+          ) : (
+            <Button onClick={refresh} disabled={refreshing || !!testing}>
+              {refreshing ? 'Testing every connector…' : 'Refresh'}
+            </Button>
+          )
+        }
       />
       <Segmented
         id="conn"
@@ -185,6 +348,7 @@ export default function Connectors() {
       <section {...segPanelProps('conn', 'list', tab)} className="cn-panel">
         {error ? <p role="alert">{error}</p> : null}
         {servers && !servers.length ? <p>No servers yet. Copy chip.config.example.json to chip.config.local.json.</p> : null}
+        {servers?.length ? <FigmaCard servers={servers} figma={figma} onOpen={setOpen} /> : null}
         {servers?.length ? (
           <DataTable
             label="connectors"
@@ -194,8 +358,8 @@ export default function Connectors() {
             onRow={(s) => setOpen(s.name)}
             chips={[
               { id: 'all', label: 'All', test: () => true },
-              { id: 'err', label: 'Not answering', test: (s) => s.status === 'error' },
-              { id: 'nt', label: 'Not tested', test: (s) => s.status === 'not tested' },
+              { id: 'err', label: 'Not answering', test: (s) => s.status === 'error' && !s.setup },
+              { id: 'setup', label: 'Not set up', test: (s) => s.setup || s.disabled },
             ]}
           />
         ) : null}
@@ -209,9 +373,23 @@ export default function Connectors() {
           <>
             <p className="cn-sline">
               <StatusPill tone={statusOf(sheetServer).tone}>{statusOf(sheetServer).word}</StatusPill>
-              {sheetServer.error ? <span>{sheetServer.error}</span> : null}
+              {sheetServer.detail ? <span>{sheetServer.detail}</span> : sheetServer.error && !sheetServer.setup ? <span>{sheetServer.error}</span> : null}
             </p>
-            {sheetServer.note ? <p>{sheetServer.note}</p> : null}
+            {sheetServer.about ? (
+              <p>
+                {sheetServer.about.purpose} <span className="cn-muted">Needs: {sheetServer.about.needs}</span>
+              </p>
+            ) : sheetServer.note ? (
+              <p>{sheetServer.note}</p>
+            ) : null}
+            {sheetServer.about?.unused ? (
+              <p>
+                {sheetServer.disabled
+                  ? 'Off because nothing in CHIP calls it yet. Enable tests whether the command is installed; it stays read only.'
+                  : 'On. Nothing in CHIP calls it yet.'}{' '}
+                {!sheetServer.disabled ? <LinkButton onClick={() => enable(sheetServer, false)}>Turn it off again</LinkButton> : null}
+              </p>
+            ) : null}
             <dl>
               {feeds(sheetServer.name) ? (
                 <>
@@ -220,7 +398,9 @@ export default function Connectors() {
                 </>
               ) : null}
               <dt>Kind</dt>
-              <dd>{sheetServer.kind === 'cli' ? 'CLI tool' : sheetServer.kind === 'rest' ? 'REST API over https' : `MCP over ${sheetServer.transport}`}</dd>
+              <dd>{sheetServer.kind === 'cli' ? 'CLI tool' : ['rest', 'notion'].includes(sheetServer.kind) ? 'REST API over https' : `MCP over ${sheetServer.transport}`}</dd>
+              <dt>Tested</dt>
+              <dd>{sheetServer.disabled ? 'Off, not tested' : when(sheetServer.testedAt)}</dd>
               <dt>Access</dt>
               <dd>{access(sheetServer)}</dd>
               <dt>Last answered</dt>
@@ -238,26 +418,29 @@ export default function Connectors() {
                 </>
               ) : null}
             </dl>
-            {sheetServer.status === 'error' && ['figma', 'figma-rest'].includes(sheetServer.name) ? (
+            {sheetServer.status === 'error' && sheetServer.name === 'figma' ? (
               <>
-                <h3>{sheetServer.name === 'figma' ? 'If it won’t answer' : 'To connect it'}</h3>
-                {sheetServer.name === 'figma' ? <p>Optional: figma-rest reads Figma without the app.</p> : null}
-                <ol className="cn-steps">
-                  {(sheetServer.name === 'figma' ? figmaSteps(sheetServer.where) : figmaRestSteps).map(([t, w, cmd]) => (
-                    <li key={t}>
-                      <b>{t}</b>
-                      <span>{w}</span>
-                      {cmd ? (
-                        <span className="cn-cmd">
-                          <code>{cmd}</code>
-                          <Button onClick={() => copy(cmd)} ariaLabel={`Copy ${cmd}`}>
-                            Copy
-                          </Button>
-                        </span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ol>
+                <h3>If it won’t answer</h3>
+                <p>Any one Figma path is enough. The REST API reads Figma without the app.</p>
+                <Steps steps={figmaSteps(sheetServer.where)} />
+              </>
+            ) : null}
+            {sheetServer.name === 'figma-rest' && sheetServer.status !== 'connected' ? (
+              <>
+                <h3>{figmaUp ? 'Optional upgrade: read Figma with the app closed' : 'To connect it'}</h3>
+                {figmaUp ? <p>Figma already reads through the desktop app. A token lets CHIP read it with the app closed, and makes Compare faster.</p> : null}
+                <Steps steps={figmaRestSteps} />
+              </>
+            ) : null}
+            {sheetServer.name === 'notion' ? (
+              <>
+                <h3>{sheetServer.status === 'connected' ? 'To let it see more pages' : 'One step: a token in server/.env'}</h3>
+                <p>
+                  {sheetServer.status === 'connected'
+                    ? 'It sees only the pages shared with the integration. Share more with step 2; nothing else changes.'
+                    : 'Notion’s hosted MCP signs in through a browser, which CHIP can’t do. An internal integration token works instead, read only. CHIP never asks for it or types it: you add it.'}
+                </p>
+                <Steps steps={notionSteps} />
               </>
             ) : null}
           </>

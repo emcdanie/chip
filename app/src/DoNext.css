@@ -52,3 +52,33 @@
 @container acts (max-width: 640px) {
   .dn-fix dl > div { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
 }
+
+/* who can fix it, under the card's why; a skipped chip stays visible, quieter */
+.dn-can { display: block; margin-top: var(--s-4); font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
+.dn-chip.skipped { color: var(--muted); border-style: dashed; }
+.dn-tag { font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
+
+/* the report: one article per component, its actions at the foot */
+.gr { display: grid; gap: var(--s-16); container: acts / inline-size; }
+.gr-sum { margin: 0; font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
+.gr-item { border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
+.gr-item h3 { flex-wrap: wrap; font-family: var(--sans); }
+.gr-gap { font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
+.gr-item dl > div { grid-template-columns: 88px minmax(0, 1fr); }
+.gr-alts { margin: 0; padding-left: var(--s-16); display: grid; gap: var(--s-4); font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--body); }
+.gr-who { color: var(--muted); white-space: nowrap; }
+.gr-who::before { content: '· '; }
+.gr-how { margin: 0; font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
+.gr-acts { display: grid; gap: var(--s-12); padding: var(--s-16) var(--s-24); border-top: 1px solid var(--line); }
+.gr-acts > p { margin: 0; }
+.gr-btns { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
+.gr-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-4); font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--body); }
+.gr-steps [aria-current] { color: var(--ink); font-weight: 600; }
+.gr-done { padding: var(--s-8) var(--s-12); border-radius: var(--r); background: color-mix(in srgb, var(--pass) 18%, var(--card)); font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
+/* the report needs room for the four-theme table: wider than the kit's 520 */
+.k-sheet.gr-sheet { width: min(880px, 100vw); }
+.gr-sheet .gr-item dl { grid-template-columns: minmax(0, 1fr); gap: var(--s-8); }
+.gr-sheet .dn-pairs { display: block; overflow-x: auto; }
+@container acts (max-width: 640px) {
+  .gr-item dl > div { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+}

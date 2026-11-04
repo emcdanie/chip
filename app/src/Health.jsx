@@ -10,7 +10,7 @@ import Button from '@bella/components/Button/Button';
 import { Segmented, segPanelProps, Sheet } from './kit/index.jsx';
 import { CheckSheet, failingTokens, useChecks, when } from './Checks.jsx';
 import { openReview } from './ReviewSheet.jsx';
-import { GapCard, useGapFixes } from './DoNext.jsx';
+import { GapCard, GapReport, useGapFixes } from './DoNext.jsx';
 
 // the six things a component needs; the mock counts an unchecked contrast
 // pair as a gap (16 gaps), so it does here
@@ -93,6 +93,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   const [openAll, setOpenAll] = useState(false);
   const [sheet, setSheet] = useState(null); // { title, body, footer }
   const [checkId, setCheckId] = useState(null);
+  const [report, setReport] = useState(null); // [[gap, Name], …] in the gap report
   const [refreshing, setRefreshing] = useState(false);
   const [sync, setSync] = useState(null); // { at, changes } | { at, error }
   const lastLook = useRef(Date.now());
@@ -215,9 +216,14 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
         </>
       ),
       footer: miss.length ? (
-        <Button variant="primary" onClick={() => (setSheet(null), onSession(`${COLS[i].fix} in BELLA for ${miss.map((r) => r.name).join(', ')}.`))}>
-          Fix in a session
-        </Button>
+        <>
+          <Button variant="primary" onClick={() => (setSheet(null), setReport(miss.map((r) => [COLS[i].short.toLowerCase(), r.name])))}>
+            Review the fix{miss.length > 1 ? 'es' : ''}
+          </Button>
+          <Button variant="tertiary" onClick={() => (setSheet(null), onSession(`${COLS[i].fix} in BELLA for ${miss.map((r) => r.name).join(', ')}.`))}>
+            Open in a session
+          </Button>
+        </>
       ) : null,
     });
   };
@@ -349,7 +355,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                 {gaps} gaps across {withGaps.length} components, biggest first. None blocks a merge; each makes BELLA harder for an agent or a reviewer to use.
               </p>
             </div>
-            <Button onClick={() => onSession(`Close BELLA's ${gaps} coverage gaps, biggest first: ${acts.map((a) => `${COLS[a.i].fix} (${a.who.join(', ')})`).join('; ')}.`)}>Close all {gaps} in a session</Button>
+            <Button onClick={() => setReport(acts.flatMap((a) => a.who.map((n) => [COLS[a.i].short.toLowerCase(), n])))}>Review all {gaps}</Button>
           </div>
           <ol className="gaplist">
             {acts.map((a, k) => {
@@ -365,7 +371,9 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                   first={!k}
                   fixes={fixes.data?.gaps?.[gap]}
                   fixesError={fixes.error}
+                  decisions={fixes.data?.decisions}
                   onOpen={() => colSheet(a.i)}
+                  onReview={setReport}
                   onSession={onSession}
                 />
               );
@@ -611,6 +619,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
         {sheet?.body}
       </Sheet>
       <CheckSheet c={checkId ? byId[checkId] : null} onClose={() => setCheckId(null)} run={checks.run} />
+      <GapReport items={report} onClose={() => setReport(null)} onSession={(b) => (setReport(null), onSession(b))} />
     </div>
   );
 }

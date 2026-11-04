@@ -7,7 +7,8 @@
 //     ";", "|", "$(...)" are just text, never instructions.
 // Output that is JSON comes back parsed; anything else comes back as text.
 import { execFile } from 'node:child_process';
-import { resolve as resolvePath } from 'node:path';
+import { existsSync } from 'node:fs';
+import { delimiter, join, resolve as resolvePath } from 'node:path';
 import { ROOT } from '../lib/config.mjs';
 
 const SAFE_ARG = /^[\w.,:=@/+-]+$/; // letters, digits and a few punctuation marks; nothing a shell would act on
@@ -22,7 +23,11 @@ export class CliServer {
     return true;
   }
 
+  // the test: the program is on the PATH (nothing runs)
   async listTools() {
+    const found = (process.env.PATH ?? '').split(delimiter).some((d) => d && existsSync(join(d, this.cfg.command)));
+    if (!found) throw new Error(`"${this.cfg.command}" is not installed on this Mac (not on the PATH).`);
+    this.detail = `${Object.keys(this.cfg.subcommands ?? {}).length} subcommand${Object.keys(this.cfg.subcommands ?? {}).length === 1 ? '' : 's'} allowed.`;
     return Object.entries(this.cfg.subcommands ?? {}).map(([sub, rule]) => ({
       server: this.cfg.name,
       name: sub,

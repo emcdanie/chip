@@ -13,6 +13,7 @@ import { createConnection } from 'node:net';
 import { DATA_DIR, ROOT } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
 import { BASE, measureBench, prepare, readResult, runCheck, staged } from './checks.mjs';
+import { gapFix } from './gaps.mjs';
 
 const ACTIONS = join(DATA_DIR, 'actions.jsonl');
 const FIX_BRANCH = /^chip\/fix-[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -321,8 +322,20 @@ function measureBlast(fix) {
 const branchOf = (fix) => `chip/fix-${fix.slug}`;
 const jobs = new Map(); // check id -> { status, step, log, branch, startedAt }
 
+// a gap from the Overview's report ("gap-dsds-avatar-stack"): the same card,
+// with the gap as its failure, so Accept and Undo work as for a check
+const GAP_ID = /^gap-(dsds|contrast)-([a-z0-9]+(?:-[a-z0-9]+)*)$/;
+function gapFixFor(id) {
+  const m = id.match(GAP_ID);
+  const fix = m ? gapFix(m[1], m[2]) : null;
+  if (!fix) return { r: null, fix: null };
+  const r = { ok: false, ranAt: fix.at, commit: git(['rev-parse', '--short', BASE]).trim(), failures: [fix.missing], summary: fix.missing };
+  return { r, fix, line: fix.missing };
+}
+
 const fixCache = new Map(); // check id -> { key, value }
 function fixFor(checkId) {
+  if (checkId.startsWith('gap-')) return gapFixFor(checkId);
   const r0 = readResult(checkId);
   const key = `${r0?.ranAt}:${staged()?.hash ?? ''}`;
   const hit = fixCache.get(checkId);
@@ -378,7 +391,7 @@ export function reviewCard(checkId) {
   const branch = branchOf(fix);
   const accepted = hasBranch(branch);
   const sha = accepted ? git(['rev-parse', '--short', branch]).trim() : null;
-  const { apply, ...card } = fix;
+  const { apply, after, ...card } = fix;
   return {
     check: checkId,
     state: job?.status === 'running' ? 'accepting' : accepted ? 'accepted' : r.ok ? 'improve' : 'failed',
@@ -391,8 +404,10 @@ export function reviewCard(checkId) {
     sha,
     base: BASE,
     target: fix.withStaged !== false && staged() ? { kind: 'staged', files: staged().files.length } : { kind: 'committed' },
-    thisWill: `make the local branch ${branch} from ${BASE}${fix.withStaged !== false && staged() ? ` with the ${staged().files.length} files you have staged in BELLA` : ''}, ${fix.kind === 'llms' ? 'write llms.txt' : 'change two token files, rebuild'}, and commit through BELLA's gate (about 3 minutes)${fix.remeasure ? ', then re-run the bench on the branch' : ''}. Nothing is pushed or merged, and your BELLA checkout is not touched.`,
+    thisWill: `make the local branch ${branch} from ${BASE}${fix.withStaged !== false && staged() ? ` with the ${staged().files.length} files you have staged in BELLA` : ''}, ${fix.thisWillDo ?? (fix.kind === 'llms' ? 'write llms.txt' : 'change two token files, rebuild')}, and commit through BELLA's gate (about 3 minutes)${fix.remeasure ? ', then re-run the bench on the branch' : ''}. Nothing is pushed or merged, and your BELLA checkout is not touched.`,
     undo: `delete the branch ${branch}. ${BASE} never moved, so BELLA is exactly as it was.`,
+    // Accept after a green gate: she keeps the branch to merge herself
+    kept: accepted ? readActions().some((x) => x.kind === 'keep' && x.branch === branch && x.sha === sha) : false,
     // after a restart the job is gone: the action log keeps what Accept measured
     job: job ?? (accepted ? (() => {
       const a = readActions().reverse().find((x) => x.kind === 'accept' && x.branch === branch && x.sha === sha);
@@ -483,8 +498,13 @@ export async function accept(checkId, { baselines = [] } = {}) {
       mkdirSync(join(tmpdir(), 'chip-fixes'), { recursive: true });
       const { target } = prepare(dir, { branch, withStaged: fix.withStaged !== false });
       job.target = target;
-      step(fix.kind === 'llms' ? 'Writing llms.txt from the contracts' : 'Changing the token files');
+      step(fix.kind === 'llms' ? 'Writing llms.txt from the contracts' : fix.kind.startsWith('gap-') ? `Making the change: ${fix.change.files[0]}` : 'Changing the token files');
       const files = fix.apply(dir);
+      for (const [label, cmd, args] of fix.after ?? []) {
+        step(label);
+        const a = await sh(cmd, args, dir);
+        if (a.code !== 0) throw Object.assign(new Error(`${label.replace(/ \(.*\)$/, '')} failed`), { log: strip(a.out).slice(-2000) });
+      }
       if (fix.kind === 'apart') {
         step('Rebuilding the generated files');
         const b = await sh('npm', ['run', 'build'], dir);
@@ -589,6 +609,17 @@ export function undo(checkId) {
   jobs.delete(checkId);
   logAction({ kind: 'undo', check: checkId, title: fix.title, branch, sha, base: BASE });
   return { undone: branch, sha };
+}
+
+/** POST /review/:check/keep: Accept after a green gate. The branch stays for her to merge; nothing else runs. */
+export function keep(checkId) {
+  const { fix } = fixFor(checkId);
+  if (!fix) throw new Error('Nothing to keep');
+  const branch = branchOf(fix);
+  if (!hasBranch(branch)) throw new Error(`No local branch ${branch}: Apply it first`);
+  const sha = git(['rev-parse', '--short', branch]).trim();
+  logAction({ kind: 'keep', check: checkId, title: fix.title, branch, sha, base: BASE });
+  return { kept: branch, sha };
 }
 
 export const reviewJob = (checkId) => jobs.get(checkId) ?? null;

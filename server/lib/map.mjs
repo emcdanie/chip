@@ -31,7 +31,7 @@ const has = (cmd) => {
 
 const fromCheck = (c) => (!c ? 'unknown' : c.status === 'passed' ? 'ok' : c.status === 'failed' ? 'bad' : c.status === 'waiting' ? 'warn' : 'unknown');
 const fromServer = (s) => (!s ? 'unknown' : s.disabled ? 'off' : s.status === 'connected' ? 'ok' : s.status === 'error' ? 'bad' : 'unknown');
-// the desktop MCP is optional now that REST reads Figma: closed reads as off, never as failing
+// a Figma path is optional while another one reads: closed reads as off, never as failing
 const optional = (s) => (fromServer(s) === 'bad' ? 'off' : fromServer(s));
 
 /** GET /map */
@@ -39,14 +39,19 @@ export async function systemMap() {
   const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
   const { checks, gate } = listChecks({ waiting: waitingChecks() });
   const ck = Object.fromEntries(checks.map((c) => [c.id, c]));
-  // live status: a Figma connector never tested this run gets one quick test
+  // live status: a connector never tested this run gets one quick test
   // (the map is where "is Figma down?" gets asked)
   for (const s of host.servers()) {
-    if (['figma-rest', 'figma', 'figma-console'].includes(s.name) && !s.disabled && s.status === 'not tested') {
+    if (!s.disabled && s.status === 'not tested') {
       await Promise.race([host.test(s.name), new Promise((r) => setTimeout(r, 4000))]).catch(() => {});
     }
   }
-  const servers = Object.fromEntries(host.servers().map((s) => [s.name, s]));
+  const list = host.servers();
+  const servers = Object.fromEntries(list.map((s) => [s.name, s]));
+  const fig = host.figmaSummary(list);
+  // Figma counts as up when any read path answers; the others are then optional
+  const figmaState = (s) => (fig.connected ? optional(s) : fromServer(s));
+  const readPath = ['figma-rest', 'figma'].find((n) => servers[n]?.status === 'connected') ?? 'figma-rest';
   let ollama = 'unknown';
   try {
     const r = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(1500) });
@@ -58,9 +63,9 @@ export async function systemMap() {
   const node = (o) => ({ deps: [], ...o });
   const nodes = [
     // Design
-    node({ id: 'figma-rest', group: 'Design', name: 'Figma', state: fromServer(servers['figma-rest']), detail: servers['figma-rest']?.status === 'error' ? servers['figma-rest'].error : `${servers['figma-rest']?.status ?? 'not tested'}. ${servers['figma-rest']?.note ?? ''}`, source: 'Figma REST API · server/.env', action: { type: 'test', server: 'figma-rest', label: 'Test it' } }),
-    node({ id: 'figma', group: 'Design', name: 'Figma desktop MCP', state: optional(servers.figma), detail: servers.figma ? `${servers.figma.status === 'error' ? 'Optional, closed now' : servers.figma.status}. Answers only while Figma desktop is open with Dev Mode MCP on; CHIP reads Figma over REST without it.` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma', label: 'Test it' } }),
-    node({ id: 'figma-console', group: 'Design', name: 'figma-console', state: optional(servers['figma-console']), detail: servers['figma-console'] ? `${servers['figma-console'].status}. ${servers['figma-console'].note}` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma-console', label: 'Test it' } }),
+    node({ id: 'figma-rest', group: 'Design', name: 'Figma REST', state: figmaState(servers['figma-rest']), detail: servers['figma-rest']?.setup ? `Optional upgrade: reads Figma with no app open once a token is in server/.env. ${fig.sentence}` : servers['figma-rest']?.status === 'error' ? servers['figma-rest'].error : `${servers['figma-rest']?.status ?? 'not tested'}. ${servers['figma-rest']?.note ?? ''}`, source: 'Figma REST API · server/.env', action: { type: 'test', server: 'figma-rest', label: 'Test it' } }),
+    node({ id: 'figma', group: 'Design', name: 'Figma desktop MCP', state: figmaState(servers.figma), detail: servers.figma ? `${servers.figma.status === 'error' ? 'Closed now' : servers.figma.status}. Answers while the Figma app is open with Dev Mode MCP on; reads the file that is open.` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma', label: 'Test it' } }),
+    node({ id: 'figma-console', group: 'Design', name: 'figma-console', state: figmaState(servers['figma-console']), detail: servers['figma-console'] ? `${servers['figma-console'].status}. ${servers['figma-console'].note}` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma-console', label: 'Test it' } }),
     // Source
     node({ id: 'tokens', group: 'Source', name: 'Tokens', state: fromCheck(ck['tokens-built']), detail: `${n.cssVars.light} CSS variables, four themes. ${ck['tokens-built']?.summary ?? 'Not checked yet.'}`, source: `tokens/*.json · ${lastChange(['tokens']) ?? ''}` }),
     node({ id: 'contracts', group: 'Source', name: 'Contracts', state: fromCheck(ck.contract), detail: `${n.withContract} of ${n.components} components have one. ${ck.contract?.summary ?? ''}`, source: `tokens/component.json · ${lastChange(['tokens/component.json']) ?? ''}`, deps: ['tokens'] }),
@@ -71,7 +76,7 @@ export async function systemMap() {
     node({ id: 'agents', group: 'Checks', name: 'AGENTS.md', state: fromCheck(ck['agents-md']), detail: ck['agents-md']?.summary ?? 'Not run yet.', source: `AGENTS.md · ${lastChange(['AGENTS.md']) ?? ''}`, deps: ['components'] }),
     node({ id: 'gate', group: 'Checks', name: 'Gate', state: { passed: 'ok', failed: 'bad', waiting: 'warn' }[gate.status] ?? 'unknown', detail: gate.summary, source: 'npm run gate · the pre-commit hook', deps: ['contrast', 'contracts', 'agents', 'tokens', 'stories'] }),
     node({ id: 'bench', group: 'Checks', name: 'Bench', state: ck['bench-static']?.status === 'not-run' ? 'unknown' : ck['bench-static']?.score >= 70 ? 'ok' : 'warn', detail: ck['bench-static']?.summary ?? 'Not run yet.', source: '~/DEV/tools/odsb · data/checks/bench-static.json', deps: ['components', 'agents'], action: { type: 'run', check: 'bench-static', label: 'Run the bench now' } }),
-    node({ id: 'compare', group: 'Checks', name: 'Compare with Figma', state: 'unknown', detail: 'Reads the component set over the Figma REST API; falls back to the desktop MCP when REST has no token.', source: 'Components · Compare tab', deps: ['figma-rest', 'components'] }),
+    node({ id: 'compare', group: 'Checks', name: 'Compare with Figma', state: 'unknown', detail: `Reads each component set through ${readPath === 'figma' ? 'the desktop MCP (REST has no token)' : 'the Figma REST API'}.`, source: 'Components · Compare tab · Connectors › Figma baseline', deps: [readPath, 'components'] }),
     // Review and ship
     node({ id: 'review', group: 'Review', name: 'Review card', state: 'ok', detail: 'Accept makes a local chip/fix-* branch; Undo deletes it.', source: 'server/lib/review.mjs', deps: ['gate'] }),
     node({ id: 'ci', group: 'Review', name: 'CI', state: 'unknown', detail: `GitHub runs the gate after a push. ${git(['rev-list', '--count', `${BASE}@{upstream}..${BASE}`]) === '0' ? `${BASE} has nothing unpushed.` : 'Local commits are not pushed yet.'}`, source: 'GitHub Actions (read only through gh)', deps: ['gate'] }),
@@ -80,7 +85,7 @@ export async function systemMap() {
     node({ id: 'git', group: 'Context', name: 'git', state: git(['rev-parse', BASE]) ? 'ok' : 'bad', detail: `${BASE} @ ${git(['rev-parse', '--short', BASE]) ?? '?'}.`, source: BELLA.replace(process.env.HOME, '~') }),
     node({ id: 'ollama', group: 'Context', name: 'Local model', state: ollama, detail: ollama === 'ok' ? `Ollama answers at ${OLLAMA_URL}.` : `Ollama is not answering at ${OLLAMA_URL}.`, source: 'OBI (search, local answers)' }),
     node({ id: 'claude', group: 'Context', name: 'Claude', state: has(CHIP_CLAUDE_BIN) ? 'ok' : 'bad', detail: has(CHIP_CLAUDE_BIN) ? 'Claude Code is installed; OBI answers through it by default, and the Claude tab runs it.' : 'The claude command is not on PATH.', source: 'OBI · the Claude tab' }),
-    node({ id: 'notion', group: 'Context', name: 'Notion', state: existsSync(join(ROOT, 'data/notion')) ? 'ok' : 'unknown', detail: 'Read through CHIP’s own sync into data/notion; the MCP is off.', source: 'npm run sync:notion' }),
+    node({ id: 'notion', group: 'Context', name: 'Notion', state: servers.notion ? fromServer(servers.notion) : existsSync(join(ROOT, 'data/notion')) ? 'ok' : 'unknown', detail: servers.notion?.status === 'connected' ? `${servers.notion.detail ?? 'Answering.'} The same token feeds npm run sync:notion.` : servers.notion?.error ?? 'Read through CHIP’s own sync into data/notion.', source: 'Notion API · server/.env · npm run sync:notion', action: servers.notion ? { type: 'test', server: 'notion', label: 'Test it' } : undefined }),
   ];
   // a failing source blocks what reads it, all the way down
   const byId = Object.fromEntries(nodes.map((x) => [x.id, x]));
