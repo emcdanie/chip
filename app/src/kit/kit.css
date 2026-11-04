@@ -58,6 +58,7 @@
 .k-seg button[aria-selected='true'] { background: var(--card); box-shadow: var(--shadow); }
 .k-seg button:focus-visible { outline-offset: -3px; }
 .k-seg svg { width: 20px; height: 20px; }
+.k-seg svg :is(rect, path) { fill: none; stroke: currentColor; stroke-width: 2; }
 
 /* card with head (the mock's .wx-card): the head is title left, control right,
    and stacks only when the card itself is narrow */
