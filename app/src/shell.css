@@ -52,6 +52,8 @@ main h1:focus { outline: none; }
 
 /* the nav: one list, every component one click away */
 .side { display: flex; flex-direction: column; gap: var(--s-4); grid-column: 1; grid-row: 2; position: sticky; top: var(--frame-top); height: calc(100dvh - var(--frame-top) - var(--wpb)); overflow: auto; padding: var(--s-16) var(--s-12) var(--s-24); background: var(--card); border-right: 1px solid var(--line); overscroll-behavior: contain; }
+/* a shadow at whichever edge has more nav past it (the covers scroll with the list, the shadows stay) */
+.side { background: linear-gradient(var(--card) 33%, transparent) top / 100% var(--s-24) no-repeat local, linear-gradient(transparent, var(--card) 67%) bottom / 100% var(--s-24) no-repeat local, linear-gradient(var(--edge), transparent) top / 100% var(--s-12) no-repeat scroll, linear-gradient(transparent, var(--edge)) bottom / 100% var(--s-12) no-repeat scroll, var(--card); }
 .sidecol { align-self: flex-start; min-height: var(--h-compact); padding: 0 var(--s-12); margin: 0 0 var(--s-8); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
 .sidecol:hover { border-color: var(--action); }
 .navrow { position: relative; display: flex; align-items: center; }
@@ -76,7 +78,8 @@ main h1:focus { outline: none; }
 .pins ul { list-style: none; margin: 0; padding: 0; }
 .pinh { margin: 0; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); padding: var(--s-4) var(--s-12); }
 .pini { font: 600 var(--fs-14)/var(--lh-body) var(--sans); }
-.complist { display: grid; gap: var(--s-8); padding: var(--s-4) 0 0 var(--s-12); min-height: 0; }
+/* the tree takes its full height and pushes the links under it down; the nav scrolls */
+.complist { display: grid; gap: var(--s-8); padding: var(--s-4) 0 0 var(--s-12); flex: none; }
 .complist input { min-height: var(--h-compact); padding: 0 var(--s-12); border: 1px solid var(--line); border-radius: var(--r); font: 400 var(--fs-14)/var(--lh-body) var(--sans); background: var(--ground); color: var(--ink); }
 .cgrp { display: grid; }
 .cgrp ul { list-style: none; margin: 0; padding: 0 0 var(--s-4) var(--s-12); }

@@ -24,6 +24,7 @@
   --code-ground: rgb(29 32 48); /* code blocks in a sheet */
   --code-ink: rgb(236 238 243);
   --scrim: rgb(29 32 48 / 0.32); /* behind a sheet */
+  --edge: rgb(29 32 48 / 0.18); /* the shadow at a scroll region's edge when more is past it */
 
   /* type: 14 / 16 / 20 / 28 / 40, weights 400 and 600 */
   --display: 'Newsreader', Georgia, serif; /* H1 only */
@@ -123,6 +124,8 @@
   --code-ground: rgb(15 17 23);
   --scrim: rgb(0 0 0 / 0.5);
   --shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  --edge: rgb(0 0 0 / 0.6);
+  --focus-ring: var(--action); /* the bright blue already clears 3:1 on the dark grounds */
   color-scheme: dark;
 }
 
