@@ -63,30 +63,32 @@
   --component-tabs-indicator: var(--action);
 
   --on-action: rgb(29 32 48); /* text on the action blue, in every theme: 5.3:1 */
+  --action-button: rgb(28 93 134); /* the primary button: white text on it is 7.1:1 (AAA) */
+  --on-action-button: rgb(255 255 255);
   --frame-nav: 256px; /* the left nav; 104px as an icon rail */
   --frame-rail: 104px;
   --frame-bar: 380px; /* The Bar; 340px between 961 and 1280 */
   --frame-top: 64px;
 }
 
-/* BELLA's Button, in the mock's colours: the primary keycap is the action
-   blue with dark text, the secondary is the card with a hairline. The label
+/* BELLA's Button, in the mock's colours: the primary keycap is a deep action
+   blue with white text (AAA; Elleta, 4 Nov), the secondary is the card with a hairline. The label
    roll, the keycap press and reduced motion stay BELLA's. Only CHIP's own
    chrome takes it: the top bar, The Bar, every sheet and any page root
    marked k-chrome. A BELLA specimen outside those keeps BELLA's own Button. */
 .top, .bar, .k-sheet, .k-chrome {
-  --component-button-primary-fill-hi: var(--action);
-  --component-button-primary-fill-lo: var(--action);
-  --component-button-primary-fill-hi-hover: color-mix(in srgb, var(--action) 70%, rgb(255 255 255));
-  --component-button-primary-fill-lo-hover: color-mix(in srgb, var(--action) 70%, rgb(255 255 255));
+  --component-button-primary-fill-hi: var(--action-button);
+  --component-button-primary-fill-lo: var(--action-button);
+  --component-button-primary-fill-hi-hover: color-mix(in srgb, var(--action-button) 85%, rgb(0 0 0));
+  --component-button-primary-fill-lo-hover: color-mix(in srgb, var(--action-button) 85%, rgb(0 0 0));
   --component-button-primary-edge: var(--action-edge);
   /* BELLA's key edge is cast in ink; under the blue it reads as a black line.
      Same 2px key, one step darker than the face, as BELLA does for ink. */
-  --action-edge: color-mix(in srgb, var(--action) 72%, rgb(0 0 0));
+  --action-edge: color-mix(in srgb, var(--action-button) 72%, rgb(0 0 0));
   --shadow-key-resting: 0 2px 0 var(--action-edge), 3px 6px 10px rgb(18 18 18 / 0.24), inset 0 1px 0 rgb(255 255 255 / 0.4);
   --shadow-key-hover: 0 2px 0 var(--action-edge), 4px 8px 14px rgb(18 18 18 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.4);
   --shadow-key-pressed: 0 1px 0 var(--action-edge), 2px 3px 8px rgb(18 18 18 / 0.2), inset 0 1px 0 rgb(255 255 255 / 0.4);
-  --component-button-primary-foreground: var(--on-action);
+  --component-button-primary-foreground: var(--on-action-button);
   --component-button-primary-font-size: var(--fs-14);
   --component-button-primary-padding-x: var(--s-16);
   --component-button-secondary-background: var(--card);
