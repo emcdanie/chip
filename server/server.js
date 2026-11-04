@@ -26,6 +26,7 @@ import { needsYou } from './lib/needs.mjs';
 import { gapFixes } from './lib/gaps.mjs';
 import { historyRecord, searchHistory } from './lib/history.mjs';
 import { systemMap } from './lib/map.mjs';
+import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
 import { playMap, playPages, saveBrief, startPlayProxy, SITE_URL, PLAY_PORT } from './lib/play.mjs';
 
 const app = express();
@@ -513,6 +514,41 @@ app.get('/component-tests/:id', (req, res) => {
 
 // GET /term/repos: the folders a workspace terminal may open in.
 app.get('/term/repos', (_req, res) => res.json(repoList()));
+
+// Projects: the repos CHIP works on (projects.mjs). GET reads; the note, and
+// starting or stopping a dev server CHIP started, come from CHIP's page only.
+app.get('/projects', async (_req, res) => {
+  try {
+    res.json({ projects: await projectsSummary() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.get('/projects/:id', async (req, res) => {
+  try {
+    const p = await projectDetail(String(req.params.id), { fresh: req.query.fresh === '1' });
+    p ? res.json(p) : res.status(404).json({ error: 'No such project' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+const fromChip = (req, res) => (req.headers.origin && !APP_ORIGINS.has(req.headers.origin) ? (res.status(403).json({ error: 'Not from CHIP' }), false) : true);
+app.put('/projects/:id/note', (req, res) => {
+  if (!fromChip(req, res)) return;
+  try {
+    res.json(saveNote(String(req.params.id), req.body?.note));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+app.post('/projects/:id/dev', async (req, res) => {
+  if (!fromChip(req, res)) return;
+  try {
+    res.json(req.body?.action === 'stop' ? stopDev(String(req.params.id)) : await startDev(String(req.params.id)));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
 
 // The Playground: a site page live through its own proxy, its source map, and
 // the brief for Claude. Never writes to the site.
