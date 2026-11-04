@@ -90,23 +90,35 @@ function whoLine(items) {
   return [n.chip && `CHIP fixes ${n.chip} on its own`, n.claude && `${n.claude} need${n.claude === 1 ? 's' : ''} Claude`, n.you && `${n.you} need${n.you === 1 ? 's' : ''} you`].filter(Boolean).join(' · ');
 }
 
-// one card: { gap, title, why, who, first, fixes, fixesError, decisions, onOpen, onReview, onSession }
+// one row per gap: its count, its title (opens the gap's detail) and Review
+// the fix. Review opens a sheet where she picks the components (every one not
+// skipped is picked to start), then reviews them; the toggles live there, not
+// on the page (density pass, 5 Nov).
+// { gap, idx, title, why, who, first, fixes, fixesError, decisions, focus, onOpen, onReview, onSession }
 export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, decisions, focus, onOpen, onReview, onSession }) {
   const [sel, setSel] = useState([]);
-  // a Coverage or Drift detail pointing here: highlight the card, select its components
+  const [picking, setPicking] = useState(false);
+  const skipped = (n) => decisions?.[`${gap}:${n}`]?.decision === 'skip';
+  const open = who.filter((n) => !skipped(n));
+  // a Coverage or Drift detail pointing here: open the picker with those selected
   useEffect(() => {
-    if (focus?.names?.length) setSel(focus.names.filter((n) => who.includes(n)));
+    if (focus?.names?.length) {
+      setSel(focus.names.filter((n) => who.includes(n)));
+      setPicking(true);
+    }
   }, [focus?.at]);
   // keep the selection to components still missing this check after a refresh
   useEffect(() => setSel((s) => s.filter((n) => who.includes(n))), [who.join()]);
-  const skipped = (n) => decisions?.[`${gap}:${n}`]?.decision === 'skip';
-  const open = who.filter((n) => !skipped(n));
   const picked = who.filter((n) => sel.includes(n));
   const toggle = (n) => setSel((s) => (s.includes(n) ? s.filter((x) => x !== n) : [...s, n]));
   const brief = () =>
     `${title} in BELLA for ${picked.join(', ')} only. Leave every other component alone.\n\n` + picked.map((n) => fixes?.[n]?.brief ?? `${n}: ${title.toLowerCase()}.`).join('\n\n');
-  const status = picked.length ? `${picked.length} of ${who.length} selected` : `Select one or more, then review the fix`;
+  const status = picked.length ? `${picked.length} of ${who.length} selected` : 'Select one or more';
   const can = fixesError ? null : fixes ? whoLine(who.map((n) => fixes[n])) : 'Reading who can fix them…';
+  const start = () => {
+    setSel(open.length ? open : who);
+    setPicking(true);
+  };
   return (
     <li className={`gap1 dn${first ? ' first' : ''}${focus ? ' focus' : ''}`} id={`gapcard-${gap}`}>
       <span className="n">
@@ -118,9 +130,29 @@ export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, d
           {title}
         </button>
         {first ? <span className="k-pill needs">Do next</span> : null}
-        <span className="why">{why}</span>
-        {can ? <span className="dn-can">{can}</span> : null}
-        <div className="dn-pick" role="group" aria-labelledby={`gap-${idx}`}>
+      </div>
+      <Button onClick={start}>Review the fix</Button>
+      <Sheet
+        open={picking}
+        onClose={() => setPicking(false)}
+        kicker={`${who.length} component${who.length === 1 ? '' : 's'}`}
+        title={title}
+        footer={
+          <>
+            <Button variant="primary" disabled={!picked.length} onClick={() => (setPicking(false), onReview(picked.map((n) => [gap, n])))}>
+              {picked.length > 1 ? `Review ${picked.length} fixes` : 'Review the fix'}
+            </Button>
+            {picked.some((n) => fixes?.[n]?.can?.who === 'claude') ? (
+              <Button onClick={() => (setPicking(false), onSession(brief(), `${title}: ${picked.join(', ')}`))}>Fix with Claude</Button>
+            ) : null}
+          </>
+        }
+      >
+        <p>
+          <b>{why}</b>
+          {can ? ` ${can}.` : ''}
+        </p>
+        <div className="dn-pick" role="group" aria-label={`Components to fix: ${title}`}>
           {who.map((n) => (
             <button type="button" key={n} className={`dn-chip${skipped(n) ? ' skipped' : ''}`} aria-pressed={sel.includes(n)} onClick={() => toggle(n)}>
               <span className="dn-box" aria-hidden="true" />
@@ -143,16 +175,8 @@ export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, d
               Clear
             </button>
           ) : null}
-          {picked.some((n) => fixes?.[n]?.can?.who === 'claude') ? (
-            <button type="button" className="k-link" onClick={() => onSession(brief(), `${title}: ${picked.join(', ')}`)}>
-              Fix with Claude
-            </button>
-          ) : null}
         </div>
-      </div>
-      <Button variant="primary" disabled={!picked.length} onClick={() => onReview(picked.map((n) => [gap, n]))}>
-        {picked.length > 1 ? `Review ${picked.length} fixes` : 'Review the fix'}
-      </Button>
+      </Sheet>
     </li>
   );
 }

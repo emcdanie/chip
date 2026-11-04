@@ -7,7 +7,7 @@
 // measures it, the page says "Not measured" instead of a number.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { Segmented, segPanelProps, Sheet } from './kit/index.jsx';
+import { Segmented, segPanelProps, Sheet, Toggle } from './kit/index.jsx';
 import { CheckSheet, failingTokens, useChecks, when } from './Checks.jsx';
 import { openReview } from './ReviewSheet.jsx';
 import { GapCard, GapReport, useGapFixes } from './DoNext.jsx';
@@ -91,6 +91,8 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   const failing = failingTokens(checks);
   const [view, setView] = useState('cov');
   const [openAll, setOpenAll] = useState(false);
+  const [byComp, setByComp] = useState(false); // the By component table, folded by default
+  const [allChecks, setAllChecks] = useState(false); // Checks: failing and waiting rows only, by default
   const [sheet, setSheet] = useState(null); // { title, body, footer }
   const [checkId, setCheckId] = useState(null);
   const [report, setReport] = useState(null); // [[gap, Name], …] in the gap report
@@ -170,13 +172,9 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
       k: '',
     },
     { big: `${gaps}`, what: 'gaps left to close', note: `Not measured on ${weekDay}: BELLA’s history keeps no gap count.`, k: '' },
+    // a failing gate is the banner's and the Work card's: not said a third time here
     latestGate && !latestGate.pass
-      ? {
-          big: 'Failing',
-          what: `the gate, since ${redSince ? fmt(redSince.day) : 'its first run'}`,
-          note: redSince ? `It passed every commit until ${fmt(redSince.day)}. ${plural(red, 'commit')} since ${red === 1 ? 'has' : 'have'} failed it.` : 'It has not passed yet.',
-          k: 'bad',
-        }
+      ? null
       : { big: 'Passing', what: 'the gate', note: latestGate ? `Every commit since ${fmt(G[G.map((g) => g.pass).lastIndexOf(false) + 1]?.day ?? latestGate.day)}.` : 'Not measured.', k: '' },
   ];
 
@@ -539,17 +537,9 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
 
       {acts.length ? (
         <section className="gapsec" aria-labelledby="gapT">
-          <div className="actline">
-            <div>
-              <h2 className="dlt" id="gapT">
-                Gaps to close
-              </h2>
-              <p>
-                {gaps} gaps across {withGaps.length} components, biggest first. None blocks a merge; each makes BELLA harder for an agent or a reviewer to use.
-              </p>
-            </div>
-            <Button onClick={() => setReport(acts.flatMap((a) => a.who.map((n) => [COLS[a.i].short.toLowerCase(), n])))}>Review all {gaps}</Button>
-          </div>
+          <h2 className="dlt gaph" id="gapT">
+            Gaps to close <span className="sub2">{gaps} across {withGaps.length} components, none blocks a merge</span>
+          </h2>
           <ol className="gaplist">
             {acts.map((a, k) => {
               const gap = COLS[a.i].short.toLowerCase();
@@ -601,12 +591,17 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
             {COLS.map((k, i) => {
               const ok = rows.filter((r) => r.v[i]).length;
               const pct = n ? ok / n : 0;
+              // red: a component misses contrast because of a token the gate fails on
+              const bad = k.short === 'Contrast' && rows.some((r) => (r.c.tokens?.list ?? []).some((t) => failing.includes(t)));
               const low = pct < 0.9;
+              const tone = bad ? ' bad' : low ? ' low' : ' ok';
+              const label = <span className="hp">{Math.round(pct * 100)}%</span>;
               return (
                 // a column every component passes has nothing to fix: it reads, it doesn't open
                 ok === n ? (
-                  <div key={k.short} className="hcol full" style={{ gridColumn: i + 1 }} role="group" aria-label={`${k.short} ${ok}/${n}, ${k.long}, all pass`}>
+                  <div key={k.short} className={`hcol full${tone}`} style={{ gridColumn: i + 1 }} role="group" aria-label={`${k.short} ${ok}/${n}, ${k.long}, all pass`}>
                   <span className="hl">{k.short}</span>
+                  {label}
                   <span className="tube">
                     <i style={{ height: filled ? `calc((100% - 8px) * ${pct})` : 0 }} />
                   </span>
@@ -617,8 +612,9 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                 </div>
                 ) : (
                 // named by its own text ("DSDS 33/37"), the long name and the warning after it
-                <button type="button" key={k.short} className={`hcol${low ? ' low' : ''}`} style={{ gridColumn: i + 1 }} aria-haspopup="dialog" onClick={() => colSheet(i)}>
+                <button type="button" key={k.short} className={`hcol${tone}`} style={{ gridColumn: i + 1 }} aria-haspopup="dialog" onClick={() => colSheet(i)}>
                   <span className="hl">{k.short}</span>{' '}
+                  {label}{' '}
                   <span className="tube">
                     <i style={{ height: filled ? `calc((100% - 8px) * ${pct})` : 0 }} />
                   </span>
@@ -628,7 +624,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                   </span>
                   <span className="k-vh">
                     , {k.long}
-                    {low ? ', under 90%' : ''}
+                    {bad ? ', fails the gate' : low ? ', under 90%' : ''}
                   </span>
                 </button>
                 )
@@ -677,6 +673,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
         </h2>
         <ul className="trends">
           {trends.map((t, k) => {
+            if (!t) return null;
             // every line leads somewhere: the stories, the gap report, the gate
             const act = [
               // straight to the review, every missing story already picked: no sheet that ends "select them"
@@ -701,7 +698,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
 
       <section className="scard2 c-checks" aria-labelledby="ckT">
         <h2 id="ckT" className="ovh">
-          Checks <span className="sub2">{list.length} scheduled checks, failing first. Select one to see its last run.</span>
+          Checks <span className="sub2">{plural(list.filter((c) => c.status === 'passed').length, 'check')} pass</span>
         </h2>
         {checks.error && !data ? (
           <p className="k-sub">The checks could not be read (is the CHIP server running?).</p>
@@ -715,7 +712,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
               <span>Last result</span>
               <span>Runs</span>
             </li>
-            {sorted.map((c) => {
+            {(allChecks ? sorted : sorted.filter((c) => c.status === 'failed' || c.status === 'waiting')).map((c) => {
               const v = c.status === 'failed' ? ['bad', '✕ Failed'] : c.status === 'waiting' ? ['you', '● Waiting on you'] : c.status === 'passed' ? ['', '✓ Passed'] : ['', c.word];
               return (
                 <li key={c.id} className="rowlink" onClick={(e) => e.target.closest('button') || setCheckId(c.id)}>
@@ -732,13 +729,26 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
             })}
           </ul>
         )}
+        {data && sorted.some((c) => c.status !== 'failed' && c.status !== 'waiting') ? (
+          <Toggle className="ov-more" expanded={allChecks} onClick={() => setAllChecks((o) => !o)}>
+            {allChecks ? 'Show only what needs you' : `Show all ${list.length}`}
+          </Toggle>
+        ) : null}
       </section>
 
       <section className="wx-card daily" aria-labelledby="dlT">
-        <h2 className="dlt" id="dlT">
-          {DLT[view]}
-        </h2>
-        <div className="dl">
+        {view === 'cov' ? (
+          <h2 className="dlt" id="dlT">
+            <Toggle className="ov-fold" expanded={byComp} aria-controls="dlTab" onClick={() => setByComp((o) => !o)}>
+              <span aria-hidden="true">{byComp ? '▾' : '▸'}</span> By component ({withGaps.length})
+            </Toggle>
+          </h2>
+        ) : (
+          <h2 className="dlt" id="dlT">
+            {DLT[view]}
+          </h2>
+        )}
+        <div className="dl" id={view === 'cov' ? 'dlTab' : undefined} hidden={view === 'cov' && !byComp}>
           {view === 'cov' ? (
             <table className="cktab">
               <caption className="k-vh">Checks per component</caption>
