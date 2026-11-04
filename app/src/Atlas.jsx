@@ -606,7 +606,7 @@ function UsagePanel({ c, doc, notify, onOpen }) {
           {variants.length ? (
             <ol className="a-ladder">
               {variants.map((v, i) => (
-                <li key={v} style={{ order: variants.length - i }}>
+                <li key={v}>
                   <button type="button" className={`a-pick${sel === v ? ' gsel' : ''}`} aria-pressed={sel === v} onClick={() => setSel(v)} aria-label={`${cap1(v)}: show its guidance`}>
                     <Forced>{VARIANTS[c.name](v)}</Forced>
                   </button>
