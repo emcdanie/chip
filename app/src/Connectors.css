@@ -1,0 +1,64 @@
+/* Connectors (chip-mock-03 "page: panel:connectors"), rule for rule from the
+ * mock with its .map, .mcanvas, .mnode2, .mcard and .mpill under a cn- prefix.
+ * Values come from kit/tokens.css only. */
+
+/* the page: the mock's .content, header, tabs, panel */
+.cn-page { display: grid; gap: var(--s-32); grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.cn-page > .k-seg { justify-self: start; margin-top: calc(-1 * var(--s-8)); }
+.cn-page .k-seg .n { margin-left: var(--s-8); font-weight: 600; color: var(--muted); }
+.cn-panel { min-width: 0; }
+
+/* the map's controls, top right of the header */
+.cn-bar { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
+.cn-zoom { display: inline-flex; gap: var(--s-4); }
+.cn-keys { position: relative; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
+.cn-keys summary { display: inline-flex; align-items: center; min-height: var(--h-control); padding: 0 var(--s-16); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); list-style: none; cursor: pointer; }
+.cn-keys summary::-webkit-details-marker { display: none; }
+.cn-keys summary:hover, .cn-keys[open] summary { background: color-mix(in srgb, var(--action) 8%, var(--card)); border-color: var(--action); }
+.cn-keys ul { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; width: min(320px, 80vw); margin: 0; padding: var(--s-12) var(--s-12) var(--s-12) var(--s-32); display: grid; gap: var(--s-4); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
+.cn-keys kbd { font: 400 var(--fs-14)/var(--lh-body) var(--code); border: 1px solid var(--line); border-radius: var(--r); padding: 0 var(--s-4); }
+
+/* the map: one sentence, then the canvas */
+.cn-map { display: grid; gap: var(--s-12); container: map / inline-size; }
+.cn-sub { margin: 0; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.cn-canvas { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r); background-color: var(--card); background-image: radial-gradient(color-mix(in srgb, var(--ink) 14%, transparent) 1px, transparent 1px); background-size: 18px 18px; cursor: grab; touch-action: none; }
+.cn-canvas.grab { cursor: grabbing; }
+.cn-canvas:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.cn-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.cn-links { position: absolute; left: 0; top: 0; overflow: visible; }
+.cn-links path { fill: none; stroke: color-mix(in srgb, var(--ink) 30%, var(--card)); stroke-width: 1.6; }
+.cn-links path.bl { stroke: var(--fail); stroke-dasharray: 4 4; }
+.cn-links path.flow { stroke: var(--action); stroke-width: 2.4; stroke-dasharray: 6 6; animation: cn-flow 0.9s linear infinite; }
+@keyframes cn-flow { to { stroke-dashoffset: -24; } }
+@media (prefers-reduced-motion: reduce) { .cn-links path.flow { animation: none; } }
+
+/* a card: icon, name, the short line, the pill; the toggle hangs below it */
+.cn-nodes { margin: 0; padding: 0; list-style: none; }
+.cn-node { position: absolute; width: 184px; }
+.cn-card { box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: 30px minmax(0, 1fr); grid-template-rows: auto auto; gap: var(--s-4) var(--s-12); width: 184px; min-height: 92px; margin: 0; padding: var(--s-12); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); font: inherit; text-align: left; }
+.cn-card:hover { border-color: var(--action); }
+.cn-card:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.cn-card .k-pill { grid-column: 2; justify-self: start; display: inline-flex; align-items: center; min-height: 24px; gap: var(--s-4); padding: 0 var(--s-12); }
+.cn-node.bad .cn-card { box-shadow: inset 2px 0 0 var(--fail); }
+.cn-node.blocked .cn-card { background: repeating-linear-gradient(-45deg, var(--card) 0 7px, color-mix(in srgb, var(--fail) 7%, var(--card)) 7px 9px); }
+.cn-node.near .cn-card { border-color: var(--action); }
+.cn-ic { grid-row: 1 / span 2; display: grid; place-items: center; width: var(--h-compact); height: var(--h-compact); border-radius: var(--r-control); background: var(--inset); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
+.cn-tx { display: grid; min-width: 0; }
+.cn-tx b { font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-tx small { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-tog { position: absolute; left: 50%; bottom: -18px; transform: translateX(-50%); z-index: 1; display: grid; place-items: center; width: var(--h-compact); height: var(--h-compact); padding: 0; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); font-size: var(--fs-14); line-height: var(--lh-body); cursor: pointer; }
+.cn-tog:hover { border-color: var(--action); }
+
+/* the sheets: a status line, the parts of a group, the steps to try */
+.cn-sline { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-12); align-items: center; }
+.cn-parts { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-8); }
+.cn-parts li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-8); }
+.cn-reach { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-8); }
+.cn-reach code { overflow-wrap: anywhere; }
+.cn-steps { margin: 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: var(--s-12); }
+.cn-steps li { counter-increment: st; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--s-4) var(--s-12); }
+.cn-steps li::before { content: counter(st); grid-row: 1 / span 3; width: 28px; height: 28px; border-radius: var(--r-control); display: grid; place-items: center; background: var(--neutral); font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
+.cn-steps b { font-weight: 600; color: var(--ink); }
+.cn-steps li > span { font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); }
+.cn-cmd { display: flex; gap: var(--s-8); align-items: center; margin-top: var(--s-4); }
+.cn-cmd code { flex: 1; min-width: 0; padding: var(--s-8) var(--s-12); background: color-mix(in srgb, var(--ink) 5%, var(--card)); border-radius: var(--r); overflow-x: auto; white-space: nowrap; }
