@@ -42,6 +42,7 @@
 .fd-v i { width: 16px; height: 16px; border-radius: var(--r-control); border: 1px solid var(--line); flex: none; }
 .fd-v small { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
 .fd-qvb { min-height: 40px; padding: var(--s-8) 0; border: 0; background: none; font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--ink); text-decoration: underline dotted; text-underline-offset: 4px; white-space: nowrap; cursor: pointer; }
+.fd-qvt { display: inline-block; text-decoration: none; cursor: default; } /* a passing role: nothing to open */
 .fd-nobody { font-weight: 600; color: var(--ink); }
 .fd-badge { display: inline-flex; align-items: center; gap: var(--s-4); min-height: 32px; padding: var(--s-4) var(--s-12); border-radius: var(--r-control); font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); white-space: nowrap; }
 .fd-badge.green { background: color-mix(in srgb, var(--pass) 24%, var(--card)); }

@@ -24,9 +24,10 @@ const TABS = [
   { id: 'tokenized', label: 'Tokenized?', icon: SVG(<path d="M5 12l4 4 10-10" />) },
 ];
 
-/* ---------- contrast: one number per role, the mock's pairing rule, measured
-   against BELLA's own surfaces. A text or edge colour sits on the card; a
-   surface sits under the primary text ---------- */
+/* ---------- contrast: one number per role, from the pairs BELLA's gate
+   declares (contrast-pairs.mjs, measured by /contrast-pairs), so Foundations,
+   Overview and the gate agree. Until 4 Nov it measured every role on the card,
+   which failed text-inverse and background-inverse at 1.0-1.2:1 ---------- */
 const hexRgb = (h) => {
   const m = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(h || '');
   if (!m || (m[2] && m[2].toLowerCase() !== 'ff')) return null;
@@ -34,15 +35,11 @@ const hexRgb = (h) => {
   return [n >> 16, (n >> 8) & 255, n & 255];
 };
 const lum = (c) => c.map((v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
-const ratio = (a, b) => {
-  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
-  return (x + 0.05) / (y + 0.05);
-};
 const TEXTISH = /^(text|link|icon|border|danger-text|success-text|highlight-text|highlight-edge|focus-ring|signal|accent-raised-edge|chip-text|danger-border|success-border|accent-border)/;
 const grade = (r) => (r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : r >= 3 ? '3:1' : 'fails');
 const SEM = '--color-semantic-';
 // what a sheet's "Fix in a session" does, and where its facts come from
-const SESSION = { changes: 'Copies a brief to your clipboard and opens the Claude tab. Nothing in BELLA changes until you run it there.', undo: 'Nothing to undo yet: close the Claude tab.' };
+const SESSION = { changes: 'Claude Code runs the brief headless on a BELLA branch, then BELLA’s gate. The result shows in Work › Sessions to Accept or Undo; nothing merges.', undo: 'Undo in the result deletes the branch.' };
 const USAGE_SOURCE = (
   <>
     each component’s CSS, read by <code>scripts/sync-bella.mjs</code>
@@ -50,33 +47,15 @@ const USAGE_SOURCE = (
 );
 const CONTRAST_SOURCE = 'WCAG 2.2 · 1.4.3 Contrast (Minimum) and 1.4.11 Non-text Contrast';
 
-function contrastOf(t, P) {
-  const L = hexRgb(t.light);
-  if (!L) return null;
-  const isText = TEXTISH.test(t.role);
-  const r = ratio(L, hexRgb(isText ? P['surface-card']?.light : P['text-primary']?.light) ?? [255, 255, 255]);
-  if (/^border(-subtle|-faint)?$/.test(t.role)) return { r, g: 'decorative', ok: null };
-  const need = /^border|edge|ring|signal/.test(t.role) || !isText ? 3 : 4.5;
-  return { r, g: grade(r), ok: r >= need };
-}
-
-// every pairing for the role sheet: light on the card and the page, dark on the dark card
-function pairings(t, P) {
-  const L = hexRgb(t.light);
-  const D = hexRgb(t.dark);
-  const v = (k, th) => hexRgb(P[k]?.[th]);
-  const rows = TEXTISH.test(t.role)
-    ? [
-        ['On the card', L, v('surface-card', 'light')],
-        ['On the page', L, v('background', 'light')],
-        ['Dark: on the card', D, v('surface-card', 'dark')],
-      ]
-    : [
-        ['Primary text on it', L, v('text-primary', 'light')],
-        ['Body text on it', L, v('text-body', 'light')],
-        ['Dark: primary text on it', D, v('text-primary', 'dark')],
-      ];
-  return rows.filter(([, a, b]) => a && b).map(([k, a, b]) => ({ k, r: ratio(a, b) }));
+// the role's contrast is what the gate measures: every pair contrast-pairs.mjs
+// declares with the role on either side, in every theme, the worst one shown.
+// A role in no declared pair has no measured contrast (not a guessed ground).
+function contrastOf(t, pairs) {
+  if (!pairs) return null;
+  const mine = pairs.filter((p) => p.fg === t.token || p.bg === t.token);
+  if (!mine.length) return { none: true };
+  const worst = mine.reduce((a, b) => (b.worst / b.bar < a.worst / a.bar ? b : a));
+  return { r: worst.worst, g: grade(worst.worst), ok: mine.every((p) => p.ok), n: mine.length, label: worst.label };
 }
 
 // readable text on a swatch in either theme: light on a dark one, dark on a light one
@@ -103,14 +82,18 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
   const [f, setF] = useState(null);
   const [failed, setFailed] = useState(false);
   const [sheet, setSheet] = useState(null);
+  const [pairs, setPairs] = useState(null); // the gate's declared pairs, measured
   useEffect(() => {
     fetch('/data/foundations.json')
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setF)
       .catch(() => setFailed(true));
+    fetch('/contrast-pairs')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((j) => setPairs(j.pairs))
+      .catch(() => setPairs([]));
   }, []);
 
-  const P = useMemo(() => Object.fromEntries(Object.entries(bella?.palette ?? {}).map(([k, v]) => [k.slice(SEM.length), v])), [bella]);
   const roles = useMemo(
     () =>
       Object.entries(bella?.palette ?? {}).map(([k, v]) => ({
@@ -155,14 +138,17 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
             <p>Change this role and every one of these changes with it. This is the reach of a single token edit.</p>
           </SheetPart>
           <SheetPart label="What to do" fix>
-            <p>Nothing, unless you are about to change the role: open a component above to see it in use first.</p>
+            <p>Before you change the role, open one above to see it in use.</p>
           </SheetPart>
         </>
       ),
     });
+  // a single user opens straight in Components: a sheet listing one name adds a step
+  const openWho = (t) => (t.usedBy.length === 1 ? onOpenAtlas(idOf(t.usedBy[0])) : whoSheet(t));
+  // only a role with a failing declared pair opens a sheet: it has a fix to offer
   const roleSheet = (t) => {
-    const ps = pairings(t, P);
-    const failing = ps.filter((p) => p.r < 3);
+    const ps = (pairs ?? []).filter((p) => p.fg === t.token || p.bg === t.token).map((p) => ({ k: p.label, r: p.worst, bar: p.bar, ok: p.ok }));
+    const failing = ps.filter((p) => !p.ok);
     const fails = failing.length > 0;
     setSheet({
       kicker: TEXTISH.test(t.role) ? 'Colour role · text or edge' : 'Colour role · surface',
@@ -188,7 +174,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
                 rows={ps.map((p) => [
                   p.k,
                   <>
-                    {p.r.toFixed(2)}:1 <span className={p.r >= 3 ? 'fd-pass' : 'fd-fail'}>{p.r >= 3 && p.r < 4.5 ? '3:1 UI' : grade(p.r) === 'fails' ? 'Fails' : grade(p.r)}</span>
+                    {p.r.toFixed(2)}:1, needs {p.bar}:1 <span className={p.ok ? 'fd-pass' : 'fd-fail'}>{p.ok ? 'Passes' : 'Fails'}</span>
                   </>,
                 ])}
               />
@@ -198,7 +184,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
             <Facts rows={[['Used by', t.usedBy.length ? `${t.usedBy.length}: ${t.usedBy.slice(0, 4).join(', ')}${t.usedBy.length > 4 ? '…' : ''}` : <b className="fd-failt">No component</b>]]} />
           </SheetPart>
           <SheetPart label="Why it matters" source={CONTRAST_SOURCE}>
-            <p>Text needs 4.5:1 on what it sits on, and large text, edges and controls 3:1, or people with low vision can’t read or find them. CHIP marks a pairing as failing below 3:1.</p>
+            <p>Each pair is declared in BELLA’s contrast-pairs.mjs with its bar (7:1, 4.5:1 or 3:1) and measured in every theme, worst theme shown, exactly as the gate measures it. Below the bar, people with low vision can’t read or find it.</p>
           </SheetPart>
           <SheetPart label="What to do" fix>
             <p>{!ps.length ? 'Check it where it is used: open a component that reads it.' : fails ? `Darken or lighten the role one step in BELLA’s semantic tokens, or stop using it where it fails: ${failing.map((p) => `${p.k.toLowerCase()} at ${p.r.toFixed(2)}:1`).join(', ')}.` : 'Nothing. Every pairing it is used in passes.'}</p>
@@ -283,7 +269,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
       </div>
 
       <div {...panel('colours')} tabIndex={0} className="fd-panel">
-        <p className="fd-sublede">One row per colour role, light and dark, with its contrast. Select a role for every pairing; select the count to see who uses it.</p>
+        <p className="fd-sublede">One row per colour role, light and dark, with its contrast against the pairs BELLA’s gate declares. A role that fails a pair opens its fix; select the count to see who uses it.</p>
         {orphans.length ? (
           <div className="fd-actline">
             <p>
@@ -306,26 +292,30 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
               { id: 'used', label: 'Used', test: (r) => r.usedBy.length > 0 },
               { id: 'orphan', label: 'Used by nothing', test: (r) => !r.usedBy.length },
             ]}
-            onRow={whoSheet}
+            onRow={openWho}
             cols={[
               {
                 key: 'role',
                 label: 'Role',
-                render: (r) => (
-                  <button type="button" className="fd-qvb" onClick={() => roleSheet(r)}>
-                    {r.role}
-                  </button>
-                ),
+                render: (r) =>
+                  contrastOf(r, pairs)?.ok === false ? (
+                    <button type="button" className="fd-qvb" onClick={() => roleSheet(r)}>
+                      {r.role}
+                    </button>
+                  ) : (
+                    <span className="fd-qvb fd-qvt">{r.role}</span>
+                  ),
               },
               { key: 'light', label: 'Light', sortVal: (r) => r.lref ?? '', render: (r) => <Swatch v={r.light} r={r.lref} /> },
               { key: 'dark', label: 'Dark', sortVal: (r) => r.dref ?? '', render: (r) => <Swatch v={r.dark} r={r.dref} /> },
               {
                 key: 'cr',
                 label: 'Contrast',
-                sortVal: (r) => contrastOf(r, P)?.r ?? 0,
+                sortVal: (r) => contrastOf(r, pairs)?.r ?? 0,
                 render: (r) => {
-                  const c = contrastOf(r, P);
-                  if (!c) return <span className="fd-sub2">Depends on what’s under it</span>;
+                  const c = contrastOf(r, pairs);
+                  if (!c) return <span className="fd-sub2">Reading the pairs…</span>;
+                  if (c.none) return <span className="fd-sub2">Not in a declared pair</span>;
                   return (
                     <span className={`fd-badge ${c.ok === null ? 'grey' : c.ok ? 'green' : 'red'}`}>
                       <span aria-hidden="true">{c.ok === null ? '○' : c.ok ? '✓' : '✕'}</span> <span className="fd-crv">{c.r.toFixed(2)} · </span>
@@ -342,9 +332,9 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
                 sortVal: (r) => r.usedBy.length,
                 render: (r) =>
                   r.usedBy.length ? (
-                    <button type="button" className="k-rowbtn" onClick={() => whoSheet(r)}>
+                    <button type="button" className="k-rowbtn" onClick={() => openWho(r)}>
                       {r.usedBy.length}
-                      <span className="fd-ubw"> components</span>
+                      <span className="fd-ubw"> component{r.usedBy.length === 1 ? '' : 's'}</span>
                     </button>
                   ) : (
                     <span className="fd-nobody">None</span>

@@ -24,7 +24,7 @@ import { listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.m
 import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou } from './lib/needs.mjs';
 import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
-import { decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
+import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, searchHistory } from './lib/history.mjs';
 import { systemMap } from './lib/map.mjs';
 import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
@@ -527,6 +527,14 @@ app.get('/gaps', (_req, res) => {
   } catch (e) {
     errorOut(res, e, 500);
   }
+// Foundations' contrast column: the pairs the gate declares, measured as it does
+app.get('/contrast-pairs', (_req, res) => {
+  try {
+    res.json({ pairs: declaredPairs() });
+  } catch (e) {
+    errorOut(res, e, 500);
+  }
+});
 });
 // the report behind "Review the fix": ?items=story:Kbd,dsds:AvatarStack
 app.get('/gaps/report', (req, res) => {

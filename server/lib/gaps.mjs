@@ -492,6 +492,53 @@ export function gapReport(pairs) {
 }
 
 // { story: { Name: item }, dsds: {…}, contrast: {…}, a11y: {…}, docs, contract }
+/** Every pair contrast-pairs.mjs declares, measured as the gate measures it:
+ * PAIRS (with its highlight-wash pairs, '<wash> over <surface>') at their bar,
+ * and DISTINCT (fills kept apart) at APART, in all four themes, worst shown. */
+export function declaredPairs() {
+  const { pairSrc: src, T } = load();
+  const BAR = { AAA: 7, AA: 4.5, NON_TEXT: 3 };
+  const blockOf = (name) => {
+    const a = src.indexOf(`const ${name} = [`);
+    return a < 0 ? '' : src.slice(a, src.indexOf('\n];', a));
+  };
+  const out = [];
+  const P = blockOf('PAIRS');
+  for (const m of P.matchAll(/\['([^']+)',\s*'(--[\w-]+)',\s*'(--[\w-]+)',\s*(AAA|AA|NON_TEXT|[\d.]+)\]/g)) out.push({ label: m[1], fg: m[2], bg: m[3], bar: BAR[m[4]] ?? Number(m[4]) });
+  // the highlight pairs are written once over a list of surfaces
+  const surf = P.match(/\.\.\.\[([^\]]+)\]\.flatMap/);
+  if (surf)
+    for (const sf of [...surf[1].matchAll(/'([\w-]+)'/g)].map((x) => x[1]))
+      for (const m of P.slice(surf.index).matchAll(/\[`([^`]+)`,\s*'(--[\w-]+)',\s*`([^`]+)`,\s*(AAA|AA|NON_TEXT)\]/g))
+        out.push({ label: m[1].replace('${s}', sf), fg: m[2], bg: m[3].replace('${s}', sf), bar: BAR[m[4]] });
+  const apart = Number(src.match(/const APART = ([\d.]+)/)?.[1] ?? 1.08);
+  for (const m of blockOf('DISTINCT').matchAll(/\['([^']+)',\s*'(--[\w-]+)',\s*'(--[\w-]+)'\]/g)) out.push({ label: m[1], fg: m[2], bg: m[3], bar: apart });
+  // the gate's maths: an 8-digit wash composites over its surface; otherwise the first six digits count
+  const six = (h) => (isHex(h) ? h.slice(0, 7) : null);
+  const colour = (vars, spec) => {
+    const [top, base] = spec.split(' over ');
+    if (!base) return six(resolve(vars, top));
+    const t = resolve(vars, top);
+    const b = six(resolve(vars, base));
+    return isHex(t) && b ? over(t, b) : null;
+  };
+  return out
+    .map((p) => {
+      const measured = [];
+      for (const [theme, vars] of Object.entries(T)) {
+        const f = colour(vars, p.fg);
+        const b = colour(vars, p.bg);
+        if (!f || !b) return null;
+        const [x, y] = [lum(f), lum(b)];
+        measured.push({ theme, raw: (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) });
+      }
+      const raw = Math.min(...measured.map((m) => m.raw));
+      const r2 = (v) => Math.round(v * 100) / 100;
+      return { ...p, bg: p.bg.split(' over ')[0], measured: measured.map((m) => ({ theme: m.theme, ratio: r2(m.raw) })), worst: r2(raw), ok: raw >= p.bar };
+    })
+    .filter(Boolean);
+}
+
 export function gapFixes() {
   const ctx = load();
   const out = { story: {}, docs: {}, contract: {}, dsds: {}, contrast: {}, a11y: {} };
