@@ -383,6 +383,9 @@ export default function Connectors() {
         <ul>
           <li>Drag the canvas to move around; drag a card to rearrange it.</li>
           <li>
+            With the map focused, <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> pan it.
+          </li>
+          <li>
             <kbd>+</kbd> <kbd>−</kbd> zoom, <kbd>0</kbd> fits the map.
           </li>
           <li>

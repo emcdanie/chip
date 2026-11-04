@@ -39,18 +39,21 @@
 /* a card: icon, name, the short line, the pill; the toggle hangs below it */
 .cn-nodes { margin: 0; padding: 0; list-style: none; }
 .cn-node { position: absolute; width: 184px; }
-.cn-card { box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: 30px minmax(0, 1fr); grid-template-rows: auto auto; gap: var(--s-4) var(--s-12); width: 184px; min-height: 92px; margin: 0; padding: var(--s-12); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); font: inherit; text-align: left; }
-.cn-card:hover { border-color: var(--action); }
-.cn-card:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.cn-card .k-pill { grid-column: 2; justify-self: start; display: inline-flex; align-items: center; min-height: 24px; gap: var(--s-4); padding: 0 var(--s-12); }
+.cn-card { box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: var(--h-compact) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: var(--s-8); width: 184px; min-height: 92px; margin: 0; padding: var(--s-12) var(--s-12) var(--s-8) var(--s-8); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); font: inherit; text-align: left; }
+.cn-card:has(.cn-open:hover) { border-color: var(--action); }
+.cn-card:has(.cn-open:focus-visible) { outline: var(--focus); outline-offset: 2px; }
+.cn-open { grid-column: 2; grid-row: 1 / span 2; display: grid; align-content: start; gap: var(--s-4); min-width: 0; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.cn-open:focus-visible { outline: none; }
+.cn-node:not(:has(.cn-tog)) .cn-open { grid-column: 1 / -1; padding-left: calc(var(--h-compact) + var(--s-8)); margin-left: 0; }
+.cn-open .k-pill { justify-self: start; display: inline-flex; align-items: center; min-height: 24px; gap: var(--s-4); padding: 0 var(--s-12); }
 .cn-node.bad .cn-card { box-shadow: inset 2px 0 0 var(--fail); }
 .cn-node.blocked .cn-card { background: repeating-linear-gradient(-45deg, var(--card) 0 7px, color-mix(in srgb, var(--fail) 7%, var(--card)) 7px 9px); }
 .cn-node.near .cn-card { border-color: var(--action); }
-.cn-ic { grid-row: 1 / span 2; display: grid; place-items: center; width: var(--h-compact); height: var(--h-compact); border-radius: var(--r-control); background: var(--inset); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
+.cn-ic { grid-column: 1; grid-row: 1; display: grid; place-items: center; width: var(--h-compact); height: var(--h-compact); border-radius: var(--r-control); background: var(--inset); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
 .cn-tx { display: grid; min-width: 0; }
 .cn-tx b { font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cn-tx small { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cn-tog { position: absolute; left: var(--s-12); bottom: var(--s-8); display: grid; place-items: center; width: var(--h-compact); height: 32px; padding: 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--muted); cursor: pointer; }
+.cn-tog { grid-column: 1; grid-row: 2; align-self: end; display: grid; place-items: center; width: var(--h-compact); height: 32px; padding: 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--muted); cursor: pointer; }
 .cn-tog:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
 .cn-tog:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .cn-tog svg { transition: transform 0.2s ease-out; }

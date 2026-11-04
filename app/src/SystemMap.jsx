@@ -342,6 +342,11 @@ export default function SystemMap({ controls, map, onReload }) {
     if (e.key === '+' || e.key === '=') (e.preventDefault(), zoom(1.2));
     else if (e.key === '-') (e.preventDefault(), zoom(1 / 1.2));
     else if (e.key === '0') (e.preventDefault(), fit());
+    else if (e.target === e.currentTarget) {
+      // arrows pan the map itself; on a card they walk the tree instead
+      const d = { ArrowLeft: [48, 0], ArrowRight: [-48, 0], ArrowUp: [0, 48], ArrowDown: [0, -48] }[e.key];
+      if (d) (e.preventDefault(), setView((v) => ({ ...v, x: v.x + d[0], y: v.y + d[1] })));
+    }
   }
 
   /* ---- cards: Enter selects, arrows walk the tree ---- */
@@ -423,7 +428,7 @@ export default function SystemMap({ controls, map, onReload }) {
         ref={canvas}
         tabIndex={0}
         role="group"
-        aria-label="System map: drag to pan, plus and minus to zoom, 0 to fit"
+        aria-label="System map: drag or arrow keys to pan, plus and minus to zoom, 0 to fit"
         style={{ height: `max(clamp(320px, 44vh, 480px), ${Math.ceil(lay?.H ?? 0) + 2 * PAD}px)` }}
         onPointerDown={onCanvasDown}
         onKeyDown={onCanvasKey}
@@ -451,30 +456,26 @@ export default function SystemMap({ controls, map, onReload }) {
                     className={['cn-node', st, sel === id && 'on', near(id) && 'near'].filter(Boolean).join(' ')}
                     style={{ left: lay.P[id].x, top: lay.P[id].y }}
                   >
-                    <button
-                      type="button"
-                      className="cn-card"
-                      data-sel={id}
-                      aria-haspopup="dialog"
-                      title={n.detail ?? undefined}
-                      onPointerDown={(e) => onCardDown(e, id)}
-                      onClick={() => select(id)}
-                      onKeyDown={(e) => onCardKey(e, id)}
-                    >
+                    {/* the card is a box holding two targets side by side: the
+                        chevron in the icon column, the card's button beside it.
+                        A press on the box's spare space still selects the card. */}
+                    <div className="cn-card" title={n.detail ?? undefined} onPointerDown={(e) => !e.target.closest('.cn-tog') && onCardDown(e, id)} onClick={(e) => !e.target.closest('button') && select(id)}>
                       <span className="cn-ic" aria-hidden="true">
                         {n.icon ?? ICON[n.id] ?? '●'}
                       </span>
-                      <span className="cn-tx">
-                        <b>{n.name}</b>
-                        <small>{n.blockedBy ? `Blocked by ${n.blockedBy.name}` : n.sub}</small>
-                      </span>
-                      <StatusPill tone={TONE[st] ?? 'neutral'}>{pillText(n)}</StatusPill>
-                    </button>
-                    {n.kids?.length ? (
-                      <button type="button" className="cn-tog" aria-expanded={!!open} aria-label={`${open ? 'Collapse' : 'Expand'} ${n.name}`} onClick={() => toggle(id)}>
-                        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      {n.kids?.length ? (
+                        <button type="button" className="cn-tog" aria-expanded={!!open} aria-label={`${open ? 'Collapse' : 'Expand'} ${n.name}`} onClick={() => toggle(id)}>
+                          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                      ) : null}
+                      <button type="button" className="cn-open" data-sel={id} aria-haspopup="dialog" onClick={() => select(id)} onKeyDown={(e) => onCardKey(e, id)}>
+                        <span className="cn-tx">
+                          <b>{n.name}</b>
+                          <small>{n.blockedBy ? `Blocked by ${n.blockedBy.name}` : n.sub}</small>
+                        </span>
+                        <StatusPill tone={TONE[st] ?? 'neutral'}>{pillText(n)}</StatusPill>
                       </button>
-                    ) : null}
+                    </div>
                   </li>
                 );
               })}
