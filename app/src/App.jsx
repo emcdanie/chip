@@ -16,7 +16,7 @@ import Playground from './Playground.jsx';
 import Projects from './Projects.jsx';
 import ReviewSheet from './ReviewSheet.jsx';
 import RunSheet, { startRun } from './Runs.jsx';
-import { WorkPanel, useWork, useNeeds, useLanes, clampW, clampH, maxW, maxH } from './WorkPanel.jsx';
+import { WorkPanel, useWork, useNeeds, useLanes, clampW, clampH, maxW, maxH, minH } from './WorkPanel.jsx';
 import { useObi, OneInput } from './Obi.jsx';
 import { useTheme } from './theme.js';
 import { useRole, useVisibility } from './visibility.jsx';
@@ -557,7 +557,7 @@ export default function App() {
           dock={dock}
           canDock={wide}
           size={dock === 'right' ? wpW : wpH}
-          limits={dock === 'right' ? [360, maxW(winW, navW)] : [280, maxH(win.h)]}
+          limits={dock === 'right' ? [360, maxW(winW, navW)] : [minH(win.h), maxH(win.h)]}
           onResize={resize}
           onClose={() => setOpen(false)}
           needs={needs}

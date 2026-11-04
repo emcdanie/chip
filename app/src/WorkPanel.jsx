@@ -35,7 +35,8 @@ const mismatch = (l) => (l.prs ?? []).some((pr) => pr.claim !== 'none' && pr.ci 
 /* ---------- layout: dock, size, tab and open, remembered ---------- */
 const KEY = 'chip-work';
 const LIM = { w: [360, 760], h: [280, 0.7] };
-const DEF = { open: true, dock: 'right', w: 440, h: 360, tab: 'needs' };
+// h: null is the bottom dock's default, 40% of the window; a resize stores px
+const DEF = { open: true, dock: 'right', w: 440, h: null, tab: 'needs' };
 const TABS = ['needs', 'sessions', 'term', 'ask'];
 
 /** The panel's layout state, kept in localStorage (chip-work). */
@@ -43,6 +44,8 @@ export function useWork() {
   const [st, setSt] = useState(() => {
     try {
       const s = { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
+      // 360 was the fixed default before 4 Nov, stored whether or not it was resized
+      if (s.h === 360) s.h = null;
       return TABS.includes(s.tab) ? s : { ...s, tab: DEF.tab };
     } catch {
       return DEF;
@@ -57,11 +60,14 @@ export function useWork() {
   return [st, set];
 }
 
-// the right dock leaves the page at least 360px; the bottom stops at 70%
+// the right dock leaves the page at least 360px; the bottom stops at 70%, or
+// at 50% on a window under 600px tall (a short screen, or 200% zoom), where
+// it opens as a sheet over the lower half instead of 280px of a 450px window
 export const maxW = (winW, nav) => Math.max(LIM.w[0], Math.min(LIM.w[1], winW - nav - 360));
-export const maxH = (winH) => Math.round(winH * LIM.h[1]);
+export const maxH = (winH) => Math.round(winH * (winH < 600 ? 0.5 : LIM.h[1]));
+export const minH = (winH) => Math.min(LIM.h[0], maxH(winH));
 export const clampW = (w, winW, nav) => Math.round(Math.max(LIM.w[0], Math.min(maxW(winW, nav), w)));
-export const clampH = (h, winH) => Math.round(Math.max(LIM.h[0], Math.min(maxH(winH), h)));
+export const clampH = (h, winH) => Math.round(Math.max(minH(winH), Math.min(maxH(winH), h ?? winH * 0.4)));
 
 /* ---------- data ---------- */
 /** GET /bar/state every 10 s: the lanes and what each last reported. */
