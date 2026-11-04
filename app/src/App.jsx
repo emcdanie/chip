@@ -14,6 +14,7 @@ import Connectors from './Connectors.jsx';
 import Foundations from './Foundations.jsx';
 import History from './History.jsx';
 import Playground from './Playground.jsx';
+import Projects from './Projects.jsx';
 import ReviewSheet from './ReviewSheet.jsx';
 import { TheBar, useBar, useNeeds } from './TheBar.jsx';
 import { useObi, OneInput, ObiPanel } from './Obi.jsx';
@@ -30,6 +31,7 @@ const PAGES = [
   { id: 'play', label: 'Playground', icon: <><rect x="3.5" y="4.5" width="17" height="13" rx="1.5" /><path d="M9 21h6M12 17.5V21" /><path d="M8 13l3-3 2 2 3-3" /></> },
   { id: 'docs', label: 'History', icon: <><path d="M3 12h18" /><circle cx="7" cy="12" r="2.2" fill="currentColor" /><circle cx="13" cy="12" r="2.2" fill="currentColor" /><circle cx="19" cy="12" r="2.2" /></> },
   { id: 'connectors', label: 'Connectors', icon: <><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M8 7.5l3 8M16 7.5l-3 8" /></> },
+  { id: 'projects', label: 'Projects', icon: <><path d="M3.5 7.5v11a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 19 8h-7l-2-2.5H5A1.5 1.5 0 0 0 3.5 7z" /></> },
 ];
 const NAME = Object.fromEntries(PAGES.map((p) => [p.id, p.label]));
 const GROUP_ORDER = ['Actions', 'Inputs', 'Layout', 'Data', 'Chat', 'Brand', 'Other'];
@@ -38,15 +40,21 @@ const LENSES = [
   { id: 'technical', label: 'Technical' },
   { id: 'scope', label: 'Scope' },
 ];
-const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digit4: 'play', Digit5: 'docs', Digit6: 'connectors' };
+const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digit4: 'play', Digit5: 'docs', Digit6: 'connectors', Digit7: 'projects' };
 // v2: Claude answers by default (Elleta, 3 Nov: the local model isn't good
 // enough on stage); the local model stays one pick away
 const MODEL_KEY = 'chip-model-v2';
 const WORK_NAME = { obi: 'OBI', claude: 'Claude', term: 'Terminal' };
 
+// #/play/<project>?route=<page> opens a project's page in the Playground
 function routeOf(hash) {
-  const m = hash.match(/^#\/(health|foundations|atlas|play|docs|connectors)(?:\/([\w-]+))?$/);
-  return m ? { ws: m[1], id: m[2] } : null;
+  const m = hash.match(/^#\/(health|foundations|atlas|play|docs|connectors|projects)(?:\/([\w-]+))?(?:\?route=([^&]*))?$/);
+  if (!m) return null;
+  let route;
+  try {
+    route = m[3] ? decodeURIComponent(m[3]) : undefined;
+  } catch {}
+  return { ws: m[1], id: m[2], route };
 }
 
 function useMedia(query) {
@@ -116,6 +124,9 @@ export default function App() {
   const [ws, setWs] = useState(start.ws);
   const [atlasId, setAtlasId] = useState(start.ws === 'atlas' ? start.id ?? 'button' : 'button');
   const [docId, setDocId] = useState(start.ws === 'docs' ? start.id ?? null : null);
+  const [projId, setProjId] = useState(start.ws === 'projects' ? start.id ?? null : null);
+  // what the Playground was asked to open: { project, route }, from #/play/<project>?route=
+  const [playTarget, setPlayTarget] = useState(start.ws === 'play' && start.id ? { project: start.id, route: start.route } : null);
   const [docsVersion, setDocsVersion] = useState(0); // bumped when OBI saves a doc
   const [bella, setBella] = useState(null);
   const [docs, setDocs] = useState([]);
@@ -197,15 +208,22 @@ export default function App() {
 
   // the address follows the view
   useEffect(() => {
-    const want = ws === 'atlas' ? `#/atlas/${atlasId}` : ws === 'docs' && docId ? `#/docs/${docId}` : `#/${ws}`;
+    const want =
+      ws === 'atlas' ? `#/atlas/${atlasId}`
+      : ws === 'docs' && docId ? `#/docs/${docId}`
+      : ws === 'projects' && projId ? `#/projects/${projId}`
+      : ws === 'play' && playTarget ? `#/play/${playTarget.project}${playTarget.route ? `?route=${encodeURIComponent(playTarget.route)}` : ''}`
+      : `#/${ws}`;
     if (window.location.hash !== want) window.history.replaceState(null, '', want);
-  }, [ws, atlasId, docId]);
+  }, [ws, atlasId, docId, projId, playTarget]);
   useEffect(() => {
     const on = () => {
       const r = routeOf(window.location.hash);
       if (!r) return;
       setWs(r.ws);
       if (r.ws === 'docs') setDocId(r.id ?? null);
+      else if (r.ws === 'projects') setProjId(r.id ?? null);
+      else if (r.ws === 'play') setPlayTarget(r.id ? { project: r.id, route: r.route } : null);
       else if (r.id) setAtlasId(r.id);
     };
     window.addEventListener('hashchange', on);
@@ -534,7 +552,8 @@ export default function App() {
           {ws === 'health' ? <Health bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={() => loadBella(true)} /> : null}
           {ws === 'foundations' ? <Foundations bella={bella} onSession={session} onOpenAtlas={openAtlas} /> : null}
           {ws === 'docs' ? <History docId={docId} version={docsVersion} bella={bella} lens={lens} onOpenAtlas={openAtlas} onSession={session} /> : null}
-          {ws === 'play' ? <Playground onToast={setToast} /> : null}
+          {ws === 'play' ? <Playground onToast={setToast} project={playTarget?.project} route={playTarget?.route} /> : null}
+          {ws === 'projects' ? <Projects projectId={projId} onProject={setProjId} /> : null}
           {ws === 'connectors' ? <Connectors narrow={narrow} /> : null}
           {ws === 'atlas' ? <Atlas c={atlas} bella={bella} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={false} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} role={role} vis={vis} setVis={setVis} /> : null}
         </div>

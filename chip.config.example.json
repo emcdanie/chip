@@ -116,5 +116,55 @@
       "note": "Southleft's open design-systems knowledge base (Atlas: How others do it). Read only."
     }
   ],
-  "notesDir": "~/DEV/obi-notes"
+  "projects": [
+    {
+      "$comment": "The repos CHIP works on, CHIP included (server/lib/projects.mjs). id is also the terminal's folder key. pages.kind: next (app/ routes; expand fills a dynamic segment from a content folder), hash (CHIP's PAGES list) or storybook (one entry per stories file). dev: the command CHIP may start and its port; CHIP stops only what it started. note: the 'what we're working on' line, edited on the Projects page.",
+      "id": "chip",
+      "name": "CHIP",
+      "short": "CHIP",
+      "description": "This workspace.",
+      "repo": "~/DEV/chip",
+      "defaultBranch": "main",
+      "pages": {
+        "kind": "hash",
+        "file": "app/src/App.jsx"
+      },
+      "note": ""
+    },
+    {
+      "id": "site",
+      "name": "Your site",
+      "short": "Site",
+      "description": "A Next.js site built on BELLA.",
+      "repo": "~/DEV/your-site",
+      "defaultBranch": "main",
+      "pages": {
+        "kind": "next",
+        "expand": {
+          "/case-studies/[slug]": "content/case-studies"
+        }
+      },
+      "dev": {
+        "command": "npm run dev",
+        "port": 3000
+      },
+      "note": ""
+    },
+    {
+      "id": "bella",
+      "name": "BELLA",
+      "short": "BELLA",
+      "description": "The design system.",
+      "repo": "~/DEV/bella",
+      "defaultBranch": "main",
+      "pages": {
+        "kind": "storybook"
+      },
+      "dev": {
+        "command": "npm run storybook",
+        "port": 6006
+      },
+      "note": ""
+    }
+  ]
 }

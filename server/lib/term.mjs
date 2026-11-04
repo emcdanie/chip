@@ -9,19 +9,15 @@
 import { chmodSync, existsSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { homedir } from 'node:os';
 import dotenv from 'dotenv';
 import { WebSocketServer } from 'ws';
 import pty from 'node-pty';
-import { ROOT, BELLA_DIR } from './config.mjs';
+import { ROOT } from './config.mjs';
+import { terminalRepos } from './projects.mjs';
 
-// Folders a terminal may open in, by key. `site` is the portfolio.
-export const REPOS = {
-  chip: { label: 'CHIP', dir: ROOT },
-  bella: { label: 'BELLA', dir: BELLA_DIR },
-  site: { label: 'Site', dir: join(homedir(), 'DEV', 'ctrl-alt-design') },
-};
-export const repoList = () => Object.entries(REPOS).filter(([, r]) => existsSync(r.dir)).map(([id, r]) => ({ id, label: r.label }));
+// Folders a terminal may open in, by key: the project registry
+// (projects.mjs), so there is one list. `site` is the portfolio.
+export const repoList = () => Object.entries(terminalRepos()).filter(([, r]) => existsSync(r.dir)).map(([id, r]) => ({ id, label: r.label }));
 
 const MAX_SESSIONS = 6;
 const live = new Set();
@@ -65,7 +61,8 @@ export function attachTerminal(server, { port, origins }) {
     if (!origins.has(req.headers.origin)) return refuse(403, 'Forbidden');
     if (!hosts.has(req.headers.host)) return refuse(403, 'Forbidden');
     if (live.size >= MAX_SESSIONS) return refuse(429, 'Too Many Terminals');
-    const repo = REPOS[url.searchParams.get('repo')] ?? REPOS.chip;
+    const repos = terminalRepos();
+    const repo = repos[url.searchParams.get('repo')] ?? repos.chip ?? { dir: ROOT };
     if (!existsSync(repo.dir)) return refuse(404, 'Not Found');
     const cols = Math.min(400, Math.max(20, Number(url.searchParams.get('cols')) || 100));
     const rows = Math.min(200, Math.max(5, Number(url.searchParams.get('rows')) || 30));
