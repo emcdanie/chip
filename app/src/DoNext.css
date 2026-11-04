@@ -1,0 +1,54 @@
+/* Gaps to close, one component at a time. Selection is the action blue's
+   wash and edge, as the mock selects; colour flags only exceptions: a pair
+   that would fail, or a gap with no suggestion. */
+.gap1.dn { align-items: start; }
+.gap1.dn > .n { align-self: stretch; }
+.gap1.dn > [data-bella-component='button'] { align-self: start; margin-top: var(--s-16); }
+
+.dn-pick { display: flex; flex-wrap: wrap; gap: var(--s-8); margin-top: var(--s-12); }
+.dn-chip { display: inline-flex; align-items: center; gap: var(--s-8); min-height: var(--h-control); padding: 0 var(--s-12); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--body); font: 400 var(--fs-14)/var(--lh-body) var(--code); cursor: pointer; }
+.dn-chip:hover { border-color: var(--action); }
+.dn-chip:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.dn-chip[aria-pressed='true'] { background: var(--sel); border-color: var(--action); box-shadow: inset 0 0 0 1px var(--action); color: var(--ink); font-weight: 600; }
+.dn-box { width: 16px; height: 16px; flex: none; border: 1px solid color-mix(in srgb, var(--ink) 45%, var(--card)); border-radius: var(--r); background: var(--card); display: grid; place-items: center; }
+.dn-chip[aria-pressed='true'] .dn-box { background: var(--action); border-color: var(--action); }
+.dn-chip[aria-pressed='true'] .dn-box::after { content: ''; width: 8px; height: 4px; border: solid var(--on-action); border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg); }
+
+.dn-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-8); margin-top: var(--s-8); }
+.dn-count { font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); margin-right: var(--s-8); }
+.dn-bar .k-link { min-height: var(--h-control); }
+.dn-bar .k-link:disabled { color: var(--muted); text-decoration: none; cursor: default; }
+.dn-bar .k-link:focus-visible { outline: var(--focus); outline-offset: 0; }
+
+.dn-detail { grid-column: 1 / -1; display: grid; gap: 0; border-top: 1px solid var(--line); background: var(--ground); }
+.dn-detail > p { margin: 0; padding: var(--s-16) var(--s-24); font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--body); }
+.dn-fix + .dn-fix { border-top: 1px solid var(--line); }
+.dn-fix h3 { display: flex; align-items: center; gap: var(--s-12); margin: 0; padding: var(--s-16) var(--s-24) var(--s-8); font: 600 var(--fs-16)/var(--lh-head) var(--code); color: var(--ink); }
+.dn-fix dl { margin: 0; padding: 0 var(--s-24) var(--s-16); display: grid; gap: var(--s-8); }
+.dn-fix dl > div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: var(--s-16); padding-top: var(--s-8); border-top: 1px solid color-mix(in srgb, var(--line) 50%, transparent); }
+.dn-fix dl > div:first-child { border-top: 0; padding-top: 0; }
+.dn-fix dt { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
+.dn-fix dd { margin: 0; display: grid; gap: var(--s-8); min-width: 0; }
+.dn-fix dd p { margin: 0; font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--body); max-width: 72ch; }
+.dn-fix dd b { color: var(--ink); font-weight: 600; }
+.dn-where { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
+.dn-where code, .dn-src { font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--ink); overflow-wrap: anywhere; }
+.dn-src { color: var(--muted); white-space: nowrap; }
+.dn-src::before { content: '· '; }
+.dn-code { margin: 0; padding: var(--s-12) var(--s-16); border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--code); white-space: pre; overflow-x: auto; }
+.dn-code:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.dn-model { margin: 0; padding: var(--s-8) var(--s-12); border-left: 2px solid var(--line); font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--body); max-width: 72ch; }
+.dn-model span { display: block; font-weight: 600; color: var(--muted); }
+.dn-caveat, .dn-fix dd .dn-caveat, .dn-detail > .dn-caveat { padding: var(--s-8) var(--s-12); border-radius: var(--r); background: color-mix(in srgb, var(--needs) 22%, var(--card)); color: var(--ink); }
+
+.dn-pairs { width: 100%; border-collapse: collapse; font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--body); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
+.dn-pairs th, .dn-pairs td { padding: var(--s-4) var(--s-8); text-align: right; border-top: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dn-pairs thead th { border-top: 0; font-weight: 600; color: var(--muted); }
+.dn-pairs th[scope='row'], .dn-pairs thead th:first-child { text-align: left; white-space: normal; font-weight: 400; color: var(--ink); }
+.dn-pairs thead th:first-child { font-weight: 600; color: var(--muted); }
+.dn-pairs td.bad { background: color-mix(in srgb, var(--fail) 18%, var(--card)); color: var(--ink); font-weight: 600; }
+.dn-twin { display: block; color: var(--muted); }
+
+@container acts (max-width: 640px) {
+  .dn-fix dl > div { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+}

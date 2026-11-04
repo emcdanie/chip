@@ -1,0 +1,347 @@
+// Do next, one component at a time (4 Nov): for each gap the Overview counts,
+// what is missing, where it lives, what to add, why, what it changes and how
+// to undo it. Every suggestion is read from BELLA's own files: the contract
+// (tokens/component.json), the built tokens (tokens/bella.css), the gate
+// scripts and the component sources. Where those can't suggest a fix, the
+// item says so and names what is needed instead of guessing.
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { ROOT } from './config.mjs';
+import { BELLA } from './bella-work.mjs';
+import { readResult } from './checks.mjs';
+
+const read = (rel) => readFileSync(join(BELLA, rel), 'utf8');
+const lineOf = (text, re) => text.split('\n').findIndex((l) => re.test(l)) + 1;
+const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+
+// the rules each gap answers to, quoted from BELLA
+const RULES = {
+  story: { rule: 'Props, variants and examples live in each component’s .tsx types and Storybook stories. npm run gate renders every story (audit:visual).', source: 'AGENTS.md · package.json "gate"' },
+  docs: { rule: 'Every component has a docs page people can read.', source: 'CHIP coverage rule' },
+  contract: { rule: 'Agents build from the Tier 3 contract; contract-parity checks it against the exported Props.', source: 'scripts/contract-parity.mjs' },
+  dsds: { rule: 'Machine-readable contracts: bella.dsds.yaml. Only contracts listed in build-dsds.mjs’s IMPL map are extracted.', source: 'AGENTS.md · scripts/build-dsds.mjs' },
+  contrast: { rule: 'The pairs are checked, not just recorded: contrast-pairs.mjs computes every declared pair in every theme. Worst ground wins.', source: 'docs/agents/maintaining.md · scripts/contrast-pairs.mjs' },
+  a11y: { rule: 'Verified ratios and behaviour are recorded per component in $extensions.bella.a11y, dated; contrast-pairs is the check that the record is still true.', source: 'docs/agents/maintaining.md · scripts/contrast-pairs.mjs' },
+};
+
+/* ---------- colour: the same maths and theme blocks as contrast-pairs.mjs ---------- */
+function themes() {
+  const css = read('tokens/bella.css');
+  const block = (re) => {
+    const m = css.match(re);
+    if (!m) return {};
+    let depth = 1;
+    let i = m.index + m[0].length;
+    const start = i;
+    while (depth && i < css.length) {
+      if (css[i] === '{') depth++;
+      else if (css[i] === '}') depth--;
+      i++;
+    }
+    const vars = {};
+    for (const d of css.slice(start, i - 1).matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) vars[d[1]] = d[2].trim();
+    return vars;
+  };
+  const light = block(/:root\s*\{/);
+  const t = (name) => ({ ...light, ...block(new RegExp(`\\[data-theme=["']?${name}["']?\\]\\s*\\{`)) });
+  return { light, dark: t('dark'), warm: t('warm'), 'wee-dote': t('wee-dote') };
+}
+function resolve(vars, name, seen = new Set()) {
+  if (seen.has(name) || vars[name] === undefined) return null;
+  seen.add(name);
+  const ref = vars[name].match(/^var\((--[\w-]+)\)$/);
+  return ref ? resolve(vars, ref[1], seen) : vars[name];
+}
+const isHex = (v) => /^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(v ?? '');
+function lum(hex) {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const l = c.map((x) => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2];
+}
+// an 8-digit foreground or background is composited over the page, as the eye sees it
+function over(top, base) {
+  if (top.length === 7) return top;
+  const a = parseInt(top.slice(7, 9), 16) / 255;
+  return '#' + [1, 3, 5].map((i) => Math.round(parseInt(top.slice(i, i + 2), 16) * a + parseInt(base.slice(i, i + 2), 16) * (1 - a)).toString(16).padStart(2, '0')).join('');
+}
+function measure(T, fg, bg) {
+  const out = [];
+  for (const [theme, vars] of Object.entries(T)) {
+    const page = resolve(vars, '--color-semantic-background');
+    const b = resolve(vars, bg);
+    const f = resolve(vars, fg);
+    if (!isHex(b) || !isHex(f) || !isHex(page)) return null;
+    const B = over(b, page.slice(0, 7));
+    const F = over(f, B);
+    const [x, y] = [lum(F), lum(B)];
+    out.push({ theme, ratio: Math.round(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100 });
+  }
+  return out;
+}
+
+/* ---------- shared reads ---------- */
+function load() {
+  const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
+  const contracts = JSON.parse(read('tokens/component.json')).component;
+  const pairSrc = read('scripts/contrast-pairs.mjs');
+  const pairs = [...pairSrc.matchAll(/\['([^']+)',\s*'(--[\w-]+)',\s*'(--[\w-]+)',\s*(\w+|[\d.]+)\]/g)]
+    .map((m) => ({ label: m[1], fg: m[2], bg: m[3], min: m[4] }))
+    .filter((p) => !p.label.includes('forbidden'));
+  const dsdsSrc = read('scripts/build-dsds.mjs');
+  const implStart = lineOf(dsdsSrc, /^const IMPL = \{/);
+  const implBody = dsdsSrc.slice(dsdsSrc.indexOf('const IMPL = {'), dsdsSrc.indexOf('};', dsdsSrc.indexOf('const IMPL = {')));
+  const impl = Object.fromEntries([...implBody.matchAll(/'?([\w-]+)'?:\s*'(\w+)'/g)].map((m) => [m[1], m[2]]));
+  const implEnd = implStart + implBody.split('\n').length - 1;
+  return { bella, contracts, pairs, pairSrc, dsdsSrc, impl, implEnd, T: themes() };
+}
+const srcOf = (name) => {
+  const dir = join(BELLA, 'src/components', name);
+  if (!existsSync(dir)) return '';
+  return readdirSync(dir).filter((f) => /\.(tsx|css)$/.test(f) && !f.includes('.stories.')).map((f) => readFileSync(join(dir, f), 'utf8')).join('\n');
+};
+// the most similar components: shared props weigh most, then category and composition
+function similar(c, comps, keep) {
+  const P = new Set(c.props);
+  return comps
+    .filter((o) => o.name !== c.name && keep(o))
+    .map((o) => {
+      const shared = o.props.filter((p) => P.has(p) && p !== 'className' && p !== 'children');
+      const score = shared.length * 2 + (o.category && o.category === c.category ? 3 : 0) + (c.composedFrom.includes(o.name) || o.composedFrom.includes(c.name) ? 2 : 0);
+      return { o, shared, score };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score || a.o.name.localeCompare(b.o.name));
+}
+
+/* ---------- one suggester per gap ---------- */
+function contrastGap(c, ctx) {
+  const where = [{ file: 'scripts/contrast-pairs.mjs', field: 'PAIRS' }];
+  const base = { why: RULES.contrast, where };
+  const failingNow = c.health.contrast.status === 'fail' || c.health.contrast.status === 'pass';
+  if (failingNow) {
+    // the live check's failure line naming a token this component reads, as the Overview counts it
+    const live = (readResult('contrast')?.failures ?? []).find((f) => c.tokens.list.includes(f.match(/--[\w-]+/)?.[0]));
+    const what = c.health.contrast.failing.length ? c.health.contrast.failing.join('; ') : live ?? 'a token it reads fails the live Colour contrast check';
+    return {
+      ...base,
+      missing: `A declared pair on its tokens fails: ${what}.`,
+      suggest: { text: 'The Colour contrast check already has a review card with a measured fix. Open it from the check.' },
+      change: 'Accepting the card changes one token and re-runs the gate.',
+      undo: 'The review card’s Undo reverts the commit.',
+      brief: `${c.name}: fix the failing contrast pair (${what}) with the Colour contrast review card's fix.`,
+    };
+  }
+  const key = kebab(c.name);
+  const colourTokens = c.tokens.list.filter((t) => ['light', 'dark'].some((th) => isHex(resolve(ctx.T[th], t))));
+  if (!colourTokens.length) {
+    const own = c.tokens.list.filter((t) => t !== '--icon-');
+    const current = /currentColor/.test(srcOf(c.name));
+    return {
+      ...base,
+      missing: `No pair in scripts/contrast-pairs.mjs reads ${c.name}’s tokens, so its contrast is unchecked.`,
+      suggest: null,
+      noSuggest: {
+        why: `${c.name} has no colour tokens of its own${own.length ? ` (it reads ${own.join(', ')})` : ''}${current ? ' and draws in currentColor, so it takes the colour of the text around it' : ''}. There is nothing to pair.`,
+        needed: 'BELLA has no way to record “no colours of its own”, so this gap stays open. Needed: a contract field saying so, which CHIP’s Contrast column would read. That is a contract change, so it is yours to decide.',
+      },
+      change: 'Nothing until that field exists.',
+      undo: '—',
+      brief: `${c.name}: has no colour tokens (${own.join(', ') || 'none'}), so no contrast pair applies. Propose a way to record that in its contract; don't add a pair.`,
+    };
+  }
+  // roles by the token's last word, as BELLA names them
+  const role = (t) => (/-(foreground|text)$/.test(t) ? 'text' : /-(background|fill|surface)$/.test(t) ? 'bg' : /-(border|stroke|divider-color|dot-color|indicator|edge|ring)$/.test(t) ? 'mark' : null);
+  const group = (t) => t.replace(/-(foreground|text|background|fill|surface|border|stroke|divider-color|dot-color|indicator|edge|ring)$/, '');
+  const own = colourTokens.filter((t) => t.startsWith('--component-'));
+  const bgs = own.filter((t) => role(t) === 'bg');
+  const semanticFill = colourTokens.find((t) => /^--color-semantic-(surface|background|raised|ground)/.test(t));
+  const rootBg = semanticFill ?? bgs.find((t) => group(t) === `--component-${key}`) ?? (bgs.length === 1 ? bgs[0] : null);
+  const words = (t) => t.replace(`--component-${key}-`, '').replace(/(^|-)(foreground|text)$/, ' label').replace(/-color$/, '').replace(/-/g, ' ').replace(/^default /, '').trim();
+  const sugg = [];
+  for (const t of own) {
+    const r = role(t);
+    if (r !== 'text' && r !== 'mark') continue;
+    const sameBg = bgs.find((b) => group(b) === group(t));
+    const isBorder = /-border$/.test(t);
+    // a border marks the edge against what is around it, as BELLA's control and chip borders do
+    const grounds = isBorder ? [['--color-semantic-surface-card', 'panel']] : sameBg ? [[sameBg, 'its fill']] : rootBg ? [[rootBg, semanticFill ? 'the surface' : 'its fill']] : [['--color-semantic-background', 'the page'], ['--color-semantic-surface-card', 'panel']];
+    for (const [bg, on] of grounds) {
+      const min = r === 'text' ? 'AAA' : 'NON_TEXT';
+      const bar = r === 'text' ? 7 : 3;
+      const m = measure(ctx.T, t, bg);
+      if (!m) continue;
+      const label = `${c.name.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()} ${words(t).replace(c.name.toLowerCase(), '').trim()} on ${on}`.replace(/\s+/g, ' ');
+      const dup = ctx.pairs.find((p) => p.fg === t && p.bg === bg);
+      if (dup) continue;
+      // same colours as a pair BELLA already checks, through the semantic token the contract points at
+      const sem = (tok) => {
+        const pre = `--component-${key}-`;
+        if (!tok.startsWith(pre)) return tok;
+        const segs = tok.slice(pre.length).split('-');
+        let o = ctx.contracts[key];
+        let i = 0;
+        while (o && i < segs.length) {
+          let j = segs.length;
+          while (j > i && o[segs.slice(i, j).join('-')] === undefined) j--;
+          if (j === i) return tok;
+          o = o[segs.slice(i, j).join('-')];
+          i = j;
+        }
+        const v = o?.$value?.match(/^\{color\.semantic\.([\w-]+)\}$/);
+        return v ? `--color-semantic-${v[1]}` : tok;
+      };
+      const twin = ctx.pairs.find((p) => p.fg === sem(t) && p.bg === sem(bg));
+      sugg.push({ label, fg: t, bg, min, bar, measured: m, worst: Math.min(...m.map((x) => x.ratio)), fails: m.filter((x) => x.ratio < bar).map((x) => x.theme), twin: twin?.label ?? null, surfaceGuess: !sameBg && !rootBg });
+    }
+  }
+  if (!sugg.length) {
+    return {
+      ...base,
+      missing: `No pair in scripts/contrast-pairs.mjs reads ${c.name}’s tokens.`,
+      suggest: null,
+      noSuggest: { why: `${c.name}’s colour tokens (${colourTokens.join(', ')}) carry no foreground, border or fill role CHIP can pair by name.`, needed: 'Name the foreground and the surface it sits on in the contract, then a pair can be measured.' },
+      change: '—',
+      undo: '—',
+      brief: `${c.name}: decide which of ${colourTokens.join(', ')} is text on which surface, then add those pairs to scripts/contrast-pairs.mjs.`,
+    };
+  }
+  const endLine = lineOf(ctx.pairSrc, /^\s*\['body text on chat received surface'/) || lineOf(ctx.pairSrc, /^const PAIRS = \[/);
+  const fails = sugg.filter((s) => s.fails.length);
+  // BELLA's inset rule may already say the component is identified by its text, not its edge
+  const exempt = [...ctx.pairSrc.matchAll(new RegExp(`'src/components/${c.name}/[^']+':\\s*'([^']+)'`, 'g'))].map((m) => m[1]);
+  const model = ctx.pairs.find((p) => p.fg.startsWith('--component-') && p.bg.startsWith('--component-') && p.fg.split('-')[3] === p.bg.split('-')[3]);
+  return {
+    ...base,
+    where: [{ file: 'scripts/contrast-pairs.mjs', field: `PAIRS (add after line ${endLine})` }],
+    missing: `${c.name} reads ${colourTokens.length} colour token${colourTokens.length === 1 ? '' : 's'}, and no declared pair checks any of them.`,
+    suggest: {
+      text: `${sugg.length} pair${sugg.length === 1 ? '' : 's'} from its own tokens, measured in all four themes with contrast-pairs’ maths.${model ? ` Same shape as BELLA’s “${model.label}”.` : ''}`,
+      pairs: sugg,
+      code: sugg.map((s) => `  ['${s.label}', '${s.fg}', '${s.bg}', ${s.min}],`).join('\n'),
+      caveat: fails.length ? `${fails.length} of these would fail the gate as written (${fails.map((s) => `${s.label}: ${s.worst}:1 in ${s.fails.join(', ')}`).join('; ')}). Fix the token first, or leave that pair out.${exempt.length && fails.some((s) => /-border$/.test(s.fg)) ? ` BELLA’s inset rule already says ${c.name} is “${exempt[0]}”, which argues for leaving the border pair out.` : ''}` : sugg.some((s) => s.surfaceGuess) ? `${c.name} has no fill of its own, so its text is paired with the page and panel, as BELLA does for Eyebrow-like labels. Check it never sits on a darker surface.` : null,
+    },
+    change: `contrast-pairs.mjs checks ${sugg.length} more pair${sugg.length === 1 ? '' : 's'} in every theme on each gate; the Contrast column counts ${c.name} once the sync re-reads BELLA.${fails.length ? ' A failing pair blocks the gate.' : ''}`,
+    undo: `Delete the added line${sugg.length === 1 ? '' : 's'} from PAIRS.`,
+    brief: `${c.name}: add to PAIRS in scripts/contrast-pairs.mjs:\n${sugg.map((s) => `  ['${s.label}', '${s.fg}', '${s.bg}', ${s.min}], // worst ${s.worst}:1${s.fails.length ? ` FAILS in ${s.fails.join(', ')}` : ''}`).join('\n')}${fails.length ? '\nLeave out a pair marked FAILS unless you fix its token first; ask before changing a token.' : ''}`,
+  };
+}
+
+function dsdsGap(c, ctx) {
+  const key = kebab(c.name);
+  const k = ctx.contracts[key]?.$extensions?.bella;
+  const base = { why: RULES.dsds, where: [{ file: 'scripts/build-dsds.mjs', field: `IMPL (line ${ctx.implEnd})` }, { file: 'bella.dsds.yaml', field: 'entries (generated)' }] };
+  if (!k) {
+    return { ...base, missing: `${c.name} has no contract, so build-dsds.mjs has nothing to extract.`, suggest: null, noSuggest: { why: 'DSDS entries are extracted from the contract.', needed: `A contract for ${c.name} in tokens/component.json first.` }, change: '—', undo: '—', brief: `${c.name}: write its contract in tokens/component.json first; then add it to IMPL in scripts/build-dsds.mjs.` };
+  }
+  const fields = ['description', 'variants', 'states', 'props', 'usage', 'dont', 'a11y'].filter((f) => (Array.isArray(k[f]) ? k[f].length : k[f]));
+  const sib = similar(c, ctx.bella.components, (o) => ctx.impl[kebab(o.name)])[0]?.o;
+  return {
+    ...base,
+    missing: `${c.name} has a contract, but '${key}' is not in the IMPL map, so bella.dsds.yaml has no entry for it.`,
+    suggest: {
+      text: `Add one line to IMPL, then run npm run build:dsds. The entry is extracted from the contract fields it already has: ${fields.join(', ')}.${sib ? ` ${sib.name} is extracted the same way.` : ''}`,
+      code: `  '${key}': '${c.name}',`,
+    },
+    change: `bella.dsds.yaml gains a component entry for ${c.name}. The gate diffs bella.dsds.yaml, so commit the regenerated file with the line.`,
+    undo: 'Remove the line from IMPL and run npm run build:dsds again.',
+    brief: `${c.name}: add '${key}': '${c.name}', to IMPL in scripts/build-dsds.mjs, run npm run build:dsds, commit both.`,
+  };
+}
+
+function storyGap(c, ctx) {
+  const key = kebab(c.name);
+  const k = ctx.contracts[key]?.$extensions?.bella ?? {};
+  const file = `src/components/${c.name}/${c.name}.stories.tsx`;
+  // of the three closest with a story, the shortest file is the easiest to copy
+  const storyLen = (o) => read(`src/components/${o.name}/${o.name}.stories.tsx`).length;
+  const sib = similar(c, ctx.bella.components, (o) => o.hasStory).slice(0, 3).sort((a, b) => storyLen(a.o) - storyLen(b.o))[0];
+  const base = { why: RULES.story, where: [{ file, field: 'new file' }] };
+  const variants = (k.variants ?? []).map((v) => (typeof v === 'string' ? v : v.name)).filter(Boolean);
+  const states = (k.states ?? []).filter((s) => s !== 'default');
+  if (!sib && !variants.length) {
+    return { ...base, missing: `${c.name} has no story.`, suggest: null, noSuggest: { why: 'Its contract lists no variants and no component with a story shares its props.', needed: 'Variants in the contract, or a story to copy.' }, change: '—', undo: '—', brief: `${c.name}: write ${file}.` };
+  }
+  let model = null;
+  if (sib) {
+    const s = read(`src/components/${sib.o.name}/${sib.o.name}.stories.tsx`);
+    model = { name: sib.o.name, file: `src/components/${sib.o.name}/${sib.o.name}.stories.tsx`, title: s.match(/title:\s*'([^']+)'/)?.[1], stories: [...s.matchAll(/^export const (\w+)/gm)].map((m) => m[1]) };
+  }
+  const brand = /data-bella-brand/.test(srcOf(c.name));
+  return {
+    ...base,
+    missing: `${c.name} has no story, so Storybook can’t show it and the gate’s visual audit never renders it.`,
+    suggest: {
+      text: `${variants.length ? `One story per contract variant: ${variants.join(', ')}.` : 'One story for its default.'}${states.length ? ` States to show: ${states.join(', ')}.` : ''}${model ? ` Copy the shape of ${model.file} (title '${model.title?.replace(sib.o.name, c.name)}'; it has ${model.stories.join(', ')}).` : ''}${brand ? ' It is brand art (data-bella-brand): show it both as a labelled image and as aria-hidden decoration, per AGENTS.md.' : ''}`,
+      code: `title: 'Components/${c.name}'\n${(variants.length ? variants : ['Default']).map((v) => `export const ${v[0].toUpperCase()}${v.slice(1).replace(/-(\w)/g, (_, x) => x.toUpperCase())}: Story = ${variants.length ? `{ args: { variant: '${v}' } }` : '{}'};`).join('\n')}`,
+    },
+    change: `A new file. Storybook lists ${c.name}; npm run gate renders it in audit:visual (test-storybook and audit-quality-docs).`,
+    undo: `Delete ${file}.`,
+    brief: `${c.name}: write ${file}${variants.length ? ` with one story per variant (${variants.join(', ')})` : ''}${model ? `, modelled on ${model.file}` : ''}.${brand ? ' Brand art: one labelled (role="img") and one decorative (aria-hidden) story.' : ''}`,
+  };
+}
+
+function a11yGap(c, ctx) {
+  const key = kebab(c.name);
+  const where = [{ file: 'tokens/component.json', field: `component.${key}.$extensions.bella.a11y` }];
+  const base = { why: RULES.a11y, where };
+  if (!ctx.contracts[key]) {
+    return { ...base, missing: `${c.name} has no contract to hold a11y notes.`, suggest: null, noSuggest: { why: 'The notes live in the contract.', needed: `A contract for ${c.name} first.` }, change: '—', undo: '—', brief: `${c.name}: write its contract first.` };
+  }
+  // what the source does for assistive tech, read from the component itself
+  const src = srcOf(c.name);
+  const facts = [
+    ...new Set([
+      ...[...src.matchAll(/\b(aria-[\w-]+|role)=/g)].map((m) => m[1]),
+      ...[...src.matchAll(/<(h[1-6]|iframe|button|a|nav|section|header|figure|img)\b/g)].map((m) => `<${m[1]}>`),
+      ...(/\binert\b/.test(src) ? ['inert'] : []),
+      ...(/tabIndex/.test(src) ? ['tabIndex'] : []),
+    ]),
+  ];
+  const props = c.props.filter((p) => /^(as|title|aria\w*|label|interactive|id|role)$/i.test(p));
+  const sib = similar(c, ctx.bella.components, (o) => o.a11y).find((x) => x.shared.length >= 2 || (c.category && x.o.category === c.category));
+  if (!sib && !facts.length) {
+    return { ...base, missing: `${c.name}’s contract has no a11y field.`, suggest: null, noSuggest: { why: 'No similar component has a note to follow and its source sets no roles, ARIA or semantic elements CHIP can read.', needed: 'A screen reader and keyboard pass on the component, written down by you.' }, change: '—', undo: '—', brief: `${c.name}: run a screen reader and keyboard pass, then write $extensions.bella.a11y.` };
+  }
+  const note = sib ? (Array.isArray(sib.o.a11y) ? sib.o.a11y.join(' ') : String(sib.o.a11y)) : null;
+  return {
+    ...base,
+    missing: `${c.name}’s contract has no a11y field, so nothing records how it behaves for a screen reader or keyboard.`,
+    suggest: {
+      text: `Record what its source already does${facts.length ? `: ${facts.join(', ')}` : ''}${props.length ? `, and what the ${props.join(', ')} prop${props.length === 1 ? '' : 's'} change${props.length === 1 ? 's' : ''}` : ''}. Date it, as BELLA’s notes are dated.${sib ? ` Follow ${sib.o.name}’s note${sib.shared.length ? ` (shares ${sib.shared.join(', ')})` : ''}.` : ''}`,
+      model: note ? { name: sib.o.name, text: note.length > 260 ? `${note.slice(0, 257).replace(/\s+\S*$/, '')}…` : note } : null,
+      caveat: 'The facts come from the source; the note itself needs a real screen-reader check before it says “Verified”.',
+    },
+    change: `${c.name}’s contract gains an a11y note; on npm run build, bella.dsds.yaml records it as reviewed, so commit the regenerated file.`,
+    undo: 'Remove the a11y field and run npm run build again.',
+    brief: `${c.name}: add $extensions.bella.a11y to component.${key} in tokens/component.json. Source facts: ${facts.join(', ') || 'none found'}${props.length ? `; props ${props.join(', ')}` : ''}.${sib ? ` Follow ${sib.o.name}'s note.` : ''} Check with a screen reader before writing "Verified".`,
+  };
+}
+
+function noSuggester(gap, c) {
+  return {
+    why: RULES[gap],
+    where: gap === 'contract' ? [{ file: 'tokens/component.json', field: `component.${kebab(c.name)}` }] : [{ file: `src/components/${c.name}/`, field: 'docs' }],
+    missing: gap === 'contract' ? `${c.name} has no Tier 3 contract.` : `${c.name} has no docs page.`,
+    suggest: null,
+    noSuggest: { why: 'CHIP has no suggester for this gap yet.', needed: gap === 'contract' ? 'Its props from the .tsx and a description from you.' : 'A docs page written from its contract.' },
+    change: '—',
+    undo: '—',
+    brief: gap === 'contract' ? `${c.name}: write its Tier 3 contract in tokens/component.json from the exported Props.` : `${c.name}: write its docs page from the contract.`,
+  };
+}
+
+// { story: { Name: item }, dsds: {…}, contrast: {…}, a11y: {…}, docs, contract }
+export function gapFixes() {
+  const ctx = load();
+  const out = { story: {}, docs: {}, contract: {}, dsds: {}, contrast: {}, a11y: {} };
+  for (const c of ctx.bella.components) {
+    if (!c.hasStory) out.story[c.name] = storyGap(c, ctx);
+    if (!c.hasDocs) out.docs[c.name] = noSuggester('docs', c);
+    if (!c.hasContract) out.contract[c.name] = noSuggester('contract', c);
+    if (!c.inDsds) out.dsds[c.name] = dsdsGap(c, ctx);
+    // every component, so a token the live check finds failing has an answer too
+    out.contrast[c.name] = contrastGap(c, ctx);
+    if (!c.hasA11yNotes) out.a11y[c.name] = a11yGap(c, ctx);
+  }
+  return { at: new Date().toISOString(), bellaVersion: ctx.bella.source?.version, gaps: out };
+}

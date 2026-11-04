@@ -23,6 +23,7 @@ import { attachTerminal, repoList } from './lib/term.mjs';
 import { listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
 import { accept, fixableChecks, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou } from './lib/needs.mjs';
+import { gapFixes } from './lib/gaps.mjs';
 import { historyRecord, searchHistory } from './lib/history.mjs';
 import { systemMap } from './lib/map.mjs';
 import { playMap, playPages, saveBrief, startPlayProxy, SITE_URL, PLAY_PORT } from './lib/play.mjs';
@@ -458,6 +459,14 @@ app.get('/review-img/:dir/:file', (req, res) => {
 app.get('/needs', (_req, res) => {
   try {
     res.json(needsYou());
+  } catch (e) {
+    errorOut(res, e, 500);
+  }
+});
+// Do next: per component, what each Overview gap needs and the suggested fix
+app.get('/gaps', (_req, res) => {
+  try {
+    res.json(gapFixes());
   } catch (e) {
     errorOut(res, e, 500);
   }

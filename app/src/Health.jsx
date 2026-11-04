@@ -10,6 +10,7 @@ import Button from '@bella/components/Button/Button';
 import { Segmented, segPanelProps, Sheet } from './kit/index.jsx';
 import { CheckSheet, failingTokens, useChecks, when } from './Checks.jsx';
 import { openReview } from './ReviewSheet.jsx';
+import { GapCard, useGapFixes } from './DoNext.jsx';
 
 // the six things a component needs; the mock counts an unchecked contrast
 // pair as a gap (16 gaps), so it does here
@@ -86,6 +87,7 @@ function gateRuns(bella) {
 
 export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   const checks = useChecks();
+  const fixes = useGapFixes(bella);
   const failing = failingTokens(checks);
   const [view, setView] = useState('cov');
   const [openAll, setOpenAll] = useState(false);
@@ -350,27 +352,24 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
             <Button onClick={() => onSession(`Close BELLA's ${gaps} coverage gaps, biggest first: ${acts.map((a) => `${COLS[a.i].fix} (${a.who.join(', ')})`).join('; ')}.`)}>Close all {gaps} in a session</Button>
           </div>
           <ol className="gaplist">
-            {acts.map((a, k) => (
-              <li key={a.i} className={`gap1${k ? '' : ' first'}`}>
-                <span className="n">
-                  {a.who.length}
-                  <small>component{a.who.length === 1 ? '' : 's'}</small>
-                </span>
-                <div>
-                  <button type="button" className="rowbtn" id={`gap-${k}`} aria-haspopup="dialog" onClick={() => colSheet(a.i)}>
-                    {COLS[a.i].fix}
-                  </button>
-                  {k ? null : <span className="k-pill needs">Do next</span>}
-                  <span className="why">{COLS[a.i].why}</span>
-                  <span className="who">
-                    {a.who.map((w) => (
-                      <span key={w}>{w}</span>
-                    ))}
-                  </span>
-                </div>
-                <Button onClick={() => onSession(`${COLS[a.i].fix} in BELLA for ${a.who.join(', ')}.`)}>Fix in a session</Button>
-              </li>
-            ))}
+            {acts.map((a, k) => {
+              const gap = COLS[a.i].short.toLowerCase();
+              return (
+                <GapCard
+                  key={a.i}
+                  gap={gap}
+                  idx={k}
+                  title={COLS[a.i].fix}
+                  why={COLS[a.i].why}
+                  who={a.who}
+                  first={!k}
+                  fixes={fixes.data?.gaps?.[gap]}
+                  fixesError={fixes.error}
+                  onOpen={() => colSheet(a.i)}
+                  onSession={onSession}
+                />
+              );
+            })}
           </ol>
         </section>
       ) : null}
