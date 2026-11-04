@@ -43,7 +43,7 @@ export const termName = (t, label) => `${t.kind === 'claude' ? 'claude' : 'zsh'}
 
 // one screen; it registers type(text) with the panel, so the panel's input
 // can put words at the prompt without pressing Return
-function TermScreen({ t, active, onStatus, register }) {
+function TermScreen({ t, active, onStatus, onActivity, register }) {
   const box = useRef(null);
   const live = useRef(null); // { term, fit, ws }
 
@@ -76,7 +76,10 @@ function TermScreen({ t, active, onStatus, register }) {
       if (t.typed) setTimeout(() => send({ type: 'input', data: t.typed }), 900);
     };
     ws.onclose = () => onStatus('closed');
-    ws.onmessage = (e) => term.write(typeof e.data === 'string' ? e.data : '');
+    ws.onmessage = (e) => {
+      term.write(typeof e.data === 'string' ? e.data : '');
+      onActivity();
+    };
     term.onData((data) => send({ type: 'input', data }));
     term.onResize(({ cols, rows }) => send({ type: 'resize', cols, rows }));
     register(t.id, {
@@ -87,6 +90,16 @@ function TermScreen({ t, active, onStatus, register }) {
         return true;
       },
       focus: () => term.focus(),
+      // the last lines on screen, for the session tree's "latest"
+      tail: (n = 8) => {
+        const buf = term.buffer.active;
+        const out = [];
+        for (let i = buf.length - 1; i >= 0 && out.length < n; i--) {
+          const line = buf.getLine(i)?.translateToString(true) ?? '';
+          if (line.trim() || out.length) out.unshift(line);
+        }
+        return out.join('\n').trimEnd();
+      },
     });
 
     // reflow with the dock and the window; skip while hidden (zero size)
@@ -130,7 +143,7 @@ function TermScreen({ t, active, onStatus, register }) {
  * New shell and New Claude, the active one's status, and the screens. Every
  * screen stays mounted while the panel is open, hidden when not active.
  */
-export function Terminals({ terms, active, setActive, repos, folder, setFolder, onNew, onClose, onRestart, onStatus, register }) {
+export function Terminals({ terms, active, setActive, repos, folder, setFolder, onNew, onClose, onRestart, onStatus, onActivity, register }) {
   const options = repos.length ? repos.map((r) => ({ value: r.id, label: r.label })) : [{ value: 'chip', label: 'CHIP' }];
   const labelOf = (id) => options.find((o) => o.value === id)?.label ?? id;
   const t = terms.find((x) => x.id === active);
@@ -139,7 +152,13 @@ export function Terminals({ terms, active, setActive, repos, folder, setFolder, 
     <>
       <div className="term-side">
         {terms.length ? (
-          <Segmented id="wpterm" label="Open terminals" value={String(active)} onChange={(id) => setActive(Number(id))} items={terms.map((x) => ({ id: String(x.id), label: termName(x, labelOf(x.repo)) }))} />
+          <Segmented
+            id="wpterm"
+            label="Open terminals"
+            value={String(active)}
+            onChange={(id) => setActive(Number(id))}
+            items={terms.map((x) => ({ id: String(x.id), label: termName(x, labelOf(x.repo)) }))}
+          />
         ) : null}
         <div className="term-new">
           <Select label="Folder" value={folder} onChange={setFolder} options={options} className="term-repo" />
@@ -173,7 +192,7 @@ export function Terminals({ terms, active, setActive, repos, folder, setFolder, 
       <div className="term-screens">
         {terms.length === 0 ? <p className="wp-empty">No terminal open. Pick a folder, then New shell or New Claude.</p> : null}
         {terms.map((x) => (
-          <TermScreen key={x.id} t={x} active={x.id === active} onStatus={(s) => onStatus(x.id, s)} register={register} />
+          <TermScreen key={x.id} t={x} active={x.id === active} onStatus={(s) => onStatus(x.id, s)} onActivity={() => onActivity(x.id)} register={register} />
         ))}
       </div>
     </>

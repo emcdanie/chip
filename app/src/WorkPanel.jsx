@@ -5,8 +5,10 @@
 //   Needs you: GET /needs (the checks, fix branches, git state and fresh lane
 //     questions, High → Low). A review item opens the review card; any other
 //     opens in place with "This will · Undo" and one button.
-//   Sessions: the terminals open here (live), then the lanes, read from their
-//     report files (GET /bar/state). CHIP can't message a lane.
+//   Sessions: a tree. CHIP (this page) at the top with the sessions it
+//     started nested under it, then the relay lanes, read from their report
+//     files (GET /bar/state). CHIP can't message a lane, and it can't see
+//     Claude desktop sessions at all; the tab says so.
 //   Terminal: real shells in a pty; "New Claude" is a shell with claude started.
 //   Ask OBI: the OBI thread.
 // One input at the bottom says where it sends: on Terminal it types at the
@@ -18,7 +20,7 @@ import Combobox from '@bella/components/Combobox/Combobox';
 import { Segmented, segPanelProps } from './kit/index.jsx';
 import { openReview } from './ReviewSheet.jsx';
 import { OneInput, ObiThread } from './Obi.jsx';
-import { Terminals, MAX_TERMS, termName } from './Terminal.jsx';
+import { Terminals, MAX_TERMS, termName, STATUS } from './Terminal.jsx';
 
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
 const FACE = { dara: 'lane-a', bernie: 'lane-c', saoirse: 'lane-b', frankie: 'lane-d' };
@@ -81,7 +83,11 @@ export function useLanes() {
 export function useNeeds() {
   const [data, setData] = useState(null);
   useEffect(() => {
-    const load = () => fetch('/needs').then((r) => r.json()).then(setData).catch(() => {});
+    const load = () =>
+      fetch('/needs')
+        .then((r) => r.json())
+        .then(setData)
+        .catch(() => {});
     load();
     const t = setInterval(load, 15000);
     window.addEventListener('chip:changed', load);
@@ -95,7 +101,7 @@ export function useNeeds() {
 
 function run(a, onLane) {
   if (a.type === 'review') openReview(a.check);
-  else if (a.type === 'terminal') window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: a.repo, command: a.command } }));
+  else if (a.type === 'terminal') window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: a.repo, command: a.command, from: 'Needs you' } }));
   else if (a.type === 'lane') onLane(a.lane);
 }
 
@@ -152,87 +158,268 @@ function NeedsList({ needs, onLane }) {
 /* ---------- Sessions ---------- */
 function laneLine(l) {
   const n = l.needs?.length ?? 0;
-  const when = l.updated ? `last report ${day(l.updated)}` : 'no report file';
+  const when = l.updated ? `last report ${day(l.updated)}` : LANE_FOLDER[l.id] ? 'no report yet' : 'runs outside CHIP';
   if (mismatch(l)) return `Says green; CI disagrees · ${when}`;
   if (l.status === 'waiting on you' && n) return `${n} question${n === 1 ? '' : 's'} for you${Date.now() - l.updated > STALE_MS ? ', older than a week' : ''} · ${when}`;
   return when;
 }
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
 
-function Sessions({ lanes, terms, labelOf, openLane, setOpenLane, onGoTerm, onReply }) {
+const ago = (ms) => {
+  if (!ms) return 'never';
+  const s = Math.round((Date.now() - ms) / 1000);
+  if (s < 60) return `${Math.max(s, 1)} s ago`;
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  return day(ms);
+};
+// a terminal's state from what CHIP can see: the socket and its last output
+const QUIET_MS = 15000;
+function termState(t) {
+  if (t.status === 'connecting') return ['working', 'Starting'];
+  if (t.status === 'closed') return t.opened ? ['done', 'Done'] : ['failed', 'Failed'];
+  if (Date.now() - t.last < QUIET_MS) return ['working', 'Working'];
+  return t.kind === 'claude' ? ['you', 'Waiting on you'] : ['idle', 'Idle'];
+}
+function laneState(l) {
+  if (mismatch(l)) return ['failed', 'Failed'];
+  if (l.status === 'waiting on you') return ['you', 'Waiting on you'];
+  if (l.status === 'working') return ['working', 'Working'];
+  if (l.status === 'done') return ['done', 'Done'];
+  return ['idle', cap(l.status)];
+}
+const tally = (states) => {
+  const n = {};
+  for (const [k, label] of states) n[label] = (n[label] ?? 0) + (k ? 1 : 0);
+  return (
+    Object.entries(n)
+      .map(([label, c]) => `${c} ${label.toLowerCase()}`)
+      .join(' · ') || 'nothing yet'
+  );
+};
+
+function Row({ id, sel, setSel, face, faceKey, mono, name, sub, state, line, branch, last, children }) {
+  const on = sel === id;
+  return (
+    <li className={`snode s-${state[0]}`}>
+      <button type="button" className="srow" aria-expanded={children ? on : undefined} onClick={() => children && setSel(on ? null : id)}>
+        <span className={`face${mono ? ' mono' : ''}`} data-face={faceKey} aria-hidden="true">
+          {face}
+        </span>
+        <span className="lwho">
+          <span className="name">{name}</span>
+          {sub ? <span className="ljob">{sub}</span> : null}
+        </span>
+        <span className="adot">{state[1]}</span>
+        <span className="line">{line}</span>
+        <span className="smeta">
+          {branch ? (
+            <>
+              <span className="mono">{branch}</span> ·{' '}
+            </>
+          ) : null}
+          {last}
+        </span>
+      </button>
+      {on ? <div className="sdet">{children}</div> : null}
+    </li>
+  );
+}
+
+// a CHIP-started session's detail: what's on its screen, then open, type, stop
+function TermDetail({ t, name, handle, onGoTerm, onStop, notify }) {
+  const [msg, setMsg] = useState('');
+  const [asking, setAsking] = useState(false);
+  const tail = handle?.tail?.(8);
+  const send = (e) => {
+    e.preventDefault();
+    if (!msg.trim()) return;
+    if (handle?.type(msg.trim())) {
+      setMsg('');
+      notify(`Typed into ${name}, not sent. Press Return in the terminal to send it.`);
+      onGoTerm(t.id);
+    } else notify('That session isn’t running.');
+  };
   return (
     <>
-      <section className="wp-group" aria-labelledby="wpLive">
-        <h3 id="wpLive">
-          On this machine · live <small>terminals open in this panel</small>
-        </h3>
-        <div className="sessgrid">
-          {terms.length === 0 ? <p className="wp-empty">No terminals open. Start one from Terminal.</p> : null}
-          {terms.map((t) => (
-            <div key={t.id} className={`sess${t.status === 'open' ? ' live' : ''}`}>
-              <button type="button" className="lrowb" onClick={() => onGoTerm(t.id)}>
-                <span className="face mono" aria-hidden="true">
-                  {t.kind === 'claude' ? 'C' : '>'}
-                </span>
-                <span className="lwho">
-                  <span className="name">{termName(t, labelOf(t.repo))}</span>
-                </span>
-                <span className="adot">{t.status === 'open' ? 'Running' : t.status === 'closed' ? 'Stopped' : 'Starting'}</span>
-                <span className="line">{t.kind === 'claude' ? 'Claude Code in a shell' : 'Your login shell'} in {labelOf(t.repo)}. Opens in Terminal.</span>
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="wp-group" aria-labelledby="wpLanes">
-        <h3 id="wpLanes">
-          Lanes · read from report files <small>every 10 s; CHIP can’t message them</small>
-        </h3>
-        <div className="sessgrid">
-          {lanes.length === 0 ? <p className="wp-empty">No lanes reported.</p> : null}
-          {lanes.map((l) => {
-            const st = mismatch(l) ? 'fail' : l.status === 'waiting on you' && l.needs?.length ? 'you' : '';
-            const on = openLane === l.id;
-            const folder = LANE_FOLDER[l.id];
-            return (
-              <div key={l.id} className={`sess lane ${st}`}>
-                <button type="button" className="lrowb" aria-expanded={on} onClick={() => setOpenLane(on ? null : l.id)}>
-                  <span className="face" data-face={FACE[l.id]} aria-hidden="true">
-                    {l.name[0]}
-                  </span>
-                  <span className="lwho">
-                    <span className="name">{l.name}</span>
-                    <span className="ljob">{l.role}</span>
-                  </span>
-                  <span className="adot">{st === 'fail' ? 'Failed' : cap(l.status)}</span>
-                  <span className="line">{laneLine(l)}</span>
-                </button>
-                {on ? (
-                  <div className="lthread">
-                    {l.needs?.length ? (
-                      <ul className="lneeds">
-                        {l.needs.map((n, i) => (
-                          <li key={i}>{n.text}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="line">Nothing asked.</p>
-                    )}
-                    {folder ? (
-                      <>
-                        <p className="line">CHIP can’t write to this lane. Answer it from a shell in {labelOf(folder)}.</p>
-                        <Button onClick={() => onReply(folder)}>Reply in a terminal</Button>
-                      </>
-                    ) : (
-                      <p className="line">No report file to read: this one runs outside CHIP.</p>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      {t.brief ? (
+        <p className="line">
+          <b>Brief</b> (on the clipboard when it opened): {t.brief}
+        </p>
+      ) : null}
+      <p className="line">
+        <b>Latest on its screen</b>
+      </p>
+      {tail ? <pre className="stail">{tail}</pre> : <p className="line">Nothing on screen yet.</p>}
+      <div className="sacts">
+        <Button variant="primary" onClick={() => onGoTerm(t.id)}>
+          Open
+        </Button>
+        {t.status === 'closed' ? null : asking ? (
+          <>
+            <span className="line">Stop {name}? It ends the shell and anything running in it.</span>
+            <Button onClick={() => (setAsking(false), onStop(t.id))}>Stop it</Button>
+            <Button variant="tertiary" onClick={() => setAsking(false)}>
+              Keep it
+            </Button>
+          </>
+        ) : (
+          <Button onClick={() => setAsking(true)}>Stop</Button>
+        )}
+      </div>
+      {t.status === 'open' ? (
+        <form className="smsg" onSubmit={send} autoComplete="off">
+          <Combobox
+            id={`smsg-${t.id}`}
+            label={`Message for ${name}`}
+            hideLabel
+            value={msg}
+            onChange={setMsg}
+            groups={[]}
+            onSelect={() => {}}
+            onKeyDown={(e) => e.key === 'Enter' && send(e)}
+            placeholder="Send a message (typed, not run)"
+            className="one-input"
+          />
+          <Button type="submit">Type</Button>
+        </form>
+      ) : null}
+    </>
+  );
+}
+
+function Sessions({ lanes, terms, labelOf, branchOf, handles, onGoTerm, onStop, onReply, notify, live }) {
+  const [sel, setSel] = useState(null);
+  // states and "x s ago" move with the clock while the tab shows
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!live) return;
+    const t = setInterval(() => tick((n) => n + 1), 5000);
+    return () => clearInterval(t);
+  }, [live]);
+  const ts = terms.map((t) => [t, termState(t)]);
+  const ls = lanes.map((l) => [l, laneState(l)]);
+  const last = (xs, of) => Math.max(0, ...xs.map(of));
+  return (
+    <>
+      <ul className="stree" aria-label="Sessions">
+        <li className="sgroup">
+          <ul>
+            <Row
+              id="chip"
+              sel={sel}
+              setSel={setSel}
+              face="C"
+              name="CHIP"
+              sub="this page · coordinator"
+              state={ts.some(([, s]) => s[0] === 'working') ? ['working', 'Working'] : ts.some(([, s]) => s[0] === 'you') ? ['you', 'Waiting on you'] : ['idle', terms.length ? 'Quiet' : 'Idle']}
+              line={
+                terms.length
+                  ? `Started ${terms.length} session${terms.length === 1 ? '' : 's'}: ${tally(ts.map(([, s]) => s))}`
+                  : 'Hasn’t started a session. Fix in a session, the Playground or Terminal starts one.'
+              }
+              branch={branchOf('chip') ?? 'branch unknown'}
+              last={ago(last(terms, (t) => t.last))}
+            >
+              <p className="line">
+                CHIP sees only the sessions it started in this page: Fix in a session, the Playground, Needs you and Terminal. They run in a shell here and end when the page reloads or closes.
+              </p>
+            </Row>
+            <li className="skids">
+              <ul>
+                {ts.map(([t, state]) => {
+                  const name = termName(t, labelOf(t.repo));
+                  return (
+                    <Row
+                      key={t.id}
+                      id={`t${t.id}`}
+                      sel={sel}
+                      setSel={setSel}
+                      face={t.kind === 'claude' ? 'C' : '>'}
+                      mono
+                      name={name}
+                      sub={`from ${t.from}`}
+                      state={state}
+                      line={t.brief ?? (t.typed ? `Typed for you: ${t.typed}` : t.kind === 'claude' ? `Claude Code in ${labelOf(t.repo)}` : `Your shell in ${labelOf(t.repo)} · ${STATUS[t.status]}`)}
+                      branch={branchOf(t.repo) ?? 'branch unknown'}
+                      last={ago(t.last)}
+                    >
+                      <TermDetail t={t} name={name} handle={handles.current.get(t.id)} onGoTerm={onGoTerm} onStop={onStop} notify={notify} />
+                    </Row>
+                  );
+                })}
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li className="sgroup">
+          <ul>
+            <Row
+              id="lanes"
+              sel={sel}
+              setSel={setSel}
+              face="R"
+              name="Relay lanes"
+              sub="read from report files every 10 s"
+              state={ls.some(([, s]) => s[0] === 'failed') ? ['failed', 'Failed'] : ls.some(([, s]) => s[0] === 'you') ? ['you', 'Waiting on you'] : ['idle', 'Quiet']}
+              line={lanes.length ? tally(ls.map(([, s]) => s)) : 'No lanes reported.'}
+              branch="several repos"
+              last={ago(last(lanes, (l) => l.updated ?? 0))}
+            >
+              <p className="line">
+                Each lane is a pair of files in an inbox: next.md going in, report.md coming back. CHIP reads the reports and lists their “Needs Elleta” lines; it doesn’t write next.md.
+              </p>
+            </Row>
+            <li className="skids">
+              <ul>
+                {ls.map(([l, state]) => {
+                  const folder = LANE_FOLDER[l.id];
+                  const prs = (l.prs ?? []).map((pr) => `PR #${pr.n}`).join(', ');
+                  return (
+                    <Row
+                      key={l.id}
+                      id={`l${l.id}`}
+                      sel={sel}
+                      setSel={setSel}
+                      face={l.name[0]}
+                      faceKey={FACE[l.id]}
+                      name={l.name}
+                      sub={l.role}
+                      state={state}
+                      line={laneLine(l)}
+                      branch={l.updated ? prs || 'branch not reported' : null}
+                      last={l.updated ? `report ${ago(l.updated)}` : 'no report file'}
+                    >
+                      <p className="line">
+                        <b>Latest report</b>
+                        {l.updated ? `, ${day(l.updated)}` : ''}
+                        {l.reportVersion ? ` · v${l.reportVersion}` : ''}
+                      </p>
+                      {l.needs?.length ? (
+                        <ul className="lneeds">
+                          {l.needs.map((n, i) => (
+                            <li key={i}>{n.text}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="line">{folder ? 'Nothing asked.' : 'No report file to read: this one runs outside CHIP.'}</p>
+                      )}
+                      {(l.prs ?? []).map((pr) => (
+                        <p key={pr.n} className="line">
+                          PR #{pr.n}: says {pr.claim}, CI {pr.ci}
+                        </p>
+                      ))}
+                      <p className="line">CHIP only reads this lane’s report file: it can’t message or stop it.</p>
+                      {folder ? <Button onClick={() => onReply(folder, l.name)}>Reply in a terminal</Button> : null}
+                    </Row>
+                  );
+                })}
+              </ul>
+            </li>
+          </ul>
+        </li>
+      </ul>
+      <p className="wp-empty">Claude desktop sessions aren’t here: the Claude app doesn’t share them with CHIP, so CHIP can’t list, message or stop them. See them in the Claude app.</p>
     </>
   );
 }
@@ -296,7 +483,7 @@ function useVoice(getBase, onWords) {
       r.onresult = (e) => {
         let fin = '';
         let mid = '';
-        for (let i = 0; i < e.results.length; i++) (e.results[i].isFinal ? (fin += e.results[i][0].transcript) : (mid += e.results[i][0].transcript));
+        for (let i = 0; i < e.results.length; i++) e.results[i].isFinal ? (fin += e.results[i][0].transcript) : (mid += e.results[i][0].transcript);
         heard = heard || !!(fin + mid).trim();
         onWords((base + fin + mid).replace(/\s+/g, ' ').trimStart(), !!mid);
       };
@@ -408,6 +595,9 @@ function DockPick({ value, onChange }) {
   );
 }
 
+const ROUTE_NAME = { health: 'Overview', foundations: 'Foundations', atlas: 'Components', play: 'Playground', docs: 'History', connectors: 'Connectors' };
+const routeName = () => ROUTE_NAME[location.hash.match(/^#\/(\w+)/)?.[1]] ?? 'a page';
+
 const WHAT = {
   needs: (
     <>
@@ -416,7 +606,7 @@ const WHAT = {
   ),
   sessions: (
     <>
-      <b>Work running elsewhere.</b> Terminals here are live. Lanes are read from their report files; CHIP can’t message them.
+      <b>Who is working on what.</b> CHIP’s own sessions are live: open, message or stop them. Lanes are read from their report files; CHIP can’t message them.
     </>
   ),
   term: (
@@ -450,17 +640,22 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
   const handles = useRef(new Map());
   const register = useCallback((id, h) => (h ? handles.current.set(id, h) : handles.current.delete(id)), []);
   useEffect(() => {
-    fetch('/term/repos').then((r) => r.json()).then(setRepos).catch(() => {});
+    fetch('/term/repos')
+      .then((r) => r.json())
+      .then(setRepos)
+      .catch(() => {});
   }, []);
   const labelOf = (id) => repos.find((r) => r.id === id)?.label ?? { chip: 'CHIP', bella: 'BELLA', site: 'Site' }[id] ?? id;
   const termsRef = useRef(terms);
   termsRef.current = terms;
-  const newTerm = (kind, repo, typed) => {
+  const branchOf = (id) => repos.find((r) => r.id === id)?.branch ?? null;
+  const newTerm = (kind, repo, typed, from = 'you, in Terminal', brief = null) => {
     if (termsRef.current.length >= MAX_TERMS) {
       notify('Six terminals is the most CHIP runs. Close one first.');
       return null;
     }
-    const t = { id: nextId.current++, kind, repo, typed: typed ?? null, run: 0, status: 'connecting' };
+    const now = Date.now();
+    const t = { id: nextId.current++, kind, repo, typed: typed ?? null, run: 0, status: 'connecting', opened: false, from, brief, started: now, last: now };
     setTerms((ts) => [...ts, t]);
     setActiveTerm(t.id);
     set({ open: true, tab: 'term' });
@@ -472,7 +667,15 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
     if (activeTerm === id) setActiveTerm(rest[rest.length - 1]?.id ?? null);
   };
   const restartTerm = (id) => setTerms((ts) => ts.map((t) => (t.id === id ? { ...t, run: t.run + 1, typed: null } : t)));
-  const statusOf = useCallback((id, status) => setTerms((ts) => ts.map((t) => (t.id === id ? { ...t, status } : t))), []);
+  const statusOf = useCallback((id, status) => setTerms((ts) => ts.map((t) => (t.id === id ? { ...t, status, opened: t.opened || status === 'open', last: Date.now() } : t))), []);
+  // output marks a session active; the tree is told at most every 5 s
+  const seen = useRef(new Map());
+  const activity = useCallback((id) => {
+    const now = Date.now();
+    if (now - (seen.current.get(id) ?? 0) < 5000) return;
+    seen.current.set(id, now);
+    setTerms((ts) => ts.map((t) => (t.id === id ? { ...t, last: now } : t)));
+  }, []);
   const goTerm = (id) => {
     setActiveTerm(id);
     setTab('term');
@@ -483,27 +686,26 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
   // brief (kind claude) goes to the Claude already open, or a new one
   useEffect(() => {
     const on = (e) => {
-      const { repo = 'chip', command, kind } = e.detail ?? {};
+      const { repo = 'chip', command, kind, brief = null } = e.detail ?? {};
+      // where it came from: the sender says, or the page it was sent from
+      const from = e.detail?.from ?? routeName();
       if (kind === 'claude') {
         const c = termsRef.current.find((t) => t.kind === 'claude' && t.status !== 'closed');
         if (c) {
+          setTerms((ts) => ts.map((t) => (t.id === c.id ? { ...t, from, brief: brief ?? t.brief } : t)));
           setActiveTerm(c.id);
           set({ open: true, tab: 'term' });
-        } else newTerm('claude', repo);
+        } else newTerm('claude', repo, null, from, brief);
         return;
       }
-      if (newTerm('shell', repo, command) && command) notify(`Typed in a new ${labelOf(repo)} shell, not run. Press Return there to run it.`);
+      if (newTerm('shell', repo, command, from) && command) notify(`Typed in a new ${labelOf(repo)} shell, not run. Press Return there to run it.`);
     };
     window.addEventListener('chip:terminal', on);
     return () => window.removeEventListener('chip:terminal', on);
   });
 
-  /* lanes */
-  const [openLane, setOpenLane] = useState(null);
-  const onLane = (id) => {
-    setTab('sessions');
-    setOpenLane(id);
-  };
+  /* a Needs-you lane item goes to the tree */
+  const onLane = () => setTab('sessions');
 
   /* the one input */
   const [q, setQ] = useState('');
@@ -598,9 +800,30 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
       value={tab}
       onChange={setTab}
       items={[
-        { id: 'needs', label: <>Needs you <span className="n">{count ?? '…'}</span></> },
-        { id: 'sessions', label: <>Sessions <span className="n">{terms.length + lanes.length}</span></> },
-        { id: 'term', label: <>Terminal <span className="n">{terms.length}</span></> },
+        {
+          id: 'needs',
+          label: (
+            <>
+              Needs you <span className="n">{count ?? '…'}</span>
+            </>
+          ),
+        },
+        {
+          id: 'sessions',
+          label: (
+            <>
+              Sessions <span className="n">{terms.length + lanes.length}</span>
+            </>
+          ),
+        },
+        {
+          id: 'term',
+          label: (
+            <>
+              Terminal <span className="n">{terms.length}</span>
+            </>
+          ),
+        },
         { id: 'ask', label: 'Ask OBI' },
       ]}
     />
@@ -644,7 +867,18 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
         <NeedsList needs={needs} onLane={onLane} />
       </div>
       <div className="wp-body" {...segPanelProps('wp', 'sessions', tab)}>
-        <Sessions lanes={lanes} terms={terms} labelOf={labelOf} openLane={openLane} setOpenLane={setOpenLane} onGoTerm={goTerm} onReply={(repo) => newTerm('shell', repo)} />
+        <Sessions
+          lanes={lanes}
+          terms={terms}
+          labelOf={labelOf}
+          branchOf={branchOf}
+          handles={handles}
+          onGoTerm={goTerm}
+          onStop={closeTerm}
+          onReply={(repo, who) => newTerm('shell', repo, null, `a reply to ${who}`)}
+          notify={notify}
+          live={open && tab === 'sessions'}
+        />
       </div>
       <div className="wp-body fill wp-term" {...segPanelProps('wp', 'term', tab)}>
         <Terminals
@@ -658,6 +892,7 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
           onClose={closeTerm}
           onRestart={restartTerm}
           onStatus={statusOf}
+          onActivity={activity}
           register={register}
         />
       </div>

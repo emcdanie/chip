@@ -912,47 +912,47 @@ export function ObiThread({ bella, page, obi, onOpenAtlas, onSandbox, notify, mo
         <Tag>Looking at {page}</Tag>
         <Select label="Model" value={picked} onChange={setPicked} options={options} className="model-select" />
       </header>
-          <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
-            {obi.turns.length === 0 ? (
-              <li className="obi-empty">
-                <p>Ask about {page === 'Overview' ? 'BELLA' : page.replace(/^(?:Atlas|Components) · /, '')}, or type / for a command.</p>
-                {suggestions.length ? (
-                  <div className="obi-suggest" aria-label="Suggested questions">
-                    {suggestions.map((sg) => (
-                      <ActionChip key={sg} onClick={() => obi.send(sg)} disabled={obi.busy}>
-                        {sg}
-                      </ActionChip>
-                    ))}
-                  </div>
-                ) : null}
-              </li>
+      <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
+        {obi.turns.length === 0 ? (
+          <li className="obi-empty">
+            <p>Ask about {page === 'Overview' ? 'BELLA' : page.replace(/^(?:Atlas|Components) · /, '')}, or type / for a command.</p>
+            {suggestions.length ? (
+              <div className="obi-suggest" aria-label="Suggested questions">
+                {suggestions.map((sg) => (
+                  <ActionChip key={sg} onClick={() => obi.send(sg)} disabled={obi.busy}>
+                    {sg}
+                  </ActionChip>
+                ))}
+              </div>
             ) : null}
-            {obi.turns.map((t) =>
-              t.kind === 'cmd' ? (
-                <CmdTurn key={t.id} t={t} />
-              ) : t.kind === 'search' ? (
-                <SearchTurn key={t.id} t={t} />
-              ) : t.kind === 'tool' ? (
-                <ToolTurn key={t.id} t={t} onConfirm={obi.confirmTool} onCancel={obi.cancelTool} />
-              ) : (
-                <AskTurn
-                  key={t.id}
-                  t={t}
-                  bella={bella}
-                  page={page}
-                  claudeOk={claudeOk}
-                  budget={budget}
-                  onOpenAtlas={onOpenAtlas}
-                  onSandbox={onSandbox}
-                  onSave={obi.save}
-                  onSaveDoc={obi.saveAsDoc}
-                  onCompare={obi.compare}
-                  onIncludePrivate={obi.includeAndRetry}
-                  notify={notify}
-                />
-              )
-            )}
-          </ol>
+          </li>
+        ) : null}
+        {obi.turns.map((t) =>
+          t.kind === 'cmd' ? (
+            <CmdTurn key={t.id} t={t} />
+          ) : t.kind === 'search' ? (
+            <SearchTurn key={t.id} t={t} />
+          ) : t.kind === 'tool' ? (
+            <ToolTurn key={t.id} t={t} onConfirm={obi.confirmTool} onCancel={obi.cancelTool} />
+          ) : (
+            <AskTurn
+              key={t.id}
+              t={t}
+              bella={bella}
+              page={page}
+              claudeOk={claudeOk}
+              budget={budget}
+              onOpenAtlas={onOpenAtlas}
+              onSandbox={onSandbox}
+              onSave={obi.save}
+              onSaveDoc={obi.saveAsDoc}
+              onCompare={obi.compare}
+              onIncludePrivate={obi.includeAndRetry}
+              notify={notify}
+            />
+          )
+        )}
+      </ol>
     </section>
   );
 }

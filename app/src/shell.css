@@ -143,7 +143,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .wp-bottom .wp-what { padding-bottom: var(--s-8); }
 .wp-empty { margin: 0; padding: var(--s-8) var(--s-4); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
 /* along the bottom, Needs you and Sessions flow into columns */
-.wp-bottom .nylist, .wp-bottom .sessgrid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); align-items: start; }
+.wp-bottom .nylist { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); align-items: start; }
 
 .nylist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-8); }
 .ny { border: 1px solid var(--line); border-radius: var(--r); background: var(--card); min-width: 0; }
@@ -165,29 +165,39 @@ html.wp-dragging .xterm { pointer-events: none; }
 .will { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
 .autolow { margin: var(--s-12) 0 0; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
 .autolow small { font-size: var(--fs-14); color: var(--muted); }
-.wp-group { display: grid; gap: var(--s-8); min-width: 0; }
-.wp-group h3 { margin: 0; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
-.wp-group h3 small { font-size: var(--fs-14); font-weight: 400; color: var(--muted); }
-.sessgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-8); }
-.sess { min-width: 0; display: grid; gap: var(--s-8); background: var(--card); border: 1px solid var(--line); padding: var(--s-12); border-radius: var(--r); }
-.sess.live { box-shadow: inset 2px 0 0 var(--pass); }
-.sess.lane.fail { box-shadow: inset 2px 0 0 var(--fail); }
-.sess.lane.you { box-shadow: inset 2px 0 0 var(--needs); }
-.sess .name { font-weight: 600; color: var(--ink); }
-.sess .where { font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--muted); }
+/* Sessions: a tree, the coordinator at the top and what it started under it */
+.stree, .sgroup > ul, .skids > ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-8); min-width: 0; }
+.skids > ul { margin-left: var(--s-16); padding-left: var(--s-12); border-left: 1px solid var(--line); }
+.skids > ul:empty { display: none; }
+.snode .name { font-weight: 600; color: var(--ink); }
+.snode { min-width: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
+.snode.s-you { box-shadow: inset 2px 0 0 var(--needs); }
+.snode.s-failed { box-shadow: inset 2px 0 0 var(--fail); }
+.snode.s-working { box-shadow: inset 2px 0 0 var(--pass); }
+.srow { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-4) var(--s-12); align-items: center; width: 100%; padding: var(--s-12); }
+.srow:focus-visible { outline: var(--focus); outline-offset: -3px; }
+.srow:hover { background: color-mix(in srgb, var(--action) 5%, var(--card)); }
+.srow .face { grid-row: span 3; align-self: start; }
+.srow .line, .srow .smeta { grid-column: 2 / -1; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); overflow-wrap: anywhere; }
+.srow .line { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.srow .smeta { color: var(--muted); }
+.smeta .mono { font: 400 var(--fs-14)/var(--lh-body) var(--code); }
+.sdet { display: grid; gap: var(--s-8); justify-items: start; padding: var(--s-8) var(--s-12) var(--s-12); border-top: 1px solid var(--line); font-size: var(--fs-14); line-height: var(--lh-body); min-width: 0; }
+.sdet .line { margin: 0; color: var(--body); overflow-wrap: anywhere; }
+.sdet .line b { color: var(--ink); }
+.stail { justify-self: stretch; margin: 0; padding: var(--s-8) var(--s-12); max-height: 180px; overflow: auto; border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
+.sacts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8); }
+.smsg { justify-self: stretch; display: flex; gap: var(--s-8); align-items: center; min-width: 0; }
+.smsg .one-input { flex: 1; min-width: 0; --component-combobox-border: var(--line); --component-combobox-background: var(--card); --component-combobox-foreground: var(--ink); --component-combobox-font-size: var(--fs-14); --component-combobox-min-height: var(--h-control); }
+.wp-bottom .stree { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; }
 .face { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: var(--r-control); font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); background: var(--inset); flex: none; }
 /* lane colours are BELLA's own lane tokens; ink on each is over 12:1 */
 .face[data-face='lane-a'] { background: var(--color-semantic-lane-a); color: var(--on-action); }
 .face[data-face='lane-b'] { background: var(--color-semantic-lane-b); color: var(--on-action); }
 .face[data-face='lane-c'] { background: var(--color-semantic-lane-c); color: var(--on-action); }
 .face[data-face='lane-d'] { background: var(--color-semantic-lane-d); color: var(--on-action); }
-.lrowb { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-4) var(--s-12); align-items: center; width: 100%; }
-.lrowb .line { grid-column: 2 / -1; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
-.lrowb:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .lwho { display: grid; line-height: var(--lh-head); }
 .ljob { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
-.lthread { display: grid; gap: var(--s-8); justify-items: start; margin-top: var(--s-8); padding-top: var(--s-8); border-top: 1px solid var(--line); font-size: var(--fs-14); line-height: var(--lh-body); }
-.lthread .line { margin: 0; color: var(--muted); }
 .lneeds { margin: 0; padding-left: var(--s-16); display: grid; gap: var(--s-8); color: var(--body); overflow-wrap: anywhere; }
 .face.mono { font: 400 var(--fs-14)/var(--lh-body) var(--code); }
 

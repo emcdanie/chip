@@ -251,7 +251,7 @@ export default function App() {
     } catch {
       setToast('Could not copy the brief.');
     }
-    window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { kind: 'claude', repo: 'chip' } }));
+    window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { kind: 'claude', repo: 'chip', brief, from: NAME[ws] ?? 'a page' } }));
   };
 
   // the top bar's Find is hidden under 1101px, as the mock does: ⌘K asks in the panel there

@@ -6,6 +6,7 @@
 // rebinding DNS name can't either. The folder is picked from a fixed list.
 // No keys are stored and no permission flags are added: `claude` runs as she
 // would start it in any terminal, with its own prompts.
+import { execFileSync } from 'node:child_process';
 import { chmodSync, existsSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
@@ -21,7 +22,15 @@ export const REPOS = {
   bella: { label: 'BELLA', dir: BELLA_DIR },
   site: { label: 'Site', dir: join(homedir(), 'DEV', 'ctrl-alt-design') },
 };
-export const repoList = () => Object.entries(REPOS).filter(([, r]) => existsSync(r.dir)).map(([id, r]) => ({ id, label: r.label }));
+// with its checked-out branch, for the Work panel's session tree
+const branchOf = (dir) => {
+  try {
+    return execFileSync('git', ['-C', dir, 'branch', '--show-current'], { encoding: 'utf8', timeout: 2000 }).trim() || null;
+  } catch {
+    return null;
+  }
+};
+export const repoList = () => Object.entries(REPOS).filter(([, r]) => existsSync(r.dir)).map(([id, r]) => ({ id, label: r.label, branch: branchOf(r.dir) }));
 
 const MAX_SESSIONS = 6;
 const live = new Set();
