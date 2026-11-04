@@ -116,10 +116,10 @@ main h1:focus { outline: none; }
 .grip:hover::after, .wp.dragging .grip::after { background: var(--action); }
 .grip:focus-visible::after { background: var(--focus-ring); }
 .grip:focus-visible { outline: none; }
-.wp-right .grip { left: -6px; top: 0; bottom: 0; width: 12px; cursor: col-resize; }
-.wp-right .grip::after { left: 4px; top: 0; bottom: 0; width: 4px; }
-.wp-bottom .grip { top: -6px; left: 0; right: 0; height: 12px; cursor: row-resize; }
-.wp-bottom .grip::after { top: 4px; left: 0; right: 0; height: 4px; }
+.wp-right .grip { left: calc(-1 * var(--s-12)); top: 0; bottom: 0; width: var(--s-24); cursor: col-resize; }
+.wp-right .grip::after { left: 10px; top: 0; bottom: 0; width: 4px; }
+.wp-bottom .grip { top: calc(-1 * var(--s-12)); left: 0; right: 0; height: var(--s-24); cursor: row-resize; }
+.wp-bottom .grip::after { top: 10px; left: 0; right: 0; height: 4px; }
 html.wp-dragging, html.wp-dragging * { user-select: none; }
 html.wp-dragging .xterm { pointer-events: none; }
 .sizetip { position: absolute; z-index: 3; padding: 2px var(--s-8); border-radius: var(--r); background: var(--ink); color: var(--card); font: 400 var(--fs-14)/var(--lh-body) var(--code); pointer-events: none; }
@@ -357,6 +357,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .ckres { color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); overflow-wrap: anywhere; min-width: 0; }
 .cksched { font-size: var(--fs-16); line-height: var(--lh-body); color: var(--muted); min-width: 0; }
 .rowbtn { border: 0; background: none; padding: 0; min-height: 28px; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); text-decoration: underline; text-decoration-color: var(--action); text-decoration-thickness: 2px; text-underline-offset: 3px; text-align: left; cursor: pointer; }
+.rowbtn { min-width: var(--s-24); } /* "Tag" was 23px wide */
 .scoutrow { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-16); align-items: center; justify-content: space-between; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); }
 .scoutrow p { flex: 1 1 420px; margin: 0; }
 .scoutrow b { color: var(--ink); }
