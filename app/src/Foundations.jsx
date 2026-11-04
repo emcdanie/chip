@@ -122,14 +122,13 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
               Every component whose CSS reads <code>{t.token}</code>, directly or through its own tokens.
             </p>
           </SheetPart>
-          <SheetPart label="State" pill={<StatusPill>{t.usedBy.length} components</StatusPill>}>
+          <SheetPart label="State">
             <ul className="plain">
               {t.usedBy.map((c) => (
                 <li key={c}>
                   <button type="button" className="k-rowbtn" onClick={() => (close(), onOpenAtlas(idOf(c)))}>
                     {c}
                   </button>
-                  <code>{idOf(c)}</code>
                 </li>
               ))}
             </ul>

@@ -451,7 +451,7 @@ export default function Playground({ onToast, project: askedProject, route: aske
       <PageHeader
         meta="Playground"
         title="Playground"
-        lede="Pick a project and one of its pages, and use it live. Mark it up, drop BELLA components on it, see where it breaks BELLA’s rules. Send it to Claude in that project’s terminal when you know what you want."
+        lede="Use a project’s page live, mark it up, then send it to Claude."
         actions={
           <div className="pg-actions">
             {projects?.length ? <Select label="Project" value={project} onChange={setProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
