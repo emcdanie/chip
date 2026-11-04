@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom';
 import Health, { COLS } from './Health.jsx';
 import Atlas from './Atlas.jsx';
 import Connectors from './Connectors.jsx';
+import Foundations from './Foundations.jsx';
 import History from './History.jsx';
 import ReviewSheet from './ReviewSheet.jsx';
 import { TheBar, useBar, useNeeds } from './TheBar.jsx';
@@ -515,11 +516,7 @@ export default function App() {
             </p>
           ) : null}
           {ws === 'health' ? <Health bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={loadBella} /> : null}
-          {ws === 'foundations' ? (
-            <div className="k-chrome">
-              <PageHeader title="Foundations" lede="Not built yet. Foundations (colour, type, space, shape, motion and their usage) is rebuilt from the mock in its own session and lands here." />
-            </div>
-          ) : null}
+          {ws === 'foundations' ? <Foundations bella={bella} onSession={session} onOpenAtlas={openAtlas} /> : null}
           {ws === 'docs' ? <History docId={docId} version={docsVersion} narrow={narrow} bella={bella} onOpenAtlas={openAtlas} /> : null}
           {ws === 'connectors' ? <Connectors narrow={narrow} /> : null}
           {ws === 'atlas' ? <Atlas c={atlas} bella={bella} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={false} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} role={role} vis={vis} setVis={setVis} /> : null}
