@@ -28,7 +28,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     fs: { allow: [resolve(here, '..'), BELLA] },
-    proxy: { '/ask': SERVER, '/cmd': SERVER, '/health': SERVER, '/data': SERVER, '/notes': SERVER, '/source': SERVER, '/docs': SERVER, '/models': SERVER, '/host': SERVER, '/usage': SERVER, '/obi-docs': SERVER, '/visibility': SERVER, '/compare': SERVER, '/bella-doc': SERVER, '/bella-history': SERVER, '/bella-baseline': SERVER, '/bella-spec': SERVER, '/figma-lint': SERVER, '/bar': SERVER, '/search': SERVER, '/term/repos': SERVER, '/play': SERVER, '/term': { target: SERVER, ws: true } },
+    proxy: { '/ask': SERVER, '/cmd': SERVER, '/health': SERVER, '/data': SERVER, '/notes': SERVER, '/source': SERVER, '/docs': SERVER, '/models': SERVER, '/host': SERVER, '/usage': SERVER, '/obi-docs': SERVER, '/visibility': SERVER, '/compare': SERVER, '/bella-doc': SERVER, '/bella-history': SERVER, '/bella-baseline': SERVER, '/bella-spec': SERVER, '/figma-lint': SERVER, '/bar': SERVER, '/search': SERVER, '/term/repos': SERVER, '/play': SERVER, '/projects': SERVER, '/term': { target: SERVER, ws: true } },
   },
   build: { outDir: resolve(here, 'dist'), emptyOutDir: true },
 });

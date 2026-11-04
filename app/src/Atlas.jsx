@@ -1,18 +1,21 @@
-// Atlas: one BELLA component, as the approved mock's component page
-// (chip-mock-03): breadcrumb, H1 with its test and Figma status, the lede and
-// actions, then twelve doc tabs as one segmented control. Every panel reads
-// real data: data/bella.json, /bella-doc, /bella-spec, /bella-history,
-// /component-tests, /figma-lint and BELLA's own files. Where there is no
-// source, the panel says so instead of inventing it.
-// CHIP's chrome (header, tabs, panel buttons) sits in k-chrome roots; every
-// BELLA specimen sits outside them, so it keeps BELLA's own look.
+// Atlas: one BELLA component, documented by itself (docs/plans/component-docs.md,
+// approved mock chip-docs-01). One live specimen is the page: every fact hangs
+// off a part of it, every rule is a check that runs on it. No tabs: the checks
+// strip, the stage with its inspector, the scenes, Behind it.
+// Every panel reads real data: data/bella.json, /bella-doc, /bella-spec,
+// /bella-history, /component-tests, /figma-lint and BELLA's own files. Where
+// there is no source, the page says so instead of inventing it.
+// CHIP's chrome sits in k-chrome roots; every BELLA specimen sits outside
+// them, so it keeps BELLA's own look.
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { Segmented, StatusPill, segPanelProps, Chips } from './kit/index.jsx';
-import { SpecStage, keyboardOf } from './AtlasSpec.jsx';
+import FilterChip from '@bella/components/FilterChip/FilterChip';
+import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import { StatusPill, Chips } from './kit/index.jsx';
+import { keyboardOf } from './AtlasSpec.jsx';
 import { canSee, settingsOf } from './visibility.jsx';
-import { SPECIMENS, VARIANTS, SHAPES, COMPONENTS } from './specimens.jsx';
-import { layout, targetsOf } from './anatomy.js';
+import { SPECIMENS, VARIANTS, COMPONENTS } from './specimens.jsx';
+import { targetsOf } from './anatomy.js';
 import { forceAttr, installForcedStates } from './forcedStates.js';
 import './atlas.css';
 
@@ -52,292 +55,6 @@ export function Token({ name }) {
   );
 }
 
-/* ---------- Study B: numbered anatomy at rest ---------- */
-const area = (z) => (z.right - z.left) * (z.bottom - z.top);
-
-// mark the targets of the selected part so a hover-, focus- or press-only
-// layer shows while it is selected
-function useForced(root, parts, hl) {
-  useLayoutEffect(() => {
-    const el = root.current?.querySelector('[data-bella-component]');
-    if (!el) return;
-    const all = [el, ...el.querySelectorAll('*')];
-    for (const n of all) {
-      for (const a of ['data-force-hover', 'data-force-focus', 'data-force-active']) n.removeAttribute(a);
-      // put back an aria-pressed we changed for a "pressed" part
-      if (n.hasAttribute('data-was-pressed')) {
-        n.setAttribute('aria-pressed', n.getAttribute('data-was-pressed'));
-        n.removeAttribute('data-was-pressed');
-      }
-    }
-    const part = parts.find((p) => p.key === hl);
-    const force = forceAttr(part?.trigger);
-    if (!force) return;
-    const [attr, value] = force;
-    // a Set: ':scope' targets the root itself, which must only be marked once
-    for (const t of new Set([el, ...targetsOf(el, part.target)])) {
-      if (attr === 'aria-pressed') {
-        if (!t.hasAttribute('aria-pressed')) continue;
-        t.setAttribute('data-was-pressed', t.getAttribute('aria-pressed'));
-      }
-      t.setAttribute(attr, value);
-    }
-  });
-}
-
-function Anatomy({ name, parts, hl, setHl, zoom, setZoom, overrides, children }) {
-  const frame = useRef(null);
-  const [geo, setGeo] = useState(null);
-  const Render = SPECIMENS[name];
-  useForced(frame, parts, hl);
-
-  // small components are drawn larger so the pins have room, but never wider
-  // than the stage leaves room for
-  useLayoutEffect(() => {
-    const root = frame.current?.querySelector('[data-bella-component]');
-    if (!root) return;
-    const w = root.offsetWidth;
-    // about 1.6x for small parts (v8's scale), 1x on phones
-    const want = window.innerWidth < 720 ? 1 : w < 200 ? 1.6 : w < 360 ? 1.4 : 1;
-    const room = (frame.current.clientWidth * 0.8) / w;
-    const next = Math.max(1, Math.min(want, Math.floor(room * 10) / 10));
-    if (next !== zoom) setZoom(next);
-  }, [name, zoom, setZoom]);
-
-  // zones, lines and pins are measured, so re-measure whenever the frame or
-  // the specimen itself changes size (window, sidebar, fonts, a forced state)
-  const measure = useCallback(() => setGeo(layout(frame.current, parts)), [parts]);
-  useLayoutEffect(() => {
-    measure();
-    const ro = new ResizeObserver(() => requestAnimationFrame(measure));
-    ro.observe(frame.current);
-    const root = frame.current.querySelector('[data-bella-component]');
-    if (root) ro.observe(root);
-    document.fonts?.ready.then(measure);
-    return () => ro.disconnect();
-  }, [measure, name, zoom, overrides, hl]);
-
-  return (
-    <>
-    <div className="stage">
-      <div className="spec-frame" ref={frame}>
-        <div className="spec-render" inert aria-hidden="true" style={{ zoom, ...overrides }}>
-          {Render ? <Render /> : null}
-        </div>
-        {geo ? (
-          <div className="spec-overlay" aria-hidden="true">
-            {/* largest first, so a small zone inside a big one stays reachable */}
-            {[...geo.parts].sort((a, b) => area(b.zone) - area(a.zone)).map((p) => (
-              <div
-                key={p.key}
-                className="zone"
-                data-hl={hl === p.key || undefined}
-                onMouseEnter={() => setHl(p.key)}
-                style={{ left: p.zone.left, top: p.zone.top, width: p.zone.right - p.zone.left, height: p.zone.bottom - p.zone.top }}
-              />
-            ))}
-            <svg className="leaders" width={geo.width} height={geo.height} viewBox={`0 0 ${geo.width} ${geo.height}`}>
-              {geo.parts.map((p) => (
-                <g key={p.key} data-hl={hl === p.key || undefined}>
-                  <line x1={p.pin[0]} y1={p.pin[1]} x2={p.anchor[0]} y2={p.anchor[1]} />
-                  <circle className="anc" cx={p.anchor[0]} cy={p.anchor[1]} r={hl === p.key ? 6 : 4.5} />
-                </g>
-              ))}
-            </svg>
-            {geo.parts.map((p) => (
-              <div key={p.key} className="pin" data-hl={hl === p.key || undefined} onMouseEnter={() => setHl(p.key)} style={{ left: p.pin[0], top: p.pin[1] }}>
-                {p.n}
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </div>
-    {children}
-    </>
-  );
-}
-
-
-/* ---------- Study D: exploded layers, flat labels ---------- */
-const OPEN = { rx: 56, rz: -22 };
-
-function Exploded({ name, parts, hl, setHl, zoom, overrides }) {
-  const stage = useRef(null);
-  const rig = useRef(null);
-  const lines = useRef(null);
-  const labels = useRef({});
-  const [rot, setRot] = useState({ rx: 0, rz: 0, open: false });
-  const drag = useRef(null);
-  const raf = useRef(0);
-  const Render = SPECIMENS[name];
-  const mid = (parts.length - 1) / 2;
-
-  // mark each card's target so its layer can be isolated by kind
-  useLayoutEffect(() => {
-    for (const card of rig.current.querySelectorAll('.card')) {
-      const root = card.querySelector('[data-bella-component]');
-      const part = parts.find((p) => p.key === card.dataset.key);
-      for (const el of targetsOf(root, part.target)) el.setAttribute('data-anat-target', '');
-    }
-  }, [parts, name]);
-
-  const place = useCallback(() => {
-    if (!stage.current) return;
-    const sr = stage.current.getBoundingClientRect();
-    const pts = [...rig.current.querySelectorAll('.card')].map((c) => {
-      const a = c.querySelector('.card-anchor').getBoundingClientRect();
-      return { key: c.dataset.key, x: a.left - sr.left, y: a.top - sr.top };
-    });
-    // labels in top-to-bottom screen order, at least 64px apart (more when a
-    // label is taller than that), kept inside the stage
-    const order = pts.sort((a, b) => a.y - b.y);
-    const tallest = Math.max(...Object.values(labels.current).map((el) => el?.offsetHeight ?? 0));
-    const gap = Math.max(64, tallest + 8);
-    let prev = -1e9;
-    for (const o of order) {
-      o.ly = Math.max(o.y, prev + gap);
-      prev = o.ly;
-    }
-    const top = order.length ? order[0].ly - tallest / 2 : 0;
-    if (top < 8) for (const o of order) o.ly += 8 - top;
-    const over = prev - (sr.height - 40);
-    if (over > 0) for (const o of order) o.ly -= over;
-    let svg = '';
-    for (const o of order) {
-      const el = labels.current[o.key];
-      if (!el) continue;
-      el.style.top = `${o.ly}px`;
-      const lx = el.offsetLeft;
-      svg += `<path d="M${o.x} ${o.y} C ${o.x + 40} ${o.y}, ${lx - 40} ${o.ly}, ${lx - 4} ${o.ly}"/><circle cx="${o.x}" cy="${o.y}" r="3.5"/>`;
-    }
-    lines.current.innerHTML = svg;
-  }, []);
-
-  const track = useCallback(
-    (ms) => {
-      const t0 = performance.now();
-      cancelAnimationFrame(raf.current);
-      const f = () => {
-        place();
-        if (performance.now() - t0 < ms) raf.current = requestAnimationFrame(f);
-      };
-      f();
-    },
-    [place]
-  );
-
-  useEffect(() => {
-    const t = setTimeout(() => setRot({ ...OPEN, open: true }), 30);
-    return () => clearTimeout(t);
-  }, []);
-  useEffect(() => track(900), [rot.open, track]);
-  useEffect(() => {
-    const on = () => place();
-    window.addEventListener('resize', on);
-    return () => window.removeEventListener('resize', on);
-  }, [place]);
-
-  function down(e) {
-    if (e.target.closest('.label')) return;
-    e.preventDefault();
-    drag.current = { x: e.clientX, y: e.clientY, rx: rot.rx, rz: rot.rz };
-    stage.current.setPointerCapture(e.pointerId);
-    stage.current.dataset.drag = '';
-  }
-  function move(e) {
-    if (!drag.current) return;
-    const d = drag.current;
-    setRot((r) => ({
-      ...r,
-      rz: d.rz + (e.clientX - d.x) * 0.35,
-      rx: Math.max(10, Math.min(80, d.rx - (e.clientY - d.y) * 0.35)),
-    }));
-    requestAnimationFrame(place);
-  }
-  function up() {
-    drag.current = null;
-    delete stage.current.dataset.drag;
-  }
-
-  return (
-    <div
-      className="exploded"
-      ref={stage}
-      data-open={rot.open || undefined}
-      onPointerDown={down}
-      onPointerMove={move}
-      onPointerUp={up}
-      onPointerCancel={up}
-    >
-      <div
-        className="rig"
-        ref={rig}
-        aria-hidden="true"
-        inert
-        style={{ transform: rot.open ? `rotateX(${rot.rx}deg) rotateZ(${rot.rz}deg)` : 'none' }}
-        data-dragging={drag.current ? '' : undefined}
-      >
-        {parts.map((p, i) => (
-          <div
-            key={p.key}
-            className="card"
-            data-key={p.key}
-            data-kind={p.kind}
-            data-hl={hl === p.key || undefined}
-            style={{ transform: rot.open ? `translateZ(calc(${i - mid} * var(--spacing-20)))` : 'none' }}
-          >
-            <div className="card-layer" style={{ zoom, ...overrides }}>
-              {Render ? <Render /> : null}
-            </div>
-            <span className="card-anchor" />
-          </div>
-        ))}
-      </div>
-      <svg className="ex-lines" ref={lines} aria-hidden="true" />
-      <ul className="ex-labels" aria-label={`${name} layers`}>
-        {[...parts].reverse().map((p) => (
-          <li key={p.key}>
-            <button
-              type="button"
-              className="label"
-              ref={(el) => (labels.current[p.key] = el)}
-              aria-pressed={hl === p.key}
-              onMouseEnter={() => setHl(p.key)}
-              onFocus={() => setHl(p.key)}
-              onClick={() => setHl(p.key)}
-            >
-              <span className="n">{p.n}</span>
-              <b>{p.title}</b>
-              <small>
-                {p.token}
-                {p.trigger ? ` · on ${p.trigger}` : ''}
-              </small>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-
-/* ================= the component page (chip-mock-03) ================= */
-
-const TABS = [
-  { id: 'usage', label: 'Usage' },
-  { id: 'anatomy', label: 'Anatomy' },
-  { id: 'variants', label: 'Variants' },
-  { id: 'states', label: 'States' },
-  { id: 'spec', label: 'Spec' },
-  { id: 'a11y', label: 'Accessibility' },
-  { id: 'contract', label: 'Contract' },
-  { id: 'source', label: 'Source' },
-  { id: 'history', label: 'History' },
-  { id: 'tests', label: 'Tests' },
-  { id: 'figma', label: 'Figma' },
-];
-const TAB_KEY = 'chip-atlas-tab';
 const NO_CONTRACT = 'Missing a contract';
 const dontText = (u) => cap1(u.replace(/^Do not /, ''));
 const cap1 = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
@@ -498,12 +215,6 @@ function Forced({ state, children }) {
   );
 }
 
-const renderOf = (c, variant) => {
-  const V = VARIANTS[c.name];
-  const R = SPECIMENS[c.name];
-  if (variant && V) return V(variant);
-  return R ? <R /> : null;
-};
 
 /* ---------- guidance: the markdown file's sections ---------- */
 function sectionsOf(md) {
@@ -526,312 +237,6 @@ function agentRuleFor(doc, c, v) {
   return r ? r.text.split('|').map((s) => s.trim()).filter(Boolean)[0] : null;
 }
 
-/* ================= panels ================= */
-
-function UsagePanel({ c, doc, notify, onOpen }) {
-  const variants = VARIANTS[c.name] ? c.variants ?? [] : [];
-  const [sel, setSel] = useState(variants[0] ?? null);
-  useEffect(() => setSel(variants[0] ?? null), [c.id]);
-  // the specimen's own element, so the JSX names the component, not its wrapper
-  const shown = variants.length ? [...variants].reverse().map((v) => VARIANTS[c.name](v)) : [SPECIMENS[c.name]?.()];
-  const lines = [`import { ${c.name} } from 'bella';`, '', ...shown.flatMap((el) => jsxLines(el))];
-  const rule = sel ? agentRuleFor(doc, c, sel) : null;
-  return (
-    <Panel
-      name="usage"
-      label="Selected"
-      insp={
-        <div className="a-sel" aria-live="polite">
-          <p className="insp-h">{sel ? 'Selected' : 'Guidance'}</p>
-          <p className="gt">{sel ? cap1(sel) : c.name}</p>
-          {rule ? <p>{rule}.</p> : sel ? null : <p>{c.rendersAs ? `Renders as ${c.rendersAs}.` : null}</p>}
-          {c.usage?.length ? (
-            <>
-              <p className="g4">
-                <i className="av ok" aria-hidden="true">✓</i>Use it for
-              </p>
-              <ul className="glist">
-                {c.usage.map((u) => (
-                  <li key={u}>{u}</li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-          {c.dont?.length ? (
-            <>
-              <p className="g4">
-                <i className="av no" aria-hidden="true">✕</i>Don’t
-              </p>
-              <ul className="glist">
-                {c.dont.map((u) => (
-                  <li key={u}>{dontText(u)}</li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-          {doc?.related?.length ? (
-            <div className="grel">
-              <p className="insp-h">Related</p>
-              <p className="rel">
-                {doc.related.map((r, i) => (
-                  <React.Fragment key={r.id}>
-                    {i ? ' · ' : ''}
-                    <a
-                      href={`#/atlas/${r.id}`}
-                      title={r.why}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        onOpen?.(r.id);
-                      }}
-                    >
-                      {r.name}
-                    </a>
-                  </React.Fragment>
-                ))}
-              </p>
-            </div>
-          ) : null}
-        </div>
-      }
-    >
-      <p className="cap">
-        {variants.length
-          ? `${c.name} has ${plural(variants.length, 'tier')} of emphasis, from its contract. Select one to see its guidance.`
-          : `${c.name}, as it renders. Where to use it and where not to, from its contract.`}
-      </p>
-      <div className="usage">
-        <div className="hier grid">
-          {variants.length ? (
-            <ol className="a-ladder">
-              {variants.map((v, i) => (
-                <li key={v}>
-                  <button type="button" className={`a-pick${sel === v ? ' gsel' : ''}`} aria-pressed={sel === v} onClick={() => setSel(v)} aria-label={`${cap1(v)}: show its guidance`}>
-                    <Forced>{VARIANTS[c.name](v)}</Forced>
-                  </button>
-                  <span className="a-lead" aria-hidden="true" />
-                  <span className="anno">
-                    <b>{i + 1}</b>
-                    {cap1(v)}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <Forced>{renderOf(c)}</Forced>
-          )}
-        </div>
-        {c.usage?.length || c.dont?.length ? (
-          <div className="pairs">
-            <figure className="pair2 do">
-              <figcaption>
-                <b>
-                  <i className="av ok" aria-hidden="true">✓</i>Do
-                </b>
-                <ul className="glist">
-                  {(c.usage ?? []).map((u) => (
-                    <li key={u}>{u}</li>
-                  ))}
-                </ul>
-              </figcaption>
-            </figure>
-            <figure className="pair2 dont">
-              <figcaption>
-                <b>
-                  <i className="av no" aria-hidden="true">✕</i>Don’t
-                </b>
-                <ul className="glist">
-                  {(c.dont ?? []).map((u) => (
-                    <li key={u}>{dontText(u)}</li>
-                  ))}
-                </ul>
-              </figcaption>
-            </figure>
-          </div>
-        ) : null}
-      </div>
-      <CodeBlock title="The example above · JSX" lines={lines} notify={notify} />
-    </Panel>
-  );
-}
-
-
-function AnatomyPanel({ c, reduced }) {
-  const parts = c.parts ?? [];
-  const [hl, setHl] = useState(null);
-  const [zoom, setZoom] = useState(1);
-  const [view, setView] = useState('flat');
-  useEffect(() => setHl(null), [c.id]);
-  if (!parts.length)
-    return (
-      <Panel name="anatomy" one>
-        <p className="cap">The parts of {c.name}, from its contract.</p>
-        <div className="canvas">
-          <div className="specimen">
-            <Forced>{renderOf(c)}</Forced>
-          </div>
-        </div>
-        <Empty title="No anatomy yet">
-          Add anatomy to {c.name}’s contract in BELLA ({c.anatomySource}) and its parts appear here, numbered on the stage.
-        </Empty>
-      </Panel>
-    );
-  const views = [{ id: 'flat', label: 'Flat' }, ...(reduced ? [] : [{ id: 'exploded', label: 'Exploded' }])];
-  return (
-    <Panel
-      name="anatomy"
-      below
-      label="Parts"
-      insp={
-        <>
-          <p className="insp-h">Parts</p>
-          <ol className="parts" onMouseLeave={() => setHl(null)}>
-            {parts.map((p) => (
-              <li key={p.key} className={hl === p.key ? 'on' : undefined} onMouseEnter={() => setHl(p.key)}>
-                <span className="n" aria-hidden="true">
-                  {p.n}
-                </span>
-                <button type="button" aria-pressed={hl === p.key} onFocus={() => setHl(p.key)} onClick={() => setHl(hl === p.key ? null : p.key)}>
-                  <b>{p.title}</b>
-                  <code>{p.token}</code>
-                  <small>
-                    {p.detail}
-                    {p.trigger && p.trigger !== 'rest' ? ` · on ${p.trigger}` : ''}
-                  </small>
-                </button>
-              </li>
-            ))}
-          </ol>
-        </>
-      }
-    >
-      <div className="statebar">
-        <p className="cap">
-          {plural(parts.length, 'part')}, back to front. Hover a part or a row to find it.{reduced ? ' Exploded is off while reduced motion is on.' : ''}
-        </p>
-        {views.length > 1 ? <RadioSeg label="View" items={views} value={view} onChange={setView} /> : null}
-      </div>
-      <div className="canvas a-anat">
-        {view === 'exploded' ? (
-          <Exploded name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} overrides={{}} />
-        ) : (
-          <Anatomy name={c.name} parts={parts} hl={hl} setHl={setHl} zoom={zoom} setZoom={setZoom} overrides={{}} />
-        )}
-      </div>
-    </Panel>
-  );
-}
-
-function VariantsPanel({ c, doc }) {
-  const V = VARIANTS[c.name];
-  const variants = V ? c.variants ?? [] : [];
-  const S = SHAPES[c.name];
-  const shapes = S ? c.shapes ?? [] : [];
-  const tiers = bulletsOf(sectionsOf(doc?.guidance?.md)['Choosing a tier']);
-  // a guidance line per tier: the bullet that names it, else the first one left
-  const lineFor = useMemo(() => {
-    const left = [...tiers];
-    const map = {};
-    for (const v of variants) {
-      const i = left.findIndex((t) => t.toLowerCase().includes(v));
-      if (i >= 0) map[v] = left.splice(i, 1)[0];
-    }
-    for (const v of variants) if (!map[v] && left.length) map[v] = left.shift();
-    return map;
-  }, [doc, c.id]);
-  const prop = (v) => `variant="${v}"`;
-  if (!variants.length)
-    return (
-      <Panel name="variants" one>
-        <p className="cap">{c.name}’s variants, from its contract.</p>
-        <div className="vgrid one">
-          <figure className="vcell">
-            <div className="vstage grid">
-              <Forced>{renderOf(c)}</Forced>
-            </div>
-            <figcaption>
-              <b>{c.name}</b>
-              <span>{(c.variants ?? []).length ? `Its ${c.variants.length} variants have no specimen in CHIP yet.` : 'One form: the contract lists no variants. Its states are under States.'}</span>
-            </figcaption>
-          </figure>
-        </div>
-      </Panel>
-    );
-  return (
-    <Panel
-      name="variants"
-      below
-      label="Choosing a tier"
-      insp={
-        <>
-          <p className="insp-h">Choosing a tier</p>
-          <ol className="ladder">
-            {variants.map((v) => (
-              <li key={v}>
-                <span className="a-mini">
-                  <Forced>{V(v)}</Forced>
-                </span>
-                <span>{lineFor[v] ?? agentRuleFor(doc, c, v) ?? cap1(v)}</span>
-              </li>
-            ))}
-          </ol>
-          <div className="dd">
-            {(c.usage ?? []).slice(0, 1).map((u) => (
-              <p className="do" key={u}>
-                <i className="av ok" aria-hidden="true">✓</i>
-                {u}
-              </p>
-            ))}
-            {(c.dont ?? []).slice(0, 2).map((u) => (
-              <p className="dont" key={u}>
-                <i className="av no" aria-hidden="true">✕</i>
-                {dontText(u)}
-              </p>
-            ))}
-          </div>
-        </>
-      }
-    >
-      <p className="cap">{`${plural(variants.length, 'tier')} of emphasis. Each cell is the real thing; the pink tag is the prop that makes it that tier.`}</p>
-      <h2 className="h3s">Tiers</h2>
-      <div className="vgrid">
-        {variants.map((v) => (
-          <figure className="vcell" key={v}>
-            <div className="vstage grid">
-              <span className="anno mono">{prop(v)}</span>
-              <span className="a-lead" aria-hidden="true" />
-              <Forced>{V(v)}</Forced>
-            </div>
-            <figcaption>
-              <b>{cap1(v)}</b>
-              {agentRuleFor(doc, c, v) ? <span>{agentRuleFor(doc, c, v)}.</span> : null}
-            </figcaption>
-          </figure>
-        ))}
-      </div>
-      {shapes.length ? (
-        <>
-          <h2 className="h3s">Shape</h2>
-          <div className="vgrid two">
-            {shapes.map((s) => (
-              <figure className="vcell" key={s}>
-                <div className="vstage grid">
-                  <span className="anno mono">{`shape="${s}"`}</span>
-                  <span className="a-lead" aria-hidden="true" />
-                  <Forced>{S(s)}</Forced>
-                </div>
-                <figcaption>
-                  <b>{cap1(s)}</b>
-                  {(c.usage ?? []).find((u) => u.includes(`shape ${s}`)) ? <span>{c.usage.find((u) => u.includes(`shape ${s}`))}</span> : null}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </>
-      ) : null}
-    </Panel>
-  );
-}
-
 // the tokens a state changes: the component tokens named for it (and its tier)
 function stateTokens(c, tier, state) {
   const list = c.tokens?.list ?? [];
@@ -840,74 +245,6 @@ function stateTokens(c, tier, state) {
   // and the anatomy's parts that only show in this state (a hover wash, a pressed fill)
   const parts = (c.parts ?? []).filter((p) => p.trigger === state || (state === 'active' && p.trigger === 'press')).map((p) => p.token);
   return [...new Set([...named, ...parts])].filter(Boolean);
-}
-
-function StatesPanel({ c }) {
-  const V = VARIANTS[c.name];
-  const tiers = V ? c.variants ?? [] : [];
-  const [tier, setTier] = useState(tiers[0] ?? null);
-  useEffect(() => setTier(tiers[0] ?? null), [c.id]);
-  const states = c.states?.length ? c.states : ['default'];
-  const [sel, setSel] = useState(states[0]);
-  useEffect(() => setSel(states[0]), [c.id]);
-  const ref = useRef(null);
-  function onKeyDown(e) {
-    const i = states.indexOf(sel);
-    const n = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: states.length - 1 }[e.key];
-    if (n === undefined) return;
-    e.preventDefault();
-    const next = states[(n + states.length) % states.length];
-    setSel(next);
-    ref.current.querySelector(`[data-state="${next}"]`)?.focus();
-  }
-  const isRest = (s) => s === 'default' || s === 'rest';
-  const delta = isRest(sel) ? [] : stateTokens(c, tier, sel);
-  return (
-    <Panel name="states" one>
-      <div className="statebar">
-        <p className="cap">Every state{tiers.length ? ' of a tier' : ''}. Select one to see which tokens change from Default.</p>
-        {tiers.length ? <RadioSeg label="Tier" items={tiers.map((t) => ({ id: t, label: cap1(t) }))} value={tier} onChange={setTier} /> : null}
-      </div>
-      <div className="srow" role="listbox" aria-label="States" ref={ref} onKeyDown={onKeyDown} style={{ '--n': states.length }}>
-        {states.map((s) => {
-          const n = isRest(s) ? null : stateTokens(c, tier, s).length;
-          return (
-            <div key={`${tier}-${s}`} role="option" className="scell" data-state={s} aria-selected={sel === s} tabIndex={sel === s ? 0 : -1} onClick={() => setSel(s)}>
-              <div className="stg grid">
-                <Forced state={isRest(s) ? null : s}>{renderOf(c, tier)}</Forced>
-              </div>
-              <div className="meta2">
-                <b>{cap1(s === 'active' ? 'press' : s)}</b>
-                <span className="chg">
-                  <em>{n == null ? 'at rest' : n ? plural(n, 'token') : 'no token of its own'}</em>
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="sdelta" aria-live="polite">
-        {isRest(sel) ? (
-          <p className="sub2">Default is the resting state. Select another state to see what changes.</p>
-        ) : delta.length ? (
-          <>
-            <p className="sub2">
-              {cap1(sel)} reads {plural(delta.length, 'token')} {tier ? `on ${tier}` : ''} that rest doesn’t:
-            </p>
-            <ul className="a-toks">
-              {delta.map((t) => (
-                <li key={t}>
-                  <code>{t}</code>
-                </li>
-              ))}
-            </ul>
-          </>
-        ) : (
-          <p className="sub2">{cap1(sel)} has no token named for it in {c.name}’s list; it changes through shared tokens or a pseudo-class.</p>
-        )}
-      </div>
-    </Panel>
-  );
 }
 
 function valuesOf(p) {
@@ -921,127 +258,6 @@ function valuesOf(p) {
       </React.Fragment>
     ));
   return p.values;
-}
-
-function SpecPanel({ c, spec }) {
-  const props = (spec?.props ?? []).filter((p) => !['children', 'className'].includes(p.name));
-  return (
-    <Panel
-      name="spec"
-      below
-      label="Props"
-      insp={
-        <>
-          <p className="insp-h">Props</p>
-          {spec ? (
-            <div className="a-tscroll">
-              <table className="ttab props">
-                <tbody>
-                  {props.map((p) => (
-                    <tr key={p.name}>
-                      <th scope="row">{p.name}</th>
-                      <td>
-                        {valuesOf(p)}
-                        {p.description ? <small>{p.description.replace(/`/g, '').replace(/[;:]$/, '')}</small> : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="sub2">Reading the props…</p>
-          )}
-          <p className="foot">
-            From BELLA’s docgen manifest. <code>children</code> and <code>className</code> left out.
-          </p>
-        </>
-      }
-    >
-      <p className="cap">Measured from the rendered component. Every number is a token.</p>
-      <div className="canvas a-specstage">
-        <SpecStage c={c} overrides={{}} />
-      </div>
-    </Panel>
-  );
-}
-
-function A11yPanel({ c }) {
-  const V = VARIANTS[c.name];
-  const shown = V ? c.variants ?? [] : [null];
-  const stage = useRef(null);
-  const [rows, setRows] = useState([]);
-  useLayoutEffect(() => {
-    const measure = () => {
-      const els = [...(stage.current?.querySelectorAll('.a-tgt [data-bella-component]') ?? [])];
-      setRows(
-        els.map((el) => {
-          const r = el.getBoundingClientRect();
-          const role = el.getAttribute('role') || { BUTTON: 'button', A: 'link', INPUT: 'textbox', SELECT: 'combobox' }[el.tagName] || el.tagName.toLowerCase();
-          // BELLA's label roll renders the label twice; the name is said once
-          const t = el.textContent.trim();
-          const half = t.slice(0, t.length / 2);
-          const name = el.getAttribute('aria-label') || (t.length % 2 === 0 && half + half === t ? half : t);
-          return { role, name, w: Math.round(r.width), h: Math.round(r.height) };
-        })
-      );
-    };
-    measure();
-    document.fonts?.ready.then(measure);
-  }, [c.id]);
-  const target = parseFloat(c.minTarget?.value);
-  const ct = c.health?.contrast ?? {};
-  return (
-    <Panel
-      name="a11y"
-      below
-      label="Accessibility"
-      insp={
-        <div className="a11ylabels">
-          <p>
-            <b>Screen readers</b>
-            {c.rendersAs ? `Renders as ${c.rendersAs}. ` : ''}The visible label is the name unless ariaLabel says otherwise.
-          </p>
-          <p>
-            <b>Keyboard</b>
-            {keyboardOf(c)}
-          </p>
-          <p>
-            <b>Touch targets</b>
-            {c.minTarget ? `${c.minTarget.value} minimum, from ${c.minTarget.token}: ${target >= 44 ? 'meets' : 'under'} BELLA’s 44 floor (WCAG 2.5.5); 2.5.8 asks 24.` : 'No minimum target in the contract.'}
-          </p>
-          <p>
-            <b>Contrast</b>
-            {ct.status === 'fail' ? `Failing: ${ct.failing.join('; ')}` : ct.status === 'pass' ? `${ct.pairs} of ${ct.pairs} pairs pass.` : 'No contrast pairs declared.'}
-          </p>
-          {c.a11y ? (
-            <p className="a-wide">
-              <b>Verified</b>
-              {c.a11y}
-            </p>
-          ) : null}
-        </div>
-      }
-    >
-      <p className="cap">What a screen reader and a keyboard get, measured on the real component: tab order, role and name, and the target a finger gets.</p>
-      <div className="hier grid a11yfig" ref={stage}>
-        <ol className="a-ladder">
-          {shown.map((v, i) => (
-            <li key={v ?? 'one'}>
-              <span className="a-tgt">
-                <Forced>{renderOf(c, v)}</Forced>
-              </span>
-              <span className="a-lead" aria-hidden="true" />
-              <span className="anno">
-                <b>{i + 1}</b>
-                {rows[i] ? `${rows[i].role} “${rows[i].name}” · ${rows[i].w} × ${rows[i].h}` : 'measuring…'}
-              </span>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </Panel>
-  );
 }
 
 /* ---------- a file with line numbers and marked lines ---------- */
@@ -1508,23 +724,752 @@ function FigmaPanel({ c, lint, reading, onRead }) {
   );
 }
 
-/* ================= the page ================= */
-export default function Atlas({ c, bella, theme, onOpen, role = 'admin', vis = { components: {} } }) {
-  const reduced = useReducedMotion();
-  const [tab, setTabState] = useState(() => {
-    try {
-      return sessionStorage.getItem(TAB_KEY) || 'usage';
-    } catch {
-      return 'usage';
-    }
+/* ================= the stage: one specimen, every fact hung off it ================= */
+
+const noop = () => {};
+const num = (v) => {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : null;
+};
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const STATE_LABEL = (s) => cap1(s === 'active' ? 'press' : s);
+
+// one tab stop per group: arrows, Home and End move inside it
+function useRove(ref, sel = '[data-rv]') {
+  useLayoutEffect(() => {
+    const items = [...(ref.current?.querySelectorAll(sel) ?? [])];
+    if (!items.length) return;
+    const on = (b) => ['aria-checked', 'aria-pressed', 'aria-expanded'].some((a) => b.getAttribute(a) === 'true');
+    const cur = items.find((b) => b === document.activeElement) ?? items.find(on) ?? items[0];
+    for (const b of items) b.tabIndex = b === cur ? 0 : -1;
   });
-  const setTab = (t) => {
-    setTabState(t);
-    try {
-      sessionStorage.setItem(TAB_KEY, t);
-    } catch {}
+}
+function roveKeys(e, sel = '[data-rv]') {
+  const items = [...e.currentTarget.querySelectorAll(sel)];
+  const i = items.indexOf(document.activeElement);
+  if (i < 0) return null;
+  const n = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[e.key];
+  if (n === undefined) return null;
+  e.preventDefault();
+  const next = items[(n + items.length) % items.length];
+  for (const b of items) b.tabIndex = b === next ? 0 : -1;
+  next.focus();
+  return next;
+}
+
+/* ---------- colour, measured ---------- */
+// any CSS colour (BELLA's compute as oklch) to sRGB, through a 1px canvas
+let ink2d = null;
+function rgbOf(s) {
+  if (!ink2d) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 1;
+    ink2d = cv.getContext('2d', { willReadFrequently: true });
+  }
+  ink2d.clearRect(0, 0, 1, 1);
+  ink2d.fillStyle = 'rgba(0, 0, 0, 0)';
+  ink2d.fillStyle = String(s);
+  ink2d.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = ink2d.getImageData(0, 0, 1, 1).data;
+  return [r, g, b, a / 255];
+}
+function hexOf(s) {
+  const [r, g, b, a] = Array.isArray(s) ? s : rgbOf(s);
+  if (a === 0) return 'transparent';
+  return '#' + [r, g, b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('');
+}
+function lum([r, g, b]) {
+  const f = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+function ratio(a, b) {
+  const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+  return (x + 0.05) / (y + 0.05);
+}
+// what an element paints: the opaque stops of its gradients (the plate under
+// a gloss), else its background colour
+const COLOUR = /(?:oklch|oklab|rgba?|hsla?|color|lab|lch)\((?:[^()]|\([^()]*\))*\)/g;
+function plateOf(cs) {
+  const stops = (cs.backgroundImage.match(COLOUR) ?? []).map(rgbOf).filter((x) => x[3] >= 0.99);
+  if (stops.length) return [0, 1, 2].map((i) => stops.reduce((a, x) => a + x[i], 0) / stops.length).concat(1);
+  const bg = rgbOf(cs.backgroundColor);
+  return bg[3] > 0 ? bg : null;
+}
+const famOf = (cs) => cs.fontFamily.split(',')[0].replace(/["']/g, '').trim();
+// the first painted background behind an element, up to the stage
+function groundOf(el, stop) {
+  for (let n = el; n; n = n.parentElement) {
+    const rgb = plateOf(getComputedStyle(n));
+    if (rgb) return { el: n, rgb };
+    if (n === stop) break;
+  }
+  return null;
+}
+
+/* ---------- per component: what the contract can't say yet (concept, question 2) ---------- */
+const labelOf = (c) => (c.usage ?? []).map((u) => u.match(/reads "([^"]+)"/)?.[1]).find(Boolean);
+const CFG = {
+  Button: {
+    label: (c) => labelOf(c) ?? 'Save changes',
+    axes: [
+      { key: 'variant', label: 'Variant', from: 'variants' },
+      { key: 'shape', label: 'Shape', from: 'shapes' },
+    ],
+    // dont[i] -> the part it is about
+    ruleParts: { 0: 'fill', 1: 'box', 2: 'label', 3: 'fill', 4: 'shadow', 5: 'ring' },
+    // picking a part that only shows on one tier or state takes the stage there
+    needs: { shadow: { variant: 'primary' }, fill: { variant: 'primary' }, ring: { st: 'focus' } },
+    render: (o) => (
+      <Button variant={o.variant} shape={o.shape} disabled={o.st === 'disabled'} onClick={noop}>
+        {o.label}
+      </Button>
+    ),
+    jsx: (o) => [`<Button variant="${o.variant}"${o.shape && o.shape !== 'default' ? ` shape="${o.shape}"` : ''}${o.st === 'disabled' ? ' disabled' : ''}>${o.label}</Button>`],
+  },
+  FilterChip: {
+    label: () => 'Cases',
+    axes: [{ key: 'size', label: 'Size', values: ['default', 'compact'] }],
+    ruleParts: { 0: 'box', 1: 'outline', 2: 'pressed' },
+    needs: {},
+    render: (o, live) => (
+      <FilterChip pressed={live ? live.pressed : o.st === 'pressed'} size={o.size} onClick={live ? live.toggle : noop}>
+        {o.label}
+      </FilterChip>
+    ),
+    jsx: (o) => [`<FilterChip pressed={${o.st === 'pressed'}}${o.size === 'compact' ? ' size="compact"' : ''} onClick={toggle}>${o.label}</FilterChip>`],
+  },
+};
+// everything else: the same surface with whatever CHIP has for it
+function cfgOf(c) {
+  if (CFG[c.name]) return CFG[c.name];
+  const V = VARIANTS[c.name];
+  const R = SPECIMENS[c.name];
+  const el = (o) => (V && o.variant ? V(o.variant) : R ? R() : null);
+  return {
+    generic: true,
+    label: () => null,
+    axes: V && c.variants?.length ? [{ key: 'variant', label: 'Variant', from: 'variants' }] : [],
+    ruleParts: {},
+    needs: {},
+    render: el,
+    jsx: (o) => jsxLines(el(o)),
   };
+}
+// a component with no anatomy still has a box to measure
+const partsOf = (c) =>
+  c.parts?.length
+    ? c.parts
+    : [{ key: 'box', n: 1, title: 'Box', kind: 'box', target: ':scope', token: c.minTarget?.token ?? null, value: null, detail: 'Measured on the render. The contract names no parts yet.', synthetic: true }];
+
+/* ---------- measuring the parts ---------- */
+// a target's box, cut to the window it shows through (the label roll)
+function clipped(els, root) {
+  const rs = els.map((e) => e.getBoundingClientRect()).filter((r) => r.width || r.height);
+  if (!rs.length) return root.getBoundingClientRect();
+  let l = Math.min(...rs.map((r) => r.left));
+  let t = Math.min(...rs.map((r) => r.top));
+  let r = Math.max(...rs.map((x) => x.right));
+  let b = Math.max(...rs.map((x) => x.bottom));
+  let clip = null;
+  for (let n = els[0].parentElement; n && n !== root.parentElement; n = n.parentElement) {
+    const s = getComputedStyle(n);
+    if (s.overflowX === 'visible' && s.overflowY === 'visible') continue;
+    clip = n.getBoundingClientRect();
+    l = Math.max(l, clip.left);
+    t = Math.max(t, clip.top);
+    r = Math.min(r, clip.right);
+    b = Math.min(b, clip.bottom);
+  }
+  // rolled out of its window: the window is where it shows
+  if ((r - l < 1 || b - t < 1) && clip) return clip;
+  return { left: l, top: t, width: Math.max(0, r - l), height: Math.max(0, b - t) };
+}
+
+// the focus ring: on the element, or on a pseudo-element (the primary keycap
+// draws it on ::before, around its key edge). Returns its stroke and the box it rings.
+function ringOf(root) {
+  for (const pseudo of [null, '::before', '::after']) {
+    const cs = getComputedStyle(root, pseudo);
+    if (cs.outlineStyle === 'none' || !(num(cs.outlineWidth) > 0)) continue;
+    // a pseudo's box: the root's, moved by its insets
+    const ins = pseudo && cs.position === 'absolute' ? ['top', 'right', 'bottom', 'left'].map((k) => num(cs[k]) ?? 0) : [0, 0, 0, 0];
+    return { cs, pseudo, width: num(cs.outlineWidth), offset: num(cs.outlineOffset) ?? 0, color: cs.outlineColor, ins };
+  }
+  return null;
+}
+
+/** Every part's own box (own), where its outline goes (zone) and the edge its dot sits on (edge), in canvas space. */
+function geoOf(canvas, root, parts) {
+  const cr = canvas.getBoundingClientRect();
+  const rr = root.getBoundingClientRect();
+  const k = root.offsetWidth ? rr.width / root.offsetWidth : 1;
+  const rel = (r) => ({ x: r.left - cr.left, y: r.top - cr.top, w: r.width, h: r.height });
+  const grow = (r, d) => ({ x: r.x - d, y: r.y - d, w: r.w + 2 * d, h: r.h + 2 * d });
+  const box = rel(rr);
+  const cs = getComputedStyle(root);
+  const out = parts.map((p) => {
+    const els = p.target && p.target !== ':scope' ? targetsOf(root, p.target) : [root];
+    let own = els.length ? rel(clipped(els, root)) : box;
+    // a label that is the whole element: the words themselves, not the box
+    if (p.kind === 'content' && els[0] === root && root.textContent.trim()) {
+      const range = document.createRange();
+      range.selectNodeContents(root);
+      const t = range.getBoundingClientRect();
+      if (t.width && t.height) own = rel(t);
+    }
+    let zone = own;
+    let edge = own;
+    if (p.kind === 'ring') {
+      // the outline itself when it shows, BELLA's ring tokens when it doesn't
+      const ring = ringOf(root);
+      const w = ring?.width ?? num(cs.getPropertyValue('--ring-focus-width')) ?? 3;
+      const off = ring?.offset ?? num(cs.getPropertyValue('--ring-focus-offset')) ?? 3;
+      const [t, r, b, l] = (ring?.ins ?? [0, 0, 0, 0]).map((v) => v * k);
+      const base = { x: box.x + l, y: box.y + t, w: box.w - l - r, h: box.h - t - b };
+      zone = grow(base, (off + w) * k);
+      edge = grow(base, (off + w / 2) * k);
+    } else if (p.kind === 'shadow') {
+      // the key edge: the first shadow layer's y offset, under the box
+      const m = cs.boxShadow.split(/,(?![^(]*\))/)[0].match(/(-?[\d.]+)px\s+(-?[\d.]+)px/);
+      const dy = Math.max(2, m ? Math.abs(+m[2]) : p.zone?.size ?? 4) * k;
+      zone = edge = { x: box.x + 4 * k, y: box.y + box.h, w: Math.max(0, box.w - 8 * k), h: dy };
+    } else if (p.kind === 'fill' || p.kind === 'state') {
+      // inside the edge, so the dot lands on the paint, not the border
+      zone = edge = grow(own, -((num(cs.borderTopWidth) ?? 0) + 3) * k);
+    }
+    return { ...p, own, zone, edge };
+  });
+  return { box, k, w: cr.width, h: cr.height, parts: out };
+}
+
+const CH = 36; // chip height
+const GAP = 48; // chip pitch
+const OUT = 64; // chip distance from the specimen
+const PAD = 16;
+/** Where each chip goes and where its leader lands: beside the specimen, or above and below when it is too wide. */
+function placePins(geo, widths) {
+  if (!geo) return [];
+  const { box, w: cw } = geo;
+  const ps = geo.parts;
+  const zy = (p) => p.zone.y + p.zone.h / 2 + (p.kind === 'shadow' ? 1000 : 0);
+  const L = ps.filter((_, i) => i % 2 === 0).sort((a, b) => zy(a) - zy(b));
+  const R = ps.filter((_, i) => i % 2 === 1).sort((a, b) => zy(a) - zy(b));
+  const bwOf = (p) => Math.min(widths[p.key] ?? 160, 240);
+  const maxL = Math.max(0, ...L.map(bwOf));
+  const maxR = Math.max(0, ...R.map(bwOf));
+  const out = [];
+  if (box.x - OUT - maxL >= PAD && box.x + box.w + OUT + maxR <= cw - PAD) {
+    const cy = box.y + box.h / 2;
+    for (const [list, side] of [[L, 'L'], [R, 'R']]) {
+      const total = (list.length - 1) * GAP;
+      list.forEach((p, i) => {
+        const bw = bwOf(p);
+        const y = cy - total / 2 + i * GAP;
+        const x = side === 'L' ? Math.max(PAD, Math.min(box.x - OUT - bw, cw * 0.08)) : Math.min(cw - PAD - bw, Math.max(box.x + box.w + OUT, cw * 0.92 - bw));
+        const e = p.edge;
+        const inset = Math.min(3, e.h / 2);
+        out.push({ p, side, x, y: y - CH / 2, bw, ex: side === 'L' ? x + bw : x, ey: y, ax: side === 'L' ? e.x : e.x + e.w, ay: clamp(y, e.y + inset, e.y + e.h - inset) });
+      });
+    }
+    return out;
+  }
+  // above and below: a part under the box (the key shadow) goes below; each row in x order, so leaders don't cross
+  const under = new Set(ps.filter((p) => p.kind === 'shadow'));
+  ps.filter((p) => !under.has(p)).forEach((p, i) => i % 2 === 1 && under.size < Math.floor(ps.length / 2) && under.add(p));
+  const below = (p) => under.has(p);
+  const cx = (p) => p.edge.x + p.edge.w / 2;
+  const T = ps.filter((p) => !below(p)).sort((a, b) => cx(a) - cx(b));
+  const B = ps.filter((p) => below(p)).sort((a, b) => cx(a) - cx(b));
+  // a row too wide for the stage wraps onto more lines, outward from the specimen
+  const room = cw - 2 * PAD;
+  for (const [list, row] of [[T, 'T'], [B, 'B']]) {
+    const lines = [[]];
+    let used = 0;
+    for (const p of list) {
+      const bw = bwOf(p);
+      if (lines.at(-1).length && used + 12 + bw > room) {
+        lines.push([]);
+        used = 0;
+      }
+      used += (lines.at(-1).length ? 12 : 0) + bw;
+      lines.at(-1).push(p);
+    }
+    lines.forEach((line, li) => {
+      const total = line.reduce((a, p) => a + bwOf(p), 0) + Math.max(0, line.length - 1) * 12;
+      let x = clamp(box.x + box.w / 2 - total / 2, PAD, Math.max(PAD, cw - PAD - total));
+      const step = li * (CH + 12);
+      const y = row === 'T' ? box.y - 72 - CH / 2 - step : box.y + box.h + 72 - CH / 2 + step;
+      for (const p of line) {
+        const bw = bwOf(p);
+        const e = p.edge;
+        const mid = x + bw / 2;
+        const inset = Math.min(3, e.w / 2);
+        out.push({ p, side: row, x, y, bw, ex: mid, ey: row === 'T' ? y + CH : y, ax: clamp(mid, e.x + inset, e.x + e.w - inset), ay: row === 'T' ? e.y : e.y + e.h });
+        x += bw + 12;
+      }
+    });
+  }
+  return out;
+}
+
+// a redline: the measured length between two ticks, its label in a red pill
+function Dim({ x1, y1, x2, y2, text, vertical }) {
+  const tx = vertical ? x1 - 10 : (x1 + x2) / 2;
+  const ty = vertical ? (y1 + y2) / 2 : y1 - 10;
+  const w = String(text).length * 9 + 14;
+  return (
+    <g className="dm-dim">
+      <line x1={x1} y1={y1} x2={x2} y2={y2} />
+      {vertical ? (
+        <>
+          <line x1={x1 - 5} y1={y1} x2={x1 + 5} y2={y1} />
+          <line x1={x1 - 5} y1={y2} x2={x1 + 5} y2={y2} />
+        </>
+      ) : (
+        <>
+          <line x1={x1} y1={y1 - 5} x2={x1} y2={y1 + 5} />
+          <line x1={x2} y1={y2 - 5} x2={x2} y2={y2 + 5} />
+        </>
+      )}
+      <rect x={vertical ? tx - w : tx - w / 2} y={ty - 12} width={w} height={24} rx={12} />
+      <text x={vertical ? tx - w / 2 : tx} y={ty + 5} textAnchor="middle">
+        {text}
+      </text>
+    </g>
+  );
+}
+
+/* ---------- the stage's states: BELLA's own rules, forced through attributes ---------- */
+const FORCE = ['data-force-hover', 'data-force-focus', 'data-force-active'];
+function applyState(root, st, generic) {
+  if (!root) return;
+  for (const a of FORCE) root.removeAttribute(a);
+  if (!st) return;
+  const f = forceAttr(st === 'press' ? 'active' : st);
+  if (f && f[0] !== 'aria-pressed') root.setAttribute(f[0], f[1]);
+  if (generic && f?.[0] === 'aria-pressed' && root.hasAttribute('aria-pressed')) root.setAttribute('aria-pressed', 'true');
+  if (generic && st === 'disabled') {
+    if ('disabled' in root) root.disabled = true;
+    else root.setAttribute('aria-disabled', 'true');
+  }
+}
+
+/* ---------- checks: measured on the specimen, every change ---------- */
+function proseDrift({ root, parts, c, o, st, theme, contrast, disabled, variantKeyed }) {
+  const out = [];
+  const cs = getComputedStyle(root);
+  for (const p of parts) {
+    const d = p.detail || '';
+    const font = d.match(/^([A-Z][a-z]+) (\d+), (\d{3})/);
+    if (font && p.kind === 'content') {
+      const el = (p.target !== ':scope' && root.querySelector(p.target)) || root;
+      const ls = getComputedStyle(el);
+      const got = { fam: famOf(ls), size: num(ls.fontSize), weight: num(ls.fontWeight) };
+      if (got.fam !== font[1] || got.size !== +font[2] || got.weight !== +font[3]) out.push({ part: p.key, says: `${font[1]} ${font[2]}, ${font[3]}`, got: `${got.fam} ${got.size}, ${got.weight}`, src: `anatomy.${p.key}` });
+    }
+    const pad = d.match(/padding (\d+) \/ (\d+)/);
+    if (pad && p.kind === 'box') {
+      const pt = num(cs.paddingTop);
+      const pl = num(cs.paddingLeft);
+      if (pt !== +pad[1] || pl !== +pad[2]) out.push({ part: p.key, says: `padding ${pad[1]} / ${pad[2]}`, got: `padding ${pt} / ${pl}`, src: `anatomy.${p.key}` });
+    }
+  }
+  // the a11y line's ratio for what is on stage (it states light first), against the measured one
+  const key = variantKeyed ? (st === 'default' ? o.variant : null) : st;
+  if (key && theme === 'light' && !disabled && contrast && c.a11y) {
+    const re = new RegExp(`\\b${key}\\b[^.]*?(\\d+(?:\\.\\d+)?):1`, 'i');
+    const says = c.a11y
+      .split(/(?<=\.)\s+/)
+      .map((s) => s.match(re)?.[1])
+      .find(Boolean);
+    const content = parts.find((p) => p.kind === 'content');
+    if (says && Math.abs(+says - contrast) > 0.3) out.push({ part: content?.key ?? null, says: `${says}:1 for ${key}`, got: `${contrast.toFixed(1)}:1`, src: 'a11y' });
+  }
+  return out;
+}
+
+// nothing on stage to measure: say so, keep the synced results
+function noSpecimen(c) {
+  const hl = c.health ?? {};
+  const g = (id, label) => ({ id, part: null, grey: true, label, val: 'no specimen', rule: 'measured on the specimen', src: 'specimens.jsx', got: `CHIP has no specimen for ${c.name} yet, so nothing is measured` });
+  return [
+    g('target', 'Target'),
+    g('type', 'Type'),
+    g('contrast', 'Contrast'),
+    g('ring', 'Focus ring'),
+    g('prose', 'Prose vs render'),
+    { id: 'parity', part: null, ok: hl.contract?.status === 'pass', grey: !hl.contract, label: 'Contract parity', val: hl.contract ? (hl.contract.status === 'pass' ? 'synced' : 'drift') : 'none', rule: 'props and variants match the code', src: 'contract-parity.mjs', got: hl.contract?.issues?.length ? hl.contract.issues.join('; ') : 'synced result, not live: re-runs on sync' },
+  ];
+}
+
+function runChecks({ root, canvas, c, cfg, o, parts, st, theme, bella }) {
+  const cs = getComputedStyle(root);
+  const content = parts.find((p) => p.kind === 'content');
+  const lbl = (content && content.target !== ':scope' && root.querySelector(content.target)) || root;
+  const ls = getComputedStyle(lbl);
+  const h = root.offsetHeight;
+  const fs = num(ls.fontSize);
+  const g = groundOf(lbl, root);
+  const canvasBg = plateOf(getComputedStyle(canvas)) ?? [255, 255, 255, 1];
+  const bg = g ? g.rgb : canvasBg;
+  const r = ratio(rgbOf(ls.color), bg);
+  const disabled = root.disabled || root.getAttribute('aria-disabled') === 'true' || st === 'disabled';
+  const on = g ? hexOf(bg) : `the stage ${hexOf(canvasBg)}`;
+  const variantKeyed = cfg.axes.some((a) => a.key === 'variant');
+  const drift = proseDrift({ root, parts, c, o, st, theme, contrast: r, disabled, variantKeyed });
+  const hl = c.health ?? {};
+  const ring = ringOf(root);
+  const tp = (k) => parts.find((p) => p.key === k || p.kind === k)?.key ?? null;
+  return [
+    !root.matches('button, a[href], input, select, textarea, [role=button], [role=tab], [role=radio], [tabindex]') && !root.querySelector('button, a[href], input, select, textarea, [role=tab], [role=radio]')
+      ? { id: 'target', part: tp('box'), grey: true, label: 'Target', val: 'n/a', rule: 'targets ≥ 44px', src: 'AGENTS.md Floors', got: `${h}px tall; not interactive, so no target to meet` }
+      : { id: 'target', part: tp('box'), ok: h >= 44, label: 'Target', val: `${h}px`, rule: 'targets ≥ 44px', src: `AGENTS.md Floors${c.minTarget ? ` · ${c.minTarget.token}` : ''}`, got: `${h}px tall, measured on the specimen` },
+    { id: 'type', part: tp('content'), ok: fs >= 16, label: 'Type', val: `${fs}px`, rule: 'nothing < 16px', src: 'AGENTS.md Floors', got: `${famOf(ls)} ${fs}px, ${ls.fontWeight}` },
+    disabled
+      ? { id: 'contrast', part: tp('content'), grey: true, label: 'Contrast', val: 'n/a', rule: 'disabled controls are exempt', src: 'WCAG 1.4.3', got: `${r.toFixed(1)}:1, label ${hexOf(ls.color)} on ${on}` }
+      : { id: 'contrast', part: tp('content'), ok: r >= 4.5, label: 'Contrast', val: `${r.toFixed(1)}:1`, rule: 'text ≥ 4.5:1 (AA); BELLA aims AAA', src: `WCAG 1.4.3${hl.contrast?.pairs ? ` · ${hl.contrast.pairs} pairs in contrast-pairs.mjs` : ''}`, got: `label ${hexOf(ls.color)} on ${on}, ${theme}` },
+    st === 'focus'
+      ? { id: 'ring', part: tp('ring'), ok: !!ring && ring.width >= 3, label: 'Focus ring', val: ring ? `${ring.width}px` : 'none', rule: 'focus ring = BELLA’s, never removed', src: 'AGENTS.md Floors · --ring-focus-color', got: ring ? `${ring.width}px ${hexOf(ring.color)}, offset ${ring.offset}px${ring.pseudo ? `, drawn on ${ring.pseudo}` : ''}` : 'no outline while focused' }
+      : { id: 'ring', part: tp('ring'), grey: true, label: 'Focus ring', val: 'on focus', rule: 'focus ring = BELLA’s, never removed', src: 'AGENTS.md Floors', got: 'pick Focus, or tab to it in Use, to measure it' },
+    drift.length
+      ? { id: 'prose', part: drift[0].part, needs: true, label: 'Prose vs render', val: `${drift.length} drift`, rule: 'the contract describes what renders', src: `component.${c.id} ${[...new Set(drift.map((x) => x.src))].join(', ')}`, got: drift.map((x) => `${parts.find((p) => p.key === x.part)?.title ?? 'Label'}: contract says “${x.says}”, renders ${x.got}`).join(' · ') }
+      : { id: 'prose', part: null, ok: true, label: 'Prose vs render', val: 'match', rule: 'the contract describes what renders', src: `component.${c.id} anatomy, a11y`, got: c.parts?.length ? 'every number the contract names for this render matches it' : 'the contract names no numbers for this component yet' },
+    { id: 'parity', part: null, ok: hl.contract?.status === 'pass', grey: !hl.contract, label: 'Contract parity', val: hl.contract ? (hl.contract.status === 'pass' ? 'synced' : 'drift') : 'none', rule: 'props and variants match the code', src: `contract-parity.mjs @ ${bella.source?.commit ?? ''}`, got: hl.contract?.issues?.length ? hl.contract.issues.join('; ') : 'synced result, not live: re-runs on sync' },
+    { id: 'visual', part: null, grey: hl.visual?.status !== 'pass' && hl.visual?.status !== 'fail', ok: hl.visual?.status === 'pass', label: 'Visual', val: hl.visual?.status === 'pass' ? 'match' : hl.visual?.status === 'fail' ? 'differs' : 'not run', rule: 'snapshots match', src: 'audit:visual', got: hl.visual?.note ?? 'skipped' },
+  ];
+}
+
+/* ---------- scenes: the contract's usage and dont lines, as compositions that run ---------- */
+const SCENES = {
+  Button: [
+    { id: 'hero', title: 'Hero call to action', from: 'usage[0]', kind: 'actions', head: 'Design systems that ship', text: 'One primary, one way out.', items: (l) => [{ c: 'Button', v: 'primary', t: l }, { c: 'Button', v: 'secondary', t: 'See the work' }] },
+    {
+      id: 'two', title: 'Save and publish', from: 'dont[0]', rule: 0, kind: 'actions', head: 'Draft saved 2 min ago',
+      items: () => [{ c: 'Button', v: 'primary', t: 'Save' }, { c: 'Button', v: 'primary', t: 'Publish' }],
+      fixLabel: 'Make one secondary',
+      fix: (its) => {
+        const last = its.map((x) => x.v).lastIndexOf('primary');
+        return its.map((x, i) => (x.v === 'primary' && i !== last ? { ...x, v: 'secondary' } : x));
+      },
+    },
+    {
+      id: 'filters', title: 'Filter the work', from: 'dont[1]', rule: 1, kind: 'filter', head: 'Work',
+      items: () => [{ c: 'Button', v: 'primary', t: 'All' }, { c: 'Button', v: 'secondary', t: 'Cases' }, { c: 'Button', v: 'secondary', t: 'Writing' }],
+      fixLabel: 'Swap in FilterChip', fix: (its) => its.map((x, i) => ({ c: 'FilterChip', on: i === 0, t: x.t })), goto: 'filter-chip',
+    },
+    { id: 'nav', title: 'Nav call to action', from: 'usage[4]', kind: 'actions', nav: ['Work', 'Writing', 'About'], items: (l) => [{ c: 'Button', v: 'primary', s: 'pill', t: l }] },
+  ],
+  FilterChip: [
+    { id: 'narrow', title: 'Narrow the library', from: 'usage[1]', kind: 'multi', head: 'Library', items: () => [{ c: 'FilterChip', on: true, t: 'Cases' }, { c: 'FilterChip', on: true, t: 'Writing' }, { c: 'FilterChip', t: 'Talks' }, { c: 'FilterChip', t: 'Tools' }] },
+    {
+      id: 'views', title: 'Grid or list', from: 'dont[0]', rule: 0, kind: 'exclusive', head: 'Show as',
+      items: () => [{ c: 'FilterChip', on: true, t: 'Grid' }, { c: 'FilterChip', t: 'List' }],
+      fixLabel: 'Swap in SegmentedControl', fix: (its) => [{ c: 'SegmentedControl', options: its.map((x) => x.t), value: its.find((x) => x.on)?.t ?? its[0].t }], goto: 'segmented-control',
+    },
+  ],
+};
+const lineOf = (c, from) => {
+  const [, list, i] = from.match(/^(\w+)\[(\d+)\]$/) ?? [];
+  return c[list]?.[+i] ?? '';
+};
+
+// tier 1 (structure) and tier 2 (measured): the checks Playground runs on a screen, on a tiny one
+function sceneFindings(sc, box, byId) {
+  const f = [];
+  const idx = (els) => [...new Set(els.map((e) => +e.closest('[data-i]')?.dataset.i).filter((n) => !Number.isNaN(n)))];
+  const btns = [...box.querySelectorAll('[data-bella-component="button"]')];
+  const prim = btns.filter((b) => b.dataset.bellaVariant === 'primary');
+  const quote = (id, i) => byId(id)?.dont?.[i] ?? '';
+  if (prim.length > 1) f.push({ idx: idx(prim.slice(1)), rule: 'button.dont[0]', text: quote('button', 0), instead: 'Button variant="secondary"' });
+  if (sc.kind === 'filter' && btns.length) f.push({ idx: idx(btns), rule: 'button.dont[1]', text: quote('button', 1), instead: 'FilterChip, SegmentedControl, Select' });
+  const chips = [...box.querySelectorAll('[data-bella-component="filter-chip"]')];
+  if (sc.kind === 'exclusive' && chips.length) f.push({ idx: idx(chips), rule: 'filter-chip.dont[0]', text: quote('filter-chip', 0), instead: 'SegmentedControl' });
+  const raised = chips.filter((x) => getComputedStyle(x).boxShadow !== 'none');
+  if (raised.length) f.push({ idx: idx(raised), rule: 'filter-chip.dont[1]', text: quote('filter-chip', 1), instead: 'flat chip, outline only' });
+  const small = [...box.querySelectorAll('button, a[href]')].filter((x) => x.offsetHeight && x.offsetHeight < 44);
+  if (small.length) f.push({ idx: idx(small), rule: 'AGENTS.md Floors', text: 'targets ≥ 44px', instead: 'the 44px touch-target token' });
+  return f;
+}
+
+function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
+  const fresh = useCallback(() => sc.items(label), [sc, label]);
+  const [items, setItems] = useState(fresh);
+  const [touched, setTouched] = useState(false);
+  const [fixed, setFixed] = useState(false);
+  const [why, setWhy] = useState(false);
+  const [finds, setFinds] = useState([]);
+  const box = useRef(null);
+  const byId = (id) => bella.components.find((x) => x.id === id);
+  useEffect(() => {
+    setItems(fresh());
+    setTouched(false);
+    setFixed(false);
+  }, [fresh]);
+  // the check runs on what rendered, after every change
+  useLayoutEffect(() => {
+    const f = sceneFindings(sc, box.current, byId);
+    if (JSON.stringify(f) !== JSON.stringify(finds)) setFinds(f);
+  });
+  const edit = (i, ch) => {
+    setItems((its) => its.map((x, j) => (j === i ? { ...x, ...ch } : x)));
+    setTouched(true);
+  };
+  const ORDER = ['primary', 'secondary', 'tertiary'];
+  const bad = new Set(finds.flatMap((x) => x.idx));
+  const item = (it, i) => {
+    let el = null;
+    if (it.c === 'Button')
+      el = (
+        <Button variant={it.v} shape={it.s} onClick={() => edit(i, { v: ORDER[(ORDER.indexOf(it.v) + 1) % ORDER.length] })}>
+          {it.t}
+        </Button>
+      );
+    else if (it.c === 'FilterChip')
+      el = (
+        <FilterChip pressed={!!it.on} onClick={() => edit(i, { on: !it.on })}>
+          {it.t}
+        </FilterChip>
+      );
+    else el = <SegmentedControl label={sc.head ?? sc.title} value={it.value} onChange={(v) => edit(i, { value: v })} options={it.options.map((o) => ({ value: o, label: o }))} />;
+    return (
+      <span key={i} className={`dm-it${bad.has(i) ? ' bad' : ''}`} data-i={i}>
+        {el}
+      </span>
+    );
+  };
+  const path = `${c.id}.${sc.from}`;
+  function openPlay() {
+    try {
+      sessionStorage.setItem('chip-play-scene', JSON.stringify({ component: c.name, scene: sc.id, title: sc.title, from: path, items }));
+    } catch {}
+    notify('Opening Playground. It loads site pages; the scene waits in chip-play-scene for it.');
+    window.location.hash = '#/play';
+  }
+  const ok = !finds.length;
+  return (
+    <article className="dm-scene dm-card" id={`sc-${sc.id}`}>
+      <header>
+        <h3 tabIndex={-1}>{sc.title}</h3>
+        <span className={`dm-verdict ${ok ? 'ok' : 'bad'}`}>{ok ? '✓ Follows the contract' : `× Breaks ${finds[0].rule}`}</span>
+      </header>
+      <div className="dm-scenebox dm-sp" data-theme={theme} ref={box}>
+        {sc.head ? <p className="dm-sh">{sc.head}</p> : null}
+        {sc.text ? <p className="dm-sp2">{sc.text}</p> : null}
+        {sc.nav ? (
+          <div className="dm-nav">
+            <span className="dm-wm">ctrl-alt</span>
+            {sc.nav.map((n) => (
+              <span key={n} className="dm-nl">
+                {n}
+              </span>
+            ))}
+            {items.map(item)}
+          </div>
+        ) : (
+          <div className="dm-row">{items.map(item)}</div>
+        )}
+      </div>
+      <footer>
+        {finds.length ? (
+          <div className="dm-find">
+            {finds.map((x) => (
+              <p key={x.rule}>
+                <b>{x.rule}</b> · instead: <code>{x.instead}</code>
+              </p>
+            ))}
+          </div>
+        ) : null}
+        <div className="dm-fx k-chrome">
+          <span className="dm-src">from {path}</span>
+          <button type="button" className="k-link" aria-expanded={why} onClick={() => setWhy(!why)}>
+            Why
+          </button>
+          <span className="dm-grow" />
+          {sc.fix && !fixed ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setItems((its) => sc.fix(its));
+                setFixed(true);
+                setTouched(true);
+              }}
+            >
+              {sc.fixLabel}
+            </Button>
+          ) : null}
+          {fixed && sc.goto && byId(sc.goto) ? (
+            <button type="button" className="k-link" onClick={() => onGoto(sc.goto)}>
+              {byId(sc.goto).name} docs
+            </button>
+          ) : null}
+          {touched ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setItems(fresh());
+                setFixed(false);
+                setTouched(false);
+              }}
+            >
+              Reset
+            </Button>
+          ) : null}
+          <button type="button" className="k-link" onClick={openPlay}>
+            Open in Playground
+          </button>
+        </div>
+        {why ? <blockquote className="dm-wq">“{lineOf(c, sc.from)}”</blockquote> : null}
+      </footer>
+    </article>
+  );
+}
+
+/* ---------- Ask: answers only by quoting the contract ---------- */
+const SUGG = {
+  Button: ['Can a form have two primaries?', 'Can I use it to filter a list?', 'Does it lift on hover?', 'What colour is the focus ring?', 'Can it be round?'],
+  FilterChip: ['Can I use it for grid or list?', 'Is colour enough for pressed?', 'How big is the target?', 'Can it have a shadow?'],
+};
+const suggOf = (c) => SUGG[c.name] ?? (c.dont?.length ? ['What should I not do?', 'Where is it used?'] : ['Where is it used?']);
+const SYN = { two: ['one', 'more'], filter: ['filter', 'toggle', 'sort'], list: ['filter'], round: ['pill', 'rounded'], rounded: ['pill'], shadow: ['raise', 'lift', 'keycap', 'shadow'], lift: ['lift', 'raise'], raise: ['raise', 'lift'], ring: ['focus', 'ring'], focus: ['focus', 'ring'], colour: ['colour', 'color', 'fill', 'ochre'], color: ['colour', 'color'], big: ['44px', 'target', 'min'], target: ['44px', 'target', 'hit'], font: ['figtree', 'unique', 'label', 'type'], view: ['view', 'views'], grid: ['views', 'exclusive'], pressed: ['pressed', 'aria'], enough: ['alone'], disabled: ['disabled'], underline: ['underline', 'tertiary'], nav: ['nav'], not: ['do'], used: ['usage', 'use'] };
+const STOP = new Set('a an the i it is are can do does to of in on for with my be use using what how this that should could would when or and as at by me we you your our its than then so if there their they'.split(' '));
+const stem = (w) => w.replace(/ies$/, 'y').replace(/(ing|ed)$/, '').replace(/s$/, '');
+const words = (s) => s.toLowerCase().replace(/[^a-z0-9#. ]/g, ' ').split(/\s+/).filter((w) => w && !STOP.has(w)).map(stem);
+function corpusOf(c, cfg, parts) {
+  const L = [];
+  (c.dont ?? []).forEach((t, i) => L.push({ t, path: `${c.id}.dont[${i}]`, part: cfg.ruleParts[i], scene: (SCENES[c.name] ?? []).find((s) => s.rule === i), w: 1.3 }));
+  (c.usage ?? []).forEach((t, i) => L.push({ t, path: `${c.id}.usage[${i}]`, w: 1 }));
+  (c.a11y ?? '').split(/(?<=[.)])\s+(?=[A-Z])/).forEach((t) => t && L.push({ t, path: `${c.id}.a11y`, w: 1 }));
+  (c.restNote ?? '').split(/(?<=\.)\s+/).forEach((t) => t && L.push({ t, path: `${c.id}.restState`, w: 0.9 }));
+  parts.filter((p) => !p.synthetic).forEach((p) => L.push({ t: `${p.title}: ${p.detail}`, path: `${c.id}.anatomy.${p.key}`, part: p.key, w: 1 }));
+  for (const l of L) l.ws = new Set(words(l.t));
+  return L;
+}
+function askContract(q, corpus) {
+  const N = corpus.length;
+  const qs = [...new Set(words(q).flatMap((w) => [w, ...(SYN[w] ?? []).map(stem)]))];
+  const df = (w) => corpus.filter((l) => l.ws.has(w)).length;
+  return corpus
+    .map((l) => ({ l, s: qs.reduce((a, w) => a + (l.ws.has(w) ? Math.log(1 + N / df(w)) : 0), 0) * l.w }))
+    .filter((x) => x.s > 1.6)
+    .sort((a, b) => b.s - a.s)
+    .slice(0, 2)
+    .map((x) => x.l);
+}
+
+/* ---------- accessibility, measured on every tier ---------- */
+function A11yFacts({ c, cfg, label }) {
+  const stage = useRef(null);
+  const [rows, setRows] = useState([]);
+  const tiers = cfg.axes.find((a) => a.key === 'variant') ? c.variants ?? [] : [null];
+  useLayoutEffect(() => {
+    const measure = () =>
+      setRows(
+        [...(stage.current?.querySelectorAll('[data-bella-component]') ?? [])]
+          .filter((el) => !el.parentElement.closest('[data-bella-component]'))
+          .map((el) => {
+            const role = el.getAttribute('role') || { BUTTON: 'button', A: 'link', INPUT: 'textbox', SELECT: 'combobox' }[el.tagName] || el.tagName.toLowerCase();
+            // BELLA's label roll renders the label twice; the name is said once
+            const t = el.textContent.trim();
+            const half = t.slice(0, t.length / 2);
+            const name = el.getAttribute('aria-label') || (t.length % 2 === 0 && half + half === t ? half : t);
+            return { role, name, w: el.offsetWidth, h: el.offsetHeight };
+          })
+      );
+    measure();
+    document.fonts?.ready.then(measure);
+  }, [c.id, label]);
+  const target = parseFloat(c.minTarget?.value);
+  const ct = c.health?.contrast ?? {};
+  return (
+    <div className="dm-a11y">
+      <div className="dm-a11ystrip" ref={stage} inert aria-hidden="true">
+        {tiers.map((v) => (
+          <span key={v ?? 'one'}>{cfg.render({ variant: v, shape: 'default', size: 'default', st: 'default', label })}</span>
+        ))}
+      </div>
+      <table className="ttab a-sla">
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <th scope="row">{tiers[i] ? cap1(tiers[i]) : c.name}</th>
+              <td>
+                {r.role} “{r.name}” · {r.w} × {r.h}
+              </td>
+            </tr>
+          ))}
+          <tr>
+            <th scope="row">Screen readers</th>
+            <td>{c.rendersAs ? `Renders as ${c.rendersAs}. ` : ''}The visible label is the name unless ariaLabel says otherwise.</td>
+          </tr>
+          <tr>
+            <th scope="row">Keyboard</th>
+            <td>{keyboardOf(c)}</td>
+          </tr>
+          <tr>
+            <th scope="row">Touch targets</th>
+            <td>{c.minTarget ? `${c.minTarget.value} minimum, from ${c.minTarget.token}: ${target >= 44 ? 'meets' : 'under'} BELLA’s 44 floor (WCAG 2.5.5); 2.5.8 asks 24.` : 'No minimum target in the contract.'}</td>
+          </tr>
+          <tr>
+            <th scope="row">Contrast</th>
+            <td>{ct.status === 'fail' ? `Failing: ${ct.failing.join('; ')}` : ct.status === 'pass' ? `${ct.pairs} of ${ct.pairs} pairs pass.` : 'No contrast pairs declared.'}</td>
+          </tr>
+          {c.a11y ? (
+            <tr>
+              <th scope="row">Verified</th>
+              <td>{c.a11y}</td>
+            </tr>
+          ) : null}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ---------- Behind it: where the words still live, one row each ---------- */
+function Row({ name, sum, hint, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <details onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>
+        <b>{name}</b>
+        <span>{sum}</span>
+        <em>{hint}</em>
+      </summary>
+      {open ? <div className="dm-bd">{children}</div> : null}
+    </details>
+  );
+}
+
+/* ================= the page ================= */
+const firstSentence = (s) => {
+  const t = (s ?? '').replace(/\s+/g, ' ').trim();
+  return t.match(/^.*?[.!?](\s|$)/)?.[0].trim() ?? t;
+};
+
+export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin', vis = { components: {} } }) {
+  const reduced = useReducedMotion();
+  const cfg = useMemo(() => (c ? cfgOf(c) : null), [c?.id]);
+  const parts = useMemo(() => (c ? partsOf(c) : []), [c?.id]);
+  const axisVals = (ax) => ax.values ?? c?.[ax.from] ?? [];
+  const axes = cfg ? cfg.axes.filter((ax) => axisVals(ax).length) : [];
+
+  // what is on stage
+  const [o, setO] = useState({});
+  const [mode, setMode] = useState('inspect');
+  const [z, setZ] = useState(2);
+  const [theme, setTheme] = useState('light');
+  const [all, setAll] = useState(false);
+  const [sel, setSel] = useState(null);
+  const [hov, setHov] = useState(null);
+  const [live, setLive] = useState(null); // the state the pointer or keyboard put it in, in Use
+  const [pressed, setPressed] = useState(false); // FilterChip in Use: really toggles
+  const [why, setWhy] = useState(null);
+  const [read, setRead] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [q, setQ] = useState('');
+  const [answer, setAnswer] = useState(null);
   const [toast, setToast] = useState('');
+
   const [lint, setLint] = useState(null);
   const [reading, setReading] = useState(false);
   const [running, setRunning] = useState(false);
@@ -1558,11 +1503,107 @@ export default function Atlas({ c, bella, theme, onOpen, role = 'admin', vis = {
   }, []);
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(''), 3000);
+    const t = setTimeout(() => setToast(''), 3200);
     return () => clearTimeout(t);
   }, [toast]);
 
-  if (!c || !bella) return <p className="loading">Loading BELLA…</p>;
+  // a new component starts at rest, on its first tier
+  useEffect(() => {
+    if (!c || !cfg) return;
+    setO({ variant: c.variants?.[0] ?? null, shape: c.shapes?.[0] ?? 'default', size: 'default', st: c.states?.[0] ?? 'default', label: cfg.label(c) });
+    setSel(null);
+    setHov(null);
+    setWhy(null);
+    setLive(null);
+    setAll(false);
+    setPlaying(false);
+    setAnswer(null);
+    setQ('');
+    setRead(false);
+  }, [id]);
+
+  const canvas = useRef(null);
+  const wrap = useRef(null);
+  const ckRef = useRef(null);
+  const pinsRef = useRef(null);
+  const filmRef = useRef(null);
+  const plistRef = useRef(null);
+  const suggRef = useRef(null);
+  useRove(ckRef);
+  useRove(pinsRef);
+  useRove(filmRef);
+  useRove(plistRef);
+  useRove(suggRef);
+  const chipEls = useRef({});
+  const [geo, setGeo] = useState(null);
+  const [checks, setChecks] = useState([]);
+  const [widths, setWidths] = useState({});
+  const rootOf = () => wrap.current?.querySelector('[data-bella-component]') ?? null;
+  const st = mode === 'use' ? live ?? (pressed ? 'pressed' : 'default') : o.st;
+
+  const measure = useCallback(() => {
+    const root = rootOf();
+    if (!root || !canvas.current || !c) {
+      setGeo(null);
+      setChecks(c ? noSpecimen(c) : []);
+      return;
+    }
+    setGeo(geoOf(canvas.current, root, parts));
+    setChecks(runChecks({ root, canvas: canvas.current, c, cfg, o, parts, st: st ?? 'default', theme, bella }));
+  }, [c, cfg, o, parts, st, theme, bella]);
+
+  // force the state, measure now and again once BELLA's transitions settle
+  useLayoutEffect(() => {
+    if (!o.label && cfg && !cfg.generic) return;
+    applyState(rootOf(), mode === 'inspect' ? o.st : null, cfg?.generic);
+    measure();
+    const t = setTimeout(measure, reduced ? 0 : 320);
+    return () => clearTimeout(t);
+  }, [measure, mode, z, all, lens, reduced]);
+
+  // and on resize, fonts, and every transition the specimen runs
+  useEffect(() => {
+    if (!canvas.current) return;
+    let raf = 0;
+    const again = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(measure);
+    };
+    const ro = new ResizeObserver(again);
+    ro.observe(canvas.current);
+    const root = rootOf();
+    if (root) ro.observe(root);
+    document.fonts?.ready.then(again);
+    const w = wrap.current;
+    w?.addEventListener('transitionend', again);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+      w?.removeEventListener('transitionend', again);
+    };
+  }, [measure]);
+
+  // a narrow stage gets 1×, so the chips have room beside the specimen
+  useLayoutEffect(() => {
+    if (canvas.current && canvas.current.offsetWidth < 760) setZ(1);
+  }, [id]);
+
+  // chip widths are measured, then the leaders drawn to them
+  useLayoutEffect(() => {
+    const next = {};
+    for (const [k, el] of Object.entries(chipEls.current)) if (el) next[k] = el.offsetWidth;
+    if (Object.keys(next).some((k) => Math.abs((widths[k] ?? 0) - next[k]) > 1)) setWidths(next);
+  });
+
+  // Play states: one state a beat
+  useEffect(() => {
+    if (!playing || !c) return;
+    const sts = c.states?.length ? c.states : ['default'];
+    const t = setInterval(() => setO((x) => ({ ...x, st: sts[(sts.indexOf(x.st) + 1) % sts.length] })), 1100);
+    return () => clearInterval(t);
+  }, [playing, id]);
+
+  if (!c || !bella || !cfg) return <p className="loading">Loading BELLA…</p>;
   const settings = settingsOf(vis, c);
   const crumb = `Components · ${c.category ?? NO_CONTRACT} · ${c.name}`;
   if (!canSee(role, settings.visibleTo))
@@ -1574,15 +1615,362 @@ export default function Atlas({ c, bella, theme, onOpen, role = 'admin', vis = {
       </div>
     );
 
-  const importLine = `import { ${c.name} } from 'bella';`;
-  async function copyImport() {
-    try {
-      await navigator.clipboard.writeText(importLine);
-      setToast('Copied the import');
-    } catch {
-      setToast('Could not copy the import');
-    }
+  const partOf = (k) => parts.find((p) => p.key === k);
+  const rulesOn = (k) => Object.entries(cfg.ruleParts).filter(([, v]) => v === k).map(([i]) => +i);
+  const scenes = SCENES[c.name] ?? [];
+  const states = c.states?.length ? c.states : ['default'];
+  const trigOf = (p) => (p.trigger && p.trigger !== 'rest' ? p.trigger : p.kind === 'ring' ? 'focus' : null);
+  const visible = (p) => {
+    const t = trigOf(p);
+    return !t || st === t;
+  };
+
+  function pick(k) {
+    const next = sel === k ? null : k;
+    setSel(next);
+    if (!next) return;
+    setMode('inspect');
+    setPlaying(false);
+    const p = partOf(next);
+    const need = cfg.needs[next];
+    const t = p && p.trigger && p.trigger !== 'rest' ? p.trigger : null;
+    if (need || t) setO((x) => ({ ...x, ...(need ?? {}), ...(t ? { st: t } : {}) }));
   }
+  const setAxis = (k, v) => (setO((x) => ({ ...x, [k]: v })), setPlaying(false));
+  const setState = (s) => (setO((x) => ({ ...x, st: s })), setPlaying(false));
+  const notify = setToast;
+
+  /* ---- the stage ---- */
+  const pins = all || !geo ? [] : placePins(geo, widths);
+  const on = (k) => sel === k || hov === k;
+  const tokShort = (t) => (t ?? '').replace(`--component-${c.id}-`, '').replace(/^--/, '');
+  const shortVal = (p) => {
+    const v = p.value?.[theme] ?? p.value?.light;
+    return v && (/^#[0-9a-f]{3,8}$/i.test(v) || /^\d+px$/.test(v)) ? v : '';
+  };
+  const chipText = (p) => {
+    if (lens === 'technical') return <span className="tok">{p.token ? tokShort(p.token) : p.synthetic ? 'no token' : p.key}</span>;
+    if (lens === 'scope') {
+      const n = rulesOn(p.key).length;
+      return (
+        <span>
+          {p.title} <em>· {n ? plural(n, 'rule') : 'no rule'}</em>
+        </span>
+      );
+    }
+    const v = shortVal(p);
+    return (
+      <span>
+        {p.title}
+        {v ? <em> · {v}</em> : null}
+      </span>
+    );
+  };
+  const focusPart = (el) => setHov(el?.dataset.part ?? null);
+
+  const redlines = () => {
+    const k = sel ?? hov;
+    const p = k && geo?.parts.find((x) => x.key === k);
+    if (!p) return null;
+    const b = geo.box;
+    const root = rootOf();
+    if (p.kind === 'box')
+      return (
+        <>
+          <Dim x1={b.x - 14} y1={b.y} x2={b.x - 14} y2={b.y + b.h} text={Math.round(b.h / geo.k)} vertical />
+          <Dim x1={b.x} y1={b.y - 14} x2={b.x + b.w} y2={b.y - 14} text={Math.round(b.w / geo.k)} />
+        </>
+      );
+    if (p.kind === 'content' && p.target !== ':scope' && root) {
+      const bw = num(getComputedStyle(root).borderLeftWidth) ?? 0;
+      const ly = b.y + b.h + 18;
+      const l = p.own;
+      return (
+        <>
+          <Dim x1={b.x} y1={ly} x2={l.x} y2={ly} text={Math.round((l.x - b.x) / geo.k - bw)} />
+          <Dim x1={l.x + l.w} y1={ly} x2={b.x + b.w} y2={ly} text={Math.round((b.x + b.w - l.x - l.w) / geo.k - bw)} />
+        </>
+      );
+    }
+    return null;
+  };
+
+  const liveProps = cfg.generic ? null : { pressed, toggle: () => (setPressed((v) => !v), setLive(null)) };
+  const stage = cfg.render(o.label || cfg.generic ? o : { ...o, label: cfg.label(c) }, mode === 'use' ? liveProps : null);
+  const useEvents =
+    mode === 'use'
+      ? {
+          onPointerEnter: () => setLive('hover'),
+          onPointerLeave: () => setLive(null),
+          onPointerDown: () => setLive(states.includes('active') ? 'active' : null),
+          onPointerUp: () => setLive('hover'),
+          onFocus: (e) => e.target.matches(':focus-visible') && setLive('focus'),
+          onBlur: () => setLive(null),
+        }
+      : {};
+
+  /* ---- inspector ---- */
+  const measured = (p) => {
+    const root = rootOf();
+    if (!root) return '';
+    const cs = getComputedStyle(root);
+    if (p.kind === 'box') return `${root.offsetHeight} × ${root.offsetWidth}px, padding ${num(cs.paddingTop)} / ${num(cs.paddingLeft)}, radius ${cs.borderTopLeftRadius}${cs.minHeight !== 'auto' && cs.minHeight !== '0px' ? `, min ${cs.minHeight}` : ''}`;
+    if (p.kind === 'content') {
+      const ls = getComputedStyle((p.target !== ':scope' && root.querySelector(p.target)) || root);
+      return `${famOf(ls)} ${ls.fontSize}, ${ls.fontWeight}`;
+    }
+    if (p.kind === 'ring') {
+      const ring = ringOf(root);
+      return ring ? `${ring.width}px ${hexOf(ring.color)}, offset ${ring.offset}px${ring.pseudo ? ` on ${ring.pseudo}` : ''}` : 'not shown in this state';
+    }
+    if (p.kind === 'fill' || p.kind === 'state') return plateOf(cs) ? hexOf(plateOf(cs)) : 'transparent';
+    if (p.kind === 'edge') return `${cs.borderTopWidth} ${hexOf(cs.borderTopColor)}`;
+    if (p.kind === 'shadow') return cs.boxShadow === 'none' ? 'none in this state' : cs.boxShadow.split(/,(?![^(]*\))/)[0];
+    return '';
+  };
+  const jsx = cfg.jsx({ ...o, label: o.label ?? '' });
+  const importLine = `import { ${c.name} } from 'bella';`;
+  const delta = st && st !== 'default' && st !== 'rest' ? stateTokens(c, o.variant, st) : [];
+  const props = (spec?.props ?? []).filter((p) => !['children', 'className'].includes(p.name));
+  const rule = o.variant ? agentRuleFor(doc, c, o.variant) : null;
+  const tierLine = o.variant ? bulletsOf(sectionsOf(doc?.guidance?.md)['Choosing a tier']).find((t) => t.toLowerCase().includes(o.variant)) : null;
+  const link = (n) => {
+    const x = bella.components.find((y) => y.name === n || y.id === n);
+    return x ? (
+      <a key={n} href={`#/atlas/${x.id}`} onClick={(e) => (e.preventDefault(), onOpen?.(x.id))}>
+        {x.name}
+      </a>
+    ) : (
+      n
+    );
+  };
+  const join = (xs) => xs.map((x, i) => <React.Fragment key={i}>{i ? ', ' : ''}{x}</React.Fragment>);
+
+  function Detail() {
+    // a pin from the last component lasts one render: treat it as none
+    if (!sel || !partOf(sel)) {
+      if (lens === 'technical')
+        return (
+          <>
+            <h3>
+              On stage <span className="cap">the code for exactly this</span>
+            </h3>
+            <CodeBlock title="JSX" lines={[importLine, '', ...jsx, ...(st && st !== 'default' && mode === 'inspect' ? [`{/* shown: :${st === 'focus' ? 'focus-visible' : st} */}`] : [])]} notify={notify} />
+            <dl className="dm-kv">
+              <dt>Renders</dt>
+              <dd>{c.rendersAs ?? 'not in the contract'}</dd>
+              <dt>Tokens</dt>
+              <dd>{c.tokens?.count ?? 0}</dd>
+              {delta.length ? (
+                <>
+                  <dt>{STATE_LABEL(st)} reads</dt>
+                  <dd>
+                    {delta.map((t) => (
+                      <code key={t}>{t} </code>
+                    ))}
+                  </dd>
+                </>
+              ) : null}
+            </dl>
+            {props.length ? (
+              <div className="a-tscroll">
+                <table className="ttab props">
+                  <caption className="dm-cap">Props, from BELLA’s docgen</caption>
+                  <tbody>
+                    {props.map((p) => (
+                      <tr key={p.name}>
+                        <th scope="row">{p.name}</th>
+                        <td>
+                          {valuesOf(p)}
+                          {p.description ? <small>{p.description.replace(/`/g, '').replace(/[;:]$/, '')}</small> : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="cap">Props: {(c.props ?? []).join(', ') || 'none listed'}</p>
+            )}
+          </>
+        );
+      if (lens === 'scope')
+        return (
+          <>
+            <h3>
+              Where it goes <span className="cap">from the contract</span>
+            </h3>
+            {(c.usage ?? []).length ? (
+              <div className="dm-rules">
+                {c.usage.map((u, i) => (
+                  <p key={i} className="dm-rule use">
+                    <span>{u}</span>
+                    <code>
+                      {c.id}.usage[{i}]
+                    </code>
+                  </p>
+                ))}
+              </div>
+            ) : null}
+            {(c.dont ?? []).length ? (
+              <div className="dm-rules">
+                {c.dont.map((u, i) => (
+                  <p key={i} className="dm-rule">
+                    <span>{u}</span>
+                    <code>
+                      {c.id}.dont[{i}]
+                    </code>
+                  </p>
+                ))}
+              </div>
+            ) : null}
+            <dl className="dm-kv">
+              <dt>Used in</dt>
+              <dd>{c.composesInto?.length ? join(c.composesInto.map(link)) : 'no BELLA component yet'}</dd>
+              <dt>Built from</dt>
+              <dd>{c.composedFrom?.length ? join(c.composedFrom.map(link)) : 'no other BELLA component'}</dd>
+              {doc?.related?.length ? (
+                <>
+                  <dt>Related</dt>
+                  <dd>{join(doc.related.map((r) => link(r.id)))}</dd>
+                </>
+              ) : null}
+            </dl>
+          </>
+        );
+      const root = rootOf();
+      return (
+        <>
+          <h3>
+            Nothing pinned <span className="cap">hover the stage, or pick a part</span>
+          </h3>
+          <dl className="dm-kv">
+            <dt>Showing</dt>
+            <dd>{[o.variant, c.shapes?.length ? o.shape : null, axes.some((a) => a.key === 'size') ? o.size : null, st].filter(Boolean).map(cap1).join(' · ')}</dd>
+            <dt>Theme</dt>
+            <dd>{cap1(theme)}</dd>
+            <dt>Size now</dt>
+            <dd>{root ? `${root.offsetHeight} × ${root.offsetWidth}px` : 'no specimen'}</dd>
+          </dl>
+          {rule || tierLine ? <p className="dm-tier">{tierLine ?? `${rule}.`}</p> : null}
+        </>
+      );
+    }
+    const p = partOf(sel);
+    const vals = p.value ?? {};
+    const rules = rulesOn(p.key);
+    const colour = /^#[0-9a-f]{3,8}$/i.test(vals.light ?? '');
+    return (
+      <>
+        <h3>
+          <b className="dm-n">{p.n}</b>
+          {p.title} <span className="cap">{p.kind}</span>
+        </h3>
+        {lens === 'visual' ? (
+          <>
+            {colour ? (
+              <div className="dm-swrow">
+                {['light', 'dark'].map((t) => (
+                  <div key={t} className="dm-swt">
+                    <i style={{ background: vals[t] }} />
+                    <span>{cap1(t)}</span>
+                    <code>{vals[t]}</code>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <p>{p.detail}</p>
+            <dl className="dm-kv">
+              <dt>Measured now</dt>
+              <dd>{measured(p)}</dd>
+              {trigOf(p) ? (
+                <>
+                  <dt>Shows</dt>
+                  <dd>on {trigOf(p)}</dd>
+                </>
+              ) : null}
+            </dl>
+          </>
+        ) : lens === 'technical' ? (
+          <>
+            <dl className="dm-kv">
+              <dt>Token</dt>
+              <dd>
+                <code>{p.token ? <Token name={p.token} /> : 'none in the contract'}</code>
+              </dd>
+              {Object.entries(vals).map(([t, v]) => (
+                <React.Fragment key={t}>
+                  <dt>{t}</dt>
+                  <dd>
+                    <code>{v}</code>
+                  </dd>
+                </React.Fragment>
+              ))}
+              <dt>Selector</dt>
+              <dd>
+                <code>{p.target}</code>
+              </dd>
+              <dt>Computed</dt>
+              <dd>
+                <code>{measured(p)}</code>
+              </dd>
+            </dl>
+            <CodeBlock title="JSX" lines={[importLine, '', ...jsx]} notify={notify} />
+          </>
+        ) : (
+          <>
+            {rules.length ? (
+              <div className="dm-rules">
+                {rules.map((i) => (
+                  <p key={i} className="dm-rule">
+                    <span>{c.dont[i]}</span>
+                    <code>
+                      {c.id}.dont[{i}]
+                    </code>
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <p className="cap">No rule names this part. That may be a gap in the contract.</p>
+            )}
+            {rules.some((i) => scenes.some((s) => s.rule === i)) ? (
+              <button type="button" className="k-link" onClick={() => toScene(scenes.find((s) => rules.includes(s.rule)).id)}>
+                Show the scene that tests it
+              </button>
+            ) : null}
+          </>
+        )}
+      </>
+    );
+  }
+  function toScene(sid) {
+    const el = document.getElementById(`sc-${sid}`);
+    el?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+    el?.querySelector('h3')?.focus({ preventScroll: true });
+  }
+  function toStage(k) {
+    setSel(null);
+    pick(k);
+    canvas.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+  }
+  const corpus = corpusOf(c, cfg, parts);
+  function ask(text) {
+    const t = text.trim();
+    if (!t) return;
+    setQ(t);
+    setAnswer(askContract(t, corpus));
+  }
+
+  /* ---- checks ---- */
+  const whyCheck = checks.find((k) => k.id === why);
+  const ckClass = (k) => (k.grey ? 'grey' : k.needs ? 'needs' : k.ok ? 'pass' : 'fail');
+  const ckMark = (k) => (k.grey ? '–' : k.needs ? '!' : k.ok ? '✓' : '×');
+
+  /* ---- behind it ---- */
+  const hl = c.health ?? {};
+  const tl = tests?.tests ?? [];
+  const tFail = tl.filter((x) => x.status === 'fail').length;
+  const tSum = tl.length ? `${tl.length - tFail - tl.filter((x) => x.status === 'not-run').length} of ${tl.length} pass${tFail ? ` · ${tFail} fail` : ''}` : tests ? 'none' : 'reading…';
   function runTest(action) {
     if (action.type === 'review') return import('./ReviewSheet.jsx').then((m) => m.openReview(action.check));
     setRunning(true);
@@ -1591,78 +1979,379 @@ export default function Atlas({ c, bella, theme, onOpen, role = 'admin', vis = {
       .catch(() => setToast('The CHIP server did not answer'));
   }
 
-  const t = tests?.tests ?? [];
-  const fails = t.filter((x) => x.status === 'fail').length;
-  const notRun = t.filter((x) => x.status === 'not-run').length;
-  const testBadge = t.length
-    ? fails
-      ? { tone: 'fail', text: `${fails} of ${t.length} tests fail${fails === 1 ? 's' : ''}` }
-      : notRun
-        ? { tone: 'needs', text: `${notRun} of ${t.length} tests not run` }
-        : { tone: 'pass', text: `${t.length} of ${t.length} tests pass` }
-    : null;
-  const figmaBadge = !lint ? null : lint.read ? { tone: 'pass', text: 'Figma: read' } : { tone: 'needs', text: 'Figma: not answering' };
-
-  const panel = {
-    usage: () => <UsagePanel c={c} doc={doc} notify={setToast} onOpen={onOpen} />,
-    anatomy: () => <AnatomyPanel c={c} reduced={reduced} />,
-    variants: () => <VariantsPanel c={c} doc={doc} />,
-    states: () => <StatesPanel c={c} />,
-    spec: () => <SpecPanel c={c} spec={spec} />,
-    a11y: () => <A11yPanel c={c} />,
-    contract: () => <ContractPanel c={c} bella={bella} doc={doc} tests={tests} hist={hist} notify={setToast} onOpen={onOpen} />,
-    source: () => <SourcePanel c={c} doc={doc} notify={setToast} />,
-    history: () => <HistoryPanel c={c} hist={hist} />,
-    tests: () => <TestsPanel c={c} tests={tests} onRun={runTest} running={running} />,
-    figma: () => <FigmaPanel c={c} lint={lint} reading={reading} onRead={() => readLint(true)} />,
-  };
-  const current = TABS.some((x) => x.id === tab) ? tab : 'usage';
+  const hint = mode === 'inspect' ? 'Hover a part, click to pin it. Arrows move, Esc unpins.' : 'The real thing: hover, press, tab to it.';
+  const sp = { 'data-theme': theme };
 
   return (
-    <div className="atlas">
-      <div className="ahead k-chrome">
+    <div className="atlas dm" data-lens={lens} onKeyDown={(e) => e.key === 'Escape' && (sel || why) && (setSel(null), setWhy(null))}>
+      <section className="dm-head k-chrome" aria-labelledby="dm-h1">
         <div>
-          <p className="k-meta">{crumb}</p>
-          <div className="k-tline">
-            <h1 className="k-h1" tabIndex={-1}>
-              {c.name}
-            </h1>
-            {testBadge ? (
-              <button type="button" className="a-badgebtn" onClick={() => setTab('tests')} aria-label={`${testBadge.text}: open Tests`}>
-                <StatusPill tone={testBadge.tone} badge>
-                  {testBadge.text}
-                </StatusPill>
+          <p className="k-meta">
+            {crumb} · renders as <b>{c.rendersAs ?? 'unknown'}</b> · BELLA {bella.source?.version} @ <code>{bella.source?.commit}</code>
+          </p>
+          <h1 className="k-h1" id="dm-h1" tabIndex={-1}>
+            {c.name}
+          </h1>
+          <p className="dm-lede">{firstSentence(c.description) || 'No description in the contract yet.'}</p>
+          <button type="button" className="k-link" aria-expanded={read} aria-controls="dm-read" onClick={() => setRead(!read)}>
+            {read ? 'Hide the description' : 'Read the full description'}
+          </button>
+          {read ? (
+            <div className="dm-read" id="dm-read">
+              {(c.description ?? '').replace(/\s+/g, ' ').trim().slice(firstSentence(c.description).length).trim() ? <p>{(c.description ?? '').replace(/\s+/g, ' ').trim().slice(firstSentence(c.description).length).trim()}</p> : null}
+              {c.restNote ? <p>{c.restNote}</p> : null}
+              {c.a11y ? <p>{c.a11y}</p> : null}
+              <p className="cap">
+                Quoted from the contract, <code>component.{c.id}</code>. Nothing here is written twice.
+              </p>
+            </div>
+          ) : null}
+        </div>
+        <div className="dm-nums">
+          {[
+            [c.tokens?.count ?? 0, 'tokens'],
+            [(c.props ?? []).length, 'props'],
+            [states.length, 'states'],
+            [(c.dont ?? []).length, 'rules'],
+          ].map(([n, l]) => (
+            <div key={l} className="dm-num">
+              <b>{n}</b>
+              <span>{l}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section aria-label="Checks" className="k-chrome">
+        <div className="dm-checks" role="toolbar" aria-label="Live checks on the specimen" ref={ckRef} onKeyDown={(e) => roveKeys(e)}>
+          <span className="dm-lbl">Live on the specimen</span>
+          {checks.map((k) => (
+            <button
+              key={k.id}
+              type="button"
+              data-rv=""
+              className={`dm-ck ${ckClass(k)}`}
+              aria-expanded={why === k.id}
+              aria-controls="dm-why"
+              onClick={() => {
+                const next = why === k.id ? null : k.id;
+                setWhy(next);
+                if (next && k.part && sel !== k.part) pick(k.part);
+              }}
+            >
+              <i aria-hidden="true">{ckMark(k)}</i>
+              {k.label} <small>{k.val}</small>
+            </button>
+          ))}
+        </div>
+        <div className="dm-why" id="dm-why" aria-live="polite" hidden={!whyCheck}>
+          {whyCheck ? (
+            <>
+              <b>{whyCheck.rule}</b>
+              <span>{whyCheck.got}</span>
+              <code>{whyCheck.src}</code>
+            </>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="dm-work dm-card" aria-label="Specimen">
+        <div className="dm-stage">
+          <div className="dm-sbar k-chrome">
+            <RadioSeg label="Pointer" items={[{ id: 'inspect', label: 'Inspect' }, { id: 'use', label: 'Use' }]} value={mode} onChange={(v) => (setMode(v), setLive(null), v === 'use' && (setSel(null), setHov(null), setPlaying(false)))} />
+            <span className="dm-hint">{hint}</span>
+            <RadioSeg label="Zoom" items={[{ id: '1', label: '1×' }, { id: '2', label: '2×' }]} value={String(z)} onChange={(v) => setZ(+v)} />
+            <RadioSeg label="Specimen theme" items={[{ id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }]} value={theme} onChange={setTheme} />
+            <button type="button" className="k-toggle dm-tog" aria-pressed={all} onClick={() => setAll(!all)}>
+              All at once
+            </button>
+          </div>
+          <div className="dm-canvas dm-sp" {...sp} ref={canvas} data-mode={mode}>
+            <div className="dm-specwrap" ref={wrap} style={{ '--z': z }} inert={mode === 'inspect' || all} aria-hidden={mode === 'inspect' || all ? true : undefined} {...useEvents} key={mode === 'inspect' && cfg.generic ? `${o.st}-${o.variant}` : 'live'}>
+              {stage ?? <p className="dm-none">No specimen in CHIP for {c.name} yet.</p>}
+            </div>
+            {geo && !all ? (
+              <>
+                <svg className="dm-ov" aria-hidden="true" width={geo.w} height={geo.h}>
+                  {pins.map(({ p, ex, ey, ax, ay }) => {
+                    const latent = !visible(p);
+                    return (
+                      <g key={p.key} className={on(p.key) ? 'on' : undefined} data-latent={latent || undefined}>
+                        <line x1={ex} y1={ey} x2={ax} y2={ay} />
+                        <circle cx={ax} cy={ay} r={on(p.key) ? 5 : 4} />
+                        {on(p.key) ? <rect className="dm-zone" x={p.zone.x} y={p.zone.y} width={Math.max(1, p.zone.w)} height={Math.max(1, p.zone.h)} rx={3} /> : null}
+                      </g>
+                    );
+                  })}
+                  {redlines()}
+                </svg>
+                {mode === 'inspect' ? (
+                  <div className="dm-hits" aria-hidden="true">
+                    {[...geo.parts]
+                      .sort((a, b) => b.zone.w * b.zone.h - a.zone.w * a.zone.h)
+                      .map((p) => (
+                        <div key={p.key} title={p.title} onPointerEnter={() => setHov(p.key)} onPointerLeave={() => setHov(null)} onClick={() => pick(p.key)} style={{ left: p.zone.x, top: p.zone.y, width: Math.max(8, p.zone.w), height: Math.max(8, p.zone.h) }} />
+                      ))}
+                  </div>
+                ) : null}
+                <div className="dm-pins" role="toolbar" aria-label={`${c.name} parts`} ref={pinsRef} onKeyDown={(e) => focusPart(roveKeys(e))}>
+                  {[...pins]
+                    .sort((a, b) => a.p.n - b.p.n)
+                    .map(({ p, x, y }) => {
+                      const latent = !visible(p);
+                      return (
+                        <button
+                          key={p.key}
+                          type="button"
+                          data-rv=""
+                          data-part={p.key}
+                          ref={(el) => (chipEls.current[p.key] = el)}
+                          className={`dm-anno${on(p.key) ? ' on' : ''}${latent ? ' idle' : ''}${lens === 'technical' ? ' tok' : ''}`}
+                          style={{ left: x, top: y }}
+                          aria-pressed={sel === p.key}
+                          aria-label={`${p.n} ${p.title}${latent ? `, shows on ${trigOf(p)}` : ''}`}
+                          onClick={() => pick(p.key)}
+                          onPointerEnter={() => setHov(p.key)}
+                          onPointerLeave={() => setHov(null)}
+                          onFocus={() => setHov(p.key)}
+                          onBlur={() => setHov(null)}
+                        >
+                          <b>{p.n}</b>
+                          {chipText(p)}
+                        </button>
+                      );
+                    })}
+                </div>
+              </>
+            ) : null}
+            {all ? (
+              <div className="dm-mx">
+                <table>
+                  <thead>
+                    <tr>
+                      <th />
+                      {states.map((s) => (
+                        <th key={s} scope="col">
+                          {STATE_LABEL(s)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(axes[0] ? axisVals(axes[0]) : [null]).map((r) => (
+                      <tr key={r ?? 'one'}>
+                        <th scope="row">{r ? cap1(r) : c.name}</th>
+                        {states.map((s) => {
+                          const cur = (!axes[0] || o[axes[0].key] === r) && o.st === s;
+                          return (
+                            <td key={s} className={cur ? 'cur' : undefined}>
+                              <Forced key={`${r}-${s}-${o.label}`} state={s}>
+                                {cfg.render({ ...o, ...(axes[0] ? { [axes[0].key]: r } : {}), st: s })}
+                              </Forced>
+                              <button type="button" className="dm-cell" aria-label={`${r ? cap1(r) + ', ' : ''}${STATE_LABEL(s)}`} onClick={() => (setO((x) => ({ ...x, ...(axes[0] ? { [axes[0].key]: r } : {}), st: s })), setAll(false))} />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+          </div>
+          <div className="dm-film" role="radiogroup" aria-label="State" ref={filmRef} onKeyDown={(e) => {
+            const b = roveKeys(e);
+            if (b) setState(b.dataset.st);
+          }}>
+            {states.map((s) => (
+              // a div, not a button: the thumbnail is a real BELLA button inside it
+              <div
+                key={s}
+                role="radio"
+                data-rv=""
+                data-st={s}
+                aria-checked={o.st === s && mode === 'inspect'}
+                className={`dm-frame dm-sp${mode === 'use' && st === s ? ' live' : ''}`}
+                onClick={() => (setState(s), setMode('inspect'))}
+                onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && (e.preventDefault(), setState(s), setMode('inspect'))}
+                {...sp}
+              >
+                <span className="dm-thumb">
+                  <Forced key={`${s}-${o.variant}-${o.shape}-${o.size}-${o.label}`} state={s}>
+                    {cfg.render({ ...o, st: s })}
+                  </Forced>
+                </span>
+                <span className="dm-fl">{STATE_LABEL(s)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="dm-ctl k-chrome">
+            {axes.map((ax) => (
+              <React.Fragment key={ax.key}>
+                <span className="dm-lwl">{ax.label}</span>
+                <RadioSeg label={ax.label} items={axisVals(ax).map((v) => ({ id: v, label: cap1(v) }))} value={o[ax.key]} onChange={(v) => setAxis(ax.key, v)} />
+              </React.Fragment>
+            ))}
+            {!cfg.generic ? (
+              <>
+                <label htmlFor="dm-label" className="dm-lwl">
+                  Label
+                </label>
+                <input id="dm-label" type="text" className="dm-input" value={o.label ?? ''} onChange={(e) => setO((x) => ({ ...x, label: e.target.value || cfg.label(c) }))} />
+              </>
+            ) : null}
+            {states.length > 1 ? (
+              <button type="button" className="k-toggle dm-tog" aria-pressed={playing} onClick={() => (setPlaying(!playing), setMode('inspect'))}>
+                {playing ? 'Stop' : 'Play states'}
               </button>
             ) : null}
-            {figmaBadge ? (
-              <StatusPill tone={figmaBadge.tone} badge>
-                {figmaBadge.text}
-              </StatusPill>
-            ) : null}
           </div>
-          {c.description ? <p className="def">{c.description.replace(/\s*\n\s*/g, ' ')}</p> : null}
         </div>
-        <div className="hacts2">
-          <Button variant="secondary" disabled={!lint?.read} onClick={() => setTab('figma')}>
-            Compare with Figma
-          </Button>
-          <Button variant="secondary" onClick={copyImport} ariaLabel={`Copy import: ${importLine}`}>
-            <CopyIcon />
-            Copy import
-          </Button>
-        </div>
-      </div>
 
-      <div className="doc">
-        <div className="doctabs k-chrome">
-          <Segmented id="doc" label={`${c.name} documentation`} items={TABS} value={current} onChange={setTab} />
+        <aside className="dm-insp" aria-label="Inspector">
+          <section>
+            <h3>
+              Parts <span className="cap">{c.parts?.length ? 'from the contract' : 'measured, none in the contract'}</span>
+            </h3>
+            <ul className="dm-plist" ref={plistRef} onKeyDown={(e) => focusPart(roveKeys(e))} onPointerLeave={() => setHov(null)}>
+              {parts.map((p) => (
+                <li key={p.key}>
+                  <button type="button" data-rv="" data-part={p.key} className={hov === p.key ? 'hov' : undefined} aria-pressed={sel === p.key} onClick={() => pick(p.key)} onPointerEnter={() => setHov(p.key)} onFocus={() => setHov(p.key)} onBlur={() => setHov(null)}>
+                    <b>{p.n}</b>
+                    {p.title}
+                    <span className="dm-tg">{trigOf(p) ? `on ${trigOf(p)}` : p.kind}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="dm-detail" aria-live="polite">
+            {Detail()}
+          </section>
+          <section className="dm-ask">
+            <h3 id="dm-askh">Ask {c.name}</h3>
+            <form
+              role="search"
+              aria-labelledby="dm-askh"
+              className="k-chrome"
+              onSubmit={(e) => {
+                e.preventDefault();
+                ask(q);
+              }}
+            >
+              <input aria-labelledby="dm-askh" autoComplete="off" value={q} placeholder={suggOf(c)[0]} onChange={(e) => setQ(e.target.value)} />
+              <Button variant="primary" type="submit">
+                Ask
+              </Button>
+            </form>
+            <div className="dm-sugg" role="group" aria-label="Suggested questions" ref={suggRef} onKeyDown={(e) => roveKeys(e)}>
+              {suggOf(c).map((s) => (
+                <button key={s} type="button" data-rv="" onClick={() => ask(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            <div className="dm-ans" aria-live="polite">
+              {answer == null ? (
+                <p className="cap">Answers quote contract lines, with their index. Nothing else.</p>
+              ) : answer.length ? (
+                <>
+                  <p>From the contract:</p>
+                  {answer.map((l) => (
+                    <React.Fragment key={l.path + l.t}>
+                      <blockquote>
+                        {l.t}
+                        <code>{l.path}</code>
+                      </blockquote>
+                      {l.part || l.scene ? (
+                        <p className="dm-arow">
+                          {l.part ? (
+                            <button type="button" className="k-link" onClick={() => toStage(l.part)}>
+                              Show on the stage
+                            </button>
+                          ) : null}
+                          {l.scene ? (
+                            <button type="button" className="k-link" onClick={() => toScene(l.scene.id)}>
+                              Show the scene
+                            </button>
+                          ) : null}
+                        </p>
+                      ) : null}
+                    </React.Fragment>
+                  ))}
+                </>
+              ) : (
+                <p>
+                  <b>The contract doesn’t say.</b> That’s a gap to add to <code>component.{c.id}</code>, not something to guess.
+                </p>
+              )}
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section aria-labelledby="dm-sch" className="dm-sec">
+        <div className="dm-sechead">
+          <h2 id="dm-sch">Rules, run on real compositions</h2>
+          <p>{scenes.length ? 'Click a component in a scene to change it. The check runs again.' : `No scene runs ${c.name}’s rules yet. They are listed under Scope.`}</p>
         </div>
-        {TABS.map((x) => (
-          <div key={x.id} {...segPanelProps('doc', x.id, current)} className="a-tabpanel">
-            {x.id === current ? panel[x.id]() : null}
+        {scenes.length ? (
+          <div className="dm-scenes">
+            {scenes.map((sc) => (
+              <Scene key={`${c.id}-${sc.id}`} sc={sc} c={c} bella={bella} theme={theme} label={cfg.label(c)} onGoto={(x) => onOpen?.(x)} notify={notify} />
+            ))}
           </div>
-        ))}
-      </div>
+        ) : null}
+        {scenes.length && (c.dont ?? []).some((_, i) => !scenes.some((s) => s.rule === i)) ? (
+          <p className="cap">
+            Not staged yet:{' '}
+            {(c.dont ?? [])
+              .map((_, i) => i)
+              .filter((i) => !scenes.some((s) => s.rule === i))
+              .map((i) => `${c.id}.dont[${i}]`)
+              .join(', ')}
+            .
+          </p>
+        ) : null}
+      </section>
+
+      <section aria-labelledby="dm-bhh" className="dm-sec">
+        <div className="dm-sechead">
+          <h2 id="dm-bhh">Behind it</h2>
+          <p>Where the words still live. Today’s panels, unchanged, one row each.</p>
+        </div>
+        <div className="dm-behind dm-card">
+          <Row name="Contract" sum={`tokens/component.json → component.${c.id} · ${(c.usage ?? []).length} usage, ${(c.dont ?? []).length} rules, ${(c.parts ?? []).length} parts · ${c.hasContract ? (hl.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code') : NO_CONTRACT}`} hint="overview, compliance, file">
+            <ContractPanel c={c} bella={bella} doc={doc} tests={tests} hist={hist} notify={notify} onOpen={onOpen} />
+          </Row>
+          <Row name="Accessibility" sum={`${c.minTarget ? `${c.minTarget.value} target` : 'no target'} · ${hl.contrast?.status === 'pass' ? `${hl.contrast.pairs} contrast pairs pass` : hl.contrast?.status === 'fail' ? 'contrast fails' : 'no pairs'} · ${keyboardOf(c).split('.')[0]}`} hint="role, name, keyboard">
+            <A11yFacts c={c} cfg={cfg} label={cfg.label(c)} />
+          </Row>
+          <Row name="Source" sum={`src/components/${c.name}/${c.name}.tsx · ${c.name}.module.css`} hint="read only">
+            <SourcePanel c={c} doc={doc} notify={notify} />
+          </Row>
+          <Row name="Tests" sum={tSum} hint="what the gate runs">
+            <TestsPanel c={c} tests={tests} onRun={runTest} running={running} />
+          </Row>
+          <Row name="History" sum={hist?.entries?.length ? `${plural(hist.entries.length, 'change')} · latest ${fmtDate(hist.entries[0].date)}: ${hist.entries[0].explanation || hist.entries[0].subject}` : hist ? 'no commits' : 'reading…'} hint="git log of its files">
+            <HistoryPanel c={c} hist={hist} />
+          </Row>
+          <Row name="Story" sum={c.storyUrl ?? 'no story'} hint="Storybook">
+            {c.storyUrl ? (
+              <p>
+                <a href={c.storyUrl} target="_blank" rel="noopener noreferrer">
+                  {c.storyUrl}
+                </a>
+              </p>
+            ) : (
+              <p className="cap">No story yet.</p>
+            )}
+          </Row>
+          <Row name="Figma" sum={!lint ? 'reading…' : lint.read ? (lint.found ? `${c.name} is in Figma` : `no ${c.name} in Figma`) : 'the Figma MCP is not answering'} hint="through the Figma MCP">
+            <FigmaPanel c={c} lint={lint} reading={reading} onRead={() => readLint(true)} />
+          </Row>
+        </div>
+      </section>
 
       <p className="toast" role="status" aria-live="polite" data-show={toast ? '' : undefined}>
         {toast}

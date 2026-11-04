@@ -71,7 +71,7 @@ function stepOf(tool) {
 }
 
 /** POST /runs { brief, title? } -> the run. One at a time: the gate needs port 6006. */
-export async function startRun({ brief, title }) {
+export async function startRun({ brief, title, from }) {
   if (typeof brief !== 'string' || brief.trim().length < 10) throw new Error('No brief to run');
   const busy = [...runs.values()].find((r) => ['starting', 'running', 'gate'].includes(r.status));
   if (busy) throw new Error(`Another run is still going: “${busy.title}”. It has to finish first (the gate needs port 6006).`);
@@ -79,7 +79,7 @@ export async function startRun({ brief, title }) {
   const id = `${at.toISOString().slice(0, 10).replace(/-/g, '')}-${at.getTime().toString(36).slice(-5)}`;
   const name = title || brief.split('\n')[0].slice(0, 90);
   const branch = `chip/fix-run-${slug(name)}-${id.slice(-5)}`;
-  const run = { id, title: name, brief, branch, base: BASE, status: 'starting', step: 'Checking Claude Code is signed in', steps: [], startedAt: at.toISOString(), summary: null, diff: null, files: [], gate: null, error: null, cost: null };
+  const run = { id, title: name, from: from || 'a page', brief, branch, base: BASE, status: 'starting', step: 'Checking Claude Code is signed in', steps: [], startedAt: at.toISOString(), summary: null, diff: null, files: [], gate: null, error: null, cost: null };
   runs.set(id, run);
   mkdirSync(RUNS_DIR, { recursive: true });
   run.briefFile = join(RUNS_DIR, `${id}.md`);

@@ -58,9 +58,6 @@
 @media (prefers-reduced-motion: reduce) { .cn-tog svg { transition: none; } }
 
 /* the sheets: a status line, the parts of a group, the steps to try */
-.cn-sline { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-12); align-items: center; }
-.cn-parts { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-8); }
-.cn-parts li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-8); }
 .cn-reach { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-8); }
 .cn-reach code { overflow-wrap: anywhere; }
 .cn-steps { margin: 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: var(--s-12); }

@@ -1,14 +1,15 @@
-// The review card (phase 6 G): one sheet for a failing check. Top to bottom:
-// state, why it fails, the exact change (before and after, with the pairs it
-// moves), what it won't touch, how far it reaches, then "This will · Undo"
-// and the two buttons. Accept runs on the server (a local BELLA branch,
-// committed through BELLA's gate); Undo deletes that branch. Opened from
-// anywhere with openReview(check): Overview, Needs you, a component's tests,
-// the system map.
+// The review card (phase 6 G): one sheet for a failing check, in the kit
+// sheet's order. What this is; the state, with what the check found and what
+// the gate said last time; why it matters; what to do (the exact change,
+// before and after with the pairs it moves, what it won't touch, how far it
+// reaches); then Accept and Not now, each with what it changes and its undo.
+// Accept runs on the server (a local BELLA branch, committed through BELLA's
+// gate); Undo deletes that branch. Opened from anywhere with
+// openReview(check): Overview, Needs you, a component's tests, the system map.
 import React, { useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
-import { Sheet, StatusPill } from './kit/index.jsx';
+import { Facts, Sheet, SheetPart, StatusPill } from './kit/index.jsx';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
 export const openReview = (check) => window.dispatchEvent(new CustomEvent('chip:review', { detail: { check } }));
@@ -25,13 +26,6 @@ const STATE = {
   'not-run': { tone: 'neutral', word: 'Not run yet' },
 };
 
-// one heading and its body, the sheet's h3 rhythm
-const Section = ({ heading, children }) => (
-  <section className="review-sec">
-    <h3>{heading}</h3>
-    {children}
-  </section>
-);
 const fmt = (r) => `${r.toFixed(2)}:1`;
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const secs = (a, b) => Math.max(1, Math.round((Date.parse(b) - Date.parse(a)) / 1000));
@@ -48,7 +42,7 @@ function Steps({ job }) {
     <ol className="review-steps">
       {done.map((s, i) => (
         <li key={i}>
-          ✓ {s.step} <span className="label">{secs(i ? done[i - 1].endedAt : job.startedAt, s.endedAt)} s</span>
+          ✓ {s.step} <span className="k-sub">{secs(i ? done[i - 1].endedAt : job.startedAt, s.endedAt)} s</span>
         </li>
       ))}
       {job.step ? <li aria-current="step">● {job.step}…</li> : null}
@@ -141,227 +135,209 @@ export default function ReviewSheet() {
   const close = () => setCheck(null);
   const copy = (text) => navigator.clipboard?.writeText(text).then(() => setNote('Brief copied.'));
 
+  // the buttons, each with what it changes and its undo, in the card's own words
+  const actions = card?.change
+    ? card.state === 'accepted'
+      ? [{ label: busy ? 'Undoing…' : `Undo: delete ${card.branch}`, onClick: () => act('undo'), disabled: busy, changes: card.undo, undo: 'Open the card again and press Accept.' }]
+      : [
+          { label: card.state === 'accepting' ? 'Accepting… the gate is running' : busy ? 'Starting…' : 'Accept', onClick: () => act('accept'), disabled: busy || card.state === 'accepting', changes: `It will ${card.thisWill}`, undo: card.undo },
+          { label: 'Not now', variant: 'tertiary', onClick: close, changes: 'Nothing. The check stays failing until you come back.' },
+        ]
+    : card?.noFix
+      ? [{ label: 'Copy the brief', onClick: () => copy(card.brief), changes: 'Puts the brief on your clipboard, for a session to fix by hand.', undo: 'Nothing to undo.' }]
+      : null;
+
   return (
-    <Sheet
-      open={!!check}
-      onClose={close}
-      title={card?.title ?? (card ? 'Review' : 'Opening the review…')}
-      className="review-sheet"
-      footer={
-        card?.change ? (
-          <>
-            {card.state === 'accepted' ? (
-              <Button variant="primary" onClick={() => act('undo')} disabled={busy}>
-                {busy ? 'Undoing…' : `Undo: delete ${card.branch}`}
-              </Button>
-            ) : (
-              <Button variant="primary" onClick={() => act('accept')} disabled={busy || card.state === 'accepting'}>
-                {card.state === 'accepting' ? 'Accepting… the gate is running' : busy ? 'Starting…' : 'Accept'}
-              </Button>
-            )}
-            <Button variant="tertiary" onClick={close}>
-              Not now
-            </Button>
-          </>
-        ) : card?.noFix ? (
-          <Button variant="primary" onClick={() => copy(card.brief)}>
-            Copy the brief
-          </Button>
-        ) : null
-      }
-    >
+    <Sheet open={!!check} onClose={close} kicker={card ? `Review card · ${card.check} check` : 'Review card'} title={card?.title ?? (card ? 'Review' : 'Opening the review…')} className="review-sheet" actions={actions}>
       {!card ? (
-        <p className="label">{error ?? 'Reading the check…'}</p>
+        <p className="k-sub">{error ?? 'Reading the check…'}</p>
       ) : (
-        <div className="review">
-          <p className="review-state">
-            <StatusPill tone={st.tone}>{st.word}</StatusPill>
-            <span className="label">
-              {card.ranAt ? `Checked ${when(card.ranAt)} on ${card.base ?? 'BELLA'} @ ${card.commit}` : null}
-              {card.target?.kind === 'staged' ? ` plus ${card.target.files} staged files` : ''}
-            </span>
-          </p>
-          {note ? (
-            <p className="review-note" role="status">
-              {note}
-            </p>
-          ) : null}
-          {error ? (
-            <p className="review-error" role="alert">
-              {error}
-            </p>
-          ) : null}
+        <>
+          <SheetPart label="What this is">
+            <p>{card.change ? 'CHIP’s fix for a failing check: one exact change, committed through BELLA’s gate on a local branch that you merge yourself.' : card.noFix ? 'A failing check CHIP has no one-click fix for. It writes a brief for a session instead.' : `The ${card.check} check.`}</p>
+          </SheetPart>
 
-          {card.state === 'passed' ? <p>{card.summary}. Nothing to review.</p> : null}
+          <SheetPart label="State" pill={<StatusPill tone={st.tone}>{st.word}</StatusPill>}>
+            <Facts
+              rows={[
+                ['Checked', card.ranAt ? `${when(card.ranAt)} on ${card.base ?? 'BELLA'} @ ${card.commit}${card.target?.kind === 'staged' ? `, plus ${card.target.files} staged files` : ''}` : null],
+                card.failure && ['Found', card.failure],
+                card.state === 'accepted' && card.branch && ['Branch', <code>{card.branch}</code>],
+              ]}
+            />
+            {note ? (
+              <p className="k-note" role="status">
+                {note}
+              </p>
+            ) : null}
+            {error ? (
+              <p className="k-note review-error" role="alert">
+                {error}
+              </p>
+            ) : null}
+            {card.state === 'passed' ? <p>{card.summary}. Nothing to review.</p> : null}
+            {card.noFix ? (
+              <ul className="plain">
+                {(card.failures?.length ? card.failures : [card.summary]).map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+            ) : null}
+            {card.state === 'accepting' ? <Steps job={card.job} /> : null}
+            {att && (att.blockers || att.rules?.length) ? (
+              <>
+                <h3>{att.fresh ? 'The gate found more' : `Last time you pressed Accept (${when(att.at)}), the gate refused it`}</h3>
+                <p>
+                  With the change in, BELLA's gate ran every story and refused the commit. None of this comes from the change itself (only {card.blast.components.join(', ') || 'one file'} reads what it changes): it comes from the {card.target?.kind === 'staged' ? `${card.target.files} staged files it carries` : 'branch it starts from'}.
+                </p>
+                {att.blockers?.shots?.map((s) => (
+                  <figure key={s.id} className="review-shot">
+                    <img src={s.img} alt={`${s.id}: the accepted baseline, the difference, and the story as it renders now`} />
+                    <figcaption className="k-sub">
+                      <code>{s.id}</code>
+                      {s.percent != null ? ` · ${s.percent.toFixed(1)}% of pixels differ from its baseline. Left: the baseline; middle: the difference; right: now.` : ''}
+                    </figcaption>
+                  </figure>
+                ))}
+                {att.rules?.length ? (
+                  <ul className="plain">
+                    {att.rules.map((r) => (
+                      <li key={r.story + r.rule}>
+                        <span>
+                          <code>{r.story}</code>: {r.rule} ({r.measured}).
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {att.rules?.length ? (
+                  <p>
+                    <strong>This needs a decision CHIP won't make for you:</strong> whether that story keeps its own theme in the dark pass (opt it out with <code>parameters.bella.themeIntegrity = false</code>) or the staged theme change is reconsidered. Hand it to a session with the brief, or decide it in the story.
+                  </p>
+                ) : null}
+                <div className="review-actions">
+                  {att.blockers?.suites?.length && !att.rules?.length ? (
+                    <Button onClick={() => act('accept', { baselines: att.blockers.suites })} disabled={busy}>
+                      Accept the change and the new baseline
+                    </Button>
+                  ) : null}
+                  <Button onClick={() => copy(brief(card, att))}>Copy a brief for a session</Button>
+                </div>
+              </>
+            ) : null}
+            {card.job?.status === 'failed' && card.job.log ? (
+              <Disclosure title="What the gate said">
+                <pre>{card.job.log}</pre>
+              </Disclosure>
+            ) : null}
+            {card.state === 'accepted' && card.job?.measured ? (
+              <p>
+                <strong>
+                  Bench on the branch: {card.job.measured.before} → {card.job.measured.after}.
+                </strong>{' '}
+                {card.job.measured.partsAfter
+                  ? Object.entries(card.job.measured.partsAfter)
+                      .filter(([k, v]) => card.job.measured.partsBefore?.[k] !== v)
+                      .map(([k, v]) => `${k} ${card.job.measured.partsBefore?.[k] ?? 'n/a'} → ${v ?? 'n/a'}`)
+                      .join(' · ')
+                  : null}
+              </p>
+            ) : null}
+            {card.state === 'accepted' && card.job?.diff ? (
+              <Disclosure title="Show the diff">
+                <pre>{card.job.diff}</pre>
+              </Disclosure>
+            ) : null}
+          </SheetPart>
 
-          {card.noFix ? (
-            <>
-              <Section heading="Why it fails">
-                <ul className="review-list">
-                  {(card.failures?.length ? card.failures : [card.summary]).map((f) => (
-                    <li key={f}>{f}</li>
-                  ))}
-                </ul>
-              </Section>
-              <p>{card.noFix}</p>
-              <pre className="review-code">{card.brief}</pre>
-            </>
+          {card.why || card.noFix ? (
+            <SheetPart label={card.state === 'improve' ? 'Why change it' : 'Why it matters'} source={<>BELLA’s <code>{card.check}</code> check{card.token ? <>, on <code>{card.token}</code></> : null}</>}>
+              {card.why ? <p>{card.why}</p> : null}
+              {card.noFix ? <p>{card.noFix}</p> : null}
+            </SheetPart>
           ) : null}
 
           {card.change ? (
-            <>
-              <Section heading={card.state === 'improve' ? 'Why change it' : 'Why it fails'}>
-                <p>{card.why}</p>
-              </Section>
-
-              <Section heading="The exact change">
-                <p>{card.change.sentence}</p>
-                {card.change.before ? (
+            <SheetPart label="What to do" fix>
+              <p>{card.change.sentence}</p>
+              {card.change.before ? (
                 <table className="review-table">
-                    <caption className="sr-only">Before and after</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">Token</th>
-                        <th scope="col">Before</th>
-                        <th scope="col">After</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <th scope="row">{card.change.before.token}</th>
+                  <caption className="k-vh">Before and after</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Token</th>
+                      <th scope="col">Before</th>
+                      <th scope="col">After</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">
+                        <code>{card.change.before.token}</code>
+                      </th>
+                      <td>
+                        <Swatch hex={card.change.before.hex} label="Before" /> <code>{card.change.before.value}</code> <code>{card.change.before.hex}</code>
+                      </td>
+                      <td>
+                        <Swatch hex={card.change.after.hex} label="After" /> <code>{card.change.after.value}</code> <code>{card.change.after.hex}</code>
+                      </td>
+                    </tr>
+                    {card.change.ratios.map((r) => (
+                      <tr key={r.pair}>
+                        <th scope="row">
+                          {r.pair} <span className="k-sub">needs {fmt(r.need)}</span>
+                        </th>
                         <td>
-                          <Swatch hex={card.change.before.hex} label="Before" /> <span className="mono">{card.change.before.value}</span> <span className="mono">{card.change.before.hex}</span>
+                          {r.before >= r.need ? '✓' : '✕'} {fmt(r.before)}
                         </td>
                         <td>
-                          <Swatch hex={card.change.after.hex} label="After" /> <span className="mono">{card.change.after.value}</span> <span className="mono">{card.change.after.hex}</span>
+                          {r.after >= r.need ? '✓' : '✕'} {fmt(r.after)}
                         </td>
                       </tr>
-                      {card.change.ratios.map((r) => (
-                        <tr key={r.pair}>
-                          <th scope="row">
-                            {r.pair} <span className="label">needs {fmt(r.need)}</span>
-                          </th>
-                          <td>
-                            {r.before >= r.need ? '✓' : '✕'} {fmt(r.before)}
-                          </td>
-                          <td>
-                            {r.after >= r.need ? '✓' : '✕'} {fmt(r.after)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : null}
-                {card.change.preview ? (
-                  <Disclosure title="Read the file it writes" summary={`${card.change.preview.split('\n').length} lines`}>
-                    <pre className="review-code">{card.change.preview}</pre>
-                  </Disclosure>
-                ) : null}
-                <p className="label">Files: {card.change.files.join(', ')}</p>
-              </Section>
-
-              <Section heading="What it won't touch">
-                <ul className="review-list">
-                  {card.wontTouch.map((w) => (
-                    <li key={w}>{w}</li>
-                  ))}
-                </ul>
-              </Section>
-
-              <Section heading="How far it reaches">
-                <p>{card.blast.sentence}</p>
-                {card.blast.apps.some((a) => a.count) ? (
-                  <Disclosure title="Where it is used">
-                    <ul className="review-list">
-                      {card.blast.sourceFiles.map((f) => (
-                        <li key={f} className="mono">
-                          BELLA · {f}
-                        </li>
-                      ))}
-                      {card.blast.apps.flatMap((a) =>
-                        a.files.map((f) => (
-                          <li key={a.name + f} className="mono">
+                    ))}
+                  </tbody>
+                </table>
+              ) : null}
+              {card.change.preview ? (
+                <Disclosure title="Read the file it writes" summary={`${card.change.preview.split('\n').length} lines`}>
+                  <pre>{card.change.preview}</pre>
+                </Disclosure>
+              ) : null}
+              <Facts
+                rows={[
+                  ['Files', card.change.files.map((f) => <code key={f}>{f} </code>)],
+                  ['Reaches', card.blast.sentence],
+                  ["Won't touch", <ul className="review-list">{card.wontTouch.map((w) => <li key={w}>{w}</li>)}</ul>],
+                ]}
+              />
+              {card.blast.apps.some((a) => a.count) ? (
+                <Disclosure title="Where it is used">
+                  <ul className="plain">
+                    {card.blast.sourceFiles.map((f) => (
+                      <li key={f}>
+                        <code>BELLA · {f}</code>
+                      </li>
+                    ))}
+                    {card.blast.apps.flatMap((a) =>
+                      a.files.map((f) => (
+                        <li key={a.name + f}>
+                          <code>
                             {a.name} · {f}
-                          </li>
-                        ))
-                      )}
-                    </ul>
-                  </Disclosure>
-                ) : null}
-              </Section>
-
-              {card.state === 'accepting' ? <Steps job={card.job} /> : null}
-              {att && (att.blockers || att.rules?.length) ? (
-                <Section heading={att.fresh ? 'The gate found more' : `Last time you pressed Accept (${when(att.at)}), the gate refused it`}>
-                  <p>
-                    With the change in, BELLA's gate ran every story and refused the commit. None of this comes from the change itself (only {card.blast.components.join(', ') || 'one file'} reads what it changes): it comes from the {card.target?.kind === 'staged' ? `${card.target.files} staged files it carries` : 'branch it starts from'}.
-                  </p>
-                  {att.blockers?.shots?.map((s) => (
-                    <figure key={s.id} className="review-shot">
-                      <img src={s.img} alt={`${s.id}: the accepted baseline, the difference, and the story as it renders now`} />
-                      <figcaption className="label">
-                        <span className="mono">{s.id}</span>
-                        {s.percent != null ? ` · ${s.percent.toFixed(1)}% of pixels differ from its baseline. Left: the baseline; middle: the difference; right: now.` : ''}
-                      </figcaption>
-                    </figure>
-                  ))}
-                  {att.rules?.length ? (
-                    <ul className="review-list">
-                      {att.rules.map((r) => (
-                        <li key={r.story + r.rule}>
-                          <span className="mono">{r.story}</span>: {r.rule} ({r.measured}).
+                          </code>
                         </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {att.rules?.length ? (
-                    <p>
-                      <strong>This needs a decision CHIP won't make for you:</strong> whether that story keeps its own theme in the dark pass (opt it out with <span className="mono">parameters.bella.themeIntegrity = false</span>) or the staged theme change is reconsidered. Hand it to a session with the brief, or decide it in the story.
-                    </p>
-                  ) : null}
-                  <div className="review-actions">
-                    {att.blockers?.suites?.length && !att.rules?.length ? (
-                      <Button onClick={() => act('accept', { baselines: att.blockers.suites })} disabled={busy}>
-                        Accept the change and the new baseline
-                      </Button>
-                    ) : null}
-                    <Button onClick={() => copy(brief(card, att))}>
-                      Copy a brief for a session
-                    </Button>
-                  </div>
-                </Section>
-              ) : null}
-              {card.job?.status === 'failed' && card.job.log ? (
-                <Disclosure title="What the gate said">
-                  <pre className="review-code">{card.job.log}</pre>
+                      )),
+                    )}
+                  </ul>
                 </Disclosure>
               ) : null}
-              {card.state === 'accepted' && card.job?.measured ? (
-                <p>
-                  <strong>
-                    Bench on the branch: {card.job.measured.before} → {card.job.measured.after}.
-                  </strong>{' '}
-                  {card.job.measured.partsAfter
-                    ? Object.entries(card.job.measured.partsAfter)
-                        .filter(([k, v]) => card.job.measured.partsBefore?.[k] !== v)
-                        .map(([k, v]) => `${k} ${card.job.measured.partsBefore?.[k] ?? 'n/a'} → ${v ?? 'n/a'}`)
-                        .join(' · ')
-                    : null}
-                </p>
-              ) : null}
-              {card.state === 'accepted' && card.job?.diff ? (
-                <Disclosure title="Show the diff">
-                  <pre className="review-code">{card.job.diff}</pre>
-                </Disclosure>
-              ) : null}
-
-              <p className="this-will">
-                <strong>This will:</strong> {card.state === 'accepted' ? `nothing more until you merge ${card.branch} into ${card.base} yourself.` : card.thisWill}{' '}
-                <strong>Undo:</strong> {card.undo}
-              </p>
-            </>
+            </SheetPart>
+          ) : card.noFix ? (
+            <SheetPart label="What to do" fix>
+              <p>Copy the brief below into a session; it names what failed and the commit it failed on.</p>
+              <pre>{card.brief}</pre>
+            </SheetPart>
           ) : null}
-        </div>
+        </>
       )}
     </Sheet>
   );

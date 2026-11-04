@@ -9,8 +9,7 @@
 // clipped and nothing scrolls sideways. Fit never scales below 1, so card
 // labels stay at the 14px floor.
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import Button from '@bella/components/Button/Button';
-import { StatusPill, Sheet } from './kit/index.jsx';
+import { StatusPill, Sheet, SheetPart, NotMeasured } from './kit/index.jsx';
 import { openReview, changed } from './ReviewSheet.jsx';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
@@ -46,6 +45,34 @@ function subOf(n) {
   if (n.id === 'git') return n.detail.replace(/\.$/, '');
   return n.source.split(' · ')[0];
 }
+
+// the sheet: why a part matters, what to do, and what its one button changes
+const listOf = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}` : xs[0]);
+function whyOf(n) {
+  if (n.isGroup) {
+    const off = n.kids.filter((k) => k.state !== 'ok' && k.state !== 'off');
+    return `${off.length ? `${off.length} of ${n.kids.length} parts ${off.length === 1 ? 'is' : 'are'} not healthy.` : `All ${n.kids.length} parts are healthy.`} The worst part sets the stage’s state, and every stage feeds the next.`;
+  }
+  return n.dependents.length ? `${listOf(n.dependents)} ${n.dependents.length === 1 ? 'reads' : 'read'} from it: if it breaks, ${n.dependents.length === 1 ? 'that is' : 'they are'} blocked too.` : 'Nothing else reads it, so a failure here stops nothing downstream.';
+}
+function doOf(n, a) {
+  if (n.isGroup) {
+    const worst = n.kids.find((k) => k.state === n.state && k.state !== 'ok');
+    return worst ? `Start with ${worst.name}: select it on the map for its fix.` : 'Nothing. Every part is healthy.';
+  }
+  if (n.blockedBy) return `Fix ${n.blockedBy.name} first. This clears by itself once it passes.`;
+  if (n.state === 'ok') return a ? `Nothing. ${a.label} only if you want a fresh result.` : 'Nothing. It is healthy.';
+  if (n.state === 'off') return 'Nothing, unless you need it: it is off by choice.';
+  if (a?.type === 'review') return 'Open the review card. It has the exact change, what it won’t touch, and its undo.';
+  if (a?.type === 'run') return 'Run it again for a fresh result. If it still fails, the state above names what to fix.';
+  if (a?.type === 'test') return 'Do what the state above says, then test it again.';
+  return `CHIP has no one-click fix for this one. Fix it at its source: ${n.source}.`;
+}
+const ACT_TERMS = {
+  test: { changes: 'CHIP calls the server once and records whether it answered. Nothing else changes.', undo: 'Nothing to undo.' },
+  run: { changes: 'Runs the check on BELLA’s current commit and saves the result. No BELLA file changes.', undo: 'Nothing to undo.' },
+  review: { changes: 'Opens the review card. Nothing changes until you press Accept there.', undo: 'Close it.' },
+};
 
 // what a failing or blocked node does to the rest, in one sentence each
 function sentenceOf(nodes) {
@@ -458,51 +485,51 @@ export default function SystemMap({ controls, map, onReload }) {
 
       <Sheet
         open={!!node}
+        kicker={node ? (node.isGroup ? `Pipeline stage · ${node.kids.length} parts` : `Pipeline part · ${node.group ?? 'System'}`) : null}
         title={node?.name ?? ''}
         onClose={() => setSheetId(null)}
-        footer={
-          action ? (
-            <Button variant={node.state === 'bad' ? 'primary' : 'secondary'} onClick={() => act(action)} disabled={!!busy}>
-              {busy ?? action.label}
-            </Button>
-          ) : null
+        actions={
+          action
+            ? [
+                {
+                  label: busy ?? action.label,
+                  variant: node.state === 'bad' ? 'primary' : 'secondary',
+                  disabled: !!busy,
+                  onClick: () => act(action),
+                  ...ACT_TERMS[action.type],
+                },
+              ]
+            : null
         }
       >
         {node ? (
           <>
-            <p className="cn-sline">
-              <StatusPill tone={TONE[isBlocked(node) ? 'blocked' : node.state] ?? 'neutral'}>
-                {node.blockedBy ? `Blocked by ${node.blockedBy.name}` : node.isGroup ? `${WORD[node.state] ?? WORD.unknown} · ${pillText(node)}` : pillText(node)}
-              </StatusPill>
-            </p>
-            {node.blockedBy ? <p>It reads from {node.blockedBy.name}, so nothing it says can be trusted until that passes.</p> : null}
-            {node.isGroup ? (
-              <dl>
-                <dt>Parts</dt>
-                <dd>
-                  <ul className="cn-parts">
-                    {node.kids.map((k) => (
-                      <li key={k.id}>
-                        {k.name} <StatusPill tone={TONE[isBlocked(k) ? 'blocked' : k.state] ?? 'neutral'}>{pillText(k)}</StatusPill>
-                      </li>
-                    ))}
-                  </ul>
-                </dd>
-              </dl>
-            ) : (
-              <dl>
-                <dt>Health</dt>
-                <dd>{node.detail}</dd>
-                <dt>Where it comes from</dt>
-                <dd>
-                  <code>{node.source}</code>
-                </dd>
-                <dt>Reads from</dt>
-                <dd>{node.deps.length ? node.deps.map(nameOf).join(', ') : 'Nothing: it is a source.'}</dd>
-                <dt>If this breaks</dt>
-                <dd>{node.dependents.length ? `${node.dependents.join(', ')} ${node.dependents.length === 1 ? 'is' : 'are'} blocked.` : 'Nothing else reads it.'}</dd>
-              </dl>
-            )}
+            <SheetPart label="What this is">
+              <p>{node.isGroup ? `A stage of BELLA’s pipeline with ${node.kids.length} parts: ${listOf(node.kids.map((k) => k.name))}.` : `One of the ${node.group ?? 'pipeline’s'} parts of BELLA’s pipeline${node.deps.length ? `, after ${listOf(node.deps.map(nameOf))}` : ', and a source: nothing comes before it'}.`}</p>
+            </SheetPart>
+            <SheetPart
+              label="State"
+              pill={<StatusPill tone={TONE[isBlocked(node) ? 'blocked' : node.state] ?? 'neutral'}>{node.blockedBy ? `Blocked by ${node.blockedBy.name}` : node.isGroup ? `${WORD[node.state] ?? WORD.unknown} · ${pillText(node)}` : pillText(node)}</StatusPill>}
+            >
+              {node.isGroup ? (
+                <ul className="plain">
+                  {node.kids.map((k) => (
+                    <li key={k.id}>
+                      <span>{k.name}</span> <StatusPill tone={TONE[isBlocked(k) ? 'blocked' : k.state] ?? 'neutral'}>{pillText(k)}</StatusPill>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>{node.detail ?? <NotMeasured />}</p>
+              )}
+            </SheetPart>
+            <SheetPart label="Why it matters" source={node.isGroup ? null : <code>{node.source}</code>}>
+              {node.blockedBy ? <p>It reads from {node.blockedBy.name}, so nothing it says can be trusted until that passes.</p> : null}
+              <p>{whyOf(node)}</p>
+            </SheetPart>
+            <SheetPart label="What to do" fix>
+              <p>{doOf(node, action)}</p>
+            </SheetPart>
             {msg ? <p role="status">{msg}</p> : null}
           </>
         ) : null}

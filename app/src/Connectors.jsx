@@ -6,7 +6,7 @@
 // explains how to add a connector.
 import React, { useCallback, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, LinkButton, Card } from './kit/index.jsx';
+import { PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, SheetPart, Facts, NotMeasured, LinkButton, Card } from './kit/index.jsx';
 import SystemMap, { useMapControls } from './SystemMap.jsx';
 import { changed } from './ReviewSheet.jsx';
 import './Connectors.css';
@@ -89,6 +89,72 @@ function Steps({ steps }) {
 }
 
 const copy = (t) => navigator.clipboard?.writeText(t).catch(() => {});
+
+const kindOf = (s) => (s.kind === 'cli' ? 'Connector · CLI tool' : ['rest', 'notion'].includes(s.kind) ? 'Connector · REST API' : `Connector · MCP over ${s.transport}`);
+
+// a connector's sheet: what it is, whether it answers, what reads it, what to do
+function ServerSheet({ s, feeds, note, onOff }) {
+  const st = statusOf(s);
+  const rest = s.name === 'figma-rest' && s.status !== 'connected';
+  const steps = s.name === 'notion' ? notionSteps : rest ? figmaRestSteps : s.status === 'error' && s.name === 'figma' ? figmaSteps(s.where) : null;
+  const tools = s.tools ? `${s.tools.filter((t) => t.kind === 'read').length} read · ${s.tools.filter((t) => t.kind !== 'read').length} write` : null;
+  const fix = s.about?.unused
+    ? s.disabled
+      ? 'Leave it off: nothing in CHIP calls it yet. Enable tests whether the command is installed; it stays read only.'
+      : 'Nothing calls it yet. Turn it off again if you don’t need it.'
+    : s.name === 'notion'
+      ? s.status === 'connected'
+        ? 'Nothing. To let it see more pages, share them with the integration (step 2).'
+        : 'One step: put an internal integration token in server/.env. Notion’s hosted MCP signs in through a browser, which CHIP can’t do; CHIP never asks for the token or types it.'
+      : rest
+        ? figmaUp
+          ? 'Optional upgrade. Figma already reads through the desktop app; a token lets CHIP read it with the app closed, and makes Compare faster.'
+          : 'Add the token and the file key to server/.env, restart CHIP, then Test.'
+        : s.status === 'error'
+          ? s.name === 'figma'
+            ? 'Open Figma desktop with the BELLA library, turn on its MCP server, then Reconnect. Any one Figma path is enough.'
+            : 'Check it runs at the address below, then Reconnect. The error above is what it last said.'
+          : 'Nothing. CHIP tests it at start and on Refresh.';
+  return (
+    <>
+      <SheetPart label="What this is">
+        <p>{s.about?.purpose ?? s.note ?? <NotMeasured what="The config gives no description." />}</p>
+        {s.about?.needs ? <p>Needs: {s.about.needs}</p> : null}
+      </SheetPart>
+      <SheetPart label="State" pill={<StatusPill tone={st.tone}>{st.word}</StatusPill>}>
+        {s.detail ? <p>{s.detail}</p> : null}
+        {s.error && !s.setup ? <pre>{s.error}</pre> : null}
+        <Facts
+          rows={[
+            ['Tested', s.disabled ? 'Off, not tested' : s.testedAt ? when(s.testedAt) : null],
+            ['Last answered', s.lastUsed ? when(s.lastUsed) : null],
+            ['Access', access(s)],
+            tools && ['Tools', tools],
+            [
+              'Address',
+              <span className="cn-reach">
+                <code>{s.where}</code>
+              </span>,
+            ],
+          ]}
+        />
+      </SheetPart>
+      <SheetPart label="Why it matters" source={<code>chip.config.local.json</code>}>
+        <p>{feeds ? `${feeds} ${feeds.includes(',') ? 'read' : 'reads'} from it. While it doesn’t answer, ${feeds.includes(',') ? 'they show' : 'that shows'} as blocked on the system map.` : s.about?.group === 'figma' ? 'Compare with Figma reads through whichever Figma path answers; any one is enough.' : s.name === 'notion' ? 'OBI’s search reads your Notion pages through the same token (npm run sync:notion), so answers can cite your notes and decisions.' : 'Nothing on the system map reads from it, so CHIP works the same without it.'}</p>
+        <p>
+          Allowed to {access(s)}
+          {s.allow.includes('write') ? ': it can change files, so CHIP asks before any write.' : ': it can’t change anything.'}
+        </p>
+      </SheetPart>
+      <SheetPart label="What to do" fix>
+        <p>{fix}</p>
+        {steps ? <Steps steps={steps} /> : null}
+        {s.about?.unused && !s.disabled ? <LinkButton onClick={onOff}>Turn it off again</LinkButton> : null}
+      </SheetPart>
+      {note ? <p role="status">{note}</p> : null}
+    </>
+  );
+}
 
 // Compare with Figma, every component at once: the baseline and its rerun
 function FigmaCard({ servers, figma, onOpen }) {
@@ -277,6 +343,28 @@ export default function Connectors() {
     { key: 'act', label: 'Action', hideLabel: true, sort: false, end: true, render: (s) => actButton(s) },
   ];
   const sheetServer = servers?.find((s) => s.name === open);
+  // the sheet's buttons: the one action, and copying where it lives
+  const sheetActions = (s) => {
+    const a = actionOf(s);
+    const go = s.disabled ? () => enable(s) : () => test(s);
+    const label = a === 'Set up' ? 'Test again' : a;
+    return [
+      {
+        label: testing === s.name ? busyWord(s) : label,
+        variant: s.status === 'error' && !s.setup ? 'primary' : 'secondary',
+        disabled: !!testing || refreshing,
+        onClick: go,
+        changes: s.disabled ? 'CHIP turns it on (data/connectors.json, not your config) and tests it once.' : 'CHIP calls it once and records whether it answered. Nothing in BELLA or the config changes.',
+        undo: s.disabled ? 'Turn it off again from this sheet.' : 'Nothing to undo.',
+      },
+      {
+        label: 'Copy the address',
+        variant: 'secondary',
+        onClick: () => copy(s.where),
+        changes: 'Puts the address on your clipboard.',
+      },
+    ];
+  };
 
   const mapBar = (
     <div className="cn-bar">
@@ -368,83 +456,8 @@ export default function Connectors() {
         </p>
       </section>
 
-      <Sheet open={!!sheetServer} title={sheetServer?.name ?? ''} onClose={() => setOpen(null)} footer={sheetServer ? actButton(sheetServer, true) : null}>
-        {sheetServer ? (
-          <>
-            <p className="cn-sline">
-              <StatusPill tone={statusOf(sheetServer).tone}>{statusOf(sheetServer).word}</StatusPill>
-              {sheetServer.detail ? <span>{sheetServer.detail}</span> : sheetServer.error && !sheetServer.setup ? <span>{sheetServer.error}</span> : null}
-            </p>
-            {sheetServer.about ? (
-              <p>
-                {sheetServer.about.purpose} <span className="cn-muted">Needs: {sheetServer.about.needs}</span>
-              </p>
-            ) : sheetServer.note ? (
-              <p>{sheetServer.note}</p>
-            ) : null}
-            {sheetServer.about?.unused ? (
-              <p>
-                {sheetServer.disabled
-                  ? 'Off because nothing in CHIP calls it yet. Enable tests whether the command is installed; it stays read only.'
-                  : 'On. Nothing in CHIP calls it yet.'}{' '}
-                {!sheetServer.disabled ? <LinkButton onClick={() => enable(sheetServer, false)}>Turn it off again</LinkButton> : null}
-              </p>
-            ) : null}
-            <dl>
-              {feeds(sheetServer.name) ? (
-                <>
-                  <dt>Feeds</dt>
-                  <dd>{feeds(sheetServer.name)}</dd>
-                </>
-              ) : null}
-              <dt>Kind</dt>
-              <dd>{sheetServer.kind === 'cli' ? 'CLI tool' : ['rest', 'notion'].includes(sheetServer.kind) ? 'REST API over https' : `MCP over ${sheetServer.transport}`}</dd>
-              <dt>Tested</dt>
-              <dd>{sheetServer.disabled ? 'Off, not tested' : when(sheetServer.testedAt)}</dd>
-              <dt>Access</dt>
-              <dd>{access(sheetServer)}</dd>
-              <dt>Last answered</dt>
-              <dd>{when(sheetServer.lastUsed)}</dd>
-              <dt>Reach</dt>
-              <dd className="cn-reach">
-                <code>{sheetServer.where}</code> <LinkButton onClick={() => copy(sheetServer.where)}>Copy</LinkButton>
-              </dd>
-              {sheetServer.tools ? (
-                <>
-                  <dt>Tools</dt>
-                  <dd>
-                    {sheetServer.tools.filter((t) => t.kind === 'read').length} read · {sheetServer.tools.filter((t) => t.kind !== 'read').length} write
-                  </dd>
-                </>
-              ) : null}
-            </dl>
-            {sheetServer.status === 'error' && sheetServer.name === 'figma' ? (
-              <>
-                <h3>If it won’t answer</h3>
-                <p>Any one Figma path is enough. The REST API reads Figma without the app.</p>
-                <Steps steps={figmaSteps(sheetServer.where)} />
-              </>
-            ) : null}
-            {sheetServer.name === 'figma-rest' && sheetServer.status !== 'connected' ? (
-              <>
-                <h3>{figmaUp ? 'Optional upgrade: read Figma with the app closed' : 'To connect it'}</h3>
-                {figmaUp ? <p>Figma already reads through the desktop app. A token lets CHIP read it with the app closed, and makes Compare faster.</p> : null}
-                <Steps steps={figmaRestSteps} />
-              </>
-            ) : null}
-            {sheetServer.name === 'notion' ? (
-              <>
-                <h3>{sheetServer.status === 'connected' ? 'To let it see more pages' : 'One step: a token in server/.env'}</h3>
-                <p>
-                  {sheetServer.status === 'connected'
-                    ? 'It sees only the pages shared with the integration. Share more with step 2; nothing else changes.'
-                    : 'Notion’s hosted MCP signs in through a browser, which CHIP can’t do. An internal integration token works instead, read only. CHIP never asks for it or types it: you add it.'}
-                </p>
-                <Steps steps={notionSteps} />
-              </>
-            ) : null}
-          </>
-        ) : null}
+      <Sheet open={!!sheetServer} kicker={sheetServer ? kindOf(sheetServer) : null} title={sheetServer?.name ?? ''} onClose={() => setOpen(null)} actions={sheetServer ? sheetActions(sheetServer) : null}>
+        {sheetServer ? <ServerSheet s={sheetServer} feeds={feeds(sheetServer.name)} note={note} onOff={() => enable(sheetServer, false)} /> : null}
       </Sheet>
     </div>
   );

@@ -13,14 +13,50 @@ import { changed } from './ReviewSheet.jsx';
 const JSON_HEADERS = { 'content-type': 'application/json' };
 export const openRun = (id) => window.dispatchEvent(new CustomEvent('chip:run', { detail: { id } }));
 
-/** Starts a run for a brief and opens its report. Returns the run or throws. */
-export async function startRun(brief, title) {
-  const r = await fetch('/runs', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ brief, title }) });
+/** Starts a run for a brief. Its progress shows in the work panel's Sessions
+ * tree (chip:run-started), whose row opens this report. Returns the run or throws. */
+export async function startRun(brief, title, from) {
+  const r = await fetch('/runs', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ brief, title, from }) });
   const j = await r.json();
   if (!r.ok) throw new Error(j.error);
-  openRun(j.id);
+  window.dispatchEvent(new CustomEvent('chip:run-started', { detail: { id: j.id } }));
   return j;
 }
+
+/** Every run CHIP knows, kept fresh while one is going (the Sessions tree). */
+export function useRuns(live) {
+  const [runs, setRuns] = useState([]);
+  const load = useCallback(() => fetch('/runs').then((r) => r.json()).then((j) => setRuns(j.runs ?? [])).catch(() => {}), []);
+  useEffect(() => {
+    load();
+    window.addEventListener('chip:run-started', load);
+    window.addEventListener('chip:changed', load);
+    return () => (window.removeEventListener('chip:run-started', load), window.removeEventListener('chip:changed', load));
+  }, [load]);
+  const going = runs.some((r) => ['starting', 'running', 'gate'].includes(r.status));
+  useEffect(() => {
+    if (!going && !live) return;
+    const t = setInterval(load, going ? 2000 : 10000);
+    return () => clearInterval(t);
+  }, [going, live, load]);
+  return runs;
+}
+
+// a run as the tree shows it: state, and one line
+export const runState = (r) =>
+  ({ starting: ['working', 'Starting'], running: ['working', 'Claude working'], gate: ['working', 'Gate running'], passed: ['you', 'Waiting on you'], login: ['failed', 'Can’t start'], failed: ['failed', 'Failed'], nochange: ['done', 'No change'], kept: ['done', 'Accepted'], undone: ['done', 'Undone'] })[r.status] ?? ['idle', r.status];
+export const runLine = (r) =>
+  r.status === 'passed'
+    ? `Gate passed on ${r.branch}: Accept or Undo.`
+    : ['starting', 'running', 'gate'].includes(r.status)
+      ? `${r.step ?? 'Working'}${r.steps?.filter((s) => s.claude).length ? ` · ${r.steps.filter((s) => s.claude).at(-1).step}` : ''}`
+      : r.status === 'failed' || r.status === 'login'
+        ? r.error
+        : r.status === 'kept'
+          ? `${r.branch} waits for you to merge.`
+          : r.status === 'nochange'
+            ? 'Claude changed no file.'
+            : `${r.branch} deleted.`;
 
 // the verdict line and its pill, per state
 const VERDICT = {

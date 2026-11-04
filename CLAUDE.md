@@ -2,6 +2,14 @@
 
 CHIP is the local bridge for the BELLA design system (`~/DEV/bella`). The app in `app/` is built from BELLA components and tokens only: no hex values, no px font sizes in `app/src`. BELLA's `AGENTS.md` applies here and wins on any conflict. `emcdanie/chip` is public: no client names, no personal items, no `.env`.
 
+## Everything earns its place (Elleta, 4 Nov 2026)
+
+CHIP is a tool for Elleta's daily design-system work, not a showcase. Before anything goes on screen, it must pass all four:
+- **Function:** it does something she needs: decide, fix, check, find or hand off. If it is there only because it looks good, cut it.
+- **Real:** it shows real data. Where nothing is measured it says "Not measured"; never sample or invented numbers.
+- **Next step:** every item says why it matters (the rule and its source) and offers the action that follows. Nothing is display-only.
+- **Legwork done:** CHIP fills in everything it already knows. She never types what CHIP can read, and starting work never opens an empty chat or terminal: it runs and shows her a result to Accept or Undo.
+
 ## Relay
 
 - Instructions arrive in `docs/reference/inbox/liam-next.md` (gitignored). When Elleta says "go", read it and do it.

@@ -7,7 +7,7 @@
 // "Not measured".
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { DataTable, PageHeader, Segmented, segPanelProps, Sheet } from './kit/index.jsx';
+import { DataTable, Facts, PageHeader, Segmented, segPanelProps, Sheet, SheetPart, StatusPill } from './kit/index.jsx';
 import './Foundations.css';
 
 const SVG = (d) => (
@@ -41,6 +41,14 @@ const ratio = (a, b) => {
 const TEXTISH = /^(text|link|icon|border|danger-text|success-text|highlight-text|highlight-edge|focus-ring|signal|accent-raised-edge|chip-text|danger-border|success-border|accent-border)/;
 const grade = (r) => (r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : r >= 3 ? '3:1' : 'fails');
 const SEM = '--color-semantic-';
+// what a sheet's "Fix in a session" does, and where its facts come from
+const SESSION = { changes: 'Copies a brief to your clipboard and opens the Claude tab. Nothing in BELLA changes until you run it there.', undo: 'Nothing to undo yet: close the Claude tab.' };
+const USAGE_SOURCE = (
+  <>
+    each component’s CSS, read by <code>scripts/sync-bella.mjs</code>
+  </>
+);
+const CONTRAST_SOURCE = 'WCAG 2.2 · 1.4.3 Contrast (Minimum) and 1.4.11 Non-text Contrast';
 
 function contrastOf(t, P) {
   const L = hexRgb(t.light);
@@ -122,64 +130,85 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
   const close = () => setSheet(null);
   const whoSheet = (t) =>
     setSheet({
+      kicker: 'Colour role · who uses it',
       title: `${t.role}: ${t.usedBy.length} component${t.usedBy.length === 1 ? '' : 's'}`,
       body: (
         <>
-          <p>
-            Every component whose CSS reads <code>{t.token}</code>, directly or through its own tokens.
-          </p>
-          <ul className="fd-plain">
-            {t.usedBy.map((c) => (
-              <li key={c}>
-                <button type="button" className="k-rowbtn" onClick={() => (close(), onOpenAtlas(idOf(c)))}>
-                  {c}
-                </button>
-                <code>{idOf(c)}</code>
-              </li>
-            ))}
-          </ul>
+          <SheetPart label="What this is">
+            <p>
+              Every component whose CSS reads <code>{t.token}</code>, directly or through its own tokens.
+            </p>
+          </SheetPart>
+          <SheetPart label="State" pill={<StatusPill>{t.usedBy.length} components</StatusPill>}>
+            <ul className="plain">
+              {t.usedBy.map((c) => (
+                <li key={c}>
+                  <button type="button" className="k-rowbtn" onClick={() => (close(), onOpenAtlas(idOf(c)))}>
+                    {c}
+                  </button>
+                  <code>{idOf(c)}</code>
+                </li>
+              ))}
+            </ul>
+          </SheetPart>
+          <SheetPart label="Why it matters" source={USAGE_SOURCE}>
+            <p>Change this role and every one of these changes with it. This is the reach of a single token edit.</p>
+          </SheetPart>
+          <SheetPart label="What to do" fix>
+            <p>Nothing, unless you are about to change the role: open a component above to see it in use first.</p>
+          </SheetPart>
         </>
       ),
     });
   const roleSheet = (t) => {
     const ps = pairings(t, P);
-    const fails = ps.some((p) => p.r < 3);
+    const failing = ps.filter((p) => p.r < 3);
+    const fails = failing.length > 0;
     setSheet({
+      kicker: TEXTISH.test(t.role) ? 'Colour role · text or edge' : 'Colour role · surface',
       title: t.role,
       body: (
         <>
-          <p className="fd-meta">{TEXTISH.test(t.role) ? 'A text or edge colour: measured on the surfaces it sits on.' : 'A surface: measured with the text that sits on it.'}</p>
-          <div className="fd-sw2">
-            <span style={{ background: t.light, color: on(t.light) }}>
-              light <code>{t.lref}</code>
-            </span>
-            <span style={{ background: t.dark, color: on(t.dark) }}>
-              dark <code>{t.dref}</code>
-            </span>
-          </div>
-          {ps.length ? (
-            <dl>
-              {ps.map((p) => (
-                <React.Fragment key={p.k}>
-                  <dt>{p.k}</dt>
-                  <dd>
+          <SheetPart label="What this is">
+            <p>
+              <code>{t.token}</code>. {TEXTISH.test(t.role) ? 'A text or edge colour, so it is measured on the surfaces it sits on.' : 'A surface, so it is measured with the text that sits on it.'}
+            </p>
+            <div className="fd-sw2">
+              <span style={{ background: t.light, color: on(t.light) }}>
+                light <code>{t.lref ?? t.light}</code>
+              </span>
+              <span style={{ background: t.dark, color: on(t.dark) }}>
+                dark <code>{t.dref ?? t.dark}</code>
+              </span>
+            </div>
+          </SheetPart>
+          <SheetPart label="State" pill={!ps.length ? <StatusPill>Not measured</StatusPill> : fails ? <StatusPill tone="fail">{failing.length} pairing{failing.length === 1 ? ' fails' : 's fail'}</StatusPill> : <StatusPill>Every pairing passes</StatusPill>}>
+            {ps.length ? (
+              <Facts
+                rows={ps.map((p) => [
+                  p.k,
+                  <>
                     {p.r.toFixed(2)}:1 <span className={p.r >= 3 ? 'fd-pass' : 'fd-fail'}>{p.r >= 3 && p.r < 4.5 ? '3:1 UI' : grade(p.r) === 'fails' ? 'Fails' : grade(p.r)}</span>
-                  </dd>
-                </React.Fragment>
-              ))}
-            </dl>
-          ) : (
-            <p className="fd-meta">Has transparency or a gradient, so contrast depends on what sits under it.</p>
-          )}
-          <p className="fd-meta">{t.usedBy.length ? `Used by ${t.usedBy.length}: ${t.usedBy.slice(0, 4).join(', ')}${t.usedBy.length > 4 ? '…' : ''}` : <b className="fd-failt">Used by no component</b>}</p>
-          {ps.length ? fails ? <p>One pairing fails. Darken or lighten the role a step, or stop using it there.</p> : <p className="fd-pass">Every pairing this role is used in passes.</p> : null}
+                  </>,
+                ])}
+              />
+            ) : (
+              <NotMeasured what="It has transparency or a gradient, so its contrast depends on what sits under it." />
+            )}
+            <Facts rows={[['Used by', t.usedBy.length ? `${t.usedBy.length}: ${t.usedBy.slice(0, 4).join(', ')}${t.usedBy.length > 4 ? '…' : ''}` : <b className="fd-failt">No component</b>]]} />
+          </SheetPart>
+          <SheetPart label="Why it matters" source={CONTRAST_SOURCE}>
+            <p>Text needs 4.5:1 on what it sits on, and large text, edges and controls 3:1, or people with low vision can’t read or find them. CHIP marks a pairing as failing below 3:1.</p>
+          </SheetPart>
+          <SheetPart label="What to do" fix>
+            <p>{!ps.length ? 'Check it where it is used: open a component that reads it.' : fails ? `Darken or lighten the role one step in BELLA’s semantic tokens, or stop using it where it fails: ${failing.map((p) => `${p.k.toLowerCase()} at ${p.r.toFixed(2)}:1`).join(', ')}.` : 'Nothing. Every pairing it is used in passes.'}</p>
+          </SheetPart>
         </>
       ),
-      footer: fails ? (
-        <Button variant="primary" onClick={() => (close(), onSession(`Fix the contrast of the ${t.role} colour role in BELLA: ${ps.filter((p) => p.r < 3).map((p) => `${p.k.toLowerCase()} ${p.r.toFixed(2)}:1`).join(', ')}.`))}>
-          Fix in a session
-        </Button>
-      ) : null,
+      actions: [
+        fails && { label: 'Fix in a session', onClick: () => (close(), onSession(`Fix the contrast of the ${t.role} colour role in BELLA: ${failing.map((p) => `${p.k.toLowerCase()} ${p.r.toFixed(2)}:1`).join(', ')}.`)), ...SESSION },
+        t.usedBy.length && { label: `See the ${t.usedBy.length} that use it`, onClick: () => whoSheet(t), changes: 'Nothing: lists them in this panel.' },
+      ].filter(Boolean),
     });
   };
   function OrphanList() {
@@ -188,25 +217,49 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
     const brief = (verb) => `${verb} ${picked.length} BELLA colour roles no component uses: ${picked.map((t) => t.role).join(', ')}.`;
     return (
       <>
-        <p>Each one is either app-only (the site uses it, no BELLA component does) or dead. Untick any you want to keep as they are.</p>
-        <ul className="fd-plain">
-          {orphans.map((t) => (
-            <li key={t.role}>
-              <label className="k-chk">
-                <input type="checkbox" checked={!off.includes(t.role)} onChange={(e) => setOff((o) => (e.target.checked ? o.filter((x) => x !== t.role) : [...o, t.role]))} /> <code>{t.role}</code>
-              </label>
-              <Swatch v={t.light} r={null} />
-            </li>
-          ))}
-        </ul>
-        <div className="fd-row2">
-          <Button variant="primary" disabled={!picked.length} onClick={() => (close(), onSession(brief('Retire')))}>
-            Retire selected in a session
-          </Button>
-          <Button disabled={!picked.length} onClick={() => (close(), onSession(brief('Mark as app-only (not dead)')))}>
-            Mark selected app-only
-          </Button>
-        </div>
+        <SheetPart label="What this is">
+          <p>Colour roles in BELLA’s semantic tokens that no BELLA component reads. Each one is either app-only (the site uses it, no component does) or dead.</p>
+        </SheetPart>
+        <SheetPart label="State" pill={<StatusPill tone="needs">{orphans.length} unused</StatusPill>}>
+          <p className="fd-meta">Untick any you want to keep as they are. {picked.length} selected.</p>
+          <ul className="plain">
+            {orphans.map((t) => (
+              <li key={t.role}>
+                <label className="k-chk">
+                  <input type="checkbox" checked={!off.includes(t.role)} onChange={(e) => setOff((o) => (e.target.checked ? o.filter((x) => x !== t.role) : [...o, t.role]))} /> <code>{t.role}</code>
+                </label>
+                <Swatch v={t.light} r={null} />
+              </li>
+            ))}
+          </ul>
+        </SheetPart>
+        <SheetPart label="Why it matters" source={USAGE_SOURCE}>
+          <p>A dead role still ships in every theme and still shows up for agents choosing a colour, so they can pick one nothing else uses. App-only roles are fine, but marking them stops them counting here.</p>
+        </SheetPart>
+        <SheetPart label="What to do" fix>
+          <p>Retire the dead ones in a session; mark the ones the site uses as app-only. Either way, this count goes to zero.</p>
+          <div className="fd-row2">
+            <Button variant="primary" disabled={!picked.length} onClick={() => (close(), onSession(brief('Retire')))}>
+              Retire {picked.length} in a session
+            </Button>
+            <Button disabled={!picked.length} onClick={() => (close(), onSession(brief('Mark as app-only (not dead)')))}>
+              Mark {picked.length} app-only
+            </Button>
+          </div>
+        </SheetPart>
+        <SheetPart label="What the buttons do">
+          <dl className="k-facts k-terms">
+            <dt>Retire, Mark app-only</dt>
+            <dd>
+              <span>
+                <b>Changes</b> {SESSION.changes}
+              </span>
+              <span>
+                <b>Undo</b> {SESSION.undo}
+              </span>
+            </dd>
+          </dl>
+        </SheetPart>
       </>
     );
   }
@@ -239,7 +292,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
               </b>{' '}
               Some only the site uses; some are dead. Review them to retire the dead ones and mark the rest app-only, and this count goes to zero.
             </p>
-            <Button variant="primary" onClick={() => setSheet({ title: `${orphans.length} roles no component uses`, body: <OrphanList /> })}>
+            <Button variant="primary" onClick={() => setSheet({ kicker: 'Colour roles · unused', title: `${orphans.length} roles no component uses`, body: <OrphanList /> })}>
               Review the {orphans.length}
             </Button>
           </div>
@@ -329,7 +382,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
         {f ? <TokenizedPanel f={f} roles={roles.length} onColour={() => setTab('colours')} onSession={onSession} setSheet={setSheet} close={close} /> : <NotMeasured what={failed ? 'No CSS count: data/foundations.json is missing (node scripts/sync-foundations.mjs).' : 'Loading…'} />}
       </div>
 
-      <Sheet open={!!sheet} title={sheet?.title ?? ''} onClose={close} footer={sheet?.footer}>
+      <Sheet open={!!sheet} kicker={sheet?.kicker} title={sheet?.title ?? ''} onClose={close} footer={sheet?.footer} actions={sheet?.actions}>
         {sheet?.body}
       </Sheet>
     </div>
@@ -440,41 +493,50 @@ function TypePanel({ f, onSession, setSheet, close }) {
   const FONT = { display: 'var(--display)', body: 'var(--sans)', mono: 'var(--code)' };
   const compare = (fam) =>
     setSheet({
+      kicker: `Type · the ${fam.name} face`,
       title: 'The contract and the tokens disagree',
       body: (
         <>
-          <div className="fd-vs">
-            <figure>
-              <span style={{ fontFamily: FONT[fam.name] }}>The keycap is the brand mark</span>
-              <figcaption>
-                The token today: <b>{fam.face}</b>
-              </figcaption>
-            </figure>
-            <figure>
-              <span style={{ fontFamily: `'${fam.contractFace}', var(--sans)` }}>The keycap is the brand mark</span>
-              <figcaption>
-                The contract: <b>{fam.contractFace}</b>
-                {document.fonts?.check(`16px '${fam.contractFace}'`) ? '' : ' (not loaded here, so drawn in a fallback)'}
-              </figcaption>
-            </figure>
-          </div>
-          <p>
-            <code>{fam.token}</code> is <b>{fam.face}</b>. BELLA’s contract (<code>bella.dsds.yaml</code>) says: “{fam.contract}”
-          </p>
-          <p>Agents build from the contract, so anything an agent makes will use the wrong face, and the gate can’t catch it because the contract is what it checks against.</p>
-          <p>
-            <b>Pick one source of truth:</b>
-          </p>
+          <SheetPart label="What this is">
+            <p>
+              <code>{fam.token}</code>, the {fam.role.toLowerCase()} face. Two places name it: the token, and BELLA’s contract (<code>bella.dsds.yaml</code>).
+            </p>
+          </SheetPart>
+          <SheetPart label="State" pill={<StatusPill tone="fail">They disagree</StatusPill>}>
+            <div className="fd-vs">
+              <figure>
+                <span style={{ fontFamily: FONT[fam.name] }}>The keycap is the brand mark</span>
+                <figcaption>
+                  The token today: <b>{fam.face}</b>
+                </figcaption>
+              </figure>
+              <figure>
+                <span style={{ fontFamily: `'${fam.contractFace}', var(--sans)` }}>The keycap is the brand mark</span>
+                <figcaption>
+                  The contract: <b>{fam.contractFace}</b>
+                  {document.fonts?.check(`16px '${fam.contractFace}'`) ? '' : ' (not loaded here, so drawn in a fallback)'}
+                </figcaption>
+              </figure>
+            </div>
+            <Facts
+              rows={[
+                ['Token', <code>{fam.value}</code>],
+                ['Contract says', `“${fam.contract}”`],
+              ]}
+            />
+          </SheetPart>
+          <SheetPart label="Why it matters" source={<code>bella.dsds.yaml</code>}>
+            <p>Agents build from the contract, so anything an agent makes will use the wrong face, and the gate can’t catch it because the contract is what it checks against.</p>
+          </SheetPart>
+          <SheetPart label="What to do" fix>
+            <p>Pick one source of truth. If {fam.face} is the face you ship, update the contract; if the contract is right, switch the token.</p>
+          </SheetPart>
         </>
       ),
-      footer: (
-        <>
-          <Button variant="primary" onClick={() => (close(), onSession(`Update BELLA's contract (bella.dsds.yaml) so ${fam.token} says ${fam.face}, as the token does.`))}>
-            Update the contract
-          </Button>
-          <Button onClick={() => (close(), onSession(`Switch BELLA's ${fam.token} token to ${fam.contractFace}, as the contract says.`))}>Switch the token to {fam.contractFace}</Button>
-        </>
-      ),
+      actions: [
+        { label: 'Update the contract', onClick: () => (close(), onSession(`Update BELLA's contract (bella.dsds.yaml) so ${fam.token} says ${fam.face}, as the token does.`)), ...SESSION },
+        { label: `Switch the token to ${fam.contractFace}`, onClick: () => (close(), onSession(`Switch BELLA's ${fam.token} token to ${fam.contractFace}, as the contract says.`)), ...SESSION },
+      ],
     });
   return (
     <>
@@ -664,31 +726,39 @@ function TokenizedPanel({ f, roles, onColour, onSession, setSheet, close }) {
   const rows = [{ p: 'Colour', tokens: roles, colour: true, not: [] }, ...props];
   const see = (r) =>
     setSheet({
+      kicker: 'Tokenized?',
       title: `${r.p}: ${r.not.length} not a token`,
       body: (
         <>
-          <p>
-            Each declaration below sets a {r.p.toLowerCase()} value directly instead of reading a BELLA token. Keywords such as <code>0</code>, <code>none</code> and <code>inherit</code> aren’t counted.
-          </p>
-          <ul className="fd-plain">
-            {r.not.map((n) => (
-              <li key={`${n.file}:${n.line}`}>
-                <span>
-                  <b>{n.component}</b> <code>{n.decl}</code>
-                </span>
-                <code className="fd-muted">
-                  {n.file.replace('src/components/', '')}:{n.line}
-                </code>
-              </li>
-            ))}
-          </ul>
+          <SheetPart label="What this is">
+            <p>
+              Every {r.p.toLowerCase()} declaration in BELLA’s component CSS that sets a value directly instead of reading a token. Keywords such as <code>0</code>, <code>none</code> and <code>inherit</code> aren’t counted.
+            </p>
+          </SheetPart>
+          <SheetPart label="State" pill={<StatusPill tone="fail">{r.not.length} hard-coded</StatusPill>}>
+            <Facts rows={[['Declarations', `${r.decl}, ${r.decl - r.not.length} read a token`], ['Components', [...new Set(r.not.map((n) => n.component))].join(', ')]]} />
+            <ul className="plain">
+              {r.not.map((n) => (
+                <li key={`${n.file}:${n.line}`}>
+                  <span>
+                    <b>{n.component}</b> <code>{n.decl}</code>
+                  </span>
+                  <code className="fd-muted">
+                    {n.file.replace('src/components/', '')}:{n.line}
+                  </code>
+                </li>
+              ))}
+            </ul>
+          </SheetPart>
+          <SheetPart label="Why it matters" source={<><code>src/components/*.module.css</code>, read by <code>scripts/sync-foundations.mjs</code></>}>
+            <p>A hard-coded value doesn’t follow a theme or a token change, so it is the one place the component drifts when the rest of BELLA moves.</p>
+          </SheetPart>
+          <SheetPart label="What to do" fix>
+            <p>Swap each value for the {r.p.toLowerCase()} token it matches, then run the gate. Where no token matches, that is a missing token to add first.</p>
+          </SheetPart>
         </>
       ),
-      footer: (
-        <Button variant="primary" onClick={() => (close(), onSession(`In BELLA, replace these hard-coded ${r.p.toLowerCase()} values with tokens: ${r.not.map((n) => `${n.file}:${n.line} (${n.decl})`).join('; ')}.`))}>
-          Fix in a session
-        </Button>
-      ),
+      actions: [{ label: 'Fix in a session', onClick: () => (close(), onSession(`In BELLA, replace these hard-coded ${r.p.toLowerCase()} values with tokens: ${r.not.map((n) => `${n.file}:${n.line} (${n.decl})`).join('; ')}.`)), ...SESSION }],
     });
   return (
     <>

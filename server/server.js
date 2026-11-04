@@ -27,7 +27,8 @@ import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } fr
 import { decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, searchHistory } from './lib/history.mjs';
 import { systemMap } from './lib/map.mjs';
-import { playMap, playPages, saveBrief, startPlayProxy, SITE_URL, PLAY_PORT } from './lib/play.mjs';
+import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
+import { playMap, playPages, playTarget, saveBrief, startPlayProxy, PROXY } from './lib/play.mjs';
 
 const app = express();
 app.use(express.json());
@@ -490,7 +491,7 @@ app.get('/runs/:id', (req, res) => {
 app.post('/runs', async (req, res) => {
   if (!sameApp(req, res)) return;
   try {
-    res.json(await startRun({ brief: req.body?.brief, title: typeof req.body?.title === 'string' ? req.body.title.slice(0, 120) : null }));
+    res.json(await startRun({ brief: req.body?.brief, title: typeof req.body?.title === 'string' ? req.body.title.slice(0, 120) : null, from: typeof req.body?.from === 'string' ? req.body.from.slice(0, 60) : null }));
   } catch (e) {
     errorOut(res, e);
   }
@@ -587,13 +588,55 @@ app.get('/component-tests/:id', (req, res) => {
 // GET /term/repos: the folders a workspace terminal may open in.
 app.get('/term/repos', (_req, res) => res.json(repoList()));
 
-// The Playground: a site page live through its own proxy, its source map, and
-// the brief for Claude. Never writes to the site.
-app.get('/play/pages', (_req, res) => res.json({ site: SITE_URL, proxy: `http://127.0.0.1:${PLAY_PORT}`, pages: playPages() }));
-app.get('/play/map', (req, res) => {
+// Projects: the repos CHIP works on (projects.mjs). GET reads; the note, and
+// starting or stopping a dev server CHIP started, come from CHIP's page only.
+app.get('/projects', async (_req, res) => {
   try {
-    const map = playMap(String(req.query.route || '/about'));
-    map ? res.json(map) : res.status(404).json({ error: 'No such page' });
+    res.json({ projects: await projectsSummary() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.get('/projects/:id', async (req, res) => {
+  try {
+    const p = await projectDetail(String(req.params.id), { fresh: req.query.fresh === '1' });
+    p ? res.json(p) : res.status(404).json({ error: 'No such project' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+const fromChip = (req, res) => (req.headers.origin && !APP_ORIGINS.has(req.headers.origin) ? (res.status(403).json({ error: 'Not from CHIP' }), false) : true);
+app.put('/projects/:id/note', (req, res) => {
+  if (!fromChip(req, res)) return;
+  try {
+    res.json(saveNote(String(req.params.id), req.body?.note));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+app.post('/projects/:id/dev', async (req, res) => {
+  if (!fromChip(req, res)) return;
+  try {
+    res.json(req.body?.action === 'stop' ? stopDev(String(req.params.id)) : await startDev(String(req.params.id)));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// The Playground: a project's page live through its own proxy, its source map,
+// and the brief for Claude. Never writes to the project. Asking for a map
+// points the proxy at that project's dev server.
+app.get('/play/pages', (req, res) => {
+  const id = String(req.query.project || 'site');
+  res.json({ project: id, proxy: PROXY, pages: playPages(id) });
+});
+app.get('/play/map', async (req, res) => {
+  try {
+    const id = String(req.query.project || 'site');
+    const run = await playTarget(id);
+    if (!run) return res.status(404).json({ error: 'No such project' });
+    const map = playMap(id, String(req.query.route || ''));
+    map ? res.json({ ...map, run }) : res.status(404).json({ error: 'No such page', run });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
