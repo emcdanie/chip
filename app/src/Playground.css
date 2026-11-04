@@ -108,3 +108,8 @@
 .pg-parts li:hover { background: color-mix(in srgb, var(--action) 6%, var(--card)); }
 .pg-down { display: grid; gap: var(--s-12); justify-items: start; margin-bottom: var(--s-16); padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--ink); font-size: var(--fs-16); line-height: var(--lh-body); }
 .pg-down p { margin: 0; max-width: 70ch; }
+
+/* Skip preview: hidden until a keyboard reaches it, just before the iframe */
+.pg-skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pg-skip:focus { display: inline-flex; align-items: center; justify-self: start; min-height: var(--h-control); padding: 0 var(--s-16); border-radius: var(--r); background: var(--card); color: var(--ink); }
+.pg-insp:focus { outline: none; }

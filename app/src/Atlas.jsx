@@ -2109,15 +2109,14 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
                           className={`dm-anno${on(p.key) ? ' on' : ''}${latent ? ' idle' : ''}${lens === 'technical' ? ' tok' : ''}`}
                           style={{ left: x, top: y }}
                           aria-pressed={sel === p.key}
-                          aria-label={`${p.n} ${p.title}${latent ? `, shows on ${trigOf(p)}` : ''}`}
                           onClick={() => pick(p.key)}
                           onPointerEnter={() => setHov(p.key)}
                           onPointerLeave={() => setHov(null)}
                           onFocus={() => setHov(p.key)}
                           onBlur={() => setHov(null)}
                         >
-                          <b>{p.n}</b>
-                          {chipText(p)}
+                          <b>{p.n}</b> {chipText(p)}
+                          {latent ? <span className="k-vh">, shows on {trigOf(p)}</span> : null}
                         </button>
                       );
                     })}
@@ -2209,6 +2208,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
         </div>
 
         <aside className="dm-insp" aria-label="Inspector">
+          <h2 className="k-vh">Inspector</h2>
           <section>
             <h3>
               Parts <span className="cap">{c.parts?.length ? 'from the contract' : 'measured, none in the contract'}</span>

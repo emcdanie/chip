@@ -486,6 +486,17 @@ export default function Playground({ onToast, project: askedProject, route: aske
                 ) : null}
               </div>
             ) : null}
+            {/* the preview is a whole page in an iframe: one Tab passes it */}
+            <a
+              className="pg-skip"
+              href="#pg-insp"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('pg-insp')?.focus();
+              }}
+            >
+              Skip preview
+            </a>
             <div className="pg-scaled" hidden={!!map && !running} style={{ width: W * scale, height: VIEW_H * scale }}>
               <div className="pg-frame" style={{ width: W, height: VIEW_H, transform: `scale(${scale})` }}>
                 {proxy ? <iframe key={project} ref={frame} title={`${map.name} page ${map.label}`} src={`${proxy}${srcOf(route)}`} width={W} height={VIEW_H} onLoad={hello} /> : null}
@@ -549,7 +560,7 @@ export default function Playground({ onToast, project: askedProject, route: aske
           </p>
         </section>
 
-        <aside className="pg-insp" aria-label="Map, rules, components and notes">
+        <aside className="pg-insp" id="pg-insp" tabIndex={-1} aria-label="Map, rules, components and notes">
           <Segmented id="pgtab" label="Inspector" items={tabs} value={tab} onChange={setTab} />
 
           {tab === 'map' ? (

@@ -10,7 +10,6 @@
 .atlas {
   --grid-line: rgb(13 153 255 / 0.1);
   --ln-ink: color-mix(in srgb, var(--code-ink) 55%, var(--code-ground));
-  --on-note: var(--on-action); /* text on the pink, dark in every theme: the pink doesn't change */
   display: grid; gap: var(--s-16); min-width: 0; container: atlas / inline-size;
 }
 :root[data-theme="dark"] .atlas { --grid-line: rgb(110 182 240 / 0.12); }
@@ -195,13 +194,15 @@
 .atlas .dm-lbl { font-size: var(--fs-14); color: var(--muted); margin-right: var(--s-4); }
 .atlas .dm-ck { display: inline-flex; align-items: center; gap: var(--s-8); min-height: var(--h-compact); padding: 0 14px 0 var(--s-8); border: 0; border-radius: var(--r-control); font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); cursor: pointer; transition: background-color 0.2s; }
 .atlas .dm-ck i { font-style: normal; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font: 600 var(--fs-14)/1 var(--sans); }
-.atlas .dm-ck small { font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--body); }
+.atlas .dm-ck small { font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--ink); }
 .atlas .dm-ck.pass { background: color-mix(in srgb, var(--pass) 20%, var(--card)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pass) 60%, var(--card)); }
 .atlas .dm-ck.pass i { background: var(--pass); }
 .atlas .dm-ck.fail { background: color-mix(in srgb, var(--fail) 14%, var(--card)); box-shadow: inset 0 0 0 1px var(--fail); }
 .atlas .dm-ck.fail i { background: var(--fail); }
 .atlas .dm-ck.needs { background: color-mix(in srgb, var(--needs) 28%, var(--card)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--needs) 80%, var(--ink)); }
 .atlas .dm-ck.needs i { background: var(--needs); }
+/* the mark on a green or yellow dot is dark in every theme, as on the status pills */
+.atlas .dm-ck:is(.pass, .needs) i { color: var(--on-action); }
 .atlas .dm-ck.grey { background: var(--card); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
 .atlas .dm-ck.grey i { background: color-mix(in srgb, var(--ink) 10%, var(--card)); }
 .atlas .dm-ck[aria-expanded='true'] { outline: 2px solid var(--ink); outline-offset: 2px; }

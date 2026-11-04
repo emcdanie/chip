@@ -126,7 +126,15 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
     return () => cancelAnimationFrame(t);
   }, [view, rows.length]);
 
-  if (!bella) return <p className="k-sub">Reading BELLA…</p>;
+  if (!bella)
+    return (
+      <div className="ov-page">
+        <h1 className="k-h1" tabIndex={-1}>
+          Overview
+        </h1>
+        <p className="k-sub">Reading BELLA…</p>
+      </div>
+    );
 
   const n = comps.length;
   const cells = n * COLS.length;
@@ -595,7 +603,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
               const pct = n ? ok / n : 0;
               const low = pct < 0.9;
               return (
-                <button type="button" key={k.short} className={`hcol${low ? ' low' : ''}`} style={{ gridColumn: i + 1 }} aria-label={`${k.long}, ${ok} of ${n}${low ? ', under 90%' : ''}`} aria-haspopup="dialog" onClick={() => colSheet(i)}>
+                <button type="button" key={k.short} className={`hcol${low ? ' low' : ''}`} style={{ gridColumn: i + 1 }} aria-label={`${k.short} ${ok}/${n}, ${k.long}${low ? ', under 90%' : ''}`} aria-haspopup="dialog" onClick={() => colSheet(i)}>
                   <span className="hl">{k.short}</span>
                   <span className="tube">
                     <i style={{ height: filled ? `calc((100% - 8px) * ${pct})` : 0 }} />

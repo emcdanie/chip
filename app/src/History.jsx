@@ -389,6 +389,7 @@ function Track({ records, total, lens, onRecord, onOpenAtlas, bellaComp, vstat, 
 
   return (
     <section ref={run} id="h-track" className="hrun" aria-label={`Changes, ${order}`} data-scrub={scrub || undefined} data-reached={reached || undefined}>
+      <h2 className="k-vh">Timeline</h2>
       <div ref={pin} className="hpin">
         <div className="hkey">
           <p className="hcount">
