@@ -2239,8 +2239,9 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
                 ask(q);
               }}
             >
-              <input aria-labelledby="dm-askh" autoComplete="off" value={q} placeholder={suggOf(c)[0]} onChange={(e) => setQ(e.target.value)} />
-              <Button variant="primary" type="submit">
+              {/* the placeholder no longer reads as a typed question: the suggestions under it are the prompts */}
+              <input aria-labelledby="dm-askh" autoComplete="off" value={q} placeholder="Type a question" onChange={(e) => setQ(e.target.value)} />
+              <Button variant="primary" type="submit" disabled={!q.trim()}>
                 Ask
               </Button>
             </form>
