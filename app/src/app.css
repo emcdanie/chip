@@ -1,26 +1,6 @@
-/* CHIP app layout. BELLA semantic tokens only: no hex, no raw sizes. The
- * components bring their own styles; this file only places them. */
-
-/* CHIP opts in to BELLA's signal blue (Elleta, 3 Nov 2026: the elleta.design
- * palette): links, the current tab and the focus ring. One block, after the
- * BELLA import, so it beats bella.css's :root. */
-:root {
-  --ring-focus-color: var(--color-semantic-signal);
-  --component-link-default-foreground: var(--color-semantic-signal);
-  --component-link-default-foreground-hover: var(--color-semantic-signal);
-  --component-tabs-indicator: var(--color-semantic-signal);
-}
-
-html,
-body {
-  margin: 0;
-  background: var(--color-semantic-background);
-  color: var(--color-semantic-text-primary);
-  font-family: var(--typography-font-family-body);
-  font-size: var(--typography-font-size-body);
-  letter-spacing: var(--typography-letter-spacing-body);
-  line-height: var(--typography-line-height-normal);
-}
+/* CHIP app layout, from before the mock rebuild. Values come from kit/tokens.css
+ * (CHIP's one sheet) and, until each page is rebuilt on the kit, BELLA's
+ * semantic tokens. The base (body, focus ring, link colour) is in kit/tokens.css. */
 
 .skip {
   position: absolute;

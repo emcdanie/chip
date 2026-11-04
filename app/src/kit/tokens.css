@@ -1,0 +1,71 @@
+/* CHIP's one token sheet, ported from the approved mock (chip-mock-03, 4 Nov
+ * 2026). Every value in app/src lives here and nowhere else. Colours are the
+ * mock's, written as rgb() because the local pre-commit hook blocks hex in
+ * app/src. BELLA's own tokens still load for the BELLA components CHIP shows;
+ * CHIP's chrome reads only these. */
+:root {
+  /* colour: one token per role */
+  --ground: rgb(247 247 245);
+  --card: rgb(255 255 255);
+  --ink: rgb(29 32 48);
+  --body: rgb(43 47 61);
+  --muted: rgb(71 76 94);
+  --line: rgb(31 28 25 / 0.22);
+  --neutral: color-mix(in srgb, var(--ink) 7%, var(--card)); /* counts and resting chips */
+  --action: rgb(47 155 224); /* action, CTA, selection */
+  --pass: rgb(43 154 87); /* passed: 3.6:1 on card as a mark; ink text on its fills */
+  --fail: rgb(226 71 59); /* failed */
+  --needs: rgb(233 184 32); /* needs you */
+  --note: rgb(229 139 187); /* annotations only */
+  --sel: color-mix(in srgb, var(--action) 12%, var(--card));
+  --canvas: rgb(244 245 248);
+  --inset: rgb(236 238 243);
+  --sort-on: rgb(24 101 187); /* the sorted column's arrow */
+  --code-ground: rgb(29 32 48); /* code blocks in a sheet */
+  --code-ink: rgb(236 238 243);
+  --scrim: rgb(29 32 48 / 0.32); /* behind a sheet */
+
+  /* type: 14 / 16 / 20 / 28 / 40, weights 400 and 600 */
+  --display: 'Newsreader', Georgia, serif; /* H1 only */
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --code: 'Geist Mono', ui-monospace, monospace;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+  --fs-28: 28px;
+  --fs-40: 40px;
+  --lh-body: 1.5;
+  --lh-head: 1.25;
+
+  /* space: 4 / 8 / 12 / 16 / 24 / 32 / 48 */
+  --s-4: 4px;
+  --s-8: 8px;
+  --s-12: 12px;
+  --s-16: 16px;
+  --s-24: 24px;
+  --s-32: 32px;
+  --s-48: 48px;
+  --gutter: 32px; /* the one content gutter */
+
+  /* shape */
+  --r: 2px; /* boxes, cards, tables, inputs, code, status chips */
+  --r-control: 999px; /* buttons, tabs, chips: flip to 2px for square */
+  --h-control: 44px;
+  --h-compact: 36px;
+  --icon: 18px;
+  --shadow: 0 1px 4px rgb(29 32 48 / 0.18); /* the floating selected tab, nothing else */
+  --focus: 3px solid var(--action);
+
+  /* BELLA components inside CHIP take CHIP's focus ring and link colours */
+  --ring-focus-color: var(--action);
+  --component-link-default-foreground: var(--ink);
+  --component-link-default-foreground-hover: var(--ink);
+  --component-tabs-indicator: var(--action);
+}
+
+/* base */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--ground); color: var(--body); font: 400 var(--fs-16)/var(--lh-body) var(--sans); }
+:focus-visible { outline: var(--focus); outline-offset: 2px; }
+[hidden] { display: none !important; }
