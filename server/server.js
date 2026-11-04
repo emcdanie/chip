@@ -27,7 +27,7 @@ import { gapFixes } from './lib/gaps.mjs';
 import { historyRecord, searchHistory } from './lib/history.mjs';
 import { systemMap } from './lib/map.mjs';
 import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
-import { playMap, playPages, saveBrief, startPlayProxy, SITE_URL, PLAY_PORT } from './lib/play.mjs';
+import { playMap, playPages, playTarget, saveBrief, startPlayProxy, PROXY } from './lib/play.mjs';
 
 const app = express();
 app.use(express.json());
@@ -550,13 +550,20 @@ app.post('/projects/:id/dev', async (req, res) => {
   }
 });
 
-// The Playground: a site page live through its own proxy, its source map, and
-// the brief for Claude. Never writes to the site.
-app.get('/play/pages', (_req, res) => res.json({ site: SITE_URL, proxy: `http://127.0.0.1:${PLAY_PORT}`, pages: playPages() }));
-app.get('/play/map', (req, res) => {
+// The Playground: a project's page live through its own proxy, its source map,
+// and the brief for Claude. Never writes to the project. Asking for a map
+// points the proxy at that project's dev server.
+app.get('/play/pages', (req, res) => {
+  const id = String(req.query.project || 'site');
+  res.json({ project: id, proxy: PROXY, pages: playPages(id) });
+});
+app.get('/play/map', async (req, res) => {
   try {
-    const map = playMap(String(req.query.route || '/about'));
-    map ? res.json(map) : res.status(404).json({ error: 'No such page' });
+    const id = String(req.query.project || 'site');
+    const run = await playTarget(id);
+    if (!run) return res.status(404).json({ error: 'No such project' });
+    const map = playMap(id, String(req.query.route || ''));
+    map ? res.json({ ...map, run }) : res.status(404).json({ error: 'No such page', run });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

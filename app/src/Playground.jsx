@@ -1,9 +1,10 @@
-// The Playground (docs/plans/playground.md): a page from the site, live, to
-// play with; a markup layer for boxes and notes; each section mapped to BELLA
-// (synced, the site's own copy, or site only); and BELLA's rules run on what
+// The Playground (docs/plans/playground.md): a page from any project (the
+// site, CHIP, BELLA's Storybook; GET /projects), live, to play with; a markup
+// layer for boxes and notes; each section mapped to BELLA (BELLA's, the
+// project's own copy, or the project's only); and BELLA's rules run on what
 // the browser measured, each finding naming its rule and its source. Send to
-// Claude writes a brief and types `claude` with it in the site's terminal;
-// CHIP never edits the site. Every note says what it is pinned to, the rule
+// Claude writes a brief and types `claude` with it in the project's terminal;
+// CHIP never edits the project. Every note says what it is pinned to, the rule
 // there and a suggested change, with its own send. BELLA components dragged
 // from the Components tab drop as placed proposals: drawn for real in the
 // overlay, moved, resized, swapped, optionally replacing the section under
@@ -33,11 +34,12 @@ const MODES = [
 
 /* ---------- BELLA's rules, run on what the probe measured ---------- */
 const FLOORS = 'BELLA AGENTS.md · Floors';
-const KIND = {
+// a part's kind in the project's own words ("Site copy", "CHIP only")
+const kindsOf = (short = 'Site') => ({
   bella: { tone: 'pass', word: 'BELLA' },
-  copy: { tone: 'needs', word: 'Site copy' },
-  site: { tone: 'neutral', word: 'Site only' },
-};
+  copy: { tone: 'needs', word: `${short} copy` },
+  site: { tone: 'neutral', word: `${short} only` },
+});
 
 const worst = (list, key, dir = 1) => list.reduce((a, b) => (dir * (b[key] - a[key]) < 0 ? b : a));
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -114,7 +116,7 @@ export function findingsOf(map, probe, placed = [], cats = {}) {
     const sections = ids.map((id) => `#${id}`).join(', ');
     out.push(
       c.kind === 'copy'
-        ? { key: `copy-${name}`, tone: 'needs', section: ids[0], rule: `${name} isn’t BELLA’s ${name}`, source: c.source, detail: `${c.note} (${c.file}), in ${sections}`, instead: `Sync BELLA’s ${name} through the site’s sync-bella.mjs, as Card is` }
+        ? { key: `copy-${name}`, tone: 'needs', section: ids[0], rule: `${name} isn’t BELLA’s ${name}`, source: c.source, detail: `${c.note} (${c.file}), in ${sections}`, instead: `Use BELLA’s ${name}, ${map.getBella}, instead of ${map.short}’s own` }
         : { key: `site-${name}`, tone: 'neutral', section: ids[0], rule: `${name} isn’t in BELLA’s catalogue`, source: `BELLA ${c.source}`, detail: `${c.note} (${c.file}), in ${sections}`, instead: 'Compose it from BELLA parts; if no part fits, name the missing component (AGENTS.md rule 3)' },
     );
   }
@@ -135,16 +137,23 @@ function suggestFor(n, findings, map) {
   if (f) return { change: f.instead, why: `${f.rule}: ${f.detail} (${f.source})`, rule: f };
   const c = map?.components[n.component];
   if (!n.section) return null;
-  if (c?.kind === 'copy') return { change: `Sync BELLA’s ${n.component} through the site’s sync-bella.mjs instead of editing the site’s copy`, why: `${c.note}, so a change here drifts from BELLA (${c.source})` };
+  if (c?.kind === 'copy') return { change: `Use BELLA’s ${n.component}, ${map.getBella}, instead of editing ${map.short}’s copy`, why: `${c.note}, so a change here drifts from BELLA (${c.source})` };
   if (c?.kind === 'site') return { change: `Compose it from BELLA parts; if none fits, name the missing component`, why: `${c.note}: BELLA AGENTS.md rule 3` };
-  if (c?.kind === 'bella') return { change: `Change ${n.component} in BELLA, not on the site`, why: `${c.note}: the site only syncs it (${c.source})` };
+  if (c?.kind === 'bella') return map.bella?.kind === 'self' ? { change: `Change ${n.component} in its source, ${c.file}`, why: `${c.note} (${c.source})` } : { change: `Change ${n.component} in BELLA, not in ${map.short}`, why: `${c.note}: ${map.short} only uses it (${c.source})` };
   return null;
 }
 
 /* ---------- the page ---------- */
-export default function Playground({ onToast }) {
+// the address a route loads at on the project's server, and the path the probe reports
+const srcOf = (route) => (route.startsWith('#') ? `/${route}` : route);
+const pathOf = (route) => new URL(srcOf(route), 'http://x').pathname;
+
+export default function Playground({ onToast, project: askedProject, route: askedRoute, onTarget }) {
+  const [projects, setProjects] = useState(null);
+  const [project, setProject] = useState(askedProject ?? 'site');
   const [pages, setPages] = useState(null);
-  const [route, setRoute] = useState('/about');
+  const [route, setRoute] = useState(askedRoute ?? null);
+  const [starting, setStarting] = useState(false);
   const [map, setMap] = useState(null);
   const [probe, setProbe] = useState(null);
   const [scrollY, setScrollY] = useState(0);
@@ -173,26 +182,70 @@ export default function Playground({ onToast }) {
     return () => window.removeEventListener('resize', f);
   }, []);
 
+  // a link (#/play/<project>?route=) picks the project and page
   useEffect(() => {
-    fetch('/play/pages')
+    if (askedProject && askedProject !== project) setProject(askedProject);
+    if (askedRoute && askedRoute !== route) setRoute(askedRoute);
+  }, [askedProject, askedRoute]);
+  useEffect(() => {
+    fetch('/projects')
       .then((r) => r.json())
-      .then(setPages)
+      .then((j) => setProjects(j.projects))
       .catch(() => setError('The CHIP server is not answering.'));
+  }, []);
+  // the project's pages; the first one opens unless a page was asked for
+  useEffect(() => {
+    setPages(null);
+    fetch(`/play/pages?project=${encodeURIComponent(project)}`)
+      .then((r) => r.json())
+      .then((j) => {
+        setPages(j);
+        setRoute((r) => (j.pages.some((p) => p.route === r) ? r : (j.pages.find((p) => p.route === '/about') ?? j.pages[0])?.route ?? null));
+      })
+      .catch(() => setError('The CHIP server is not answering.'));
+  }, [project]);
+  useEffect(() => {
+    if (route) onTarget?.({ project, route });
+  }, [project, route]);
+  useEffect(() => {
     fetch('/data/bella.json')
       .then((r) => r.json())
       .then((b) => setCatalogue(b.components))
       .catch(() => setCatalogue([]));
   }, []);
+  // the map also points CHIP's proxy at the project's dev server
+  const loadMap = useCallback(
+    () =>
+      fetch(`/play/map?project=${encodeURIComponent(project)}&route=${encodeURIComponent(route)}`)
+        .then((r) => r.json())
+        .then((m) => (m.error ? setError(m.error) : (setError(null), setMap(m)), m))
+        .catch(() => setError('The CHIP server is not answering.')),
+    [project, route],
+  );
   useEffect(() => {
     setMap(null);
     setProbe(null);
     setNotes([]);
     setPlaced([]);
-    fetch(`/play/map?route=${encodeURIComponent(route)}`)
-      .then((r) => r.json())
-      .then((m) => (m.error ? setError(m.error) : setMap(m)))
-      .catch(() => setError('The CHIP server is not answering.'));
-  }, [route]);
+    if (pages?.project === project && route) loadMap();
+  }, [loadMap, pages]);
+  // not running: start its dev server from the config, then check every 2s for a minute
+  async function startDev() {
+    setStarting(true);
+    try {
+      const r = await fetch(`/projects/${project}/dev`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ action: 'start' }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error);
+      for (let i = 0; i < 30; i++) {
+        await new Promise((ok) => setTimeout(ok, 2000));
+        const m = await loadMap();
+        if (m?.run?.state === 'running') break;
+      }
+    } catch (e) {
+      onToast?.(`Could not start it: ${e.message}`);
+    }
+    setStarting(false);
+  }
 
   useEffect(() => {
     const el = stage.current;
@@ -202,7 +255,9 @@ export default function Playground({ onToast }) {
     return () => ro.disconnect();
   }, []);
 
-  const proxy = pages?.proxy;
+  const running = map?.run?.state === 'running';
+  const proxy = running ? map.proxy : null;
+  const KIND = kindsOf(map?.short);
   const proxyOrigin = proxy ? new URL(proxy).origin : null;
   const hello = useCallback(() => {
     if (!map || !proxyOrigin) return;
@@ -333,15 +388,15 @@ export default function Playground({ onToast }) {
   const plain = (fs) => fs.map(({ at: _, ...f }) => f);
   const bodyOf = (only) =>
     only
-      ? { route, width: W, scope: 'note', notes: [noteBody(only)], proposals: [], findings: plain(findings.filter((f) => f.section === only.section || (!f.section && f.tone === 'fail'))) }
-      : { route, width: W, notes: inBrief.map(noteBody), proposals: placed, findings: plain(findings) };
+      ? { project, route, width: W, scope: 'note', notes: [noteBody(only)], proposals: [], findings: plain(findings.filter((f) => f.section === only.section || (!f.section && f.tone === 'fail'))) }
+      : { project, route, width: W, notes: inBrief.map(noteBody), proposals: placed, findings: plain(findings) };
   async function toClaude(only) {
     setSending(true);
     try {
       const r = await fetch('/play/brief', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(bodyOf(only)) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
-      window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: 'site', command: `claude "Read ${j.file} and follow it."` } }));
+      window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: map.terminal, command: `claude "Read ${j.file} and follow it."` } }));
       onToast?.('Brief saved. Press Return in the terminal to start Claude.');
     } catch (e) {
       onToast?.(`Could not write the brief: ${e.message}`);
@@ -368,7 +423,7 @@ export default function Playground({ onToast }) {
     { id: 'parts', label: 'Components' },
     { id: 'notes', label: `Notes${notes.length + placed.length ? ` · ${notes.length + placed.length}` : ''}` },
   ];
-  const live = probe && probe.url === route;
+  const live = probe && route && probe.url === pathOf(route);
   const groups = useMemo(() => {
     const ql = q.trim().toLowerCase();
     const g = {};
@@ -384,10 +439,11 @@ export default function Playground({ onToast }) {
       <PageHeader
         meta="Playground"
         title="Playground"
-        lede="Load a page from your site and use it live. Mark it up, drop BELLA components on it, see where it breaks BELLA’s rules. Send it to Claude when you know what you want."
+        lede="Pick a project and one of its pages, and use it live. Mark it up, drop BELLA components on it, see where it breaks BELLA’s rules. Send it to Claude in that project’s terminal when you know what you want."
         actions={
           <div className="pg-actions">
-            {pages?.pages?.length ? <Select label="Page" value={route} onChange={setRoute} options={pages.pages.map((p) => ({ value: p.route, label: p.route }))} /> : null}
+            {projects?.length ? <Select label="Project" value={project} onChange={setProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
+            {pages?.pages?.length ? <Select label="Page" value={route ?? ''} onChange={setRoute} options={pages.pages.map((p) => ({ value: p.route, label: p.label === p.route || p.label === 'Home' ? p.route : `${p.label}` }))} /> : null}
             <Button variant="primary" onClick={() => toClaude()} disabled={sending || !map}>
               {sending ? 'Writing the brief…' : 'Send to Claude'}
             </Button>
@@ -402,9 +458,9 @@ export default function Playground({ onToast }) {
             <Segmented id="pgw" label="Width" panels={false} items={WIDTHS} value={width} onChange={setWidth} />
             <Segmented id="pgm" label="Mode" panels={false} items={MODES} value={mode} onChange={setMode} />
             <span className="pg-src">
-              {pages ? (
+              {map?.run?.url ? (
                 <>
-                  <code>{pages.site}</code>
+                  <code>{map.run.url}</code>
                   {map ? (
                     <>
                       {' · '}
@@ -413,13 +469,26 @@ export default function Playground({ onToast }) {
                   ) : null}
                 </>
               ) : null}
-              {live ? <StatusPill tone="pass">Live</StatusPill> : <StatusPill tone="neutral">Loading</StatusPill>}
+              {live ? <StatusPill tone="pass">Live</StatusPill> : map && !running ? <StatusPill tone="neutral">Not running</StatusPill> : <StatusPill tone="neutral">Loading</StatusPill>}
             </span>
           </div>
           <div className="pg-stage" ref={stage}>
-            <div className="pg-scaled" style={{ width: W * scale, height: VIEW_H * scale }}>
+            {map && !running ? (
+              <div className="pg-down" role="status">
+                <p>
+                  <b>{map.name} isn’t running</b> at <code>{map.run.url ?? 'no address in the config'}</code>
+                  {map.run.state === 'starting' || starting ? ', starting…' : '.'} The map and notes work from the source; the page loads once its dev server answers.
+                </p>
+                {map.run.command ? (
+                  <Button onClick={startDev} disabled={starting || map.run.state === 'starting'}>
+                    {starting ? 'Starting…' : `Start ${map.short}: ${map.run.command}`}
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="pg-scaled" hidden={!!map && !running} style={{ width: W * scale, height: VIEW_H * scale }}>
               <div className="pg-frame" style={{ width: W, height: VIEW_H, transform: `scale(${scale})` }}>
-                {proxy ? <iframe ref={frame} title={`Site page ${route}`} src={`${proxy}${route}`} width={W} height={VIEW_H} onLoad={hello} /> : null}
+                {proxy ? <iframe key={project} ref={frame} title={`${map.name} page ${map.label}`} src={`${proxy}${srcOf(route)}`} width={W} height={VIEW_H} onLoad={hello} /> : null}
                 <div
                   ref={over}
                   className={['pg-over', mode === 'mark' && 'mark', (dragging || grab) && 'drop'].filter(Boolean).join(' ')}
@@ -471,12 +540,12 @@ export default function Playground({ onToast }) {
               </div>
             </div>
           </div>
-          <p className="pg-cap">
+          <p className="pg-cap" hidden={!!map && !running}>
             {dragging
               ? `Drop ${dragging} where it should go on the page.`
               : mode === 'mark'
                 ? 'Drag a box over anything to add a note. The scroll wheel still moves the page.'
-                : 'The real page, running from your site. Click, open, turn the cards over. Switch to Mark up to draw, or drag a component in from Components.'}
+                : `The real page, running from ${map?.name ?? 'the project'}. Click, open, turn the cards over. Switch to Mark up to draw, or drag a component in from Components.`}
           </p>
         </section>
 
@@ -485,7 +554,9 @@ export default function Playground({ onToast }) {
 
           {tab === 'map' ? (
             <div {...segPanelProps('pgtab', 'map', tab)} className="pg-panel">
-              <p className="pg-sub">Each section from {map ? <code>{map.file}</code> : 'the source'}, matched to the page by its id.</p>
+              <p className="pg-sub">
+                {map ? <code>{map.file}</code> : 'The source'}. {map?.unmapped ?? map?.how ?? ''}
+              </p>
               <ol className="pg-list">
                 {map?.sections.map((s) => (
                   <li key={s.id} className="pg-row" onMouseEnter={() => setHot({ id: s.id })} onMouseLeave={() => setHot(null)}>
@@ -514,7 +585,19 @@ export default function Playground({ onToast }) {
                 ))}
               </ol>
               <p className="pg-key">
-                <b>BELLA</b> synced from BELLA unedited · <b>Site copy</b> carries a BELLA name but is the site’s own file · <b>Site only</b> not in BELLA’s catalogue.
+                {/* only the kinds this page has */}
+                {[
+                  ['bella', `BELLA’s own part (${map?.bella?.label ?? 'synced or read in place'})`],
+                  ['copy', `carries a BELLA name but is ${map?.short ?? 'the project'}’s own file`],
+                  ['site', 'not in BELLA’s catalogue'],
+                ]
+                  .filter(([k]) => Object.values(map?.components ?? {}).some((c) => c.kind === k))
+                  .map(([k, t], i) => (
+                    <React.Fragment key={k}>
+                      {i ? ' · ' : null}
+                      <b>{KIND[k].word}</b> {t}
+                    </React.Fragment>
+                  ))}
               </p>
             </div>
           ) : null}
@@ -527,7 +610,7 @@ export default function Playground({ onToast }) {
                   <li key={f.key} className={`pg-row pg-f ${f.tone}`} onMouseEnter={() => setHot(f)} onMouseLeave={() => setHot(null)}>
                     <div className="pg-rowhead">
                       <b>{f.rule}</b>
-                      <StatusPill tone={f.tone}>{f.tone === 'fail' ? 'Breaks' : f.tone === 'needs' ? 'Drift' : 'Site only'}</StatusPill>
+                      <StatusPill tone={f.tone}>{f.tone === 'fail' ? 'Breaks' : f.tone === 'needs' ? 'Drift' : KIND.site.word}</StatusPill>
                     </div>
                     <p>{f.detail}.</p>
                     <p className="pg-instead">
@@ -553,7 +636,7 @@ export default function Playground({ onToast }) {
 
           {tab === 'parts' ? (
             <div {...segPanelProps('pgtab', 'parts', tab)} className="pg-panel">
-              <p className="pg-sub">BELLA’s components. Drag one onto the page, or use Place. It lands as a proposal: Claude builds it, CHIP never edits the site.</p>
+              <p className="pg-sub">BELLA’s components. Drag one onto the page, or use Place. It lands as a proposal: Claude builds it, CHIP never edits {map?.name ?? 'the project'}.</p>
               <Input label="Find a component" value={q} onChange={setQ} placeholder="Button, Card…" />
               {catalogue === null ? <p className="pg-sub">Reading BELLA…</p> : null}
               {groups.map(([g, list]) => (
@@ -597,7 +680,7 @@ export default function Playground({ onToast }) {
               {notes.length || placed.length ? null : (
                 <div className="pg-empty">
                   <b>Nothing to send yet</b>
-                  <p>Mark up the page or drop BELLA components on it, then send it to Claude. CHIP writes the brief; Claude makes the change in the site’s terminal once you press Return.</p>
+                  <p>Mark up the page or drop BELLA components on it, then send it to Claude. CHIP writes the brief; Claude makes the change in {map?.short ?? 'the project'}’s terminal once you press Return.</p>
                 </div>
               )}
               {notes.length ? (
@@ -709,7 +792,7 @@ export default function Playground({ onToast }) {
                   {sending ? 'Writing the brief…' : sendLabel}
                 </Button>
                 <p className="pg-sub">
-                  Writes one brief, then types <code>claude</code> with it in the site’s terminal. You press Return; Claude branches, plans and waits for your go.
+                  Writes one brief, then types <code>claude</code> with it in {map?.short ?? 'the project'}’s terminal. You press Return; Claude branches, plans and waits for your go.
                 </p>
               </div>
             </div>
