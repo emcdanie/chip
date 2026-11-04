@@ -44,15 +44,6 @@
 .happ .k-chip.on { background: var(--ink); border-color: var(--ink); color: var(--card); }
 
 /* the summary */
-.hsum { display: grid; gap: var(--s-8); padding: var(--s-24); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
-.hsum .rk { color: var(--muted); }
-.hsumh { display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-16); align-items: baseline; justify-content: space-between; }
-.hsumh .k-link { padding: 0; min-height: var(--s-24); }
-.aiex { max-width: 70ch; padding: var(--s-8) var(--s-12); border-radius: var(--r); background: var(--inset); color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }
-.hshort { color: var(--ink); font-size: var(--fs-16); line-height: var(--lh-body); }
-.hsum .k-link { padding: 0 var(--s-4); }
-.cite { padding: 0 var(--s-4); font: 600 var(--fs-14)/var(--lh-body) var(--code); color: var(--ink); text-decoration: none; vertical-align: 1px; }
-.cite:hover { text-decoration: underline; }
 .hdet summary { cursor: pointer; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
 .hdet ol { display: grid; gap: var(--s-4); margin: var(--s-8) 0 0; padding-left: var(--s-24); font-size: var(--fs-14); line-height: var(--lh-body); }
 .hdet a { color: var(--ink); }
@@ -68,10 +59,11 @@
 .hlegend { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-16); }
 .hlegend i { display: inline-block; width: 12px; height: 12px; margin-right: var(--s-8); border: 2px solid var(--ink); border-radius: 50%; vertical-align: -1px; }
 .hlegend i[data-dec] { border-color: var(--action); }
-.hjump { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8); margin-left: auto; }
+.cite { padding: 0 var(--s-4); font: 600 var(--fs-14)/var(--lh-body) var(--code); color: var(--ink); text-decoration: none; vertical-align: 1px; }
+.cite:hover { text-decoration: underline; }
+.hjump { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8); }
+.hnone { margin: 0; color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
 .hjump .k-chip { margin: 0; }
-.hjump .k-chip[aria-current] { background: var(--ink); border-color: var(--ink); color: var(--card); }
-.hjump .k-link { margin-left: var(--s-8); }
 .hwrap { --rx: 0px; --ry: 0px; position: relative; display: grid; min-width: 0; }
 .hwrap > * { grid-area: 1 / 1; min-width: 0; }
 /* the rail: pale ahead of the marker, ink behind it */
@@ -117,7 +109,6 @@
 }
 
 /* sort */
-.hsortrow { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-16); align-items: center; justify-content: space-between; }
 
 /* on the cards: type, status, the why */
 .hchips { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }

@@ -245,7 +245,7 @@ function useReduced() {
   return r;
 }
 
-function Track({ records, total, lens, onRecord, onOpenAtlas, bellaComp, vstat, seen, markSeen }) {
+function Track({ records, total, lens, onRecord, onOpenAtlas, bellaComp, vstat, seen, markSeen, jumpRef }) {
   const reduce = useReduced();
   const scrub = !reduce;
   const run = useRef(null);
@@ -381,7 +381,8 @@ function Track({ records, total, lens, onRecord, onOpenAtlas, bellaComp, vstat, 
     e.preventDefault();
     focusCard(j);
   };
-  const months = [...new Set(T.map((r) => month(r.date)))];
+  // Jump to a month lives in the Filters drawer now (density pass): it calls this
+  if (jumpRef) jumpRef.current = (m) => goTo(T.findIndex((r) => month(r.date) === m));
   const used = T.filter((r) => r.type === 'Decision').length;
   if (!T.length) return null;
   const order = Date.parse(T[0].date) >= Date.parse(T[T.length - 1].date) ? 'newest on the left' : 'oldest on the left';
@@ -405,23 +406,6 @@ function Track({ records, total, lens, onRecord, onOpenAtlas, bellaComp, vstat, 
               Commit, release or review card
             </span>
           </p>
-          <div className="hjump" role="group" aria-label="Skip ahead">
-            <span className="sub2">Jump to</span>
-            {months.map((m) => (
-              <button key={m} type="button" className="k-chip" aria-current={m === month(T[lit].date) || undefined} onClick={() => goTo(T.findIndex((r) => month(r.date) === m))}>
-                {m}
-              </button>
-            ))}
-            <LinkButton
-              onClick={() => {
-                const h = document.getElementById('h-written');
-                h?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-                h?.focus({ preventScroll: true });
-              }}
-            >
-              Skip timeline
-            </LinkButton>
-          </div>
         </div>
         <div ref={wrap} className="hwrap">
           <i className="hrail" aria-hidden="true" />
@@ -620,7 +604,7 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
   const [drawer, setDrawer] = useState(false);
   const [record, setRecord] = useState(null);
   const [info, setInfo] = useState({});
-  const [how, setHow] = useState(false);
+  const jumpRef = useRef(null);
   const [recent, setRecent] = useState(() => load('chip-hq', []));
   const [mine, setMine] = useState(() => load('chip-hpre', []));
   const [seen, setSeen] = useState(() => new Set(load('chip-hseen', [], sessionStorage)));
@@ -683,24 +667,6 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
   const quick = QUICK.filter(([k]) => quickN(k) || quickOn === k).map(([id, label]) => ({ id, label, count: quickN(id) ?? '…' }));
   const onQuick = (k) => set({ types: k === 'all' || quickOn === k ? [] : [k] });
 
-  // the summary: short first, every claim numbered to its record; says so when there is too little to sum up
-  const src = records.slice(0, 4);
-  const cite = (i) => (
-    <a
-      href="#"
-      className="cite"
-      aria-label={`Source ${i + 1}`}
-      onClick={(e) => {
-        e.preventDefault();
-        setRecord(src[i].id);
-      }}
-    >
-      [{i + 1}]
-    </a>
-  );
-  const dec = records.filter((r) => r.type === 'Decision').length;
-  const bi = src.findIndex((r) => r.breaking);
-  const scope = [f.comps.length ? ` to ${f.comps.join(' and ')}` : '', f.date ? `, ${dateLabel(f.date).toLowerCase()}` : ''].join('');
   const related = parsed ? [...new Set([`${parsed.components[0] ?? 'Button'} decisions`, `Breaking changes to ${parsed.components[0] ?? 'Button'}`, `${parsed.components[0] ?? 'Button'} since October`, 'What changed in CHIP'])].filter((x) => x.toLowerCase() !== f.q.toLowerCase()).slice(0, 4) : [];
   const understood = parsed ? [parsed.types.length ? `${parsed.types.join(', ').toLowerCase()} changes` : 'every kind of change', parsed.components.length ? parsed.components.join(', ') : 'every component', parsed.since ? `since ${day(parsed.since)}` : 'any time', ...(parsed.breaking ? ['breaking only'] : []), ...(parsed.repo ? [`in ${parsed.repo === 'chip' ? 'CHIP' : 'BELLA'}`] : []), ...parsed.terms.map((t) => `“${t}”`)] : [];
   const bellaComp = (r) => bella?.components.find((c) => c.name === r.components?.[0]);
@@ -727,11 +693,6 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
       <div className="hblock">
         <div className="hquick">
           <Chips label="Quick filters" items={quick} value={quickOn} onChange={onQuick} />
-          {counts?.breaking || f.breaking ? (
-            <button type="button" className="k-chip" aria-pressed={f.breaking} onClick={() => set({ breaking: !f.breaking })}>
-              Breaking only<span className="n">{counts?.breaking ?? '…'}</span>
-            </button>
-          ) : null}
           <Button onClick={() => setDrawer(true)}>
             Filters{nOn ? <span className="n">{nOn}</span> : null}
           </Button>
@@ -766,58 +727,14 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
             </div>
           </div>
         ) : null}
-        {data && !data.error ? (
-          <section className="hsum" aria-live="polite" aria-label="Summary by CHIP">
-            {records.length > 1 ? (
-              <>
-                <div className="hsumh">
-                  <p className="rk">Summary by CHIP</p>
-                  <LinkButton aria-expanded={how} aria-controls="hAiEx" onClick={() => setHow(!how)}>
-                    How CHIP wrote this
-                  </LinkButton>
-                </div>
-                <p className="aiex" id="hAiEx" hidden={!how}>
-                  Put together on this laptop from the records below, with no model: it counts them, quotes the newest, and numbers each source. With fewer than two matches it says so instead of summing up.
-                </p>
-                <p className="hshort">
-                  {data.count} changes{scope}. The latest: “{src[0].title}” {cite(0)}, {day(src[0].date)}.{dec ? ` ${dec} ${dec > 1 ? 'are decisions' : 'is a decision'}.` : ''}
-                  {bi === 0 ? <> It is marked breaking {cite(0)}.</> : bi > 0 ? <> One is breaking: “{src[bi].title}” {cite(bi)}.</> : null}
-                </p>
-                <details className="hdet">
-                  <summary>What it’s based on</summary>
-                  <ol>
-                    {src.map((r, i) => (
-                      <li key={r.id}>
-                        <a
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setRecord(r.id);
-                          }}
-                        >
-                          {r.title}
-                        </a>{' '}
-                        · <Source r={r} />
-                      </li>
-                    ))}
-                  </ol>
-                </details>
-              </>
-            ) : records.length === 1 ? (
-              <>
-                <p className="rk">Summary by CHIP</p>
-                <p className="hshort">One record matches, so there’s nothing to sum up. It’s below.</p>
-              </>
-            ) : (
-              <p>
-                Nothing matches. Try:{' '}
-                {f.date ? <LinkButton onClick={() => set({ date: '' })}>any time</LinkButton> : null}
-                {f.types.length ? <LinkButton onClick={() => set({ types: [] })}>every type</LinkButton> : null}
-                {f.comps.length ? <LinkButton onClick={() => set({ comps: [] })}>every component</LinkButton> : null}
-                {!nOn ? <LinkButton onClick={() => (setDraft(''), setF({ ...EMPTY }))}>clear the search</LinkButton> : null}
-              </p>
-            )}
-          </section>
+        {data && !data.error && !records.length ? (
+          <p className="hnone" aria-live="polite">
+            Nothing matches. Try:{' '}
+            {f.date ? <LinkButton onClick={() => set({ date: '' })}>any time</LinkButton> : null}
+            {f.types.length ? <LinkButton onClick={() => set({ types: [] })}>every type</LinkButton> : null}
+            {f.comps.length ? <LinkButton onClick={() => set({ comps: [] })}>every component</LinkButton> : null}
+            {!nOn ? <LinkButton onClick={() => (setDraft(''), setF({ ...EMPTY }))}>clear the search</LinkButton> : null}
+          </p>
         ) : null}
         {applied.length ? (
           <div className="happ" aria-label="Applied filters" role="group">
@@ -840,19 +757,7 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
             )}
           </div>
         ) : null}
-        <div className="hsortrow">
-          <p className="sub2">Order</p>
-          <Chips
-            label="Order"
-            value={sort}
-            onChange={setSort}
-            items={[
-              { id: 'newest', label: 'Newest first' },
-              { id: 'oldest', label: 'Oldest first' },
-            ]}
-          />
-        </div>
-        {data && !data.error ? <Track records={records} total={data.count} lens={lens} onRecord={setRecord} onOpenAtlas={onOpenAtlas} bellaComp={bellaComp} vstat={vstat} seen={seen} markSeen={markSeen} /> : null}
+        {data && !data.error ? <Track records={records} total={data.count} lens={lens} onRecord={setRecord} onOpenAtlas={onOpenAtlas} bellaComp={bellaComp} vstat={vstat} seen={seen} markSeen={markSeen} jumpRef={jumpRef} /> : null}
       </div>
 
       <Drawer
@@ -889,6 +794,36 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
             </span>
           ))}
         </div>
+        <fieldset>
+          <legend>Show</legend>
+          <Checkbox checked={f.breaking} count={counts?.breaking ?? 0} onChange={(on) => set({ breaking: on })}>
+            Breaking only
+          </Checkbox>
+        </fieldset>
+        <fieldset>
+          <legend>Order</legend>
+          <Chips
+            label="Order"
+            value={sort}
+            onChange={setSort}
+            items={[
+              { id: 'newest', label: 'Newest first' },
+              { id: 'oldest', label: 'Oldest first' },
+            ]}
+          />
+        </fieldset>
+        {records.length ? (
+          <fieldset>
+            <legend>Jump to</legend>
+            <div className="hjump">
+              {[...new Set(records.map((r) => month(r.date)))].map((m) => (
+                <button key={m} type="button" className="k-chip" onClick={() => (setDrawer(false), requestAnimationFrame(() => jumpRef.current?.(m)))}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
         {fieldset(
           'comp',
           'Component',
@@ -1099,7 +1034,22 @@ export default function History({ docId, version = 0, bella, lens = 'visual', on
   const base = useJSON('/history');
   return (
     <div className="hist k-chrome">
-      <PageHeader title="History" lede="What we agreed, when and why, across BELLA and CHIP. Ask in plain words; every answer names its sources." />
+      <PageHeader
+        title="History"
+        lede="What we agreed, when and why, across BELLA and CHIP."
+        actions={
+          // the decision records sit below an 80-card timeline: this skips it
+          <Button
+            onClick={() => {
+              const h = document.getElementById('h-written');
+              h?.scrollIntoView({ block: 'start' });
+              h?.focus({ preventScroll: true });
+            }}
+          >
+            Written down ↓
+          </Button>
+        }
+      />
       <Changes bella={bella} lens={lens} onOpenAtlas={onOpenAtlas} onSession={onSession} />
       <WrittenDown bella={bella} docId={docId} version={version} onOpenAtlas={onOpenAtlas} decisions={base?.counts?.types?.Decision ?? null} />
     </div>
