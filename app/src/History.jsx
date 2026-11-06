@@ -42,6 +42,8 @@ const HINFO = {
 
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const dayYear = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+// a note's first lines, without the markdown it was written in
+const plainText = (s) => (s ?? '').replace(/\*\*|__|`/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/^#+\s*/gm, '');
 const clip = (s, n) => (s.length > n ? `${s.slice(0, n).replace(/\s+\S*$/, '')}…` : s);
 // the reason, without commit trailers; null when the record gives none
 const whyOf = (r) => {
@@ -166,8 +168,12 @@ function RecordSheet({ id, onClose, onOpen, onSession }) {
             <StatusPill tone={TONE_OF[rec.status]}>{rec.status}</StatusPill>
           </p>
           <dl className="kv">
-            <dt>Why</dt>
-            <dd>{why ?? 'The record gives no reason.'}</dd>
+            {why ? (
+              <>
+                <dt>Why</dt>
+                <dd>{why}</dd>
+              </>
+            ) : null}
             <dt>Agreed</dt>
             <dd>{agreed}</dd>
             <dt>Built</dt>
@@ -243,7 +249,7 @@ function useReduced() {
   return r;
 }
 
-function Track({ records, total, lens, onRecord, onOpenAtlas, bellaComp, vstat, seen, markSeen, jumpRef }) {
+function Track({ records, total, decisions, lens, onRecord, onOpenAtlas, bellaComp, vstat, seen, markSeen, jumpRef }) {
   const reduce = useReduced();
   const scrub = !reduce;
   const run = useRef(null);
@@ -392,12 +398,12 @@ function Track({ records, total, lens, onRecord, onOpenAtlas, bellaComp, vstat, 
         <div className="hkey">
           <p className="hcount">
             {lit + 1} of {T.length}
-            {total > T.length ? ` (first ${T.length} of ${total})` : ''} · {dayYear(T[lit].date)}
+            {total > T.length ? ` (first ${T.length} of ${total} records)` : ' records'} · {dayYear(T[lit].date)}
           </p>
           <p className="hlegend">
             <span>
               <i data-dec="" aria-hidden="true" />
-              Decision record ({used})
+              Decision record ({decisions != null && decisions !== used ? `${used} of ${decisions} in this stretch` : used})
             </span>
             <span>
               <i aria-hidden="true" />
@@ -463,9 +469,11 @@ function Track({ records, total, lens, onRecord, onOpenAtlas, bellaComp, vstat, 
                         {seen.has(r.id) ? <span>Viewed</span> : null}
                       </p>
                       <div className="hcd" id={`hcd-${i}`} hidden={!on}>
-                        <p className="hwhy hsumm">
-                          <b>{lens === 'scope' ? 'Asked for' : 'Why'}</b> {why ? clip(why.replace(/\s+/g, ' '), 140) : 'The record gives no reason.'}
-                        </p>
+                        {why ? (
+                          <p className="hwhy hsumm">
+                            <b>{lens === 'scope' ? 'Asked for' : 'Why'}</b> {clip(why.replace(/\s+/g, ' '), 140)}
+                          </p>
+                        ) : null}
                         <dl className="hrefdl">
                           <dt>Touched</dt>
                           <dd>
@@ -694,7 +702,8 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
           </Button>
         </div>
         {data?.error ? <p className="k-note">History could not be read. Is the CHIP server running?</p> : null}
-        <p className="hecho" aria-live="polite">
+        {/* the strip's own line carries the count; this one speaks up for a search or a filter */}
+        <p className={!data || data.error || f.q || data.count !== data.total ? 'hecho' : 'k-vh'} aria-live="polite">
           {!data || data.error ? 'Reading the records…' : f.q ? `${data.count} record${data.count === 1 ? '' : 's'} for “${f.q}”` : `${data.count} of ${data.total} records`}
         </p>
         {f.q && parsed ? (
@@ -753,7 +762,7 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
             )}
           </div>
         ) : null}
-        {data && !data.error ? <Track records={records} total={data.count} lens={lens} onRecord={setRecord} onOpenAtlas={onOpenAtlas} bellaComp={bellaComp} vstat={vstat} seen={seen} markSeen={markSeen} jumpRef={jumpRef} /> : null}
+        {data && !data.error ? <Track records={records} total={data.count} decisions={f.q || f.types.length ? null : base?.counts?.types?.Decision} lens={lens} onRecord={setRecord} onOpenAtlas={onOpenAtlas} bellaComp={bellaComp} vstat={vstat} seen={seen} markSeen={markSeen} jumpRef={jumpRef} /> : null}
       </div>
 
       <Drawer
@@ -933,7 +942,7 @@ function WrittenDown({ bella, docId, version, onOpenAtlas, decisions }) {
       (docs?.docs ?? []).map((d) => ({
         id: d.id,
         title: d.title,
-        excerpt: d.excerpt,
+        excerpt: plainText(d.excerpt),
         kind: KIND(d.kind),
         agents: !Array.isArray(index) ? null : cited.has(`obi-notes/${d.id}.md`) ? 'OBI cites it' : 'People only',
         date: d.date ?? d.updated?.slice(0, 10) ?? '',
