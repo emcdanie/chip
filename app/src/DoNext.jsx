@@ -154,8 +154,7 @@ export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, d
         </p>
         <div className="dn-pick" role="group" aria-label={`Components to fix: ${title}`}>
           {who.map((n) => (
-            <button type="button" key={n} className={`dn-chip${skipped(n) ? ' skipped' : ''}`} aria-pressed={sel.includes(n)} onClick={() => toggle(n)}>
-              <span className="dn-box" aria-hidden="true" />
+            <button type="button" key={n} className={`k-chip dn-chip${skipped(n) ? ' skipped' : ''}`} aria-pressed={sel.includes(n)} onClick={() => toggle(n)}>
               {n}
               {skipped(n) ? <span className="dn-tag">skipped</span> : null}
             </button>

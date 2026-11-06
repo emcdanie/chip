@@ -50,7 +50,7 @@
 
   /* shape */
   --r: 2px; /* boxes, cards, tables, inputs, code, status chips */
-  --r-control: 999px; /* buttons, tabs, chips: flip to 2px for square */
+  --r-control: 999px; /* buttons, tabs, chips, the Work panel's one field: flip to 2px for square */
   --h-control: 44px;
   --h-compact: 36px;
   --icon: 18px;

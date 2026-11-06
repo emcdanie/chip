@@ -8,13 +8,9 @@
 .gap1.dn > [data-bella-component='button'] { align-self: center; margin-block: var(--s-8); }
 
 .dn-pick { display: flex; flex-wrap: wrap; gap: var(--s-8); }
-.dn-chip { display: inline-flex; align-items: center; gap: var(--s-8); min-height: var(--h-control); padding: 0 var(--s-12); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--body); font: 400 var(--fs-14)/var(--lh-body) var(--code); cursor: pointer; }
+.dn-pick .k-chip { margin: 0; min-height: var(--h-control); }
 .dn-chip:hover { border-color: var(--action); }
 .dn-chip:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.dn-chip[aria-pressed='true'] { background: var(--sel); border-color: var(--action); box-shadow: inset 0 0 0 1px var(--action); color: var(--ink); font-weight: 600; }
-.dn-box { width: 16px; height: 16px; flex: none; border: 1px solid color-mix(in srgb, var(--ink) 45%, var(--card)); border-radius: var(--r); background: var(--card); display: grid; place-items: center; }
-.dn-chip[aria-pressed='true'] .dn-box { background: var(--action); border-color: var(--action); }
-.dn-chip[aria-pressed='true'] .dn-box::after { content: ''; width: 8px; height: 4px; border: solid var(--on-action); border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg); }
 
 .dn-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-8); margin-top: var(--s-8); }
 .dn-count { font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); margin-right: var(--s-8); }
@@ -58,7 +54,9 @@
 /* who can fix it, under the card's why; a skipped chip stays visible, quieter */
 .dn-can { display: block; margin-top: var(--s-4); font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
 .dn-chip.skipped { color: var(--muted); border-style: dashed; }
+.dn-chip.skipped[aria-pressed='true'] { color: var(--card); }
 .dn-tag { font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
+.dn-chip[aria-pressed='true'] .dn-tag { color: color-mix(in srgb, var(--card) 85%, transparent); }
 
 /* the report: one article per component, its actions at the foot */
 .gr { display: grid; gap: var(--s-16); container: acts / inline-size; }

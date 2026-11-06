@@ -31,6 +31,8 @@ main h1:focus { outline: none; }
   --component-combobox-foreground: var(--ink); --component-combobox-font-size: var(--fs-14); --component-combobox-min-height: var(--h-control);
   --component-kbd-border: transparent; --component-kbd-background: transparent; --component-kbd-foreground: var(--muted); --component-kbd-font-size: var(--fs-14); }
 .top .search .one-input { width: 100%; }
+/* a field's dropdown holds content: 2px, like the mock's menus */
+.one-input { --radius-lg: var(--r); --radius-md: var(--r); }
 .top .search input::placeholder { color: var(--muted); }
 /* the two keycaps read as one ⌘K, outlined once */
 .top .search kbd kbd { padding: 0; border: 0; }
@@ -175,8 +177,12 @@ html.wp-dragging .xterm { pointer-events: none; }
 /* Sessions: a tree, the coordinator at the top and what it started under it */
 .stree, .sgroup > ul, .skids > ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-8); min-width: 0; }
 .skids > ul { margin-left: var(--s-16); padding-left: var(--s-12); border-left: 1px solid var(--line); }
-/* the suggested questions: a quiet row of small asks, not 20px pills */
-.obi-suggest [data-bella-component='action-chip'] { --component-action-chip-font-size: var(--fs-14); text-align: left; }
+/* the suggested questions are sentences: plain list rows, not pills that wrap */
+.obi-suggest { display: grid; gap: 0; }
+.obi-suggest [data-bella-component='action-chip'] { --component-action-chip-font-size: var(--fs-14); width: 100%; border: 0; border-top: 1px solid var(--line); border-radius: var(--r); text-align: left; }
+.obi-suggest [data-bella-component='action-chip']:hover:not(:disabled) { background: var(--sel); }
+/* a label, not a button: Looking at … and a tool's name are 2px tags */
+.obi { --component-tag-default-border-radius: var(--r); }
 .obi-empty p { font-size: var(--fs-16); }
 .skids > ul:empty { display: none; }
 .skids > ul { gap: 0; }
@@ -201,7 +207,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .stail { justify-self: stretch; margin: 0; padding: var(--s-8) var(--s-12); max-height: 180px; overflow: auto; border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
 .sacts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8); }
 .smsg { justify-self: stretch; display: flex; gap: var(--s-8); align-items: center; min-width: 0; }
-.smsg .one-input { flex: 1; min-width: 0; --component-combobox-border: var(--line); --component-combobox-background: var(--card); --component-combobox-foreground: var(--ink); --component-combobox-font-size: var(--fs-14); --component-combobox-min-height: var(--h-control); }
+.smsg .one-input { flex: 1; min-width: 0; --component-combobox-border: var(--line); --component-combobox-border-radius: var(--r); --component-combobox-background: var(--card); --component-combobox-foreground: var(--ink); --component-combobox-font-size: var(--fs-14); --component-combobox-min-height: var(--h-control); }
 .wp-bottom .stree { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; }
 .face { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: var(--r-control); font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); background: var(--inset); flex: none; }
 /* lane colours are BELLA's own lane tokens; ink on each is over 12:1 */
@@ -253,8 +259,9 @@ html.wp-dragging .xterm { pointer-events: none; }
 .one-to { flex: none; display: inline-flex; align-items: center; min-height: var(--h-compact); padding: 0 var(--s-12); border-radius: var(--r); background: var(--neutral); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .one-to.term { font-family: var(--code); font-weight: 400; }
 .one-row { display: flex; align-items: center; gap: var(--s-8); min-width: 0; }
+/* the panel's one field is the one round field, as the mock's Ask; every other field is the kit's 2px box */
 .one-row .one-input { flex: 1; min-width: 0;
-  --component-combobox-border: var(--line); --component-combobox-background: var(--card);
+  --component-combobox-border: var(--line); --component-combobox-border-radius: var(--r-control); --component-combobox-background: var(--card);
   --component-combobox-foreground: var(--ink); --component-combobox-font-size: var(--fs-14); --component-combobox-min-height: var(--h-control); }
 .one-row.interim input { color: var(--muted); font-style: italic; }
 .one-row .mic, .one-row .mic-tip { flex: none; }

@@ -300,9 +300,9 @@
 /* the field keeps room for its whole placeholder question; Ask wraps under it first */
 .atlas .dm-ask form { display: flex; flex-wrap: wrap; gap: var(--s-8); }
 .atlas .dm-ask input { flex: 1 1 18em; min-width: 0; min-height: var(--h-control); padding: 0 var(--s-12); border: 1px solid var(--muted); border-radius: var(--r); background: var(--card); font: 400 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
-.atlas .dm-sugg { display: flex; flex-wrap: wrap; gap: 6px; }
-.atlas .dm-sugg button { min-height: 32px; padding: 0 var(--s-12); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); font: 400 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
-.atlas .dm-sugg button:hover { border-color: var(--action); }
+.atlas .dm-sugg { display: grid; }
+.atlas .dm-sugg button { min-height: var(--h-control); padding: var(--s-8) var(--s-12); border: 0; border-top: 1px solid var(--line); border-radius: var(--r); background: none; color: var(--ink); font: 400 var(--fs-14)/var(--lh-body) var(--sans); text-align: left; cursor: pointer; }
+.atlas .dm-sugg button:hover { background: var(--sel); }
 .atlas .dm-ans { display: grid; gap: var(--s-8); font-size: var(--fs-14); line-height: var(--lh-body); }
 .atlas .dm-ans blockquote { margin: 0; padding: 10px var(--s-12); border-left: 3px solid var(--note); background: color-mix(in srgb, var(--note) 12%, var(--card)); color: var(--ink); }
 .atlas .dm-ans blockquote code { display: block; margin-top: var(--s-4); color: var(--muted); }

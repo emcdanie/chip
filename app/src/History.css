@@ -11,9 +11,9 @@
 .hist code { font-family: var(--code); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
 
 /* ask in plain words */
-.hq { display: flex; flex-wrap: wrap; gap: var(--s-12); }
+.hq { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-12); }
 .hql { width: 100%; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
-.hqbox { position: relative; flex: 1 1 60ch; min-width: min(60ch, 100%); display: flex; }
+.hqbox { position: relative; flex: 1 1 18em; min-width: 0; display: flex; }
 .hqbox input { flex: 1; min-width: 0; min-height: 48px; padding: 0 var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--ink); font: 400 var(--fs-16)/var(--lh-body) var(--sans); }
 .hqsug { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: var(--s-8) 0; list-style: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
 .hqo { display: flex; gap: var(--s-12); align-items: baseline; min-height: var(--h-control); padding: var(--s-8) var(--s-16); color: var(--ink); cursor: pointer; }
@@ -147,7 +147,7 @@
 .rmmine { width: var(--h-compact); padding: 0; justify-content: center; }
 .lgrow { display: flex; align-items: center; justify-content: space-between; gap: var(--s-8); }
 .lgrow legend { float: left; }
-.hist .info { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--muted); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
+.hist .info { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--muted); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
 .hist .info[aria-expanded='true'] { background: var(--ink); color: var(--card); }
 .infob { margin: var(--s-4) 0 var(--s-8) !important; color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }
 .k-drawer .k-chk .n { margin-left: auto; }
