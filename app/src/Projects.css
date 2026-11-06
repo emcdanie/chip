@@ -39,7 +39,7 @@
 .pj-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: var(--s-24) var(--s-32); }
 .pj-wide { grid-column: 1 / -1; }
 .pj-h3 { display: flex; align-items: center; gap: var(--s-8); margin: 0 0 var(--s-8); font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
-.pj-h3 .n { padding: 0 var(--s-8); border-radius: var(--r-control); background: var(--neutral); font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--body); }
+.pj-h3 .n { padding: 0 var(--s-8); border-radius: var(--r-control); background: var(--neutral); font: 400 var(--fs-14)/var(--lh-body) var(--sans); font-variant-numeric: tabular-nums; color: var(--body); }
 .pj-list { display: grid; gap: var(--s-8); margin: 0; padding: 0; list-style: none; font-size: var(--fs-14); line-height: var(--lh-body); }
 .pj-list li { display: grid; gap: 0; min-width: 0; color: var(--ink); overflow-wrap: anywhere; }
 .pj-list small { color: var(--muted); font-size: var(--fs-14); }

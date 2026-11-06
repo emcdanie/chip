@@ -54,7 +54,7 @@
 .k-chips { display: flex; flex-wrap: wrap; gap: var(--s-8); }
 .k-chip { display: inline-flex; align-items: center; gap: var(--s-8); min-height: var(--h-compact); margin: var(--s-8) 0; padding: 0 var(--s-16); border-radius: var(--r-control); border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
 .k-chip[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--card); }
-.k-chip .n { font-family: var(--code); font-weight: 400; color: var(--muted); }
+.k-chip .n { font-weight: 400; font-variant-numeric: tabular-nums; color: var(--muted); }
 .k-chip[aria-pressed='true'] .n { color: color-mix(in srgb, var(--card) 85%, transparent); }
 
 /* segmented control (the mock's .iconseg): a tablist; top right in a card head */
