@@ -122,7 +122,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
               Every component whose CSS reads <code>{t.token}</code>, directly or through its own tokens.
             </p>
           </SheetPart>
-          <SheetPart label="State">
+          <SheetPart label="Used by">
             <ul className="plain">
               {t.usedBy.map((c) => (
                 <li key={c}>
@@ -298,7 +298,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
                   ),
               },
               { key: 'light', label: 'Light', sortVal: (r) => r.lref ?? '', render: (r) => <Swatch v={r.light} r={r.lref} /> },
-              { key: 'dark', label: 'Dark', sortVal: (r) => r.dref ?? '', render: (r) => <Swatch v={r.dark} r={r.dref} /> },
+              { key: 'dark', label: 'Dark', prio: 2, sortVal: (r) => r.dref ?? '', render: (r) => <Swatch v={r.dark} r={r.dref} /> },
               {
                 key: 'cr',
                 label: 'Contrast',
@@ -306,7 +306,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
                 render: (r) => {
                   const c = contrastOf(r, pairs);
                   if (!c) return <span className="fd-sub2">Reading the pairs…</span>;
-                  if (c.none) return <span className="fd-sub2">Not in a declared pair</span>;
+                  if (c.none) return <span className="fd-sub2">No contrast pair</span>;
                   return (
                     <StatusPill tone={c.ok === null ? 'neutral' : c.ok ? 'pass' : 'fail'}>
                       <span className="fd-crv">{c.r.toFixed(2)} · </span>
