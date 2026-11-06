@@ -193,6 +193,7 @@
 .atlas .dm-num span { font-size: var(--fs-14); color: var(--muted); }
 
 /* checks strip */
+.atlas section[aria-label='Checks'][hidden] { display: none; }
 .atlas .dm-checks { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
 .atlas .dm-lbl { font-size: var(--fs-14); color: var(--muted); margin-right: var(--s-4); }
 .atlas .dm-ck { display: inline-flex; align-items: center; min-height: var(--h-control); padding: 0; border: 0; background: none; cursor: pointer; }
@@ -210,7 +211,13 @@
 .atlas .dm-hint { flex: 1 1 8em; min-width: 8em; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
 .atlas .dm-canvas { position: relative; overflow: hidden; min-height: 0; display: grid; place-items: center; padding: var(--s-24) var(--s-32); background-image: radial-gradient(var(--dm-dot) 1.2px, transparent 1.4px); background-size: 16px 16px; transition: background-color 0.2s; }
 .atlas .dm-specwrap { transform: scale(var(--z, 2)); transform-origin: center; transition: transform 0.2s; }
-.atlas .dm-none { color: var(--color-semantic-text-muted); font-size: var(--fs-16); }
+.atlas .dm-none { margin: 0; color: var(--ink); font-size: var(--fs-16); line-height: var(--lh-body); }
+/* no specimen: one line, the tools gone, Ask stays */
+.atlas .dm-nospec { grid-template-columns: minmax(0, 1fr); }
+.atlas .dm-nospec .dm-stage { position: static; height: auto; display: block; border-right: 0; border-bottom: 1px solid var(--line); }
+.atlas .dm-nospec :is(.dm-sbar, .dm-film, .dm-ctl), .atlas .dm-nospec .dm-insp > section:not(.dm-ask) { display: none; }
+.atlas .dm-nospec .dm-canvas { display: block; padding: var(--s-16) var(--s-24); background: var(--card); }
+.atlas .dm-insp > section[hidden] { display: none; }
 .atlas .dm-ov { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
 .atlas .dm-ov g line { stroke: var(--note); stroke-width: 1.5; }
 .atlas .dm-ov g circle { fill: var(--note); stroke: var(--card); stroke-width: 1.5; }
@@ -243,16 +250,20 @@
 .atlas .dm-mx .dm-cell:hover { box-shadow: inset 0 0 0 2px var(--note); }
 .atlas .dm-mx td.cur { box-shadow: inset 0 0 0 2px var(--ink); }
 /* filmstrip */
-.atlas .dm-film { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--s-8); padding: var(--s-12); border-top: 1px solid var(--line); background: var(--card); }
-.atlas .dm-frame { display: grid; gap: var(--s-8); justify-items: center; align-content: start; padding: var(--s-12) var(--s-8) var(--s-8); border: 1px solid var(--line); border-radius: var(--r); min-height: 96px; min-width: 0; overflow: hidden; position: relative; cursor: pointer; }
+.atlas .dm-film { display: flex; flex-wrap: wrap; gap: var(--s-8); padding: var(--s-12); border-top: 1px solid var(--line); background: var(--card); }
+/* a row that wraps stretches to fill it: no hole in the grid */
+.atlas .dm-frame { flex: 1 1 112px; display: grid; gap: var(--s-8); justify-items: center; align-content: start; padding: var(--s-12) var(--s-8) var(--s-8); border: 1px solid var(--line); border-radius: var(--r); min-height: 96px; min-width: 0; overflow: hidden; position: relative; cursor: pointer; }
 .atlas .dm-frame:hover { border-color: var(--action); }
-.atlas .dm-frame[aria-checked='true'] { box-shadow: 0 0 0 2px var(--ink); border-color: var(--ink); }
+.atlas .dm-frame[aria-checked='true'] { border-color: var(--ink); }
+.atlas .dm-frame[aria-checked='true'] .dm-fl { text-decoration: underline; text-underline-offset: 3px; }
 .atlas .dm-frame:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .atlas .dm-frame .dm-fl { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--color-semantic-text-primary); }
 .atlas .dm-frame.live::after { content: 'you'; position: absolute; top: 6px; right: 6px; padding: 0 var(--s-8); border-radius: var(--r-control); background: var(--note); color: var(--on-note); font: 600 var(--fs-14)/20px var(--sans); }
 .atlas .dm-thumb { pointer-events: none; min-height: 52px; max-width: 100%; display: grid; place-items: center; }
 .atlas .dm-ctl { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-16); align-items: center; padding: var(--s-8) var(--s-12) var(--s-12); background: var(--card); }
 .atlas .dm-lwl { font-size: var(--fs-14); color: var(--muted); white-space: nowrap; }
+/* a label stays with its control when the row wraps */
+.atlas .dm-field { display: inline-flex; align-items: center; gap: var(--s-8); min-width: 0; max-width: 100%; }
 .atlas .dm-input { min-height: var(--h-compact); flex: 0 1 12em; min-width: 7em; padding: 0 var(--s-12); border: 1px solid var(--muted); border-radius: var(--r); background: var(--card); font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
 
 /* inspector */
@@ -354,7 +365,6 @@
   /* stacked: natural heights, nothing sticky */
   .atlas .dm-stage { position: static; height: auto; grid-template-rows: auto minmax(360px, auto) auto auto; border-right: 0; border-bottom: 1px solid var(--line); }
   .atlas .dm-insp { max-height: none; overflow: visible; }
-  .atlas .dm-film { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .atlas .dm-behind summary { grid-template-columns: 120px minmax(0, 1fr); }
   .atlas .dm-behind summary em { display: none; }
 }

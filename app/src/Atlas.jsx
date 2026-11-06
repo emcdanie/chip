@@ -971,7 +971,7 @@ function placePins(geo, widths) {
         const x = side === 'L' ? Math.max(PAD, Math.min(box.x - OUT - bw, cw * 0.08)) : Math.min(cw - PAD - bw, Math.max(box.x + box.w + OUT, cw * 0.92 - bw));
         const e = p.edge;
         const inset = Math.min(3, e.h / 2);
-        out.push({ p, side, x, y: y - CH / 2, bw, ex: side === 'L' ? x + bw : x, ey: y, ax: side === 'L' ? e.x : e.x + e.w, ay: clamp(y, e.y + inset, e.y + e.h - inset) });
+        out.push({ p, side, x, y: y - CH / 2, bw, ex: side === 'L' ? x + bw : x, ey: y, ax: side === 'L' ? Math.min(e.x, box.x) : Math.max(e.x + e.w, box.x + box.w), ay: clamp(y, box.y + inset, box.y + box.h - inset) });
       });
     }
     return out;
@@ -1007,7 +1007,7 @@ function placePins(geo, widths) {
         const e = p.edge;
         const mid = x + bw / 2;
         const inset = Math.min(3, e.w / 2);
-        out.push({ p, side: row, x, y, bw, ex: mid, ey: row === 'T' ? y + CH : y, ax: clamp(mid, e.x + inset, e.x + e.w - inset), ay: row === 'T' ? e.y : e.y + e.h });
+        out.push({ p, side: row, x, y, bw, ex: mid, ey: row === 'T' ? y + CH : y, ax: clamp(mid, e.x + inset, e.x + e.w - inset), ay: row === 'T' ? Math.min(e.y, box.y) : Math.max(e.y + e.h, box.y + box.h) });
         x += bw + 12;
       }
     });
@@ -1844,23 +1844,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
             </dl>
           </>
         );
-      const root = rootOf();
-      return (
-        <>
-          <h3>
-            Nothing pinned <span className="cap">hover the stage, or pick a part</span>
-          </h3>
-          <dl className="dm-kv">
-            <dt>Showing</dt>
-            <dd>{[o.variant, c.shapes?.length ? o.shape : null, axes.some((a) => a.key === 'size') ? o.size : null, st].filter(Boolean).map(cap1).join(' · ')}</dd>
-            <dt>Theme</dt>
-            <dd>{cap1(theme)}</dd>
-            <dt>Size now</dt>
-            <dd>{root ? `${root.offsetHeight} × ${root.offsetWidth}px` : 'no specimen'}</dd>
-          </dl>
-          {rule || tierLine ? <p className="dm-tier">{tierLine ?? `${rule}.`}</p> : null}
-        </>
-      );
+      return null;
     }
     const p = partOf(sel);
     const vals = p.value ?? {};
@@ -1986,6 +1970,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
   }
 
   const sp = { 'data-theme': theme };
+  const detail = stage ? Detail() : null;
 
   return (
     <div className="atlas dm" data-lens={lens} onKeyDown={(e) => e.key === 'Escape' && (sel || why) && (setSel(null), setWhy(null))}>
@@ -2022,7 +2007,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
         </div>
       </section>
 
-      <section aria-label="Checks" className="k-chrome">
+      <section aria-label="Checks" className="k-chrome" hidden={!stage}>
         <div className="dm-checks" role="toolbar" aria-label="Live checks on the specimen" ref={ckRef} onKeyDown={(e) => roveKeys(e)}>
           <span className="dm-lbl">Live on the specimen</span>
           {checks.filter((k) => allChecks || ckClass(k) === 'fail' || ckClass(k) === 'needs').map((k) => (
@@ -2068,7 +2053,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
         </div>
       </section>
 
-      <section className="dm-work dm-card" aria-label="Specimen">
+      <section className={`dm-work dm-card${stage ? '' : ' dm-nospec'}`} aria-label="Specimen">
         <div className="dm-stage">
           <div className="dm-sbar k-chrome">
             <RadioSeg label="Pointer" items={[{ id: 'inspect', label: 'Inspect', title: HINT.inspect }, { id: 'use', label: 'Use', title: HINT.use }]} value={mode} onChange={(v) => (setMode(v), setLive(null), v === 'use' && (setSel(null), setHov(null), setPlaying(false)))} />
@@ -2082,7 +2067,11 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           </div>
           <div className="dm-canvas dm-sp" {...sp} ref={canvas} data-mode={mode}>
             <div className="dm-specwrap" ref={wrap} style={{ '--z': z }} inert={mode === 'inspect' || all} aria-hidden={mode === 'inspect' || all ? true : undefined} {...useEvents} key={mode === 'inspect' && cfg.generic ? `${o.st}-${o.variant}` : 'live'}>
-              {stage ?? <p className="dm-none">No specimen in CHIP for {c.name} yet.</p>}
+              {stage ?? (
+                <p className="dm-none k-chrome">
+                  No specimen for {c.name} yet. Next step: add its render to <code>app/src/specimens.jsx</code> in CHIP.
+                </p>
+              )}
             </div>
             {geo && !all ? (
               <>
@@ -2200,18 +2189,18 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           </div>
           <div className="dm-ctl k-chrome">
             {axes.map((ax) => (
-              <React.Fragment key={ax.key}>
+              <span className="dm-field" key={ax.key}>
                 <span className="dm-lwl">{ax.label}</span>
                 <RadioSeg label={ax.label} items={axisVals(ax).map((v) => ({ id: v, label: cap1(v) }))} value={o[ax.key]} onChange={(v) => setAxis(ax.key, v)} />
-              </React.Fragment>
+              </span>
             ))}
             {!cfg.generic ? (
-              <>
+              <span className="dm-field">
                 <label htmlFor="dm-label" className="dm-lwl">
                   Label
                 </label>
                 <input id="dm-label" type="text" className="dm-input" value={o.label ?? ''} onChange={(e) => setO((x) => ({ ...x, label: e.target.value || cfg.label(c) }))} />
-              </>
+              </span>
             ) : null}
             {states.length > 1 ? (
               <button type="button" className="k-toggle dm-tog" aria-pressed={playing} onClick={() => (setPlaying(!playing), setMode('inspect'))}>
@@ -2239,8 +2228,9 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
               ))}
             </ul>
           </section>
-          <section className="dm-detail" aria-live="polite">
-            {Detail()}
+          {/* nothing pinned, nothing shown: the panel appears with the pin */}
+          <section className="dm-detail" aria-live="polite" hidden={!detail}>
+            {detail}
           </section>
           <section className="dm-ask">
             <h3 id="dm-askh">Ask {c.name}</h3>
