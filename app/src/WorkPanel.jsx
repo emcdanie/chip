@@ -648,11 +648,6 @@ const ROUTE_NAME = { health: 'Overview', foundations: 'Foundations', atlas: 'Com
 const routeName = () => ROUTE_NAME[location.hash.match(/^#\/(\w+)/)?.[1]] ?? 'a page';
 
 const WHAT = {
-  sessions: (
-    <>
-      <b>Who is working on what.</b> CHIP’s own sessions are live: open, message or stop them. Lanes are read from their report files; CHIP can’t message them.
-    </>
-  ),
   term: (
     <>
       <b>A real shell on this Mac.</b> Claude is this shell with <code>claude</code> started. The input below types; Return in the terminal runs.

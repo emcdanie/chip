@@ -78,6 +78,12 @@
 /* data table: toolbar, then a table that scrolls inside itself */
 .k-tbar { display: flex; flex-wrap: wrap; gap: var(--s-12) var(--s-16); align-items: center; margin-bottom: var(--s-12); }
 .k-tbar .k-chips { margin: 0; }
+@container kdt (max-width: 760px) {
+  .k-tbar .k-search { flex: 1 1 0; min-width: 0; }
+  .k-tbar .k-cols { order: -1; }
+  .k-tbar .k-search { order: -2; }
+  .k-tbar .k-count { margin-left: auto; }
+}
 .k-search { display: flex; align-items: center; gap: var(--s-8); min-width: min(320px, 100%); min-height: var(--h-control); margin: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
 .k-search input { flex: 1; min-width: 0; min-height: var(--h-control); border: 0; border-radius: var(--r); background: transparent; padding: 0 var(--s-16); font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
 .k-count { margin-left: auto; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
