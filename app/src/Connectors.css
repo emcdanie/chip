@@ -41,7 +41,7 @@
 .cn-open { grid-column: 2; grid-row: 1 / span 2; display: grid; align-content: start; gap: var(--s-4); min-width: 0; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .cn-open:focus-visible { outline: none; }
 .cn-node:not(:has(.cn-tog)) .cn-open { grid-column: 1 / -1; padding-left: calc(var(--h-compact) + var(--s-8)); margin-left: 0; }
-.cn-open .k-pill { justify-self: start; display: inline-flex; align-items: center; min-height: 24px; gap: var(--s-4); padding: 0 var(--s-12); }
+.cn-open .k-pill { justify-self: start; }
 .cn-node.bad .cn-card { box-shadow: inset 2px 0 0 var(--fail); }
 .cn-node.blocked .cn-card { background: repeating-linear-gradient(-45deg, var(--card) 0 7px, color-mix(in srgb, var(--fail) 7%, var(--card)) 7px 9px); }
 .cn-node.near .cn-card { border-color: var(--action); }

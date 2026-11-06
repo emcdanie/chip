@@ -101,7 +101,7 @@ export default function Kit() {
         title="Kit"
         tags={
           checks && (
-            <StatusPill badge tone={checkOf(checks.gate)[0]}>
+            <StatusPill tone={checkOf(checks.gate)[0]}>
               Gate {checks.gate.word.toLowerCase()}
             </StatusPill>
           )

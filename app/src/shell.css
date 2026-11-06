@@ -162,12 +162,8 @@ html.wp-dragging .xterm { pointer-events: none; }
 .nyrow { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: var(--s-4); width: 100%; padding: var(--s-12); }
 .nyrow:focus-visible { outline: var(--focus); outline-offset: -3px; }
 .nyrow:hover { background: color-mix(in srgb, var(--action) 5%, var(--card)); }
-.nyk { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
+.nyk { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-8); font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
 .nyw { font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
-.risk { padding: 0 var(--s-8); border-radius: var(--r); color: var(--ink); }
-.risk.r-low { background: color-mix(in srgb, var(--action) 22%, var(--card)); }
-.risk.r-medium { background: color-mix(in srgb, var(--needs) 32%, var(--card)); }
-.risk.r-high { background: color-mix(in srgb, var(--fail) 26%, var(--card)); }
 .nydet { display: grid; gap: var(--s-8); justify-items: start; padding: 0 var(--s-12) var(--s-12); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
 .nydet p { margin: 0; }
 .riskwhy { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); padding: var(--s-8) var(--s-12); border-radius: var(--r); background: var(--inset); }
@@ -366,10 +362,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .cklist li + li { border-top: 1px solid var(--line); }
 .cklist li.rowlink { cursor: pointer; }
 .cklist .ckhead { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); padding-top: 0; }
-.ckv { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--body); justify-self: start; padding: var(--s-4) var(--s-8); border-radius: var(--r); }
-.ckv.bad, .ckv.you { color: var(--ink); }
-.ckv.bad { background: color-mix(in srgb, var(--fail) 22%, var(--card)); }
-.ckv.you { background: color-mix(in srgb, var(--needs) 34%, var(--card)); }
+.ckv { justify-self: start; }
 .ckres { color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); overflow-wrap: break-word; min-width: 0; }
 .cksched { font-size: var(--fs-16); line-height: var(--lh-body); color: var(--muted); min-width: 0; }
 .rowbtn { border: 0; background: none; padding: 0; min-height: 28px; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-align: left; cursor: pointer; }
@@ -456,7 +449,6 @@ html.wp-dragging .xterm { pointer-events: none; }
 /* ==== sheets: the review card, a check, the work sheet ==== */
 .k-sheet .plain { list-style: none; margin: 0; padding: 0; display: grid; }
 .k-sheet .plain li { display: flex; justify-content: space-between; gap: var(--s-12); align-items: center; min-height: 48px; border-bottom: 1px solid var(--line); }
-.k-sheet .pass, .k-sheet .fail { font-weight: 600; color: var(--ink); }
 .k-sheet .sheet-list { margin: 0; padding-left: var(--s-24); display: grid; gap: var(--s-8); overflow-wrap: anywhere; }
 .review { display: grid; gap: var(--s-16); min-width: 0; }
 .review p { margin: 0; }

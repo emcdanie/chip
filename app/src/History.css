@@ -112,13 +112,6 @@
 
 /* on the cards: type, status, the why */
 .hchips { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
-.tchip, .schip, .vchip, .mcp { display: inline-flex; align-items: center; gap: var(--s-4); min-height: 22px; padding: 0 var(--s-8); border-radius: var(--r); background: color-mix(in srgb, var(--ink) 6%, var(--card)); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); }
-.vchip { background: var(--inset); }
-.mcp { font-family: var(--code); font-weight: 400; color: var(--body); }
-/* status: green shipped, yellow waiting on you, the rest neutral (pink is for annotations only) */
-.schip.s-shipped { background: color-mix(in srgb, var(--pass) 24%, var(--card)); }
-.schip.s-branch { background: color-mix(in srgb, var(--needs) 30%, var(--card)); }
-.schip.s-brk { background: color-mix(in srgb, var(--fail) 22%, var(--card)); }
 .hwhy { display: grid; gap: var(--s-4); padding: var(--s-8) var(--s-12); border-left: 1px solid var(--action); border-radius: var(--r); background: color-mix(in srgb, var(--action) 6%, var(--card)); }
 .hwhy .rk span { font-weight: 400; }
 .hsumm { max-width: 70ch; color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); overflow-wrap: anywhere; white-space: pre-line; }

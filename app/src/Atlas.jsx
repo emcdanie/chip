@@ -593,11 +593,11 @@ function HistoryPanel({ c, hist }) {
             <h3>{e.explanation || e.subject}</h3>
             <div className="hchips">
               {typesOf(e).map((t) => (
-                <span key={t} className="tchip">
+                <span key={t} className="k-pill">
                   {TYPE_LABEL[t] ?? t}
                 </span>
               ))}
-              {e.api ? <span className="tchip">API: {String(e.api).slice(0, 60)}</span> : null}
+              {e.api ? <StatusPill>API: {String(e.api).slice(0, 60)}</StatusPill> : null}
             </div>
             {e.detail ? (
               <div className="hwhy">
@@ -1970,7 +1970,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
   /* ---- checks ---- */
   const whyCheck = checks.find((k) => k.id === why);
   const ckClass = (k) => (k.grey ? 'grey' : k.needs ? 'needs' : k.ok ? 'pass' : 'fail');
-  const ckMark = (k) => (k.grey ? '–' : k.needs ? '!' : k.ok ? '✓' : '×');
+  const CK_TONE = { grey: 'neutral', needs: 'needs', pass: 'pass', fail: 'fail' };
 
   /* ---- behind it ---- */
   const hl = c.health ?? {};
@@ -2030,7 +2030,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
               key={k.id}
               type="button"
               data-rv=""
-              className={`dm-ck ${ckClass(k)}`}
+              className="dm-ck"
               aria-expanded={why === k.id}
               aria-controls="dm-why"
               onClick={() => {
@@ -2039,20 +2039,20 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
                 if (next && k.part && sel !== k.part) pick(k.part);
               }}
             >
-              <i aria-hidden="true">{ckMark(k)}</i>
-              {k.label} <small>{k.val}</small>
+              <StatusPill tone={CK_TONE[ckClass(k)]}>
+                {k.label} · {k.val}
+              </StatusPill>
             </button>
           ))}
           {checks.some((k) => ckClass(k) === 'pass' || ckClass(k) === 'grey') ? (
-            <button type="button" data-rv="" className={`dm-ck ${allChecks ? 'grey' : 'pass'} dm-more`} aria-expanded={allChecks} onClick={() => setAllChecks(!allChecks)}>
+            <button type="button" data-rv="" className="dm-ck dm-more" aria-expanded={allChecks} onClick={() => setAllChecks(!allChecks)}>
               {allChecks ? (
-                'Show fewer'
+                <StatusPill>Show fewer</StatusPill>
               ) : (
-                <>
-                  <i aria-hidden="true">✓</i>
+                <StatusPill tone="pass">
                   {checks.filter((k) => ckClass(k) === 'pass').length} pass
-                  {checks.some((k) => ckClass(k) === 'grey') ? <small>· {checks.filter((k) => ckClass(k) === 'grey').length} not run</small> : null}
-                </>
+                  {checks.some((k) => ckClass(k) === 'grey') ? ` · ${checks.filter((k) => ckClass(k) === 'grey').length} not run` : ''}
+                </StatusPill>
               )}
             </button>
           ) : null}

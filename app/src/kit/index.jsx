@@ -57,14 +57,13 @@ export function LinkButton({ className, children, ...rest }) {
   );
 }
 
-/* ---------- status pill: red fail, yellow needs you, green pass, ink text on every fill ---------- */
+/* ---------- the status tag: red fail, yellow needs you, green pass, grey neutral; ink text on every fill ---------- */
 const MARK = { pass: '✓', fail: '!', needs: '●' };
-// badge: the taller form that sits beside an H1 (the mock's .badge)
-export function StatusPill({ tone = 'neutral', badge, children }) {
+export function StatusPill({ tone = 'neutral', children }) {
   return (
-    <span className={cx('k-pill', tone !== 'neutral' && tone, badge && 'k-badge')}>
-      {MARK[tone] && <span aria-hidden="true">{MARK[tone]} </span>}
-      {children}
+    <span className={cx('k-pill', tone !== 'neutral' && tone)}>
+      {MARK[tone] && <span aria-hidden="true">{MARK[tone]}</span>}
+      <span>{children}</span>
     </span>
   );
 }

@@ -37,14 +37,10 @@
 .fd-qvb { min-height: 40px; padding: var(--s-8) 0; border: 0; background: none; font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--ink); text-decoration: underline dotted; text-underline-offset: 4px; white-space: nowrap; cursor: pointer; }
 .fd-qvt { display: inline-block; text-decoration: none; cursor: default; } /* a passing role: nothing to open */
 .fd-nobody { font-weight: 600; color: var(--ink); }
-.fd-badge { display: inline-flex; align-items: center; gap: var(--s-4); min-height: 32px; padding: var(--s-4) var(--s-12); border-radius: var(--r); font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); white-space: nowrap; }
-.fd-badge.green { background: color-mix(in srgb, var(--pass) 24%, var(--card)); }
-.fd-badge.red { background: color-mix(in srgb, var(--fail) 22%, var(--card)); }
-.fd-badge.grey { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
 .fd-tok .k-dt td:nth-child(5) { text-align: right; }
 @container fdtok (max-width: 1200px) { .fd-v small { display: none; } .fd-tok .k-dt td { padding-inline: var(--s-8); } .fd-tok .k-dt th button, .fd-tok .k-dt th > span { padding-inline: var(--s-8); } }
 @container fdtok (max-width: 900px) { .fd-ubw, .fd-crv { display: none; } .fd-tok .k-dt td { padding-inline: var(--s-12); } .fd-tok .k-dt th button, .fd-tok .k-dt th > span { padding-inline: var(--s-12); } }
-@container fdtok (max-width: 760px) { .fd-tok .fd-v { font-size: 0; gap: 0; } .fd-tok .fd-v i { width: 18px; height: 18px; } .fd-tok .fd-badge { padding: var(--s-4) var(--s-8); } }
+@container fdtok (max-width: 760px) { .fd-tok .fd-v { font-size: 0; gap: 0; } .fd-tok .fd-v i { width: 18px; height: 18px; } }
 @container fdtok (max-width: 560px) { .fd-tok .k-dt td { padding-inline: var(--s-8); } .fd-tok .k-dt th button, .fd-tok .k-dt th > span { padding-inline: var(--s-8); } }
 
 /* who uses what (the mock's .matrix) */
@@ -77,10 +73,6 @@
 .fd-fam-a.display { font-weight: 400; }
 .fd-fam b { color: var(--ink); font-size: var(--fs-16); line-height: var(--lh-body); }
 .fd-fam [data-bella-component='button'] { margin-top: var(--s-12); }
-.fd-pillk { display: inline-block; margin-top: var(--s-12); padding: 0 var(--s-4); background: var(--neutral); color: var(--ink); font-size: var(--fs-14); line-height: var(--lh-body); }
-.fd-pillk.bad { background: color-mix(in srgb, var(--fail) 22%, var(--card)); }
-.fd-pillk.ok { background: color-mix(in srgb, var(--pass) 24%, var(--card)); }
-.fd-page .k-dt .fd-pillk { margin: 0; padding: var(--s-4) var(--s-12); border-radius: var(--r); font-weight: 600; background: color-mix(in srgb, var(--pass) 14%, var(--card)); }
 .fd-tscale { display: grid; gap: var(--s-32); padding: var(--s-8) var(--s-24); border: 1px solid var(--line); border-radius: var(--r); background: linear-gradient(90deg, color-mix(in srgb, var(--action) 10%, transparent) 1px, transparent 1px) 0 0 / 24px 24px, linear-gradient(color-mix(in srgb, var(--action) 10%, transparent) 1px, transparent 1px) 0 0 / 24px 24px, var(--canvas); }
 .fd-tspec { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 48px; align-items: center; min-width: 0; padding: var(--s-8) 0; }
 .fd-lbox { display: block; min-width: 0; font-size: var(--fd-size); line-height: var(--lh-head); font-weight: 400; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: color-mix(in srgb, var(--note) 22%, transparent); }

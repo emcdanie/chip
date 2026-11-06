@@ -17,13 +17,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Combobox from '@bella/components/Combobox/Combobox';
-import { Overflow, Segmented, segPanelProps } from './kit/index.jsx';
+import { Overflow, Segmented, segPanelProps, StatusPill } from './kit/index.jsx';
 import { openReview } from './ReviewSheet.jsx';
 import { OneInput, ObiThread } from './Obi.jsx';
 import { Terminals, MAX_TERMS, termName, STATUS } from './Terminal.jsx';
 import { openRun, runLine, runState, useRuns } from './Runs.jsx';
 
 const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+const RISK_TONE = { High: 'fail', Medium: 'needs', Low: 'neutral' };
+// a session's state, on the one status tag
+const STATE_TONE = { failed: 'fail', you: 'needs', done: 'pass' };
 const FACE = { dara: 'lane-a', bernie: 'lane-c', saoirse: 'lane-b', frankie: 'lane-d' };
 // the folder each lane works in, for "Reply in a terminal" (bar.mjs keeps the
 // GitHub repo, not the folder)
@@ -147,7 +150,7 @@ function NeedsList({ needs, onLane }) {
                 onClick={() => (inPlace ? setOpen(on ? null : n.id) : run(n.action, onLane))}
               >
                 <span className="nyk">
-                  {n.status} · <span className={`risk r-${n.risk.toLowerCase()}`}>{n.risk} risk</span>
+                  {n.status} <StatusPill tone={RISK_TONE[n.risk]}>{n.risk} risk</StatusPill>
                 </span>
                 <span className="nyw">{n.title ?? n.what}</span>
               </button>
@@ -231,7 +234,7 @@ function Row({ id, sel, setSel, face, faceKey, mono, name, sub, state, line, bra
           <span className="name">{name}</span>
           {sub ? <span className="ljob">{sub}</span> : null}
         </span>
-        <span className="adot">{state[1]}</span>
+        <StatusPill tone={STATE_TONE[state[0]]}>{state[1]}</StatusPill>
         <span className="line">{line}</span>
         <span className="smeta">
           {branch ? (

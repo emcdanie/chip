@@ -7,8 +7,8 @@
 // measures it, the page says "Not measured" instead of a number.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { Segmented, segPanelProps, Sheet, Toggle } from './kit/index.jsx';
-import { CheckSheet, failingTokens, shortResult, useChecks, when } from './Checks.jsx';
+import { Segmented, segPanelProps, Sheet, StatusPill, Toggle } from './kit/index.jsx';
+import { CheckSheet, failingTokens, shortResult, STATUS as CHECK_STATUS, useChecks, when } from './Checks.jsx';
 import { openReview } from './ReviewSheet.jsx';
 import { GapCard, GapReport, useGapFixes } from './DoNext.jsx';
 
@@ -182,7 +182,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   // the gap behind a coverage column, and who can fix one component's
   const gapKey = (i) => COLS[i].short.toLowerCase();
   const canOf = (i, name) => fixes.data?.gaps?.[gapKey(i)]?.[name]?.can;
-  const CanPill = ({ can }) => (can ? <span className={`k-pill ${can.who === 'chip' ? 'pass' : 'needs'}`}>{can.label}</span> : null);
+  const CanPill = ({ can }) => (can ? <StatusPill tone={can.who === 'chip' ? 'pass' : 'needs'}>{can.label}</StatusPill> : null);
   // point at a gap card: highlight it, select these components, scroll to it
   const showOnCard = (gap, names) => {
     setSheet(null);
@@ -205,7 +205,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                   {COLS[i].long}
                   {x ? null : <span className="ov-why">{fixes.data?.gaps?.[gapKey(i)]?.[r.name]?.missing ?? COLS[i].why}</span>}
                 </span>
-                {x ? <span className="pass">✓ passes</span> : <CanPill can={canOf(i, r.name)} />}
+                {x ? <StatusPill tone="pass">Passes</StatusPill> : <CanPill can={canOf(i, r.name)} />}
               </li>
             ))}
           </ul>
@@ -304,9 +304,9 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
               {cs.map((g) => (
                 <li key={g.sha}>
                   <span className="mono">{g.sha.slice(0, 7)}</span>
-                  <span className={g.pass ? 'pass' : 'fail'}>
-                    {g.pass ? '✓' : '✕'} {g.ok}/{g.of} checks
-                  </span>
+                  <StatusPill tone={g.pass ? 'pass' : 'fail'}>
+                    {g.ok}/{g.of} checks
+                  </StatusPill>
                 </li>
               ))}
             </ul>
@@ -365,7 +365,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                       </button>
                       <span className="ov-why">{r.failing.map((f) => f.what).join(' ')}</span>
                     </span>
-                    <span className="k-pill needs">{r.score}%</span>
+                    <StatusPill tone="needs">{r.score}%</StatusPill>
                   </li>
                 ))}
               </ul>
@@ -713,13 +713,15 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
               <span>Runs</span>
             </li>
             {(allChecks ? sorted : sorted.filter((c) => c.status === 'failed' || c.status === 'waiting')).map((c) => {
-              const v = c.status === 'failed' ? ['bad', '✕ Failed'] : c.status === 'waiting' ? ['you', '● Waiting on you'] : c.status === 'passed' ? ['', '✓ Passed'] : ['', c.word];
+              const st = CHECK_STATUS[c.status] ?? { tone: 'neutral', word: c.word };
               return (
                 <li key={c.id} className="rowlink" onClick={(e) => e.target.closest('button') || setCheckId(c.id)}>
                   <button type="button" className="rowbtn" aria-haspopup="dialog" onClick={() => setCheckId(c.id)}>
                     {c.name}
                   </button>
-                  <span className={`ckv ${v[0]}`}>{v[1]}</span>
+                  <span className="ckv">
+                    <StatusPill tone={st.tone}>{st.word}</StatusPill>
+                  </span>
                   <span className="ckres">{shortResult(c)}</span>
                   <span className="cksched">
                     {c.schedule} · last {c.ranAt ? fmt(c.ranAt) : 'never'}

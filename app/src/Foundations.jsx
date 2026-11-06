@@ -308,10 +308,10 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
                   if (!c) return <span className="fd-sub2">Reading the pairs…</span>;
                   if (c.none) return <span className="fd-sub2">Not in a declared pair</span>;
                   return (
-                    <span className={`fd-badge ${c.ok === null ? 'grey' : c.ok ? 'green' : 'red'}`}>
-                      <span aria-hidden="true">{c.ok === null ? '○' : c.ok ? '✓' : '✕'}</span> <span className="fd-crv">{c.r.toFixed(2)} · </span>
+                    <StatusPill tone={c.ok === null ? 'neutral' : c.ok ? 'pass' : 'fail'}>
+                      <span className="fd-crv">{c.r.toFixed(2)} · </span>
                       {c.g}
-                    </span>
+                    </StatusPill>
                   );
                 },
               },
@@ -531,7 +531,7 @@ function TypePanel({ f, onSession, setSheet, close }) {
               {fam.weights?.length ? ` ${fam.weights.join(' · ')}` : ''}
             </b>
             <span>{fam.role}</span>
-            {fam.matches === null ? <span className="fd-pillk">Not in the contract</span> : fam.matches ? <span className="fd-pillk ok">Matches</span> : <span className="fd-pillk bad">Contract says {fam.contractFace}</span>}
+            {fam.matches === null ? <StatusPill>Not in the contract</StatusPill> : fam.matches ? <StatusPill tone="pass">Matches</StatusPill> : <StatusPill tone="fail">Contract says {fam.contractFace}</StatusPill>}
             {fam.matches === false ? <Button onClick={() => compare(fam)}>Compare and fix</Button> : null}
           </div>
         ))}
@@ -804,7 +804,7 @@ function TokenizedPanel({ f, roles, onColour, onSession, setSheet, close }) {
                 ) : r.not.length ? (
                   [...new Set(r.not.map((n) => n.component))].map((c) => `${c} ${r.not.filter((n) => n.component === c).map((n) => n.decl.split(': ')[1]).join(', ')}`).join('; ')
                 ) : (
-                  <span className="fd-pillk ok">None</span>
+                  <StatusPill tone="pass">None</StatusPill>
                 ),
             },
             {

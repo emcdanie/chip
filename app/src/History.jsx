@@ -20,8 +20,8 @@ const QUICK = [
   ['Fix', 'Fix'],
 ];
 const STATUSES = ['Decided', 'Merged', 'Shipped', 'On a branch', 'Undone'];
-const SICON = { Decided: '◆', Merged: '●', Shipped: '✓', 'On a branch': '◌', Undone: '↺' };
-const SCLASS = { Decided: 's-decided', Merged: 's-merged', Shipped: 's-shipped', 'On a branch': 's-branch', Undone: 's-undone' };
+// green shipped, yellow waiting on you, the rest neutral
+const TONE_OF = { Shipped: 'pass', 'On a branch': 'needs' };
 const year = new Date().getFullYear();
 const ago = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 const DATES = [
@@ -163,9 +163,7 @@ function RecordSheet({ id, onClose, onOpen, onSession }) {
             <span>{dayYear(rec.date)}</span>
             <span>{where(rec)}</span>
             <span>{rec.type}</span>
-            <StatusPill tone={rec.status === 'Shipped' ? 'pass' : rec.status === 'On a branch' ? 'needs' : 'neutral'} badge>
-              {rec.status}
-            </StatusPill>
+            <StatusPill tone={TONE_OF[rec.status]}>{rec.status}</StatusPill>
           </p>
           <dl className="kv">
             <dt>Why</dt>
@@ -438,11 +436,9 @@ function Track({ records, total, lens, onRecord, onOpenAtlas, bellaComp, vstat, 
                     <i className="hdot" data-dot="" aria-hidden="true" />
                     <article className={`hcard${seen.has(r.id) ? ' seen' : ''}`}>
                       <p className="hchips">
-                        <span className="tchip">{r.type}</span>
-                        <span className={`schip ${SCLASS[r.status] ?? ''}`}>
-                          <span aria-hidden="true">{SICON[r.status]}</span> {r.status}
-                        </span>
-                        {r.breaking ? <span className="schip s-brk">Breaking</span> : null}
+                        <StatusPill>{r.type}</StatusPill>
+                        <StatusPill tone={TONE_OF[r.status]}>{r.status}</StatusPill>
+                        {r.breaking ? <StatusPill tone="fail">Breaking</StatusPill> : null}
                       </p>
                       <h3>
                         <button

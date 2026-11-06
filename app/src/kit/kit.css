@@ -42,13 +42,11 @@
 .k-iconbtn { display: inline-flex; align-items: center; gap: var(--s-8); height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; cursor: pointer; }
 .k-iconbtn:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 
-/* status pill: ink text on every fill; the mark says it without colour */
-.k-pill { display: inline-block; padding: var(--s-4) var(--s-12); border-radius: var(--r); background: var(--neutral); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; }
+/* the status tag, one look in four states: ink text on every fill, sans; the mark says it without colour */
+.k-pill { display: inline-flex; align-items: center; gap: var(--s-4); width: fit-content; padding: 0 var(--s-8); border-radius: var(--r); background: var(--neutral); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; }
 .k-pill.pass { background: color-mix(in srgb, var(--pass) 24%, var(--card)); }
 .k-pill.fail { background: color-mix(in srgb, var(--fail) 22%, var(--card)); }
 .k-pill.needs { background: color-mix(in srgb, var(--needs) 30%, var(--card)); }
-.k-badge { display: inline-flex; align-items: center; gap: var(--s-8); min-height: 32px; padding: var(--s-4) var(--s-16); }
-.k-dt .k-pill.pass { background: color-mix(in srgb, var(--pass) 14%, var(--card)); }
 
 /* filter chips */
 .k-chips { display: flex; flex-wrap: wrap; gap: var(--s-8); }
@@ -152,7 +150,6 @@
 /* lists of named rows inside a sheet (the mock's ul.plain), for every caller */
 .k-sheet-b :is(ul.plain, ul.sheet-list) { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
 .k-sheet-b :is(ul.plain, ul.sheet-list) > li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-4) var(--s-12); min-height: 44px; padding: var(--s-8) 0; border-bottom: 1px solid var(--line); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
-.k-sheet-b :is(.pass, .fail) { font-weight: 600; color: var(--ink); }
 .k-sheet-f { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-12); padding: var(--s-16) var(--s-32) var(--s-24); border-top: 1px solid var(--line); background: var(--card); }
 
 /* the parts of an explaining sheet: what, state, why, what to do */

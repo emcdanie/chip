@@ -129,7 +129,7 @@ export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, d
         <button type="button" className="rowbtn" id={`gap-${idx}`} aria-haspopup="dialog" onClick={onOpen}>
           {title}
         </button>
-        {first ? <span className="k-pill needs">Do next</span> : null}
+        {first ? <StatusPill tone="needs">Do next</StatusPill> : null}
       </div>
       <Button onClick={start}>Review the fix</Button>
       <Sheet
