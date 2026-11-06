@@ -2003,7 +2003,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
             ) : null}
           </div>
           <p className="dm-lede">{firstSentence(c.description) || 'No description in the contract yet.'}</p>
-          <p className="k-meta dm-src">
+          <p className="k-meta dm-built">
             Renders as <b>{c.rendersAs ?? 'unknown'}</b> · BELLA {bella.source?.version} @ <code>{bella.source?.commit}</code>
           </p>
           <button type="button" className="k-link" aria-expanded={read} aria-controls="dm-read" onClick={() => setRead(!read)}>

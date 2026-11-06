@@ -182,9 +182,9 @@
 .atlas .dm-head { display: grid; gap: var(--s-16); grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
 .atlas .dm-head .k-meta code { font-size: var(--fs-14); }
 /* the breadcrumb sits in the page's top padding: one line, so the H1 is where it is on every page */
-.atlas .dm-crumb { height: var(--s-24); margin-top: calc(-1 * var(--s-24)); line-height: var(--s-24); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.atlas .dm-crumb { height: var(--s-24); margin-top: calc(-1 * var(--s-24) - var(--s-4)); margin-bottom: var(--s-4); line-height: var(--s-24); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .atlas .dm-crumb + .k-h1, .atlas .dm-crumb + .k-tline { margin-top: 0; }
-.atlas .dm-src { margin-top: var(--s-8); }
+.atlas .dm-built { margin-top: var(--s-8); }
 .atlas .dm-lede { max-width: 40em; margin-top: var(--s-8); color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
 .atlas .dm-head .k-link { padding-left: 0; }
 .atlas .dm-read { margin-top: var(--s-8); max-width: 46em; display: grid; gap: var(--s-8); padding: var(--s-16); border-left: 3px solid var(--note); background: var(--card); font-size: var(--fs-16); line-height: var(--lh-body); }
