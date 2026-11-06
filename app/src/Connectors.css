@@ -83,3 +83,8 @@
 .cn-worst li { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
 .cn-score { display: inline-block; min-width: 4ch; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 @media (max-width: 900px) { .cn-paths li { grid-template-columns: minmax(0, 1fr); } }
+/* a narrow card: tag and Details on one line, the words under them at full width */
+@container kcard (max-width: 560px) {
+  .cn-paths li { grid-template-columns: minmax(0, 1fr) auto; }
+  .cn-paths li > span:not(.k-pill) { grid-column: 1 / -1; grid-row: 2; }
+}

@@ -347,7 +347,7 @@ export default function Connectors() {
 
   const cols = [
     { key: 'name', label: 'Connector', open: true },
-    { key: 'for', label: 'What it’s for', sortVal: (s) => s.about?.purpose ?? '', render: (s) => <span className="cn-for" title={s.about?.purpose ?? s.note ?? undefined}>{s.about?.purpose ?? s.note}</span> },
+    { key: 'for', label: 'What it’s for', prio: 2, sortVal: (s) => s.about?.purpose ?? '', render: (s) => <span className="cn-for" title={s.about?.purpose ?? s.note ?? undefined}>{s.about?.purpose ?? s.note}</span> },
     {
       key: 'status',
       label: 'Status',

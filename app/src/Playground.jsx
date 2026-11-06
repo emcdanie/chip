@@ -443,7 +443,7 @@ export default function Playground({ onToast, project: askedProject, route: aske
     return GROUP_ORDER.filter((k) => g[k]).map((k) => [k, g[k].sort((a, b) => a.name.localeCompare(b.name))]);
   }, [catalogue, q]);
   const nBrief = inBrief.length + placed.length;
-  const copies = (s) => [s.component, ...s.children].filter((name) => (KIND[map.components[name]?.kind] ?? KIND.site) === KIND.site).length;
+  const copies = (s) => [s.component, ...s.children].filter((name) => KIND[map.components[name]?.kind] === KIND.copy).length;
   const sendLabel = `Send ${plural(inBrief.length, 'note')}${placed.length ? ` and ${plural(placed.length, 'placed component')}` : ''} to Claude`;
   const draw = (p) => (p.component === 'Button' && p.variant ? VARIANTS.Button(p.variant) : SPECIMENS[p.component]?.() ?? <span className="pg-nospec">{p.component}</span>);
 
@@ -589,8 +589,8 @@ export default function Playground({ onToast, project: askedProject, route: aske
                       </LinkButton>
                       {/* one tag per section: each row's own note already says so */}
                       {copies(s) ? (
-                        <StatusPill tone={KIND.site.tone}>
-                          {KIND.site.word} · {copies(s)}
+                        <StatusPill tone={KIND.copy.tone}>
+                          {KIND.copy.word} · {copies(s)}
                         </StatusPill>
                       ) : null}
                       <LinkButton className="pg-noteon" onClick={() => noteOn(s)}>
@@ -607,7 +607,7 @@ export default function Playground({ onToast, project: askedProject, route: aske
                               <b>{name}</b>
                               <small>{c?.note ?? 'Not imported by the page'}</small>
                             </span>
-                            {k === KIND.site ? null : <StatusPill tone={k.tone}>{k.word}</StatusPill>}
+                            {k === KIND.copy ? null : <StatusPill tone={k.tone}>{k.word}</StatusPill>}
                           </li>
                         );
                       })}
