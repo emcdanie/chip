@@ -11,8 +11,8 @@
 //     Claude desktop sessions at all; the tab says so.
 //   Terminal: real shells in a pty; "New Claude" is a shell with claude started.
 //   Ask OBI: the OBI thread.
-// One input at the bottom says where it sends: on Terminal it types at the
-// active prompt without Return; anywhere else it asks OBI. The mic is the Web
+// One input at the bottom: on Terminal it types at the active prompt without
+// Return and a tag says which; anywhere else it asks OBI, as its placeholder says. The mic is the Web
 // Speech API, on device where the browser can; speech never sends by itself.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
@@ -953,7 +953,7 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
 
       <form className="one" onSubmit={submit} autoComplete="off">
         <div className="one-meta">
-          <span className={`one-to${onTerm ? ' term' : ''}`}>{onTerm ? (at ? `Types into ${termName(at, labelOf(at.repo))}` : 'No terminal open') : 'Asks OBI'}</span>
+          {onTerm ? <span className="one-to term">{at ? `Types into ${termName(at, labelOf(at.repo))}` : 'No terminal open'}</span> : null}
           <p className="voice" aria-live="polite">
             <VoiceLine v={voice} verb={verb} />
           </p>
@@ -986,7 +986,7 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
               {voice.listening ? 'Stop' : 'Talk'}
             </Button>
           </span>
-          <Button variant="primary" type="submit">
+          <Button variant="tertiary" type="submit" disabled={!q.trim()}>
             {verb}
           </Button>
         </div>
