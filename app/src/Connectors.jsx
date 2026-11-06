@@ -6,7 +6,7 @@
 // explains how to add a connector.
 import React, { useCallback, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { Overflow, PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, SheetPart, Facts, NotMeasured, LinkButton, Card } from './kit/index.jsx';
+import { Overflow, PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, SheetPart, Facts, NotMeasured, LinkButton, Card, Toggle } from './kit/index.jsx';
 import SystemMap, { useMapControls } from './SystemMap.jsx';
 import { changed } from './ReviewSheet.jsx';
 import './Connectors.css';
@@ -159,6 +159,7 @@ function ServerSheet({ s, feeds, note, onOff }) {
 // Compare with Figma, every component at once: the baseline and its rerun
 function FigmaCard({ servers, figma, onOpen }) {
   const [base, setBase] = useState(null);
+  const [more, setMore] = useState(false);
   const load = useCallback(() => fetch('/figma-baseline').then((r) => r.json()).then(setBase).catch(() => {}), []);
   useEffect(() => {
     load();
@@ -207,18 +208,25 @@ function FigmaCard({ servers, figma, onOpen }) {
             {Object.keys(base.byCheck).length ? `Differences: ${Object.entries(base.byCheck).map(([k, n]) => `${k} in ${n}`).join(', ')}.` : 'No differences.'}{' '}
             {base.total - base.found ? `${base.total - base.found} have no component set in the file (${base.rows.filter((r) => !r.found).map((r) => r.name).join(', ')}).` : ''}
           </p>
-          {worst.length ? (
-            <ul className="cn-worst">
-              {worst.slice(0, 6).map((r) => (
-                <li key={r.id}>
-                  <span className="cn-score">{r.score}%</span> <b>{r.name}</b> <span className="cn-muted">{r.failing.map((f) => f.what).join(' ')}</span>
-                </li>
-              ))}
-            </ul>
+          <Toggle className="cn-more" expanded={more} onClick={() => setMore((o) => !o)}>
+            {more ? 'Hide the detail' : worst.length ? `The ${Math.min(worst.length, 6)} furthest from code` : 'What each path reads'}
+          </Toggle>
+          {more ? (
+            <>
+              {worst.length ? (
+                <ul className="cn-worst">
+                  {worst.slice(0, 6).map((r) => (
+                    <li key={r.id}>
+                      <span className="cn-score">{r.score}%</span> <b>{r.name}</b> <span className="cn-muted">{r.failing.map((f) => f.what).join(' ')}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <p className="cn-muted">
+                Variables: the desktop app reads them on this plan (per component, and every collection in the file). The REST API’s variables endpoint is Enterprise only, so REST reads components and styles here, not variables.
+              </p>
+            </>
           ) : null}
-          <p className="cn-muted">
-            Variables: the desktop app reads them on this plan (per component, and every collection in the file). The REST API’s variables endpoint is Enterprise only, so REST reads components and styles here, not variables.
-          </p>
         </div>
       ) : (
         <p className="cn-muted">{figma?.canCompare ? 'No baseline yet: compare every component once to see where Figma and code differ.' : 'Open the desktop app or add a REST token to compare.'}</p>
@@ -339,7 +347,7 @@ export default function Connectors() {
 
   const cols = [
     { key: 'name', label: 'Connector', open: true },
-    { key: 'for', label: 'What it’s for', sortVal: (s) => s.about?.purpose ?? '', render: (s) => <span className="cn-for">{s.about?.purpose ?? s.note}</span> },
+    { key: 'for', label: 'What it’s for', sortVal: (s) => s.about?.purpose ?? '', render: (s) => <span className="cn-for" title={s.about?.purpose ?? s.note ?? undefined}>{s.about?.purpose ?? s.note}</span> },
     {
       key: 'status',
       label: 'Status',
@@ -400,7 +408,7 @@ export default function Connectors() {
         <li>
           <kbd>Tab</kbd> moves through cards; <kbd>Enter</kbd> selects. Arrows: ↑ parent, ↓ first child, ← → siblings.
         </li>
-        <li>Pills: green healthy, yellow needs attention, red failing.</li>
+        <li>Tags: green healthy, yellow needs attention, red failing.</li>
       </ul>
     </Overflow>
   );

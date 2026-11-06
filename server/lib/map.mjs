@@ -105,8 +105,10 @@ export async function systemMap() {
   }
   const groups = [...new Set(nodes.map((x) => x.group))].map((g) => {
     const kids = nodes.filter((x) => x.group === g);
-    const worst = ['bad', 'blocked', 'warn', 'unknown', 'off', 'ok'].find((s) => kids.some((k) => k.state === s));
-    return { id: g, name: g, state: worst, healthy: Math.round((kids.filter((k) => k.state === 'ok').length / kids.length) * 100) };
+    // a part that's off (an optional Figma path) doesn't count against its stage
+    const inUse = kids.filter((k) => k.state !== 'off');
+    const worst = ['bad', 'blocked', 'warn', 'unknown', 'ok'].find((s) => inUse.some((k) => k.state === s)) ?? 'off';
+    return { id: g, name: g, state: worst, ok: inUse.filter((k) => k.state === 'ok').length, of: inUse.length };
   });
   const bad = nodes.filter((x) => x.state === 'bad');
   const blocking = bad.map((b) => ({ b, hit: nodes.filter((x) => x.blockedBy?.id === b.id).map((x) => x.name) })).filter((x) => x.hit.length);

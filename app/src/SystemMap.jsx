@@ -51,7 +51,7 @@ const listOf = (xs) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs.
 function whyOf(n) {
   if (n.isGroup) {
     const off = n.kids.filter((k) => k.state !== 'ok' && k.state !== 'off');
-    return `${off.length ? `${off.length} of ${n.kids.length} parts ${off.length === 1 ? 'is' : 'are'} not healthy.` : `All ${n.kids.length} parts are healthy.`} The worst part sets the stage’s state, and every stage feeds the next.`;
+    return `${off.length ? `${off.length} of ${n.kids.length} parts ${off.length === 1 ? 'is' : 'are'} not healthy.` : `All ${n.of} parts in use are healthy.`} The worst part sets the stage’s state, and every stage feeds the next.`;
   }
   return n.dependents.length ? `${listOf(n.dependents)} ${n.dependents.length === 1 ? 'reads' : 'read'} from it: if it breaks, ${n.dependents.length === 1 ? 'that is' : 'they are'} blocked too.` : 'Nothing else reads it, so a failure here stops nothing downstream.';
 }
@@ -103,7 +103,8 @@ function treeOf(map) {
       icon: ICON[g.id],
       isGroup: true,
       state: g.state,
-      healthy: g.healthy,
+      ok: g.ok,
+      of: g.of,
       blockedBy: g.state === 'blocked' && by.length ? { name: by.join(' and ') } : null,
       sub: `${kids.length} part${kids.length === 1 ? '' : 's'}`,
       kids,
@@ -116,7 +117,8 @@ function treeOf(map) {
     icon: ICON.root,
     isGroup: true,
     state: worst,
-    healthy: Math.round((groups.filter((g) => g.state === 'ok').length / groups.length) * 100),
+    ok: groups.filter((g) => g.state === 'ok').length,
+    of: groups.length,
     sub: `${groups.length} parts`,
     kids: groups,
   };
@@ -124,7 +126,7 @@ function treeOf(map) {
 
 const pillText = (n) => {
   if (n.blockedBy || n.state === 'blocked') return 'Blocked';
-  if (n.isGroup) return n.state === 'ok' ? '100%' : `${n.healthy}% healthy`;
+  if (n.isGroup) return n.state === 'ok' ? 'All healthy' : `${n.ok} of ${n.of} healthy`;
   if (n.action?.type === 'test' && (n.state === 'ok' || n.state === 'bad')) return n.state === 'ok' ? 'Answering' : 'Not answering';
   return WORD[n.state] ?? WORD.unknown;
 };
