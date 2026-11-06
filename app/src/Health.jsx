@@ -8,7 +8,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import { Segmented, segPanelProps, Sheet, Toggle } from './kit/index.jsx';
-import { CheckSheet, failingTokens, useChecks, when } from './Checks.jsx';
+import { CheckSheet, failingTokens, shortResult, useChecks, when } from './Checks.jsx';
 import { openReview } from './ReviewSheet.jsx';
 import { GapCard, GapReport, useGapFixes } from './DoNext.jsx';
 
@@ -720,7 +720,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                     {c.name}
                   </button>
                   <span className={`ckv ${v[0]}`}>{v[1]}</span>
-                  <span className="ckres">{c.status === 'running' ? 'Running now…' : (c.status === 'failed' ? c.failures?.[0] : null) ?? c.summary ?? 'No result yet.'}</span>
+                  <span className="ckres">{shortResult(c)}</span>
                   <span className="cksched">
                     {c.schedule} · last {c.ranAt ? fmt(c.ranAt) : 'never'}
                   </span>

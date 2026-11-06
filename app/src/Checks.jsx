@@ -19,6 +19,24 @@ export const STATUS = {
 export const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never');
 const dur = (ms) => (ms == null ? '' : ms < 1000 ? `${ms} ms` : ms < 90000 ? `${Math.round(ms / 1000)} s` : `${Math.round(ms / 60000)} min`);
 
+/** One short result for a check's row, from its own result; the sheet keeps the
+ * full text. With no short form it says "See check" rather than guess. */
+export function shortResult(c) {
+  if (c.status === 'running') return 'Running now…';
+  const f = c.status === 'failed' ? c.failures?.[0] : null;
+  if (f) {
+    const more = c.failures.length > 1 ? ` +${c.failures.length - 1} more` : '';
+    const pair = f.match(/is ([\d.]+:1).*?needs ([\d.]+:1)/);
+    if (pair) return `${pair[1]}, needs ${pair[2]}${more}`;
+    const shot = f.match(/^([\w-]+): a picture is ([\d.]+%) different/);
+    if (shot) return `${shot[1]} ${shot[2]} off baseline${more}`;
+  }
+  if (c.score != null) return `Score ${c.score}`;
+  if (!c.summary) return 'No result yet.';
+  const s = c.summary.replace(/\s*\(.*\)$/, '');
+  return s.length <= 40 ? s : 'See check';
+}
+
 /** GET /checks, refreshed while anything runs and whenever a review changes BELLA. */
 export function useChecks() {
   const [data, setData] = useState(null);
