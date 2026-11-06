@@ -1,5 +1,5 @@
 // CHIP's frame, as the approved mocks draw it (chip-mock-03, chip-workpanel-01):
-// a top bar (wordmark, Find ⌘K, Lead with, the Work toggle ⌘J), the left nav
+// a top bar (wordmark, Find ⌘K, the Work toggle ⌘J), the left nav
 // (icons, counts, pins, Collapse; an icon rail under 1180px; Components opens
 // the library tree) and the Work panel, docked right or along the bottom, the
 // page making room for it. Pages drop into <main>. Needs you, the sessions,
@@ -34,11 +34,6 @@ const PAGES = [
 ];
 const NAME = Object.fromEntries(PAGES.map((p) => [p.id, p.label]));
 const GROUP_ORDER = ['Actions', 'Inputs', 'Layout', 'Data', 'Chat', 'Brand', 'Other'];
-const LENSES = [
-  { id: 'visual', label: 'Visual' },
-  { id: 'technical', label: 'Technical' },
-  { id: 'scope', label: 'Scope' },
-];
 const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digit4: 'play', Digit5: 'docs', Digit6: 'connectors', Digit7: 'projects' };
 // v2: Claude answers by default (Elleta, 3 Nov: the local model isn't good
 // enough on stage); the local model stays one pick away
@@ -79,34 +74,6 @@ const store = (key, value) => {
   } catch {}
 };
 
-// Lead with: a radiogroup (one of three, no panels), arrows move and choose
-function Lens({ value, onChange }) {
-  const ref = useRef(null);
-  const keys = (e) => {
-    const i = LENSES.findIndex((l) => l.id === value);
-    const n = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1 }[e.key];
-    if (n === undefined) return;
-    e.preventDefault();
-    const next = LENSES[(n + LENSES.length) % LENSES.length];
-    onChange(next.id);
-    ref.current.querySelector(`[data-lens="${next.id}"]`)?.focus();
-  };
-  return (
-    <div className="leadwith">
-      <span className="lwl" id="lwL">
-        Lead with
-      </span>
-      <div className="seg" role="radiogroup" aria-labelledby="lwL" ref={ref} onKeyDown={keys}>
-        {LENSES.map((l) => (
-          <button key={l.id} type="button" role="radio" data-lens={l.id} aria-checked={l.id === value} tabIndex={l.id === value ? 0 : -1} onClick={() => onChange(l.id)}>
-            {l.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 const PIN = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M9 3h6l-1 6 4 4H6l4-4zM12 13v8" />
@@ -133,8 +100,7 @@ export default function App() {
   const [offline, setOffline] = useState(false);
   const [toast, setToast] = useState('');
   const [trySignal, setTrySignal] = useState(null);
-  const [lens, setLens] = useState(() => stored('chip-lens', 'visual'));
-  useEffect(() => store('chip-lens', lens), [lens]);
+  const lens = 'visual'; // the Lead with switch is out for now (Elleta, 6 Nov); pages keep their lens prop
 
   /* ---- the frame: nav collapse, the Work panel, the narrow drawer ---- */
   const wide = useMedia('(min-width: 961px)');
@@ -529,7 +495,6 @@ export default function App() {
             notify={setToast}
           />
         </div>
-        <Lens value={lens} onChange={setLens} />
         <button type="button" className="wtoggle" ref={workToggle} aria-expanded={work.open} aria-controls="work" onClick={() => setOpen(!work.open)}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="3" y="4" width="18" height="16" rx="2" />

@@ -37,9 +37,7 @@ main h1:focus { outline: none; }
 /* the two keycaps read as one ⌘K, outlined once */
 .top .search kbd kbd { padding: 0; border: 0; }
 .top .search kbd:has(kbd) { border: 1px solid var(--line); border-radius: var(--r); padding: 0 var(--s-8); }
-.leadwith { display: flex; align-items: center; gap: var(--s-8); margin-left: var(--s-12); }
-.top .search[hidden] + .leadwith { margin-left: auto; }
-.lwl { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); white-space: nowrap; }
+.top .search[hidden] + .wtoggle { margin-left: auto; }
 .seg { display: inline-flex; gap: var(--s-4); padding: var(--s-4); border: 0; border-radius: var(--r-control); background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
 .seg button { min-height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--body); box-shadow: none; font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
 .seg button:hover { color: var(--ink); background: color-mix(in srgb, var(--action) 8%, transparent); }
@@ -278,9 +276,6 @@ html.wp-dragging .xterm { pointer-events: none; }
 @keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--note) 70%, transparent); } 100% { box-shadow: 0 0 0 8px transparent; } }
 @media (prefers-reduced-motion: reduce) { .voice .live::before { animation: none; } }
 
-@media (max-width: 1100px) {
-  .leadwith { margin-left: auto; }
-}
 /* under 961px the nav is a drawer behind Menu and the panel docks at the bottom */
 @media (max-width: 960px) {
   .app, .app.navcollapsed { grid-template-columns: minmax(0, 1fr) 0; }
