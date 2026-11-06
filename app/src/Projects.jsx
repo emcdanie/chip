@@ -335,7 +335,6 @@ export default function Projects({ projectId, onProject }) {
   return (
     <div className="pj-page k-chrome">
       <PageHeader
-        meta="Workspace"
         title="Projects"
         lede="Every repo CHIP works on: how it runs and what’s in progress."
       />

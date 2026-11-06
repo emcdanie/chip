@@ -1613,8 +1613,10 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
   if (!canSee(role, settings.visibleTo))
     return (
       <div className="atlas k-chrome">
-        <p className="k-meta">{crumb}</p>
-        <h1 className="k-h1">{c.name}</h1>
+        <div>
+          <p className="k-meta dm-crumb">{crumb}</p>
+          <h1 className="k-h1">{c.name}</h1>
+        </div>
         <p className="k-note">This page is visible to {settings.visibleTo} only. View as an Editor or Admin to see it.</p>
       </div>
     );
@@ -1989,9 +1991,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
     <div className="atlas dm" data-lens={lens} onKeyDown={(e) => e.key === 'Escape' && (sel || why) && (setSel(null), setWhy(null))}>
       <section className="dm-head k-chrome" aria-labelledby="dm-h1">
         <div>
-          <p className="k-meta">
-            {crumb} · renders as <b>{c.rendersAs ?? 'unknown'}</b> · BELLA {bella.source?.version} @ <code>{bella.source?.commit}</code>
-          </p>
+          <p className="k-meta dm-crumb">{crumb}</p>
           <div className="k-tline">
             <h1 className="k-h1" id="dm-h1" tabIndex={-1}>
               {c.name}
@@ -2003,6 +2003,9 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
             ) : null}
           </div>
           <p className="dm-lede">{firstSentence(c.description) || 'No description in the contract yet.'}</p>
+          <p className="k-meta dm-src">
+            Renders as <b>{c.rendersAs ?? 'unknown'}</b> · BELLA {bella.source?.version} @ <code>{bella.source?.commit}</code>
+          </p>
           <button type="button" className="k-link" aria-expanded={read} aria-controls="dm-read" onClick={() => setRead(!read)}>
             {read ? 'Hide the description' : 'Read the full description'}
           </button>

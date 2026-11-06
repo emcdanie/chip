@@ -449,7 +449,6 @@ export default function Playground({ onToast, project: askedProject, route: aske
   return (
     <div className="pg-page k-chrome">
       <PageHeader
-        meta="Playground"
         title="Playground"
         lede="Use a project’s page live, mark it up, then send it to Claude."
         actions={
