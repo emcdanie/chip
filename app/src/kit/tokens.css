@@ -1,36 +1,34 @@
-/* CHIP's one token sheet, ported from the approved mock (chip-mock-03, 4 Nov
- * 2026). Every value in app/src lives here and nowhere else. Colours are the
- * mock's, written as rgb() because the local pre-commit hook blocks hex in
- * app/src. BELLA's own tokens still load for the BELLA components CHIP shows;
- * CHIP's chrome reads only these. */
+/* CHIP's names for BELLA's tokens. The values live in BELLA's chip theme
+ * (tokens/semantic/chip.json, [data-theme="chip"]); page CSS reads these names.
+ * A name with no semantic slot in BELLA points at the theme's primitive. */
 :root {
   /* colour: one token per role */
-  --ground: rgb(247 247 245);
-  --card: rgb(255 255 255);
-  --ink: rgb(29 32 48);
-  --body: rgb(43 47 61);
-  --muted: rgb(71 76 94);
-  --line: rgb(31 28 25 / 0.22);
+  --ground: var(--color-semantic-background);
+  --card: var(--color-semantic-surface-card);
+  --ink: var(--color-semantic-text-primary);
+  --body: var(--color-semantic-text-body);
+  --muted: var(--color-semantic-text-secondary);
+  --line: var(--color-semantic-border);
   --neutral: color-mix(in srgb, var(--ink) 7%, var(--card)); /* counts and resting chips */
-  --action: rgb(47 155 224); /* action, CTA, selection */
-  --pass: rgb(43 154 87); /* passed: 3.6:1 on card as a mark; ink text on its fills */
-  --fail: rgb(226 71 59); /* failed */
-  --needs: rgb(233 184 32); /* needs you */
-  --note: rgb(229 139 187); /* annotations only */
+  --action: var(--color-semantic-action); /* action, CTA, selection */
+  --pass: var(--color-semantic-success); /* passed: 3.6:1 on card as a mark; ink text on its fills */
+  --fail: var(--color-semantic-danger); /* failed */
+  --needs: var(--color-semantic-attention); /* needs you */
+  --note: var(--color-semantic-pin); /* annotations only */
   --sel: color-mix(in srgb, var(--action) 12%, var(--card));
-  --canvas: rgb(244 245 248);
-  --inset: rgb(236 238 243);
-  --sort-on: rgb(24 101 187); /* the sorted column's arrow */
-  --code-ground: rgb(29 32 48); /* code blocks in a sheet */
-  --code-ink: rgb(236 238 243);
-  --scrim: rgb(29 32 48 / 0.32); /* behind a sheet */
-  --edge: rgb(29 32 48 / 0.18); /* the shadow at a scroll region's edge when more is past it */
+  --canvas: var(--color-chip-ui-canvas);
+  --inset: var(--color-semantic-surface-inset);
+  --sort-on: var(--color-chip-ui-action-deep); /* the sorted column's arrow */
+  --code-ground: var(--color-semantic-background-inverse); /* code blocks in a sheet */
+  --code-ink: var(--color-semantic-text-inverse);
+  --scrim: var(--color-semantic-scrim); /* behind a sheet */
+  --edge: var(--color-chip-ui-edge); /* the shadow at a scroll region's edge when more is past it */
 
-  /* type: 14 / 16 / 20 / 28 / 40, weights 400 and 600 */
+  /* type: 16 / 16 / 20 / 28 / 40, weights 400 and 600. --fs-14 keeps its name for the page CSS; BELLA's floor is 16px */
   --display: 'Newsreader', Georgia, serif; /* H1 only */
   --sans: 'DM Sans', system-ui, sans-serif;
   --code: 'Geist Mono', ui-monospace, monospace;
-  --fs-14: 14px;
+  --fs-14: var(--typography-font-size-tag);
   --fs-16: 16px;
   --fs-20: 20px;
   --fs-28: 28px;
@@ -49,65 +47,20 @@
   --gutter: 32px; /* the one content gutter */
 
   /* shape */
-  --r: 2px; /* boxes, cards, tables, inputs, code, status chips */
-  --r-control: 999px; /* buttons, tabs, chips, the Work panel's one field: flip to 2px for square */
+  --r: var(--component-card-default-border-radius); /* boxes, cards, tables, inputs, code: set in BELLA's chip theme */
+  --r-control: var(--component-button-shape-default); /* buttons, tabs, chips: set in BELLA's chip theme */
   --h-control: 44px;
-  --h-compact: 36px;
+  --h-compact: var(--spacing-touch-target);
   --icon: 18px;
   --shadow: 0 1px 4px rgb(29 32 48 / 0.18); /* the floating selected tab, nothing else */
-  --focus-ring: rgb(30 120 200); /* the action blue, darker: 3.9:1 or more on card, canvas, ground and inside a segmented control */
-  --focus: 3px solid var(--focus-ring);
+  --focus-ring: var(--ring-focus-color); /* BELLA's ring: 3.09:1 or more on every CHIP surface */
+  --focus: var(--ring-focus-width) solid var(--focus-ring);
 
-  /* BELLA components inside CHIP take CHIP's focus ring and link colours */
-  --ring-focus-color: var(--focus-ring);
-  --component-link-default-foreground: var(--ink);
-  --component-link-default-foreground-hover: var(--ink);
-  --component-tabs-indicator: var(--action);
-
-  --on-action: rgb(29 32 48); /* text on the action blue, in every theme: 5.3:1 */
-  --on-note: rgb(10 12 20); /* text on the annotation pink, in every theme: 8.1:1 (ink was 6.7) */
+  --on-action: var(--color-semantic-action-on); /* text on the action blue: 5.29:1 */
+  --on-note: var(--color-chip-ui-on-note); /* text on the annotation pink, in every theme: 8.1:1 (ink was 6.7) */
   --frame-nav: 256px; /* the left nav; 104px as an icon rail */
   --frame-rail: 104px;
   --frame-top: 64px;
-}
-
-/* BELLA's Button, in the mock's colours: the primary keycap is the action
-   blue with dark text, the secondary is the card with a hairline. The label
-   roll, the keycap press and reduced motion stay BELLA's. Only CHIP's own
-   chrome takes it: the top bar, the Work panel (k-chrome), every sheet and any page root
-   marked k-chrome. A BELLA specimen outside those keeps BELLA's own Button. */
-.top, .k-sheet, .k-chrome {
-  --component-button-primary-fill-hi: var(--action);
-  --component-button-primary-fill-lo: var(--action);
-  --component-button-primary-fill-hi-hover: color-mix(in srgb, var(--action) 70%, rgb(255 255 255));
-  --component-button-primary-fill-lo-hover: color-mix(in srgb, var(--action) 70%, rgb(255 255 255));
-  /* Flat blue, as in the mock: no key edge, drop shadow or gloss (Elleta,
-     4 Nov: the keycap shadow looks wrong in blue). The label roll and the
-     press stay BELLA's. */
-  --component-button-primary-edge: var(--action);
-  --component-button-primary-gloss: linear-gradient(transparent, transparent);
-  --component-button-primary-gloss-pressed: linear-gradient(transparent, transparent);
-  --shadow-key-resting: none;
-  --shadow-key-hover: none;
-  --shadow-key-pressed: none;
-  --component-button-primary-foreground: var(--on-action);
-  --component-button-primary-font-size: var(--fs-14);
-  --component-button-primary-padding-x: var(--s-16);
-  --component-button-secondary-background: var(--card);
-  --component-button-secondary-background-hover: color-mix(in srgb, var(--action) 8%, var(--card));
-  --component-button-secondary-background-active: color-mix(in srgb, var(--action) 14%, var(--card));
-  --component-button-secondary-foreground: var(--ink);
-  --component-button-secondary-border: var(--line);
-  --component-button-secondary-border-hover: var(--action);
-  --component-button-secondary-padding-x: var(--s-16);
-  --component-button-tertiary-foreground: var(--ink);
-  --component-button-shape-default: var(--r-control);
-  /* BELLA's Select in the same chrome: the kit's input box, 14px, 44px tall */
-  --component-select-border-radius: var(--r);
-  --component-select-font-size: var(--fs-14);
-  --component-select-label-font-family: var(--sans);
-  --component-select-label-font-size: var(--fs-14);
-  --component-select-min-height: var(--h-control);
 }
 
 /* dark: the mock has no dark theme; these are BELLA's dark roles (cool 975,
@@ -126,7 +79,6 @@
   --code-ground: rgb(15 17 23);
   --scrim: rgb(0 0 0 / 0.5);
   --edge: rgb(0 0 0 / 0.6);
-  --focus-ring: var(--action); /* the bright blue already clears 3:1 on the dark grounds */
   --shadow: 0 1px 4px rgb(0 0 0 / 0.5);
   color-scheme: dark;
 }
@@ -135,5 +87,5 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { background: var(--ground); color: var(--body); font: 400 var(--fs-16)/var(--lh-body) var(--sans); }
-:focus-visible { outline: var(--focus); outline-offset: 2px; }
+:focus-visible { outline: var(--focus); outline-offset: var(--ring-focus-offset); }
 [hidden] { display: none !important; }

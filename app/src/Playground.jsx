@@ -554,7 +554,7 @@ export default function Playground({ onToast, project: askedProject, route: aske
                       onKeyDown={(e) => nudge(e, p)}
                     >
                       <span className="pg-pin prop">P{i + 1}</span>
-                      <div className="pg-prop-b">{draw(p)}</div>
+                      <div className="pg-prop-b" data-theme="light">{draw(p)}</div>
                       <span className="pg-grip" aria-hidden="true" onPointerDown={(e) => startGrab(e, p, 'size')} />
                     </div>
                   ))}

@@ -174,7 +174,6 @@
 
 /* BELLA specimens: BELLA's own surface and focus ring, light or dark, never CHIP's */
 .atlas .dm-sp { --dm-dot: rgb(13 153 255 / 0.16); background-color: var(--color-semantic-surface); color: var(--color-semantic-text-primary); }
-.atlas .dm-sp:not([data-theme='dark']) { --ring-focus-color: var(--color-semantic-focus-ring); --component-link-default-foreground: var(--color-semantic-text-primary); --component-tabs-indicator: var(--color-semantic-text-primary); }
 .atlas .dm-sp[data-theme='dark'] { --dm-dot: rgb(255 255 255 / 0.1); }
 
 /* head */

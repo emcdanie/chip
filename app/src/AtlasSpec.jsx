@@ -21,7 +21,7 @@ function measure(frame) {
   const fr = frame.getBoundingClientRect();
   const r = root.getBoundingClientRect();
   const cs = getComputedStyle(root);
-  const doc = getComputedStyle(document.documentElement);
+  const doc = getComputedStyle(root.closest('.dm-sp') ?? document.documentElement);
   const zoom = root.offsetWidth ? r.width / root.offsetWidth : 1;
   return {
     fw: fr.width,
@@ -61,7 +61,7 @@ export function SpecStage({ c, overrides }) {
   // a narrow card: tags go under the box instead of beside it
   const narrow = m ? m.fw - (m.x + m.w) < 150 : false;
   // the radius token: the one this component reads whose value is the measured radius
-  const radiusToken = m ? (c.tokens?.list ?? []).find((t) => /radius|shape-default/.test(t) && getComputedStyle(document.documentElement).getPropertyValue(t).trim() === m.radiusRaw) : null;
+  const radiusToken = m ? (c.tokens?.list ?? []).find((t) => /radius|shape-default/.test(t) && getComputedStyle(document.querySelector('.dm-sp') ?? document.documentElement).getPropertyValue(t).trim() === m.radiusRaw) : null;
   return (
     <>
       <div className="stage spec-stage" aria-label={`${c.name} with its measurements`}>
@@ -188,7 +188,7 @@ export function SpecSection({ c, figmaNames = null, onSend, sendOpen }) {
       .then(setSpec)
       .catch(() => setSpec({ props: null, note: "The CHIP server didn't answer." }));
   }, [c.id]);
-  const ring = (t) => getComputedStyle(document.documentElement).getPropertyValue(t).trim();
+  const ring = (t) => getComputedStyle(document.querySelector('.dm-sp') ?? document.documentElement).getPropertyValue(t).trim();
   return (
     <div className="spec-section">
       <Card innerClassName="spec-card">

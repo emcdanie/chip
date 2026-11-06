@@ -24,19 +24,12 @@ main h1:focus { outline: none; }
 .brand span { color: var(--ink); }
 .menubtn { display: inline-flex; align-items: center; min-height: var(--h-control); padding: 0 var(--s-16); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
 
-/* the top bar's Find: OBI's input in find mode (BELLA's Combobox), dressed as the
-   mock's .search through its own tokens: one box, the ground, ⌘K at the end */
-.top .search { align-self: center; margin-left: auto; min-width: 0; flex: 0 1 300px;
-  --component-combobox-border: var(--line); --component-combobox-border-radius: var(--r); --component-combobox-background: var(--ground);
-  --component-combobox-foreground: var(--ink); --component-combobox-font-size: var(--fs-14); --component-combobox-min-height: var(--h-control);
-  --component-kbd-border: transparent; --component-kbd-background: transparent; --component-kbd-foreground: var(--muted); --component-kbd-font-size: var(--fs-14); }
+/* the top bar's Find: OBI's input in find mode (BELLA's Combobox) */
+.top .search { align-self: center; margin-left: auto; min-width: 0; flex: 0 1 300px; }
 .top .search .one-input { width: 100%; }
 /* a field's dropdown holds content: 2px, like the mock's menus */
-.one-input { --radius-lg: var(--r); --radius-md: var(--r); }
 .top .search input::placeholder { color: var(--muted); }
 /* the two keycaps read as one ⌘K, outlined once */
-.top .search kbd kbd { padding: 0; border: 0; }
-.top .search kbd:has(kbd) { border: 1px solid var(--line); border-radius: var(--r); padding: 0 var(--s-8); }
 .top .search[hidden] + .wtoggle { margin-left: auto; }
 .seg { display: inline-flex; gap: var(--s-4); padding: var(--s-4); border: 0; border-radius: var(--r-control); background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
 .seg button { min-height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--body); box-shadow: none; font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
@@ -177,10 +170,8 @@ html.wp-dragging .xterm { pointer-events: none; }
 .skids > ul { margin-left: var(--s-16); padding-left: var(--s-12); border-left: 1px solid var(--line); }
 /* the suggested questions are sentences: plain list rows, not pills that wrap */
 .obi-suggest { display: grid; gap: 0; }
-.obi-suggest [data-bella-component='action-chip'] { --component-action-chip-font-size: var(--fs-14); width: 100%; border: 0; border-top: 1px solid var(--line); border-radius: var(--r); text-align: left; }
+.obi-suggest [data-bella-component='action-chip'] { width: 100%; border: 0; border-top: 1px solid var(--line); border-radius: var(--r); text-align: left; }
 .obi-suggest [data-bella-component='action-chip']:hover:not(:disabled) { background: var(--sel); }
-/* a label, not a button: Looking at … and a tool's name are 2px tags */
-.obi { --component-tag-default-border-radius: var(--r); }
 .obi-empty p { font-size: var(--fs-16); }
 .skids > ul:empty { display: none; }
 .skids > ul { gap: 0; }
@@ -205,7 +196,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .stail { justify-self: stretch; margin: 0; padding: var(--s-8) var(--s-12); max-height: 180px; overflow: auto; border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
 .sacts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8); }
 .smsg { justify-self: stretch; display: flex; gap: var(--s-8); align-items: center; min-width: 0; }
-.smsg .one-input { flex: 1; min-width: 0; --component-combobox-border: var(--line); --component-combobox-border-radius: var(--r); --component-combobox-background: var(--card); --component-combobox-foreground: var(--ink); --component-combobox-font-size: var(--fs-14); --component-combobox-min-height: var(--h-control); }
+.smsg .one-input { flex: 1; min-width: 0; }
 .wp-bottom .stree { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; }
 .face { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: var(--r-control); font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); background: var(--inset); flex: none; }
 /* lane colours are BELLA's own lane tokens; ink on each is over 12:1 */
@@ -257,10 +248,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .one-to { flex: none; display: inline-flex; align-items: center; min-height: var(--h-compact); padding: 0 var(--s-12); border-radius: var(--r); background: var(--neutral); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .one-to.term { font-family: var(--code); font-weight: 400; }
 .one-row { display: flex; align-items: center; gap: var(--s-8); min-width: 0; }
-/* the panel's one field is the one round field, as the mock's Ask; every other field is the kit's 2px box */
-.one-row .one-input { flex: 1; min-width: 0;
-  --component-combobox-border: var(--line); --component-combobox-border-radius: var(--r-control); --component-combobox-background: var(--card);
-  --component-combobox-foreground: var(--ink); --component-combobox-font-size: var(--fs-14); --component-combobox-min-height: var(--h-control); }
+.one-row .one-input { flex: 1; min-width: 0; }
 .one-row.interim input { color: var(--muted); font-style: italic; }
 .one-row .mic, .one-row .mic-tip { flex: none; }
 .mic-tip { display: inline-flex; }
@@ -490,7 +478,6 @@ html.wp-dragging .xterm { pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .spin svg, .hstrip .tube i, .toast, .cgh::before { transition: none; }
 }
-.top .search kbd > span { gap: 0; }
 
 /* a library doc opened from Find (SourceSheet) */
 .k-sheet pre.src-text { margin: 0; padding: 0; background: none; white-space: pre-wrap; overflow-wrap: anywhere; font: 400 var(--fs-16)/var(--lh-body) var(--sans); color: var(--body); }

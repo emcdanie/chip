@@ -1827,7 +1827,6 @@
 .tile-action a,
 .facts-card a,
 .doc-actions a,
-main [class*='_inner_'] > a,
 .connector summary {
   min-block-size: var(--spacing-touch-target);
 }
@@ -1836,16 +1835,9 @@ main [class*='_inner_'] > a,
 .related-list a,
 .tile-action a,
 .facts-card a,
-.doc-actions a,
-main [class*='_inner_'] > a {
+.doc-actions a {
   display: inline-flex;
   align-items: center;
-}
-
-/* 1.4.8: ledes stop near 68 characters. 70ch measured about 90 real
-   characters at 22px Figtree (ch is the width of "0"), so ledes use em */
-main [class*='_lede_'] {
-  max-inline-size: 34em;
 }
 
 /* long history lines and tool rows stop at the body measure */
