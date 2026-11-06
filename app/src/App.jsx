@@ -483,7 +483,7 @@ export default function App() {
   );
 
   const needCount = needs?.items.length ?? 0;
-  const resize = (px) => setWork(dock === 'right' ? { w: clampW(px, winW, navW) } : { h: clampH(px, win.h) });
+  const resize = (px) => setWork(dock === 'right' ? { w: clampW(px, winW, navW), sized: true } : { h: clampH(px, win.h) });
 
   return (
     <div

@@ -36,7 +36,7 @@ const mismatch = (l) => (l.prs ?? []).some((pr) => pr.claim !== 'none' && pr.ci 
 const KEY = 'chip-work';
 const LIM = { w: [360, 760], h: [280, 0.7] };
 // h: null is the bottom dock's default, 40% of the window; a resize stores px
-const DEF = { open: true, dock: 'right', w: 440, h: null, tab: 'needs' };
+const DEF = { open: true, dock: 'right', w: 380, h: null, tab: 'needs' };
 // closed by default under 1280px wide (it took half the page at 1024); once
 // she opens or closes it, that choice (chosen) is kept
 const WIDE = 1280;
@@ -49,6 +49,9 @@ export function useWork() {
       const s = { ...DEF, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
       // 360 was the fixed default before 4 Nov, stored whether or not it was resized
       if (s.h === 360) s.h = null;
+      // 440 was the default before 6 Nov, stored whether or not it was resized; a
+      // width she sets from now on is marked sized, so it stays
+      if (s.w === 440 && !s.sized) s.w = DEF.w;
       if (!s.chosen) s.open = window.innerWidth >= WIDE;
       return TABS.includes(s.tab) ? s : { ...s, tab: DEF.tab };
     } catch {
@@ -887,7 +890,7 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
         onPointerDown={grip}
         onKeyDown={gripKey}
         onBlur={() => setTip(false)}
-        onDoubleClick={() => (set(right ? { w: DEF.w } : { h: DEF.h }), notify('Size reset.'))}
+        onDoubleClick={() => (set(right ? { w: DEF.w, sized: false } : { h: DEF.h }), notify('Size reset.'))}
       />
       {dragging || tip ? (
         <span className="sizetip" aria-hidden="true">
