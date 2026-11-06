@@ -969,7 +969,7 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
               groups={[]}
               onSelect={() => {}}
               onKeyDown={(e) => e.key === 'Enter' && submit(e)}
-              placeholder="Words to type at the prompt (not run)"
+              placeholder="Words to type (not run)"
               className="one-input"
             />
           ) : (
