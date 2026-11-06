@@ -154,7 +154,7 @@ function Panel({ p, reload }) {
 
   return (
     <div className="pj-panel">
-      <section className="pj-hero k-card" aria-labelledby={`pj-h-${p.id}`}>
+      <section className="pj-hero" aria-labelledby={`pj-h-${p.id}`}>
         {/* the card above names it and says whether it runs: no second header or badge here */}
         <h2 className="k-vh" id={`pj-h-${p.id}`}>
           {p.name}
