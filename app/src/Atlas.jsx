@@ -1100,7 +1100,7 @@ function noSpecimen(c) {
     g('type', 'Type'),
     g('contrast', 'Contrast'),
     g('ring', 'Focus ring'),
-    g('prose', 'Prose vs render'),
+    g('prose', 'Contract vs render'),
     { id: 'parity', part: null, ok: hl.contract?.status === 'pass', grey: !hl.contract, label: 'Contract parity', val: hl.contract ? (hl.contract.status === 'pass' ? 'synced' : 'drift') : 'none', rule: 'props and variants match the code', src: 'contract-parity.mjs', got: hl.contract?.issues?.length ? hl.contract.issues.join('; ') : 'synced result, not live: re-runs on sync' },
   ];
 }
@@ -1135,8 +1135,8 @@ function runChecks({ root, canvas, c, cfg, o, parts, st, theme, bella }) {
       ? { id: 'ring', part: tp('ring'), ok: !!ring && ring.width >= 3, label: 'Focus ring', val: ring ? `${ring.width}px` : 'none', rule: 'focus ring = BELLA’s, never removed', src: 'AGENTS.md Floors · --ring-focus-color', got: ring ? `${ring.width}px ${hexOf(ring.color)}, offset ${ring.offset}px${ring.pseudo ? `, drawn on ${ring.pseudo}` : ''}` : 'no outline while focused' }
       : { id: 'ring', part: tp('ring'), grey: true, label: 'Focus ring', val: 'on focus', rule: 'focus ring = BELLA’s, never removed', src: 'AGENTS.md Floors', got: 'pick Focus, or tab to it in Use, to measure it' },
     drift.length
-      ? { id: 'prose', part: drift[0].part, needs: true, label: 'Prose vs render', val: `${drift.length} drift`, rule: 'the contract describes what renders', src: `component.${c.id} ${[...new Set(drift.map((x) => x.src))].join(', ')}`, got: drift.map((x) => `${parts.find((p) => p.key === x.part)?.title ?? 'Label'}: contract says “${x.says}”, renders ${x.got}`).join(' · ') }
-      : { id: 'prose', part: null, ok: true, label: 'Prose vs render', val: 'match', rule: 'the contract describes what renders', src: `component.${c.id} anatomy, a11y`, got: c.parts?.length ? 'every number the contract names for this render matches it' : 'the contract names no numbers for this component yet' },
+      ? { id: 'prose', part: drift[0].part, needs: true, label: 'Contract vs render', val: `${drift.length} differ`, rule: 'the contract describes what renders', src: `component.${c.id} ${[...new Set(drift.map((x) => x.src))].join(', ')}`, got: drift.map((x) => `${parts.find((p) => p.key === x.part)?.title ?? 'Label'}: contract says “${x.says}”, renders ${x.got}`).join(' · ') }
+      : { id: 'prose', part: null, ok: true, label: 'Contract vs render', val: 'match', rule: 'the contract describes what renders', src: `component.${c.id} anatomy, a11y`, got: c.parts?.length ? 'every number the contract names for this render matches it' : 'the contract names no numbers for this component yet' },
     { id: 'parity', part: null, ok: hl.contract?.status === 'pass', grey: !hl.contract, label: 'Contract parity', val: hl.contract ? (hl.contract.status === 'pass' ? 'synced' : 'drift') : 'none', rule: 'props and variants match the code', src: `contract-parity.mjs @ ${bella.source?.commit ?? ''}`, got: hl.contract?.issues?.length ? hl.contract.issues.join('; ') : 'synced result, not live: re-runs on sync' },
     { id: 'visual', part: null, grey: hl.visual?.status !== 'pass' && hl.visual?.status !== 'fail', ok: hl.visual?.status === 'pass', label: 'Visual', val: hl.visual?.status === 'pass' ? 'match' : hl.visual?.status === 'fail' ? 'differs' : 'not run', rule: 'snapshots match', src: 'audit:visual', got: hl.visual?.note ?? 'skipped' },
   ];
@@ -2008,8 +2008,8 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       </section>
 
       <section aria-label="Checks" className="k-chrome" hidden={!stage}>
-        <div className="dm-checks" role="toolbar" aria-label="Live checks on the specimen" ref={ckRef} onKeyDown={(e) => roveKeys(e)}>
-          <span className="dm-lbl">Live on the specimen</span>
+        <div className="dm-checks" role="toolbar" aria-label="Measured on this render" ref={ckRef} onKeyDown={(e) => roveKeys(e)}>
+          <span className="dm-lbl">Measured on this render</span>
           {checks.filter((k) => allChecks || ckClass(k) === 'fail' || ckClass(k) === 'needs').map((k) => (
             <button
               key={k.id}
@@ -2309,12 +2309,10 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
         ) : null}
         {scenes.length && (c.dont ?? []).some((_, i) => !scenes.some((s) => s.rule === i)) ? (
           <p className="cap">
-            Not staged yet:{' '}
+            No scene yet for:{' '}
             {(c.dont ?? [])
-              .map((_, i) => i)
-              .filter((i) => !scenes.some((s) => s.rule === i))
-              .map((i) => `${c.id}.dont[${i}]`)
-              .join(', ')}
+              .filter((_, i) => !scenes.some((s) => s.rule === i))
+              .join('; ')}
             .
           </p>
         ) : null}
@@ -2323,7 +2321,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       <section aria-labelledby="dm-bhh" className="dm-sec">
         <div className="dm-sechead">
           <h2 id="dm-bhh">Behind it</h2>
-          <p>Where the words still live. Today’s panels, unchanged, one row each.</p>
+          <p>The files and results this page reads from, one row each.</p>
         </div>
         <div className="dm-behind dm-card">
           <Row name="Contract" sum={`tokens/component.json → component.${c.id} · ${c.tokens?.count ?? 0} tokens, ${(c.props ?? []).length} props, ${states.length} states · ${(c.usage ?? []).length} usage, ${(c.dont ?? []).length} rules, ${(c.parts ?? []).length} parts · ${c.hasContract ? (hl.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code') : NO_CONTRACT}`} hint="overview, compliance, file">

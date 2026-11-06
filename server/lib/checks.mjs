@@ -258,6 +258,9 @@ function benchAgents() {
 const jobs = new Map(); // check id -> { startedAt }
 let queue = Promise.resolve();
 
+// a script's own last line ("contract parity: OK") in words; "(…)" keeps what it measured
+const plainSummary = (s) => (s ? s.replace(/^[\w -]+: OK(?: \((.+)\))?$/, (_, what) => what ?? 'No differences') : null);
+
 /** Runs one check (or 'gate': every gate check in order) in the clean checkout. */
 export function runCheck(id) {
   const ids = id === 'gate' ? CHECKS.filter((c) => c.gate).map((c) => c.id) : [id];
@@ -317,7 +320,7 @@ export function listChecks({ waiting = [], fixable = [] } = {}) {
     return {
       id: c.id, name: c.name, plain: c.plain, schedule: c.schedule, gate: !!c.gate, slow: !!c.slow,
       status, word,
-      summary: r?.summary ?? null, failures: r?.failures ?? [], ranAt: r?.ranAt ?? null, commit: r?.commit ?? null,
+      summary: plainSummary(r?.summary), failures: r?.failures ?? [], ranAt: r?.ranAt ?? null, commit: r?.commit ?? null,
       ms: r?.ms ?? null, target: r?.target ?? null, improve: fixable.find((f) => f.id === c.id)?.title ?? null, score: r?.score ?? null, parts: r?.parts ?? null, previous: r?.previous ?? null, cost: c.id === 'bench-static' ? 'No model, no cost' : 'Local, no cost',
     };
   });
