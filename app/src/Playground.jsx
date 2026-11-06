@@ -443,6 +443,7 @@ export default function Playground({ onToast, project: askedProject, route: aske
     return GROUP_ORDER.filter((k) => g[k]).map((k) => [k, g[k].sort((a, b) => a.name.localeCompare(b.name))]);
   }, [catalogue, q]);
   const nBrief = inBrief.length + placed.length;
+  const copies = (s) => [s.component, ...s.children].filter((name) => (KIND[map.components[name]?.kind] ?? KIND.site) === KIND.site).length;
   const sendLabel = `Send ${plural(inBrief.length, 'note')}${placed.length ? ` and ${plural(placed.length, 'placed component')}` : ''} to Claude`;
   const draw = (p) => (p.component === 'Button' && p.variant ? VARIANTS.Button(p.variant) : SPECIMENS[p.component]?.() ?? <span className="pg-nospec">{p.component}</span>);
 
@@ -455,7 +456,7 @@ export default function Playground({ onToast, project: askedProject, route: aske
           <div className="pg-actions">
             {projects?.length ? <Select label="Project" value={project} onChange={setProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
             {pages?.pages?.length ? <Select label="Page" value={route ?? ''} onChange={setRoute} options={pages.pages.map((p) => ({ value: p.route, label: p.label === p.route || p.label === 'Home' ? p.route : `${p.label}` }))} /> : null}
-            <Button variant="primary" onClick={() => toClaude()} disabled={sending || !map}>
+            <Button variant="primary" onClick={() => toClaude()} disabled={sending || !map || !nBrief}>
               {sending ? 'Writing the brief…' : 'Send to Claude'}
             </Button>
           </div>
@@ -586,7 +587,15 @@ export default function Playground({ onToast, project: askedProject, route: aske
                       <LinkButton onClick={() => goTo(s.id)}>
                         <code>#{s.id}</code>
                       </LinkButton>
-                      <LinkButton onClick={() => noteOn(s)}>Note on this section</LinkButton>
+                      {/* one tag per section: each row's own note already says so */}
+                      {copies(s) ? (
+                        <StatusPill tone={KIND.site.tone}>
+                          {KIND.site.word} · {copies(s)}
+                        </StatusPill>
+                      ) : null}
+                      <LinkButton className="pg-noteon" onClick={() => noteOn(s)}>
+                        Note on this section
+                      </LinkButton>
                     </div>
                     <ul className="pg-comps">
                       {[s.component, ...s.children].map((name) => {
@@ -598,7 +607,7 @@ export default function Playground({ onToast, project: askedProject, route: aske
                               <b>{name}</b>
                               <small>{c?.note ?? 'Not imported by the page'}</small>
                             </span>
-                            <StatusPill tone={k.tone}>{k.word}</StatusPill>
+                            {k === KIND.site ? null : <StatusPill tone={k.tone}>{k.word}</StatusPill>}
                           </li>
                         );
                       })}
