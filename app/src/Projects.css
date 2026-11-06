@@ -43,12 +43,12 @@
 .pj-list { display: grid; gap: var(--s-8); margin: 0; padding: 0; list-style: none; font-size: var(--fs-14); line-height: var(--lh-body); }
 .pj-list li { display: grid; gap: 0; min-width: 0; color: var(--ink); overflow-wrap: anywhere; }
 .pj-list small { color: var(--muted); font-size: var(--fs-14); }
-.pj-list a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--action); text-underline-offset: 3px; }
+.pj-list a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .pj-list a:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .pj-list .pj-commit { grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-12); align-items: baseline; }
 .pj-more { margin-top: var(--s-8); }
 
-.pj-rowlink { display: inline-flex; align-items: center; min-height: var(--h-compact); color: var(--ink); font-weight: 600; text-decoration: underline; text-decoration-color: var(--action); text-underline-offset: 3px; white-space: nowrap; }
+.pj-rowlink { display: inline-flex; align-items: center; min-height: var(--h-compact); color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
 .pj-rowlink:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .pj-pg { display: grid; min-width: 0; }
 .pj-pg small { color: var(--muted); font-size: var(--fs-14); }
