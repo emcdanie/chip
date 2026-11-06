@@ -18,11 +18,7 @@
 
 /* the six tabs (the mock's .ptabs): one pill group that wraps, body-coloured
    until selected, the Colour icon's half filled */
-.fd-tabs { container: fdtabs / inline-size; }
 .fd-tabs .k-seg { width: max-content; max-width: 100%; }
-/* too narrow for one row: even rows of tabs in a squared tray, not a pill
-   stretched over three ragged lines */
-@container fdtabs (max-width: 820px) { .fd-tabs .k-seg { display: grid; grid-template-columns: repeat(auto-fill, minmax(11em, 1fr)); width: 100%; border-radius: var(--r); } }
 .fd-tabs .k-seg button { color: var(--body); }
 .fd-tabs .k-seg button:hover { background: color-mix(in srgb, var(--action) 8%, transparent); color: var(--ink); }
 .fd-tabs .k-seg button[aria-selected='true'] { color: var(--ink); background: var(--card); }
