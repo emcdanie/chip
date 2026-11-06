@@ -163,7 +163,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .nyrow:hover { background: color-mix(in srgb, var(--action) 5%, var(--card)); }
 .nyk { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
 .nyw { font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
-.risk { padding: 0 var(--s-8); border-radius: var(--r-control); color: var(--ink); }
+.risk { padding: 0 var(--s-8); border-radius: var(--r); color: var(--ink); }
 .risk.r-low { background: color-mix(in srgb, var(--action) 22%, var(--card)); }
 .risk.r-medium { background: color-mix(in srgb, var(--needs) 32%, var(--card)); }
 .risk.r-high { background: color-mix(in srgb, var(--fail) 26%, var(--card)); }
@@ -365,7 +365,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .cklist li + li { border-top: 1px solid var(--line); }
 .cklist li.rowlink { cursor: pointer; }
 .cklist .ckhead { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); padding-top: 0; }
-.ckv { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--body); justify-self: start; padding: var(--s-4) var(--s-8); border-radius: var(--r-control); }
+.ckv { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--body); justify-self: start; padding: var(--s-4) var(--s-8); border-radius: var(--r); }
 .ckv.bad, .ckv.you { color: var(--ink); }
 .ckv.bad { background: color-mix(in srgb, var(--fail) 22%, var(--card)); }
 .ckv.you { background: color-mix(in srgb, var(--needs) 34%, var(--card)); }
