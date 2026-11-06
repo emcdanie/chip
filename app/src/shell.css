@@ -136,9 +136,10 @@ html.wp-dragging .xterm { pointer-events: none; }
 .wp-more .k-ovf-btn { min-height: var(--h-control); }
 .wp-dock button { display: inline-flex; align-items: center; gap: var(--s-8); padding: 0 var(--s-12); }
 .wp-tabs { padding: var(--s-12) var(--s-16) 0; }
-.wp-tabs .k-seg { display: flex; }
-.wp-tabs .k-seg button { flex: 1 1 auto; justify-content: center; padding: 0 var(--s-8); }
-.wp .k-seg .n { margin-left: var(--s-4); font: 400 var(--fs-14)/var(--lh-body) var(--sans); font-variant-numeric: tabular-nums; color: var(--muted); }
+/* four tabs on one row down to the 360 dock */
+.wp-tabs .k-seg { display: flex; gap: 0; }
+.wp-tabs .k-seg button { flex: 1 1 auto; justify-content: center; padding: 0 var(--s-4); white-space: nowrap; }
+.wp .k-seg .n { font: 400 var(--fs-14)/var(--lh-body) var(--sans); font-variant-numeric: tabular-nums; color: var(--muted); }
 .wp-what { margin: 0; padding: var(--s-8) var(--s-16) var(--s-12); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); border-bottom: 1px solid var(--line); }
 .wp-what b { color: var(--ink); font-weight: 600; }
 .wp-what code { font-family: var(--code); }
