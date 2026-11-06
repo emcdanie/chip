@@ -132,13 +132,13 @@ const session = (req) => String(req.get('x-chip-session') ?? '').slice(0, 64) ||
 app.get('/host', (req, res) => {
   if (!sameApp(req, res, { post: false })) return;
   const servers = host.servers();
-  res.json({ servers, figma: host.figmaSummary(servers) });
+  res.json({ servers, figma: host.figmaSummary(servers), counts: host.connectorCounts(servers) });
 });
 // Refresh: every connector that is on, tested again
 app.post('/host/test-all', async (req, res) => {
   if (!sameApp(req, res)) return;
   const servers = await host.testAll();
-  res.json({ servers, figma: host.figmaSummary(servers) });
+  res.json({ servers, figma: host.figmaSummary(servers), counts: host.connectorCounts(servers) });
 });
 app.post('/host/enable', (req, res) => {
   if (!sameApp(req, res)) return;

@@ -172,5 +172,5 @@ function laneItems() {
 export function needsYou() {
   const lanes = laneItems();
   const items = [...checkItems(), ...gitItems(), ...lanes.items].sort((a, b) => RANK[b.risk] - RANK[a.risk] || (b.at || 0) - (a.at || 0));
-  return { items, staleLaneNotes: lanes.stale, freshDays: FRESH_DAYS };
+  return { items, staleLaneNotes: lanes.stale, freshDays: FRESH_DAYS, gate: listChecks({ waiting: waitingChecks() }).gate.counts };
 }

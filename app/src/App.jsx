@@ -129,7 +129,7 @@ export default function App() {
   const [bella, setBella] = useState(null);
   const [docs, setDocs] = useState([]);
   const [notes, setNotes] = useState([]);
-  const [map, setMap] = useState(null);
+  const [connectors, setConnectors] = useState(null); // GET /host's counts, for the nav
   const [offline, setOffline] = useState(false);
   const [toast, setToast] = useState('');
   const [trySignal, setTrySignal] = useState(null);
@@ -201,9 +201,14 @@ export default function App() {
   useEffect(() => {
     loadBella();
     fetch('/docs').then((r) => r.json()).then(setDocs).catch(() => {});
-    fetch('/map').then((r) => r.json()).then(setMap).catch(() => {});
     loadNotes();
     loadModels();
+  }, []);
+  useEffect(() => {
+    const load = () => fetch('/host').then((r) => r.json()).then((h) => setConnectors(h.counts)).catch(() => {});
+    load();
+    window.addEventListener('chip:changed', load);
+    return () => window.removeEventListener('chip:changed', load);
   }, []);
 
   // the address follows the view
@@ -320,12 +325,12 @@ export default function App() {
   }
 
   /* ---- the nav: counts, pins, the library tree ---- */
-  const failedGate = needs?.items.filter((x) => x.kind === 'Gate' && x.status === 'Failed').length ?? 0;
-  const mapBad = map?.nodes?.filter((x) => x.state === 'bad').length ?? 0;
+  const failedGate = needs?.gate?.failed ?? 0;
+  const needConnector = connectors?.attention ?? [];
   const COUNT = {
-    health: failedGate ? { n: failedGate, dot: true, title: `The gate fails ${failedGate === 1 ? 'one check' : `${failedGate} checks`}` } : null,
+    health: failedGate ? { n: failedGate, dot: true, title: `The gate fails ${failedGate} of ${needs.gate.total} checks` } : null,
     atlas: bella ? { n: bella.components.length, title: `${bella.components.length} components` } : null,
-    connectors: mapBad ? { n: mapBad, dot: true, title: `${mapBad} connector${mapBad === 1 ? '' : 's'} not answering` } : null,
+    connectors: needConnector.length ? { n: needConnector.length, dot: true, title: `${needConnector.length} connector${needConnector.length === 1 ? ' needs' : 's need'} you: ${needConnector.join(', ')}` } : null,
   };
   const [pins, setPins] = useState(() => {
     try {

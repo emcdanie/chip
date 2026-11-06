@@ -60,6 +60,10 @@ async function deskDoc(refresh) {
 // which read path to use: REST when it is connected or has a token to try,
 // else the desktop app; a REST without a token is an optional upgrade, not
 // a failure, so it never makes the reason
+const lastSaid = (name) => host.servers().find((x) => x.name === name);
+// a page load only reads: a path whose last test failed isn't called (a call on
+// it reconnects, which is a test, 15 s for a closed Figma) until she asks again
+const skipOnLoad = (name, refresh) => !refresh && lastSaid(name)?.state === 'not-answering';
 function restUsable() {
   const s = host.servers().find((x) => x.name === 'figma-rest');
   return Boolean(s && !s.disabled && !s.setup);
@@ -111,7 +115,8 @@ export async function figmaLint(c, { refresh = false, codeProps = [] } = {}) {
   let pageCount = 0;
   let restError = null;
   // REST first when it can work: no Figma app needed
-  if (restUsable()) {
+  if (restUsable() && skipOnLoad('figma-rest', refresh)) restError = lastSaid('figma-rest').error ?? 'no answer';
+  else if (restUsable()) {
     try {
       const doc = await restDoc(refresh);
       pageCount = doc.children?.length ?? 0;
@@ -124,6 +129,10 @@ export async function figmaLint(c, { refresh = false, codeProps = [] } = {}) {
   // the desktop MCP when REST has no token or couldn't read
   if (restError) {
     via = 'desktop';
+    if (skipOnLoad('figma', refresh)) {
+      const rest = restError === 'no token' ? 'REST has no token (optional).' : `Over REST: ${restError.slice(0, 220)}`;
+      return { read: false, at, reason: `Figma can't be read. The desktop app didn't answer its last test: open Figma with the BELLA library. ${rest}` };
+    }
     let doc;
     try {
       doc = await deskDoc(refresh);

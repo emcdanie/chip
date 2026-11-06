@@ -148,7 +148,7 @@ function entry(cfg) {
 export function servers() {
   const used = lastToolUses();
   const raw = new Map(rawConfig().map((c) => [c.name, c]));
-  return loadConfig().map((cfg) => {
+  const list = loadConfig().map((cfg) => {
     const e = cfg.disabled ? null : entry(cfg);
     const r = raw.get(cfg.name) ?? {};
     return {
@@ -170,17 +170,34 @@ export function servers() {
       setup: Boolean(e?.status === 'error' && /^Add \w+=/.test(e.error ?? '')),
     };
   });
+  const figmaUp = list.some((s) => s.about?.group === 'figma' && s.status === 'connected');
+  return list.map((s) => ({
+    ...s,
+    // the one word for what this connector is doing, for every count and every row
+    state: s.disabled ? 'off' : s.setup ? 'not-set-up' : s.status === 'connected' ? 'answering' : s.status === 'error' ? 'not-answering' : 'not-tested',
+    // another Figma path answers, so this one waits on nobody
+    covered: figmaUp && s.about?.group === 'figma' && s.status !== 'connected',
+  }));
 }
 
-/** Figma as one thing: connected when any read path answers. */
+/** The one count of connectors: the nav, the tab and the filters all read this. */
+export function connectorCounts(list = servers()) {
+  const n = (state) => list.filter((s) => s.state === state).length;
+  const attention = list.filter((s) => (s.state === 'not-answering' || s.state === 'not-set-up') && !s.covered).map((s) => s.name);
+  return { total: list.length, answering: n('answering'), notAnswering: n('not-answering'), notSetUp: n('not-set-up'), off: n('off'), notTested: n('not-tested'), attention };
+}
+
+/** Figma as one thing: connected when any read path answers. Compare reads over
+ * REST or the desktop app only (spec-lint.mjs), never the Desktop Bridge. */
 export function figmaSummary(list = servers()) {
   const paths = list.filter((s) => ABOUT[s.name]?.group === 'figma');
   const up = paths.filter((s) => s.status === 'connected');
   return {
     connected: up.length > 0,
     via: up.map((s) => s.name),
+    canCompare: up.some((s) => s.name !== 'figma-console'),
     sentence: up.length
-      ? `Connected through ${up.map((s) => ABOUT[s.name].path.toLowerCase()).join(' and ')}.`
+      ? `${up.length} of ${paths.length} read paths ${up.length === 1 ? 'answers' : 'answer'}: ${up.map((s) => ABOUT[s.name].path).join(' and ')}.`
       : paths.some((s) => s.status === 'not tested')
         ? 'Not tested yet.'
         : 'No Figma path answers. Open the Figma app with the BELLA library, or add a REST token.',

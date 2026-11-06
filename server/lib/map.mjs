@@ -39,13 +39,7 @@ export async function systemMap() {
   const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
   const { checks, gate } = listChecks({ waiting: waitingChecks() });
   const ck = Object.fromEntries(checks.map((c) => [c.id, c]));
-  // live status: a connector never tested this run gets one quick test
-  // (the map is where "is Figma down?" gets asked)
-  for (const s of host.servers()) {
-    if (!s.disabled && s.status === 'not tested') {
-      await Promise.race([host.test(s.name), new Promise((r) => setTimeout(r, 4000))]).catch(() => {});
-    }
-  }
+  // a read only: a test runs at start, on Refresh and on a Test button, never on a page load
   const list = host.servers();
   const servers = Object.fromEntries(list.map((s) => [s.name, s]));
   const fig = host.figmaSummary(list);

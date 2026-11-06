@@ -325,10 +325,13 @@ export function listChecks({ waiting = [], fixable = [] } = {}) {
   const gate = {
     id: 'gate',
     name: 'The gate',
-    plain: 'All five gate checks green: BELLA accepts a commit only then.',
+    plain: `All ${gateChecks.length} gate checks green: BELLA accepts a commit only then.`,
     schedule: 'Every commit (pre-commit hook)',
     status: gateChecks.some((c) => c.status === 'running') ? 'running' : gateChecks.some((c) => c.status === 'failed') ? 'failed' : gateChecks.some((c) => c.status === 'waiting') ? 'waiting' : gateChecks.some((c) => c.status === 'not-run') ? 'not-run' : 'passed',
   };
+  // the one count of the gate, for the nav, the banner and the Checks card
+  const tally = (s) => gateChecks.filter((c) => c.status === s).length;
+  gate.counts = { total: gateChecks.length, passed: tally('passed'), failed: tally('failed'), notRun: tally('not-run') };
   gate.word = { running: 'Running', 'not-run': 'Not run yet', waiting: 'Waiting on you', passed: 'Passed', failed: 'Failed' }[gate.status];
   const failing = gateChecks.filter((c) => c.status === 'failed' || c.status === 'waiting');
   gate.summary = failing.length ? `Blocked by ${failing.map((c) => c.name.toLowerCase()).join(', ')}: no commit lands in BELLA until ${failing.length === 1 ? 'it passes' : 'they pass'}.` : gate.status === 'passed' ? 'Every gate check passed on the last run.' : 'Some gate checks have not run yet.';

@@ -150,6 +150,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   const byId = Object.fromEntries(list.map((c) => [c.id, c]));
   const gateFailed = data?.gate.status === 'failed';
   const failingGate = list.filter((c) => c.gate && c.status === 'failed');
+  const gc = data?.gate.counts;
 
   // when the gate turned red: the first failing commit after the last pass
   const lastPass = G.map((g) => g.pass).lastIndexOf(true);
@@ -295,7 +296,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
           <section>
             <h3>What it means</h3>
             <p>
-              <b>{bad.length ? `${bad.length} of ${plural(cs.length, 'commit')} failed BELLA’s gate.` : `All ${plural(cs.length, 'commit')} passed BELLA’s gate.`}</b> The gate runs every check below on each commit; a red one means that commit isn’t proven safe to merge.
+              <b>{bad.length ? `${bad.length} of ${plural(cs.length, 'commit')} failed BELLA’s gate.` : `All ${plural(cs.length, 'commit')} passed BELLA’s gate.`}</b> A red one means that commit isn’t proven safe to merge. BELLA’s history keeps {cs[0]?.of ?? 0} of the gate’s {gc?.total ?? '…'} checks per commit: contrast and contract parity.
             </p>
           </section>
           <section>
@@ -305,7 +306,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
                 <li key={g.sha}>
                   <span className="mono">{g.sha.slice(0, 7)}</span>
                   <StatusPill tone={g.pass ? 'pass' : 'fail'}>
-                    {g.ok}/{g.of} checks
+                    {g.ok}/{g.of} kept
                   </StatusPill>
                 </li>
               ))}
@@ -427,12 +428,13 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   const first = failingGate[0];
   const pair = first?.failures?.[0]?.match(/^([\w-]+): (.+?) is ([\d.]+:1).*?needs ([\d.]+:1)/);
   const theme = pair?.[1].replace(/-/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase());
+  // the banner counts; the Work panel and the check's sheet hold the detail; Fix it names what it fixes
+  const fixes1 = first ? (pair ? `${first.name}: ${theme} ${pair[2].replace(/ vs .*/, '')}` : first.name) : '';
   const banner = first ? (
     <>
-      <b>Not ready to merge.</b>{' '}
-      {pair ? `The ${theme} ${pair[2].replace(/ vs .*/, '')} is ${pair[3]} and the gate needs ${pair[4]}` : `${first.name} fails`}
-      {redSince ? `, so nothing merged since ${fmt(redSince.day)} is proven safe` : ', so BELLA accepts no commit'}.
-      {failingGate.length > 1 ? ` ${failingGate.length - 1 === 1 ? 'One more gate check fails' : `${failingGate.length - 1} more gate checks fail`} too.` : ''}{' '}
+      <b>Not ready to merge.</b> The gate fails {gc.failed} of {gc.total} checks
+      {gc.notRun ? `, and ${gc.notRun} ${gc.notRun === 1 ? 'hasn’t' : 'haven’t'} run` : ''}
+      {redSince ? `, so nothing merged since ${fmt(redSince.day)} is proven safe` : ', so BELLA accepts no commit'}.{' '}
       <button type="button" className="k-link" onClick={() => setCheckId(first.id)}>
         See the check
       </button>
@@ -458,7 +460,16 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
   const lastRan = list.reduce((m, c) => (c.ranAt && c.ranAt > m ? c.ranAt : m), '');
 
   /* ---------- the wide card's three views ---------- */
-  const lastG = G.slice(-6);
+  // runs of commits with the same result: "1/2" six times over says nothing six times
+  const runs = G.reduce((a, g) => {
+    const r = a[a.length - 1];
+    if (r && r.ok === g.ok && r.of === g.of && r.pass === g.pass) {
+      r.n += 1;
+      r.to = g.day;
+    } else a.push({ ok: g.ok, of: g.of, pass: g.pass, n: 1, from: g.day, to: g.day, sha: g.sha });
+    return a;
+  }, []).slice(-6);
+  const span = (r) => (r.from === r.to ? fmt(r.from) : `${fmt(r.from)} to ${fmt(r.to)}`);
   const W = 600;
   const H = 56;
   const pts = G.map((g, k) => [(k / Math.max(1, G.length - 1)) * W, H - 8 - (g.ok / Math.max(1, g.of)) * (H - 20)]);
@@ -474,7 +485,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
     { k: 'Docs', s: withDocs === n ? '✓' : '!', v: `${withDocs}/${n}` },
     { k: 'Tokens', s: !tokensBuilt ? '?' : tokensBuilt.status === 'passed' ? '✓' : '!', v: !tokensBuilt ? 'Not measured' : tokensBuilt.status === 'passed' ? 'built' : tokensBuilt.word },
   ];
-  const SUB = { cov: 'Components passing each check · yellow under 90%', gate: redSince ? `Checks per commit · ${red} red since ${fmt(redSince.day)}` : 'Checks per commit', drift: 'Figma · Storybook · Code' };
+  const SUB = { cov: 'Components passing each check · yellow under 90%', gate: `BELLA’s history keeps ${latestGate?.of ?? 0} of the ${gc?.total ?? '…'} gate checks per commit (contrast, contract parity)${redSince ? ` · ${red} red since ${fmt(redSince.day)}` : ''}`, drift: 'Figma · Storybook · Code' };
   const TITLE = { cov: 'Coverage', gate: 'Gate', drift: 'Drift' };
   const DLT = { cov: 'By component', gate: 'By day', drift: 'By pair' };
   const days = [...new Set(G.map((g) => g.day))].slice(-6).reverse();
@@ -528,9 +539,15 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
         {gateFailed && banner ? (
           <div className="alertline" role="alert">
             <p>{banner}</p>
-            <Button variant="primary" onClick={() => openReview(first.id)}>
-              Fix it
-            </Button>
+            <div className="alertfix">
+              <span>
+                {fixes1}
+                {failingGate.length > 1 ? ` + ${failingGate.length - 1} more` : ''}
+              </span>
+              <Button variant="primary" ariaLabel={`Fix it: ${fixes1}`} onClick={() => openReview(first.id)}>
+                Fix it
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>
@@ -634,14 +651,14 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
           </div>
         </div>
         <div {...segPanelProps('hv', 'gate', view)}>
-          <div className="hstrip wind" role="img" aria-label={`Gate, last ${lastG.length} commits${lastG.length ? `: the latest passed ${lastG[lastG.length - 1].ok} of ${lastG[lastG.length - 1].of} checks` : ''}. Over all ${G.length} commits with a gate, ${G.filter((g) => g.pass).length} passed${redSince ? `, then ${red} failed from ${fmt(redSince.day)}` : ''}.`}>
-            {lastG.map((g, k) => (
-              <span key={g.sha} className={`wcol${g.pass ? '' : ' bad'}`} aria-hidden="true">
-                <span className="hl">{k === lastG.length - 1 ? 'Now' : fmt(g.day)}</span>
+          <div className="hstrip wind" role="img" aria-label={`Gate history${latestGate ? `: the latest commit on record, ${fmt(latestGate.day)}, passed ${latestGate.ok} of ${latestGate.of} kept checks` : ''}. Over all ${G.length} commits with a gate, ${G.filter((g) => g.pass).length} passed${redSince ? `, then ${red} failed from ${fmt(redSince.day)}` : ''}.`}>
+            {runs.map((r) => (
+              <span key={r.sha} className={`wcol${r.pass ? '' : ' bad'}`} aria-hidden="true">
+                <span className="hl">{span(r)}</span>
                 <span className="wv">
-                  {g.ok}/{g.of}
+                  {r.ok}/{r.of}
                 </span>
-                <span className="wu">checks</span>
+                <span className="wu">{plural(r.n, 'commit')}</span>
               </span>
             ))}
             <svg className="wline" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
@@ -698,7 +715,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
 
       <section className="scard2 c-checks" aria-labelledby="ckT">
         <h2 id="ckT" className="ovh">
-          Checks <span className="sub2">{plural(list.filter((c) => c.status === 'passed').length, 'check')} pass</span>
+          Checks <span className="sub2">{list.filter((c) => c.status === 'passed').length} of {list.length} pass</span>
         </h2>
         {checks.error && !data ? (
           <p className="k-sub">The checks could not be read (is the CHIP server running?).</p>

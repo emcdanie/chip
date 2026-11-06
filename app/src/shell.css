@@ -283,6 +283,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .hsync { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-16); align-items: center; margin-left: auto; }
 .alertline { display: flex; flex-wrap: wrap; gap: var(--s-12) var(--s-24); align-items: center; justify-content: space-between; margin-top: var(--s-12); padding: var(--s-12) var(--s-16); border-radius: var(--r); border-left: 1px solid var(--fail); font-size: var(--fs-16); line-height: var(--lh-body); color: var(--ink); background: color-mix(in srgb, var(--fail) 12%, var(--card)); }
 .alertline p { flex: 1 1 360px; margin: 0; }
+.alertfix { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-12); margin-left: auto; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
 /* what Refresh found: neutral text; a pass it just found is the one place green appears */
 .syncline { margin: var(--s-8) 0 0; min-height: calc(var(--fs-14) * 1.5); text-align: right; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
 .syncline:empty { display: none; }
