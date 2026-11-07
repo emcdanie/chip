@@ -44,9 +44,12 @@
 
 /* the status tag, one look in four states: ink text on every fill, sans; the mark says it without colour */
 .k-pill { display: inline-flex; align-items: center; gap: var(--s-4); width: fit-content; padding: 0 var(--s-8); border-radius: var(--component-status-pill-border-radius); background: var(--neutral); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; }
-.k-pill.pass { background: color-mix(in srgb, var(--pass) 24%, var(--card)); }
-.k-pill.fail { background: color-mix(in srgb, var(--fail) 22%, var(--card)); }
-.k-pill.needs { background: color-mix(in srgb, var(--needs) 30%, var(--card)); }
+.k-pill.pass { background: var(--component-status-pill-success-background); color: var(--component-status-pill-success-foreground); }
+.k-pill.fail { background: var(--component-status-pill-danger-background); color: var(--component-status-pill-danger-foreground); }
+.k-pill.needs { background: var(--component-status-pill-attention-background); color: var(--component-status-pill-attention-foreground); }
+/* rule 5 (7 Nov): one tag style everywhere, BELLA's StatusPill washes and Geist Mono, with the kit's marks kept */
+.k-pill { background: var(--component-status-pill-neutral-background); color: var(--component-status-pill-neutral-foreground); font-family: var(--component-status-pill-font-family); }
+.k-pill.pass, .k-pill.fail, .k-pill.needs { font-family: var(--component-status-pill-font-family); }
 
 /* filter chips */
 .k-chips { display: flex; flex-wrap: wrap; gap: var(--s-8); }
