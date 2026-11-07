@@ -92,12 +92,25 @@ function whoLine(items) {
   return [n.chip && `CHIP fixes ${n.chip} on its own`, n.claude && `${n.claude} need${n.claude === 1 ? 's' : ''} Claude`, n.you && `${n.you} need${n.you === 1 ? 's' : ''} you`].filter(Boolean).join(' · ');
 }
 
+// a file path wraps after a slash, never inside a name
+const pathBreaks = (text) =>
+  text.split('/').map((part, i, all) => (
+    <React.Fragment key={i}>
+      {part}
+      {i < all.length - 1 ? (
+        <>
+          /<wbr />
+        </>
+      ) : null}
+    </React.Fragment>
+  ));
+
 // one row per gap: its count, its title (opens the gap's detail) and Review
 // the fix. Review opens a sheet where she picks the components (every one not
 // skipped is picked to start), then reviews them; the toggles live there, not
 // on the page (density pass, 5 Nov).
 // { gap, idx, title, why, who, first, fixes, fixesError, decisions, focus, onOpen, onReview, onSession }
-export function GapRow({ gap, title, why, who, first, primary, fixes, fixesError, decisions, onReview, onSession }) {
+export function GapRow({ gap, title, headline, why, who, first, primary, fixes, fixesError, decisions, onReview, onSession }) {
   const [sel, setSel] = useState([]);
   const [picking, setPicking] = useState(false);
   const skipped = (n) => decisions?.[`${gap}:${n}`]?.decision === 'skip';
@@ -116,13 +129,23 @@ export function GapRow({ gap, title, why, who, first, primary, fixes, fixesError
   };
   return (
     <ListRow
-      status={<BellaStatusPill variant={first ? 'attention' : 'neutral'}>{first ? 'Do next' : 'Gap'}</BellaStatusPill>}
-      title={`${title}: ${who.length} component${who.length === 1 ? '' : 's'}`}
-      description={`${why} Source: ${Object.values(fixes ?? {})[0]?.why?.source ?? 'Not measured'}.`}
+      title={
+        <>
+          <BellaStatusPill className="td-tag" variant={first ? 'info' : 'neutral'}>
+            {first ? 'Do next' : 'Gap'}
+          </BellaStatusPill>
+          {headline}
+        </>
+      }
+      description={
+        <>
+          {why} Rule: <code className="td-rule">{pathBreaks(Object.values(fixes ?? {})[0]?.why?.source ?? 'Not measured')}</code>
+        </>
+      }
       action={
         <>
-          <Button variant={primary ? 'primary' : 'secondary'} ariaLabel={`Review the fix: ${title}`} onClick={start}>
-            Review the fix
+          <Button variant={primary ? 'primary' : 'secondary'} ariaLabel={`Review ${who.length}: ${headline}`} onClick={start}>
+            Review {who.length}
           </Button>
       <Sheet
         open={picking}

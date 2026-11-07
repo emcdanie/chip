@@ -16,6 +16,21 @@ import { runNeed } from './WorkPanel.jsx';
 import './Today.css';
 
 const TONE = { Failed: 'danger', 'Waiting on you': 'attention', 'Ready to review': 'success' };
+// the title leads with the count and the object (drawing board, 7 Nov)
+const MISSING = { story: 'story', docs: 'docs page', contract: 'token contract', dsds: 'DSDS entry', contrast: 'contrast pair', a11y: 'a11y notes' };
+const headline = (gap, n) => `${n} component${n === 1 ? ' has' : 's have'} no ${MISSING[gap]}`;
+// the action names what it does, short; the full label stays its accessible name
+const verb = (a) => (a.type === 'terminal' ? (/git pull/.test(a.command) ? 'Pull' : /git push/.test(a.command) ? 'Push' : 'Run') : a.type === 'lane' ? 'Open' : 'Review');
+// the tag already says how much it matters: the why starts after "High:"
+const plain = (s) => s.replace(/^(High|Medium|Low): /, '').replace(/^\w/, (c) => c.toUpperCase());
+const Title = ({ tone, word, children }) => (
+  <>
+    <StatusPill className="td-tag" variant={tone}>
+      {word}
+    </StatusPill>
+    {children}
+  </>
+);
 const WORKING = ['starting', 'running', 'gate'];
 const STUCK = ['failed', 'login'];
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -23,11 +38,14 @@ const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', m
 function RunRow({ run, status, tone, label, primary, onOpen }) {
   return (
     <ListRow
-      status={<StatusPill variant={tone}>{status}</StatusPill>}
-      title={run.title}
-      description={`${runLine(run).replace(/\.$/, '')}. Source: ${run.from}.`}
+      title={
+        <Title tone={tone} word={status}>
+          {run.title.split(': ')[0]}
+        </Title>
+      }
+      description={`${runLine(run).replace(/\.$/, '')}. From ${run.from}.`}
       action={
-        <Button variant={primary ? 'primary' : 'secondary'} onClick={onOpen}>
+        <Button variant={primary ? 'primary' : 'secondary'} ariaLabel={`${label}: ${run.title.split(': ')[0]}`} onClick={onOpen}>
           {label}
         </Button>
       }
@@ -72,12 +90,15 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
   const needRow = (n, primary) => (
     <ListRow
       key={n.id}
-      status={<StatusPill variant={TONE[n.status] ?? 'neutral'}>{n.status}</StatusPill>}
-      title={n.title ?? n.what}
-      description={`${n.riskWhy} Source: ${n.kind}.`}
+      title={
+        <Title tone={TONE[n.status] ?? 'neutral'} word={n.status}>
+          {(n.title ?? n.what).replace('? ', ': ')}
+        </Title>
+      }
+      description={plain(n.riskWhy)}
       action={
         <Button variant={primary ? 'primary' : 'secondary'} ariaLabel={`${n.action.label}: ${n.title ?? n.what}`} onClick={() => runNeed(n.action, onLane)}>
-          {n.action.label}
+          {verb(n.action)}
         </Button>
       }
     />
@@ -112,14 +133,15 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
 
   return (
     <div className="td-page">
+      <div className="td-surface">
       <header className="td-head">
         <div className="td-title">
           <Heading tier="page">Today</Heading>
-          <p className="td-line">
-            {bella ? `BELLA ${bella.source.version} at ${bella.source.commit}` : 'Reading BELLA…'}
-            {lastRan ? ` · checks ran ${when(lastRan)}` : ' · checks never ran'}
-            {notMeasured.length ? ` · Not measured: ${notMeasured.join(', ')}` : ''}
+          <p className="td-line td-mono">
+            {bella ? `BELLA ${bella.source.version}` : 'Reading BELLA…'}
+            {lastRan ? ` · checked ${when(lastRan)}` : ' · never checked'}
           </p>
+          {notMeasured.length ? <p className="td-line td-quiet">Not measured: {notMeasured.join(', ')}</p> : null}
         </div>
         <Button variant="secondary" disabled={refreshing} onClick={refresh}>
           {refreshing ? 'Checking…' : 'Refresh'}
@@ -154,6 +176,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
                   key={gap}
                   gap={gap}
                   title={COLS[a.i].fix}
+                  headline={headline(gap, a.who.length)}
                   why={COLS[a.i].why}
                   who={a.who}
                   first={k === 0}
@@ -210,7 +233,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
               <RunRow key={r.id} run={r} status="Running" tone="neutral" label="See the run" onOpen={() => openRun(r.id)} />
             ))}
             {busy.map((c) => (
-              <ListRow key={c.id} status={<StatusPill variant="neutral">Running</StatusPill>} title={c.name} description={`${c.plain ?? c.summary} Source: ${c.schedule}.`} />
+              <ListRow key={c.id} title={<Title tone="neutral" word="Running">{c.name}</Title>} description={c.plain ?? c.summary} />
             ))}
           </ListRowGroup>
         ) : runsRead !== true ? (
@@ -225,6 +248,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
         )}
       </div>
 
+      </div>
       <GapReport items={report} onClose={() => setReport(null)} onSession={(b, t) => (setReport(null), onSession(b, t))} />
     </div>
   );

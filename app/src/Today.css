@@ -1,11 +1,22 @@
-/* Today: page title, one line, tabs with counts, rows. Layout glue only, on
- * BELLA's tokens; everything else is the components' own. */
-.td-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-4); min-width: 0; }
+/* Today, after the drawing board (7 Nov): a 2px card on the grid canvas, then
+ * title, one line, tabs with counts and rows whose tag sits with the title.
+ * Layout glue only, on BELLA's tokens; everything else is the components' own. */
+.td-page { min-width: 0; padding: var(--spacing-6); background-color: var(--color-semantic-background); background-image: var(--color-semantic-canvas-grid); background-size: var(--spacing-6) var(--spacing-6); border-radius: var(--component-card-default-border-radius); }
+.td-surface { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-4); min-width: 0; padding: var(--spacing-6); background: var(--color-semantic-surface-card); border: var(--border-width-thin) solid var(--color-semantic-border); border-radius: var(--component-card-default-border-radius); }
 .td-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--spacing-3) var(--spacing-6); }
-.td-title { display: grid; gap: var(--spacing-2); flex: 1 1 calc(var(--spacing-20) * 4); min-width: 0; }
+.td-title { display: grid; gap: var(--spacing-1); flex: 1 1 calc(var(--spacing-20) * 4); min-width: 0; }
+.td-title > :first-child { margin-bottom: var(--spacing-1); }
 .td-line { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-secondary); overflow-wrap: anywhere; }
+.td-mono, .td-rule { font-family: var(--typography-font-family-mono); }
+.td-rule { overflow-wrap: break-word; }
+.td-quiet { color: var(--color-semantic-text-secondary); }
+.td-tag { margin-right: var(--spacing-2); vertical-align: 1px; }
 .td-sync { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-secondary); }
 .td-sync:empty { display: none; }
 .td-panel:focus-visible { outline: var(--ring-focus-width) solid var(--ring-focus-color); outline-offset: var(--ring-focus-offset); }
 .td-empty { display: grid; justify-items: start; gap: var(--spacing-3); padding-block: var(--spacing-8); }
 .td-empty p { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-body); }
+@media (max-width: 480px) {
+  .td-page { padding: var(--spacing-2); }
+  .td-surface { padding: var(--spacing-4); }
+}
