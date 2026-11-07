@@ -13,7 +13,8 @@ import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow from '@bella/components/ListRow/ListRow';
 import BellaCodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import BellaStatusPill from '@bella/components/StatusPill/StatusPill';
-import { LinkButton, Sheet, StatusPill } from './kit/index.jsx';
+import Drawer from '@bella/components/Drawer/Drawer';
+import FilterChip from '@bella/components/FilterChip/FilterChip';
 import { changed } from './ReviewSheet.jsx';
 import './DoNext.css';
 
@@ -136,7 +137,7 @@ export function GapRow({ gap, title, headline, why, who, first, primary, fixes, 
   };
   return (
     <ListRow
-      status={<BellaStatusPill variant={first ? 'info' : 'neutral'}>{first ? 'Do next' : 'Gap'}</BellaStatusPill>}
+      status={<BellaStatusPill shape="dot" variant={first ? 'info' : 'attention'}>{first ? 'Do next' : 'Gap'}</BellaStatusPill>}
       title={headline}
       description={why}
       action={
@@ -150,32 +151,16 @@ export function GapRow({ gap, title, headline, why, who, first, primary, fixes, 
               Review {who.length} →
             </Button>
           )}
-      <Sheet
-        open={picking}
-        onClose={() => setPicking(false)}
-        kicker={`${who.length} component${who.length === 1 ? '' : 's'}`}
-        title={title}
-        footer={
-          <>
-            <Button variant="primary" disabled={!picked.length} onClick={() => (setPicking(false), onReview(picked.map((n) => [gap, n])))}>
-              {picked.length > 1 ? `Review ${picked.length} fixes` : 'Review the fix'}
-            </Button>
-            {picked.some((n) => fixes?.[n]?.can?.who === 'claude') ? (
-              <Button onClick={() => (setPicking(false), onSession(brief(), `${title}: ${picked.join(', ')}`))}>Fix with Claude</Button>
-            ) : null}
-          </>
-        }
-      >
+      <Drawer side="right" open={picking} onClose={() => setPicking(false)} label={`${title}: ${who.length} component${who.length === 1 ? '' : 's'}`}>
         <p>
           <b>{why}</b>
           {can ? ` ${can}.` : ''} Rule: <code>{pathBreaks(Object.values(fixes ?? {})[0]?.why?.source ?? 'Not measured')}</code>
         </p>
         <div className="dn-pick" role="group" aria-label={`Components to fix: ${title}`}>
           {who.map((n) => (
-            <button type="button" key={n} className={`k-chip dn-chip${skipped(n) ? ' skipped' : ''}`} aria-pressed={sel.includes(n)} onClick={() => toggle(n)}>
-              {n}
-              {skipped(n) ? <span className="dn-tag">skipped</span> : null}
-            </button>
+            <FilterChip key={n} size="compact" pressed={sel.includes(n)} onClick={() => toggle(n)}>
+              {skipped(n) ? `${n} (skipped)` : n}
+            </FilterChip>
           ))}
         </div>
         <div className="dn-bar">
@@ -183,17 +168,25 @@ export function GapRow({ gap, title, headline, why, who, first, primary, fixes, 
             {status}
           </span>
           {open.length > 1 ? (
-            <button type="button" className="k-link" disabled={open.every((n) => sel.includes(n))} onClick={() => setSel(open)}>
+            <Button variant="tertiary" disabled={open.every((n) => sel.includes(n))} onClick={() => setSel(open)}>
               Select all{open.length < who.length ? ' not skipped' : ''}
-            </button>
+            </Button>
           ) : null}
           {picked.length ? (
-            <button type="button" className="k-link" onClick={() => setSel([])}>
+            <Button variant="tertiary" onClick={() => setSel([])}>
               Clear
-            </button>
+            </Button>
           ) : null}
         </div>
-      </Sheet>
+        <div className="dn-foot">
+            <Button variant="primary" disabled={!picked.length} onClick={() => (setPicking(false), onReview(picked.map((n) => [gap, n])))}>
+              {picked.length > 1 ? `Review ${picked.length} fixes` : 'Review the fix'}
+            </Button>
+            {picked.some((n) => fixes?.[n]?.can?.who === 'claude') ? (
+              <Button onClick={() => (setPicking(false), onSession(brief(), `${title}: ${picked.join(', ')}`))}>Fix with Claude</Button>
+            ) : null}
+          </div>
+      </Drawer>
         </>
       }
     />
@@ -478,13 +471,37 @@ export function GapReport({ items, onClose, onSession }) {
     load();
   };
   return (
-    <Sheet
-      open={!!items}
-      onClose={onClose}
-      title={cur ? `${cur.gapTitle}: ${cur.name}` : items?.length === 1 ? `Review the fix: ${items[0][1]}` : `Review ${items?.length ?? ''} fixes`}
-      className="gr-sheet"
-      footer={
-        <>
+    <Drawer side="right" open={!!items} onClose={onClose} label={cur ? `${cur.gapTitle}: ${cur.name}` : items?.length === 1 ? `Review the fix: ${items[0][1]}` : `Review ${items?.length ?? ''} fixes`} className="gr-sheet">
+      {!report ? (
+        <p>{error ? `The report could not be read: ${error}.` : 'Reading BELLA’s contract, tokens and the Figma comparison…'}</p>
+      ) : (
+        <div className="gr">
+          <p className="gr-sum" aria-live="polite">
+            {cur ? `Fix ${i + 1} of ${shown.length} · ${cur.can.label}` : 'Nothing left to fix.'}
+            {later.length ? ` · ${later.length} put off for now` : ''}
+            {stoppedAt ? ` · Apply all stopped at ${stoppedAt}; the rest are not applied` : ''} · BELLA {report.bellaVersion ? `v${report.bellaVersion}` : ''}, read {when(report.at)}
+          </p>
+          {byFile.length ? (
+            <ul className="gr-files" aria-label="Fixes by file">
+              {byFile.map(([f, ks]) => (
+                <li key={f}>
+                  <Button variant="tertiary" ariaLabel={`${f}${ks.includes(i) ? ', current' : ''}`} onClick={() => setAt(ks[0])}>
+                    <code>{f}</code>
+                  </Button>{' '}
+                  <span className="gr-n">{ks.length}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {cur ? <ReportItem key={`${cur.gap}:${cur.name}`} it={cur} busyId={busyId} setBusyId={setBusyId} onSkip={skip} onLater={(x) => setLater((l) => [...l, `${x.gap}:${x.name}`])} onSession={onSession} /> : null}
+          {report.items.filter((it) => it.gone).map((it) => (
+            <p key={`${it.gap}:${it.name}`}>
+              {it.name}: no longer missing ({it.gap}). Refresh Today.
+            </p>
+          ))}
+        </div>
+      )}
+      <div className="dn-foot">
           {shown.length > 1 ? (
             <>
               <Button disabled={i === 0} onClick={() => setAt(i - 1)}>
@@ -505,38 +522,7 @@ export function GapReport({ items, onClose, onSession }) {
               Send all {rest.length} to Claude
             </Button>
           ) : null}
-        </>
-      }
-    >
-      {!report ? (
-        <p>{error ? `The report could not be read: ${error}.` : 'Reading BELLA’s contract, tokens and the Figma comparison…'}</p>
-      ) : (
-        <div className="gr">
-          <p className="gr-sum" aria-live="polite">
-            {cur ? `Fix ${i + 1} of ${shown.length} · ${cur.can.label}` : 'Nothing left to fix.'}
-            {later.length ? ` · ${later.length} put off for now` : ''}
-            {stoppedAt ? ` · Apply all stopped at ${stoppedAt}; the rest are not applied` : ''} · BELLA {report.bellaVersion ? `v${report.bellaVersion}` : ''}, read {when(report.at)}
-          </p>
-          {byFile.length ? (
-            <ul className="gr-files" aria-label="Fixes by file">
-              {byFile.map(([f, ks]) => (
-                <li key={f}>
-                  <button type="button" className="k-link" aria-current={ks.includes(i) ? 'true' : undefined} onClick={() => setAt(ks[0])}>
-                    <code>{f}</code>
-                  </button>{' '}
-                  <span className="gr-n">{ks.length}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {cur ? <ReportItem key={`${cur.gap}:${cur.name}`} it={cur} busyId={busyId} setBusyId={setBusyId} onSkip={skip} onLater={(x) => setLater((l) => [...l, `${x.gap}:${x.name}`])} onSession={onSession} /> : null}
-          {report.items.filter((it) => it.gone).map((it) => (
-            <p key={`${it.gap}:${it.name}`}>
-              {it.name}: no longer missing ({it.gap}). Refresh Today.
-            </p>
-          ))}
         </div>
-      )}
-    </Sheet>
+    </Drawer>
   );
 }

@@ -4,4 +4,5 @@
 .td-surface, .td-head, .td-empty { display: grid; gap: var(--spacing-4); justify-items: start; min-width: 0; }
 .td-surface > * { justify-self: stretch; }
 .td-line, .td-empty p { margin: 0; color: var(--color-semantic-text-secondary); overflow-wrap: anywhere; }
+.td-meta { font-family: var(--typography-font-family-mono); } /* the board's meta line (Elleta, 7 Nov) */
 .td-panel:focus-visible { outline: var(--ring-focus-width) solid var(--ring-focus-color); outline-offset: var(--ring-focus-offset); }

@@ -25,8 +25,8 @@ const headline = (gap, n) => `${n} component${n === 1 ? ' has' : 's have'} no ${
 const verb = (a) => (a.type === 'terminal' ? (/git pull/.test(a.command) ? 'Pull' : /git push/.test(a.command) ? 'Push' : 'Run') : a.type === 'lane' ? 'Open' : 'Review');
 // the tag says the status, so the why opens with the risk, as the board does: "Medium risk. …"
 const plain = (s) => s.replace(/^(High|Medium|Low): /, '').replace(/^\w/, (c) => c.toUpperCase());
-// the status sits in ListRow's own column, so every title starts at the same place (board, 7 Nov)
-const Status = ({ tone, word }) => <StatusPill variant={tone}>{word === 'Waiting on you' ? 'Waiting' : word}</StatusPill>;
+// the board's coloured dot in ListRow's own column; the word is its accessible name (Elleta, 7 Nov)
+const Status = ({ tone, word }) => <StatusPill shape="dot" variant={tone}>{word}</StatusPill>;
 const FIRST = 5; // rows shown before "Show more" (rule 13: 8 or fewer content controls)
 const WORKING = ['starting', 'running', 'gate'];
 const STUCK = ['failed', 'login'];
@@ -167,7 +167,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
       <Card innerClassName="td-surface">
       <header className="td-head">
         <Heading tier="page">Today</Heading>
-        <p className="td-line">
+        <p className="td-line td-meta">
           {bella ? `BELLA ${bella.source.version}` : 'Reading BELLA…'}
           {lastRan ? ` · checked ${when(lastRan)}` : ' · never checked'}
           {notMeasured.length ? ` · Not measured: ${notMeasured.join(', ')}` : ''}{' '}
