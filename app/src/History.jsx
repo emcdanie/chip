@@ -325,8 +325,12 @@ function Changes({ bella, lens, onOpenAtlas, onSession, repo }) {
 
   useEffect(() => keep('chip-hist', f), [f]);
   // opened from a project: that repo's changes
+  // leaving that project clears the filter it set, so plain History shows every repo again; a filter she chose stays
+  const fromProject = useRef('');
   useEffect(() => {
     if (repo) setF((x) => ({ ...x, repo }));
+    else if (fromProject.current) setF((x) => (x.repo === fromProject.current ? { ...x, repo: '' } : x));
+    fromProject.current = repo || '';
   }, [repo]);
   useEffect(() => setShown(10), [f, sort]);
   const data = useJSON(`/history?${query({ ...paramsOf(f), sort: sort === 'oldest' ? 'oldest' : '' })}`);

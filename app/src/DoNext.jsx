@@ -460,16 +460,30 @@ export function GapReport({ items, onClose, onSession }) {
   // Apply all: every fix CHIP can make itself, one after another (each runs BELLA's gate)
   const canApply = shown.filter((it) => it.id && it.can.who === 'chip');
   const [applying, setApplying] = useState(null);
+  const [stoppedAt, setStoppedAt] = useState(null);
   const applyAll = async () => {
-    for (let k = 0; k < canApply.length; k++) {
+    // one after another: Accept starts a gate job and returns, so wait for each job to end; stop at the first that fails
+    let stopped = null;
+    setStoppedAt(null);
+    for (let k = 0; k < canApply.length && !stopped; k++) {
+      const { id, name } = canApply[k];
       setApplying(`${k + 1} of ${canApply.length}`);
       try {
-        await fetch(`/review/${canApply[k].id}/accept`, { method: 'POST', headers: JSON_HEADERS, body: '{}' });
-      } catch {
-        break;
+        const r = await fetch(`/review/${id}/accept`, { method: 'POST', headers: JSON_HEADERS, body: '{}' });
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `HTTP ${r.status}`);
+        for (;;) {
+          await new Promise((ok) => setTimeout(ok, 1500));
+          const job = (await (await fetch(`/review/${id}`)).json())?.job;
+          if (job?.status === 'running') continue;
+          if (job?.status === 'failed') throw new Error(job.error || 'the gate failed');
+          break;
+        }
+      } catch (e) {
+        stopped = `${name ?? id}: ${e.message}`;
       }
     }
     setApplying(null);
+    setStoppedAt(stopped);
     changed();
     load();
   };
@@ -510,7 +524,8 @@ export function GapReport({ items, onClose, onSession }) {
         <div className="gr">
           <p className="gr-sum" aria-live="polite">
             {cur ? `Fix ${i + 1} of ${shown.length} · ${cur.can.label}` : 'Nothing left to fix.'}
-            {later.length ? ` · ${later.length} put off for now` : ''} · BELLA {report.bellaVersion ? `v${report.bellaVersion}` : ''}, read {when(report.at)}
+            {later.length ? ` · ${later.length} put off for now` : ''}
+            {stoppedAt ? ` · Apply all stopped at ${stoppedAt}; the rest are not applied` : ''} · BELLA {report.bellaVersion ? `v${report.bellaVersion}` : ''}, read {when(report.at)}
           </p>
           {byFile.length ? (
             <ul className="gr-files" aria-label="Fixes by file">

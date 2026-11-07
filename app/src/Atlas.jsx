@@ -295,7 +295,7 @@ function useFileView({ path, text, marks, notify, label }) {
   const language = /\.json/.test(path) ? 'json' : /\.css/.test(path) ? 'css' : /\.tsx?/.test(path) ? 'tsx' : 'plain';
   return { jump, on, view: (
     <div className="cd-filebox" ref={pre} role="region" aria-label={label}>
-      {text == null ? <p className="cd-none">Reading…</p> : <BellaCodeBlock title={path} language={language} code={text} currentLine={on ?? undefined} />}
+      {text == null ? <p className="cd-none">Reading…</p> : <BellaCodeBlock title={path} language={language} code={text} currentLine={[...marked, ...(on ? [on] : [])]} />}
     </div>
   ) };
 }
