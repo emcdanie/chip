@@ -8,6 +8,8 @@
 // table. Lead with changes the card body. Nothing here calls a model.
 import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
+import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
+import BellaStatusPill from '@bella/components/StatusPill/StatusPill';
 import { Checkbox, Chips, DataTable, Drawer, LinkButton, PageHeader, Sheet, StatusPill } from './kit/index.jsx';
 import './History.css';
 
@@ -223,299 +225,6 @@ function RecordSheet({ id, onClose, onOpen, onSession }) {
   );
 }
 
-/* ---------- the card track: dated cards on a rail, the page scroll moves it ----------
-   After the Learning timeline on Elleta's site: one strip of dated cards on a
-   rail, the month on the first card of each. While the strip is pinned, the
-   page scroll moves it sideways; ONE progress number drives the strip, the ink
-   on the rail, the marker ring, the dots (a dot fills once the marker passes)
-   and the counter. The card on the marker is lit and opens to show why, what
-   it touched and its links; hovering or focusing a card lights that one
-   instead. Arrow keys, Home and End walk the cards; "Jump to" puts a month on
-   the marker; "Skip timeline" goes on to Written down. The rail draws when the
-   strip comes into view and again each time it comes back. Reduced motion: a
-   plain sideways-scrolling strip, the same marker, no drawing. */
-const clamp01 = (v) => Math.min(1, Math.max(0, v));
-const box = (el) => el.getBoundingClientRect();
-const month = (iso) => new Date(iso).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
-const RMQ = '(prefers-reduced-motion: reduce)';
-function useReduced() {
-  const [r, setR] = useState(() => window.matchMedia(RMQ).matches);
-  useEffect(() => {
-    const m = window.matchMedia(RMQ);
-    const on = () => setR(m.matches);
-    m.addEventListener('change', on);
-    return () => m.removeEventListener('change', on);
-  }, []);
-  return r;
-}
-
-function Track({ records, total, decisions, lens, onRecord, onOpenAtlas, bellaComp, vstat, seen, markSeen, jumpRef }) {
-  const reduce = useReduced();
-  const scrub = !reduce;
-  const run = useRef(null);
-  const pin = useRef(null);
-  const wrap = useRef(null);
-  const tlx = useRef(null);
-  const track = useRef(null);
-  const fill = useRef(null);
-  const head = useRef(null);
-  const geo = useRef({ dist: 0, span: 0, D: [], L: 0, M: 0, top: 0, reached: false, scrolled: 0 });
-  const [n, setN] = useState(0);
-  const [hov, setHov] = useState(null);
-  const [reached, setReached] = useState(false);
-  const T = records;
-  const lit = Math.min(hov ?? n, Math.max(0, T.length - 1));
-
-  /* progress, 0 to 1: the page scroll while pinned, or the strip's own scroll */
-  const p = useCallback(() => {
-    const g = geo.current;
-    if (scrub) return clamp01((g.top - box(run.current).top) / (g.span || 1));
-    return g.dist ? tlx.current.scrollLeft / g.dist : 0;
-  }, [scrub]);
-  /* where card u (fractional) sits on the strip */
-  const at = (u) => {
-    const D = geo.current.D, i = Math.min(D.length - 1, Math.floor(u));
-    return i >= D.length - 1 ? D[D.length - 1] : D[i] + (u - i) * (D[i + 1] - D[i]);
-  };
-
-  const update = useCallback(() => {
-    const g = geo.current;
-    if (!run.current || !tlx.current || !g.D.length) return;
-    /* in view: the rail draws; out of view it resets, so it draws again on the way back */
-    const r = box(run.current);
-    const now = reduce || (r.top <= innerHeight * 0.75 && r.bottom >= innerHeight * 0.25);
-    if (now !== g.reached) {
-      g.reached = now;
-      setReached(now);
-    }
-    const last = g.D.length - 1;
-    const u = p() * last;
-    let k, s, key;
-    if (scrub) {
-      /* each card rests on the marker for the first half of its stretch, then the strip slides on; the next card lights halfway */
-      const i = Math.floor(u), t = u - i;
-      const e = t < 0.5 ? 0 : ((x) => x * x * (3 - 2 * x))((t - 0.5) * 2);
-      key = at(Math.min(last, i + e));
-      k = Math.min(last, Math.round(i + e));
-      /* the marker holds one card in from the left; it walks in at the start and out at the end */
-      s = Math.min(g.dist, Math.max(0, key - g.M));
-      if (Math.abs(tlx.current.scrollLeft - s) > 0.5) tlx.current.scrollLeft = s;
-    } else {
-      s = tlx.current.scrollLeft;
-      k = Math.round(u);
-      key = g.D[k];
-    }
-    const xm = key - s;
-    fill.current.style.inlineSize = `${Math.max(0, xm - g.L).toFixed(1)}px`;
-    head.current.style.translate = `${xm.toFixed(1)}px var(--ry)`;
-    setN(k);
-  }, [p, reduce, scrub]);
-
-  const layout = useCallback(() => {
-    const r = run.current, w = wrap.current, x = tlx.current, t = track.current;
-    if (!r || !w || !x || !t) return;
-    const g = geo.current;
-    const items = [...t.children];
-    const dot = items[0]?.querySelector('[data-dot]');
-    if (!dot) {
-      g.D = [];
-      return;
-    }
-    /* in the strip's own coordinates: offsets ignore its scroll */
-    const dx = dot.offsetLeft - items[0].offsetLeft + dot.offsetWidth / 2;
-    g.D = items.map((c) => c.offsetLeft + dx);
-    g.L = g.D[0];
-    const pitch = g.D.length > 1 ? g.D[1] - g.D[0] : 0;
-    g.M = x.clientWidth >= 3 * pitch ? g.L + pitch : g.L;
-    g.dist = Math.max(0, x.scrollWidth - x.clientWidth);
-    const dr = box(dot);
-    w.style.setProperty('--ry', `${dr.top + dr.height / 2 - box(w).top}px`);
-    w.style.setProperty('--rx', `${g.L}px`);
-    g.top = parseFloat(getComputedStyle(pin.current).top) || 0;
-    /* half a card's width of page scroll per card, and the whole walk in at most ten screens */
-    g.span = (g.D.length - 1) * Math.min(pitch / 2, (10 * innerHeight) / Math.max(1, g.D.length - 1));
-    r.style.blockSize = scrub ? `${pin.current.offsetHeight + g.span}px` : '';
-    update();
-  }, [scrub, update]);
-
-  useLayoutEffect(() => {
-    layout();
-  }, [layout, T]);
-
-  useEffect(() => {
-    const ro = new ResizeObserver(() => layout());
-    if (run.current?.parentElement) ro.observe(run.current.parentElement);
-    if (pin.current) ro.observe(pin.current);
-    const onScroll = () => {
-      geo.current.scrolled = Date.now();
-      setHov(null);
-      update();
-    };
-    addEventListener('scroll', onScroll, { passive: true });
-    const x = tlx.current;
-    x?.addEventListener('scroll', update, { passive: true });
-    /* while the page drives the strip, a sideways swipe on it moves the page in step */
-    const wheel = (e) => {
-      if (!scrub || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
-      e.preventDefault();
-      scrollBy(0, e.deltaX / 2);
-    };
-    x?.addEventListener('wheel', wheel, { passive: false });
-    return () => {
-      ro.disconnect();
-      removeEventListener('scroll', onScroll);
-      x?.removeEventListener('scroll', update);
-      x?.removeEventListener('wheel', wheel);
-    };
-  }, [layout, update, scrub]);
-
-  /* put card i on the marker */
-  const goTo = (i, smooth = !reduce) => {
-    const g = geo.current;
-    if (!g.D.length) return;
-    const q = i / Math.max(1, g.D.length - 1);
-    const behavior = smooth ? 'smooth' : 'auto';
-    if (scrub) scrollTo({ top: Math.ceil(scrollY + box(run.current).top - g.top + q * g.span), behavior });
-    else tlx.current.scrollTo({ left: Math.ceil(q * g.dist), behavior });
-  };
-  const focusCard = (j) => track.current?.querySelectorAll('.hct')[j]?.focus();
-  const keys = (e, i) => {
-    const j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: T.length - 1 }[e.key];
-    if (j === undefined || !T[j]) return;
-    e.preventDefault();
-    focusCard(j);
-  };
-  // Jump to a month lives in the Filters drawer now (density pass): it calls this
-  if (jumpRef) jumpRef.current = (m) => goTo(T.findIndex((r) => month(r.date) === m));
-  const used = T.filter((r) => r.type === 'Decision').length;
-  if (!T.length) return null;
-  const order = Date.parse(T[0].date) >= Date.parse(T[T.length - 1].date) ? 'newest on the left' : 'oldest on the left';
-
-  return (
-    <section ref={run} id="h-track" className="hrun" aria-label={`Changes, ${order}`} data-scrub={scrub || undefined} data-reached={reached || undefined}>
-      <h2 className="k-vh">Timeline</h2>
-      <div ref={pin} className="hpin">
-        <div className="hkey">
-          <p className="hcount">
-            {lit + 1} of {T.length}
-            {total > T.length ? ` (first ${T.length} of ${total} records)` : ' records'} · {dayYear(T[lit].date)}
-          </p>
-          <p className="hlegend">
-            <span>
-              <i data-dec="" aria-hidden="true" />
-              Decision record ({decisions != null && decisions !== used ? `${used} of ${decisions} in this stretch` : used})
-            </span>
-            <span>
-              <i aria-hidden="true" />
-              Commit, release or review card
-            </span>
-          </p>
-        </div>
-        <div ref={wrap} className="hwrap">
-          <i className="hrail" aria-hidden="true" />
-          <i ref={fill} className="hfill" aria-hidden="true" />
-          <i ref={head} className="hhead" aria-hidden="true" />
-          <div ref={tlx} className="htx" role="region" aria-label={`Timeline, ${order}`} tabIndex={scrub ? undefined : 0}>
-            <ol ref={track} className="htrack" onPointerLeave={() => setHov(null)}>
-              {T.map((r, i) => {
-                const m = month(r.date);
-                const first = i === 0 || month(T[i - 1].date) !== m;
-                const on = i === lit;
-                const why = whyOf(r);
-                const v = vstat(r);
-                const c = bellaComp(r);
-                const files = r.files ?? [];
-                return (
-                  <li
-                    key={r.id}
-                    id={`rec-${r.id}`}
-                    className="hitem"
-                    data-dec={r.type === 'Decision' || undefined}
-                    data-passed={i <= n || undefined}
-                    data-now={on || undefined}
-                    aria-current={on || undefined}
-                    onPointerMove={(e) => (e.movementX || e.movementY) && Date.now() - geo.current.scrolled > 200 && hov !== i && setHov(i)}
-                  >
-                    <span className="hmon" aria-hidden={!first || undefined}>
-                      {first ? m : ''}
-                    </span>
-                    <i className="hdot" data-dot="" aria-hidden="true" />
-                    <article className={`hcard${seen.has(r.id) ? ' seen' : ''}`}>
-                      <p className="hchips">
-                        <StatusPill>{r.type}</StatusPill>
-                        <StatusPill tone={TONE_OF[r.status]}>{r.status}</StatusPill>
-                        {r.breaking ? <StatusPill tone="fail">Breaking</StatusPill> : null}
-                      </p>
-                      <h3>
-                        <button
-                          type="button"
-                          className="hct"
-                          tabIndex={on ? 0 : -1}
-                          aria-expanded={on}
-                          aria-controls={`hcd-${i}`}
-                          onFocus={() => {
-                            setHov(null);
-                            goTo(i, false);
-                          }}
-                          onKeyDown={(e) => keys(e, i)}
-                          onClick={() => (markSeen(r.id), onRecord(r.id))}
-                        >
-                          {clip(r.title, 80)}
-                        </button>
-                      </h3>
-                      <p className="hsrc2">
-                        <span>{day(r.date)}</span>
-                        <span>{where(r)}</span>
-                        {seen.has(r.id) ? <span>Viewed</span> : null}
-                      </p>
-                      <div className="hcd" id={`hcd-${i}`} hidden={!on}>
-                        {why ? (
-                          <p className="hwhy hsumm">
-                            <b>{lens === 'scope' ? 'Asked for' : 'Why'}</b> {clip(why.replace(/\s+/g, ' '), 140)}
-                          </p>
-                        ) : null}
-                        <dl className="hrefdl">
-                          <dt>Touched</dt>
-                          <dd>
-                            {r.components?.length ? r.components.slice(0, 4).join(', ') : r.repo === 'chip' ? 'CHIP only' : 'BELLA, no single component'}
-                            {v ? ` · ${v}` : ''}
-                          </dd>
-                          {files.length ? (
-                            <>
-                              <dt>Files</dt>
-                              <dd className="hfiles">
-                                {files.slice(0, 2).map((f) => (
-                                  <code key={f} title={f}>
-                                    {f}
-                                  </code>
-                                ))}
-                                {files.length > 2 ? <span className="k-sub">and {files.length - 2} more</span> : null}
-                              </dd>
-                            </>
-                          ) : null}
-                          <dt>Record</dt>
-                          <dd>
-                            <Source r={r} />
-                          </dd>
-                        </dl>
-                        <p className="hacts">
-                          <LinkButton onClick={() => (markSeen(r.id), onRecord(r.id))}>View full record</LinkButton>
-                          {c ? <LinkButton onClick={() => (markSeen(r.id), onOpenAtlas(c.id, 'history'))}>Compare versions</LinkButton> : null}
-                        </p>
-                      </div>
-                    </article>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- ask in plain words: suggestions on focus, records from the box ---------- */
 function Ask({ value, onChange, onRun, records, recent, onRecord }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -612,8 +321,10 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
   const [recent, setRecent] = useState(() => load('chip-hq', []));
   const [mine, setMine] = useState(() => load('chip-hpre', []));
   const [seen, setSeen] = useState(() => new Set(load('chip-hseen', [], sessionStorage)));
+  const [shown, setShown] = useState(20); // one row a change, 20 at a time (concept step 7: no sideways timeline)
 
   useEffect(() => keep('chip-hist', f), [f]);
+  useEffect(() => setShown(20), [f, sort]);
   const data = useJSON(`/history?${query({ ...paramsOf(f), sort: sort === 'oldest' ? 'oldest' : '' })}`);
   // every record, newest first: what Current and Superseded are read against
   const base = useJSON('/history');
@@ -762,7 +473,41 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
             )}
           </div>
         ) : null}
-        {data && !data.error ? <Track records={records} total={data.count} decisions={f.q || f.types.length ? null : base?.counts?.types?.Decision} lens={lens} onRecord={setRecord} onOpenAtlas={onOpenAtlas} bellaComp={bellaComp} vstat={vstat} seen={seen} markSeen={markSeen} jumpRef={jumpRef} /> : null}
+        {data && !data.error && records.length ? (
+          <>
+            <ListRowGroup ariaLabel="Changes" className="hrows">
+              {records.slice(0, shown).map((r) => (
+                <ListRow
+                  key={r.id}
+                  title={
+                    <>
+                      <BellaStatusPill className="htag" variant={r.breaking ? 'danger' : r.type === 'Decision' ? 'info' : 'neutral'}>
+                        {r.breaking ? `Breaking ${r.type.toLowerCase()}` : r.type}
+                      </BellaStatusPill>
+                      {clip(r.title, 90)}
+                    </>
+                  }
+                  description={
+                    <>
+                      {day(r.date)} · {r.components?.length ? r.components.slice(0, 3).join(', ') : r.repo === 'chip' ? 'CHIP' : 'BELLA'}
+                      {r.why ? ` · ${clip(r.why.replace(/\s+/g, ' '), 70)}` : ''} · From <code className="hsrc-code">{r.source}{r.sha ? ` ${r.sha}` : ''}</code>
+                    </>
+                  }
+                  action={
+                    <Button variant="secondary" ariaLabel={`Open: ${clip(r.title, 60)}`} onClick={() => (markSeen(r.id), setRecord(r.id))}>
+                      Open
+                    </Button>
+                  }
+                />
+              ))}
+            </ListRowGroup>
+            {records.length > shown ? (
+              <Button variant="secondary" onClick={() => setShown((n) => n + 20)}>
+                Show {Math.min(20, records.length - shown)} more of {records.length - shown}
+              </Button>
+            ) : null}
+          </>
+        ) : null}
       </div>
 
       <Drawer
@@ -817,18 +562,6 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
             ]}
           />
         </fieldset>
-        {records.length ? (
-          <fieldset>
-            <legend>Jump to</legend>
-            <div className="hjump">
-              {[...new Set(records.map((r) => month(r.date)))].map((m) => (
-                <button key={m} type="button" className="k-chip" onClick={() => (setDrawer(false), requestAnimationFrame(() => jumpRef.current?.(m)))}>
-                  {m}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-        ) : null}
         {fieldset(
           'comp',
           'Component',
@@ -931,132 +664,15 @@ function DocSheet({ id, onClose, bella, onOpenAtlas }) {
   );
 }
 
-function WrittenDown({ bella, docId, version, onOpenAtlas, decisions }) {
-  const docs = useJSON(`/obi-docs?v=${version}`);
-  const index = useJSON('/docs');
-  const [open, setOpen] = useState(docId ?? null);
-  useEffect(() => setOpen(docId ?? null), [docId]);
-  const cited = useMemo(() => new Set((Array.isArray(index) ? index : []).map((x) => x.path).filter(Boolean)), [index]);
-  const rows = useMemo(
-    () =>
-      (docs?.docs ?? []).map((d) => ({
-        id: d.id,
-        title: d.title,
-        excerpt: plainText(d.excerpt),
-        kind: KIND(d.kind),
-        agents: !Array.isArray(index) ? null : cited.has(`obi-notes/${d.id}.md`) ? 'OBI cites it' : 'People only',
-        date: d.date ?? d.updated?.slice(0, 10) ?? '',
-      })),
-    [docs, index, cited],
-  );
-  const kinds = [...new Set(rows.map((r) => r.kind))];
-  const n = bella?.components.length;
-  return (
-    <>
-      <h2 className="dlt" id="h-written" tabIndex={-1}>
-        Written down
-      </h2>
-      <p className="sub2">Agents build from the contract, check the guidance, and stop at a decision. Notes live in obi-notes, outside the public repo.</p>
-      <ol className="layers" aria-label="What an agent reads, in order">
-        <li>
-          <span className="ln2">1</span>
-          <div>
-            <b>Contract</b>
-            <code>tokens/<wbr />component.json</code>
-            <p>What to build: tokens, variants, don’ts, contrast.</p>
-          </div>
-          <span className="lv">{n ? <><b>{bella.components.filter((c) => c.hasContract).length}</b>/{n} components</> : 'Not measured'}</span>
-        </li>
-        <li>
-          <span className="ln2">2</span>
-          <div>
-            <b>Guidance</b>
-            <code>docs/<wbr />components/<wbr />*.md</code>
-            <p>Why: the reasons the contract can’t hold.</p>
-          </div>
-          <span className="lv">{n ? <><b>{bella.components.filter((c) => c.hasDocs).length}</b>/{n} components</> : 'Not measured'}</span>
-        </li>
-        <li>
-          <span className="ln2">3</span>
-          <div>
-            <b>Decisions</b>
-            <code>docs/<wbr />decisions/<wbr /></code>
-            <p>What’s settled, so an agent doesn’t reopen it.</p>
-          </div>
-          <span className="lv">{decisions != null ? <><b>{decisions}</b> decision record{decisions === 1 ? '' : 's'}</> : 'Not measured'}</span>
-        </li>
-      </ol>
-      {docs?.error ? (
-        <p className="k-note">The docs could not be read. Is the CHIP server running?</p>
-      ) : (
-        <DataTable
-          label="docs"
-          rows={rows}
-          rowKey={(r) => r.id}
-          onRow={(r) => setOpen(r.id)}
-          chips={[{ id: 'all', label: 'All', test: () => true }, ...kinds.map((k) => ({ id: k, label: `${k}s`, test: (r) => r.kind === k }))]}
-          cols={[
-            {
-              key: 'title',
-              label: 'Doc',
-              render: (r) => (
-                <div className="dtitle">
-                  <button type="button" className="k-rowbtn" onClick={() => setOpen(r.id)}>
-                    {r.title}
-                  </button>
-                  <span>{clip(r.excerpt ?? '', 120)}</span>
-                </div>
-              ),
-            },
-            { key: 'kind', label: 'Type', prio: 2, render: (r) => <StatusPill>{r.kind}</StatusPill> },
-            {
-              key: 'agents',
-              label: 'Agents',
-              prio: 3,
-              sortVal: (r) => (r.agents === 'OBI cites it' ? 0 : 1),
-              render: (r) =>
-                r.agents === 'OBI cites it' ? (
-                  <span className="agy">
-                    <i className="av" aria-hidden="true">
-                      ✓
-                    </i>
-                    OBI cites it
-                  </span>
-                ) : (
-                  <span className="agn">{r.agents ?? 'Not measured'}</span>
-                ),
-            },
-            { key: 'date', label: 'Date', end: true, render: (r) => (r.date ? day(r.date) : 'No date') },
-          ]}
-        />
-      )}
-      <DocSheet id={open} onClose={() => setOpen(null)} bella={bella} onOpenAtlas={onOpenAtlas} />
-    </>
-  );
-}
-
 export default function History({ docId, version = 0, bella, lens = 'visual', onOpenAtlas, onSession }) {
-  const base = useJSON('/history');
+  const [doc, setDoc] = useState(docId ?? null);
+  useEffect(() => setDoc(docId ?? null), [docId]);
   return (
     <div className="hist k-chrome">
-      <PageHeader
-        title="History"
-        lede="What we agreed, when and why, across BELLA and CHIP."
-        actions={
-          // the decision records sit below an 80-card timeline: this skips it
-          <Button
-            onClick={() => {
-              const h = document.getElementById('h-written');
-              h?.scrollIntoView({ block: 'start' });
-              h?.focus({ preventScroll: true });
-            }}
-          >
-            Written down ↓
-          </Button>
-        }
-      />
+      <PageHeader title="History" lede="What changed, when and why, across BELLA and CHIP." />
       <Changes bella={bella} lens={lens} onOpenAtlas={onOpenAtlas} onSession={onSession} />
-      <WrittenDown bella={bella} docId={docId} version={version} onOpenAtlas={onOpenAtlas} decisions={base?.counts?.types?.Decision ?? null} />
+      {/* Written down's cards are cut (concept, amended 7 Nov); #/docs/<id> still opens the doc */}
+      <DocSheet id={doc} onClose={() => setDoc(null)} bella={bella} onOpenAtlas={onOpenAtlas} />
     </div>
   );
 }

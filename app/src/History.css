@@ -170,3 +170,7 @@
 .kdiff .hd { color: var(--muted); }
 .hvers { display: flex; flex-wrap: wrap; gap: 0 var(--s-12); align-items: center; }
 .will { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+
+/* one row a change (concept step 7) */
+.hrows .htag { margin-right: var(--s-8); vertical-align: 1px; }
+.hsrc-code { font-family: var(--code); overflow-wrap: anywhere; }
