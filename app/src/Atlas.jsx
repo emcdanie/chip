@@ -2086,17 +2086,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
         <div className="dm-stage">
           <div className="dm-sbar k-chrome">
             <span className="dm-hint">{mode === 'use' ? 'Using the component' : 'Inspecting: pick a part'}</span>
-            <Overflow label="Stage options" text="More" className="dm-more">
-              <LinkButton aria-pressed={mode === 'use'} onClick={() => { const v = mode === 'use' ? 'inspect' : 'use'; setMode(v); setLive(null); if (v === 'use') (setSel(null), setHov(null), setPlaying(false)); }}>
-                {mode === 'use' ? 'Back to inspecting' : 'Use it'}
-              </LinkButton>
-              <LinkButton aria-pressed={theme === 'dark'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-                {theme === 'dark' ? 'Light' : 'Dark'}
-              </LinkButton>
-              <LinkButton aria-pressed={all} onClick={() => setAll(!all)}>
-                {all ? 'One at a time' : 'All at once'}
-              </LinkButton>
-            </Overflow>
+            {/* stage modes are stripped (concept, afternoon 7 Nov): the live specimen is Inspect; Specimens shows light and dark */}
           </div>
           <div className="dm-canvas dm-sp" {...sp} ref={canvas} data-mode={mode}>
             <div className="dm-specwrap" ref={wrap} style={{ '--z': z }} inert={mode === 'inspect' || all} aria-hidden={mode === 'inspect' || all ? true : undefined} {...useEvents} key={mode === 'inspect' && cfg.generic ? `${o.st}-${o.variant}` : 'live'}>
@@ -2229,11 +2219,6 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
                 </label>
                 <input id="dm-label" type="text" className="dm-input" value={o.label ?? ''} onChange={(e) => setO((x) => ({ ...x, label: e.target.value || cfg.label(c) }))} />
               </span>
-            ) : null}
-            {states.length > 1 ? (
-              <button type="button" className="k-toggle dm-tog" aria-pressed={playing} onClick={() => (setPlaying(!playing), setMode('inspect'))}>
-                {playing ? 'Stop' : 'Play states'}
-              </button>
             ) : null}
           </div>
         </div>
