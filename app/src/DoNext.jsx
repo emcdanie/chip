@@ -146,9 +146,9 @@ export function GapRow({ gap, title, headline, why, who, first, primary, fixes, 
               Review {who.length}
             </Button>
           ) : (
-            <LinkButton aria-label={`Review ${who.length}: ${headline}`} onClick={start}>
+            <Button variant="tertiary" ariaLabel={`Review ${who.length}: ${headline}`} onClick={start}>
               Review {who.length} →
-            </LinkButton>
+            </Button>
           )}
       <Sheet
         open={picking}
@@ -168,7 +168,7 @@ export function GapRow({ gap, title, headline, why, who, first, primary, fixes, 
       >
         <p>
           <b>{why}</b>
-          {can ? ` ${can}.` : ''} Rule: <code className="td-rule">{pathBreaks(Object.values(fixes ?? {})[0]?.why?.source ?? 'Not measured')}</code>
+          {can ? ` ${can}.` : ''} Rule: <code>{pathBreaks(Object.values(fixes ?? {})[0]?.why?.source ?? 'Not measured')}</code>
         </p>
         <div className="dn-pick" role="group" aria-label={`Components to fix: ${title}`}>
           {who.map((n) => (

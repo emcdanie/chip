@@ -4,6 +4,7 @@
 // then the current Do next gap, then the rest in the order they already had.
 import React, { useEffect, useMemo, useState } from 'react';
 import Button from '@bella/components/Button/Button';
+import Card from '@bella/components/Card/Card';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Heading from '@bella/components/Heading/Heading';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
@@ -14,7 +15,6 @@ import { GapReport, GapRow, useGapFixes } from './DoNext.jsx';
 import { COLS, GAP_ORDER } from './Health.jsx';
 import { openRun, runLine, useRunsRead } from './Runs.jsx';
 import { runNeed } from './WorkPanel.jsx';
-import { LinkButton } from './kit/index.jsx';
 import './Today.css';
 
 const TONE = { Failed: 'danger', 'Waiting on you': 'attention', 'Ready to review': 'success' };
@@ -52,9 +52,9 @@ function RunRow({ run, status, tone, label, primary, onOpen }) {
             {label}
           </Button>
         ) : (
-          <LinkButton aria-label={`${label}: ${run.title.split(': ')[0]}`} onClick={onOpen}>
+          <Button variant="tertiary" ariaLabel={`${label}: ${run.title.split(': ')[0]}`} onClick={onOpen}>
             {label} →
-          </LinkButton>
+          </Button>
         )
       }
     />
@@ -125,9 +125,9 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
             {verb(n.action)}
           </Button>
         ) : (
-          <LinkButton aria-label={`${n.action.label}: ${n.title ?? n.what}`} onClick={() => runNeed(n.action, onLane)}>
+          <Button variant="tertiary" ariaLabel={`${n.action.label}: ${n.title ?? n.what}`} onClick={() => runNeed(n.action, onLane)}>
             {verb(n.action)} →
-          </LinkButton>
+          </Button>
         )
       }
     />
@@ -164,21 +164,19 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
 
   return (
     <div className="td-page">
-      <div className="td-surface">
+      <Card innerClassName="td-surface">
       <header className="td-head">
         <Heading tier="page">Today</Heading>
         <p className="td-line">
-          <span className="td-mono">
-            {bella ? `BELLA ${bella.source.version}` : 'Reading BELLA…'}
-            {lastRan ? ` · checked ${when(lastRan)}` : ' · never checked'}
-            {notMeasured.length ? ` · Not measured: ${notMeasured.join(', ')}` : ''}
-          </span>{' '}
-          <LinkButton className="td-again" disabled={refreshing} onClick={refresh}>
+          {bella ? `BELLA ${bella.source.version}` : 'Reading BELLA…'}
+          {lastRan ? ` · checked ${when(lastRan)}` : ' · never checked'}
+          {notMeasured.length ? ` · Not measured: ${notMeasured.join(', ')}` : ''}{' '}
+          <Button variant="tertiary" disabled={refreshing} onClick={refresh}>
             {refreshing ? 'Checking…' : 'Check again'}
-          </LinkButton>
+          </Button>
         </p>
       </header>
-      <p className="td-sync" role="status" aria-live="polite">
+      <p className="td-line" role="status" aria-live="polite" hidden={!checked}>
         {checked?.error ? `Refresh failed: ${checked.error}.` : checked ? `Read again at ${hhmm(checked.at)}.` : ''}
       </p>
 
@@ -229,9 +227,9 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
                     title={docFix.title}
                     description={docFix.why.replace(/ \([^)]*\/[^)]*\)/, '')}
                     action={
-                      <LinkButton aria-label={`Open ${docFix.components[0]}: ${docFix.title}`} onClick={() => (window.location.hash = `#/atlas/${docFix.ids[0]}`)}>
+                      <Button variant="tertiary" ariaLabel={`Open ${docFix.components[0]}: ${docFix.title}`} onClick={() => (window.location.hash = `#/atlas/${docFix.ids[0]}`)}>
                         Open {docFix.components[0]} →
-                      </LinkButton>
+                      </Button>
                     }
                   />
                 ) : null,
@@ -242,9 +240,9 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
             </ListRowGroup>
             {/* rule 13: the first five, in priority order, then the rest on request */}
             {!allRows && needsCount > FIRST ? (
-              <LinkButton className="td-more" onClick={() => setAllRows(true)}>
+              <Button variant="tertiary" onClick={() => setAllRows(true)}>
                 Show {needsCount - FIRST} more
-              </LinkButton>
+              </Button>
             ) : null}
           </>
         ) : (
@@ -301,11 +299,10 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
           </div>
         )}
       </div>
-
-      </div>
+      </Card>
       {/* Health stays one click away, closed, as the board's note 04 says; #/coverage and #/connectors open it */}
       {foot ? (
-        <Disclosure className="td-foot" title="Health" summary="Coverage, gate, drift, connectors" defaultOpen={healthAsked}>
+        <Disclosure title="Health" summary="Coverage, gate, drift, connectors" defaultOpen={healthAsked}>
           {foot}
         </Disclosure>
       ) : null}

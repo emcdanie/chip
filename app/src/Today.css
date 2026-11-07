@@ -1,26 +1,7 @@
-/* Today, after the drawing board (7 Nov): one 2px surface on the grid canvas, then
- * title, one line, tabs with counts and rows with a status column.
- * Layout glue only, on BELLA's tokens; everything else is the components' own. */
-/* the grid canvas is the page itself, as on the board; Today is one surface on it, no frame around a frame */
-main:has(.td-page) { background-color: var(--color-semantic-background); background-image: var(--color-semantic-canvas-grid); background-size: var(--spacing-20) var(--spacing-20); }
-.td-page { min-width: 0; width: 100%; max-width: calc(var(--spacing-20) * 11); margin-inline: auto; }
-.td-surface { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-4); min-width: 0; padding: var(--spacing-6); background: var(--color-semantic-surface-card); border-radius: var(--component-card-default-border-radius); box-shadow: var(--shadow-card-ink); }
-.td-head { display: grid; gap: var(--spacing-3); min-width: 0; }
-.td-line { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-secondary); overflow-wrap: anywhere; }
-.td-mono, .td-rule { font-family: var(--typography-font-family-mono); }
-.td-rule { overflow-wrap: break-word; }
-.td-more { justify-self: start; font-size: var(--typography-font-size-body); }
-.td-again { font-size: var(--typography-font-size-body); color: var(--color-semantic-text-secondary); }
-.td-sync { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-secondary); }
-.td-sync:empty { display: none; }
+/* Today after the drawing board (7 Nov): a BELLA Card holding the title, one line, tabs with counts and ListRows.
+ * Layout glue only: the column width and the gaps between the Card's parts. Everything else is the components' own. */
+.td-page { display: grid; gap: var(--spacing-6); width: 100%; max-width: calc(var(--spacing-20) * 11); margin-inline: auto; min-width: 0; }
+.td-surface, .td-head, .td-empty { display: grid; gap: var(--spacing-4); justify-items: start; min-width: 0; }
+.td-surface > * { justify-self: stretch; }
+.td-line, .td-empty p { margin: 0; color: var(--color-semantic-text-secondary); overflow-wrap: anywhere; }
 .td-panel:focus-visible { outline: var(--ring-focus-width) solid var(--ring-focus-color); outline-offset: var(--ring-focus-offset); }
-.td-empty { display: grid; justify-items: start; gap: var(--spacing-3); padding-block: var(--spacing-8); }
-.td-empty p { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-body); }
-@media (max-width: 480px) {
-  .td-surface { padding: var(--spacing-4); }
-}
-/* Health, closed at Today's foot: the summary row is the title, so Health's own h2 stays for its anchor only */
-.td-foot { margin-top: var(--spacing-6); padding-inline: var(--spacing-6); background: var(--color-semantic-surface-card); border-radius: var(--component-card-default-border-radius); box-shadow: var(--shadow-card-ink); min-width: 0; }
-.td-foot > :last-child { padding-bottom: var(--spacing-6); }
-.td-foot:not([open]) > :last-child { padding-bottom: 0; }
-.td-foot .hl-h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
