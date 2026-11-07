@@ -115,3 +115,6 @@
 .pg-skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .pg-skip:focus { display: inline-flex; align-items: center; justify-self: start; min-height: var(--h-control); padding: 0 var(--s-16); border-radius: var(--r); background: var(--card); color: var(--ink); }
 .pg-insp:focus { outline: none; }
+
+/* Projects is one link away (concept step 5) */
+.pg-projlink { display: inline-flex; align-items: center; min-height: var(--h-compact); align-self: flex-end; }

@@ -455,6 +455,11 @@ export default function Playground({ onToast, project: askedProject, route: aske
         actions={
           <div className="pg-actions">
             {projects?.length ? <Select label="Project" value={project} onChange={setProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
+            {project ? (
+              <a className="k-link pg-projlink" href={`#/projects/${project}`}>
+                See it in Projects
+              </a>
+            ) : null}
             {pages?.pages?.length ? <Select label="Page" value={route ?? ''} onChange={setRoute} options={pages.pages.map((p) => ({ value: p.route, label: p.label === p.route || p.label === 'Home' ? p.route : `${p.label}` }))} /> : null}
             <Button variant="primary" onClick={() => toClaude()} disabled={sending || !map || !nBrief}>
               {sending ? 'Writing the brief…' : 'Send to Claude'}
