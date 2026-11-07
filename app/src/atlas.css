@@ -393,3 +393,9 @@
 .atlas .dm-hint { color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
 .atlas .dm-head .dm-more { margin-left: auto; }
 .atlas .dm-sbar .dm-more { margin-left: auto; }
+
+/* the checks are tags with their rule, not buttons (afternoon 7 Nov) */
+.atlas ul.dm-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-8); }
+.atlas ul.dm-checks > li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-8) var(--s-12); }
+.atlas .dm-ckwhy, .atlas .dm-ckrest { color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
+.atlas .dm-ckwhy code { font-family: var(--code); }

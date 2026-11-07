@@ -2037,49 +2037,31 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
 
       <div {...tabPanelProps('dm', 'overview', tab === 'overview')} className="dm-tab">
       <section aria-label="Checks" className="k-chrome" hidden={!stage}>
-        <div className="dm-checks" role="toolbar" aria-label="Measured on this render" ref={ckRef} onKeyDown={(e) => roveKeys(e)}>
-          <span className="dm-lbl">Measured on this render</span>
-          {checks.filter((k) => allChecks || ckClass(k) === 'fail' || ckClass(k) === 'needs').map((k) => (
-            <button
-              key={k.id}
-              type="button"
-              data-rv=""
-              className="dm-ck"
-              aria-expanded={why === k.id}
-              aria-controls="dm-why"
-              onClick={() => {
-                const next = why === k.id ? null : k.id;
-                setWhy(next);
-                if (next && k.part && sel !== k.part) pick(k.part);
-              }}
-            >
+        {/* tags, not buttons (concept, afternoon 7 Nov): each check that needs a look is a line with its rule */}
+        <ul className="dm-checks" aria-label="Measured on this render">
+          {checks.filter((k) => ckClass(k) === 'fail' || ckClass(k) === 'needs').map((k) => (
+            <li key={k.id}>
               <StatusPill tone={CK_TONE[ckClass(k)]}>
                 {k.label} · {k.val}
               </StatusPill>
-            </button>
+              <span className="dm-ckwhy">
+                {k.rule}
+                {k.src ? (
+                  <>
+                    {' '}
+                    Rule: <code>{k.src}</code>
+                  </>
+                ) : null}
+              </span>
+            </li>
           ))}
           {checks.some((k) => ckClass(k) === 'pass' || ckClass(k) === 'grey') ? (
-            <button type="button" data-rv="" className="dm-ck dm-more" aria-expanded={allChecks} onClick={() => setAllChecks(!allChecks)}>
-              {allChecks ? (
-                <StatusPill>Show fewer</StatusPill>
-              ) : (
-                <StatusPill tone="pass">
-                  {checks.filter((k) => ckClass(k) === 'pass').length} pass
-                  {checks.some((k) => ckClass(k) === 'grey') ? ` · ${checks.filter((k) => ckClass(k) === 'grey').length} not run` : ''}
-                </StatusPill>
-              )}
-            </button>
+            <li className="dm-ckrest">
+              {checks.filter((k) => ckClass(k) === 'pass').length} pass
+              {checks.some((k) => ckClass(k) === 'grey') ? ` · ${checks.filter((k) => ckClass(k) === 'grey').length} not run` : ''}
+            </li>
           ) : null}
-        </div>
-        <div className="dm-why" id="dm-why" aria-live="polite" hidden={!whyCheck}>
-          {whyCheck ? (
-            <>
-              <b>{whyCheck.rule}</b>
-              <span>{whyCheck.got}</span>
-              <code>{whyCheck.src}</code>
-            </>
-          ) : null}
-        </div>
+        </ul>
       </section>
 
       <section className={`dm-work dm-card${stage ? '' : ' dm-nospec'}${detail ? '' : ' dm-nodetail'}`} aria-label="Specimen">
