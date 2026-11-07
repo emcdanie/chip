@@ -499,7 +499,7 @@ export default function App() {
           {ws === 'docs' ? <History repo={docRepo} docId={docId} version={docsVersion} bella={bella} lens={lens} onOpenAtlas={openAtlas} onSession={session} /> : null}
           {ws === 'play' ? <Playground onToast={setToast} project={playTarget?.project} route={playTarget?.route} onTarget={setPlayTarget} /> : null}
           {ws === 'projects' ? <Projects projectId={projId} onProject={setProjId} /> : null}
-          {ws === 'atlas' ? <Atlas c={atlas} bella={bella} lens={lens} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={false} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} role={role} vis={vis} setVis={setVis} pinned={atlas ? pins.includes(`comp:${atlas.id}`) : false} onPin={atlas ? () => togglePin(`comp:${atlas.id}`) : undefined} /> : null}
+          {ws === 'atlas' ? <Atlas sideCollapsed={collapsed} onSideCollapsed={wide ? () => setCollapsed(!collapsed) : undefined} c={atlas} bella={bella} lens={lens} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={false} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} role={role} vis={vis} setVis={setVis} pinned={atlas ? pins.includes(`comp:${atlas.id}`) : false} onPin={atlas ? () => togglePin(`comp:${atlas.id}`) : undefined} /> : null}
         </div>
       </main>
 

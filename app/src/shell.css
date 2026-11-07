@@ -535,3 +535,15 @@ html.wp-dragging .xterm { pointer-events: none; }
 .wp-files { margin: var(--s-8) 0 0; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--muted); overflow-wrap: anywhere; }
 .wp-files code { font-family: var(--code); margin-right: var(--s-8); color: var(--body); }
 .wp-up { transform: rotate(180deg); }
+/* the More menu: checked page settings, then the shortcuts (tool chrome, 7 Nov) */
+.cd-more .k-ovf-btn { min-width: var(--h-control); min-height: var(--h-control); }
+.menu { display: grid; gap: var(--s-4); min-width: calc(var(--s-48) * 5); }
+.menu [role='menuitemcheckbox'] { display: grid; grid-template-columns: var(--s-24) 1fr; align-items: center; min-height: var(--h-control); padding: 0 var(--s-12) 0 var(--s-4); border: 0; border-radius: var(--r); background: none; color: var(--ink); font: 400 var(--fs-16)/var(--lh-body) var(--sans); text-align: left; cursor: pointer; }
+.menu [role='menuitemcheckbox']:hover { background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
+.menu [role='menuitemcheckbox']:focus-visible { outline: var(--focus); outline-offset: -3px; }
+.menu-keys { margin: var(--s-8) 0 0; padding-top: var(--s-8); border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: var(--s-4) var(--s-16); color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
+.menu-keys kbd { font-family: var(--code); color: var(--ink); }
+/* narrow windows: toolbar icons fold into More, which carries the same settings */
+@media (max-width: 480px) { .cd-tools .fold { display: none; } }
+/* below the page tools, so the marker never covers them */
+.outline { top: calc(var(--frame-top) + var(--s-48) * 2); }

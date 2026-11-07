@@ -1457,7 +1457,7 @@ const firstSentence = (s) => {
   return t.match(/^.*?[.!?](\s|$)/)?.[0].trim() ?? t;
 };
 
-export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin', vis = { components: {} }, pinned, onPin }) {
+export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens = 'visual', onOpen, role = 'admin', vis = { components: {} }, pinned, onPin }) {
   const reduced = useReducedMotion();
   const cfg = useMemo(() => (c ? cfgOf(c) : null), [c?.id]);
   const parts = useMemo(() => (c ? partsOf(c) : []), [c?.id]);
@@ -2076,15 +2076,38 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
             {srcDir} ↗
           </a>
         </p>
-        {onPin ? (
-          <div className="cd-tools">
+        {/* page tools: icon buttons top right, then one More of page settings as checked items with their shortcuts (tool chrome, 7 Nov) */}
+        <div className="cd-tools">
+          {onPin ? (
             <Tooltip label={pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'}>
-              <button type="button" className="tool-btn" aria-label={pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'} aria-pressed={!!pinned} onClick={onPin}>
+              <button type="button" className="tool-btn fold" aria-label={pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'} aria-pressed={!!pinned} onClick={onPin}>
                 <Icon name="Pin" size="sm" />
               </button>
             </Tooltip>
-          </div>
-        ) : null}
+          ) : null}
+          <Overflow label="More page settings" className="cd-more">
+            <div role="menu" aria-label="Page settings" className="menu">
+              {onPin ? (
+                <button type="button" role="menuitemcheckbox" aria-checked={!!pinned} onClick={onPin}>
+                  <span aria-hidden="true">{pinned ? '✓' : ''}</span>Pinned to the sidebar
+                </button>
+              ) : null}
+              {onSideCollapsed ? (
+                <button type="button" role="menuitemcheckbox" aria-checked={!!sideCollapsed} onClick={onSideCollapsed}>
+                  <span aria-hidden="true">{sideCollapsed ? '✓' : ''}</span>Sidebar hidden
+                </button>
+              ) : null}
+              <p className="menu-keys">
+                <span>Find</span>
+                <kbd>⌘K</kbd>
+                <span>Work drawer</span>
+                <kbd>⌘J</kbd>
+                <span>Sections</span>
+                <kbd>⌥1–4</kbd>
+              </p>
+            </div>
+          </Overflow>
+        </div>
       </header>
 
       <div className="cd-filter k-chrome" role="group" aria-label="Show sections">
