@@ -36,14 +36,14 @@
 .fd-v { display: inline-flex; align-items: center; gap: var(--s-8); font: 400 var(--fs-14)/var(--lh-body) var(--code); white-space: nowrap; color: var(--ink); }
 .fd-v i { width: 16px; height: 16px; border-radius: var(--r-control); border: 1px solid var(--line); flex: none; }
 .fd-v small { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
-.fd-qvb { min-height: 40px; padding: var(--s-8) 0; border: 0; background: none; font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--ink); text-decoration: underline dotted; text-underline-offset: 4px; white-space: nowrap; cursor: pointer; }
+.fd-qvb { min-height: var(--h-compact); padding: var(--s-8) 0; border: 0; background: none; font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--ink); text-decoration: underline dotted; text-underline-offset: 4px; white-space: nowrap; cursor: pointer; }
 .fd-qvt { display: inline-block; text-decoration: none; cursor: default; } /* a passing role: nothing to open */
 .fd-nobody { font-weight: 600; color: var(--ink); }
 .fd-tok .k-dt td:nth-child(5) { text-align: right; }
-@container fdtok (max-width: 1200px) { .fd-v small { display: none; } .fd-tok .k-dt td { padding-inline: var(--s-8); } .fd-tok .k-dt th button, .fd-tok .k-dt th > span { padding-inline: var(--s-8); } }
-@container fdtok (max-width: 900px) { .fd-ubw, .fd-crv { display: none; } .fd-tok .k-dt td { padding-inline: var(--s-12); } .fd-tok .k-dt th button, .fd-tok .k-dt th > span { padding-inline: var(--s-12); } }
-@container fdtok (max-width: 760px) { .fd-tok .fd-v { font-size: 0; gap: 0; } .fd-tok .fd-v i { width: 18px; height: 18px; } }
-@container fdtok (max-width: 560px) { .fd-tok .k-dt td { padding-inline: var(--s-8); } .fd-tok .k-dt th button, .fd-tok .k-dt th > span { padding-inline: var(--s-8); } }
+@container fdtok (max-width: 1372px) { .fd-v small { display: none; } .fd-tok .k-dt td { padding-inline: var(--s-8); } .fd-tok .k-dt th button, .fd-tok .k-dt th > span { padding-inline: var(--s-8); } }
+@container fdtok (max-width: 1029px) { .fd-ubw, .fd-crv { display: none; } }
+@container fdtok (max-width: 900px) { .fd-tok .fd-v { font-size: 0; gap: 0; } .fd-tok .fd-v i { width: 18px; height: 18px; } .fd-tok .fd-qvb { white-space: normal; text-align: left; } .fd-tok .k-dt td { padding-inline: var(--s-12); } .fd-tok .k-dt th button, .fd-tok .k-dt th > span { padding-inline: var(--s-12); } }
+@container fdtok (max-width: 640px) { .fd-tok .k-dt td { padding-inline: var(--s-8); } .fd-tok .k-dt th button, .fd-tok .k-dt th > span { padding-inline: var(--s-8); } }
 
 /* who uses what (the mock's .matrix) */
 .fd-matrix { max-height: 70vh; overflow: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); overscroll-behavior: contain; contain: paint; }

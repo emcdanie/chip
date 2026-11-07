@@ -38,7 +38,7 @@
 .k-ovf-p.start { left: 0; }
 .k-ovf-p > [data-bella-component='button'] { justify-self: start; }
 .k-ovf-p > b { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
-.k-link { border: 0; background: none; padding: var(--s-8) var(--s-4); min-height: 32px; font: 400 var(--fs-14)/var(--lh-body) var(--sans); text-decoration: underline; text-underline-offset: 3px; color: var(--ink); cursor: pointer; }
+.k-link { border: 0; background: none; padding: var(--s-8) var(--s-4); min-height: var(--h-compact); font: 400 var(--fs-14)/var(--lh-body) var(--sans); text-decoration: underline; text-underline-offset: 3px; color: var(--ink); cursor: pointer; }
 .k-iconbtn { display: inline-flex; align-items: center; gap: var(--s-8); height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; cursor: pointer; }
 .k-iconbtn:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 
@@ -78,7 +78,7 @@
 /* data table: toolbar, then a table that scrolls inside itself */
 .k-tbar { display: flex; flex-wrap: wrap; gap: var(--s-12) var(--s-16); align-items: center; margin-bottom: var(--s-12); }
 .k-tbar .k-chips { margin: 0; }
-@container kdt (max-width: 760px) {
+@container kdt (max-width: 870px) {
   .k-tbar .k-search { flex: 1 1 0; min-width: 0; }
   .k-tbar .k-search { order: -3; }
   .k-tbar .k-count { order: -2; margin-left: 0; }
@@ -120,8 +120,9 @@
 .k-dt.k-ovr:not(:has(.k-pin)) { box-shadow: inset calc(-1 * var(--s-12)) 0 var(--s-12) calc(-1 * var(--s-8)) var(--edge); }
 /* column priority: the table drops its least needed columns before it scrolls */
 .k-dtwrap { container: kdt / inline-size; }
-@container kdt (max-width: 760px) { .k-dt [data-prio='3'] { display: none; } }
-@container kdt (max-width: 560px) { .k-dt [data-prio='2'] { display: none; } }
+@container kdt (max-width: 870px) { .k-dt [data-prio='3'] { display: none; } }
+@container kdt (max-width: 640px) { .k-dt [data-prio='2'] { display: none; } }
+@container kdt (max-width: 480px) { .k-dt td { padding-inline: var(--s-8); } .k-dt th button, .k-dt th > span { padding-inline: var(--s-8); } }
 .k-dt tbody tr:last-child td { border-bottom: 0; }
 .k-dt tbody tr:hover td { background: color-mix(in srgb, var(--action) 7%, var(--card)); }
 .k-dt tbody tr:hover td:first-child { background: color-mix(in srgb, var(--action) 5%, var(--card)); }
@@ -129,7 +130,7 @@
 .k-dt th.k-end > span { justify-content: flex-end; }
 .k-dt .k-empty { padding: var(--s-24) var(--s-16); color: var(--muted); }
 .k-dt tr.k-rowlink { cursor: pointer; }
-.k-rowbtn { min-height: 28px; padding: 0; border: 0; background: none; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-align: left; cursor: pointer; }
+.k-rowbtn { min-height: var(--h-compact); padding: 0; border: 0; background: none; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-align: left; cursor: pointer; }
 /* a short label ("git", "16") still gets a 24px target; a count in an end column gets a full one */
 .k-rowbtn { min-width: var(--s-24); }
 .k-dt .k-end .k-rowbtn { min-width: var(--h-control); min-height: var(--h-compact); text-align: right; }

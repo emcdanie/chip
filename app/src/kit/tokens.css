@@ -58,8 +58,8 @@
 
   --on-action: var(--color-semantic-action-on); /* text on the action blue: 5.29:1 */
   --on-note: var(--color-chip-ui-on-note); /* text on the annotation pink, in every theme: 8.1:1 (ink was 6.7) */
-  --frame-nav: 256px; /* the left nav; 104px as an icon rail */
-  --frame-rail: 104px;
+  --frame-nav: 256px; /* the left nav; 132px as a rail, wide enough for its longest label at 16px */
+  --frame-rail: 132px;
   --frame-top: 64px;
 }
 

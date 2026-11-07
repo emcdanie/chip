@@ -101,7 +101,7 @@
 .hcd[hidden] { display: none; }
 .hcd .hfiles { display: grid; min-width: 0; }
 /* one line per file, the full path on hover */
-.hcd .hfiles code { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hcd .hfiles code { overflow-wrap: anywhere; }
 .hcd .hacts { margin-top: 0 !important; }
 @media (prefers-reduced-motion: reduce) {
   .hrail, .hfill, .hhead, .hdot, .hcard { transition: none; }
@@ -126,6 +126,9 @@
 .dlt { margin: 0; font: 600 var(--fs-20)/var(--lh-head) var(--sans); color: var(--ink); }
 .layers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-12); margin: 0; padding: 0; list-style: none; }
 .layers li { display: grid; grid-template-columns: 32px minmax(0, 1fr); grid-template-rows: auto auto; gap: var(--s-8) var(--s-12); padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); min-width: 0; }
+.layers li > div { min-width: 0; }
+.layers code { overflow-wrap: anywhere; }
+@container mainc (max-width: 900px) { .layers { grid-template-columns: minmax(0, 1fr); } }
 .layers b { display: block; font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
 .layers code { color: var(--muted); }
 .layers p { margin-top: var(--s-4); color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }

@@ -14,8 +14,8 @@ import { openReview, changed } from './ReviewSheet.jsx';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
 // card, gaps and padding: the mock's NW, NH, GX, GY
-const NW = 184;
-const NH = 92;
+const NW = 208;
+const NH = 104;
 const GX = 14;
 const GY = 56;
 const PAD = 12;

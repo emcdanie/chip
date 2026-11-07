@@ -60,6 +60,7 @@
 .pg-insp { display: grid; gap: var(--s-16); align-content: start; min-width: 0; padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
 @container pg (min-width: 901px) { .pg-insp { position: sticky; top: calc(var(--frame-top) + var(--s-16)); max-height: calc(100vh - var(--frame-top) - var(--s-32)); overflow: auto; } }
 .pg-insp > .k-seg { justify-self: start; flex-wrap: nowrap; }
+@container pg (max-width: 480px) { .pg-insp > .k-seg { flex-wrap: wrap; flex: 0 1 auto; max-width: 100%; } }
 .pg-insp > .k-seg button { padding: 0 var(--s-12); white-space: nowrap; }
 .pg-panel { display: grid; gap: var(--s-16); min-width: 0; }
 .pg-sub, .pg-key { margin: 0; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
