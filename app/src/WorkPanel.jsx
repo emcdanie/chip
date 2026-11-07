@@ -39,7 +39,7 @@ const mismatch = (l) => (l.prs ?? []).some((pr) => pr.claim !== 'none' && pr.ci 
 const KEY = 'chip-work';
 const LIM = { w: [360, 760], h: [280, 0.7] };
 // h: null is the bottom dock's default, 40% of the window; a resize stores px
-const DEF = { open: false, dock: 'right', w: 380, h: null, tab: 'sessions' };
+const DEF = { open: false, dock: 'bottom', w: 380, h: null, tab: 'sessions' };
 // closed by default, so pages get the full width (concept lock, 7 Nov); once
 // she opens or closes it, that choice (chosen) is kept
 // Sessions, Terminal and Ask (concept, afternoon 7 Nov); what needs her is Today's
@@ -816,7 +816,7 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
   const micOff = voice.mode === 'none' || voice.mode === 'blocked';
 
   return (
-    <aside className={`wp k-chrome wp-${dock}${dragging ? ' dragging' : ''}`} id="work" aria-label="Work panel" hidden={!open} onKeyDown={onKeyDown}>
+    <aside className={`wp k-chrome wp-${dock}${dragging ? ' dragging' : ''}`} id="work" aria-label="Work: Sessions, Terminal and Ask" hidden={!open} onKeyDown={onKeyDown} data-theme="dark">
       <div
         className="grip"
         role="separator"

@@ -13,7 +13,9 @@ import { GapReport, GapRow, useGapFixes } from './DoNext.jsx';
 import { COLS, GAP_ORDER } from './Health.jsx';
 import { openRun, runLine, useRunsRead } from './Runs.jsx';
 import { runNeed } from './WorkPanel.jsx';
-import { LinkButton, Overflow } from './kit/index.jsx';
+import { LinkButton } from './kit/index.jsx';
+import Icon from '@bella/components/Icon/Icon';
+import Tooltip from '@bella/components/Tooltip/Tooltip';
 import './Today.css';
 
 const TONE = { Failed: 'danger', 'Waiting on you': 'attention', 'Ready to review': 'success' };
@@ -34,6 +36,14 @@ const Title = ({ tone, word, children }) => (
 );
 const WORKING = ['starting', 'running', 'gate'];
 const STUCK = ['failed', 'login'];
+// a change's size, as the app shows it: +12 −1
+const sizeOf = (diff) => {
+  if (!diff) return '';
+  const ls = diff.split('\n');
+  const add = ls.filter((l) => l.startsWith('+') && !l.startsWith('+++')).length;
+  const del = ls.filter((l) => l.startsWith('-') && !l.startsWith('---')).length;
+  return add || del ? `+${add} −${del} · ` : '';
+};
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 function RunRow({ run, status, tone, label, primary, onOpen }) {
@@ -44,7 +54,7 @@ function RunRow({ run, status, tone, label, primary, onOpen }) {
           {run.title.split(': ')[0]}
         </Title>
       }
-      description={`${runLine(run).replace(/\.$/, '')}. From ${run.from}.`}
+      description={`${sizeOf(run.diff)}${runLine(run).replace(/\.$/, '')}. From ${run.from}.`}
       action={
         primary ? (
           <Button variant="primary" ariaLabel={`${label}: ${run.title.split(': ')[0]}`} onClick={onOpen}>
@@ -174,11 +184,13 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
           </p>
           {notMeasured.length ? <p className="td-line td-quiet">Not measured: {notMeasured.join(', ')}</p> : null}
         </div>
-        <Overflow label="More" text="More">
-          <LinkButton disabled={refreshing} onClick={refresh}>
-            {refreshing ? 'Checking…' : 'Read everything again'}
-          </LinkButton>
-        </Overflow>
+        <div className="td-tools">
+          <Tooltip label={refreshing ? 'Checking…' : 'Read everything again'}>
+            <button type="button" className="tool-btn" aria-label={refreshing ? 'Checking…' : 'Read everything again'} disabled={refreshing} onClick={refresh}>
+              <Icon name="RefreshDouble" size="sm" />
+            </button>
+          </Tooltip>
+        </div>
       </header>
       <p className="td-sync" role="status" aria-live="polite">
         {checked?.error ? `Refresh failed: ${checked.error}.` : checked ? `Read again at ${hhmm(checked.at)}.` : ''}

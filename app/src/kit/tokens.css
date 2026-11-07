@@ -1,7 +1,8 @@
 /* CHIP's names for BELLA's tokens. The values live in BELLA's chip theme
  * (tokens/semantic/chip.json, [data-theme="chip"]); page CSS reads these names.
  * A name with no semantic slot in BELLA points at the theme's primitive. */
-:root {
+:root,
+[data-theme] {
   /* colour: one token per role */
   --ground: var(--color-semantic-background);
   --card: var(--color-semantic-surface-card);
@@ -66,7 +67,7 @@
 /* dark: the mock has no dark theme; these are BELLA's dark roles (cool 975,
    950, 50, 300) under the mock's names. Status hues stay; their fills mix
    with the dark card, so ink (now light) stays readable on them. */
-:root[data-theme="dark"] {
+[data-theme="dark"] {
   --ground: rgb(15 17 23);
   --card: rgb(23 26 34);
   --ink: rgb(236 238 243);

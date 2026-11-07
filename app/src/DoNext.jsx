@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow from '@bella/components/ListRow/ListRow';
+import BellaCodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import BellaStatusPill from '@bella/components/StatusPill/StatusPill';
 import { LinkButton, Sheet, StatusPill } from './kit/index.jsx';
 import { changed } from './ReviewSheet.jsx';
@@ -379,9 +380,7 @@ function ReportItem({ it, busyId, setBusyId, onSkip, onLater, onSession }) {
         {(card?.change?.preview ?? it.recommend.code) ? (
           <Disclosure title="Exactly what it adds">
             {card?.change?.sentence ? <p>{card.change.sentence}</p> : null}
-            <pre className="dn-code" tabIndex={0} aria-label="Lines it adds">
-              {card?.change?.preview ?? it.recommend.code}
-            </pre>
+            <BellaCodeBlock title="Lines it adds" language={/^[{[]/.test((card?.change?.preview ?? it.recommend.code).trim()) ? 'json' : /^[-+ ]/m.test(card?.change?.preview ?? '') ? 'diff' : 'jsx'} code={card?.change?.preview ?? it.recommend.code} />
           </Disclosure>
         ) : null}
         <Disclosure title="Why this fix" summary={it.why.source}>

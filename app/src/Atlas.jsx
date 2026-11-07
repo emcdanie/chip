@@ -15,6 +15,9 @@ import SegmentedControl from '@bella/components/SegmentedControl/SegmentedContro
 import Pin from '@bella/components/Pin/Pin';
 import { StatusPill, Chips, LinkButton, Overflow } from './kit/index.jsx';
 import BellaStatusPill from '@bella/components/StatusPill/StatusPill';
+import BellaCodeBlock from '@bella/components/CodeBlock/CodeBlock';
+import Icon from '@bella/components/Icon/Icon';
+import Tooltip from '@bella/components/Tooltip/Tooltip';
 import { COLS } from './Health.jsx';
 const COLS_N = (c) => COLS.filter((k) => !k.of(c, [])).length;
 import { keyboardOf } from './AtlasSpec.jsx';
@@ -2072,12 +2075,16 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           <a className="k-link cd-mono" href={`https://github.com/emcdanie/bella/tree/main/${srcDir}`} target="_blank" rel="noopener noreferrer">
             {srcDir} ↗
           </a>
-          {onPin ? (
-            <LinkButton aria-pressed={!!pinned} onClick={onPin}>
-              {pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'}
-            </LinkButton>
-          ) : null}
         </p>
+        {onPin ? (
+          <div className="cd-tools">
+            <Tooltip label={pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'}>
+              <button type="button" className="tool-btn" aria-label={pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'} aria-pressed={!!pinned} onClick={onPin}>
+                <Icon name="Pin" size="sm" />
+              </button>
+            </Tooltip>
+          </div>
+        ) : null}
       </header>
 
       <div className="cd-filter k-chrome" role="group" aria-label="Show sections">
@@ -2113,7 +2120,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       </Sec>
 
       <Sec id="copy">
-        {stage ? <CodeBlock title="JSX" lines={[importLine, '', ...jsx]} notify={notify} /> : <p className="cd-none">Not measured: no specimen to copy.</p>}
+        {stage ? <BellaCodeBlock title={`${c.name}.jsx`} language="jsx" code={[importLine, '', ...jsx].join('\n')} /> : <p className="cd-none">Not measured: no specimen to copy.</p>}
       </Sec>
 
       <Sec id="usage">

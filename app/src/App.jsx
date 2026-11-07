@@ -128,7 +128,8 @@ export default function App() {
   const winW = win.w;
   const [work, setWork] = useWork();
   // under 961px the panel always docks at the bottom (no room beside the page)
-  const dock = wide ? work.dock : 'bottom';
+  // a dark drawer along the bottom, set apart from the light page (tool chrome, 7 Nov)
+  const dock = 'bottom';
   const hasSide = ['atlas', 'foundations'].includes(ws);
   const collapsed = sidePref === 'col';
   const navW = !wide || !hasSide ? 0 : collapsed ? 64 : 256;
@@ -331,6 +332,7 @@ export default function App() {
       return next;
     });
   const [compQ, setCompQ] = useState('');
+  useEffect(() => setCompQ(''), [ws]); // each section's sidebar opens with its own empty filter
   const groups = useMemo(() => {
     const g = {};
     for (const c of bella?.components ?? []) (g[c.category ?? 'Other'] ??= []).push(c);
@@ -340,7 +342,8 @@ export default function App() {
   const q = compQ.trim().toLowerCase();
   const compLink = (c) => {
     const g = gapsOf(c);
-    return { href: `#/atlas/${c.id}`, label: c.name, badge: g ? `${g} gap${g > 1 ? 's' : ''}` : undefined, current: ws === 'atlas' && atlasId === c.id };
+    // a changed item shows a small mark at the row's end, not a badge (tool chrome, 7 Nov): its gap count
+    return { href: `#/atlas/${c.id}`, label: c.name, badge: g || undefined, current: ws === 'atlas' && atlasId === c.id };
   };
   const sideGroups =
     ws === 'atlas'
@@ -351,7 +354,7 @@ export default function App() {
           ...groups.map(([g, cs]) => ({ label: g, items: cs.filter((c) => c.name.toLowerCase().includes(q)).map(compLink) })).filter((g) => g.items.length),
         ]
       : ws === 'foundations'
-        ? [{ items: FD_TOPICS.map((t) => ({ href: `#/foundations/${t.id}`, label: t.label, current: (fdTab ?? FD_TOPICS[0].id) === t.id })) }]
+        ? [{ items: FD_TOPICS.filter((t) => t.label.toLowerCase().includes(q)).map((t) => ({ href: `#/foundations/${t.id}`, label: t.label, current: (fdTab ?? FD_TOPICS[0].id) === t.id })) }].filter((g) => g.items.length)
         : ws === 'projects'
           ? [{ items: projList.map((p) => ({ href: `#/projects/${p.id}`, label: p.name, current: (projId ?? projList[0]?.id) === p.id })) }]
           : [];
@@ -377,12 +380,12 @@ export default function App() {
   const side = (
     <aside className="side" id="side" aria-label={`${NAME[ws]} and sections`}>
       {narrow ? <NavList label="Sections" groups={[{ items: SECTIONS.map((p) => ({ href: `#/${p.id}`, label: p.label, current: sectionOf(ws) === p.id })) }]} onNavigate={route} /> : null}
-      {ws === 'atlas' && bella && !(wide && collapsed) ? (
+      {(ws === 'atlas' || ws === 'foundations') && bella && !(wide && collapsed) ? (
         <div className="complist">
           <label className="k-vh" htmlFor="compQ">
-            Filter components
+            {ws === 'atlas' ? 'Filter components' : 'Filter topics'}
           </label>
-          <input id="compQ" placeholder={`Filter ${bella.components.length} components…`} autoComplete="off" value={compQ} onChange={(e) => setCompQ(e.target.value)} />
+          <input id="compQ" placeholder={ws === 'atlas' ? `Filter ${bella.components.length} components…` : `Filter ${FD_TOPICS.length} topics…`} autoComplete="off" value={compQ} onChange={(e) => setCompQ(e.target.value)} />
           {q && !sideGroups.length ? <p className="none2">No match</p> : null}
         </div>
       ) : null}
@@ -506,7 +509,7 @@ export default function App() {
           st={work}
           set={setWork}
           dock={dock}
-          canDock={wide}
+          canDock={false}
           size={dock === 'right' ? wpW : wpH}
           limits={dock === 'right' ? [360, maxW(winW, navW)] : [minH(win.h), maxH(win.h)]}
           onResize={resize}

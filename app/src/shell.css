@@ -518,3 +518,14 @@ html.wp-dragging .xterm { pointer-events: none; }
 }
 /* the Work toggle is one icon now; its name is in the label */
 .wtoggle { padding: 0; min-width: var(--h-control); justify-content: center; }
+
+/* page tools (tool chrome, 7 Nov): icon buttons grouped top right, each 44px with a tooltip and a name */
+.tool-btn { display: inline-grid; place-items: center; min-width: var(--h-control); min-height: var(--h-control); padding: 0; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); cursor: pointer; }
+.tool-btn:hover { background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
+.tool-btn[aria-pressed='true'] { background: var(--sel); border-color: var(--ink); }
+.tool-btn:focus-visible { outline: var(--focus); outline-offset: var(--ring-focus-offset); }
+.tool-btn:disabled { color: var(--muted); cursor: default; }
+.td-tools, .cd-tools { display: flex; gap: var(--s-8); align-items: center; }
+.cd-head { position: relative; }
+.cd-tools { position: absolute; top: 0; right: 0; }
+.wp[data-theme='dark'] { background: var(--card); color: var(--body); }
