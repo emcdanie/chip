@@ -1,11 +1,14 @@
 // Projects: every repo CHIP works on, CHIP itself included (GET /projects,
-// server/lib/projects.mjs). One tab a project: how it runs, which BELLA it
-// uses, the "what we're working on" note, what is in progress (PRs,
-// worktrees, branches, commits, Claude sessions today) and its pages. The
-// actions open its terminal or Claude, open it in the Playground, and start
-// or open its dev server; Stop shows only for a server CHIP started.
+// server/lib/projects.mjs). A work list since the concept lock (amended 7 Nov):
+// one table compares how each project is set up, then the picked project's
+// work in progress (PRs, Claude sessions today, worktrees) as rows and its pages.
+// The actions open its terminal or Claude, open it in the Playground, and start
+// or open its dev server; Stop shows only for a server CHIP started. The note,
+// recent branches and recent commits are cut: History has the commits.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
+import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
+import BellaStatusPill from '@bella/components/StatusPill/StatusPill';
 import { Card, DataTable, LinkButton, PageHeader, StatusPill, Toggle } from './kit/index.jsx';
 import './Projects.css';
 
@@ -24,63 +27,21 @@ const RUN = {
   stopped: { tone: 'neutral', word: 'Not running' },
   none: { tone: 'neutral', word: 'No dev server' },
 };
+// how each project is set up, a row each: the comparison table and its narrow stack read these
+const SETUP = [
+  ['Runs', (p) => <BellaStatusPill variant={RUN_PILL[p.run?.state] ?? 'neutral'}>{(RUN[p.run?.state] ?? RUN.none).word}</BellaStatusPill>],
+  ['BELLA', (p) => p.bella?.label ?? 'Not measured'],
+  ['Branch', (p) => <code>{p.branch ?? '…'}</code>],
+  ['Pages', (p) => p.pageCount],
+  ['Open PRs', (p) => p.prs ?? 'Not measured'],
+  ['Worktrees', (p) => p.worktrees ?? 'Not measured'],
+];
+const RUN_PILL = { running: 'success', starting: 'attention', stopped: 'neutral', none: 'neutral' };
 const PAGE_KIND = { next: 'Next.js routes under app/', hash: 'Hash routes in the nav', storybook: 'Storybook docs, one a stories file' };
 // the Playground's address for a project, and for one of its pages
 export const playHref = (id, route) => `#/play/${id}${route ? `?route=${encodeURIComponent(route)}` : ''}`;
 
 const terminal = (repo, command) => window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo, command } }));
-
-function List({ items, empty, cap = 6, render, label }) {
-  const [all, setAll] = useState(false);
-  if (!items?.length) return <p className="pj-none">{empty}</p>;
-  const shown = all ? items : items.slice(0, cap);
-  return (
-    <>
-      <ul className="pj-list" aria-label={label}>
-        {shown.map(render)}
-      </ul>
-      {items.length > cap ? (
-        <Toggle expanded={all} onClick={() => setAll((a) => !a)} className="pj-more">
-          {all ? 'Show fewer' : `Show all ${items.length}`}
-        </Toggle>
-      ) : null}
-    </>
-  );
-}
-
-function Note({ p, onSaved }) {
-  const [text, setText] = useState(p.note);
-  const [state, setState] = useState('');
-  useEffect(() => setText(p.note), [p.id, p.note]);
-  const save = async () => {
-    setState('Saving…');
-    try {
-      const r = await fetch(`/projects/${p.id}/note`, { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ note: text }) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
-      setState(`Saved ${ago(j.noteAt)}`);
-      onSaved(j);
-    } catch (e) {
-      setState(`Not saved: ${e.message}`);
-    }
-  };
-  return (
-    <Card title="What we’re working on" sub="A line or two for whoever opens this project next, you or a Claude session. Kept in chip.config.local.json.">
-      <label className="k-vh" htmlFor={`pj-note-${p.id}`}>
-        What we’re working on in {p.name}
-      </label>
-      <textarea id={`pj-note-${p.id}`} className="pj-note" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="Nothing written yet." />
-      <div className="pj-noteacts">
-        <Button onClick={save} disabled={text === p.note}>
-          Save note
-        </Button>
-        <span className="pj-saved" role="status">
-          {state || (p.noteAt ? `Last saved ${ago(p.noteAt)}` : '')}
-        </span>
-      </div>
-    </Card>
-  );
-}
 
 function Panel({ p, reload }) {
   const lv = p.live;
@@ -155,10 +116,7 @@ function Panel({ p, reload }) {
   return (
     <div className="pj-panel">
       <section className="pj-hero" aria-labelledby={`pj-h-${p.id}`}>
-        {/* the card above names it and says whether it runs: no second header or badge here */}
-        <h2 className="k-vh" id={`pj-h-${p.id}`}>
-          {p.name}
-        </h2>
+        <h2 id={`pj-h-${p.id}`}>{p.name}</h2>
         {p.description ? <p className="pj-desc">{p.description}</p> : null}
         <div className="pj-acts">
           <Button variant="primary" href={playHref(p.id)}>
@@ -191,118 +149,82 @@ function Panel({ p, reload }) {
         ) : null}
       </section>
 
-      <div className="pj-two">
-        <Card title="Setup" sub="Read from the repo and the local config.">
-          <dl className="pj-dl">
-            {setup.map(([k, v]) => (
-              <div key={k}>
-                <dt>{k}</dt>
-                <dd>{v}</dd>
-              </div>
+      <section className="pj-sec" aria-labelledby={`pj-wip-${p.id}`}>
+        <div className="pj-sechead">
+          <h2 id={`pj-wip-${p.id}`}>In progress</h2>
+          <button type="button" className="k-link" onClick={() => reload(p.id, true)}>
+            Read again
+          </button>
+        </div>
+        <p className="pj-quiet">{lv ? `Read from git${lv.prs ? ' and GitHub' : ''} ${ago(lv.readAt)}${lv.prs ? '' : ' · Not measured: pull requests (gh missing or signed out)'}` : p.exists ? 'Reading git…' : `The folder ${p.repo} isn’t there.`}</p>
+        {lv && (lv.prs?.length || lv.claude?.length || lv.worktrees?.length) ? (
+          <ListRowGroup ariaLabel={`In progress in ${p.name}`}>
+            {(lv.prs ?? []).map((pr) => (
+              <ListRow
+                key={`pr-${pr.number}`}
+                title={
+                  <>
+                    <BellaStatusPill className="pj-tag" variant={pr.isDraft ? 'neutral' : 'info'}>
+                      {pr.isDraft ? 'Draft PR' : 'PR'}
+                    </BellaStatusPill>
+                    #{pr.number} {pr.title}
+                  </>
+                }
+                description={
+                  <>
+                    Updated {ago(pr.updatedAt)}. Branch: <code>{pr.headRefName}</code>
+                  </>
+                }
+                action={
+                  <Button variant="secondary" href={pr.url} ariaLabel={`Open pull request ${pr.number}`}>
+                    Open
+                  </Button>
+                }
+              />
             ))}
-          </dl>
-        </Card>
-        <Note p={p} onSaved={() => reload(p.id)} />
-      </div>
+            {(lv.claude ?? []).map((c) => (
+              <ListRow
+                key={`cl-${c.where}`}
+                title={
+                  <>
+                    <BellaStatusPill className="pj-tag" variant="neutral">
+                      Claude
+                    </BellaStatusPill>
+                    {c.sessions} session{c.sessions === 1 ? '' : 's'} today in {c.where}
+                  </>
+                }
+                description={`Last one ${ago(c.last)}.`}
+              />
+            ))}
+            {(lv.worktrees ?? []).map((w) => (
+              <ListRow
+                key={`wt-${w.path}`}
+                title={
+                  <>
+                    <BellaStatusPill className="pj-tag" variant="neutral">
+                      Worktree
+                    </BellaStatusPill>
+                    {w.name}
+                  </>
+                }
+                description={
+                  <>
+                    Branch: <code>{w.branch ?? 'detached'}</code>
+                  </>
+                }
+              />
+            ))}
+          </ListRowGroup>
+        ) : lv ? (
+          <p className="pj-none">Nothing in progress: no open PR, no Claude session today, only the main checkout.</p>
+        ) : null}
+      </section>
 
-      <Card title="In progress" sub={lv ? `Read live from git${lv.prs ? ' and GitHub' : ''}, ${ago(lv.readAt)}.` : 'Reading git…'} action={<LinkButton onClick={() => reload(p.id, true)}>Read again</LinkButton>}>
-        {lv ? (
-          <div className="pj-grid">
-            <div>
-              <h3 className="pj-h3">Open pull requests {lv.prs ? <span className="n">{lv.prs.length}</span> : null}</h3>
-              {lv.prs ? (
-                <List
-                  label="Open pull requests"
-                  items={lv.prs}
-                  empty="None open."
-                  render={(pr) => (
-                    <li key={pr.number}>
-                      <a href={pr.url} target="_blank" rel="noreferrer">
-                        #{pr.number} {pr.title}
-                      </a>
-                      <small>
-                        <code>{pr.headRefName}</code>
-                        {pr.isDraft ? ' · draft' : ''} · {ago(pr.updatedAt)}
-                      </small>
-                    </li>
-                  )}
-                />
-              ) : (
-                <p className="pj-none">GitHub didn’t answer (gh missing or signed out), so PRs are left out.</p>
-              )}
-            </div>
-            <div>
-              <h3 className="pj-h3">Claude sessions today {lv.claude?.length ? <span className="n">{lv.claude.reduce((n, c) => n + c.sessions, 0)}</span> : null}</h3>
-              <List
-                label="Claude sessions today"
-                items={lv.claude}
-                empty="No Claude Code session has worked here in the last day."
-                render={(c) => (
-                  <li key={c.where}>
-                    <b>{c.where}</b>
-                    <small>
-                      {c.sessions} session{c.sessions === 1 ? '' : 's'} · last {ago(c.last)}
-                    </small>
-                  </li>
-                )}
-              />
-            </div>
-            <div>
-              <h3 className="pj-h3">Worktrees <span className="n">{lv.worktreeCount}</span></h3>
-              <List
-                label="Worktrees"
-                items={lv.worktrees}
-                empty="Only the main checkout."
-                render={(w) => (
-                  <li key={w.path}>
-                    <b>{w.name}</b>
-                    <small>
-                      <code>{w.branch ?? 'detached'}</code>
-                    </small>
-                  </li>
-                )}
-              />
-            </div>
-            <div>
-              <h3 className="pj-h3">Recent branches</h3>
-              <List
-                label="Recent branches"
-                items={lv.branches}
-                empty="No branches."
-                render={(b) => (
-                  <li key={b.name}>
-                    <code>{b.name}</code>
-                    <small>
-                      {b.ahead == null ? 'the default' : `${b.ahead} ahead of ${lv.defaultBranch}`} · {day(b.date)}
-                    </small>
-                  </li>
-                )}
-              />
-            </div>
-            <div className="pj-wide">
-              <h3 className="pj-h3">Recent commits on {lv.branch}</h3>
-              <List
-                label="Recent commits"
-                items={lv.commits}
-                empty="No commits."
-                render={(c) => (
-                  <li key={c.sha} className="pj-commit">
-                    <code>{c.sha}</code>
-                    <span>{c.subject}</span>
-                    <small>{day(c.date)}</small>
-                  </li>
-                )}
-              />
-            </div>
-          </div>
-        ) : (
-          <p className="pj-none">{p.exists ? 'Reading git…' : `The folder ${p.repo} isn’t there.`}</p>
-        )}
-      </Card>
-
-      <Card title="Pages" sub={`${PAGE_KIND[p.pageKind] ?? 'Pages'}, read from the repo. Each one opens in the Playground.`}>
+      <section className="pj-sec" aria-labelledby={`pj-pages-${p.id}`}>
+        <h2 id={`pj-pages-${p.id}`}>Pages</h2>
+        <p className="pj-quiet">{`${PAGE_KIND[p.pageKind] ?? 'Pages'}, read from the repo. Each one opens in the Playground.`}</p>
         {p.pages.length ? <DataTable label={`pages-${p.id}`} cols={cols} rows={p.pages} rowKey={(r) => r.route} /> : <p className="pj-none">No pages read from this repo.</p>}
-      </Card>
+      </section>
     </div>
   );
 }
@@ -345,28 +267,53 @@ export default function Projects({ projectId, onProject }) {
       ) : null}
       {list ? (
         <>
-          <div className="pj-cards" role="list" aria-label="Pick a project">
-            {list.map((p) => {
-              const run = RUN[p.run?.state] ?? RUN.none;
-              return (
-                <div role="listitem" key={p.id}>
-                  <button type="button" className="pj-card" aria-pressed={p.id === id} onClick={() => onProject(p.id)}>
-                    <b>{p.name}</b>
-                    <small>
-                      <code>{p.branch ?? '…'}</code>
-                    </small>
-                    <span className="pj-facts">
-                      <StatusPill tone={run.tone}>{run.word}</StatusPill>
-                      {p.id === id && detail[id]?.run?.by === 'chip' ? <span>started by CHIP</span> : p.id === id && detail[id]?.run?.by === 'outside' ? <span>started outside CHIP</span> : null}
-                      <span>{p.pageCount} pages</span>
-                      <span>{p.bella?.label}</span>
-                      {p.prs != null ? <span>{p.prs} open PRs</span> : null}
-                    </span>
+          <section className="pj-sec" aria-labelledby="pj-cmp">
+            <h2 id="pj-cmp">Set up per project</h2>
+            <div className="pj-cmpwrap">
+              <table className="pj-cmp">
+                <caption className="k-vh">How each project is set up. Pick one to see its work in progress.</caption>
+                <thead>
+                  <tr>
+                    <td />
+                    {list.map((p) => (
+                      <th scope="col" key={p.id}>
+                        <button type="button" className="k-link" aria-pressed={p.id === id} onClick={() => onProject(p.id)}>
+                          {p.name}
+                        </button>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {SETUP.map(([k, f]) => (
+                    <tr key={k}>
+                      <th scope="row">{k}</th>
+                      {list.map((p) => (
+                        <td key={p.id}>{f(p)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="pj-stack">
+              {list.map((p) => (
+                <div className="pj-stackone" key={p.id}>
+                  <button type="button" className="k-link" aria-pressed={p.id === id} onClick={() => onProject(p.id)}>
+                    {p.name}
                   </button>
+                  <dl>
+                    {SETUP.map(([k, f]) => (
+                      <div key={k}>
+                        <dt>{k}</dt>
+                        <dd>{f(p)}</dd>
+                      </div>
+                    ))}
+                  </dl>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          </section>
           {id ? detail[id] ? <Panel p={detail[id]} reload={reload} /> : <p className="pj-none">Reading {list.find((p) => p.id === id)?.short}…</p> : null}
         </>
       ) : (
