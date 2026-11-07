@@ -13,7 +13,8 @@ import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import Pin from '@bella/components/Pin/Pin';
-import { StatusPill, Chips, LinkButton, Overflow } from './kit/index.jsx';
+import Heading from '@bella/components/Heading/Heading';
+import Tag from '@bella/components/Tag/Tag';
 import BellaStatusPill from '@bella/components/StatusPill/StatusPill';
 import BellaCodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import Icon from '@bella/components/Icon/Icon';
@@ -417,7 +418,7 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
           </table>
         ) : view === 'compliance' ? (
           tests?.tests ? (
-            <ul className="k-list sla2">
+            <ul className="sla2">
               {tests.tests.map((t) => (
                 <li key={t.name}>
                   <span>
@@ -425,7 +426,7 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
                     <br />
                     <span className="sub2">{t.detail}</span>
                   </span>
-                  <StatusPill tone={t.status === 'pass' ? 'pass' : t.status === 'fail' ? 'fail' : 'needs'}>{t.status === 'pass' ? 'Keeps it' : t.status === 'fail' ? 'Breaks it' : 'Not run'}</StatusPill>
+                  <BellaStatusPill variant={toneOf(t.status)}>{t.status === 'pass' ? 'Keeps it' : t.status === 'fail' ? 'Breaks it' : 'Not run'}</BellaStatusPill>
                 </li>
               ))}
             </ul>
@@ -446,7 +447,7 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
             </tbody>
           </table>
         ) : hist?.entries ? (
-          <ul className="k-list sla2">
+          <ul className="sla2">
             {hist.entries.slice(0, 6).map((e) => (
               <li key={e.sha}>
                 <span>
@@ -566,7 +567,13 @@ function HistoryPanel({ c, hist }) {
     <Panel name="history" one>
       <p className="cap">Every change to {c.name}, from BELLA’s git log of its files. Select a point on the line to find it below.</p>
       <div className="hquick k-chrome">
-        <Chips label="Change type" items={chips} value={type} onChange={setType} />
+        <div role="group" aria-label="Change type" className="cd-filter">
+          {chips.map((x) => (
+            <FilterChip key={x.id} size="compact" pressed={x.id === type} onClick={() => setType(x.id)}>
+              {x.count != null ? `${x.label} ${x.count}` : x.label}
+            </FilterChip>
+          ))}
+        </div>
       </div>
       <div className="hline2" role="group" aria-label={`The ${recent.length} latest changes`}>
         <ol>
@@ -585,15 +592,13 @@ function HistoryPanel({ c, hist }) {
         <p className="sub2">
           {shown.length} of {all.length} · sort by
         </p>
-        <Chips
-          label="Sort"
-          items={[
-            { id: 'new', label: 'Newest first' },
-            { id: 'old', label: 'Oldest first' },
-          ]}
-          value={order}
-          onChange={setOrder}
-        />
+        <div role="group" aria-label="Sort" className="cd-filter">
+          {[['new', 'Newest first'], ['old', 'Oldest first']].map(([id, label]) => (
+            <FilterChip key={id} size="compact" pressed={order === id} onClick={() => setOrder(id)}>
+              {label}
+            </FilterChip>
+          ))}
+        </div>
       </div>
       <ol className="hlist" ref={list}>
         {sorted.map((e) => (
@@ -601,11 +606,9 @@ function HistoryPanel({ c, hist }) {
             <h3>{e.explanation || e.subject}</h3>
             <div className="hchips">
               {typesOf(e).map((t) => (
-                <span key={t} className="k-pill">
-                  {TYPE_LABEL[t] ?? t}
-                </span>
+                <Tag key={t}>{TYPE_LABEL[t] ?? t}</Tag>
               ))}
-              {e.api ? <StatusPill>API: {String(e.api).slice(0, 60)}</StatusPill> : null}
+              {e.api ? <BellaStatusPill variant="neutral">API: {String(e.api).slice(0, 60)}</BellaStatusPill> : null}
             </div>
             {e.detail ? (
               <div className="hwhy">
@@ -634,6 +637,9 @@ function HistoryPanel({ c, hist }) {
 }
 
 const VERDICT = { pass: 'Passes', fail: 'Fails', 'not-run': 'Not run' };
+// CHIP's pass/fail/needs as BELLA StatusPill variants
+const TONE = { pass: 'success', fail: 'danger', needs: 'attention', neutral: 'neutral' };
+const toneOf = (status) => TONE[status === 'pass' ? 'pass' : status === 'fail' ? 'fail' : 'needs'];
 function TestsPanel({ c, tests, onRun, running }) {
   if (!tests) return <Panel name="tests" one><p className="sub2">Reading the tests…</p></Panel>;
   if (tests.error) return <Panel name="tests" one><Empty title="The tests could not be read">The CHIP server didn’t answer /component-tests.</Empty></Panel>;
@@ -663,7 +669,7 @@ function TestsPanel({ c, tests, onRun, running }) {
             </div>
             <div className="tside k-chrome">
               <span className={`tverd${r.status === 'fail' ? ' bad' : ''}`}>
-                <StatusPill tone={r.status === 'pass' ? 'pass' : r.status === 'fail' ? 'fail' : 'needs'}>{VERDICT[r.status]}</StatusPill>
+                <BellaStatusPill variant={toneOf(r.status)}>{VERDICT[r.status]}</BellaStatusPill>
               </span>
               {r.action ? (
                 <Button variant="secondary" onClick={() => onRun(r.action)}>
@@ -1226,7 +1232,6 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
     setTouched(true);
   };
   const ORDER = ['primary', 'secondary', 'tertiary'];
-  const bad = new Set(finds.flatMap((x) => x.idx));
   const item = (it, i) => {
     let el = null;
     if (it.c === 'Button')
@@ -1243,7 +1248,7 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
       );
     else el = <SegmentedControl label={sc.head ?? sc.title} value={it.value} onChange={(v) => edit(i, { value: v })} options={it.options.map((o) => ({ value: o, label: o }))} />;
     return (
-      <span key={i} className={`dm-it${bad.has(i) ? ' bad' : ''}`} data-i={i}>
+      <span key={i} className="dm-it" data-i={i}>
         {el}
       </span>
     );
@@ -1261,9 +1266,9 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
     <article className="dm-scene dm-card" id={`sc-${sc.id}`}>
       <header>
         <h3 tabIndex={-1}>{sc.title}</h3>
-        <span className={`dm-verdict ${ok ? 'ok' : 'bad'}`}>{ok ? '✓ Follows the contract' : `× Breaks ${finds[0].rule}`}</span>
+        <BellaStatusPill variant={ok ? 'success' : 'danger'}>{ok ? 'Follows the contract' : `Breaks ${finds[0].rule}`}</BellaStatusPill>
       </header>
-      <div className="dm-scenebox dm-sp" data-theme={theme} ref={box}>
+      <div className="dm-scenebox dm-sp" ref={box}>
         {sc.head ? <p className="dm-sh">{sc.head}</p> : null}
         {sc.text ? <p className="dm-sp2">{sc.text}</p> : null}
         {sc.nav ? (
@@ -1292,9 +1297,9 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
         ) : null}
         <div className="dm-fx k-chrome">
           <span className="dm-src">from {path}</span>
-          <button type="button" className="k-link" aria-expanded={why} onClick={() => setWhy(!why)}>
+          <Button variant="tertiary" ariaLabel={why ? 'Hide why' : 'Why'} onClick={() => setWhy(!why)}>
             Why
-          </button>
+          </Button>
           <span className="dm-grow" />
           {sc.fix && !fixed ? (
             <Button
@@ -1309,9 +1314,9 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
             </Button>
           ) : null}
           {fixed && sc.goto && byId(sc.goto) ? (
-            <button type="button" className="k-link" onClick={() => onGoto(sc.goto)}>
+            <Button variant="tertiary" onClick={() => onGoto(sc.goto)}>
               {byId(sc.goto).name} docs
-            </button>
+            </Button>
           ) : null}
           {touched ? (
             <Button
@@ -1325,9 +1330,9 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
               Reset
             </Button>
           ) : null}
-          <button type="button" className="k-link" onClick={openPlay}>
+          <Button variant="tertiary" onClick={openPlay}>
             Open in Playground
-          </button>
+          </Button>
         </div>
         {why ? <blockquote className="dm-wq">“{lineOf(c, sc.from)}”</blockquote> : null}
       </footer>
@@ -1457,7 +1462,7 @@ const firstSentence = (s) => {
   return t.match(/^.*?[.!?](\s|$)/)?.[0].trim() ?? t;
 };
 
-export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens = 'visual', onOpen, role = 'admin', vis = { components: {} }, pinned, onPin }) {
+export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin', vis = { components: {} }, pinned, onPin }) {
   const reduced = useReducedMotion();
   const cfg = useMemo(() => (c ? cfgOf(c) : null), [c?.id]);
   const parts = useMemo(() => (c ? partsOf(c) : []), [c?.id]);
@@ -1468,7 +1473,7 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
   const [o, setO] = useState({});
   const [mode, setMode] = useState('inspect');
   const [z, setZ] = useState(2);
-  const [theme, setTheme] = useState('light');
+  const theme = 'chip'; // one theme per page: everything renders in CHIP's own (Elleta, 7 Nov)
   const [all, setAll] = useState(false);
   const [allChecks, setAllChecks] = useState(false); // passing and not-run checks fold into one "N pass" pill
   const [sel, setSel] = useState(null);
@@ -1628,10 +1633,10 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
     return (
       <div className="atlas k-chrome">
         <div>
-          <p className="k-meta dm-crumb">{crumb}</p>
-          <h1 className="k-h1">{c.name}</h1>
+          <p className="cd-crumb">{crumb}</p>
+          <Heading tier="page">{c.name}</Heading>
         </div>
-        <p className="k-note">This page is visible to {settings.visibleTo} only. View as an Editor or Admin to see it.</p>
+        <p className="cd-none">This page is visible to {settings.visibleTo} only. View as an Editor or Admin to see it.</p>
       </div>
     );
 
@@ -1938,9 +1943,9 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
               <p className="cap">No rule names this part. That may be a gap in the contract.</p>
             )}
             {rules.some((i) => scenes.some((s) => s.rule === i)) ? (
-              <button type="button" className="k-link" onClick={() => toScene(scenes.find((s) => rules.includes(s.rule)).id)}>
+              <Button variant="tertiary" onClick={() => toScene(scenes.find((s) => rules.includes(s.rule)).id)}>
                 Show the scene that tests it
-              </button>
+              </Button>
             ) : null}
           </>
         )}
@@ -1983,7 +1988,6 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
       .catch(() => setToast('The CHIP server did not answer'));
   }
 
-  const sp = { 'data-theme': theme };
   const detail = stage ? Detail() : null;
 
   /* ---------- the page: the BellaComponents Page card (Figma 113:173), live ---------- */
@@ -1992,7 +1996,7 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
   const rowsOf = axes[0] ? axisVals(axes[0]) : [null];
   const SECS = [
     ['inuse', 'In use', scenes.length, scenes.length ? `${c.name} live in real compositions: hover, press and tab to it.` : null],
-    ['specimens', 'Specimens', rowsOf.length * states.length, `Every ${axes[0] ? axes[0].label?.toLowerCase?.() ?? 'tier' : 'tier'} by every state, rendered, light and dark side by side.`],
+    ['specimens', 'Specimens', rowsOf.length * states.length, `Every ${axes[0] ? axes[0].label?.toLowerCase?.() ?? 'tier' : 'tier'} by every state, rendered in CHIP's theme.`],
     ['copy', 'Copy me', 1, null],
     ['usage', 'Usage', (c.usage ?? []).length + (c.dont ?? []).length, 'Quoted from the contract.'],
     ['anatomy', 'Anatomy', parts.length, null],
@@ -2019,9 +2023,8 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
       </section>
     );
   };
-  const Matrix = ({ theme }) => (
-    <figure className="cd-spec" data-theme={theme}>
-      <figcaption>{theme === 'dark' ? 'Dark' : 'Light'}</figcaption>
+  const Matrix = () => (
+    <figure className="cd-spec">
       <table>
         <thead>
           <tr>
@@ -2039,7 +2042,7 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
               <th scope="row">{r ? cap1(r) : c.name}</th>
               {states.map((x) => (
                 <td key={x}>
-                  <Forced key={`${theme}-${r}-${x}`} state={x}>
+                  <Forced key={`${r}-${x}`} state={x}>
                     {cfg.render({ ...o, ...(axes[0] ? { [axes[0].key]: r } : {}), st: x, label: o.label || cfg.label(c) })}
                   </Forced>
                 </td>
@@ -2057,65 +2060,43 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
       <header className="cd-head k-chrome">
         <p className="cd-crumb">Components / {c.category ?? NO_CONTRACT} / {c.name}</p>
         <div className="cd-title">
-          <h1 className="k-h1" id="dm-h1" tabIndex={-1}>
+          <Heading tier="page" id="dm-h1">
             {c.name}
-          </h1>
+          </Heading>
           <BellaStatusPill variant={gapsN ? 'attention' : 'success'}>{gapsN ? `${gapsN} gap${gapsN === 1 ? '' : 's'}` : 'Complete'}</BellaStatusPill>
         </div>
         <p className="cd-lead">{firstSentence(c.description) || 'No description in the contract yet.'}</p>
         <p className="cd-meta">
           <code className="cd-react">{`<${c.name}>`}</code>
           {c.storyUrl ? (
-            <a className="k-link" href={c.storyUrl} target="_blank" rel="noopener noreferrer">
+            <Button variant="tertiary" href={c.storyUrl}>
               Storybook ↗
-            </a>
+            </Button>
           ) : (
             <span className="cd-none">Storybook: Not measured</span>
           )}
-          <a className="k-link cd-mono" href={`https://github.com/emcdanie/bella/tree/main/${srcDir}`} target="_blank" rel="noopener noreferrer">
+          <Button variant="tertiary" href={`https://github.com/emcdanie/bella/tree/main/${srcDir}`}>
             {srcDir} ↗
-          </a>
+          </Button>
         </p>
-        {/* page tools: icon buttons top right, then one More of page settings as checked items with their shortcuts (tool chrome, 7 Nov) */}
+        {/* page tools: the pin, top right (the More menu repeated the pin, the sidebar's own toggle and the Find hint: cut 7 Nov) */}
         <div className="cd-tools">
           {onPin ? (
             <Tooltip label={pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'}>
-              <button type="button" className="tool-btn fold" aria-label={pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'} aria-pressed={!!pinned} onClick={onPin}>
+              <button type="button" className="tool-btn" aria-label={pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'} aria-pressed={!!pinned} onClick={onPin}>
                 <Icon name="Pin" size="sm" />
               </button>
             </Tooltip>
           ) : null}
-          <Overflow label="More page settings" className="cd-more">
-            <div role="menu" aria-label="Page settings" className="menu">
-              {onPin ? (
-                <button type="button" role="menuitemcheckbox" aria-checked={!!pinned} onClick={onPin}>
-                  <span aria-hidden="true">{pinned ? '✓' : ''}</span>Pinned to the sidebar
-                </button>
-              ) : null}
-              {onSideCollapsed ? (
-                <button type="button" role="menuitemcheckbox" aria-checked={!!sideCollapsed} onClick={onSideCollapsed}>
-                  <span aria-hidden="true">{sideCollapsed ? '✓' : ''}</span>Sidebar hidden
-                </button>
-              ) : null}
-              <p className="menu-keys">
-                <span>Find</span>
-                <kbd>⌘K</kbd>
-                <span>Work drawer</span>
-                <kbd>⌘J</kbd>
-                <span>Sections</span>
-                <kbd>⌥1–4</kbd>
-              </p>
-            </div>
-          </Overflow>
         </div>
       </header>
 
       <div className="cd-filter k-chrome" role="group" aria-label="Show sections">
-        <FilterChip pressed={!show.length} onClick={() => toggleShow('all')}>
+        <FilterChip size="compact" pressed={!show.length} onClick={() => toggleShow('all')}>
           All
         </FilterChip>
         {SECS.map(([id, label]) => (
-          <FilterChip key={id} pressed={show.includes(id)} onClick={() => toggleShow(id)}>
+          <FilterChip key={id} size="compact" pressed={show.includes(id)} onClick={() => toggleShow(id)}>
             {label}
           </FilterChip>
         ))}
@@ -2133,10 +2114,7 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
 
       <Sec id="specimens">
         {stage ? (
-          <div className="cd-specs">
-            <Matrix theme="light" />
-            <Matrix theme="dark" />
-          </div>
+          <Matrix />
         ) : (
           <p className="cd-none">Not measured: no specimen for {c.name} in app/src/specimens.jsx.</p>
         )}
@@ -2179,9 +2157,9 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
       <section className={`dm-work dm-card${stage ? '' : ' dm-nospec'}${detail ? '' : ' dm-nodetail'}`} aria-label="Specimen">
         <div className="dm-stage">
           <div className="dm-sbar k-chrome">
-            {/* stage modes are stripped (concept, afternoon 7 Nov): the live specimen is Inspect; Specimens shows light and dark */}
+            {/* stage modes are stripped (concept, afternoon 7 Nov): the live specimen is Inspect; Specimens shows every state */}
           </div>
-          <div className="dm-canvas dm-sp" {...sp} ref={canvas} data-mode={mode}>
+          <div className="dm-canvas dm-sp" ref={canvas} data-mode={mode}>
             <div className="dm-specwrap" ref={wrap} style={{ '--z': z }} inert={mode === 'inspect' || all} aria-hidden={mode === 'inspect' || all ? true : undefined} {...useEvents} key={mode === 'inspect' && cfg.generic ? `${o.st}-${o.variant}` : 'live'}>
               {stage ?? (
                 <p className="dm-none k-chrome">
@@ -2287,7 +2265,6 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
                 className={`dm-frame dm-sp${mode === 'use' && st === s ? ' live' : ''}`}
                 onClick={() => (setState(s), setMode('inspect'))}
                 onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && (e.preventDefault(), setState(s), setMode('inspect'))}
-                {...sp}
               >
                 <span className="dm-thumb">
                   <Forced key={`${s}-${o.variant}-${o.shape}-${o.size}-${o.label}`} state={s}>
@@ -2404,9 +2381,9 @@ export default function Atlas({ sideCollapsed, onSideCollapsed, c, bella, lens =
         <ul className="dm-checks" aria-label="Measured on this render">
           {checks.filter((k) => ckClass(k) === 'fail' || ckClass(k) === 'needs').map((k) => (
             <li key={k.id}>
-              <StatusPill tone={CK_TONE[ckClass(k)]}>
+              <BellaStatusPill variant={TONE[CK_TONE[ckClass(k)]]}>
                 {k.label} · {k.val}
-              </StatusPill>
+              </BellaStatusPill>
               <span className="dm-ckwhy">
                 {k.rule}
                 {k.src ? (
