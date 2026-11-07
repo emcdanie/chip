@@ -4,11 +4,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { resolve, join } from 'node:path';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-// BELLA_DIR points a worktree (or any other checkout) at BELLA
-const BELLA = process.env.BELLA_DIR ? resolve(process.env.BELLA_DIR) : resolve(here, '../../bella');
+// BELLA_DIR points at another checkout. The default is the worktree on chip/theme, which holds
+// the chip theme and the fixed commit CHIP is built against, not the shared ~/DEV/bella tree.
+const BELLA = process.env.BELLA_DIR ? resolve(process.env.BELLA_DIR) : join(homedir(), 'DEV', 'bella-chip-theme');
 const SERVER = 'http://127.0.0.1:3100';
 
 export default defineConfig({

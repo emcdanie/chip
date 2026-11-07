@@ -25,9 +25,9 @@
   --edge: var(--color-chip-ui-edge); /* the shadow at a scroll region's edge when more is past it */
 
   /* type: 16 / 16 / 20 / 28 / 40, weights 400 and 600. --fs-14 keeps its name for the page CSS; BELLA's floor is 16px */
-  --display: 'Newsreader', Georgia, serif; /* H1 only */
-  --sans: 'DM Sans', system-ui, sans-serif;
-  --code: 'Geist Mono', ui-monospace, monospace;
+  --display: var(--typography-font-family-display); /* H1 only */
+  --sans: var(--typography-font-family-body);
+  --code: var(--typography-font-family-mono);
   --fs-14: var(--typography-font-size-tag);
   --fs-16: 16px;
   --fs-20: 20px;
