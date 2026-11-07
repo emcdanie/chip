@@ -136,19 +136,9 @@ export function GapRow({ gap, title, headline, why, who, first, primary, fixes, 
   };
   return (
     <ListRow
-      title={
-        <>
-          <BellaStatusPill className="td-tag" variant={first ? 'info' : 'neutral'}>
-            {first ? 'Do next' : 'Gap'}
-          </BellaStatusPill>
-          {headline}
-        </>
-      }
-      description={
-        <>
-          {why} Rule: <code className="td-rule">{pathBreaks(Object.values(fixes ?? {})[0]?.why?.source ?? 'Not measured')}</code>
-        </>
-      }
+      status={<BellaStatusPill variant={first ? 'info' : 'neutral'}>{first ? 'Do next' : 'Gap'}</BellaStatusPill>}
+      title={headline}
+      description={why}
       action={
         <>
           {primary ? (
@@ -178,7 +168,7 @@ export function GapRow({ gap, title, headline, why, who, first, primary, fixes, 
       >
         <p>
           <b>{why}</b>
-          {can ? ` ${can}.` : ''}
+          {can ? ` ${can}.` : ''} Rule: <code className="td-rule">{pathBreaks(Object.values(fixes ?? {})[0]?.why?.source ?? 'Not measured')}</code>
         </p>
         <div className="dn-pick" role="group" aria-label={`Components to fix: ${title}`}>
           {who.map((n) => (

@@ -4,6 +4,7 @@
 // then the current Do next gap, then the rest in the order they already had.
 import React, { useEffect, useMemo, useState } from 'react';
 import Button from '@bella/components/Button/Button';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Heading from '@bella/components/Heading/Heading';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
@@ -14,8 +15,6 @@ import { COLS, GAP_ORDER } from './Health.jsx';
 import { openRun, runLine, useRunsRead } from './Runs.jsx';
 import { runNeed } from './WorkPanel.jsx';
 import { LinkButton } from './kit/index.jsx';
-import Icon from '@bella/components/Icon/Icon';
-import Tooltip from '@bella/components/Tooltip/Tooltip';
 import './Today.css';
 
 const TONE = { Failed: 'danger', 'Waiting on you': 'attention', 'Ready to review': 'success' };
@@ -26,14 +25,9 @@ const headline = (gap, n) => `${n} component${n === 1 ? ' has' : 's have'} no ${
 const verb = (a) => (a.type === 'terminal' ? (/git pull/.test(a.command) ? 'Pull' : /git push/.test(a.command) ? 'Push' : 'Run') : a.type === 'lane' ? 'Open' : 'Review');
 // the tag says the status, so the why opens with the risk, as the board does: "Medium risk. …"
 const plain = (s) => s.replace(/^(High|Medium|Low): /, '').replace(/^\w/, (c) => c.toUpperCase());
-const Title = ({ tone, word, children }) => (
-  <>
-    <StatusPill className="td-tag" variant={tone}>
-      {word}
-    </StatusPill>
-    {children}
-  </>
-);
+// the status sits in ListRow's own column, so every title starts at the same place (board, 7 Nov)
+const Status = ({ tone, word }) => <StatusPill variant={tone}>{word === 'Waiting on you' ? 'Waiting' : word}</StatusPill>;
+const FIRST = 5; // rows shown before "Show more" (rule 13: 8 or fewer content controls)
 const WORKING = ['starting', 'running', 'gate'];
 const STUCK = ['failed', 'login'];
 // a change's size, as the app shows it: +12 −1
@@ -49,11 +43,8 @@ const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', m
 function RunRow({ run, status, tone, label, primary, onOpen }) {
   return (
     <ListRow
-      title={
-        <Title tone={tone} word={status}>
-          {run.title.split(': ')[0]}
-        </Title>
-      }
+      status={<Status tone={tone} word={status} />}
+      title={run.title.split(': ')[0]}
       description={`${sizeOf(run.diff)}${runLine(run).replace(/\.$/, '')}. From ${run.from}.`}
       action={
         primary ? (
@@ -75,6 +66,8 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
   const fixes = useGapFixes(bella);
   const { runs, read: runsRead } = useRunsRead(true);
   const [tab, setTab] = useState('needs');
+  const [allRows, setAllRows] = useState(false);
+  const [healthAsked] = useState(() => /^#\/(coverage|connectors)|[?&]at=(hl-foot|cn-h)/.test(window.location.hash));
   const [report, setReport] = useState(null);
   const [baseline, setBaseline] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -119,11 +112,8 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
   const needRow = (n, primary) => (
     <ListRow
       key={n.id}
-      title={
-        <Title tone={TONE[n.status] ?? 'neutral'} word={n.status}>
-          {(n.title ?? n.what).replace('? ', ': ')}
-        </Title>
-      }
+      status={<Status tone={TONE[n.status] ?? 'neutral'} word={n.status} />}
+      title={(n.title ?? n.what).replace('? ', ': ')}
       description={
         n.group
           ? `${n.risk} risk. ${[...new Set(n.group.map((g) => (g.title.split(': ').slice(1).join(': ') || g.title).replace(/^.*couldn’t run: /, 'CHIP couldn’t run them: ')))].join(' · ')}`
@@ -176,21 +166,17 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
     <div className="td-page">
       <div className="td-surface">
       <header className="td-head">
-        <div className="td-title">
-          <Heading tier="page">Today</Heading>
-          <p className="td-line td-mono">
+        <Heading tier="page">Today</Heading>
+        <p className="td-line">
+          <span className="td-mono">
             {bella ? `BELLA ${bella.source.version}` : 'Reading BELLA…'}
             {lastRan ? ` · checked ${when(lastRan)}` : ' · never checked'}
-          </p>
-          {notMeasured.length ? <p className="td-line td-quiet">Not measured: {notMeasured.join(', ')}</p> : null}
-        </div>
-        <div className="td-tools">
-          <Tooltip label={refreshing ? 'Checking…' : 'Read everything again'}>
-            <Button variant="secondary" ariaLabel={refreshing ? 'Checking…' : 'Read everything again'} disabled={refreshing} onClick={refresh}>
-              <Icon name="RefreshDouble" size="sm" />
-            </Button>
-          </Tooltip>
-        </div>
+            {notMeasured.length ? ` · Not measured: ${notMeasured.join(', ')}` : ''}
+          </span>{' '}
+          <LinkButton className="td-again" disabled={refreshing} onClick={refresh}>
+            {refreshing ? 'Checking…' : 'Check again'}
+          </LinkButton>
+        </p>
       </header>
       <p className="td-sync" role="status" aria-live="polite">
         {checked?.error ? `Refresh failed: ${checked.error}.` : checked ? `Read again at ${hhmm(checked.at)}.` : ''}
@@ -212,52 +198,55 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
         {!loaded ? (
           <p className="td-line">Reading what needs you…</p>
         ) : needsCount ? (
-          <ListRowGroup ariaLabel="Needs you">
-            {waiting.map((n, k) => needRow(n, k === 0))}
-            {gaps.map((a, k) => {
-              const gap = COLS[a.i].short.toLowerCase();
-              return (
-                <GapRow
-                  key={gap}
-                  gap={gap}
-                  title={COLS[a.i].fix}
-                  headline={headline(gap, a.who.length)}
-                  why={COLS[a.i].why}
-                  who={a.who}
-                  first={k === 0}
-                  primary={k === 0 && !waiting.length}
-                  fixes={fixes.data?.gaps?.[gap]}
-                  fixesError={fixes.error}
-                  decisions={fixes.data?.decisions}
-                  onReview={setReport}
-                  onSession={onSession}
-                />
-              );
-            })}
-            {docFix ? (
-              <ListRow
-                title={
-                  <Title tone="neutral" word="Docs">
-                    {docFix.title}
-                  </Title>
-                }
-                description={
-                  <>
-                    {docFix.why}
-                    {docq.topFixes.length > 1 ? ` Then: ${docq.topFixes.slice(1).map((f) => f.title.toLowerCase()).join('; ')}.` : ''} Rule: <code className="td-rule">{docFix.rule}</code>
-                  </>
-                }
-                action={
-                  <LinkButton aria-label={`Open ${docFix.components[0]}: ${docFix.title}`} onClick={() => (window.location.hash = `#/atlas/${docFix.ids[0]}`)}>
-                    Open {docFix.components[0]} →
-                  </LinkButton>
-                }
-              />
+          <>
+            <ListRowGroup ariaLabel="Needs you">
+              {[
+                ...waiting.map((n, k) => needRow(n, k === 0)),
+                ...gaps.map((a, k) => {
+                  const gap = COLS[a.i].short.toLowerCase();
+                  return (
+                    <GapRow
+                      key={gap}
+                      gap={gap}
+                      title={COLS[a.i].fix}
+                      headline={headline(gap, a.who.length)}
+                      why={COLS[a.i].why}
+                      who={a.who}
+                      first={k === 0}
+                      primary={k === 0 && !waiting.length}
+                      fixes={fixes.data?.gaps?.[gap]}
+                      fixesError={fixes.error}
+                      decisions={fixes.data?.decisions}
+                      onReview={setReport}
+                      onSession={onSession}
+                    />
+                  );
+                }),
+                docFix ? (
+                  <ListRow
+                    key="docs"
+                    status={<Status tone="neutral" word="Docs" />}
+                    title={docFix.title}
+                    description={docFix.why.replace(/ \([^)]*\/[^)]*\)/, '')}
+                    action={
+                      <LinkButton aria-label={`Open ${docFix.components[0]}: ${docFix.title}`} onClick={() => (window.location.hash = `#/atlas/${docFix.ids[0]}`)}>
+                        Open {docFix.components[0]} →
+                      </LinkButton>
+                    }
+                  />
+                ) : null,
+                ...stuck.map((r) => <RunRow key={r.id} run={r} status="Run failed" tone="danger" label="See the run" onOpen={() => openRun(r.id)} />),
+              ]
+                .filter(Boolean)
+                .slice(0, allRows ? undefined : FIRST)}
+            </ListRowGroup>
+            {/* rule 13: the first five, in priority order, then the rest on request */}
+            {!allRows && needsCount > FIRST ? (
+              <LinkButton className="td-more" onClick={() => setAllRows(true)}>
+                Show {needsCount - FIRST} more
+              </LinkButton>
             ) : null}
-            {stuck.map((r) => (
-              <RunRow key={r.id} run={r} status="Run failed" tone="danger" label="See the run" onOpen={() => openRun(r.id)} />
-            ))}
-          </ListRowGroup>
+          </>
         ) : (
           <div className="td-empty">
             <Heading tier="subsection" as="h2">
@@ -298,7 +287,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
               <RunRow key={r.id} run={r} status="Running" tone="neutral" label="See the run" onOpen={() => openRun(r.id)} />
             ))}
             {busy.map((c) => (
-              <ListRow key={c.id} title={<Title tone="neutral" word="Running">{c.name}</Title>} description={c.plain ?? c.summary} />
+              <ListRow key={c.id} status={<Status tone="neutral" word="Running" />} title={c.name} description={c.plain ?? c.summary} />
             ))}
           </ListRowGroup>
         ) : runsRead !== true ? (
@@ -314,7 +303,12 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
       </div>
 
       </div>
-      {foot ? <div className="td-foot">{foot}</div> : null}
+      {/* Health stays one click away, closed, as the board's note 04 says; #/coverage and #/connectors open it */}
+      {foot ? (
+        <Disclosure className="td-foot" title="Health" summary="Coverage, gate, drift, connectors" defaultOpen={healthAsked}>
+          {foot}
+        </Disclosure>
+      ) : null}
       <GapReport items={report} onClose={() => setReport(null)} onSession={(b, t) => (setReport(null), onSession(b, t))} />
     </div>
   );

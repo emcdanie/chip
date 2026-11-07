@@ -90,6 +90,13 @@ const PIN = (
   </svg>
 );
 
+// a section can sit in a closed Disclosure (Health at Today's foot): open it, then scroll
+const reveal = (id) => {
+  const el = document.getElementById(id);
+  el?.closest('details')?.setAttribute('open', '');
+  el?.scrollIntoView({ block: 'start' });
+};
+
 export default function App() {
   const [theme] = useTheme();
   // simulated until CHIP is hosted: the role Components reads (View as left the top bar for Lead with)
@@ -215,7 +222,7 @@ export default function App() {
       else if (r.ws === 'foundations') setFdTab(r.id ?? null);
       else if (r.ws === 'play') setPlayTarget(r.id ? { project: r.id, route: r.route } : null);
       else if (r.id) setAtlasId(r.id);
-      if (r.at) setTimeout(() => document.getElementById(r.at)?.scrollIntoView({ block: 'start' }), 400);
+      if (r.at) setTimeout(() => reveal(r.at), 400);
     };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
@@ -306,7 +313,7 @@ export default function App() {
 
   function go(id) {
     const foot = { coverage: 'hl-foot', connectors: 'cn-h' }[id];
-    if (foot) return (setWs('health'), setNavOn(false), setTimeout(() => document.getElementById(foot)?.scrollIntoView({ block: 'start' }), 400));
+    if (foot) return (setWs('health'), setNavOn(false), setTimeout(() => reveal(foot), 400));
     setWs(id);
     setNavOn(false);
   }
@@ -401,7 +408,7 @@ export default function App() {
     let t = 0;
     const read = () => {
       t = 0;
-      const hs = [...main.querySelectorAll('h2')].filter((h) => h.offsetParent && h.textContent.trim() && !h.closest('dialog, [role=dialog], .k-sheet'));
+      const hs = [...main.querySelectorAll('h2')].filter((h) => h.offsetParent && h.textContent.trim() && !h.closest('dialog, [role=dialog], .k-sheet, details:not([open])'));
       for (const h of hs) if (!h.id) h.id = `s-${h.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)}`;
       const next = hs.map((h) => ({ id: h.id, label: h.textContent.trim().slice(0, 60) }));
       setOutline((o) => (o.map((x) => x.id + x.label).join() === next.map((x) => x.id + x.label).join() ? o : next));
@@ -410,7 +417,7 @@ export default function App() {
     const mo = new MutationObserver(() => {
       if (!t) t = setTimeout(read, 200);
     });
-    mo.observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    mo.observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'open'] });
     return () => (mo.disconnect(), clearTimeout(t));
   }, [ws]);
   // a section's own URL: #/<page>?at=<section>, read once on load

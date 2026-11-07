@@ -1,25 +1,26 @@
-/* Today, after the drawing board (7 Nov): a 2px card on the grid canvas, then
- * title, one line, tabs with counts and rows whose tag sits with the title.
+/* Today, after the drawing board (7 Nov): one 2px surface on the grid canvas, then
+ * title, one line, tabs with counts and rows with a status column.
  * Layout glue only, on BELLA's tokens; everything else is the components' own. */
-.td-page { min-width: 0; padding: var(--spacing-6); background-color: var(--color-semantic-background); background-image: var(--color-semantic-canvas-grid); background-size: var(--spacing-6) var(--spacing-6); border-radius: var(--component-card-default-border-radius); }
-.td-surface { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-4); min-width: 0; padding: var(--spacing-6); background: var(--color-semantic-surface-card); border: var(--border-width-thin) solid var(--color-semantic-border); border-radius: var(--component-card-default-border-radius); }
-.td-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--spacing-3) var(--spacing-6); }
-.td-title { display: grid; gap: var(--spacing-1); flex: 1 1 calc(var(--spacing-20) * 4); min-width: 0; }
-.td-title > :first-child { margin-bottom: var(--spacing-1); }
+/* the grid canvas is the page itself, as on the board; Today is one surface on it, no frame around a frame */
+main:has(.td-page) { background-color: var(--color-semantic-background); background-image: var(--color-semantic-canvas-grid); background-size: var(--spacing-20) var(--spacing-20); }
+.td-page { min-width: 0; width: 100%; max-width: calc(var(--spacing-20) * 11); margin-inline: auto; }
+.td-surface { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-4); min-width: 0; padding: var(--spacing-6); background: var(--color-semantic-surface-card); border-radius: var(--component-card-default-border-radius); box-shadow: var(--shadow-card-ink); }
+.td-head { display: grid; gap: var(--spacing-3); min-width: 0; }
 .td-line { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-secondary); overflow-wrap: anywhere; }
 .td-mono, .td-rule { font-family: var(--typography-font-family-mono); }
 .td-rule { overflow-wrap: break-word; }
-.td-quiet { color: var(--color-semantic-text-secondary); }
-.td-tag { margin-right: var(--spacing-2); vertical-align: 1px; }
+.td-more { justify-self: start; font-size: var(--typography-font-size-body); }
+.td-again { font-size: var(--typography-font-size-body); color: var(--color-semantic-text-secondary); }
 .td-sync { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-secondary); }
 .td-sync:empty { display: none; }
 .td-panel:focus-visible { outline: var(--ring-focus-width) solid var(--ring-focus-color); outline-offset: var(--ring-focus-offset); }
 .td-empty { display: grid; justify-items: start; gap: var(--spacing-3); padding-block: var(--spacing-8); }
 .td-empty p { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-body); }
 @media (max-width: 480px) {
-  .td-page { padding: var(--spacing-2); }
   .td-surface { padding: var(--spacing-4); }
 }
-/* Health sits at Today's foot (concept, afternoon 7 Nov) */
-.td-foot { margin-top: var(--spacing-8); min-width: 0; }
-.td-foot .hl-h2 { margin: 0; font: 500 var(--typography-font-size-display-section)/1.15 var(--typography-font-family-display); color: var(--color-semantic-text-primary); }
+/* Health, closed at Today's foot: the summary row is the title, so Health's own h2 stays for its anchor only */
+.td-foot { margin-top: var(--spacing-6); padding-inline: var(--spacing-6); background: var(--color-semantic-surface-card); border-radius: var(--component-card-default-border-radius); box-shadow: var(--shadow-card-ink); min-width: 0; }
+.td-foot > :last-child { padding-bottom: var(--spacing-6); }
+.td-foot:not([open]) > :last-child { padding-bottom: 0; }
+.td-foot .hl-h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
