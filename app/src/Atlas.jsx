@@ -2366,6 +2366,10 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           <li>Rule results: {checks.filter((k) => ckClass(k) === 'pass').length} pass · {checks.filter((k) => ckClass(k) === 'fail').length} fail · {checks.filter((k) => ckClass(k) === 'grey').length} not run · tests {tSum}</li>
         </ul>
         <div className="dm-behind dm-card k-chrome">
+          <Row name="Description" sum="the contract’s full text" hint="description, rest note">
+            {(c.description ?? '').trim() ? <p>{(c.description ?? '').replace(/\s+/g, ' ').trim()}</p> : <p className="cap">Not in the contract yet.</p>}
+            {c.restNote ? <p>{c.restNote}</p> : null}
+          </Row>
           <Row name="Rule results" sum={`${checks.length} checks on this render`} hint="what each one measured">
         <ul className="dm-checks" aria-label="Measured on this render">
           {checks.filter((k) => ckClass(k) === 'fail' || ckClass(k) === 'needs').map((k) => (

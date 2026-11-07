@@ -72,7 +72,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
   // the doc quality check (npm run check:docs): its top fix is one row, its others in the why
   const [docq, setDocq] = useState(null);
   useEffect(() => {
-    fetch('/data/doc-quality.json').then((r) => (r.ok ? r.json() : null)).then(setDocq).catch(() => {});
+    fetch('/data/doc-quality.json').then((r) => (r.ok ? r.json() : { error: true })).then(setDocq).catch(() => setDocq({ error: true }));
   }, []);
   useEffect(() => {
     fetch('/figma-baseline').then((r) => r.json()).then(setBaseline).catch(() => {});
@@ -147,6 +147,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
     ...(fixes.error ? ['who can fix each gap'] : []),
     ...(checks.error ? ['the checks'] : []),
     ...(runsRead === false ? ['CHIP’s runs'] : []),
+    ...(docq?.error ? ['the docs check (npm run check:docs)'] : []),
   ];
   const refresh = async () => {
     if (refreshing) return;
