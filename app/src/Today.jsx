@@ -13,6 +13,7 @@ import { GapReport, GapRow, useGapFixes } from './DoNext.jsx';
 import { COLS, GAP_ORDER } from './Health.jsx';
 import { openRun, runLine, useRunsRead } from './Runs.jsx';
 import { runNeed } from './WorkPanel.jsx';
+import { LinkButton, Overflow } from './kit/index.jsx';
 import './Today.css';
 
 const TONE = { Failed: 'danger', 'Waiting on you': 'attention', 'Ready to review': 'success' };
@@ -45,9 +46,15 @@ function RunRow({ run, status, tone, label, primary, onOpen }) {
       }
       description={`${runLine(run).replace(/\.$/, '')}. From ${run.from}.`}
       action={
-        <Button variant={primary ? 'primary' : 'secondary'} ariaLabel={`${label}: ${run.title.split(': ')[0]}`} onClick={onOpen}>
-          {label}
-        </Button>
+        primary ? (
+          <Button variant="primary" ariaLabel={`${label}: ${run.title.split(': ')[0]}`} onClick={onOpen}>
+            {label}
+          </Button>
+        ) : (
+          <LinkButton aria-label={`${label}: ${run.title.split(': ')[0]}`} onClick={onOpen}>
+            {label} →
+          </LinkButton>
+        )
       }
     />
   );
@@ -78,7 +85,14 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
   );
 
   const items = needs?.items ?? [];
-  const waiting = items.filter((n) => n.status !== 'Ready to review');
+  // the gate's checks failing together are one row with a count, not one row each (rule 12)
+  const gateFails = items.filter((n) => n.kind === 'Gate' && n.status === 'Failed');
+  const waiting = [
+    ...(gateFails.length > 1
+      ? [{ ...gateFails[0], group: gateFails, title: `${gateFails.length} gate checks failed since ${hhmm(Math.min(...gateFails.map((n) => n.at || Date.now())))}` }]
+      : gateFails),
+    ...items.filter((n) => n.status !== 'Ready to review' && !(n.kind === 'Gate' && n.status === 'Failed')),
+  ];
   const ready = items.filter((n) => n.status === 'Ready to review');
   // a run's result isn't in /needs. Older than /needs' own window, it stays in Sessions
   const fresh = (r) => Date.now() - Date.parse(r.startedAt) < (needs?.freshDays ?? 7) * 86400000;
@@ -95,11 +109,21 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
           {(n.title ?? n.what).replace('? ', ': ')}
         </Title>
       }
-      description={`${n.risk} risk. ${plain(n.riskWhy)}`}
+      description={
+        n.group
+          ? `${n.risk} risk. ${[...new Set(n.group.map((g) => (g.title.split(': ').slice(1).join(': ') || g.title).replace(/^.*couldn’t run: /, 'CHIP couldn’t run them: ')))].join(' · ')}`
+          : `${n.risk} risk. ${plain(n.riskWhy)}`
+      }
       action={
-        <Button variant={primary ? 'primary' : 'secondary'} ariaLabel={`${n.action.label}: ${n.title ?? n.what}`} onClick={() => runNeed(n.action, onLane)}>
-          {verb(n.action)}
-        </Button>
+        primary ? (
+          <Button variant="primary" ariaLabel={`${n.action.label}: ${n.title ?? n.what}`} onClick={() => runNeed(n.action, onLane)}>
+            {verb(n.action)}
+          </Button>
+        ) : (
+          <LinkButton aria-label={`${n.action.label}: ${n.title ?? n.what}`} onClick={() => runNeed(n.action, onLane)}>
+            {verb(n.action)} →
+          </LinkButton>
+        )
       }
     />
   );
@@ -143,9 +167,11 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
           </p>
           {notMeasured.length ? <p className="td-line td-quiet">Not measured: {notMeasured.join(', ')}</p> : null}
         </div>
-        <Button variant="secondary" disabled={refreshing} onClick={refresh}>
-          {refreshing ? 'Checking…' : 'Refresh'}
-        </Button>
+        <Overflow label="More" text="More">
+          <LinkButton disabled={refreshing} onClick={refresh}>
+            {refreshing ? 'Checking…' : 'Read everything again'}
+          </LinkButton>
+        </Overflow>
       </header>
       <p className="td-sync" role="status" aria-live="polite">
         {checked?.error ? `Refresh failed: ${checked.error}.` : checked ? `Read again at ${hhmm(checked.at)}.` : ''}

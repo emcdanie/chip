@@ -12,7 +12,7 @@ import Button from '@bella/components/Button/Button';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow from '@bella/components/ListRow/ListRow';
 import BellaStatusPill from '@bella/components/StatusPill/StatusPill';
-import { Sheet, StatusPill } from './kit/index.jsx';
+import { LinkButton, Sheet, StatusPill } from './kit/index.jsx';
 import { changed } from './ReviewSheet.jsx';
 import './DoNext.css';
 
@@ -145,9 +145,15 @@ export function GapRow({ gap, title, headline, why, who, first, primary, fixes, 
       }
       action={
         <>
-          <Button variant={primary ? 'primary' : 'secondary'} ariaLabel={`Review ${who.length}: ${headline}`} onClick={start}>
-            Review {who.length}
-          </Button>
+          {primary ? (
+            <Button variant="primary" ariaLabel={`Review ${who.length}: ${headline}`} onClick={start}>
+              Review {who.length}
+            </Button>
+          ) : (
+            <LinkButton aria-label={`Review ${who.length}: ${headline}`} onClick={start}>
+              Review {who.length} →
+            </LinkButton>
+          )}
       <Sheet
         open={picking}
         onClose={() => setPicking(false)}
