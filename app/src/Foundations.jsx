@@ -15,7 +15,7 @@ const SVG = (d) => (
     {d}
   </svg>
 );
-const TABS = [
+export const TABS = [
   { id: 'colours', label: 'Colour', icon: SVG(<><circle cx="12" cy="12" r="9" /><path className="fd-solid" d="M12 3a9 9 0 0 0 0 18z" /></>) },
   { id: 'matrix', label: 'Who uses what', icon: SVG(<><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 3v18" /></>) },
   { id: 'type', label: 'Type', icon: <span className="fd-ticon" aria-hidden="true">Aa</span> },
@@ -77,8 +77,10 @@ const NotMeasured = ({ what }) => (
   </p>
 );
 
-export default function Foundations({ bella, onSession, onOpenAtlas }) {
-  const [tab, setTab] = useState('colours');
+// the topic is the address (#/foundations/<topic>) and the sidebar picks it; under 961px, where the
+// sidebar is behind Menu, the page's own switch shows
+export default function Foundations({ bella, onSession, onOpenAtlas, tab = 'colours', onTab }) {
+  const setTab = onTab;
   const [f, setF] = useState(null);
   const [failed, setFailed] = useState(false);
   const [sheet, setSheet] = useState(null);

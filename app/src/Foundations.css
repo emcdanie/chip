@@ -155,3 +155,6 @@
   .fd-tspec { grid-template-columns: minmax(0, 1fr); gap: var(--s-12); }
   .fd-anno::before, .fd-anno::after { display: none; }
 }
+
+/* the sidebar picks the topic from 961px; the switch stays for the narrow frame */
+@media (min-width: 961px) { .fd-tabs { display: none; } }

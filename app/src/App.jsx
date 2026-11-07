@@ -9,9 +9,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Health, { COLS } from './Health.jsx';
 import Today from './Today.jsx';
+import NavList from '@bella/components/NavList/NavList';
+import PageOutline from '@bella/components/PageOutline/PageOutline';
+import SectionNav from '@bella/components/SectionNav/SectionNav';
 import Atlas from './Atlas.jsx';
 import Connectors from './Connectors.jsx';
-import Foundations from './Foundations.jsx';
+import Foundations, { TABS as FD_TOPICS } from './Foundations.jsx';
 import History from './History.jsx';
 import Playground from './Playground.jsx';
 import Projects from './Projects.jsx';
@@ -24,32 +27,32 @@ import { useRole, useVisibility } from './visibility.jsx';
 import './shell.css';
 
 // route ids stay (#/health, #/atlas/<id>, #/docs, #/connectors), so old links open
+// the top bar's sections, in ZeroHeight's order of work (concept, amended 7 Nov);
+// Connectors keeps its route and Find entry until Health takes it in
 const PAGES = [
   { id: 'health', label: 'Today', icon: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /></> },
-  { id: 'foundations', label: 'Foundations', icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor" /></> },
   { id: 'atlas', label: 'Components', icon: <><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" /></> },
+  { id: 'foundations', label: 'Foundations', icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor" /></> },
   { id: 'play', label: 'Playground', icon: <><rect x="3.5" y="4.5" width="17" height="13" rx="1.5" /><path d="M9 21h6M12 17.5V21" /><path d="M8 13l3-3 2 2 3-3" /></> },
-  { id: 'docs', label: 'History', icon: <><path d="M3 12h18" /><circle cx="7" cy="12" r="2.2" fill="currentColor" /><circle cx="13" cy="12" r="2.2" fill="currentColor" /><circle cx="19" cy="12" r="2.2" /></> },
-  { id: 'connectors', label: 'Connectors', icon: <><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M8 7.5l3 8M16 7.5l-3 8" /></> },
   { id: 'projects', label: 'Projects', icon: <><path d="M3.5 7.5v11a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 19 8h-7l-2-2.5H5A1.5 1.5 0 0 0 3.5 7z" /></> },
+  { id: 'docs', label: 'History', icon: <><path d="M3 12h18" /><circle cx="7" cy="12" r="2.2" fill="currentColor" /><circle cx="13" cy="12" r="2.2" fill="currentColor" /><circle cx="19" cy="12" r="2.2" /></> },
   { id: 'coverage', label: 'Health', icon: <path d="M3 12h4l2.5-6 4 12 2.5-6h5" /> },
+  { id: 'connectors', label: 'Connectors', icon: <><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M8 7.5l3 8M16 7.5l-3 8" /></> },
 ];
+const SECTIONS = PAGES.filter((p) => p.id !== 'connectors');
 const NAME = Object.fromEntries(PAGES.map((p) => [p.id, p.label]));
 const GROUP_ORDER = ['Actions', 'Inputs', 'Layout', 'Data', 'Chat', 'Brand', 'Other'];
-const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digit4: 'play', Digit5: 'docs', Digit6: 'connectors', Digit7: 'projects', Digit8: 'coverage' };
+const WS_KEYS = { Digit1: 'health', Digit2: 'atlas', Digit3: 'foundations', Digit4: 'play', Digit5: 'projects', Digit6: 'docs', Digit7: 'coverage', Digit8: 'connectors' };
 // v2: Claude answers by default (Elleta, 3 Nov: the local model isn't good
 // enough on stage); the local model stays one pick away
 const MODEL_KEY = 'chip-model-v2';
 
 // #/play/<project>?route=<page> opens a project's page in the Playground
 function routeOf(hash) {
-  const m = hash.match(/^#\/(health|foundations|atlas|play|docs|connectors|projects|coverage)(?:\/([\w-]+))?(?:\?route=([^&]*))?$/);
+  const m = hash.match(/^#\/(health|foundations|atlas|play|docs|connectors|projects|coverage)(?:\/([\w-]+))?(?:\?(.*))?$/);
   if (!m) return null;
-  let route;
-  try {
-    route = m[3] ? decodeURIComponent(m[3]) : undefined;
-  } catch {}
-  return { ws: m[1], id: m[2], route };
+  const q = new URLSearchParams(m[3] ?? '');
+  return { ws: m[1], id: m[2], route: q.get('route') ?? undefined, at: q.get('at') ?? undefined };
 }
 
 function useMedia(query) {
@@ -92,6 +95,8 @@ export default function App() {
   const [atlasId, setAtlasId] = useState(start.ws === 'atlas' ? start.id ?? 'button' : 'button');
   const [docId, setDocId] = useState(start.ws === 'docs' ? start.id ?? null : null);
   const [projId, setProjId] = useState(start.ws === 'projects' ? start.id ?? null : null);
+  const [fdTab, setFdTab] = useState(start.ws === 'foundations' ? start.id ?? null : null);
+  const startAt = useRef(start.at);
   // what the Playground was asked to open: { project, route }, from #/play/<project>?route=
   const [playTarget, setPlayTarget] = useState(start.ws === 'play' && start.id ? { project: start.id, route: start.route } : null);
   const [docsVersion, setDocsVersion] = useState(0); // bumped when OBI saves a doc
@@ -118,13 +123,9 @@ export default function App() {
   const [work, setWork] = useWork();
   // under 961px the panel always docks at the bottom (no room beside the page)
   const dock = wide ? work.dock : 'bottom';
-  const right = work.open && dock === 'right';
-  // the panel docked right folds the nav to the rail whenever the full nav
-  // would leave the page under 600px, at any width and over an Expand: the
-  // page keeps its columns, and Expand hides until there is room for it
-  const cramped = right && winW - 256 - clampW(work.w, winW, 256) < 600;
-  const collapsed = sidePref === 'col' || cramped || (sidePref !== 'open' && winW < 1180);
-  const navW = !wide ? 0 : collapsed ? 104 : 256;
+  const hasSide = ['atlas', 'foundations', 'projects'].includes(ws);
+  const collapsed = sidePref === 'col';
+  const navW = !wide || !hasSide ? 0 : collapsed ? 64 : 256;
   const wpW = clampW(work.w, winW, navW);
   const wpH = clampH(work.h, win.h);
   const [navOn, setNavOn] = useState(false);
@@ -138,6 +139,11 @@ export default function App() {
     setSidePref(on ? 'col' : 'open');
     store('chip-side', on ? 'col' : 'open');
   };
+  // Projects' names, for its sidebar
+  const [projList, setProjList] = useState([]);
+  useEffect(() => {
+    fetch('/projects').then((r) => r.json()).then((j) => setProjList(j.projects ?? [])).catch(() => {});
+  }, []);
 
   /* ---- OBI ---- */
   const [models, setModels] = useState([]);
@@ -185,10 +191,11 @@ export default function App() {
       ws === 'atlas' ? `#/atlas/${atlasId}`
       : ws === 'docs' && docId ? `#/docs/${docId}`
       : ws === 'projects' && projId ? `#/projects/${projId}`
+      : ws === 'foundations' && fdTab ? `#/foundations/${fdTab}`
       : ws === 'play' && playTarget ? `#/play/${playTarget.project}${playTarget.route ? `?route=${encodeURIComponent(playTarget.route)}` : ''}`
       : `#/${ws}`;
     if (window.location.hash !== want) window.history.replaceState(null, '', want);
-  }, [ws, atlasId, docId, projId, playTarget]);
+  }, [ws, atlasId, docId, projId, playTarget, fdTab]);
   useEffect(() => {
     const on = () => {
       const r = routeOf(window.location.hash);
@@ -196,6 +203,7 @@ export default function App() {
       setWs(r.ws);
       if (r.ws === 'docs') setDocId(r.id ?? null);
       else if (r.ws === 'projects') setProjId(r.id ?? null);
+      else if (r.ws === 'foundations') setFdTab(r.id ?? null);
       else if (r.ws === 'play') setPlayTarget(r.id ? { project: r.id, route: r.route } : null);
       else if (r.id) setAtlasId(r.id);
     };
@@ -297,14 +305,7 @@ export default function App() {
     if (section) setTimeout(() => document.getElementById(section)?.scrollIntoView({ block: 'start' }), 300);
   }
 
-  /* ---- the nav: counts, pins, the library tree ---- */
-  const failedGate = needs?.gate?.failed ?? 0;
-  const needConnector = connectors?.attention ?? [];
-  const COUNT = {
-    health: failedGate ? { n: failedGate, dot: true, title: `The gate fails ${failedGate} of ${needs.gate.total} checks` } : null,
-    atlas: bella ? { n: bella.components.length, title: `${bella.components.length} components` } : null,
-    connectors: needConnector.length ? { n: needConnector.length, dot: true, title: `${needConnector.length} connector${needConnector.length === 1 ? ' needs' : 's need'} you: ${needConnector.join(', ')}` } : null,
-  };
+  /* ---- the sidebar: the current section's items only (ZeroHeight's shape) ---- */
   const [pins, setPins] = useState(() => {
     try {
       return JSON.parse(stored('chip-pins', '[]'));
@@ -324,149 +325,101 @@ export default function App() {
     for (const c of bella?.components ?? []) (g[c.category ?? 'Other'] ??= []).push(c);
     return GROUP_ORDER.filter((k) => g[k]).map((k) => [k, g[k].sort((a, b) => a.name.localeCompare(b.name))]);
   }, [bella]);
-  const [openG, setOpenG] = useState(() => new Set());
-  const currentGroup = atlas?.category ?? 'Other';
   const gapsOf = (c) => COLS.filter((k) => !k.of(c, [])).length;
-  const pinRow = (key, label) => (
-    <button type="button" className={`pinb${pins.includes(key) ? ' on' : ''}`} aria-pressed={pins.includes(key)} aria-label={`${pins.includes(key) ? 'Unpin' : 'Pin'} ${label}`} onClick={() => togglePin(key)}>
-      {PIN}
-    </button>
-  );
-  const navItem = (p, pinned) => {
-    const cnt = COUNT[p.id];
-    return (
-      <div className="navrow" key={(pinned ? 'pin-' : '') + p.id}>
-        <a
-          className="navitem"
-          href={`#/${p.id}`}
-          aria-current={ws === p.id && !pinned ? 'page' : undefined}
-          onClick={(e) => {
-            e.preventDefault();
-            go(p.id);
-          }}
-        >
-          <span className="nico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20">
-              {p.icon}
-            </svg>
-          </span>
-          <span className="nlab">{p.label}</span>
-          {cnt && !pinned ? (
-            <span className={cnt.dot ? 'adot fail' : 'count'} title={cnt.title}>
-              {cnt.n}
-              <span className="k-vh">: {cnt.title}</span>
-            </span>
-          ) : null}
-        </a>
-        {pinRow(`page:${p.id}`, p.label)}
-      </div>
-    );
-  };
-  const compItem = (c, pinned) => {
-    const g = gapsOf(c);
-    return (
-      <li className="navrow" key={(pinned ? 'pin-' : '') + c.id}>
-        <a
-          href={`#/atlas/${c.id}`}
-          className={pinned ? 'navitem pinned' : 'compitem'}
-          aria-current={ws === 'atlas' && atlasId === c.id && !pinned ? 'page' : undefined}
-          title={g ? `${g} check${g > 1 ? 's' : ''} missing` : undefined}
-          onClick={(e) => {
-            e.preventDefault();
-            openAtlas(c.id);
-          }}
-        >
-          {pinned ? (
-            <span className="nico" aria-hidden="true">
-              <b className="pini">{c.name.slice(0, 2)}</b>
-            </span>
-          ) : null}
-          <span className="nlab">{c.name}</span>
-          {g && !pinned ? (
-            <span className="adot job">
-              {g}
-              <span className="k-vh"> missing</span>
-            </span>
-          ) : null}
-        </a>
-        {pinned ? pinRow(`comp:${c.id}`, c.name) : null}
-      </li>
-    );
-  };
   const q = compQ.trim().toLowerCase();
-  const pinList = pins
-    .map((k) => {
-      const [t, id] = k.split(':');
-      if (t === 'page') return PAGES.find((p) => p.id === id) && navItem(PAGES.find((p) => p.id === id), true);
-      const c = bella?.components.find((x) => x.id === id);
-      return c ? <ul key={k}>{compItem(c, true)}</ul> : null;
-    })
-    .filter(Boolean);
-
+  const compLink = (c) => {
+    const g = gapsOf(c);
+    return { href: `#/atlas/${c.id}`, label: c.name, badge: g ? `${g} gap${g > 1 ? 's' : ''}` : undefined, current: ws === 'atlas' && atlasId === c.id };
+  };
+  const sideGroups =
+    ws === 'atlas'
+      ? [
+          ...(pins.some((k) => k.startsWith('comp:'))
+            ? [{ label: 'Pinned', items: pins.filter((k) => k.startsWith('comp:')).map((k) => bella?.components.find((c) => c.id === k.slice(5))).filter(Boolean).map(compLink) }]
+            : []),
+          ...groups.map(([g, cs]) => ({ label: g, items: cs.filter((c) => c.name.toLowerCase().includes(q)).map(compLink) })).filter((g) => g.items.length),
+        ]
+      : ws === 'foundations'
+        ? [{ items: FD_TOPICS.map((t) => ({ href: `#/foundations/${t.id}`, label: t.label, current: (fdTab ?? FD_TOPICS[0].id) === t.id })) }]
+        : ws === 'projects'
+          ? [{ items: projList.map((p) => ({ href: `#/projects/${p.id}`, label: p.name, current: (projId ?? projList[0]?.id) === p.id })) }]
+          : [];
+  const route = (href, e) => {
+    e.preventDefault();
+    const r = routeOf(href);
+    if (!r) return;
+    setNavOn(false);
+    if (r.ws === 'atlas') openAtlas(r.id);
+    else if (r.ws === 'foundations') (setFdTab(r.id ?? null), go('foundations'));
+    else if (r.ws === 'projects') (setProjId(r.id ?? null), go('projects'));
+    else go(r.ws);
+  };
+  const sideNav = sideGroups.length ? (
+    <NavList
+      label={NAME[ws]}
+      groups={sideGroups}
+      collapsed={wide && collapsed}
+      onToggle={wide ? () => setCollapsed(!collapsed) : undefined}
+      onNavigate={route}
+    />
+  ) : null;
   const side = (
-    <nav className="side" id="side" aria-label="CHIP">
-      {wide && !cramped ? (
-        <button type="button" className="sidecol" aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>
-          <span aria-hidden="true">{collapsed ? '⇥' : '⇤'}</span> <span className="nlab">{collapsed ? 'Expand' : 'Collapse'}</span>
-        </button>
-      ) : null}
-      {pinList.length ? (
-        <div className="pins">
-          <p className="pinh">Pinned</p>
-          {pinList}
+    <aside className="side" id="side" aria-label={`${NAME[ws]} and sections`}>
+      {narrow ? <NavList label="Sections" groups={[{ items: SECTIONS.map((p) => ({ href: `#/${p.id}`, label: p.label, current: ws === p.id })) }]} onNavigate={route} /> : null}
+      {ws === 'atlas' && bella && !(wide && collapsed) ? (
+        <div className="complist">
+          <label className="k-vh" htmlFor="compQ">
+            Filter components
+          </label>
+          <input id="compQ" placeholder={`Filter ${bella.components.length} components…`} autoComplete="off" value={compQ} onChange={(e) => setCompQ(e.target.value)} />
+          {q && !sideGroups.length ? <p className="none2">No match</p> : null}
         </div>
       ) : null}
-      {PAGES.map((p) => (
-        <React.Fragment key={p.id}>
-          {navItem(p)}
-          {p.id === 'atlas' && ws === 'atlas' && bella && !collapsed ? (
-            <div className="complist">
-              <label className="k-vh" htmlFor="compQ">
-                Filter components
-              </label>
-              <input id="compQ" placeholder={`Filter ${bella.components.length} components…`} autoComplete="off" value={compQ} onChange={(e) => setCompQ(e.target.value)} />
-              <div>
-                {groups.map(([g, cs]) => {
-                  const m = cs.filter((c) => c.name.toLowerCase().includes(q));
-                  if (q && !m.length) return null;
-                  const open = q ? true : openG.has(g) !== (g === currentGroup);
-                  return (
-                    <div className="cgrp" key={g}>
-                      <button
-                        type="button"
-                        className="cgh"
-                        aria-expanded={open}
-                        onClick={() =>
-                          setOpenG((s) => {
-                            const n = new Set(s);
-                            n.has(g) ? n.delete(g) : n.add(g);
-                            return n;
-                          })
-                        }
-                      >
-                        {g}
-                        <span>{cs.length}</span>
-                      </button>
-                      {open ? <ul>{m.map((c) => compItem(c))}</ul> : null}
-                    </div>
-                  );
-                })}
-                {q && !groups.some(([, cs]) => cs.some((c) => c.name.toLowerCase().includes(q))) ? <p className="none2">No match</p> : null}
-              </div>
-            </div>
-          ) : null}
-        </React.Fragment>
-      ))}
-    </nav>
+      {sideNav}
+    </aside>
   );
+
+  /* ---- on this page: the page's sections, three or more ---- */
+  const [outline, setOutline] = useState([]);
+  useEffect(() => {
+    const main = document.querySelector('main .main');
+    if (!main) return undefined;
+    let t = 0;
+    const read = () => {
+      t = 0;
+      const hs = [...main.querySelectorAll('h2')].filter((h) => h.offsetParent && h.textContent.trim() && !h.closest('dialog, [role=dialog], .k-sheet'));
+      for (const h of hs) if (!h.id) h.id = `s-${h.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)}`;
+      const next = hs.map((h) => ({ id: h.id, label: h.textContent.trim().slice(0, 60) }));
+      setOutline((o) => (o.map((x) => x.id + x.label).join() === next.map((x) => x.id + x.label).join() ? o : next));
+    };
+    read();
+    const mo = new MutationObserver(() => {
+      if (!t) t = setTimeout(read, 200);
+    });
+    mo.observe(main, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    return () => (mo.disconnect(), clearTimeout(t));
+  }, [ws]);
+  // a section's own URL: #/<page>?at=<section>, read once on load
+  useEffect(() => {
+    const at = startAt.current;
+    if (!at || !outline.some((o) => o.id === at)) return;
+    startAt.current = null;
+    document.getElementById(at)?.scrollIntoView({ block: 'start' });
+  }, [outline]);
+  const onOutline = (id, e) => {
+    const base = window.location.hash.split('?')[0];
+    const keep = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    keep.set('at', id);
+    window.history.replaceState(null, '', `${base}?${keep}`);
+  };
 
   const needCount = needs?.items.length ?? 0;
   const resize = (px) => setWork(dock === 'right' ? { w: clampW(px, winW, navW), sized: true } : { h: clampH(px, win.h) });
 
   return (
     <div
-      className={`app${work.open ? ` wpon dock-${dock}` : ''}${collapsed && wide ? ' navcollapsed' : ''}${navOn ? ' navon' : ''}`}
-      style={{ '--wp-w': `${wpW}px`, '--wp-h': `${wpH}px` }}
+      className={`app${work.open ? ` wpon dock-${dock}` : ''}${hasSide ? ' hasside' : ''}${collapsed && wide && hasSide ? ' navcollapsed' : ''}${navOn ? ' navon' : ''}`}
+      style={{ '--wp-w': `${wpW}px`, '--wp-h': `${wpH}px`, '--nav': `${navW}px` }}
       data-lead={lens}
     >
       <a className="skip" href="#main">
@@ -487,7 +440,9 @@ export default function App() {
           <button type="button" className="menubtn" aria-expanded={navOn} aria-controls="side" onClick={() => setNavOn((o) => !o)}>
             Menu
           </button>
-        ) : null}
+        ) : (
+          <SectionNav label="Sections" items={SECTIONS.map((p) => ({ href: `#/${p.id}`, label: p.label, current: ws === p.id }))} onNavigate={route} />
+        )}
         <div className="search" hidden={!searchShown}>
           <OneInput
             find
@@ -513,8 +468,13 @@ export default function App() {
         </button>
       </header>
 
-      {side}
+      {hasSide || narrow ? side : null}
 
+      {wide && outline.length >= 3 ? (
+        <div className="outline">
+          <PageOutline items={outline} onNavigate={onOutline} />
+        </div>
+      ) : null}
       <main id="main" tabIndex={-1}>
         <div className="main">
           {offline ? (
@@ -524,7 +484,7 @@ export default function App() {
           ) : null}
           {ws === 'health' ? <Today bella={bella} needs={needs} onSession={session} onRefresh={() => loadBella(true)} onLane={() => setWork({ open: true, tab: 'sessions' })} onHealth={() => go('coverage')} /> : null}
           {ws === 'coverage' ? <Health bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={() => loadBella(true)} /> : null}
-          {ws === 'foundations' ? <Foundations bella={bella} onSession={session} onOpenAtlas={openAtlas} /> : null}
+          {ws === 'foundations' ? <Foundations bella={bella} onSession={session} onOpenAtlas={openAtlas} tab={fdTab ?? FD_TOPICS[0].id} onTab={(t) => setFdTab(t)} /> : null}
           {ws === 'docs' ? <History docId={docId} version={docsVersion} bella={bella} lens={lens} onOpenAtlas={openAtlas} onSession={session} /> : null}
           {ws === 'play' ? <Playground onToast={setToast} project={playTarget?.project} route={playTarget?.route} onTarget={setPlayTarget} /> : null}
           {ws === 'projects' ? <Projects projectId={projId} onProject={setProjId} /> : null}
