@@ -194,7 +194,9 @@ export default function App() {
       : ws === 'foundations' && fdTab ? `#/foundations/${fdTab}`
       : ws === 'play' && playTarget ? `#/play/${playTarget.project}${playTarget.route ? `?route=${encodeURIComponent(playTarget.route)}` : ''}`
       : `#/${ws}`;
-    if (window.location.hash !== want) window.history.replaceState(null, '', want);
+    // a page's own query (?tab=, ?at=) stays while the page is the same
+    const cur = window.location.hash;
+    if (cur !== want && cur.split('?')[0] !== want) window.history.replaceState(null, '', want);
   }, [ws, atlasId, docId, projId, playTarget, fdTab]);
   useEffect(() => {
     const on = () => {
@@ -206,6 +208,7 @@ export default function App() {
       else if (r.ws === 'foundations') setFdTab(r.id ?? null);
       else if (r.ws === 'play') setPlayTarget(r.id ? { project: r.id, route: r.route } : null);
       else if (r.id) setAtlasId(r.id);
+      if (r.at) setTimeout(() => document.getElementById(r.at)?.scrollIntoView({ block: 'start' }), 400);
     };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
