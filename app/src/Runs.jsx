@@ -7,6 +7,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
+import BellaCodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import { Sheet, StatusPill } from './kit/index.jsx';
 import { changed } from './ReviewSheet.jsx';
 
@@ -196,7 +197,7 @@ export default function RunSheet() {
           ) : null}
           {run.diff ? (
             <Disclosure title="Show the diff" summary={`${run.files.length} file${run.files.length === 1 ? '' : 's'}`}>
-              <pre className="dn-code">{run.diff}</pre>
+              <BellaCodeBlock title={`${run.files.length} file${run.files.length === 1 ? '' : 's'}`} language="diff" code={run.diff} />
             </Disclosure>
           ) : null}
           {run.gate && !run.gate.passed ? (

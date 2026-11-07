@@ -440,3 +440,6 @@
 .cd-spec, .cd-sec, .cd-specs > * { min-width: 0; }
 .atlas.cd .cd-spec { overflow-x: auto; max-width: 100%; }
 .atlas.cd .cd-spec { position: relative; contain: paint; }
+/* a contract or guidance file as code; the view switch beside it (tool chrome, 7 Nov) */
+.atlas .cd-filebox { max-height: 480px; overflow: auto; }
+.atlas .vswitch { display: flex; gap: var(--s-8); justify-content: flex-end; }

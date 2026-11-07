@@ -287,31 +287,15 @@ function useFileView({ path, text, marks, notify, label }) {
   }
   function jump(line) {
     setOn(line);
-    const el = pre.current?.querySelector(`[data-ln="${line}"]`);
-    if (el && pre.current) pre.current.scrollTop = el.offsetTop - pre.current.clientHeight / 3;
+    const box = pre.current;
+    const el = box?.querySelectorAll('code > span')[line - 1];
+    if (el && box) box.scrollTop = el.offsetTop - box.clientHeight / 3;
   }
+  // the file reads as code in an editor: BELLA's CodeBlock (tool chrome, 7 Nov)
+  const language = /\.json/.test(path) ? 'json' : /\.css/.test(path) ? 'css' : /\.tsx?/.test(path) ? 'tsx' : 'plain';
   return { jump, on, view: (
-    <div className="codebox">
-      <div className="codehead k-chrome">
-        <code>{path}</code>
-        <Button variant="secondary" onClick={copy} ariaLabel={`Copy ${path}`}>
-          <CopyIcon />
-          Copy
-        </Button>
-      </div>
-      <div role="region" aria-label={label}>
-        <pre className="code-v" ref={pre} tabIndex={0}>
-          {text == null ? (
-            <span className="ln">Reading…</span>
-          ) : (
-            lines.map((l, i) => (
-              <span key={i} data-ln={i + 1} className={`ln${marked.has(i + 1) ? ' mk' : ''}${on === i + 1 ? ' on' : ''}`}>
-                {l || ' '}
-              </span>
-            ))
-          )}
-        </pre>
-      </div>
+    <div className="cd-filebox" ref={pre} role="region" aria-label={label}>
+      {text == null ? <p className="cd-none">Reading…</p> : <BellaCodeBlock title={path} language={language} code={text} currentLine={on ?? undefined} />}
     </div>
   ) };
 }
@@ -337,6 +321,7 @@ function marksOf(kind, text) {
 
 function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
   const [view, setView] = useState('overview');
+  const [show, setShow] = useState('rendered'); // the view switch: rendered (eye) or source (code)
   const [file, setFile] = useState('contract');
   const text = file === 'contract' ? doc?.contract?.block : doc?.guidance?.md;
   const path = file === 'contract' ? `${doc?.contract?.path ?? 'tokens/component.json'} → component.${c.id.replace(/-/g, '-')}` : doc?.guidance?.path ?? `docs/components/${c.id}.md`;
@@ -390,8 +375,21 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
         </>
       }
     >
+      <div className="vswitch" role="group" aria-label="Show">
+        <Tooltip label="Rendered">
+          <button type="button" className="tool-btn" aria-label="Rendered" aria-pressed={show === 'rendered'} onClick={() => setShow('rendered')}>
+            <Icon name="Eye" size="sm" />
+          </button>
+        </Tooltip>
+        <Tooltip label="Source">
+          <button type="button" className="tool-btn" aria-label="Source" aria-pressed={show === 'source'} onClick={() => setShow('source')}>
+            <Icon name="Code" size="sm" />
+          </button>
+        </Tooltip>
+      </div>
+      {show === 'rendered' ? (
+      <>
       <div className="statebar">
-        <p className="cap">What {c.name} promises, whether it keeps its promises, and who relies on them.</p>
         <RadioSeg
           label="Contract view"
           items={[
@@ -465,13 +463,15 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
           <p className="sub2">Reading the history…</p>
         )}
       </div>
+      </>
+      ) : (
       <div className="slafile">
         <div className="statebar">
-          <p className="cap">The file itself. Marked lines matter most.</p>
           <RadioSeg label="File" items={[{ id: 'contract', label: 'Contract' }, { id: 'guide', label: 'Guidance' }]} value={file} onChange={setFile} />
         </div>
         {fv.view}
       </div>
+      )}
     </Panel>
   );
 }
