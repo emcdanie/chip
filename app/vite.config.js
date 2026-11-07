@@ -1,5 +1,5 @@
 // CHIP app: React + Vite, built from BELLA's own components and tokens.
-// BELLA is read in place from ../bella (no copy, no hex here). Its package
+// BELLA is read in place (no copy, no hex here; see BELLA below). Its package
 // only exports tokens, so the components come in through an alias.
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';

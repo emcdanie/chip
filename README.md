@@ -12,7 +12,7 @@ Started as a submission to *Built with Opus 4.7: a Claude Code hackathon* (April
   ollama pull qwen3:8b          # chat
   ollama pull nomic-embed-text  # embeddings for search
   ```
-- The BELLA repo at `~/DEV/bella` (or set `BELLA_DIR`)
+- BELLA's `chip/theme` worktree at `~/DEV/bella-chip-theme` for the app build, and BELLA at `~/DEV/bella` for the sync scripts (set `BELLA_DIR` to override either)
 - Optional: a Notion internal integration, for searching your Notion
 
 Full setup, including Notion, is in `server/SETUP.md`.
