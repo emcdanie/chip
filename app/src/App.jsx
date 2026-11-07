@@ -380,12 +380,12 @@ export default function App() {
   const side = (
     <aside className="side" id="side" aria-label={`${NAME[ws]} and sections`}>
       {narrow ? <NavList label="Sections" groups={[{ items: SECTIONS.map((p) => ({ href: `#/${p.id}`, label: p.label, current: sectionOf(ws) === p.id })) }]} onNavigate={route} /> : null}
-      {(ws === 'atlas' || ws === 'foundations') && bella && !(wide && collapsed) ? (
+      {((ws === 'atlas' && bella) || ws === 'foundations') && !(wide && collapsed) ? (
         <div className="complist">
           <label className="k-vh" htmlFor="compQ">
             {ws === 'atlas' ? 'Filter components' : 'Filter topics'}
           </label>
-          <input id="compQ" placeholder={ws === 'atlas' ? `Filter ${bella.components.length} components…` : `Filter ${FD_TOPICS.length} topics…`} autoComplete="off" value={compQ} onChange={(e) => setCompQ(e.target.value)} />
+          <input id="compQ" placeholder={ws === 'atlas' ? `Filter ${bella?.components.length ?? ''} components…` : `Filter ${FD_TOPICS.length} topics…`} autoComplete="off" value={compQ} onChange={(e) => setCompQ(e.target.value)} />
           {q && !sideGroups.length ? <p className="none2">No match</p> : null}
         </div>
       ) : null}

@@ -18,6 +18,11 @@ import { changed } from './ReviewSheet.jsx';
 import './DoNext.css';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
+// a diff: every line starts with +, - or a space, and at least one is a change
+const isDiff = (t) => {
+  const ls = (t ?? '').split('\n').filter(Boolean);
+  return ls.length > 0 && ls.every((l) => /^[+\- ]/.test(l)) && ls.some((l) => /^[+-]/.test(l)) && !ls.some((l) => /^ *</.test(l.slice(1)));
+};
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 // who can fix it, as a pill: CHIP is the good news, the others need someone
 const CAN_TONE = { chip: 'pass', claude: 'needs', you: 'needs' };
@@ -380,7 +385,7 @@ function ReportItem({ it, busyId, setBusyId, onSkip, onLater, onSession }) {
         {(card?.change?.preview ?? it.recommend.code) ? (
           <Disclosure title="Exactly what it adds">
             {card?.change?.sentence ? <p>{card.change.sentence}</p> : null}
-            <BellaCodeBlock title="Lines it adds" language={/^[{[]/.test((card?.change?.preview ?? it.recommend.code).trim()) ? 'json' : /^[-+ ]/m.test(card?.change?.preview ?? '') ? 'diff' : 'jsx'} code={card?.change?.preview ?? it.recommend.code} />
+            <BellaCodeBlock title="Lines it adds" language={/^[{[]/.test((card?.change?.preview ?? it.recommend.code).trim()) ? 'json' : isDiff(card?.change?.preview) ? 'diff' : 'jsx'} code={card?.change?.preview ?? it.recommend.code} />
           </Disclosure>
         ) : null}
         <Disclosure title="Why this fix" summary={it.why.source}>

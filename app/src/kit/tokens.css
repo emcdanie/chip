@@ -64,23 +64,15 @@
   --frame-top: 64px;
 }
 
-/* dark: the mock has no dark theme; these are BELLA's dark roles (cool 975,
-   950, 50, 300) under the mock's names. Status hues stay; their fills mix
-   with the dark card, so ink (now light) stays readable on them. */
+/* dark (the Work drawer, 7 Nov): the role names above already follow BELLA's
+   dark tokens in any [data-theme="dark"] subtree; these are the few with no
+   BELLA role of their own, pointed at BELLA's dark tokens, never literals */
 [data-theme="dark"] {
-  --ground: rgb(15 17 23);
-  --card: rgb(23 26 34);
-  --ink: rgb(236 238 243);
-  --body: rgb(214 218 228);
-  --muted: rgb(177 183 199);
-  --line: rgb(236 238 243 / 0.2);
-  --canvas: rgb(29 32 48);
-  --inset: rgb(38 42 53);
-  --sort-on: rgb(110 182 240);
-  --code-ground: rgb(15 17 23);
-  --scrim: rgb(0 0 0 / 0.5);
-  --edge: rgb(0 0 0 / 0.6);
-  --shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  --canvas: var(--color-semantic-background);
+  --sort-on: var(--color-semantic-text-primary);
+  --code-ground: var(--color-semantic-background);
+  --edge: var(--color-semantic-scrim);
+  --shadow: var(--shadow-soft);
   color-scheme: dark;
 }
 

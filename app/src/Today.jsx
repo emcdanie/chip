@@ -186,9 +186,9 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
         </div>
         <div className="td-tools">
           <Tooltip label={refreshing ? 'Checking…' : 'Read everything again'}>
-            <button type="button" className="tool-btn" aria-label={refreshing ? 'Checking…' : 'Read everything again'} disabled={refreshing} onClick={refresh}>
+            <Button variant="secondary" ariaLabel={refreshing ? 'Checking…' : 'Read everything again'} disabled={refreshing} onClick={refresh}>
               <Icon name="RefreshDouble" size="sm" />
-            </button>
+            </Button>
           </Tooltip>
         </div>
       </header>
