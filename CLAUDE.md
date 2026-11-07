@@ -22,6 +22,10 @@ CHIP is a tool for Elleta's daily design-system work, not a showcase. Before any
 - **Stop and ask only for:** a brand change beyond an approved theme; removing or renaming a public BELLA API; anything touching git remotes or pushes; a gate that still fails after two fixes.
 - Never push or merge without Elleta's OK.
 
+## Second review (Elleta, 7 Nov 2026)
+
+Copilot challenges every plan before Elleta decides and every session's diff before it reaches her: `npm run review -- <plan.md>` or `npm run review -- <git range> [repo path]`. Whoever runs it measures each finding first, then forwards only the real ones. Copilot can't judge how a screen looks, so screenshots and measurements stay. "NOT REVIEWED" goes in the report; it never counts as a pass.
+
 ## Local CI
 
 `.git/hooks/pre-commit` (local, not committed) blocks a commit when `app/src` has a hex value or a px font size, when `npm run app:build` fails, or when a staged line matches a term in `~/.claude/nda-terms.txt`.

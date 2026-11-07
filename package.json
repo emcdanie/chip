@@ -15,7 +15,8 @@
     "sync": "node bin/chip.mjs sync",
     "app": "vite --config app/vite.config.js",
     "app:build": "vite build --config app/vite.config.js",
-    "checkpoint": "node scripts/checkpoint.mjs"
+    "checkpoint": "node scripts/checkpoint.mjs",
+    "review": "node scripts/second-review.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
