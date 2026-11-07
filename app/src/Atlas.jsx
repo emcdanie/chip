@@ -14,6 +14,9 @@ import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import Pin from '@bella/components/Pin/Pin';
 import { StatusPill, Chips, LinkButton, Overflow } from './kit/index.jsx';
+import BellaStatusPill from '@bella/components/StatusPill/StatusPill';
+import { COLS } from './Health.jsx';
+const COLS_N = (c) => COLS.filter((k) => !k.of(c, [])).length;
 import { keyboardOf } from './AtlasSpec.jsx';
 import { canSee, settingsOf } from './visibility.jsx';
 import { SPECIMENS, VARIANTS, COMPONENTS } from './specimens.jsx';
@@ -1471,6 +1474,12 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
   const [pressed, setPressed] = useState(false); // FilterChip in Use: really toggles
   const [why, setWhy] = useState(null);
   const [read, setRead] = useState(false);
+  const [show, setShow] = useState(() => (new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('show') ?? '').split(',').filter(Boolean));
+  useEffect(() => {
+    const base = window.location.hash.split('?')[0];
+    const want = show.length ? `${base}?show=${show.join(',')}` : base;
+    if (window.location.hash !== want) window.history.replaceState(null, '', want);
+  }, [show, c?.id]);
   const [playing, setPlaying] = useState(false);
   const [q, setQ] = useState('');
   const [answer, setAnswer] = useState(null);
@@ -1974,73 +1983,169 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
   const sp = { 'data-theme': theme };
   const detail = stage ? Detail() : null;
 
-  return (
-    <div className="atlas dm" data-lens={lens} onKeyDown={(e) => e.key === 'Escape' && (sel || why) && (setSel(null), setWhy(null))}>
-      <section className="dm-head k-chrome" aria-labelledby="dm-h1">
-        <div>
-          <p className="k-meta dm-crumb">{crumb}</p>
-          <div className="k-tline">
-            <h1 className="k-h1" id="dm-h1" tabIndex={-1}>
-              {c.name}
-            </h1>
-            <Overflow label="More" text="More" className="dm-more">
-              {onPin ? (
-                <LinkButton aria-pressed={!!pinned} onClick={onPin}>
-                  {pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'}
-                </LinkButton>
-              ) : null}
-              <LinkButton aria-expanded={read} aria-controls="dm-read" onClick={() => setRead(!read)}>
-                {read ? 'Hide the description' : 'Read the full description'}
-              </LinkButton>
-            </Overflow>
-          </div>
-          <p className="dm-lede">{firstSentence(c.description) || 'No description in the contract yet.'}</p>
-          <p className="k-meta dm-built">
-            Renders as <b>{c.rendersAs ?? 'unknown'}</b> · BELLA {bella.source?.version} @ <code>{bella.source?.commit}</code>
-          </p>
-          {read ? (
-            <div className="dm-read" id="dm-read">
-              {(c.description ?? '').replace(/\s+/g, ' ').trim().slice(firstSentence(c.description).length).trim() ? <p>{(c.description ?? '').replace(/\s+/g, ' ').trim().slice(firstSentence(c.description).length).trim()}</p> : null}
-              {c.restNote ? <p>{c.restNote}</p> : null}
-              {c.a11y ? <p>{c.a11y}</p> : null}
-              <p className="cap">
-                Quoted from the contract, <code>component.{c.id}</code>. Nothing here is written twice.
-              </p>
-            </div>
-          ) : null}
+  /* ---------- the page: the BellaComponents Page card (Figma 113:173), live ---------- */
+  const gapsN = COLS_N(c);
+  const srcDir = `src/components/${c.name}`;
+  const rowsOf = axes[0] ? axisVals(axes[0]) : [null];
+  const SECS = [
+    ['inuse', 'In use', scenes.length, scenes.length ? `${c.name} live in real compositions: hover, press and tab to it.` : null],
+    ['specimens', 'Specimens', rowsOf.length * states.length, `Every ${axes[0] ? axes[0].label?.toLowerCase?.() ?? 'tier' : 'tier'} by every state, rendered, light and dark side by side.`],
+    ['copy', 'Copy me', 1, null],
+    ['usage', 'Usage', (c.usage ?? []).length + (c.dont ?? []).length, 'Quoted from the contract.'],
+    ['anatomy', 'Anatomy', parts.length, null],
+    ['a11y', 'Accessibility', 5, null],
+    ['props', 'Properties', (c.props ?? []).length, null],
+    ['source', 'Source', 4, null],
+  ];
+  const showing = show.length ? show : SECS.map((x) => x[0]);
+  const toggleShow = (id) => setShow((cur) => (id === 'all' ? [] : cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  const Sec = ({ id, children }) => {
+    const k = SECS.findIndex((x) => x[0] === id);
+    const [, label, count, intro] = SECS[k];
+    if (!showing.includes(id)) return null;
+    return (
+      <section className="cd-sec" aria-labelledby={`cd-${id}`}>
+        <div className="cd-rule">
+          <h2 id={`cd-${id}`}>
+            {String(k + 2).padStart(2, '0')} — {label}
+          </h2>
+          <span>{count}</span>
         </div>
+        {intro ? <p className="cd-intro">{intro}</p> : null}
+        {children}
       </section>
-
-
-      <div className="dm-tab">
-      <section aria-label="Checks" className="k-chrome" hidden={!stage}>
-        {/* tags, not buttons (concept, afternoon 7 Nov): each check that needs a look is a line with its rule */}
-        <ul className="dm-checks" aria-label="Measured on this render">
-          {checks.filter((k) => ckClass(k) === 'fail' || ckClass(k) === 'needs').map((k) => (
-            <li key={k.id}>
-              <StatusPill tone={CK_TONE[ckClass(k)]}>
-                {k.label} · {k.val}
-              </StatusPill>
-              <span className="dm-ckwhy">
-                {k.rule}
-                {k.src ? (
-                  <>
-                    {' '}
-                    Rule: <code>{k.src}</code>
-                  </>
-                ) : null}
-              </span>
-            </li>
+    );
+  };
+  const Matrix = ({ theme }) => (
+    <figure className="cd-spec" data-theme={theme}>
+      <figcaption>{theme === 'dark' ? 'Dark' : 'Light'}</figcaption>
+      <table>
+        <thead>
+          <tr>
+            <th />
+            {states.map((x) => (
+              <th key={x} scope="col">
+                {STATE_LABEL(x)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rowsOf.map((r) => (
+            <tr key={r ?? 'one'}>
+              <th scope="row">{r ? cap1(r) : c.name}</th>
+              {states.map((x) => (
+                <td key={x}>
+                  <Forced key={`${theme}-${r}-${x}`} state={x}>
+                    {cfg.render({ ...o, ...(axes[0] ? { [axes[0].key]: r } : {}), st: x, label: o.label || cfg.label(c) })}
+                  </Forced>
+                </td>
+              ))}
+            </tr>
           ))}
-          {checks.some((k) => ckClass(k) === 'pass' || ckClass(k) === 'grey') ? (
-            <li className="dm-ckrest">
-              {checks.filter((k) => ckClass(k) === 'pass').length} pass
-              {checks.some((k) => ckClass(k) === 'grey') ? ` · ${checks.filter((k) => ckClass(k) === 'grey').length} not run` : ''}
-            </li>
-          ) : null}
-        </ul>
-      </section>
+        </tbody>
+      </table>
+    </figure>
+  );
+  const PROP_VALUES = { variant: c.variants, shape: c.shapes, size: c.sizes };
 
+  return (
+    <div className="atlas dm cd" data-lens={lens} onKeyDown={(e) => e.key === 'Escape' && (sel || why) && (setSel(null), setWhy(null))}>
+      <header className="cd-head k-chrome">
+        <p className="cd-crumb">Components / {c.category ?? NO_CONTRACT} / {c.name}</p>
+        <div className="cd-title">
+          <h1 className="k-h1" id="dm-h1" tabIndex={-1}>
+            {c.name}
+          </h1>
+          <BellaStatusPill variant={gapsN ? 'attention' : 'success'}>{gapsN ? `${gapsN} gap${gapsN === 1 ? '' : 's'}` : 'Complete'}</BellaStatusPill>
+        </div>
+        <p className="cd-lead">{firstSentence(c.description) || 'No description in the contract yet.'}</p>
+        <p className="cd-meta">
+          <code className="cd-react">{`<${c.name}>`}</code>
+          {c.storyUrl ? (
+            <a className="k-link" href={c.storyUrl} target="_blank" rel="noopener noreferrer">
+              Storybook ↗
+            </a>
+          ) : (
+            <span className="cd-none">Storybook: Not measured</span>
+          )}
+          <a className="k-link cd-mono" href={`https://github.com/emcdanie/bella/tree/main/${srcDir}`} target="_blank" rel="noopener noreferrer">
+            {srcDir} ↗
+          </a>
+          {onPin ? (
+            <LinkButton aria-pressed={!!pinned} onClick={onPin}>
+              {pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'}
+            </LinkButton>
+          ) : null}
+        </p>
+      </header>
+
+      <div className="cd-filter k-chrome" role="group" aria-label="Show sections">
+        <FilterChip pressed={!show.length} onClick={() => toggleShow('all')}>
+          All
+        </FilterChip>
+        {SECS.map(([id, label]) => (
+          <FilterChip key={id} pressed={show.includes(id)} onClick={() => toggleShow(id)}>
+            {label}
+          </FilterChip>
+        ))}
+      </div>
+
+      <Sec id="inuse">
+        {scenes.length ? (
+          <div className="dm-scenes">
+            {scenes.map((sc) => (
+              <Scene key={`${c.id}-${sc.id}`} sc={sc} c={c} bella={bella} theme={theme} label={cfg.label(c)} onGoto={(x) => onOpen?.(x)} notify={notify} />
+            ))}
+          </div>
+        ) : null} {!scenes.length ? <p className="cd-none">Not measured: no composition uses {c.name} yet.</p> : null}
+      </Sec>
+
+      <Sec id="specimens">
+        {stage ? (
+          <div className="cd-specs">
+            <Matrix theme="light" />
+            <Matrix theme="dark" />
+          </div>
+        ) : (
+          <p className="cd-none">Not measured: no specimen for {c.name} in app/src/specimens.jsx.</p>
+        )}
+      </Sec>
+
+      <Sec id="copy">
+        {stage ? <CodeBlock title="JSX" lines={[importLine, '', ...jsx]} notify={notify} /> : <p className="cd-none">Not measured: no specimen to copy.</p>}
+      </Sec>
+
+      <Sec id="usage">
+        <div className="cd-two k-chrome">
+          <div>
+            <h3>Use it for</h3>
+            {(c.usage ?? []).length ? (
+              <ul className="dm-list">
+                {c.usage.map((u) => (
+                  <li key={u}>{u}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="cd-none">Not in the contract yet.</p>
+            )}
+          </div>
+          <div>
+            <h3>Don’t</h3>
+            {(c.dont ?? []).length ? (
+              <ul className="dm-list">
+                {c.dont.map((u) => (
+                  <li key={u}>{u}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="cd-none">Not in the contract yet.</p>
+            )}
+          </div>
+        </div>
+      </Sec>
+
+      <Sec id="anatomy">
       <section className={`dm-work dm-card${stage ? '' : ' dm-nospec'}${detail ? '' : ' dm-nodetail'}`} aria-label="Specimen">
         <div className="dm-stage">
           <div className="dm-sbar k-chrome">
@@ -2189,98 +2294,116 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           </section>
         </aside>
       </section>
-
-      </div>
-
-      <div className="dm-tab k-chrome">
-        <section aria-labelledby="dm-use" className="dm-sec">
-          <h2 id="dm-use">Use it for</h2>
-          {(c.usage ?? []).length ? (
-            <ul className="dm-list">
-              {c.usage.map((u) => (
-                <li key={u}>{u}</li>
+        {parts.length ? (
+          <table className="cd-table k-chrome">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Part</th>
+                <th scope="col">Token</th>
+                <th scope="col">Shows</th>
+              </tr>
+            </thead>
+            <tbody>
+              {parts.map((x) => (
+                <tr key={x.key}>
+                  <td className="cd-num">{x.n}</td>
+                  <td>{x.title}</td>
+                  <td>
+                    <code>{x.token ?? '—'}</code>
+                  </td>
+                  <td>{trigOf(x) ? `on ${trigOf(x)}` : 'at rest'}</td>
+                </tr>
               ))}
-            </ul>
-          ) : (
-            <p className="cap">Not in the contract yet.</p>
-          )}
-        </section>
-        <section aria-labelledby="dm-dont" className="dm-sec">
-          <h2 id="dm-dont">Don’t</h2>
-          {(c.dont ?? []).length ? (
-            <ul className="dm-list">
-              {c.dont.map((u) => (
-                <li key={u}>{u}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="cap">Not in the contract yet.</p>
-          )}
-        </section>
-      </div>
+            </tbody>
+          </table>
+        ) : (
+          <p className="cd-none">Not measured: the contract lists no parts.</p>
+        )}
+      </Sec>
 
-      <div className="dm-tab k-chrome">
-        <section aria-labelledby="dm-a11y" className="dm-sec">
-          <h2 id="dm-a11y">Accessibility</h2>
+      <Sec id="a11y">
+        <div className="k-chrome">
           <A11yFacts c={c} cfg={cfg} label={cfg.label(c)} />
-        </section>
-      </div>
-
-      <div className="dm-tab k-chrome">
-        <section aria-labelledby="dm-contract" className="dm-sec">
-          <h2 id="dm-contract">Contract</h2>
-          <p className="dm-quiet">
-            <code>tokens/component.json → component.{c.id}</code> · {c.tokens?.count ?? 0} tokens, {(c.props ?? []).length} props, {states.length} states · {c.hasContract ? (hl.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code') : NO_CONTRACT}
-          </p>
-          <ContractPanel c={c} bella={bella} doc={doc} tests={tests} hist={hist} notify={notify} onOpen={onOpen} />
-        </section>
-        <section aria-labelledby="dm-src" className="dm-sec">
-          <h2 id="dm-src">Source</h2>
-          <SourcePanel c={c} doc={doc} notify={notify} />
-        </section>
-        <section aria-labelledby="dm-tests" className="dm-sec">
-          <h2 id="dm-tests">Tests</h2>
-          <p className="dm-quiet">{tSum}</p>
-          <TestsPanel c={c} tests={tests} onRun={runTest} running={running} />
-        </section>
-      </div>
-
-      <div className="dm-tab k-chrome">
-        <section aria-labelledby="dm-hist" className="dm-sec">
-          <h2 id="dm-hist">Changelog</h2>
-          <HistoryPanel c={c} hist={hist} />
-        </section>
-      </div>
-
-      <div className="dm-tab">
-      <section aria-labelledby="dm-sch" className="dm-sec">
-        <div className="dm-sechead">
-          <h2 id="dm-sch">Rules, run on real compositions</h2>
-          {scenes.length ? null : <p>No scene runs {c.name}’s rules yet.</p>}
+          <p className="cd-quiet">Reduced motion: {/reduced.motion|reduced-motion/i.test(`${c.restNote ?? ''} ${c.a11y ?? ''}`) ? 'said in the contract, above' : 'Not measured'}.</p>
         </div>
-        {scenes.length ? (
-          <div className="dm-scenes">
-            {scenes.map((sc) => (
-              <Scene key={`${c.id}-${sc.id}`} sc={sc} c={c} bella={bella} theme={theme} label={cfg.label(c)} onGoto={(x) => onOpen?.(x)} notify={notify} />
-            ))}
-          </div>
-        ) : null}
-        {scenes.length && (c.dont ?? []).some((_, i) => !scenes.some((s) => s.rule === i)) ? (
-          <p className="cap">
-            No scene yet for:{' '}
-            {(c.dont ?? [])
-              .filter((_, i) => !scenes.some((s) => s.rule === i))
-              .join('; ')}
-            .
-          </p>
-        ) : null}
-      </section>
+      </Sec>
 
-      <section aria-labelledby="dm-bhh" className="dm-sec">
-        <div className="dm-sechead">
-          <h2 id="dm-bhh">Behind it</h2>
-        </div>
-        <div className="dm-behind dm-card">
+      <Sec id="props">
+        {(c.props ?? []).length ? (
+          <table className="cd-table k-chrome">
+            <thead>
+              <tr>
+                <th scope="col">Prop</th>
+                <th scope="col">Values, from the contract</th>
+              </tr>
+            </thead>
+            <tbody>
+              {c.props.map((x) => (
+                <tr key={x}>
+                  <td>
+                    <code>{x}</code>
+                  </td>
+                  <td>{PROP_VALUES[x]?.length ? PROP_VALUES[x].join(' · ') : 'Not in the contract'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="cd-none">Not in the contract yet.</p>
+        )}
+      </Sec>
+
+      <Sec id="source">
+        <ul className="cd-src k-chrome">
+          <li>
+            Contract: <code>tokens/component.json → component.{c.id}</code> · {c.hasContract ? (hl.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code') : NO_CONTRACT}
+          </li>
+          <li>
+            Source: <code>{srcDir}/{c.name}.tsx</code> · <code>{c.name}.module.css</code>
+          </li>
+          <li>Changelog: {hist?.entries?.length ? `${plural(hist.entries.length, 'change')}, latest ${fmtDate(hist.entries[0].date)}: ${hist.entries[0].explanation || hist.entries[0].subject}` : hist ? 'no commits' : 'reading…'}</li>
+          <li>Rule results: {checks.filter((k) => ckClass(k) === 'pass').length} pass · {checks.filter((k) => ckClass(k) === 'fail').length} fail · {checks.filter((k) => ckClass(k) === 'grey').length} not run · tests {tSum}</li>
+        </ul>
+        <div className="dm-behind dm-card k-chrome">
+          <Row name="Rule results" sum={`${checks.length} checks on this render`} hint="what each one measured">
+        <ul className="dm-checks" aria-label="Measured on this render">
+          {checks.filter((k) => ckClass(k) === 'fail' || ckClass(k) === 'needs').map((k) => (
+            <li key={k.id}>
+              <StatusPill tone={CK_TONE[ckClass(k)]}>
+                {k.label} · {k.val}
+              </StatusPill>
+              <span className="dm-ckwhy">
+                {k.rule}
+                {k.src ? (
+                  <>
+                    {' '}
+                    Rule: <code>{k.src}</code>
+                  </>
+                ) : null}
+              </span>
+            </li>
+          ))}
+          {checks.some((k) => ckClass(k) === 'pass' || ckClass(k) === 'grey') ? (
+            <li className="dm-ckrest">
+              {checks.filter((k) => ckClass(k) === 'pass').length} pass
+              {checks.some((k) => ckClass(k) === 'grey') ? ` · ${checks.filter((k) => ckClass(k) === 'grey').length} not run` : ''}
+            </li>
+          ) : null}
+        </ul>
+          </Row>
+          <Row name="Contract" sum={`component.${c.id}`} hint="overview, compliance, file">
+            <ContractPanel c={c} bella={bella} doc={doc} tests={tests} hist={hist} notify={notify} onOpen={onOpen} />
+          </Row>
+          <Row name="Source" sum={`${c.name}.tsx`} hint="read only">
+            <SourcePanel c={c} doc={doc} notify={notify} />
+          </Row>
+          <Row name="Tests" sum={tSum} hint="what the gate runs">
+            <TestsPanel c={c} tests={tests} onRun={runTest} running={running} />
+          </Row>
+          <Row name="Changelog" sum={hist?.entries?.length ? plural(hist.entries.length, 'change') : 'no commits'} hint="git log of its files">
+            <HistoryPanel c={c} hist={hist} />
+          </Row>
           <Row name="Story" sum={c.storyUrl ?? 'no story'} hint="Storybook">
             {c.storyUrl ? (
               <p>
@@ -2296,8 +2419,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
             <FigmaPanel c={c} lint={lint} reading={reading} onRead={() => readLint(true)} />
           </Row>
         </div>
-      </section>
-      </div>
+      </Sec>
 
       <p className="toast" role="status" aria-live="polite" data-show={toast ? '' : undefined}>
         {toast}

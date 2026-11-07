@@ -399,3 +399,44 @@
 .atlas ul.dm-checks > li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-8) var(--s-12); }
 .atlas .dm-ckwhy, .atlas .dm-ckrest { color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
 .atlas .dm-ckwhy code { font-family: var(--code); }
+
+/* ==== the component page = the BellaComponents Page card (Figma 113:173), live (afternoon 7 Nov) ==== */
+.atlas.cd { display: grid; gap: var(--s-32); min-width: 0; }
+.cd-head { display: grid; gap: var(--s-12); }
+.cd-crumb, .cd-mono, .cd-react, .cd-rule h2, .cd-rule span, .cd-num { font-family: var(--code); }
+.cd-crumb { margin: 0; color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
+.cd-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-12) var(--s-16); }
+.cd-lead { margin: 0; max-width: 66ch; font-size: var(--fs-20); line-height: var(--lh-body); color: var(--ink); }
+.cd-meta { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-16); }
+.cd-react { padding: var(--s-4) var(--s-12); border-radius: var(--r-control); background: var(--inset); color: var(--ink); font-size: var(--fs-16); }
+.cd-filter { display: flex; flex-wrap: wrap; gap: var(--s-8); }
+.cd-sec { display: grid; gap: var(--s-16); min-width: 0; scroll-margin-top: calc(var(--frame-top) + var(--s-16)); }
+.cd-rule { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-16); padding-bottom: var(--s-12); border-bottom: 1px solid var(--line); }
+.cd-rule h2 { margin: 0; font-size: var(--fs-16); font-weight: 400; line-height: var(--lh-body); color: var(--ink); }
+.cd-rule span { color: var(--muted); font-size: var(--fs-16); }
+.cd-intro, .cd-quiet { margin: 0; max-width: 66ch; color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
+.cd-quiet { color: var(--muted); }
+.cd-none { margin: 0; color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
+.cd-specs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: var(--s-16); }
+.cd-spec { margin: 0; padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--color-semantic-background); overflow-x: auto; }
+.cd-spec figcaption { margin-bottom: var(--s-12); font: 500 var(--fs-20)/var(--lh-head) var(--display); color: var(--color-semantic-text-primary); }
+.cd-spec table { border-collapse: collapse; }
+.cd-spec :is(th, td) { padding: var(--s-8); text-align: left; vertical-align: middle; font-size: var(--fs-16); color: var(--color-semantic-text-secondary); font-weight: 400; }
+.cd-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: var(--s-24); }
+.cd-two h3 { margin: 0 0 var(--s-8); font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
+.cd-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.cd-table :is(th, td) { padding: var(--s-12) var(--s-12); text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); font-size: var(--fs-16); line-height: var(--lh-body); }
+.cd-table thead th { font-weight: 600; color: var(--ink); border-bottom-color: var(--color-semantic-border-strong); }
+.cd-table code { font-family: var(--code); overflow-wrap: anywhere; }
+.cd-src { margin: 0; padding-left: var(--s-24); display: grid; gap: var(--s-8); font-size: var(--fs-16); line-height: var(--lh-body); }
+.cd-src code { font-family: var(--code); overflow-wrap: anywhere; }
+@container mainc (max-width: 560px) {
+  .cd-table thead { display: none; }
+  .cd-table, .cd-table tbody, .cd-table tr, .cd-table td { display: block; width: 100%; }
+  .cd-table tr { padding-block: var(--s-8); border-bottom: 1px solid var(--line); }
+  .cd-table td { border: 0; padding: var(--s-4) 0; }
+}
+.cd-spec td { white-space: nowrap; }
+.cd-spec, .cd-sec, .cd-specs > * { min-width: 0; }
+.atlas.cd .cd-spec { overflow-x: auto; max-width: 100%; }
+.atlas.cd .cd-spec { position: relative; contain: paint; }
