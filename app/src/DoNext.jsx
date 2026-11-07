@@ -486,7 +486,7 @@ export function GapReport({ items, onClose, onSession }) {
               {byFile.map(([f, ks]) => (
                 <li key={f}>
                   <Button variant="tertiary" ariaLabel={`${f}${ks.includes(i) ? ', current' : ''}`} onClick={() => setAt(ks[0])}>
-                    <code>{f}</code>
+                    {ks.includes(i) ? <b><code>{f}</code></b> : <code>{f}</code>}
                   </Button>{' '}
                   <span className="gr-n">{ks.length}</span>
                 </li>

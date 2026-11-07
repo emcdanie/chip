@@ -1297,7 +1297,7 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
         ) : null}
         <div className="dm-fx k-chrome">
           <span className="dm-src">from {path}</span>
-          <Button variant="tertiary" ariaLabel={why ? 'Hide why' : 'Why'} onClick={() => setWhy(!why)}>
+          <Button variant="tertiary" ariaExpanded={why} onClick={() => setWhy(!why)}>
             Why
           </Button>
           <span className="dm-grow" />
