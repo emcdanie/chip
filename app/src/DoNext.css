@@ -61,7 +61,7 @@
 
 /* the report: one article per component, its actions at the foot */
 .gr { display: grid; gap: var(--s-16); container: acts / inline-size; }
-.gr-sum { margin: 0; font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
+.gr-sum { margin: 0; font: 400 var(--fs-16)/var(--lh-body) var(--code); color: var(--muted); }
 .gr-item { border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
 .gr-item h3 { flex-wrap: wrap; font-family: var(--sans); }
 .gr-gap { font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
@@ -109,3 +109,7 @@
 .ov-src { font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--muted); }
 .ov-act { justify-self: start; min-height: var(--h-control); padding-left: 0; }
 .drow .dn.rowbtn { justify-self: start; text-align: left; }
+
+/* one fix per view: the sheet is the surface, so the fix inside it carries no card of its own */
+.gr > .dn-fix { border: 0; padding: 0; background: none; }
+.gr > .dn-fix .gr-acts { padding-inline: 0; }

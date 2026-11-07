@@ -20,6 +20,7 @@ const JSON_HEADERS = { 'content-type': 'application/json' };
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 // who can fix it, as a pill: CHIP is the good news, the others need someone
 const CAN_TONE = { chip: 'pass', claude: 'needs', you: 'needs' };
+const CAN_PILL = { chip: 'success', claude: 'attention', you: 'attention' };
 
 export function useGapFixes(bella) {
   const [state, setState] = useState({ data: null, error: null });
@@ -270,8 +271,8 @@ function ReportItem({ it, busyId, setBusyId, onSkip, onLater, onSession }) {
       <h3 id={id}>
         {it.name}
         <span className="gr-gap">{it.gapTitle}</span>
-        <StatusPill tone={CAN_TONE[it.can.who]}>{it.can.label}</StatusPill>
-        {it.decision?.decision === 'skip' ? <StatusPill tone="neutral">Skipped {when(it.decision.at)}</StatusPill> : null}
+        <BellaStatusPill variant={CAN_PILL[it.can.who]}>{it.can.label}</BellaStatusPill>
+        {it.decision?.decision === 'skip' ? <BellaStatusPill variant="neutral">Skipped {when(it.decision.at)}</BellaStatusPill> : null}
       </h3>
       <p className="gr-verdict">
         <b>{it.missing}</b> {VERDICT[it.can.who](it)}
@@ -331,7 +332,7 @@ function ReportItem({ it, busyId, setBusyId, onSkip, onLater, onSession }) {
             </Button>
           ) : null}
           {it.can.who === 'claude' ? (
-            <Button variant="primary" onClick={() => onSession(it.brief, `${it.name}: ${it.gapTitle.toLowerCase()}`)}>
+            <Button variant={it.id ? 'secondary' : 'primary'} onClick={() => onSession(it.brief, `${it.name}: ${it.gapTitle.toLowerCase()}`)}>
               Fix with Claude
             </Button>
           ) : null}
@@ -409,6 +410,7 @@ export function GapReport({ items, onClose, onSession }) {
   const [error, setError] = useState(null);
   const [later, setLater] = useState([]);
   const [busyId, setBusyId] = useState(null);
+  const [at, setAt] = useState(0); // one fix per view (concept step 2)
   const key = (items ?? []).map((x) => x.join(':')).join(',');
   const load = useCallback(
     () =>
@@ -424,6 +426,7 @@ export function GapReport({ items, onClose, onSession }) {
     setReport(null);
     setError(null);
     setLater([]);
+    setAt(0);
     load();
   }, [load]);
   const skip = async (it) => {
@@ -434,18 +437,31 @@ export function GapReport({ items, onClose, onSession }) {
   const shown = (report?.items ?? []).filter((it) => !it.gone && !later.includes(`${it.gap}:${it.name}`));
   const rest = shown.filter((it) => it.can.who === 'claude' && it.decision?.decision !== 'skip');
   const restBrief = () => `Close these BELLA gaps, nothing else:\n\n${rest.map((it) => it.brief).join('\n\n')}`;
+  const i = Math.min(at, Math.max(0, shown.length - 1));
+  const cur = shown[i];
   return (
     <Sheet
       open={!!items}
       onClose={onClose}
-      title={items?.length === 1 ? `Review the fix: ${items[0][1]}` : `Review ${items?.length ?? ''} fixes`}
+      title={cur ? `${cur.gapTitle}: ${cur.name}` : items?.length === 1 ? `Review the fix: ${items[0][1]}` : `Review ${items?.length ?? ''} fixes`}
       className="gr-sheet"
       footer={
         <>
-          {rest.length > 1 ? <Button onClick={() => onSession(restBrief(), `${rest.length} gaps for Claude`)}>Fix the {rest.length} that need Claude in one run</Button> : null}
-          <Button variant="tertiary" onClick={onClose}>
-            Close
-          </Button>
+          {shown.length > 1 ? (
+            <>
+              <Button disabled={i === 0} onClick={() => setAt(i - 1)}>
+                Previous
+              </Button>
+              <Button disabled={i >= shown.length - 1} onClick={() => setAt(i + 1)}>
+                Next fix
+              </Button>
+            </>
+          ) : null}
+          {rest.length > 1 ? (
+            <Button variant="tertiary" onClick={() => onSession(restBrief(), `${rest.length} gaps for Claude`)}>
+              Send all {rest.length} to Claude
+            </Button>
+          ) : null}
         </>
       }
     >
@@ -453,13 +469,11 @@ export function GapReport({ items, onClose, onSession }) {
         <p>{error ? `The report could not be read: ${error}.` : 'Reading BELLA’s contract, tokens and the Figma comparison…'}</p>
       ) : (
         <div className="gr">
-          <p className="gr-sum">
-            {whoLine(report.items) || 'Nothing left to fix.'}. Read from BELLA {report.bellaVersion ? `v${report.bellaVersion}` : ''} on {report.base}, {when(report.at)}.
-            {later.length ? ` ${later.length} put off for now.` : ''}
+          <p className="gr-sum" aria-live="polite">
+            {cur ? `Fix ${i + 1} of ${shown.length} · ${cur.can.label}` : 'Nothing left to fix.'}
+            {later.length ? ` · ${later.length} put off for now` : ''} · BELLA {report.bellaVersion ? `v${report.bellaVersion}` : ''}, read {when(report.at)}
           </p>
-          {shown.map((it) => (
-            <ReportItem key={`${it.gap}:${it.name}`} it={it} busyId={busyId} setBusyId={setBusyId} onSkip={skip} onLater={(x) => setLater((l) => [...l, `${x.gap}:${x.name}`])} onSession={onSession} />
-          ))}
+          {cur ? <ReportItem key={`${cur.gap}:${cur.name}`} it={cur} busyId={busyId} setBusyId={setBusyId} onSkip={skip} onLater={(x) => setLater((l) => [...l, `${x.gap}:${x.name}`])} onSession={onSession} /> : null}
           {report.items.filter((it) => it.gone).map((it) => (
             <p key={`${it.gap}:${it.name}`}>
               {it.name}: no longer missing ({it.gap}). Refresh Today.
