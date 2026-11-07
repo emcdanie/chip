@@ -13,7 +13,8 @@ import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
-import { StatusPill, Chips } from './kit/index.jsx';
+import Pin from '@bella/components/Pin/Pin';
+import { StatusPill, Chips, LinkButton, Overflow } from './kit/index.jsx';
 import { keyboardOf } from './AtlasSpec.jsx';
 import { canSee, settingsOf } from './visibility.jsx';
 import { SPECIMENS, VARIANTS, COMPONENTS } from './specimens.jsx';
@@ -1543,7 +1544,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
   const plistRef = useRef(null);
   const suggRef = useRef(null);
   useRove(ckRef);
-  useRove(pinsRef);
+  useRove(pinsRef, 'button');
   useRove(filmRef);
   useRove(plistRef);
   useRove(suggRef);
@@ -1990,19 +1991,21 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
             <h1 className="k-h1" id="dm-h1" tabIndex={-1}>
               {c.name}
             </h1>
-            {onPin ? (
-              <button type="button" className={`k-toggle dm-pin${pinned ? ' on' : ''}`} aria-pressed={!!pinned} onClick={onPin}>
-                Pin to the nav
-              </button>
-            ) : null}
+            <Overflow label="More" text="More" className="dm-more">
+              {onPin ? (
+                <LinkButton aria-pressed={!!pinned} onClick={onPin}>
+                  {pinned ? 'Unpin from the sidebar' : 'Pin to the sidebar'}
+                </LinkButton>
+              ) : null}
+              <LinkButton aria-expanded={read} aria-controls="dm-read" onClick={() => setRead(!read)}>
+                {read ? 'Hide the description' : 'Read the full description'}
+              </LinkButton>
+            </Overflow>
           </div>
           <p className="dm-lede">{firstSentence(c.description) || 'No description in the contract yet.'}</p>
           <p className="k-meta dm-built">
             Renders as <b>{c.rendersAs ?? 'unknown'}</b> · BELLA {bella.source?.version} @ <code>{bella.source?.commit}</code>
           </p>
-          <button type="button" className="k-link" aria-expanded={read} aria-controls="dm-read" onClick={() => setRead(!read)}>
-            {read ? 'Hide the description' : 'Read the full description'}
-          </button>
           {read ? (
             <div className="dm-read" id="dm-read">
               {(c.description ?? '').replace(/\s+/g, ' ').trim().slice(firstSentence(c.description).length).trim() ? <p>{(c.description ?? '').replace(/\s+/g, ' ').trim().slice(firstSentence(c.description).length).trim()}</p> : null}
@@ -2082,14 +2085,18 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       <section className={`dm-work dm-card${stage ? '' : ' dm-nospec'}${detail ? '' : ' dm-nodetail'}`} aria-label="Specimen">
         <div className="dm-stage">
           <div className="dm-sbar k-chrome">
-            <RadioSeg label="Pointer" items={[{ id: 'inspect', label: 'Inspect', title: HINT.inspect }, { id: 'use', label: 'Use', title: HINT.use }]} value={mode} onChange={(v) => (setMode(v), setLive(null), v === 'use' && (setSel(null), setHov(null), setPlaying(false)))} />
-            <span className="dm-hint" />
-            <button type="button" className="k-toggle dm-tog" aria-pressed={theme === 'dark'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-              Dark
-            </button>
-            <button type="button" className="k-toggle dm-tog" aria-pressed={all} onClick={() => setAll(!all)}>
-              All at once
-            </button>
+            <span className="dm-hint">{mode === 'use' ? 'Using the component' : 'Inspecting: pick a part'}</span>
+            <Overflow label="Stage options" text="More" className="dm-more">
+              <LinkButton aria-pressed={mode === 'use'} onClick={() => { const v = mode === 'use' ? 'inspect' : 'use'; setMode(v); setLive(null); if (v === 'use') (setSel(null), setHov(null), setPlaying(false)); }}>
+                {mode === 'use' ? 'Back to inspecting' : 'Use it'}
+              </LinkButton>
+              <LinkButton aria-pressed={theme === 'dark'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                {theme === 'dark' ? 'Light' : 'Dark'}
+              </LinkButton>
+              <LinkButton aria-pressed={all} onClick={() => setAll(!all)}>
+                {all ? 'One at a time' : 'All at once'}
+              </LinkButton>
+            </Overflow>
           </div>
           <div className="dm-canvas dm-sp" {...sp} ref={canvas} data-mode={mode}>
             <div className="dm-specwrap" ref={wrap} style={{ '--z': z }} inert={mode === 'inspect' || all} aria-hidden={mode === 'inspect' || all ? true : undefined} {...useEvents} key={mode === 'inspect' && cfg.generic ? `${o.st}-${o.variant}` : 'live'}>
@@ -2123,30 +2130,25 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
                       ))}
                   </div>
                 ) : null}
-                <div className="dm-pins" role="toolbar" aria-label={`${c.name} parts`} ref={pinsRef} onKeyDown={(e) => focusPart(roveKeys(e))}>
+                <div className="dm-pins" role="toolbar" aria-label={`${c.name} parts`} ref={pinsRef} onKeyDown={(e) => focusPart(roveKeys(e, 'button')?.closest('[data-part]'))}>
                   {[...pins]
                     .sort((a, b) => a.p.n - b.p.n)
                     .map(({ p, x, y }) => {
                       const latent = !visible(p);
                       return (
-                        <button
+                        <span
                           key={p.key}
-                          type="button"
-                          data-rv=""
                           data-part={p.key}
                           ref={(el) => (chipEls.current[p.key] = el)}
-                          className={`dm-anno${on(p.key) ? ' on' : ''}${latent ? ' idle' : ''}${lens === 'technical' ? ' tok' : ''}`}
+                          className={`dm-anno-pin${on(p.key) ? ' on' : ''}${latent ? ' idle' : ''}`}
                           style={{ left: x, top: y }}
-                          aria-pressed={sel === p.key}
-                          onClick={() => pick(p.key)}
                           onPointerEnter={() => setHov(p.key)}
                           onPointerLeave={() => setHov(null)}
                           onFocus={() => setHov(p.key)}
                           onBlur={() => setHov(null)}
                         >
-                          <b>{p.n}</b> {chipText(p)}
-                          {latent ? <span className="k-vh">, shows on {trigOf(p)}</span> : null}
-                        </button>
+                          <Pin number={p.n} variant="pink" label={<>{chipText(p)}{latent ? <span className="k-vh">, shows on {trigOf(p)}</span> : null}{sel === p.key ? <span className="k-vh">, selected</span> : null}</>} onClick={() => pick(p.key)} />
+                        </span>
                       );
                     })}
                 </div>

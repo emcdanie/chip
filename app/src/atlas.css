@@ -384,3 +384,12 @@
 .atlas .dm-list { margin: 0; padding-left: var(--s-24); display: grid; gap: var(--s-8); max-width: 66ch; }
 .atlas .dm-quiet { margin: 0; color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
 .atlas .dm-sec > h2 { margin: 0 0 var(--s-12); font: 500 var(--fs-28)/var(--lh-head) var(--display); color: var(--ink); }
+
+/* rule 13 (7 Nov): the stage's tags are BELLA's Pin, placed where the old chips were */
+.atlas .dm-anno-pin { position: absolute; pointer-events: auto; max-width: 260px; }
+.atlas .dm-anno-pin.idle { opacity: 0.75; }
+.atlas .dm-anno-pin.on { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--r-control); }
+.atlas .dm-built { font-family: var(--code); }
+.atlas .dm-hint { color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
+.atlas .dm-head .dm-more { margin-left: auto; }
+.atlas .dm-sbar .dm-more { margin-left: auto; }
