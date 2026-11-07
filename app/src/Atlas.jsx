@@ -1,7 +1,8 @@
 // Atlas: one BELLA component, documented by itself (docs/plans/component-docs.md,
 // approved mock chip-docs-01). One live specimen is the page: every fact hangs
-// off a part of it, every rule is a check that runs on it. No tabs: the checks
-// strip, the stage with its inspector, the scenes, Behind it.
+// off a part of it, every rule is a check that runs on it. A doc page since the
+// concept lock (amended 7 Nov): tabs with their own URLs (?tab=), Overview first
+// with the live stage; Parts and Ask are cut, Rules and Behind it take a tab.
 // Every panel reads real data: data/bella.json, /bella-doc, /bella-spec,
 // /bella-history, /component-tests, /figma-lint and BELLA's own files. Where
 // there is no source, the page says so instead of inventing it.
@@ -11,6 +12,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import { StatusPill, Chips } from './kit/index.jsx';
 import { keyboardOf } from './AtlasSpec.jsx';
 import { canSee, settingsOf } from './visibility.jsx';
@@ -1469,6 +1471,13 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
   const [pressed, setPressed] = useState(false); // FilterChip in Use: really toggles
   const [why, setWhy] = useState(null);
   const [read, setRead] = useState(false);
+  // the tab is the address: #/atlas/<id>?tab=usage
+  const [tab, setTab] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('tab') ?? 'overview');
+  useEffect(() => {
+    const base = window.location.hash.split('?')[0];
+    const want = tab === 'overview' ? base : `${base}?tab=${tab}`;
+    if (window.location.hash !== want) window.history.replaceState(null, '', want);
+  }, [tab, c?.id]);
   const [playing, setPlaying] = useState(false);
   const [q, setQ] = useState('');
   const [answer, setAnswer] = useState(null);
@@ -2007,6 +2016,23 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
         </div>
       </section>
 
+      <Tabs
+        idBase="dm"
+        label={`${c.name} documentation`}
+        value={tab}
+        onChange={setTab}
+        className="k-chrome"
+        tabs={[
+          { id: 'overview', label: 'Overview' },
+          { id: 'usage', label: 'Usage' },
+          { id: 'a11y', label: 'Accessibility' },
+          { id: 'code', label: 'Code' },
+          { id: 'changelog', label: 'Changelog' },
+          { id: 'rules', label: 'Rules' },
+        ]}
+      />
+
+      <div {...tabPanelProps('dm', 'overview', tab === 'overview')} className="dm-tab">
       <section aria-label="Checks" className="k-chrome" hidden={!stage}>
         <div className="dm-checks" role="toolbar" aria-label="Measured on this render" ref={ckRef} onKeyDown={(e) => roveKeys(e)}>
           <span className="dm-lbl">Measured on this render</span>
@@ -2053,7 +2079,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
         </div>
       </section>
 
-      <section className={`dm-work dm-card${stage ? '' : ' dm-nospec'}`} aria-label="Specimen">
+      <section className={`dm-work dm-card${stage ? '' : ' dm-nospec'}${detail ? '' : ' dm-nodetail'}`} aria-label="Specimen">
         <div className="dm-stage">
           <div className="dm-sbar k-chrome">
             <RadioSeg label="Pointer" items={[{ id: 'inspect', label: 'Inspect', title: HINT.inspect }, { id: 'use', label: 'Use', title: HINT.use }]} value={mode} onChange={(v) => (setMode(v), setLive(null), v === 'use' && (setSel(null), setHov(null), setPlaying(false)))} />
@@ -2210,91 +2236,78 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           </div>
         </div>
 
-        <aside className="dm-insp" aria-label="Inspector">
+        <aside className="dm-insp" aria-label="Inspector" hidden={!detail}>
           <h2 className="k-vh">Inspector</h2>
-          <section>
-            <h3>
-              Parts <span className="cap">{c.parts?.length ? 'from the contract' : 'measured, none in the contract'}</span>
-            </h3>
-            <ul className="dm-plist" ref={plistRef} onKeyDown={(e) => focusPart(roveKeys(e))} onPointerLeave={() => setHov(null)}>
-              {parts.map((p) => (
-                <li key={p.key}>
-                  <button type="button" data-rv="" data-part={p.key} className={hov === p.key ? 'hov' : undefined} aria-pressed={sel === p.key} onClick={() => pick(p.key)} onPointerEnter={() => setHov(p.key)} onFocus={() => setHov(p.key)} onBlur={() => setHov(null)}>
-                    <b>{p.n}</b>
-                    {p.title}
-                    <span className="dm-tg">{trigOf(p) ? `on ${trigOf(p)}` : p.kind}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
           {/* nothing pinned, nothing shown: the panel appears with the pin */}
           <section className="dm-detail" aria-live="polite" hidden={!detail}>
             {detail}
           </section>
-          <section className="dm-ask">
-            <h3 id="dm-askh">Ask {c.name}</h3>
-            <form
-              role="search"
-              aria-labelledby="dm-askh"
-              className="k-chrome"
-              onSubmit={(e) => {
-                e.preventDefault();
-                ask(q);
-              }}
-            >
-              {/* the placeholder no longer reads as a typed question: the suggestions under it are the prompts */}
-              <input aria-labelledby="dm-askh" autoComplete="off" value={q} placeholder="Type a question" onChange={(e) => setQ(e.target.value)} />
-              <Button variant="primary" type="submit" disabled={!q.trim()}>
-                Ask
-              </Button>
-            </form>
-            <div className="dm-sugg" role="group" aria-label="Suggested questions" ref={suggRef} onKeyDown={(e) => roveKeys(e)}>
-              {suggOf(c).map((s) => (
-                <button key={s} type="button" data-rv="" onClick={() => ask(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
-            <div className="dm-ans" aria-live="polite">
-              {answer == null ? (
-                <p className="cap">Answers quote contract lines, with their index. Nothing else.</p>
-              ) : answer.length ? (
-                <>
-                  <p>From the contract:</p>
-                  {answer.map((l) => (
-                    <React.Fragment key={l.path + l.t}>
-                      <blockquote>
-                        {l.t}
-                        <code>{l.path}</code>
-                      </blockquote>
-                      {l.part || l.scene ? (
-                        <p className="dm-arow">
-                          {l.part ? (
-                            <button type="button" className="k-link" onClick={() => toStage(l.part)}>
-                              Show on the stage
-                            </button>
-                          ) : null}
-                          {l.scene ? (
-                            <button type="button" className="k-link" onClick={() => toScene(l.scene.id)}>
-                              Show the scene
-                            </button>
-                          ) : null}
-                        </p>
-                      ) : null}
-                    </React.Fragment>
-                  ))}
-                </>
-              ) : (
-                <p>
-                  <b>The contract doesn’t say.</b> That’s a gap to add to <code>component.{c.id}</code>, not something to guess.
-                </p>
-              )}
-            </div>
-          </section>
         </aside>
       </section>
 
+      </div>
+
+      <div {...tabPanelProps('dm', 'usage', tab === 'usage')} className="dm-tab k-chrome">
+        <section aria-labelledby="dm-use" className="dm-sec">
+          <h2 id="dm-use">Use it for</h2>
+          {(c.usage ?? []).length ? (
+            <ul className="dm-list">
+              {c.usage.map((u) => (
+                <li key={u}>{u}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="cap">Not in the contract yet.</p>
+          )}
+        </section>
+        <section aria-labelledby="dm-dont" className="dm-sec">
+          <h2 id="dm-dont">Don’t</h2>
+          {(c.dont ?? []).length ? (
+            <ul className="dm-list">
+              {c.dont.map((u) => (
+                <li key={u}>{u}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="cap">Not in the contract yet.</p>
+          )}
+        </section>
+      </div>
+
+      <div {...tabPanelProps('dm', 'a11y', tab === 'a11y')} className="dm-tab k-chrome">
+        <section aria-labelledby="dm-a11y" className="dm-sec">
+          <h2 id="dm-a11y">Accessibility</h2>
+          <A11yFacts c={c} cfg={cfg} label={cfg.label(c)} />
+        </section>
+      </div>
+
+      <div {...tabPanelProps('dm', 'code', tab === 'code')} className="dm-tab k-chrome">
+        <section aria-labelledby="dm-contract" className="dm-sec">
+          <h2 id="dm-contract">Contract</h2>
+          <p className="dm-quiet">
+            <code>tokens/component.json → component.{c.id}</code> · {c.tokens?.count ?? 0} tokens, {(c.props ?? []).length} props, {states.length} states · {c.hasContract ? (hl.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code') : NO_CONTRACT}
+          </p>
+          <ContractPanel c={c} bella={bella} doc={doc} tests={tests} hist={hist} notify={notify} onOpen={onOpen} />
+        </section>
+        <section aria-labelledby="dm-src" className="dm-sec">
+          <h2 id="dm-src">Source</h2>
+          <SourcePanel c={c} doc={doc} notify={notify} />
+        </section>
+        <section aria-labelledby="dm-tests" className="dm-sec">
+          <h2 id="dm-tests">Tests</h2>
+          <p className="dm-quiet">{tSum}</p>
+          <TestsPanel c={c} tests={tests} onRun={runTest} running={running} />
+        </section>
+      </div>
+
+      <div {...tabPanelProps('dm', 'changelog', tab === 'changelog')} className="dm-tab k-chrome">
+        <section aria-labelledby="dm-hist" className="dm-sec">
+          <h2 id="dm-hist">Changelog</h2>
+          <HistoryPanel c={c} hist={hist} />
+        </section>
+      </div>
+
+      <div {...tabPanelProps('dm', 'rules', tab === 'rules')} className="dm-tab">
       <section aria-labelledby="dm-sch" className="dm-sec">
         <div className="dm-sechead">
           <h2 id="dm-sch">Rules, run on real compositions</h2>
@@ -2321,24 +2334,8 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       <section aria-labelledby="dm-bhh" className="dm-sec">
         <div className="dm-sechead">
           <h2 id="dm-bhh">Behind it</h2>
-          <p>The files and results this page reads from, one row each.</p>
         </div>
         <div className="dm-behind dm-card">
-          <Row name="Contract" sum={`tokens/component.json → component.${c.id} · ${c.tokens?.count ?? 0} tokens, ${(c.props ?? []).length} props, ${states.length} states · ${(c.usage ?? []).length} usage, ${(c.dont ?? []).length} rules, ${(c.parts ?? []).length} parts · ${c.hasContract ? (hl.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code') : NO_CONTRACT}`} hint="overview, compliance, file">
-            <ContractPanel c={c} bella={bella} doc={doc} tests={tests} hist={hist} notify={notify} onOpen={onOpen} />
-          </Row>
-          <Row name="Accessibility" sum={`${c.minTarget ? `${c.minTarget.value} target` : 'no target'} · ${hl.contrast?.status === 'pass' ? `${hl.contrast.pairs} contrast pairs pass` : hl.contrast?.status === 'fail' ? 'contrast fails' : 'no pairs'} · ${keyboardOf(c).split('.')[0]}`} hint="role, name, keyboard">
-            <A11yFacts c={c} cfg={cfg} label={cfg.label(c)} />
-          </Row>
-          <Row name="Source" sum={`src/components/${c.name}/${c.name}.tsx · ${c.name}.module.css`} hint="read only">
-            <SourcePanel c={c} doc={doc} notify={notify} />
-          </Row>
-          <Row name="Tests" sum={tSum} hint="what the gate runs">
-            <TestsPanel c={c} tests={tests} onRun={runTest} running={running} />
-          </Row>
-          <Row name="History" sum={hist?.entries?.length ? `${plural(hist.entries.length, 'change')} · latest ${fmtDate(hist.entries[0].date)}: ${hist.entries[0].explanation || hist.entries[0].subject}` : hist ? 'no commits' : 'reading…'} hint="git log of its files">
-            <HistoryPanel c={c} hist={hist} />
-          </Row>
           <Row name="Story" sum={c.storyUrl ?? 'no story'} hint="Storybook">
             {c.storyUrl ? (
               <p>
@@ -2355,6 +2352,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           </Row>
         </div>
       </section>
+      </div>
 
       <p className="toast" role="status" aria-live="polite" data-show={toast ? '' : undefined}>
         {toast}

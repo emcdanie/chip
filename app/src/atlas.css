@@ -375,3 +375,12 @@
 .atlas .dm-pin { align-self: start; min-height: var(--h-compact); }
 .atlas .dm-pin.on { background: var(--sel); border-color: var(--action); }
 .atlas .dm-hint:empty { flex: 1 1 auto; min-width: 0; }
+
+/* the doc page (concept, amended 7 Nov): tabs under the head; with no part picked the stage takes the width */
+.atlas .dm-work.dm-nodetail { grid-template-columns: minmax(0, 1fr); }
+.atlas .dm-insp[hidden] { display: none; }
+.atlas .dm-tab { display: grid; gap: var(--s-32); min-width: 0; }
+.atlas .dm-tab[hidden] { display: none; }
+.atlas .dm-list { margin: 0; padding-left: var(--s-24); display: grid; gap: var(--s-8); max-width: 66ch; }
+.atlas .dm-quiet { margin: 0; color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
+.atlas .dm-sec > h2 { margin: 0 0 var(--s-12); font: 500 var(--fs-28)/var(--lh-head) var(--display); color: var(--ink); }
