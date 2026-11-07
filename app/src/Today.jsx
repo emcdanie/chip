@@ -15,7 +15,7 @@ import { openRun, runLine, useRunsRead } from './Runs.jsx';
 import { runNeed } from './WorkPanel.jsx';
 import './Today.css';
 
-const TONE = { Failed: 'danger', 'Waiting on you': 'attention', 'Ready to review': 'info' };
+const TONE = { Failed: 'danger', 'Waiting on you': 'attention', 'Ready to review': 'success' };
 const WORKING = ['starting', 'running', 'gate'];
 const STUCK = ['failed', 'login'];
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -188,7 +188,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
           <ListRowGroup ariaLabel="Ready to review">
             {ready.map((n, k) => needRow(n, k === 0))}
             {passed.map((r, k) => (
-              <RunRow key={r.id} run={r} status="Ready to review" tone="info" label="Review the run" primary={k === 0 && !ready.length} onOpen={() => openRun(r.id)} />
+              <RunRow key={r.id} run={r} status="Ready to review" tone="success" label="Review the run" primary={k === 0 && !ready.length} onOpen={() => openRun(r.id)} />
             ))}
           </ListRowGroup>
         ) : runsRead !== true ? (
