@@ -39,10 +39,9 @@ const mismatch = (l) => (l.prs ?? []).some((pr) => pr.claim !== 'none' && pr.ci 
 const KEY = 'chip-work';
 const LIM = { w: [360, 760], h: [280, 0.7] };
 // h: null is the bottom dock's default, 40% of the window; a resize stores px
-const DEF = { open: true, dock: 'right', w: 380, h: null, tab: 'needs' };
-// closed by default under 1280px wide (it took half the page at 1024); once
+const DEF = { open: false, dock: 'right', w: 380, h: null, tab: 'needs' };
+// closed by default, so pages get the full width (concept lock, 7 Nov); once
 // she opens or closes it, that choice (chosen) is kept
-const WIDE = 1280;
 const TABS = ['needs', 'sessions', 'term', 'ask'];
 
 /** The panel's layout state, kept in localStorage (chip-work). */
@@ -55,7 +54,7 @@ export function useWork() {
       // 440 was the default before 6 Nov, stored whether or not it was resized; a
       // width she sets from now on is marked sized, so it stays
       if (s.w === 440 && !s.sized) s.w = DEF.w;
-      if (!s.chosen) s.open = window.innerWidth >= WIDE;
+      if (!s.chosen) s.open = false;
       return TABS.includes(s.tab) ? s : { ...s, tab: DEF.tab };
     } catch {
       return DEF;
@@ -123,7 +122,7 @@ export function useNeeds() {
   return data;
 }
 
-function run(a, onLane) {
+export function runNeed(a, onLane) {
   if (a.type === 'review') openReview(a.check);
   else if (a.type === 'terminal') window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: a.repo, command: a.command, from: 'Needs you' } }));
   else if (a.type === 'lane') onLane(a.lane);
@@ -147,7 +146,7 @@ function NeedsList({ needs, onLane }) {
                 className="nyrow"
                 aria-expanded={inPlace ? on : undefined}
                 aria-haspopup={inPlace ? undefined : 'dialog'}
-                onClick={() => (inPlace ? setOpen(on ? null : n.id) : run(n.action, onLane))}
+                onClick={() => (inPlace ? setOpen(on ? null : n.id) : runNeed(n.action, onLane))}
               >
                 <span className="nyk">
                   {n.status} <StatusPill tone={RISK_TONE[n.risk]}>{n.risk} risk</StatusPill>
@@ -161,7 +160,7 @@ function NeedsList({ needs, onLane }) {
                   <p className="will">
                     This will: {n.thisWill} · Undo: {n.undo}
                   </p>
-                  <Button variant="primary" onClick={() => run(n.action, onLane)}>
+                  <Button variant="primary" onClick={() => runNeed(n.action, onLane)}>
                     {n.action.label}
                   </Button>
                 </div>
@@ -644,7 +643,7 @@ function DockPick({ value, onChange }) {
   );
 }
 
-const ROUTE_NAME = { health: 'Overview', foundations: 'Foundations', atlas: 'Components', play: 'Playground', docs: 'History', connectors: 'Connectors' };
+const ROUTE_NAME = { health: 'Today', coverage: 'Health', foundations: 'Foundations', atlas: 'Components', play: 'Playground', docs: 'History', connectors: 'Connectors' };
 const routeName = () => ROUTE_NAME[location.hash.match(/^#\/(\w+)/)?.[1]] ?? 'a page';
 
 const WHAT = {

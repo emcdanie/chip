@@ -10,6 +10,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
+import ListRow from '@bella/components/ListRow/ListRow';
+import BellaStatusPill from '@bella/components/StatusPill/StatusPill';
 import { Sheet, StatusPill } from './kit/index.jsx';
 import { changed } from './ReviewSheet.jsx';
 import './DoNext.css';
@@ -95,18 +97,11 @@ function whoLine(items) {
 // skipped is picked to start), then reviews them; the toggles live there, not
 // on the page (density pass, 5 Nov).
 // { gap, idx, title, why, who, first, fixes, fixesError, decisions, focus, onOpen, onReview, onSession }
-export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, decisions, focus, onOpen, onReview, onSession }) {
+export function GapRow({ gap, title, why, who, first, primary, fixes, fixesError, decisions, onReview, onSession }) {
   const [sel, setSel] = useState([]);
   const [picking, setPicking] = useState(false);
   const skipped = (n) => decisions?.[`${gap}:${n}`]?.decision === 'skip';
   const open = who.filter((n) => !skipped(n));
-  // a Coverage or Drift detail pointing here: open the picker with those selected
-  useEffect(() => {
-    if (focus?.names?.length) {
-      setSel(focus.names.filter((n) => who.includes(n)));
-      setPicking(true);
-    }
-  }, [focus?.at]);
   // keep the selection to components still missing this check after a refresh
   useEffect(() => setSel((s) => s.filter((n) => who.includes(n))), [who.join()]);
   const picked = who.filter((n) => sel.includes(n));
@@ -120,18 +115,15 @@ export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, d
     setPicking(true);
   };
   return (
-    <li className={`gap1 dn${first ? ' first' : ''}${focus ? ' focus' : ''}`} id={`gapcard-${gap}`}>
-      <span className="n">
-        {who.length}
-        <small>component{who.length === 1 ? '' : 's'}</small>
-      </span>
-      <div>
-        <button type="button" className="rowbtn" id={`gap-${idx}`} aria-haspopup="dialog" onClick={onOpen}>
-          {title}
-        </button>
-        {first ? <StatusPill tone="needs">Do next</StatusPill> : null}
-      </div>
-      <Button onClick={start}>Review the fix</Button>
+    <ListRow
+      status={<BellaStatusPill variant={first ? 'attention' : 'neutral'}>{first ? 'Do next' : 'Gap'}</BellaStatusPill>}
+      title={`${title}: ${who.length} component${who.length === 1 ? '' : 's'}`}
+      description={`${why} Source: ${Object.values(fixes ?? {})[0]?.why?.source ?? 'Not measured'}.`}
+      action={
+        <>
+          <Button variant={primary ? 'primary' : 'secondary'} ariaLabel={`Review the fix: ${title}`} onClick={start}>
+            Review the fix
+          </Button>
       <Sheet
         open={picking}
         onClose={() => setPicking(false)}
@@ -176,7 +168,9 @@ export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, d
           ) : null}
         </div>
       </Sheet>
-    </li>
+        </>
+      }
+    />
   );
 }
 
@@ -445,7 +439,7 @@ export function GapReport({ items, onClose, onSession }) {
           ))}
           {report.items.filter((it) => it.gone).map((it) => (
             <p key={`${it.gap}:${it.name}`}>
-              {it.name}: no longer missing ({it.gap}). Refresh the Overview.
+              {it.name}: no longer missing ({it.gap}). Refresh Today.
             </p>
           ))}
         </div>

@@ -405,7 +405,7 @@ export default function SystemMap({ controls, map, onReload }) {
       } else if (a.type === 'run') {
         const r = await fetch(`/checks/${a.check}/run`, { method: 'POST', headers: JSON_HEADERS, body: '{}' });
         const j = await r.json();
-        setMsg(r.ok ? 'Started. Overview shows the result when it lands.' : j.error);
+        setMsg(r.ok ? 'Started. Health shows the result when it lands.' : j.error);
       }
       await onReload();
       changed();

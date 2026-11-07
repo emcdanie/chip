@@ -924,7 +924,7 @@ export function ObiThread({ bella, page, obi, onOpenAtlas, onSandbox, notify, mo
       <ol className="obi-thread" ref={thread} aria-live="polite" aria-label="OBI thread">
         {obi.turns.length === 0 ? (
           <li className="obi-empty">
-            <p>Ask about {page === 'Overview' ? 'BELLA' : page.replace(/^(?:Atlas|Components) · /, '')}, or type / for a command.</p>
+            <p>Ask about {page === 'Today' ? 'BELLA' : page.replace(/^(?:Atlas|Components) · /, '')}, or type / for a command.</p>
             {suggestions.length ? (
               <div className="obi-suggest" aria-label="Suggested questions">
                 {suggestions.map((sg) => (

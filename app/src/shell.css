@@ -33,7 +33,7 @@ main h1:focus { outline: none; }
 .top .search[hidden] + .wtoggle { margin-left: auto; }
 .seg { display: inline-flex; gap: var(--s-4); padding: var(--s-4); border: 0; border-radius: var(--r-control); background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
 .seg button { min-height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--body); box-shadow: none; font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
-.seg button:hover { color: var(--ink); background: color-mix(in srgb, var(--action) 8%, transparent); }
+.seg button:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, transparent); }
 .seg button[aria-checked='true'] { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
 .seg button:focus-visible { outline-offset: -3px; }
 
@@ -48,12 +48,12 @@ main h1:focus { outline: none; }
 /* a shadow at whichever edge has more nav past it (the covers scroll with the list, the shadows stay) */
 .side { background: linear-gradient(var(--card) 33%, transparent) top / 100% var(--s-24) no-repeat local, linear-gradient(transparent, var(--card) 67%) bottom / 100% var(--s-24) no-repeat local, linear-gradient(var(--edge), transparent) top / 100% var(--s-12) no-repeat scroll, linear-gradient(transparent, var(--edge)) bottom / 100% var(--s-12) no-repeat scroll, var(--card); }
 .sidecol { align-self: flex-start; min-height: var(--h-compact); padding: 0 var(--s-12); margin: 0 0 var(--s-8); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
-.sidecol:hover { border-color: var(--action); }
+.sidecol:hover { border-color: var(--ink); }
 .navrow { position: relative; display: flex; align-items: center; }
 .navrow > .navitem, .navrow > .compitem { flex: 1; min-width: 0; }
 .navitem { display: flex; align-items: center; gap: var(--s-12); min-height: var(--h-compact); padding: 0 var(--s-12); border-radius: var(--r); text-decoration: none; font: 600 var(--fs-16)/var(--lh-body) var(--sans); position: relative; color: var(--ink); }
-.navitem:hover { background: color-mix(in srgb, var(--action) 7%, transparent); color: var(--ink); }
-.navitem[aria-current]::before { content: ''; position: absolute; left: 0; top: var(--s-8); bottom: var(--s-8); width: 2px; background: var(--action); }
+.navitem:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
+.navitem[aria-current]::before { content: ''; position: absolute; left: 0; top: var(--s-8); bottom: var(--s-8); width: 2px; background: var(--ink); }
 .app.navcollapsed .navitem[aria-current]::before { left: calc(-1 * var(--s-4)); }
 .navitem .count { margin-left: auto; background: none; color: var(--muted); font: 600 var(--fs-14)/var(--lh-body) var(--sans); min-width: 0; padding: 0; }
 .navitem .adot { margin-left: auto; padding: 0 var(--s-8); }
@@ -65,7 +65,7 @@ main h1:focus { outline: none; }
 .pinb svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
 .pinb.on { opacity: 1; color: var(--ink); } /* shown only when pinned, or on hover and focus */
 .pinb.on svg { fill: currentColor; }
-.pinb:hover { color: var(--ink); background: color-mix(in srgb, var(--action) 8%, transparent); }
+.pinb:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, transparent); }
 .navrow:hover .pinb, .navrow:focus-within .pinb, .pinb:focus-visible { opacity: 1; }
 .pinb:focus-visible { outline-offset: -2px; }
 .pins { display: grid; gap: var(--s-4); padding-bottom: var(--s-8); margin-bottom: var(--s-4); border-bottom: 1px solid var(--line); }
@@ -83,9 +83,9 @@ main h1:focus { outline: none; }
 .cgh span { margin-left: auto; font-weight: 400; color: var(--muted); }
 .cgh:focus-visible { outline: var(--focus); outline-offset: -3px; }
 .compitem { display: flex; align-items: center; gap: var(--s-12); min-height: var(--h-compact); padding: 0 var(--s-12); border-radius: var(--r); color: var(--body); text-decoration: none; font-size: var(--fs-14); line-height: var(--lh-body); position: relative; }
-.compitem:hover { background: color-mix(in srgb, var(--action) 7%, transparent); color: var(--ink); }
-.compitem[aria-current] { background: var(--sel); color: var(--ink); font-weight: 600; }
-.compitem[aria-current]::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; background: var(--action); }
+.compitem:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
+.compitem[aria-current] { background: color-mix(in srgb, var(--ink) 8%, var(--card)); color: var(--ink); font-weight: 600; }
+.compitem[aria-current]::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; background: var(--ink); }
 .compitem .adot { margin-left: auto; padding: 0 var(--s-8); }
 .none2 { margin: 0; padding: var(--s-8) var(--s-12); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
 
@@ -107,7 +107,7 @@ main h1:focus { outline: none; }
 .wp-bottom { left: 0; right: 0; bottom: 0; height: var(--wp-h); border-top: 1px solid var(--line); grid-template-rows: auto auto minmax(0, 1fr) auto; }
 .grip { position: absolute; z-index: 2; touch-action: none; }
 .grip::after { content: ''; position: absolute; border-radius: var(--r-control); background: transparent; transition: background 0.1s; }
-.grip:hover::after, .wp.dragging .grip::after { background: var(--action); }
+.grip:hover::after, .wp.dragging .grip::after { background: var(--ink); }
 .grip:focus-visible::after { background: var(--focus-ring); }
 .grip:focus-visible { outline: none; }
 .wp-right .grip { left: calc(-1 * var(--s-12)); top: 0; bottom: 0; width: var(--s-24); cursor: col-resize; }
@@ -164,7 +164,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .ny.r-medium { box-shadow: inset 2px 0 0 var(--needs); }
 .nyrow { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: var(--s-4); width: 100%; padding: var(--s-12); }
 .nyrow:focus-visible { outline: var(--focus); outline-offset: -3px; }
-.nyrow:hover { background: color-mix(in srgb, var(--action) 5%, var(--card)); }
+.nyrow:hover { background: color-mix(in srgb, var(--ink) 5%, var(--card)); }
 .nyk { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-8); font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
 .nyw { font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
 .nydet { display: grid; gap: var(--s-8); justify-items: start; padding: 0 var(--s-12) var(--s-12); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
@@ -180,7 +180,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 /* the suggested questions are sentences: plain list rows, not pills that wrap */
 .obi-suggest { display: grid; gap: 0; }
 .obi-suggest [data-bella-component='action-chip'] { width: 100%; border: 0; border-top: 1px solid var(--line); border-radius: var(--r); text-align: left; }
-.obi-suggest [data-bella-component='action-chip']:hover:not(:disabled) { background: var(--sel); }
+.obi-suggest [data-bella-component='action-chip']:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 8%, var(--card)); }
 .obi-empty p { font-size: var(--fs-16); }
 .skids > ul:empty { display: none; }
 .skids > ul { gap: 0; }
@@ -193,7 +193,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .snode.s-working { box-shadow: inset 2px 0 0 var(--pass); }
 .srow { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-4) var(--s-12); align-items: center; width: 100%; padding: var(--s-12); }
 .srow:focus-visible { outline: var(--focus); outline-offset: -3px; }
-.srow:hover { background: color-mix(in srgb, var(--action) 5%, var(--card)); }
+.srow:hover { background: color-mix(in srgb, var(--ink) 5%, var(--card)); }
 .srow .face { grid-row: span 3; align-self: start; }
 .srow .line, .srow .smeta { grid-column: 2 / -1; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); overflow-wrap: anywhere; }
 .srow .line { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
@@ -495,3 +495,8 @@ html.wp-dragging .xterm { pointer-events: none; }
 
 /* a library doc opened from Find (SourceSheet) */
 .k-sheet pre.src-text { margin: 0; padding: 0; background: none; white-space: pre-wrap; overflow-wrap: anywhere; font: 400 var(--fs-16)/var(--lh-body) var(--sans); color: var(--body); }
+
+/* the shortcut goes first: at 360 the Work button ran past the top bar */
+@media (max-width: 480px) {
+  .wtoggle kbd { display: none; }
+}

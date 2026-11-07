@@ -1,0 +1,11 @@
+/* Today: page title, one line, tabs with counts, rows. Layout glue only, on
+ * BELLA's tokens; everything else is the components' own. */
+.td-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-4); min-width: 0; }
+.td-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--spacing-3) var(--spacing-6); }
+.td-title { display: grid; gap: var(--spacing-2); flex: 1 1 calc(var(--spacing-20) * 4); min-width: 0; }
+.td-line { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-secondary); overflow-wrap: anywhere; }
+.td-sync { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-secondary); }
+.td-sync:empty { display: none; }
+.td-panel:focus-visible { outline: var(--ring-focus-width) solid var(--ring-focus-color); outline-offset: var(--ring-focus-offset); }
+.td-empty { display: grid; justify-items: start; gap: var(--spacing-3); padding-block: var(--spacing-8); }
+.td-empty p { margin: 0; font-size: var(--typography-font-size-body); line-height: var(--typography-line-height-normal); color: var(--color-semantic-text-body); }

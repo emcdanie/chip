@@ -8,6 +8,7 @@
 // there and nowhere near a specimen (tokens.css).
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Health, { COLS } from './Health.jsx';
+import Today from './Today.jsx';
 import Atlas from './Atlas.jsx';
 import Connectors from './Connectors.jsx';
 import Foundations from './Foundations.jsx';
@@ -24,24 +25,25 @@ import './shell.css';
 
 // route ids stay (#/health, #/atlas/<id>, #/docs, #/connectors), so old links open
 const PAGES = [
-  { id: 'health', label: 'Overview', icon: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /></> },
+  { id: 'health', label: 'Today', icon: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /></> },
   { id: 'foundations', label: 'Foundations', icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor" /></> },
   { id: 'atlas', label: 'Components', icon: <><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" /></> },
   { id: 'play', label: 'Playground', icon: <><rect x="3.5" y="4.5" width="17" height="13" rx="1.5" /><path d="M9 21h6M12 17.5V21" /><path d="M8 13l3-3 2 2 3-3" /></> },
   { id: 'docs', label: 'History', icon: <><path d="M3 12h18" /><circle cx="7" cy="12" r="2.2" fill="currentColor" /><circle cx="13" cy="12" r="2.2" fill="currentColor" /><circle cx="19" cy="12" r="2.2" /></> },
   { id: 'connectors', label: 'Connectors', icon: <><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M8 7.5l3 8M16 7.5l-3 8" /></> },
   { id: 'projects', label: 'Projects', icon: <><path d="M3.5 7.5v11a1.5 1.5 0 0 0 1.5 1.5h14a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 19 8h-7l-2-2.5H5A1.5 1.5 0 0 0 3.5 7z" /></> },
+  { id: 'coverage', label: 'Health', icon: <path d="M3 12h4l2.5-6 4 12 2.5-6h5" /> },
 ];
 const NAME = Object.fromEntries(PAGES.map((p) => [p.id, p.label]));
 const GROUP_ORDER = ['Actions', 'Inputs', 'Layout', 'Data', 'Chat', 'Brand', 'Other'];
-const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digit4: 'play', Digit5: 'docs', Digit6: 'connectors', Digit7: 'projects' };
+const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digit4: 'play', Digit5: 'docs', Digit6: 'connectors', Digit7: 'projects', Digit8: 'coverage' };
 // v2: Claude answers by default (Elleta, 3 Nov: the local model isn't good
 // enough on stage); the local model stays one pick away
 const MODEL_KEY = 'chip-model-v2';
 
 // #/play/<project>?route=<page> opens a project's page in the Playground
 function routeOf(hash) {
-  const m = hash.match(/^#\/(health|foundations|atlas|play|docs|connectors|projects)(?:\/([\w-]+))?(?:\?route=([^&]*))?$/);
+  const m = hash.match(/^#\/(health|foundations|atlas|play|docs|connectors|projects|coverage)(?:\/([\w-]+))?(?:\?route=([^&]*))?$/);
   if (!m) return null;
   let route;
   try {
@@ -208,7 +210,12 @@ export default function App() {
       return;
     }
     window.scrollTo(0, 0);
-    requestAnimationFrame(() => document.querySelector('main h1')?.focus({ preventScroll: true }));
+    requestAnimationFrame(() => {
+      const h1 = document.querySelector('main h1');
+      if (!h1) return;
+      h1.tabIndex = -1; // BELLA's Heading takes no tabIndex
+      h1.focus({ preventScroll: true });
+    });
   }, [ws]);
 
   useEffect(() => {
@@ -515,7 +522,8 @@ export default function App() {
               The CHIP server is not answering. Start it with npm start.
             </p>
           ) : null}
-          {ws === 'health' ? <Health bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={() => loadBella(true)} /> : null}
+          {ws === 'health' ? <Today bella={bella} needs={needs} onSession={session} onRefresh={() => loadBella(true)} onLane={() => setWork({ open: true, tab: 'sessions' })} onHealth={() => go('coverage')} /> : null}
+          {ws === 'coverage' ? <Health bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={() => loadBella(true)} /> : null}
           {ws === 'foundations' ? <Foundations bella={bella} onSession={session} onOpenAtlas={openAtlas} /> : null}
           {ws === 'docs' ? <History docId={docId} version={docsVersion} bella={bella} lens={lens} onOpenAtlas={openAtlas} onSession={session} /> : null}
           {ws === 'play' ? <Playground onToast={setToast} project={playTarget?.project} route={playTarget?.route} onTarget={setPlayTarget} /> : null}
