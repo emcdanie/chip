@@ -321,10 +321,10 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
   const [recent, setRecent] = useState(() => load('chip-hq', []));
   const [mine, setMine] = useState(() => load('chip-hpre', []));
   const [seen, setSeen] = useState(() => new Set(load('chip-hseen', [], sessionStorage)));
-  const [shown, setShown] = useState(20); // one row a change, 20 at a time (concept step 7: no sideways timeline)
+  const [shown, setShown] = useState(10); // one row a change, 10 on load (rule 13), 20 more at a time (concept step 7: no sideways timeline)
 
   useEffect(() => keep('chip-hist', f), [f]);
-  useEffect(() => setShown(20), [f, sort]);
+  useEffect(() => setShown(10), [f, sort]);
   const data = useJSON(`/history?${query({ ...paramsOf(f), sort: sort === 'oldest' ? 'oldest' : '' })}`);
   // every record, newest first: what Current and Superseded are read against
   const base = useJSON('/history');
@@ -494,9 +494,9 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
                     </>
                   }
                   action={
-                    <Button variant="secondary" ariaLabel={`Open: ${clip(r.title, 60)}`} onClick={() => (markSeen(r.id), setRecord(r.id))}>
-                      Open
-                    </Button>
+                    <LinkButton aria-label={`Open: ${clip(r.title, 60)}`} onClick={() => (markSeen(r.id), setRecord(r.id))}>
+                      Open →
+                    </LinkButton>
                   }
                 />
               ))}

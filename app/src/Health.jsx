@@ -7,7 +7,7 @@
 // "Not measured" instead of a number.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { Segmented, segPanelProps, Sheet, StatusPill } from './kit/index.jsx';
+import { LinkButton, Overflow, Segmented, segPanelProps, Sheet, StatusPill } from './kit/index.jsx';
 import { CheckSheet, failingTokens, useChecks, when } from './Checks.jsx';
 import { openReview } from './ReviewSheet.jsx';
 import { GapReport, useGapFixes } from './DoNext.jsx';
@@ -351,22 +351,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
     }[k];
     setSheet({ title: k === 'figma' ? 'Figma ↔ code' : 'Storybook ↔ code', body, footer });
   };
-  /* ---------- the banner: the first failing gate check, in one sentence ---------- */
-  const first = failingGate[0];
-  const pair = first?.failures?.[0]?.match(/^([\w-]+): (.+?) is ([\d.]+:1).*?needs ([\d.]+:1)/);
-  const theme = pair?.[1].replace(/-/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase());
-  // the banner counts; the Work panel and the check's sheet hold the detail; Fix it names what it fixes
-  const fixes1 = first ? (pair ? `${first.name}: ${theme} ${pair[2].replace(/ vs .*/, '')}` : first.name) : '';
-  const banner = first ? (
-    <>
-      <b>Not ready to merge.</b> The gate fails {gc.failed} of {gc.total} checks
-      {gc.notRun ? `, and ${gc.notRun} ${gc.notRun === 1 ? 'hasn’t' : 'haven’t'} run` : ''}
-      {redSince ? `, so nothing merged since ${fmt(redSince.day)} is proven safe` : ', so BELLA accepts no commit'}.{' '}
-      <button type="button" className="k-link" onClick={() => setCheckId(first.id)}>
-        See the check
-      </button>
-    </>
-  ) : null;
+  // no banner (rule 9): a failing gate is Today's first row
 
   // Refresh re-reads BELLA and the checks, then says what changed since the last look
   const refresh = async () => {
@@ -451,29 +436,16 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
             <p className="k-meta">
               <b>BELLA {bella.source.version}</b> · checks last ran {lastRan ? when(lastRan) : 'never'}
             </p>
-            <Button onClick={refresh}>
-              <span className={refreshing ? 'spin' : undefined}>{ICON.refresh}</span>
-              {refreshing ? 'Checking…' : 'Refresh'}
-            </Button>
+            <Overflow label="More" text="More">
+              <LinkButton disabled={refreshing} onClick={refresh}>
+                {refreshing ? 'Checking…' : 'Read everything again'}
+              </LinkButton>
+            </Overflow>
           </div>
         </div>
         <p className={`syncline${sync?.error ? ' err' : ''}`} role="status" aria-live="polite">
           {syncLine}
         </p>
-        {gateFailed && banner ? (
-          <div className="alertline" role="alert">
-            <p>{banner}</p>
-            <div className="alertfix">
-              <span>
-                {fixes1}
-                {failingGate.length > 1 ? ` + ${failingGate.length - 1} more` : ''}
-              </span>
-              <Button variant="primary" ariaLabel={`Fix it: ${fixes1}`} onClick={() => openReview(first.id)}>
-                Fix it
-              </Button>
-            </div>
-          </div>
-        ) : null}
       </div>
 
       <section className="wx-card" aria-labelledby="wcTitle">
