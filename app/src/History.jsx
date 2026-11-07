@@ -310,7 +310,7 @@ function Ask({ value, onChange, onRun, records, recent, onRecord }) {
 }
 
 /* ---------- changes: search, filters, summary, timeline, cards ---------- */
-function Changes({ bella, lens, onOpenAtlas, onSession }) {
+function Changes({ bella, lens, onOpenAtlas, onSession, repo }) {
   const [f, setF] = useState(() => ({ ...EMPTY, ...load('chip-hist', {}) }));
   const [draft, setDraft] = useState(f.q);
   const [sort, setSort] = useState('newest');
@@ -324,6 +324,10 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
   const [shown, setShown] = useState(10); // one row a change, 10 on load (rule 13), 20 more at a time (concept step 7: no sideways timeline)
 
   useEffect(() => keep('chip-hist', f), [f]);
+  // opened from a project: that repo's changes
+  useEffect(() => {
+    if (repo) setF((x) => ({ ...x, repo }));
+  }, [repo]);
   useEffect(() => setShown(10), [f, sort]);
   const data = useJSON(`/history?${query({ ...paramsOf(f), sort: sort === 'oldest' ? 'oldest' : '' })}`);
   // every record, newest first: what Current and Superseded are read against
@@ -664,13 +668,13 @@ function DocSheet({ id, onClose, bella, onOpenAtlas }) {
   );
 }
 
-export default function History({ docId, version = 0, bella, lens = 'visual', onOpenAtlas, onSession }) {
+export default function History({ docId, version = 0, bella, lens = 'visual', onOpenAtlas, onSession, repo }) {
   const [doc, setDoc] = useState(docId ?? null);
   useEffect(() => setDoc(docId ?? null), [docId]);
   return (
     <div className="hist k-chrome">
       <PageHeader title="History" lede="What changed, when and why, across BELLA and CHIP." />
-      <Changes bella={bella} lens={lens} onOpenAtlas={onOpenAtlas} onSession={onSession} />
+      <Changes bella={bella} lens={lens} onOpenAtlas={onOpenAtlas} onSession={onSession} repo={repo} />
       {/* Written down's cards are cut (concept, amended 7 Nov); #/docs/<id> still opens the doc */}
       <DocSheet id={doc} onClose={() => setDoc(null)} bella={bella} onOpenAtlas={onOpenAtlas} />
     </div>

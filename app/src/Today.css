@@ -20,3 +20,6 @@
   .td-page { padding: var(--spacing-2); }
   .td-surface { padding: var(--spacing-4); }
 }
+/* Health sits at Today's foot (concept, afternoon 7 Nov) */
+.td-foot { margin-top: var(--spacing-8); min-width: 0; }
+.td-foot .hl-h2 { margin: 0; font: 500 var(--typography-font-size-display-section)/1.15 var(--typography-font-family-display); color: var(--color-semantic-text-primary); }

@@ -60,7 +60,7 @@ function RunRow({ run, status, tone, label, primary, onOpen }) {
   );
 }
 
-export default function Today({ bella, needs, onSession, onRefresh, onLane, onHealth }) {
+export default function Today({ bella, needs, onSession, onRefresh, onLane, onHealth, foot }) {
   const checks = useChecks();
   const fixes = useGapFixes(bella);
   const { runs, read: runsRead } = useRunsRead(true);
@@ -275,6 +275,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
       </div>
 
       </div>
+      {foot ? <div className="td-foot">{foot}</div> : null}
       <GapReport items={report} onClose={() => setReport(null)} onSession={(b, t) => (setReport(null), onSession(b, t))} />
     </div>
   );

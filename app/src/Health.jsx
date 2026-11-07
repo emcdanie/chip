@@ -86,7 +86,7 @@ function gateRuns(bella) {
     });
 }
 
-export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
+export default function Health({ bella, onOpenAtlas, onSession, onRefresh, embedded = false }) {
   const checks = useChecks();
   const fixes = useGapFixes(bella);
   const failing = failingTokens(checks);
@@ -429,9 +429,17 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
     <div className="ov-page k-chrome">
       <div id="hhead">
         <div className="tline">
-          <h1 className="k-h1" tabIndex={-1}>
-            Health
-          </h1>
+          {embedded ? (
+            <h2 className="hl-h2" id="hl-foot">
+              Health
+            </h2>
+          ) : (
+            <h1 className="k-h1" tabIndex={-1}>
+              Health
+            </h1>
+          )}
+          {/* at Today's foot, Today's own line already says the data age (rule 12) */}
+          {embedded ? null : (
           <div className="hsync">
             <p className="k-meta">
               <b>BELLA {bella.source.version}</b> · checks last ran {lastRan ? when(lastRan) : 'never'}
@@ -442,6 +450,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
               </LinkButton>
             </Overflow>
           </div>
+          )}
         </div>
         <p className={`syncline${sync?.error ? ' err' : ''}`} role="status" aria-live="polite">
           {syncLine}

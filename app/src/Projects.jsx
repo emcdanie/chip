@@ -123,6 +123,11 @@ function Panel({ p, reload }) {
             Open in Playground
           </Button>
           <Button onClick={() => terminal(p.terminal, '')}>Open terminal</Button>
+          {['chip', 'bella'].includes(p.id) ? (
+            <a className="k-link pj-hist" href={`#/docs?repo=${p.id}`}>
+              History →
+            </a>
+          ) : null}
           <Button onClick={() => terminal(p.terminal, 'claude')}>Start Claude here</Button>
           {p.run?.state === 'running' && !p.run.self ? (
             <Button href={p.run.url}>Open {p.run.url.replace(/^https?:\/\//, '')}</Button>

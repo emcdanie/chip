@@ -38,7 +38,10 @@ const PAGES = [
   { id: 'coverage', label: 'Health', icon: <path d="M3 12h4l2.5-6 4 12 2.5-6h5" /> },
   { id: 'connectors', label: 'Connectors', icon: <><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="12" cy="18" r="2.5" /><path d="M8 7.5l3 8M16 7.5l-3 8" /></> },
 ];
-const SECTIONS = PAGES.filter((p) => p.id !== 'connectors');
+// four sections (concept, afternoon 7 Nov): Playground and History live in Projects, Health at Today's foot
+const SECTIONS = PAGES.filter((p) => ['health', 'atlas', 'foundations', 'projects'].includes(p.id));
+const SECTION_OF = { play: 'projects', docs: 'projects' };
+const sectionOf = (ws) => SECTION_OF[ws] ?? ws;
 const NAME = Object.fromEntries(PAGES.map((p) => [p.id, p.label]));
 const GROUP_ORDER = ['Actions', 'Inputs', 'Layout', 'Data', 'Chat', 'Brand', 'Other'];
 const WS_KEYS = { Digit1: 'health', Digit2: 'atlas', Digit3: 'foundations', Digit4: 'play', Digit5: 'projects', Digit6: 'docs', Digit7: 'coverage', Digit8: 'connectors' };
@@ -52,7 +55,9 @@ function routeOf(hash) {
   if (!m) return null;
   const q = new URLSearchParams(m[3] ?? '');
   // Connectors lives in Health since step 8: its old address opens Health
-  return { ws: m[1] === 'connectors' ? 'coverage' : m[1], id: m[2], route: q.get('route') ?? undefined, at: q.get('at') ?? (m[1] === 'connectors' ? 'cn-h' : undefined) };
+  // Health is Today's foot now; Connectors is part of it: the old addresses land there
+  const foot = { coverage: 'hl-foot', connectors: 'cn-h' }[m[1]];
+  return { ws: foot ? 'health' : m[1], id: foot ? undefined : m[2], route: q.get('route') ?? undefined, at: q.get('at') ?? foot, repo: q.get('repo') ?? undefined };
 }
 
 function useMedia(query) {
@@ -96,6 +101,7 @@ export default function App() {
   const [docId, setDocId] = useState(start.ws === 'docs' ? start.id ?? null : null);
   const [projId, setProjId] = useState(start.ws === 'projects' ? start.id ?? null : null);
   const [fdTab, setFdTab] = useState(start.ws === 'foundations' ? start.id ?? null : null);
+  const [docRepo, setDocRepo] = useState(start.repo ?? null); // History opened from a project: #/docs?repo=chip
   const startAt = useRef(start.at);
   // what the Playground was asked to open: { project, route }, from #/play/<project>?route=
   const [playTarget, setPlayTarget] = useState(start.ws === 'play' && start.id ? { project: start.id, route: start.route } : null);
@@ -123,7 +129,7 @@ export default function App() {
   const [work, setWork] = useWork();
   // under 961px the panel always docks at the bottom (no room beside the page)
   const dock = wide ? work.dock : 'bottom';
-  const hasSide = ['atlas', 'foundations', 'projects'].includes(ws);
+  const hasSide = ['atlas', 'foundations'].includes(ws);
   const collapsed = sidePref === 'col';
   const navW = !wide || !hasSide ? 0 : collapsed ? 64 : 256;
   const wpW = clampW(work.w, winW, navW);
@@ -203,7 +209,7 @@ export default function App() {
       const r = routeOf(window.location.hash);
       if (!r) return;
       setWs(r.ws);
-      if (r.ws === 'docs') setDocId(r.id ?? null);
+      if (r.ws === 'docs') (setDocId(r.id ?? null), setDocRepo(r.repo ?? null));
       else if (r.ws === 'projects') setProjId(r.id ?? null);
       else if (r.ws === 'foundations') setFdTab(r.id ?? null);
       else if (r.ws === 'play') setPlayTarget(r.id ? { project: r.id, route: r.route } : null);
@@ -298,7 +304,8 @@ export default function App() {
   });
 
   function go(id) {
-    if (id === 'connectors') return (setWs('coverage'), setNavOn(false), requestAnimationFrame(() => document.getElementById('cn-h')?.scrollIntoView({ block: 'start' })));
+    const foot = { coverage: 'hl-foot', connectors: 'cn-h' }[id];
+    if (foot) return (setWs('health'), setNavOn(false), setTimeout(() => document.getElementById(foot)?.scrollIntoView({ block: 'start' }), 400));
     setWs(id);
     setNavOn(false);
   }
@@ -369,7 +376,7 @@ export default function App() {
   ) : null;
   const side = (
     <aside className="side" id="side" aria-label={`${NAME[ws]} and sections`}>
-      {narrow ? <NavList label="Sections" groups={[{ items: SECTIONS.map((p) => ({ href: `#/${p.id}`, label: p.label, current: ws === p.id })) }]} onNavigate={route} /> : null}
+      {narrow ? <NavList label="Sections" groups={[{ items: SECTIONS.map((p) => ({ href: `#/${p.id}`, label: p.label, current: sectionOf(ws) === p.id })) }]} onNavigate={route} /> : null}
       {ws === 'atlas' && bella && !(wide && collapsed) ? (
         <div className="complist">
           <label className="k-vh" htmlFor="compQ">
@@ -445,7 +452,7 @@ export default function App() {
             Menu
           </button>
         ) : (
-          <SectionNav label="Sections" items={SECTIONS.map((p) => ({ href: `#/${p.id}`, label: p.label, current: ws === p.id }))} onNavigate={route} />
+          <SectionNav label="Sections" items={SECTIONS.map((p) => ({ href: `#/${p.id}`, label: p.label, current: sectionOf(ws) === p.id }))} onNavigate={route} />
         )}
         <div className="search" hidden={!searchShown}>
           <OneInput
@@ -466,9 +473,7 @@ export default function App() {
             <rect x="3" y="4" width="18" height="16" rx="2" />
             {dock === 'right' ? <path d="M15 4v16" /> : <path d="M3 15h18" />}
           </svg>
-          Work <span className="count">{needs ? needCount : '…'}</span>
-          <span className="k-vh"> need you</span>
-          <kbd aria-hidden="true">⌘J</kbd>
+          <span className="k-vh">Ask, Sessions and Terminal (⌘J)</span>
         </button>
       </header>
 
@@ -486,10 +491,9 @@ export default function App() {
               The CHIP server is not answering. Start it with npm start.
             </p>
           ) : null}
-          {ws === 'health' ? <Today bella={bella} needs={needs} onSession={session} onRefresh={() => loadBella(true)} onLane={() => setWork({ open: true, tab: 'sessions' })} onHealth={() => go('coverage')} /> : null}
-          {ws === 'coverage' ? <Health bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={() => loadBella(true)} /> : null}
+          {ws === 'health' ? <Today bella={bella} needs={needs} onSession={session} onRefresh={() => loadBella(true)} onLane={() => setWork({ open: true, tab: 'sessions' })} onHealth={() => go('coverage')} foot={<Health embedded bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={() => loadBella(true)} />} /> : null}
           {ws === 'foundations' ? <Foundations bella={bella} onSession={session} onOpenAtlas={openAtlas} tab={fdTab ?? FD_TOPICS[0].id} onTab={(t) => setFdTab(t)} /> : null}
-          {ws === 'docs' ? <History docId={docId} version={docsVersion} bella={bella} lens={lens} onOpenAtlas={openAtlas} onSession={session} /> : null}
+          {ws === 'docs' ? <History repo={docRepo} docId={docId} version={docsVersion} bella={bella} lens={lens} onOpenAtlas={openAtlas} onSession={session} /> : null}
           {ws === 'play' ? <Playground onToast={setToast} project={playTarget?.project} route={playTarget?.route} onTarget={setPlayTarget} /> : null}
           {ws === 'projects' ? <Projects projectId={projId} onProject={setProjId} /> : null}
           {ws === 'atlas' ? <Atlas c={atlas} bella={bella} lens={lens} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={false} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} role={role} vis={vis} setVis={setVis} pinned={atlas ? pins.includes(`comp:${atlas.id}`) : false} onPin={atlas ? () => togglePin(`comp:${atlas.id}`) : undefined} /> : null}

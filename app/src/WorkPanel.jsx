@@ -39,10 +39,11 @@ const mismatch = (l) => (l.prs ?? []).some((pr) => pr.claim !== 'none' && pr.ci 
 const KEY = 'chip-work';
 const LIM = { w: [360, 760], h: [280, 0.7] };
 // h: null is the bottom dock's default, 40% of the window; a resize stores px
-const DEF = { open: false, dock: 'right', w: 380, h: null, tab: 'needs' };
+const DEF = { open: false, dock: 'right', w: 380, h: null, tab: 'sessions' };
 // closed by default, so pages get the full width (concept lock, 7 Nov); once
 // she opens or closes it, that choice (chosen) is kept
-const TABS = ['needs', 'sessions', 'term', 'ask'];
+// Sessions, Terminal and Ask (concept, afternoon 7 Nov); what needs her is Today's
+const TABS = ['sessions', 'term', 'ask'];
 
 /** The panel's layout state, kept in localStorage (chip-work). */
 export function useWork() {
@@ -126,56 +127,6 @@ export function runNeed(a, onLane) {
   if (a.type === 'review') openReview(a.check);
   else if (a.type === 'terminal') window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: a.repo, command: a.command, from: 'Needs you' } }));
   else if (a.type === 'lane') onLane(a.lane);
-}
-
-/* ---------- Needs you ---------- */
-function NeedsList({ needs, onLane }) {
-  const [open, setOpen] = useState(null);
-  if (!needs) return <p className="wp-empty">Reading what needs you…</p>;
-  return (
-    <>
-      <ul className="nylist">
-        {needs.items.length === 0 ? <li className="wp-empty">Nothing needs you.</li> : null}
-        {needs.items.map((n) => {
-          const inPlace = n.action.type !== 'review';
-          const on = open === n.id;
-          return (
-            <li key={n.id} className={`ny r-${n.risk.toLowerCase()}`}>
-              <button
-                type="button"
-                className="nyrow"
-                aria-expanded={inPlace ? on : undefined}
-                aria-haspopup={inPlace ? undefined : 'dialog'}
-                onClick={() => (inPlace ? setOpen(on ? null : n.id) : runNeed(n.action, onLane))}
-              >
-                <span className="nyk">
-                  {n.status} <StatusPill tone={RISK_TONE[n.risk]}>{n.risk} risk</StatusPill>
-                </span>
-                <span className="nyw">{n.title ?? n.what}</span>
-              </button>
-              {on ? (
-                <div className="nydet">
-                  <p>{n.detail}</p>
-                  <p className={`riskwhy r-${n.risk.toLowerCase()}`}>{n.riskWhy}</p>
-                  <p className="will">
-                    This will: {n.thisWill} · Undo: {n.undo}
-                  </p>
-                  <Button variant="primary" onClick={() => runNeed(n.action, onLane)}>
-                    {n.action.label}
-                  </Button>
-                </div>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
-      {needs.staleLaneNotes ? (
-        <p className="autolow">
-          {needs.staleLaneNotes} older lane question{needs.staleLaneNotes === 1 ? '' : 's'} <small>(reports quiet for over {needs.freshDays} days) are in Sessions.</small>
-        </p>
-      ) : null}
-    </>
-  );
 }
 
 /* ---------- Sessions ---------- */
@@ -843,14 +794,6 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
       onChange={setTab}
       items={[
         {
-          id: 'needs',
-          label: (
-            <>
-              Needs you <span className="n">{count ?? '…'}</span>
-            </>
-          ),
-        },
-        {
           id: 'sessions',
           label: (
             <>
@@ -910,9 +853,6 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
       {right ? <div className="wp-tabs">{tabs}</div> : null}
       {WHAT[tab] ? <p className="wp-what">{WHAT[tab]}</p> : null}
 
-      <div className="wp-body" {...segPanelProps('wp', 'needs', tab)}>
-        <NeedsList needs={needs} onLane={onLane} />
-      </div>
       <div className="wp-body" {...segPanelProps('wp', 'sessions', tab)}>
         <Sessions
           lanes={lanes}
