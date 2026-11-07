@@ -529,3 +529,9 @@ html.wp-dragging .xterm { pointer-events: none; }
 .cd-head { position: relative; }
 .cd-tools { position: absolute; top: 0; right: 0; }
 .wp[data-theme='dark'] { background: var(--card); color: var(--body); }
+/* a run's steps and files in the drawer; the expand arrow points up while it can grow */
+.wp-steps { margin: var(--s-8) 0 0; padding: 0; list-style: none; display: grid; gap: var(--s-4); font-size: var(--fs-16); line-height: var(--lh-body); }
+.wp-steps [aria-current] { font-weight: 600; color: var(--ink); }
+.wp-files { margin: var(--s-8) 0 0; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--muted); overflow-wrap: anywhere; }
+.wp-files code { font-family: var(--code); margin-right: var(--s-8); color: var(--body); }
+.wp-up { transform: rotate(180deg); }

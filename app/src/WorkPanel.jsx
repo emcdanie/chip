@@ -16,6 +16,8 @@
 // Speech API, on device where the browser can; speech never sends by itself.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
+import Icon from '@bella/components/Icon/Icon';
+import Tooltip from '@bella/components/Tooltip/Tooltip';
 import Combobox from '@bella/components/Combobox/Combobox';
 import { Overflow, Segmented, segPanelProps, StatusPill } from './kit/index.jsx';
 import { openReview } from './ReviewSheet.jsx';
@@ -309,15 +311,29 @@ function Sessions({ lanes, terms, runs, labelOf, branchOf, handles, onGoTerm, on
               <ul>
                 {rs.map(([r, state]) => (
                   <Row key={r.id} id={`r${r.id}`} sel={sel} setSel={setSel} face="C" name={r.title} sub={`Claude, headless · from ${r.from ?? 'a page'}`} state={state} line={runLine(r)} branch={r.branch} last={ago(Date.parse(r.startedAt))}>
-                    {r.steps?.some((x) => x.claude) ? (
-                      <ol className="lneeds">
-                        {r.steps
-                          .filter((x) => x.claude)
-                          .slice(-4)
-                          .map((x, i) => (
-                            <li key={i}>{x.step}</li>
-                          ))}
+                    {/* a running fix shows its steps, done or pending, and the files it wrote (benchmark, 7 Nov) */}
+                    {r.steps?.length || r.step ? (
+                      <ol className="wp-steps" aria-label="Steps">
+                        {(r.steps ?? []).length > 6 ? <li className="wp-earlier">{r.steps.length - 6} earlier steps done</li> : null}
+                        {(r.steps ?? []).slice(-6).map((x, i) => (
+                          <li key={i}>
+                            <span aria-hidden="true">✓</span> {x.step}
+                            <span className="k-vh">, done</span>
+                          </li>
+                        ))}
+                        {r.step ? (
+                          <li aria-current="step">
+                            <span aria-hidden="true">○</span> {r.step}
+                            <span className="k-vh">, in progress</span>
+                          </li>
+                        ) : null}
                       </ol>
+                    ) : null}
+                    {r.files?.length ? (
+                      <p className="wp-files">
+                        {r.files.length} file{r.files.length === 1 ? '' : 's'}: {r.files.slice(0, 4).map((f) => <code key={f}>{f}</code>)}
+                        {r.files.length > 4 ? ` and ${r.files.length - 4} more` : ''}
+                      </p>
                     ) : null}
                     <Button variant={r.status === 'passed' ? 'primary' : 'secondary'} onClick={() => openRun(r.id)}>
                       {r.status === 'passed' ? 'Review: Accept or Undo' : 'Open the report'}
@@ -846,6 +862,11 @@ export function WorkPanel({ open, st, set, dock, canDock, size, limits, onResize
             <DockPick value={dock} onChange={(d) => set({ dock: d })} />
           </Overflow>
         ) : null}
+        <Tooltip label={st.h && st.h >= maxH(window.innerHeight) ? 'Restore' : 'Expand'}>
+          <button type="button" className="tool-btn" aria-label={st.h && st.h >= maxH(window.innerHeight) ? 'Restore the drawer' : 'Expand the drawer'} aria-pressed={!!(st.h && st.h >= maxH(window.innerHeight))} onClick={() => set({ h: st.h && st.h >= maxH(window.innerHeight) ? null : maxH(window.innerHeight) })}>
+            <Icon name="NavArrowDown" size="sm" className={st.h && st.h >= maxH(window.innerHeight) ? undefined : 'wp-up'} />
+          </button>
+        </Tooltip>
         <button type="button" className="k-iconbtn" onClick={onClose} aria-label="Close the Work panel">
           <span aria-hidden="true">✕</span> Close
         </button>
