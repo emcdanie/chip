@@ -11,7 +11,7 @@ import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import { failingTokens, useChecks, when } from './Checks.jsx';
 import { GapReport, GapRow, useGapFixes } from './DoNext.jsx';
 import { COLS, GAP_ORDER } from './Health.jsx';
-import { openRun, runLine, useRuns } from './Runs.jsx';
+import { openRun, runLine, useRunsRead } from './Runs.jsx';
 import { runNeed } from './WorkPanel.jsx';
 import './Today.css';
 
@@ -38,7 +38,7 @@ function RunRow({ run, status, tone, label, primary, onOpen }) {
 export default function Today({ bella, needs, onSession, onRefresh, onLane, onHealth }) {
   const checks = useChecks();
   const fixes = useGapFixes(bella);
-  const runs = useRuns(true);
+  const { runs, read: runsRead } = useRunsRead(true);
   const [tab, setTab] = useState('needs');
   const [report, setReport] = useState(null);
   const [baseline, setBaseline] = useState(null);
@@ -86,7 +86,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
   const needsCount = waiting.length + gaps.length + stuck.length;
   const readyCount = ready.length + passed.length;
   const runningCount = working.length + busy.length;
-  const loaded = !!(needs && bella && (fixes.data || fixes.error));
+  const loaded = !!(needs && bella && (fixes.data || fixes.error) && runsRead !== null);
 
   /* ---------- the one line ---------- */
   const lastRan = (checks.data?.checks ?? []).reduce((m, c) => (c.ranAt && c.ranAt > m ? c.ranAt : m), '');
@@ -95,6 +95,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
     ...(baseline && !baseline.at ? ['Figma match'] : []),
     ...(fixes.error ? ['who can fix each gap'] : []),
     ...(checks.error ? ['the checks'] : []),
+    ...(runsRead === false ? ['CHIP’s runs'] : []),
   ];
   const refresh = async () => {
     if (refreshing) return;
@@ -135,8 +136,8 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
         onChange={setTab}
         tabs={[
           { id: 'needs', label: `Needs you ${loaded ? needsCount : '…'}` },
-          { id: 'ready', label: `Ready to review ${needs ? readyCount : '…'}` },
-          { id: 'running', label: `Running ${runningCount}` },
+          { id: 'ready', label: `Ready to review ${loaded ? readyCount : '…'}` },
+          { id: 'running', label: `Running ${runsRead === true ? runningCount : '…'}` },
         ]}
       />
 
@@ -174,7 +175,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
             <Heading tier="subsection" as="h2">
               Nothing needs you
             </Heading>
-            <p>No check is failing, no gap is open and no run is stuck.</p>
+            <p>{runsRead ? 'No check is failing, no gap is open and no run is stuck.' : 'No check is failing and no gap is open. Not measured: CHIP’s runs.'}</p>
             <Button variant="secondary" onClick={onHealth}>
               See Health
             </Button>
@@ -190,6 +191,8 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
               <RunRow key={r.id} run={r} status="Ready to review" tone="info" label="Review the run" primary={k === 0 && !ready.length} onOpen={() => openRun(r.id)} />
             ))}
           </ListRowGroup>
+        ) : runsRead !== true ? (
+          <p className="td-line">{runsRead === false ? 'Not measured: CHIP could not read its runs.' : 'Reading the runs…'}</p>
         ) : (
           <div className="td-empty">
             <Heading tier="subsection" as="h2">
@@ -210,6 +213,8 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
               <ListRow key={c.id} status={<StatusPill variant="neutral">Running</StatusPill>} title={c.name} description={`${c.plain ?? c.summary} Source: ${c.schedule}.`} />
             ))}
           </ListRowGroup>
+        ) : runsRead !== true ? (
+          <p className="td-line">{runsRead === false ? 'Not measured: CHIP could not read its runs.' : 'Reading the runs…'}</p>
         ) : (
           <div className="td-empty">
             <Heading tier="subsection" as="h2">

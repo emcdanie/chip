@@ -25,8 +25,21 @@ export async function startRun(brief, title, from) {
 
 /** Every run CHIP knows, kept fresh while one is going (the Sessions tree). */
 export function useRuns(live) {
+  return useRunsRead(live).runs;
+}
+
+// read: null until /runs first answers, false once it fails, so "no runs" and "couldn't read them" stay apart
+export function useRunsRead(live) {
   const [runs, setRuns] = useState([]);
-  const load = useCallback(() => fetch('/runs').then((r) => r.json()).then((j) => setRuns(j.runs ?? [])).catch(() => {}), []);
+  const [read, setRead] = useState(null);
+  const load = useCallback(
+    () =>
+      fetch('/runs')
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))))
+        .then((j) => (setRuns(j.runs ?? []), setRead(true)))
+        .catch(() => setRead(false)),
+    [],
+  );
   useEffect(() => {
     load();
     window.addEventListener('chip:run-started', load);
@@ -39,7 +52,7 @@ export function useRuns(live) {
     const t = setInterval(load, going ? 2000 : 10000);
     return () => clearInterval(t);
   }, [going, live, load]);
-  return runs;
+  return { runs, read };
 }
 
 // a run as the tree shows it: state, and one line
