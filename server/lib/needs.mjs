@@ -33,6 +33,8 @@ const short = (text, n = 64) => {
 function failureTitle(c) {
   const f = c.failures?.[0] ?? c.summary;
   const prefix = c.gate ? 'Gate' : c.name;
+  // a command that failed is CHIP not getting to run the check, not BELLA failing it
+  if (/^Command failed:/.test(f)) return `${c.name} couldn’t run: CHIP couldn’t check BELLA out`;
   // contrast: "wee-dote: selected wash vs the page is 1.04:1, … (needs 1.08:1; …)"
   const pair = f.match(/^([\w-]+): (.+?) is ([\d.]+:1).*?needs ([\d.]+:1)/);
   if (pair) return `${prefix}: ${pair[1].replace(/-/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase())} ${pair[2]} ${pair[3]}, needs ${pair[4]}`;

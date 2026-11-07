@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { createConnection } from 'node:net';
 import { DATA_DIR, ROOT } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
-import { BASE, measureBench, prepare, readResult, runCheck, staged } from './checks.mjs';
+import { BASE, CHECKOUT, measureBench, prepare, readResult, runCheck, staged } from './checks.mjs';
 import { gapFix } from './gaps.mjs';
 
 const ACTIONS = join(DATA_DIR, 'actions.jsonl');
@@ -232,7 +232,7 @@ function llmsFix(line) {
   };
   const preview = (() => {
     try {
-      const dir = join(tmpdir(), 'chip-checks', 'bella'); // the checks' clean copy, when it exists
+      const dir = CHECKOUT; // the checks' clean copy, when it exists
       return existsSync(join(dir, 'tokens/component.json')) ? build(dir) : null;
     } catch {
       return null;

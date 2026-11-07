@@ -7,7 +7,7 @@
 // Passed, Failed, Waiting on you (plus Running and Not run yet).
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createConnection } from 'node:net';
@@ -17,7 +17,9 @@ import { BELLA } from './bella-work.mjs';
 export const BASE = process.env.BELLA_PROPOSAL_BASE || 'feat/chip-components';
 export const CHECKS_DIR = join(DATA_DIR, 'checks');
 const ODSB = process.env.ODSB_DIR || join(homedir(), 'DEV', 'tools', 'odsb');
-const CHECKOUT = join(tmpdir(), 'chip-checks', 'bella');
+// one clean copy per CHIP server: two servers on one machine (a review copy beside
+// the real one) used to share it, and one's run broke the other's (7 Nov)
+export const CHECKOUT = join(tmpdir(), 'chip-checks', `bella-${process.env.PORT || 3100}`);
 
 const git = (args, cwd = BELLA) => execFileSync('git', ['-C', cwd, '--no-optional-locks', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
@@ -76,7 +78,9 @@ export function prepare(dir, { branch, withStaged = true } = {}) {
   if (branch) git(['worktree', 'add', '-q', '-b', branch, dir, sha]);
   else if (!existsSync(join(dir, '.git'))) {
     mkdirSync(join(dir, '..'), { recursive: true });
-    git(['worktree', 'add', '-q', '--detach', dir, sha]);
+    // a copy left half-made (a run stopped mid-way) is rebuilt, never reported as BELLA failing
+    if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+    git(['worktree', 'add', '-q', '-f', '--detach', dir, sha]);
   } else {
     git(['checkout', '-q', '--detach', '--force', sha], dir);
     git(['clean', '-fdq', '-e', 'node_modules', '-e', 'storybook-static'], dir);
