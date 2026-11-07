@@ -1,0 +1,595 @@
+{
+  "at": "2026-11-07T10:11:24.828Z",
+  "bellaVersion": "0.3.0",
+  "components": 37,
+  "complete": 2,
+  "coverage": [
+    {
+      "id": "action-chip",
+      "name": "ActionChip",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "avatar",
+      "name": "Avatar",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "avatar-stack",
+      "name": "AvatarStack",
+      "filled": 4,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Specimens",
+        "Copy me",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "brand-wordmark",
+      "name": "BrandWordmark",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "button",
+      "name": "Button",
+      "filled": 8,
+      "of": 8,
+      "missing": []
+    },
+    {
+      "id": "card",
+      "name": "Card",
+      "filled": 7,
+      "of": 8,
+      "missing": [
+        "In use"
+      ]
+    },
+    {
+      "id": "chat-bubble",
+      "name": "ChatBubble",
+      "filled": 4,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Specimens",
+        "Copy me",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "chat-thread",
+      "name": "ChatThread",
+      "filled": 4,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Specimens",
+        "Copy me",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "columns",
+      "name": "Columns",
+      "filled": 4,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Specimens",
+        "Copy me",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "combobox",
+      "name": "Combobox",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "data-table",
+      "name": "DataTable",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "disclosure",
+      "name": "Disclosure",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "drawer",
+      "name": "Drawer",
+      "filled": 4,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Specimens",
+        "Copy me",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "eyebrow",
+      "name": "Eyebrow",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "filter-chip",
+      "name": "FilterChip",
+      "filled": 8,
+      "of": 8,
+      "missing": []
+    },
+    {
+      "id": "heading",
+      "name": "Heading",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "icon",
+      "name": "Icon",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "input",
+      "name": "Input",
+      "filled": 7,
+      "of": 8,
+      "missing": [
+        "In use"
+      ]
+    },
+    {
+      "id": "kbd",
+      "name": "Kbd",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "link",
+      "name": "Link",
+      "filled": 7,
+      "of": 8,
+      "missing": [
+        "In use"
+      ]
+    },
+    {
+      "id": "nav-list",
+      "name": "NavList",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "page-header",
+      "name": "PageHeader",
+      "filled": 4,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Specimens",
+        "Copy me",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "pattern-field",
+      "name": "PatternField",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "resource-card",
+      "name": "ResourceCard",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "scaled-frame",
+      "name": "ScaledFrame",
+      "filled": 5,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy",
+        "Accessibility"
+      ]
+    },
+    {
+      "id": "score-strip",
+      "name": "ScoreStrip",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "section",
+      "name": "Section",
+      "filled": 4,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Specimens",
+        "Copy me",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "section-header",
+      "name": "SectionHeader",
+      "filled": 5,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy",
+        "Accessibility"
+      ]
+    },
+    {
+      "id": "segmented-control",
+      "name": "SegmentedControl",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "select",
+      "name": "Select",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "sidebar-layout",
+      "name": "SidebarLayout",
+      "filled": 4,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Specimens",
+        "Copy me",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "slider",
+      "name": "Slider",
+      "filled": 4,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Specimens",
+        "Copy me",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "stat",
+      "name": "Stat",
+      "filled": 7,
+      "of": 8,
+      "missing": [
+        "In use"
+      ]
+    },
+    {
+      "id": "status-pill",
+      "name": "StatusPill",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "tabs",
+      "name": "Tabs",
+      "filled": 7,
+      "of": 8,
+      "missing": [
+        "In use"
+      ]
+    },
+    {
+      "id": "tag",
+      "name": "Tag",
+      "filled": 6,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Anatomy"
+      ]
+    },
+    {
+      "id": "typing-dots",
+      "name": "TypingDots",
+      "filled": 4,
+      "of": 8,
+      "missing": [
+        "In use",
+        "Specimens",
+        "Copy me",
+        "Anatomy"
+      ]
+    }
+  ],
+  "orphans": {
+    "componentsWithoutDocs": [],
+    "docsWithoutComponent": []
+  },
+  "drift": [],
+  "consistency": [
+    {
+      "section": "In use",
+      "missing": 35
+    },
+    {
+      "section": "Anatomy",
+      "missing": 30
+    },
+    {
+      "section": "Specimens",
+      "missing": 10
+    },
+    {
+      "section": "Copy me",
+      "missing": 10
+    },
+    {
+      "section": "Accessibility",
+      "missing": 2
+    }
+  ],
+  "topFixes": [
+    {
+      "title": "35 component pages have no In use",
+      "why": "The page fills In use from a composition in SCENES (app/src/Atlas.jsx).",
+      "rule": "docs/plans/chip-concept.md · component page template",
+      "components": [
+        "ActionChip",
+        "Avatar",
+        "AvatarStack",
+        "BrandWordmark",
+        "Card",
+        "ChatBubble",
+        "ChatThread",
+        "Columns",
+        "Combobox",
+        "DataTable",
+        "Disclosure",
+        "Drawer",
+        "Eyebrow",
+        "Heading",
+        "Icon",
+        "Input",
+        "Kbd",
+        "Link",
+        "NavList",
+        "PageHeader",
+        "PatternField",
+        "ResourceCard",
+        "ScaledFrame",
+        "ScoreStrip",
+        "Section",
+        "SectionHeader",
+        "SegmentedControl",
+        "Select",
+        "SidebarLayout",
+        "Slider",
+        "Stat",
+        "StatusPill",
+        "Tabs",
+        "Tag",
+        "TypingDots"
+      ],
+      "ids": [
+        "action-chip",
+        "avatar",
+        "avatar-stack",
+        "brand-wordmark",
+        "card",
+        "chat-bubble",
+        "chat-thread",
+        "columns",
+        "combobox",
+        "data-table",
+        "disclosure",
+        "drawer",
+        "eyebrow",
+        "heading",
+        "icon",
+        "input",
+        "kbd",
+        "link",
+        "nav-list",
+        "page-header",
+        "pattern-field",
+        "resource-card",
+        "scaled-frame",
+        "score-strip",
+        "section",
+        "section-header",
+        "segmented-control",
+        "select",
+        "sidebar-layout",
+        "slider",
+        "stat",
+        "status-pill",
+        "tabs",
+        "tag",
+        "typing-dots"
+      ]
+    },
+    {
+      "title": "30 component pages have no Anatomy",
+      "why": "The page fills Anatomy from parts in the contract.",
+      "rule": "docs/plans/chip-concept.md · component page template",
+      "components": [
+        "ActionChip",
+        "Avatar",
+        "AvatarStack",
+        "BrandWordmark",
+        "ChatBubble",
+        "ChatThread",
+        "Columns",
+        "Combobox",
+        "DataTable",
+        "Disclosure",
+        "Drawer",
+        "Eyebrow",
+        "Heading",
+        "Icon",
+        "Kbd",
+        "NavList",
+        "PageHeader",
+        "PatternField",
+        "ResourceCard",
+        "ScaledFrame",
+        "ScoreStrip",
+        "Section",
+        "SectionHeader",
+        "SegmentedControl",
+        "Select",
+        "SidebarLayout",
+        "Slider",
+        "StatusPill",
+        "Tag",
+        "TypingDots"
+      ],
+      "ids": [
+        "action-chip",
+        "avatar",
+        "avatar-stack",
+        "brand-wordmark",
+        "chat-bubble",
+        "chat-thread",
+        "columns",
+        "combobox",
+        "data-table",
+        "disclosure",
+        "drawer",
+        "eyebrow",
+        "heading",
+        "icon",
+        "kbd",
+        "nav-list",
+        "page-header",
+        "pattern-field",
+        "resource-card",
+        "scaled-frame",
+        "score-strip",
+        "section",
+        "section-header",
+        "segmented-control",
+        "select",
+        "sidebar-layout",
+        "slider",
+        "status-pill",
+        "tag",
+        "typing-dots"
+      ]
+    },
+    {
+      "title": "10 component pages have no Specimens",
+      "why": "The page fills Specimens from a render in SPECIMENS (app/src/specimens.jsx).",
+      "rule": "docs/plans/chip-concept.md · component page template",
+      "components": [
+        "AvatarStack",
+        "ChatBubble",
+        "ChatThread",
+        "Columns",
+        "Drawer",
+        "PageHeader",
+        "Section",
+        "SidebarLayout",
+        "Slider",
+        "TypingDots"
+      ],
+      "ids": [
+        "avatar-stack",
+        "chat-bubble",
+        "chat-thread",
+        "columns",
+        "drawer",
+        "page-header",
+        "section",
+        "sidebar-layout",
+        "slider",
+        "typing-dots"
+      ]
+    }
+  ]
+}

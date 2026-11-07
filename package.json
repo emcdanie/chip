@@ -11,6 +11,7 @@
     "start": "node server/server.js",
     "dev": "node --watch server/server.js",
     "sync:bella": "node scripts/sync-bella.mjs",
+    "check:docs": "node scripts/doc-quality.mjs",
     "sync:notion": "node scripts/sync-notion.mjs",
     "sync": "node bin/chip.mjs sync",
     "app": "vite --config app/vite.config.js",

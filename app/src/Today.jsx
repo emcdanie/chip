@@ -69,6 +69,11 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
   const [baseline, setBaseline] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [checked, setChecked] = useState(null); // { at } | { error }
+  // the doc quality check (npm run check:docs): its top fix is one row, its others in the why
+  const [docq, setDocq] = useState(null);
+  useEffect(() => {
+    fetch('/data/doc-quality.json').then((r) => (r.ok ? r.json() : null)).then(setDocq).catch(() => {});
+  }, []);
   useEffect(() => {
     fetch('/figma-baseline').then((r) => r.json()).then(setBaseline).catch(() => {});
   }, []);
@@ -128,7 +133,8 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
     />
   );
 
-  const needsCount = waiting.length + gaps.length + stuck.length;
+  const docFix = docq?.topFixes?.[0];
+  const needsCount = waiting.length + gaps.length + stuck.length + (docFix ? 1 : 0);
   const readyCount = ready.length + passed.length;
   const runningCount = working.length + busy.length;
   const loaded = !!(needs && bella && (fixes.data || fixes.error) && runsRead !== null);
@@ -215,6 +221,26 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
                 />
               );
             })}
+            {docFix ? (
+              <ListRow
+                title={
+                  <Title tone="neutral" word="Docs">
+                    {docFix.title}
+                  </Title>
+                }
+                description={
+                  <>
+                    {docFix.why}
+                    {docq.topFixes.length > 1 ? ` Then: ${docq.topFixes.slice(1).map((f) => f.title.toLowerCase()).join('; ')}.` : ''} Rule: <code className="td-rule">{docFix.rule}</code>
+                  </>
+                }
+                action={
+                  <LinkButton aria-label={`Open ${docFix.components[0]}: ${docFix.title}`} onClick={() => (window.location.hash = `#/atlas/${docFix.ids[0]}`)}>
+                    Open {docFix.components[0]} →
+                  </LinkButton>
+                }
+              />
+            ) : null}
             {stuck.map((r) => (
               <RunRow key={r.id} run={r} status="Run failed" tone="danger" label="See the run" onOpen={() => openRun(r.id)} />
             ))}
