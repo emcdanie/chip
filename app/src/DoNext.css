@@ -113,3 +113,8 @@
 /* one fix per view: the sheet is the surface, so the fix inside it carries no card of its own */
 .gr > .dn-fix { border: 0; padding: 0; background: none; }
 .gr > .dn-fix .gr-acts { padding-inline: 0; }
+/* findings by file: each file a jump, its count beside it */
+.gr-files { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-16); }
+.gr-files .k-link code { font-family: var(--code); }
+.gr-files .k-link[aria-current] { font-weight: 600; text-decoration-thickness: 2px; }
+.gr-n { color: var(--muted); font-family: var(--code); }

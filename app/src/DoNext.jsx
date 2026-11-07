@@ -330,7 +330,7 @@ function ReportItem({ it, busyId, setBusyId, onSkip, onLater, onSession }) {
         <div className="gr-btns">
           {it.id && !accepted ? (
             <Button variant="primary" onClick={() => act('accept')} disabled={working || running || (busyId && busyId !== it.id) || !card}>
-              {running ? 'Applying… the gate is running' : working ? 'Starting…' : failed ? 'Apply again' : 'Apply'}
+              {running ? 'Applying… the gate is running' : working ? 'Starting…' : failed ? 'Fix this one again' : 'Fix this one'}
             </Button>
           ) : null}
           {accepted && !card.kept ? (
@@ -449,6 +449,30 @@ export function GapReport({ items, onClose, onSession }) {
   const restBrief = () => `Close these BELLA gaps, nothing else:\n\n${rest.map((it) => it.brief).join('\n\n')}`;
   const i = Math.min(at, Math.max(0, shown.length - 1));
   const cur = shown[i];
+  // findings by file (benchmark, 7 Nov): each file the fixes touch, with how many, to jump between
+  const byFile = Object.entries(
+    shown.reduce((m, it, k) => {
+      const f = it.evidence?.where?.[0]?.file ?? 'Not measured';
+      (m[f] ??= []).push(k);
+      return m;
+    }, {}),
+  );
+  // Apply all: every fix CHIP can make itself, one after another (each runs BELLA's gate)
+  const canApply = shown.filter((it) => it.id && it.can.who === 'chip');
+  const [applying, setApplying] = useState(null);
+  const applyAll = async () => {
+    for (let k = 0; k < canApply.length; k++) {
+      setApplying(`${k + 1} of ${canApply.length}`);
+      try {
+        await fetch(`/review/${canApply[k].id}/accept`, { method: 'POST', headers: JSON_HEADERS, body: '{}' });
+      } catch {
+        break;
+      }
+    }
+    setApplying(null);
+    changed();
+    load();
+  };
   return (
     <Sheet
       open={!!items}
@@ -467,6 +491,11 @@ export function GapReport({ items, onClose, onSession }) {
               </Button>
             </>
           ) : null}
+          {canApply.length > 1 ? (
+            <Button variant="secondary" disabled={!!applying} onClick={applyAll}>
+              {applying ? `Applying ${applying}…` : `Apply all ${canApply.length}`}
+            </Button>
+          ) : null}
           {rest.length > 1 ? (
             <Button variant="tertiary" onClick={() => onSession(restBrief(), `${rest.length} gaps for Claude`)}>
               Send all {rest.length} to Claude
@@ -483,6 +512,18 @@ export function GapReport({ items, onClose, onSession }) {
             {cur ? `Fix ${i + 1} of ${shown.length} · ${cur.can.label}` : 'Nothing left to fix.'}
             {later.length ? ` · ${later.length} put off for now` : ''} · BELLA {report.bellaVersion ? `v${report.bellaVersion}` : ''}, read {when(report.at)}
           </p>
+          {byFile.length ? (
+            <ul className="gr-files" aria-label="Fixes by file">
+              {byFile.map(([f, ks]) => (
+                <li key={f}>
+                  <button type="button" className="k-link" aria-current={ks.includes(i) ? 'true' : undefined} onClick={() => setAt(ks[0])}>
+                    <code>{f}</code>
+                  </button>{' '}
+                  <span className="gr-n">{ks.length}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {cur ? <ReportItem key={`${cur.gap}:${cur.name}`} it={cur} busyId={busyId} setBusyId={setBusyId} onSkip={skip} onLater={(x) => setLater((l) => [...l, `${x.gap}:${x.name}`])} onSession={onSession} /> : null}
           {report.items.filter((it) => it.gone).map((it) => (
             <p key={`${it.gap}:${it.name}`}>
