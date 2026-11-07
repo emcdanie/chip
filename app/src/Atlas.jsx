@@ -12,7 +12,6 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
-import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import Pin from '@bella/components/Pin/Pin';
 import { StatusPill, Chips, LinkButton, Overflow } from './kit/index.jsx';
 import { keyboardOf } from './AtlasSpec.jsx';
@@ -1472,13 +1471,6 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
   const [pressed, setPressed] = useState(false); // FilterChip in Use: really toggles
   const [why, setWhy] = useState(null);
   const [read, setRead] = useState(false);
-  // the tab is the address: #/atlas/<id>?tab=usage
-  const [tab, setTab] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('tab') ?? 'overview');
-  useEffect(() => {
-    const base = window.location.hash.split('?')[0];
-    const want = tab === 'overview' ? base : `${base}?tab=${tab}`;
-    if (window.location.hash !== want) window.history.replaceState(null, '', want);
-  }, [tab, c?.id]);
   const [playing, setPlaying] = useState(false);
   const [q, setQ] = useState('');
   const [answer, setAnswer] = useState(null);
@@ -2019,23 +2011,8 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
         </div>
       </section>
 
-      <Tabs
-        idBase="dm"
-        label={`${c.name} documentation`}
-        value={tab}
-        onChange={setTab}
-        className="k-chrome"
-        tabs={[
-          { id: 'overview', label: 'Overview' },
-          { id: 'usage', label: 'Usage' },
-          { id: 'a11y', label: 'Accessibility' },
-          { id: 'code', label: 'Code' },
-          { id: 'changelog', label: 'Changelog' },
-          { id: 'rules', label: 'Rules' },
-        ]}
-      />
 
-      <div {...tabPanelProps('dm', 'overview', tab === 'overview')} className="dm-tab">
+      <div className="dm-tab">
       <section aria-label="Checks" className="k-chrome" hidden={!stage}>
         {/* tags, not buttons (concept, afternoon 7 Nov): each check that needs a look is a line with its rule */}
         <ul className="dm-checks" aria-label="Measured on this render">
@@ -2216,7 +2193,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
 
       </div>
 
-      <div {...tabPanelProps('dm', 'usage', tab === 'usage')} className="dm-tab k-chrome">
+      <div className="dm-tab k-chrome">
         <section aria-labelledby="dm-use" className="dm-sec">
           <h2 id="dm-use">Use it for</h2>
           {(c.usage ?? []).length ? (
@@ -2243,14 +2220,14 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
         </section>
       </div>
 
-      <div {...tabPanelProps('dm', 'a11y', tab === 'a11y')} className="dm-tab k-chrome">
+      <div className="dm-tab k-chrome">
         <section aria-labelledby="dm-a11y" className="dm-sec">
           <h2 id="dm-a11y">Accessibility</h2>
           <A11yFacts c={c} cfg={cfg} label={cfg.label(c)} />
         </section>
       </div>
 
-      <div {...tabPanelProps('dm', 'code', tab === 'code')} className="dm-tab k-chrome">
+      <div className="dm-tab k-chrome">
         <section aria-labelledby="dm-contract" className="dm-sec">
           <h2 id="dm-contract">Contract</h2>
           <p className="dm-quiet">
@@ -2269,14 +2246,14 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
         </section>
       </div>
 
-      <div {...tabPanelProps('dm', 'changelog', tab === 'changelog')} className="dm-tab k-chrome">
+      <div className="dm-tab k-chrome">
         <section aria-labelledby="dm-hist" className="dm-sec">
           <h2 id="dm-hist">Changelog</h2>
           <HistoryPanel c={c} hist={hist} />
         </section>
       </div>
 
-      <div {...tabPanelProps('dm', 'rules', tab === 'rules')} className="dm-tab">
+      <div className="dm-tab">
       <section aria-labelledby="dm-sch" className="dm-sec">
         <div className="dm-sechead">
           <h2 id="dm-sch">Rules, run on real compositions</h2>
