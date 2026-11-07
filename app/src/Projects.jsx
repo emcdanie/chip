@@ -222,7 +222,7 @@ function Panel({ p, reload }) {
 
       <section className="pj-sec" aria-labelledby={`pj-pages-${p.id}`}>
         <h2 id={`pj-pages-${p.id}`}>Pages</h2>
-        <p className="pj-quiet">{`${PAGE_KIND[p.pageKind] ?? 'Pages'}, read from the repo. Each one opens in the Playground.`}</p>
+        <p className="pj-quiet">{PAGE_KIND[p.pageKind] ?? 'Pages'}</p>
         {p.pages.length ? <DataTable label={`pages-${p.id}`} cols={cols} rows={p.pages} rowKey={(r) => r.route} /> : <p className="pj-none">No pages read from this repo.</p>}
       </section>
     </div>

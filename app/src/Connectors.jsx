@@ -387,7 +387,6 @@ export default function Connectors() {
           {refreshing ? 'Testing every connector…' : 'Test all'}
         </Button>
       </div>
-      <p className="cn-lede">The tools CHIP reads from, and whether each one answers.</p>
       <div className="cn-panel">
         {error ? <p role="alert">{error}</p> : null}
         {servers && !servers.length ? <p>No servers yet. Copy chip.config.example.json to chip.config.local.json.</p> : null}

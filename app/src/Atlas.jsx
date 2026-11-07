@@ -2044,7 +2044,6 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       <section className={`dm-work dm-card${stage ? '' : ' dm-nospec'}${detail ? '' : ' dm-nodetail'}`} aria-label="Specimen">
         <div className="dm-stage">
           <div className="dm-sbar k-chrome">
-            <span className="dm-hint">{mode === 'use' ? 'Using the component' : 'Inspecting: pick a part'}</span>
             {/* stage modes are stripped (concept, afternoon 7 Nov): the live specimen is Inspect; Specimens shows light and dark */}
           </div>
           <div className="dm-canvas dm-sp" {...sp} ref={canvas} data-mode={mode}>
@@ -2257,7 +2256,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       <section aria-labelledby="dm-sch" className="dm-sec">
         <div className="dm-sechead">
           <h2 id="dm-sch">Rules, run on real compositions</h2>
-          <p>{scenes.length ? 'Click a component in a scene to change it. The check runs again.' : `No scene runs ${c.name}’s rules yet. They are listed under Scope.`}</p>
+          {scenes.length ? null : <p>No scene runs {c.name}’s rules yet.</p>}
         </div>
         {scenes.length ? (
           <div className="dm-scenes">
