@@ -88,3 +88,9 @@
   .cn-paths li { grid-template-columns: minmax(0, 1fr) auto; }
   .cn-paths li > span:not(.k-pill) { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* inside Health since step 8: a section, not a page */
+.cn-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-8) var(--s-16); }
+.cn-head > h2 { margin: 0; font: 500 var(--fs-28)/var(--lh-head) var(--display); color: var(--ink); }
+.cn-head .n { font: 400 var(--fs-16)/var(--lh-body) var(--code); color: var(--muted); }
+.cn-lede { margin: 0; color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }

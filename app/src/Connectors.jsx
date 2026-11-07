@@ -7,7 +7,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import { Overflow, PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, SheetPart, Facts, NotMeasured, LinkButton, Card, Toggle } from './kit/index.jsx';
-import SystemMap, { useMapControls } from './SystemMap.jsx';
 import { changed } from './ReviewSheet.jsx';
 import './Connectors.css';
 
@@ -236,7 +235,6 @@ function FigmaCard({ servers, figma, onOpen }) {
 }
 
 export default function Connectors() {
-  const [tab, setTab] = useState('map');
   const [servers, setServers] = useState(null);
   const [figma, setFigma] = useState(null);
   const [counts, setCounts] = useState(null);
@@ -246,7 +244,6 @@ export default function Connectors() {
   const [open, setOpen] = useState(null);
   const [note, setNote] = useState('');
   const [error, setError] = useState(null);
-  const controls = useMapControls();
 
   const loadHost = useCallback(
     () =>
@@ -382,73 +379,16 @@ export default function Connectors() {
     ];
   };
 
-  // map controls she rarely needs: one ⋯ menu (the map already fits)
-  const mapBar = (
-    <Overflow label="Map controls" className="cn-bar">
-      <b>Map</b>
-      <div className="cn-zoom" role="group" aria-label="Zoom">
-        <Button onClick={controls.zoomOut} ariaLabel="Zoom out">
-          −
-        </Button>
-        <Button onClick={controls.fit}>Fit</Button>
-        <Button onClick={controls.zoomIn} ariaLabel="Zoom in">
-          +
+  return (
+    <section className="cn-page k-chrome" aria-labelledby="cn-h">
+      <div className="cn-head">
+        <h2 id="cn-h">Connectors {counts ? <span className="n">{counts.total}</span> : null}</h2>
+        <Button onClick={refresh} disabled={refreshing || !!testing}>
+          {refreshing ? 'Testing every connector…' : 'Test all'}
         </Button>
       </div>
-      <Button onClick={controls.reset}>Reset layout</Button>
-      <b>Keys</b>
-      <ul className="cn-keys">
-        <li>Drag the canvas to move around; drag a card to rearrange it.</li>
-        <li>
-          With the map focused, <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> pan it.
-        </li>
-        <li>
-          <kbd>+</kbd> <kbd>−</kbd> zoom, <kbd>0</kbd> fits the map.
-        </li>
-        <li>
-          <kbd>Tab</kbd> moves through cards; <kbd>Enter</kbd> selects. Arrows: ↑ parent, ↓ first child, ← → siblings.
-        </li>
-        <li>Tags: green healthy, yellow needs attention, red failing.</li>
-      </ul>
-    </Overflow>
-  );
-
-  return (
-    <div className="cn-page k-chrome">
-      <PageHeader
-        title="Connectors"
-        lede="The tools CHIP reads from, and whether each one answers."
-        actions={
-          tab === 'map' ? (
-            mapBar
-          ) : (
-            <Button onClick={refresh} disabled={refreshing || !!testing}>
-              {refreshing ? 'Testing every connector…' : 'Refresh'}
-            </Button>
-          )
-        }
-      />
-      <Segmented
-        id="conn"
-        label="Connectors"
-        value={tab}
-        onChange={setTab}
-        items={[
-          { id: 'map', label: 'System map' },
-          {
-            id: 'list',
-            label: (
-              <>
-                Connectors {counts ? <span className="n">{counts.total}</span> : null}
-              </>
-            ),
-          },
-        ]}
-      />
-      <section {...segPanelProps('conn', 'map', tab)} className="cn-panel">
-        {tab === 'map' ? <SystemMap map={map} controls={controls} onReload={() => Promise.all([loadMap(), loadHost()])} /> : null}
-      </section>
-      <section {...segPanelProps('conn', 'list', tab)} className="cn-panel">
+      <p className="cn-lede">The tools CHIP reads from, and whether each one answers.</p>
+      <div className="cn-panel">
         {error ? <p role="alert">{error}</p> : null}
         {servers && !servers.length ? <p>No servers yet. Copy chip.config.example.json to chip.config.local.json.</p> : null}
         {servers?.length ? <FigmaCard servers={servers} figma={figma} onOpen={setOpen} /> : null}
@@ -470,11 +410,11 @@ export default function Connectors() {
         <p className="k-vh" role="status">
           {note}
         </p>
-      </section>
+      </div>
 
       <Sheet open={!!sheetServer} kicker={sheetServer ? kindOf(sheetServer) : null} title={sheetServer?.name ?? ''} onClose={() => setOpen(null)} actions={sheetServer ? sheetActions(sheetServer) : null}>
         {sheetServer ? <ServerSheet s={sheetServer} feeds={feeds(sheetServer.name)} note={note} onOff={() => enable(sheetServer, false)} /> : null}
       </Sheet>
-    </div>
+    </section>
   );
 }

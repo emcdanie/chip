@@ -329,7 +329,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .hcol { display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; justify-items: center; border: 0; background: none; padding: 0; font: inherit; color: inherit; min-width: 0; cursor: pointer; }
 .hcol .hl { white-space: normal; overflow-wrap: anywhere; text-align: center; }
 .hcol .hv { grid-row: 5; padding-top: var(--s-4); white-space: normal; overflow-wrap: anywhere; text-align: center; }
-.hcol:hover .tube { outline: 2px solid var(--action); outline-offset: 3px; }
+.hcol:hover .tube { outline: 2px solid var(--ink); outline-offset: 3px; }
 .hcol.full { cursor: default; }
 .hcol.full:hover .tube { outline: none; }
 .hcol:focus-visible .tube { outline: var(--focus); outline-offset: 3px; }
@@ -344,7 +344,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .hstrip .tube::before { top: 33%; }
 .hstrip .tube::after { top: 66%; }
 .hstrip .tube i { position: absolute; height: 0; left: 4px; right: 4px; bottom: 4px; border-radius: var(--r); background: color-mix(in srgb, var(--ink) 42%, var(--card)); transition: height 1s cubic-bezier(0.22, 1, 0.36, 1); }
-.hcol.ok .tube i { background: var(--action); } /* 90% or more */
+.hcol.ok .tube i { background: var(--pass); } /* 90% or more: green, as success is (Elleta, 7 Nov) */
 .hcol.low .tube i { background: var(--needs); }
 .hcol.bad .tube i { background: var(--fail); }
 /* each bar's value, above it in ink, so its height needn't be guessed */

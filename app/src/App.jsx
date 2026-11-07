@@ -13,7 +13,6 @@ import NavList from '@bella/components/NavList/NavList';
 import PageOutline from '@bella/components/PageOutline/PageOutline';
 import SectionNav from '@bella/components/SectionNav/SectionNav';
 import Atlas from './Atlas.jsx';
-import Connectors from './Connectors.jsx';
 import Foundations, { TABS as FD_TOPICS } from './Foundations.jsx';
 import History from './History.jsx';
 import Playground from './Playground.jsx';
@@ -52,7 +51,8 @@ function routeOf(hash) {
   const m = hash.match(/^#\/(health|foundations|atlas|play|docs|connectors|projects|coverage)(?:\/([\w-]+))?(?:\?(.*))?$/);
   if (!m) return null;
   const q = new URLSearchParams(m[3] ?? '');
-  return { ws: m[1], id: m[2], route: q.get('route') ?? undefined, at: q.get('at') ?? undefined };
+  // Connectors lives in Health since step 8: its old address opens Health
+  return { ws: m[1] === 'connectors' ? 'coverage' : m[1], id: m[2], route: q.get('route') ?? undefined, at: q.get('at') ?? (m[1] === 'connectors' ? 'cn-h' : undefined) };
 }
 
 function useMedia(query) {
@@ -295,6 +295,7 @@ export default function App() {
   });
 
   function go(id) {
+    if (id === 'connectors') return (setWs('coverage'), setNavOn(false), requestAnimationFrame(() => document.getElementById('cn-h')?.scrollIntoView({ block: 'start' })));
     setWs(id);
     setNavOn(false);
   }
@@ -488,7 +489,6 @@ export default function App() {
           {ws === 'docs' ? <History docId={docId} version={docsVersion} bella={bella} lens={lens} onOpenAtlas={openAtlas} onSession={session} /> : null}
           {ws === 'play' ? <Playground onToast={setToast} project={playTarget?.project} route={playTarget?.route} onTarget={setPlayTarget} /> : null}
           {ws === 'projects' ? <Projects projectId={projId} onProject={setProjId} /> : null}
-          {ws === 'connectors' ? <Connectors narrow={narrow} /> : null}
           {ws === 'atlas' ? <Atlas c={atlas} bella={bella} lens={lens} theme={theme} notes={notes} onOpen={openAtlas} showLibrary={false} trySignal={trySignal} onTryUsed={() => setTrySignal(null)} role={role} vis={vis} setVis={setVis} pinned={atlas ? pins.includes(`comp:${atlas.id}`) : false} onPin={atlas ? () => togglePin(`comp:${atlas.id}`) : undefined} /> : null}
         </div>
       </main>

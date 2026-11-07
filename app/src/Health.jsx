@@ -1,5 +1,6 @@
 // Health: Coverage, Gate and Drift, moved from Overview as they were (concept
-// lock, 7 Nov); step 8 rebuilds this page. What to do next lives on Today.
+// lock, 7 Nov), then Connectors, which Health took in at step 8 (the System map
+// is cut: it repeated the table). What to do next lives on Today.
 // Colour flags only exceptions: red for failing, yellow for needs-you, ink and
 // grey for normal. Every number comes from bella.json (components,
 // history[].gate) or GET /checks; where nothing measures it, the page says
@@ -10,6 +11,7 @@ import { Segmented, segPanelProps, Sheet, StatusPill } from './kit/index.jsx';
 import { CheckSheet, failingTokens, useChecks, when } from './Checks.jsx';
 import { openReview } from './ReviewSheet.jsx';
 import { GapReport, useGapFixes } from './DoNext.jsx';
+import Connectors from './Connectors.jsx';
 
 // the six things a component needs; the mock counts an unchecked contrast
 // pair as a gap (16 gaps), so it does here
@@ -645,6 +647,8 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
         </div>
       </section>
       ) : null}
+
+      <Connectors />
 
       <Sheet open={!!sheet} title={sheet?.title ?? ''} onClose={() => setSheet(null)} footer={sheet?.footer}>
         {sheet?.body}
