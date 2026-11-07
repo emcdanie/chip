@@ -21,7 +21,7 @@ const MISSING = { story: 'story', docs: 'docs page', contract: 'token contract',
 const headline = (gap, n) => `${n} component${n === 1 ? ' has' : 's have'} no ${MISSING[gap]}`;
 // the action names what it does, short; the full label stays its accessible name
 const verb = (a) => (a.type === 'terminal' ? (/git pull/.test(a.command) ? 'Pull' : /git push/.test(a.command) ? 'Push' : 'Run') : a.type === 'lane' ? 'Open' : 'Review');
-// the tag already says how much it matters: the why starts after "High:"
+// the tag says the status, so the why opens with the risk, as the board does: "Medium risk. …"
 const plain = (s) => s.replace(/^(High|Medium|Low): /, '').replace(/^\w/, (c) => c.toUpperCase());
 const Title = ({ tone, word, children }) => (
   <>
@@ -95,7 +95,7 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
           {(n.title ?? n.what).replace('? ', ': ')}
         </Title>
       }
-      description={plain(n.riskWhy)}
+      description={`${n.risk} risk. ${plain(n.riskWhy)}`}
       action={
         <Button variant={primary ? 'primary' : 'secondary'} ariaLabel={`${n.action.label}: ${n.title ?? n.what}`} onClick={() => runNeed(n.action, onLane)}>
           {verb(n.action)}
