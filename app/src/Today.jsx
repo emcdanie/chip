@@ -5,7 +5,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
-import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Heading from '@bella/components/Heading/Heading';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
@@ -67,7 +66,6 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
   const { runs, read: runsRead } = useRunsRead(true);
   const [tab, setTab] = useState('needs');
   const [allRows, setAllRows] = useState(false);
-  const [healthAsked] = useState(() => /^#\/(coverage|connectors)|[?&]at=(hl-foot|cn-h)/.test(window.location.hash));
   const [report, setReport] = useState(null);
   const [baseline, setBaseline] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -300,11 +298,11 @@ export default function Today({ bella, needs, onSession, onRefresh, onLane, onHe
         )}
       </div>
       </Card>
-      {/* Health stays one click away, closed, as the board's note 04 says; #/coverage and #/connectors open it */}
+      {/* Health sits open under Today with no title or dropdown of its own: its cards name themselves (Elleta, 8 Nov) */}
       {foot ? (
-        <Disclosure title="Health" summary="Coverage, gate, drift, connectors" defaultOpen={healthAsked}>
+        <section id="hl-foot" aria-label="Health" tabIndex={-1}>
           {foot}
-        </Disclosure>
+        </section>
       ) : null}
       <GapReport items={report} onClose={() => setReport(null)} onSession={(b, t) => (setReport(null), onSession(b, t))} />
     </div>

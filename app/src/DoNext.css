@@ -92,8 +92,13 @@
 /* a gap card a Coverage or Drift detail points at */
 .gap1.dn.focus { box-shadow: 0 0 0 2px var(--action); }
 /* the Overview's details: same shape as the report */
-.ov-detail { display: grid; gap: var(--s-16); }
+.ov-detail { display: grid; gap: var(--s-32); }
 .ov-detail section { display: grid; gap: var(--s-8); }
+/* sheet hierarchy: the claim, then its rule and source, then a quiet label over the list */
+.ov-claim { font: 400 var(--fs-20)/var(--lh-body) var(--sans); color: var(--ink); }
+.ov-rule { color: var(--muted); }
+.ov-label { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-8); }
+.k-sheet-b .ov-label h3 { color: var(--muted); }
 .ov-detail b { color: var(--ink); font-weight: 600; }
 .ov-why { display: block; font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
 .ov-src { font: 400 var(--fs-14)/var(--lh-body) var(--code); color: var(--muted); }

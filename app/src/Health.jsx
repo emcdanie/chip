@@ -167,28 +167,39 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh, embed
     const items = fixes.data?.gaps?.[gap] ?? {};
     const rule = Object.values(items)[0]?.why;
     const nClaude = miss.filter((r) => items[r.name]?.can?.who === 'claude').length;
+    // say a reason once when every component has the same one (only its name differs)
+    const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    const general = (r) => items[r.name]?.missing?.split(`'${kebab(r.name)}'`).join('its name').split(r.name).join('Each');
+    const shared = miss.length > 1 && miss.every((r) => general(r) && general(r) === general(miss[0])) ? general(miss[0]) : null;
+    const can0 = items[miss[0]?.name]?.can;
+    const sameCan = miss.length > 0 && miss.every((r) => items[r.name]?.can?.label === can0?.label);
     setSheet({
       title: `${COLS[i].long}: ${miss.length ? `${miss.length} missing` : 'all pass'}`,
       body: (
         <div className="ov-detail">
           <section>
-            <h3>What it means</h3>
-            <p>
-              <b>{COLS[i].why}</b> {rule ? `${rule.rule} ` : ''}
-              {rule ? <span className="ov-src">{rule.source}</span> : null}
-            </p>
+            <p className="ov-claim">{COLS[i].why}</p>
+            {rule ? (
+              <p className="ov-rule">
+                {rule.rule} <span className="ov-src">{rule.source}</span>
+              </p>
+            ) : null}
           </section>
           <section>
-            <h3>Which components</h3>
+            <div className="ov-label">
+              <h3>{miss.length ? `${miss.length} component${miss.length > 1 ? 's' : ''}` : 'Components'}</h3>
+              {sameCan ? <CanPill can={can0} /> : null}
+            </div>
+            {shared ? <p className="ov-rule">{shared}</p> : null}
             <ul className="plain">
               {miss.length ? (
                 miss.map((r) => (
                   <li key={r.name}>
                     <span>
-                      {r.name}
-                      {items[r.name]?.missing ? <span className="ov-why">{items[r.name].missing}</span> : null}
+                      <b>{r.name}</b>
+                      {!shared && items[r.name]?.missing ? <span className="ov-why">{items[r.name].missing}</span> : null}
                     </span>
-                    <CanPill can={items[r.name]?.can} />
+                    {sameCan ? null : <CanPill can={items[r.name]?.can} />}
                   </li>
                 ))
               ) : (
@@ -196,12 +207,6 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh, embed
               )}
             </ul>
           </section>
-          {miss.length ? (
-            <section>
-              <h3>On Today</h3>
-              <p>The same {miss.length} are the “{COLS[i].fix}” row.</p>
-            </section>
-          ) : null}
         </div>
       ),
       footer: miss.length ? (
@@ -429,11 +434,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh, embed
     <div className="ov-page k-chrome">
       <div id="hhead">
         <div className="tline">
-          {embedded ? (
-            <h2 className="hl-h2" id="hl-foot">
-              Health
-            </h2>
-          ) : (
+          {embedded ? null : (
             <h1 className="k-h1" tabIndex={-1}>
               Health
             </h1>
