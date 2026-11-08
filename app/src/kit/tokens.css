@@ -54,7 +54,8 @@
   --h-compact: var(--spacing-touch-target);
   --icon: 18px;
   --shadow: 0 1px 4px rgb(29 32 48 / 0.18); /* the floating selected tab, nothing else */
-  --focus-ring: var(--ring-focus-color); /* BELLA's ring: 3.09:1 or more on every CHIP surface */
+  --ring-focus-color: var(--color-chip-ui-focus); /* pink on everything (Elleta, 8 Nov), so also inside the dark Work panel and BELLA specimens, which carry their own data-theme */
+  --focus-ring: var(--ring-focus-color);
   --focus: var(--ring-focus-width) solid var(--focus-ring);
 
   --on-action: var(--color-semantic-action-on); /* text on the action blue: 5.29:1 */

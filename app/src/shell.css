@@ -513,8 +513,6 @@ html.wp-dragging .xterm { pointer-events: none; }
 .top [data-bella-component='section-nav'] { align-self: stretch; display: flex; align-items: flex-end; min-width: 0; }
 .side { gap: var(--s-12); }
 .app.navcollapsed .side { padding: var(--s-12) var(--s-8); }
-.outline { position: fixed; z-index: 4; top: calc(var(--frame-top) + var(--s-16)); right: var(--s-16); }
-.app.wpon.dock-right .outline { right: calc(var(--wp-w) + var(--s-16)); }
 @media (max-width: 960px) {
   .app { grid-template-columns: minmax(0, 1fr); }
   .app main { grid-column: 1; }
@@ -538,5 +536,3 @@ html.wp-dragging .xterm { pointer-events: none; }
 .wp-files { margin: var(--s-8) 0 0; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--muted); overflow-wrap: anywhere; }
 .wp-files code { font-family: var(--code); margin-right: var(--s-8); color: var(--body); }
 .wp-up { transform: rotate(180deg); }
-/* below the page tools, so the marker never covers them */
-.outline { top: calc(var(--frame-top) + var(--s-48) * 2); }

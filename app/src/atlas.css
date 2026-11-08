@@ -52,10 +52,10 @@
 .atlas .exv[data-open='true'] { max-height: none; overflow-x: auto; }
 .atlas .exv .ln { display: block; padding: 0 var(--s-16); white-space: pre; }
 .atlas .exv:not([data-open='true'])::after { content: ''; position: absolute; inset: auto 0 0; height: 40px; background: linear-gradient(transparent, var(--code-ground)); }
-.atlas .exv:focus-visible { outline: 3px solid var(--code-ink); outline-offset: -3px; }
+.atlas .exv:focus-visible { outline: var(--focus); outline-offset: -3px; }
 .atlas .exmore { display: flex; align-items: center; gap: var(--s-8); width: 100%; min-height: var(--h-control); padding: 0 var(--s-16); border: 0; border-top: 1px solid color-mix(in srgb, var(--code-ink) 12%, transparent); background: transparent; color: var(--code-ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); text-align: left; cursor: pointer; }
 .atlas .exmore:hover { background: color-mix(in srgb, var(--code-ink) 6%, transparent); }
-.atlas .exmore:focus-visible { outline-color: var(--code-ink); outline-offset: -3px; }
+.atlas .exmore:focus-visible { outline-color: var(--focus-ring); outline-offset: -3px; }
 .atlas .exmore .n { font-weight: 400; color: var(--ln-ink); }
 
 /* the mock's .seg: a view switch inside a panel */

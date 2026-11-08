@@ -10,7 +10,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Health, { COLS } from './Health.jsx';
 import Today from './Today.jsx';
 import NavList from '@bella/components/NavList/NavList';
-import PageOutline from '@bella/components/PageOutline/PageOutline';
 import SectionNav from '@bella/components/SectionNav/SectionNav';
 import Atlas from './Atlas.jsx';
 import Foundations, { TABS as FD_TOPICS } from './Foundations.jsx';
@@ -432,7 +431,7 @@ export default function App() {
     </aside>
   );
 
-  /* ---- on this page: the page's sections, three or more ---- */
+  /* ---- the page's h2s get ids, so #/<page>?at=<section> can land on one ---- */
   const [outline, setOutline] = useState([]);
   useEffect(() => {
     const main = document.querySelector('main .main');
@@ -459,12 +458,6 @@ export default function App() {
     startAt.current = null;
     document.getElementById(at)?.scrollIntoView({ block: 'start' });
   }, [outline]);
-  const onOutline = (id, e) => {
-    const base = window.location.hash.split('?')[0];
-    const keep = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
-    keep.set('at', id);
-    window.history.replaceState(null, '', `${base}?${keep}`);
-  };
 
   const needCount = needs?.items.length ?? 0;
   const resize = (px) => setWork(dock === 'right' ? { w: clampW(px, winW, navW), sized: true } : { h: clampH(px, win.h) });
@@ -521,11 +514,6 @@ export default function App() {
 
       {hasSide || narrow ? side : null}
 
-      {wide && outline.length >= 3 ? (
-        <div className="outline">
-          <PageOutline items={outline} onNavigate={onOutline} />
-        </div>
-      ) : null}
       <main id="main" tabIndex={-1}>
         <div className="main">
           {offline ? (
