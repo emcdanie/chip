@@ -70,3 +70,27 @@ test('variables: names, figma-only, and names used twice', () => {
   assert.deepEqual(r.figmaOnly, ['accent-ink']);
   assert.deepEqual(r.twice, ['surface']);
 });
+
+test('a lone component and a missing axis are not in step', () => {
+  const code = [
+    { name: 'ChatThread', variants: [], states: ['default', 'hover'] },
+    { name: 'Card', variants: ['default', 'peek'], states: ['default', 'hover', 'focus'] },
+    { name: 'Kbd', variants: [], states: ['default'] },
+  ];
+  const figma = { comps: [
+    { name: 'ChatThread', type: 'COMPONENT', id: '1:1', page: 'Chat', variants: [] },
+    { name: 'Card', type: 'COMPONENT_SET', id: '2:2', page: 'Layout', variants: ['variant=default', 'variant=peek'] },
+    { name: 'Kbd', type: 'COMPONENT_SET', id: '3:3', page: 'Data', variants: ['caps=1'] },
+  ] };
+  const r = compareComponents(code, figma);
+  const by = (n) => r.rows.find((x) => x.name === n);
+  assert.ok(by('ChatThread').diffs.length > 0);
+  assert.deepEqual(by('Card').diffs, [{ axis: 'state', codeOnly: ['default', 'hover', 'focus'], figmaOnly: [], note: 'Figma has no state property' }]);
+  assert.deepEqual(by('Kbd').diffs, []); // a lone "default" state needs no axis
+  assert.equal(r.inStep, 1);
+});
+
+test('no semantic collection is an error, not a pass', () => {
+  const r = compareVariables(['surface'], { collections: [{ name: '1. Primitive', modes: ['Value'], names: ['color/cool/0'] }] });
+  assert.ok(r.error);
+});

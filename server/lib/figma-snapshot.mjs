@@ -156,9 +156,16 @@ export function compareComponents(code, figma) {
     if (!f) return { name: c.name, inFigma: false, maybe: MAYBE_SAME[c.name] && byName.has(MAYBE_SAME[c.name]) ? MAYBE_SAME[c.name] : null };
     const axes = axesOf(f.variants);
     const diffs = [];
+    // a lone component can't carry the contract's variants: its axes all show as missing
+    if (f.type !== 'COMPONENT_SET') diffs.push({ axis: 'set', codeOnly: [], figmaOnly: [], note: 'a single component, not a component set' });
     for (const [axis, field] of Object.entries(CODE_AXES)) {
       const want = (c[field] ?? []).filter(Boolean);
-      if (!want.length || !axes[axis]) continue; // only axes both sides name are compared
+      if (!want.length) continue;
+      if (!axes[axis]) {
+        // one value (a lone "default") needs no axis; more than one does
+        if (want.length > 1) diffs.push({ axis, codeOnly: want, figmaOnly: [], note: `Figma has no ${axis} property` });
+        continue;
+      }
       const have = [...axes[axis]];
       const codeOnly = want.filter((v) => !axes[axis].has(v));
       const figmaOnly = have.filter((v) => !want.includes(v));
@@ -212,14 +219,15 @@ export async function runFigmaCheck() {
     ? { ...compareVariables(code.roles, v.data), file: v.data.file, via: v.via, readAt: now }
     : { ...(prevPart('variables') ?? {}), unread: v.error };
   const gotAny = Boolean(c.data || v.data);
+  const compareErrors = [components.error, variables.error].filter(Boolean);
   const gaps = (components.total ?? 0) - (components.inStep ?? 0) + (variables.codeOnly?.length ?? 0) + (variables.figmaOnly?.length ?? 0) + (variables.twice?.length ?? 0);
   const parts = [];
   if (components.matched != null) parts.push(`${components.matched} of ${components.total} components in Figma, ${components.inStep} in step`);
   if (variables.matched != null) parts.push(`${variables.matched} of ${variables.total} colour roles`);
   return {
-    ok: gotAny && !c.error && !v.error && gaps === 0,
+    ok: gotAny && !c.error && !v.error && !compareErrors.length && gaps === 0,
     summary: gotAny ? parts.join(' · ') : [c.error, v.error].filter(Boolean)[0],
-    failures: [c.error, v.error].filter(Boolean),
+    failures: [c.error, v.error, ...compareErrors].filter(Boolean),
     components,
     variables,
     ms: 0,
