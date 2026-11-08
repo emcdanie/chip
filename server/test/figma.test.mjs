@@ -63,12 +63,17 @@ test('components: set name, then variant values against the contract', () => {
   assert.deepEqual(r.figmaOnly, ['Grid', 'HelperText']);
 });
 
-test('variables: names, figma-only, and names used twice', () => {
-  const r = compareVariables(['surface', 'border', 'surface-glass'], { collections: [{ name: '2. Semantic', modes: ['Light', 'Dark'], names: ['color/semantic/surface', 'color/semantic/border', 'color/x/surface', 'color/semantic/accent-ink'] }] });
+test('variables: colours only, by full name; a colour the code has elsewhere is not Figma-only', () => {
+  const names = [
+    { name: 'color/semantic/surface', type: 'COLOR' }, { name: 'color/semantic/border', type: 'COLOR' },
+    { name: 'blur/surface', type: 'FLOAT' }, { name: 'color/accent-ink', type: 'COLOR' }, { name: 'color/semantic/success-strong', type: 'COLOR' },
+  ];
+  const code = new Set(['--color-semantic-surface', '--color-semantic-border', '--color-semantic-surface-glass', '--color-accent-ink']);
+  const r = compareVariables(['surface', 'border', 'surface-glass'], { collections: [{ name: '2. Semantic', modes: ['Light', 'Dark'], names }] }, code);
   assert.equal(r.matched, 2);
   assert.deepEqual(r.codeOnly, ['surface-glass']);
-  assert.deepEqual(r.figmaOnly, ['accent-ink']);
-  assert.deepEqual(r.twice, ['surface']);
+  assert.deepEqual(r.figmaOnly, ['color-semantic-success-strong']);
+  assert.deepEqual(r.twice, []);
 });
 
 test('a lone component and a missing axis are not in step', () => {

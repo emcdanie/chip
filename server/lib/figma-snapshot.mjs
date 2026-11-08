@@ -17,6 +17,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATA_DIR } from './config.mjs';
+import { BELLA } from './bella-work.mjs';
 import * as host from '../host/registry.js';
 import { FIXED_SCRIPTS, allowedFiles } from '../host/fixed-reads.js';
 
@@ -132,8 +133,14 @@ async function read(kind) {
 /* ---------- comparing ---------- */
 function codeSide() {
   const b = JSON.parse(readFileSync(join(DATA_DIR, 'bella.json'), 'utf8'));
+  let colourVars = null;
+  try {
+    colourVars = new Set([...readFileSync(join(BELLA, 'tokens', 'bella.css'), 'utf8').matchAll(/(--color-[\w-]+)\s*:/g)].map((m) => m[1]));
+  } catch {
+    colourVars = null;
+  }
   const roles = Object.keys(b.palette ?? {}).filter((k) => k.startsWith('--color-semantic-')).map((k) => k.slice('--color-semantic-'.length));
-  return { components: b.components ?? [], roles };
+  return { components: b.components ?? [], roles, colourVars };
 }
 
 // "variant=primary, shape=pill, state=hover" -> { variant: Set, shape: Set, state: Set }
@@ -185,22 +192,28 @@ export function compareComponents(code, figma) {
   return { total: code.length, matched, inStep: rows.filter((r) => r.inFigma && !r.diffs.length).length, rows, figmaOnly, compared: 'set name, then each variant property’s values against the contract’s variants, shapes and states' };
 }
 
-export function compareVariables(roles, figma) {
+// Figma "color/semantic/surface" is CSS "--color-semantic-surface"; only colour
+// variables are compared (the semantic collection also holds blur/surface).
+const cssName = (figmaName) => `--${figmaName.replace(/\//g, '-')}`;
+export function compareVariables(roles, figma, codeVars = null) {
   const sem = figma.collections.find((c) => /semantic/i.test(c.name));
   if (!sem) return { error: 'Foundations has no semantic collection.' };
-  const names = sem.names.map((n) => n.split('/').pop());
-  const counts = names.reduce((m, n) => m.set(n, (m.get(n) ?? 0) + 1), new Map());
-  const set = new Set(names);
-  const codeOnly = roles.filter((r) => !set.has(r));
+  const colours = sem.names.map((n) => (typeof n === 'string' ? { name: n, type: 'COLOR' } : n)).filter((n) => n.type === 'COLOR').map((n) => n.name);
+  const css = colours.map(cssName);
+  const counts = css.reduce((m, n) => m.set(n, (m.get(n) ?? 0) + 1), new Map());
+  const have = new Set(css);
+  const codeOnly = roles.filter((r) => !have.has(`--color-semantic-${r}`));
+  // a Figma colour the code has under any --color- name is not Figma-only (accent-ink)
+  const known = codeVars ?? new Set(roles.map((r) => `--color-semantic-${r}`));
   return {
     collection: sem.name,
     modes: sem.modes,
     total: roles.length,
     matched: roles.length - codeOnly.length,
     codeOnly,
-    figmaOnly: [...set].filter((n) => !roles.includes(n)),
-    twice: [...counts].filter(([, k]) => k > 1).map(([n]) => n),
-    compared: 'variable names in the semantic collection against BELLA’s semantic colour roles; values per mode not yet',
+    figmaOnly: [...have].filter((n) => !known.has(n)).map((n) => n.replace(/^--/, '')),
+    twice: [...counts].filter(([, k]) => k > 1).map(([n]) => n.replace(/^--/, '')),
+    compared: 'colour variables in the semantic collection, by full name, against BELLA’s CSS colour variables; values per mode not yet',
   };
 }
 
@@ -223,7 +236,7 @@ export async function runFigmaCheck() {
     ? { ...compareComponents(code.components, c.data), file: c.data.file, via: c.via, readAt: now }
     : { ...(prevPart('components') ?? {}), unread: c.error };
   const variables = v.data
-    ? { ...compareVariables(code.roles, v.data), file: v.data.file, via: v.via, readAt: now }
+    ? { ...compareVariables(code.roles, v.data, code.colourVars), file: v.data.file, via: v.via, readAt: now }
     : { ...(prevPart('variables') ?? {}), unread: v.error };
   const gotAny = Boolean(c.data || v.data);
   const compareErrors = [components.error, variables.error].filter(Boolean);

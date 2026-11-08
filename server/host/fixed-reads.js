@@ -27,12 +27,12 @@ for (const page of figma.root.children) {
   }
 }
 return { file: figma.root.name, comps: out };`,
-  // every local variable collection: its name, modes and variable names
+  // every local variable collection: its name, modes, and each variable's name and type
   variables: `const cols = await figma.variables.getLocalVariableCollectionsAsync();
 const out = [];
 for (const c of cols) {
   const names = [];
-  for (const id of c.variableIds) { const v = await figma.variables.getVariableByIdAsync(id); if (v) names.push(v.name); }
+  for (const id of c.variableIds) { const v = await figma.variables.getVariableByIdAsync(id); if (v) names.push({ name: v.name, type: v.resolvedType }); }
   out.push({ name: c.name, modes: c.modes.map((m) => m.name), names });
 }
 return { file: figma.root.name, collections: out };`,
