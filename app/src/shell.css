@@ -345,8 +345,10 @@ html.wp-dragging .xterm { pointer-events: none; }
 .hstrip .tube::before { top: 33%; }
 .hstrip .tube::after { top: 66%; }
 .hstrip .tube i { position: absolute; height: 0; left: 4px; right: 4px; bottom: 4px; border-radius: var(--r); background: color-mix(in srgb, var(--ink) 42%, var(--card)); transition: height 1s cubic-bezier(0.22, 1, 0.36, 1); }
-.hcol.ok .tube i { background: var(--pass); } /* 90% or more: green, as success is (Elleta, 7 Nov) */
-.hcol.low .tube i { background: var(--needs); }
+/* Coverage is the weather card: shades of blue, darker is more complete; under 90% is pale with a yellow dot (Elleta, prototype 8 Nov) */
+.hcol.ok .tube i { background: var(--action); }
+.hcol.full.ok .tube i { background: var(--color-chip-ui-action-deep); }
+.hcol.low .tube i { background: color-mix(in srgb, var(--action) 45%, var(--card)); }
 .hcol.bad .tube i { background: var(--fail); }
 /* each bar's value, above it in ink, so its height needn't be guessed */
 .hp { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); padding-bottom: var(--s-4); font-variant-numeric: tabular-nums; }
