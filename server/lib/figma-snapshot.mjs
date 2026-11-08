@@ -161,15 +161,19 @@ export function compareComponents(code, figma) {
     for (const [axis, field] of Object.entries(CODE_AXES)) {
       const want = (c[field] ?? []).filter(Boolean);
       if (!want.length) continue;
-      if (!axes[axis]) {
+      // the contract files values under variants, shapes and states, but the
+      // component's own prop can be named otherwise (Heading's tier): use the
+      // Figma axis of the same name, else the one that holds those values
+      const name = axes[axis] ? axis : Object.keys(axes).find((k) => !Object.values(CODE_AXES).includes(k) && !Object.keys(CODE_AXES).includes(k) && want.every((v) => axes[k].has(v)));
+      if (!name) {
         // one value (a lone "default") needs no axis; more than one does
         if (want.length > 1) diffs.push({ axis, codeOnly: want, figmaOnly: [], note: `Figma has no ${axis} property` });
         continue;
       }
-      const have = [...axes[axis]];
-      const codeOnly = want.filter((v) => !axes[axis].has(v));
+      const have = [...axes[name]];
+      const codeOnly = want.filter((v) => !axes[name].has(v));
       const figmaOnly = have.filter((v) => !want.includes(v));
-      if (codeOnly.length || figmaOnly.length) diffs.push({ axis, codeOnly, figmaOnly });
+      if (codeOnly.length || figmaOnly.length) diffs.push({ axis: name, codeOnly, figmaOnly });
     }
     return { name: c.name, inFigma: true, id: f.id, page: f.page, variants: f.variants.length, axes: Object.fromEntries(Object.entries(axes).map(([k, s]) => [k, [...s]])), diffs };
   });

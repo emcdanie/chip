@@ -94,3 +94,8 @@ test('no semantic collection is an error, not a pass', () => {
   const r = compareVariables(['surface'], { collections: [{ name: '1. Primitive', modes: ['Value'], names: ['color/cool/0'] }] });
   assert.ok(r.error);
 });
+
+test('an axis named by the prop (Heading tier) matches the contract\'s variants', () => {
+  const r = compareComponents([{ name: 'Heading', variants: ['hero', 'page', 'section'], states: ['default'] }], { comps: [{ name: 'Heading', type: 'COMPONENT_SET', id: '1:1', page: 'Layout', variants: ['tier=hero, accent=off', 'tier=page, accent=off', 'tier=section, accent=on'] }] });
+  assert.deepEqual(r.rows[0].diffs, []);
+});
