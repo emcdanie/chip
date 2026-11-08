@@ -455,6 +455,17 @@ export default function App() {
             go('health');
           }}
         >
+          <svg className="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+            <g fill="none" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--color-semantic-pop-blue)' }}>
+              <path d="M50 22 V19 A5 5 0 0 0 45 14 H19 A5 5 0 0 0 14 19 V45 A5 5 0 0 0 19 50 H45 A5 5 0 0 0 50 45 V42" />
+              <path d="M38 26 A8.5 8.5 0 1 0 38 38" />
+              <path d="M38 26 L44 22 H56 M38 38 L44 42 H56" />
+              <path d="M24 8v6M40 8v6M24 50v6M40 50v6M8 24h6M8 40h6" />
+            </g>
+            <circle cx="40" cy="6" r="4" style={{ fill: 'var(--color-semantic-pop-yellow)' }} />
+            <circle cx="58" cy="42" r="4" style={{ fill: 'var(--color-semantic-pop-pink)' }} />
+            <circle cx="24" cy="58" r="4" style={{ fill: 'var(--color-semantic-pop-red)' }} />
+          </svg>
           CHIP<span>.</span>
         </a>
         {narrow ? (
