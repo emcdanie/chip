@@ -97,6 +97,38 @@ const reveal = (id) => {
   el?.scrollIntoView({ block: 'start' });
 };
 
+// The CHIP logotype (Elleta, 8 Nov): a blue chip whose right wall is the H's
+// first stroke and writes out HIP in one line; the wall, C and HIP are ink so
+// the word reads whole. On open, a pink
+// signal runs the circuit once and rests as the full stop. Reduced motion: it
+// starts at rest.
+const SIGNAL = 'M5 32 H12 V19 A5 5 0 0 1 17 14 H46 V32 H57 V44 H63.5 V20 H76 A6.48 6.48 0 0 1 76 32.96 H70 V44 L86 42.4';
+function BrandMark() {
+  const still = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const line = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' };
+  return (
+    <svg className="brand-mark" viewBox="0 0 94 64" role="img" aria-label="CHIP">
+      <g style={{ ...line, stroke: 'var(--color-semantic-pop-blue)', strokeWidth: 2.4 }}>
+        <path d="M46 14 H17 A5 5 0 0 0 12 19 V45 A5 5 0 0 0 17 50 H46" />
+        <path d="M20 7v7M29 7v7M38 7v7M20 50v7M29 50v7M38 50v7M5 24h7M5 32h7M5 40h7" />
+      </g>
+      <g style={{ ...line, stroke: 'var(--ink)', strokeWidth: 2.8 }}>
+        <path d="M38.88 23.29 A13 13 0 1 0 38.88 40.71" />
+        <path d="M46 14V50 M46 32H57V20 M57 32V44H63.5V20H76A6.48 6.48 0 0 1 76 32.96H70 M70 20V44" />
+      </g>
+      <circle cx="38" cy="4.5" r="2.6" style={{ fill: 'var(--color-semantic-pop-yellow)' }} />
+      <circle cx="20" cy="59.5" r="2.6" style={{ fill: 'var(--color-semantic-pop-red)' }} />
+      {still ? (
+        <circle cx="86" cy="42.4" r="2.6" style={{ fill: 'var(--color-semantic-pop-pink)' }} />
+      ) : (
+        <circle r="2.6" style={{ fill: 'var(--color-semantic-pop-pink)' }}>
+          <animateMotion dur="1.8s" fill="freeze" calcMode="linear" path={SIGNAL} />
+        </circle>
+      )}
+    </svg>
+  );
+}
+
 export default function App() {
   const [theme] = useTheme();
   // simulated until CHIP is hosted: the role Components reads (View as left the top bar for Lead with)
@@ -455,18 +487,7 @@ export default function App() {
             go('health');
           }}
         >
-          <svg className="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-            <g fill="none" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: 'var(--color-semantic-pop-blue)' }}>
-              <path d="M50 22 V19 A5 5 0 0 0 45 14 H19 A5 5 0 0 0 14 19 V45 A5 5 0 0 0 19 50 H45 A5 5 0 0 0 50 45 V42" />
-              <path d="M38 26 A8.5 8.5 0 1 0 38 38" />
-              <path d="M38 26 L44 22 H56 M38 38 L44 42 H56" />
-              <path d="M24 8v6M40 8v6M24 50v6M40 50v6M8 24h6M8 40h6" />
-            </g>
-            <circle cx="40" cy="6" r="4" style={{ fill: 'var(--color-semantic-pop-yellow)' }} />
-            <circle cx="58" cy="42" r="4" style={{ fill: 'var(--color-semantic-pop-pink)' }} />
-            <circle cx="24" cy="58" r="4" style={{ fill: 'var(--color-semantic-pop-red)' }} />
-          </svg>
-          CHIP<span>.</span>
+          <BrandMark />
         </a>
         {narrow ? (
           <button type="button" className="menubtn" aria-expanded={navOn} aria-controls="side" onClick={() => setNavOn((o) => !o)}>
