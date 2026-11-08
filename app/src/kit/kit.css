@@ -61,8 +61,8 @@
 /* segmented control (the mock's .iconseg): a tablist; top right in a card head */
 .k-seg { display: inline-flex; flex-wrap: wrap; gap: var(--s-4); padding: var(--s-4); border-radius: var(--r-control); flex: none; background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
 .k-seg button { display: inline-flex; align-items: center; gap: var(--s-8); height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
-.k-seg button:is([aria-selected='true'], [aria-checked='true']) { background: var(--action); color: var(--on-action); } /* selected is the action blue (Elleta, 8 Nov) */
-.k-seg button:focus-visible { outline-offset: 2px; } /* outside, so the pink ring never sits on the blue */
+.k-seg button:is([aria-selected='true'], [aria-checked='true']) { background: var(--card); box-shadow: var(--shadow); }
+.k-seg button:focus-visible { outline-offset: -3px; }
 .k-seg svg { width: 20px; height: 20px; }
 .k-seg svg :is(rect, path) { fill: none; stroke: currentColor; stroke-width: 2; }
 
