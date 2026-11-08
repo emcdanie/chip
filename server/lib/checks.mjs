@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { createConnection } from 'node:net';
 import { DATA_DIR } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
+import { runFigmaCheck } from './figma-snapshot.mjs';
 
 export const BASE = process.env.BELLA_PROPOSAL_BASE || 'feat/chip-components';
 export const CHECKS_DIR = join(DATA_DIR, 'checks');
@@ -218,6 +219,14 @@ export const CHECKS = [
     plain: 'Ten real tasks built by Claude with and without AGENTS.md, graded. Uses the plan.',
     schedule: 'Monthly, only after you say yes',
     manual: true, // spends plan usage: CHIP never starts it on its own
+  },
+  {
+    id: 'figma',
+    name: 'Figma matches the code',
+    plain: 'Each component has a Figma set with the contract’s variants, and the colour roles have Figma variables of the same name.',
+    schedule: 'When CHIP starts, when BELLA moves, and on Run',
+    // reads Figma through fixed, file-pinned reads (figma-snapshot.mjs); no checkout needed
+    run: () => runFigmaCheck(),
   },
 ];
 const byId = Object.fromEntries(CHECKS.map((c) => [c.id, c]));

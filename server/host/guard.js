@@ -8,6 +8,7 @@
 //     Anything that runs plugin code or deletes nodes or pages stays off it
 //     unless someone adds it to chip.config.local.json on purpose.
 import { randomUUID } from 'node:crypto';
+import { isFixedRead } from './fixed-reads.js';
 
 const pending = new Map(); // id -> { server, tool, args, purpose, at }
 const PENDING_MS = 10 * 60 * 1000;
@@ -22,6 +23,8 @@ function sweep() {
 /** Returns { run: true } or { refused: reason } or { pending: { id, preview } }. */
 export async function guard({ serverCfg, tool, args, purpose, readBefore, session }) {
   if (tool.kind === 'read') return { run: true };
+  // a fixed Figma read: CHIP's own script, on CHIP's own file key (fixed-reads.js)
+  if (isFixedRead(serverCfg.name, tool.name, args)) return { run: true };
   const why = writeBlocked(serverCfg, tool.name);
   if (why) return { refused: why };
   const id = randomUUID();

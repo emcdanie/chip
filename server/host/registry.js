@@ -144,6 +144,13 @@ function entry(cfg) {
   return live.get(cfg.name);
 }
 
+/** Closes every server CHIP started. A stdio child left running holds its
+ * port after CHIP exits: a Desktop Bridge server took one of the plugin's
+ * ten ports each time, until none was free (8 Nov). */
+export async function closeAll() {
+  await Promise.all([...live.values()].map((e) => e.adapter.close?.().catch(() => {})));
+}
+
 /** Every configured server with its status, for /tools and the Connectors page. */
 export function servers() {
   const used = lastToolUses();

@@ -21,6 +21,7 @@ import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
 import { specOf, figmaLint, readBaseline, runBaseline } from './lib/spec-lint.mjs';
 import { attachTerminal, repoList } from './lib/term.mjs';
 import { listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
+import { figmaSnapshot } from './lib/figma-snapshot.mjs';
 import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou } from './lib/needs.mjs';
 import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
@@ -243,6 +244,8 @@ app.get('/figma-lint/:id', async (req, res) => {
 // Compare with Figma for every component: the baseline the Connectors page shows
 const propsOf = (c) => specOf(c).props?.map((p) => p.name) ?? c.props ?? [];
 app.get('/figma-baseline', (_req, res) => res.json(readBaseline()));
+// the Figma check's snapshot, with each part's age (readers never call Figma)
+app.get('/figma-snapshot', (_req, res) => res.json(figmaSnapshot()));
 app.post('/figma-baseline/run', (req, res) => {
   if (!sameApp(req, res)) return;
   res.json(runBaseline(propsOf));
@@ -667,6 +670,8 @@ app.post('/play/brief', (req, res) => {
 });
 
 // Bound to localhost: nothing on the network can reach /ask, /cmd or /term.
+// stop the servers CHIP started (a Desktop Bridge left behind keeps its port)
+for (const sig of ['SIGINT', 'SIGTERM']) process.once(sig, () => host.closeAll().finally(() => process.exit(0)));
 const server = app.listen(PORT, '127.0.0.1', () => {
   console.log(`[CHIP] http://localhost:${PORT} · model ${CHIP_MODEL} · embeddings ${CHIP_EMBED_MODEL} · ${OLLAMA_URL}`);
   const t = Date.now();
