@@ -23,6 +23,8 @@ import { FIXED_SCRIPTS, allowedFiles } from '../host/fixed-reads.js';
 export const STALE_DAYS = 7;
 // suggested only: a pair counts once Elleta confirms it (data stays honest until then)
 const MAYBE_SAME = { Columns: 'Grid', SidebarLayout: 'Sidebar' };
+// sets in Figma that hold a component's per-item states: their axes count as the component's
+const PARTS = { Tabs: ['Tab'], SegmentedControl: ['Segment'], NavList: ['Nav item'], ScoreStrip: ['Score cell'], ChatThread: ['ChatThreadTimestamp', 'ChatThreadDelivered'] };
 
 /* ---------- reading ---------- */
 // a Bridge error can name other open files (client files among them): never keep its text
@@ -154,10 +156,11 @@ export function compareComponents(code, figma) {
   const rows = code.map((c) => {
     const f = byName.get(c.name);
     if (!f) return { name: c.name, inFigma: false, maybe: MAYBE_SAME[c.name] && byName.has(MAYBE_SAME[c.name]) ? MAYBE_SAME[c.name] : null };
-    const axes = axesOf(f.variants);
+    const axes = axesOf([...f.variants, ...(PARTS[c.name] ?? []).flatMap((p) => byName.get(p)?.variants ?? [])]);
     const diffs = [];
     // a lone component can't carry the contract's variants: its axes all show as missing
-    if (f.type !== 'COMPONENT_SET') diffs.push({ axis: 'set', codeOnly: [], figmaOnly: [], note: 'a single component, not a component set' });
+    const needsSet = Object.values(CODE_AXES).some((field) => (c[field] ?? []).filter(Boolean).length > 1);
+    if (f.type !== 'COMPONENT_SET' && needsSet && !PARTS[c.name]) diffs.push({ axis: 'set', codeOnly: [], figmaOnly: [], note: 'a single component, not a component set' });
     for (const [axis, field] of Object.entries(CODE_AXES)) {
       const want = (c[field] ?? []).filter(Boolean);
       if (!want.length) continue;
