@@ -398,6 +398,7 @@ app.post('/notes', (req, res) => {
 const COMMANDS = new Set(['ask', 'sync', 'audit', 'status']);
 const APP_ORIGINS = new Set([
   'http://127.0.0.1:5173', 'http://localhost:5173', `http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`,
+  `http://chip.localhost:${PORT}`,
 ]);
 const CMD_TIMEOUT_MS = 10 * 60 * 1000;
 let running = null;
