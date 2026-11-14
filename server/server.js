@@ -28,13 +28,16 @@ import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, searchHistory } from './lib/history.mjs';
 import { systemMap } from './lib/map.mjs';
 import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
+import { appOrigins, onlyChip } from './lib/origin.mjs';
 import { playMap, playPages, playTarget, saveBrief, startPlayProxy, PROXY } from './lib/play.mjs';
 
 const app = express();
+// Only CHIP's own page may read this server, /ask included (product inspection
+// 12 Nov, station 8): the guard refuses other sites, CORS names CHIP's origins only.
+const APP_ORIGINS = appOrigins(PORT);
+app.use(onlyChip(APP_ORIGINS));
+app.use(cors({ origin: [...APP_ORIGINS], credentials: false }));
 app.use(express.json());
-
-// Local-only server; reflect every origin including null (file:// pages).
-app.use(cors({ origin: true, credentials: false }));
 
 // The built app (npm run app:build) at /, real BELLA data at /data. The old
 // static bridge is archived in docs/archive/chip-bridge-v0.
@@ -396,9 +399,6 @@ app.post('/notes', (req, res) => {
 // origin can't drive it (the browser sends its Origin; anything not this
 // app's is refused). Contract: { cmd: 'ask'|'sync'|'audit'|'status', question? }
 const COMMANDS = new Set(['ask', 'sync', 'audit', 'status']);
-const APP_ORIGINS = new Set([
-  'http://127.0.0.1:5173', 'http://localhost:5173', `http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`,
-]);
 const CMD_TIMEOUT_MS = 10 * 60 * 1000;
 let running = null;
 

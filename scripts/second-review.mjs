@@ -41,7 +41,7 @@ const rules =
 const ask = isPlan
   ? "Review this plan. List what is wrong or missing: a step that will not work, a risk it ignores, an unstated dependency, or a cheaper route to the same result."
   : "Review this diff. You may read files in this repo to check claims. List only real defects: wrong behaviour, a broken rule, a regression, or something the change claims but does not do.";
-const prompt = `You are a senior design-system engineer. ${rules} ${ask} For each give the location, what breaks and in which situation, and your confidence (high, medium or low). No style opinions, praise or summary. If you find nothing, say so.\n\n${content}`;
+const prompt = `You are a senior design-system engineer. ${rules} ${ask} For each give the location, what breaks and in which situation, and your confidence (high, medium or low). No style opinions, praise or summary. Do not try to run this review or any command. If you find nothing, say so.\n\n${content}`;
 
 let token = process.env.GH_TOKEN;
 if (!token) {
