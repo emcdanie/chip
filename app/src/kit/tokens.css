@@ -27,9 +27,9 @@
   --edge: rgb(29 32 48 / 0.18); /* the shadow at a scroll region's edge when more is past it */
 
   /* type: 14 / 16 / 20 / 28 / 40, weights 400 and 600 */
-  --display: 'Newsreader', Georgia, serif; /* H1 only */
-  --sans: 'DM Sans', system-ui, sans-serif;
-  --code: 'Geist Mono', ui-monospace, monospace;
+  --display: var(--typography-headline-sm-font-family); /* H1 only: BELLA's role token (Lexend in Chip) */
+  --sans: var(--typography-body-default-font-family);
+  --code: var(--typography-font-family-geist-mono);
   --fs-14: 14px;
   --fs-16: 16px;
   --fs-20: 20px;

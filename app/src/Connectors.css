@@ -12,7 +12,7 @@
 
 .cn-zoom { display: inline-flex; gap: var(--s-4); }
 .cn-keys { width: min(320px, 80vw); margin: 0; padding-left: var(--s-16); display: grid; gap: var(--s-4); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
-.cn-keys kbd { font: 400 var(--fs-14)/var(--lh-body) var(--code); border: 1px solid var(--line); border-radius: var(--r); padding: 0 var(--s-4); }
+.cn-keys kbd { font: 400 var(--fs-14)/var(--lh-body) var(--typography-font-family-geist-mono); border: 1px solid var(--line); border-radius: var(--r); padding: 0 var(--s-4); }
 
 /* the map: one sentence, then the canvas */
 .cn-map { display: grid; gap: var(--s-12); container: map / inline-size; }
@@ -47,7 +47,7 @@
 .cn-node.near .cn-card { border-color: var(--action); }
 .cn-ic { grid-column: 1; grid-row: 1; display: grid; place-items: center; width: var(--h-compact); height: var(--h-compact); border-radius: var(--r-control); background: var(--inset); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
 .cn-tx { display: grid; min-width: 0; }
-.cn-tx b { font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-tx b { font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cn-tx small { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cn-tog { grid-column: 1; grid-row: 2; align-self: end; display: grid; place-items: center; width: var(--h-compact); height: 32px; padding: 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--muted); cursor: pointer; }
 .cn-tog:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
@@ -61,7 +61,7 @@
 .cn-reach code { overflow-wrap: anywhere; }
 .cn-steps { margin: 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: var(--s-12); }
 .cn-steps li { counter-increment: st; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--s-4) var(--s-12); }
-.cn-steps li::before { content: counter(st); grid-row: 1 / span 3; width: 28px; height: 28px; border-radius: var(--r-control); display: grid; place-items: center; background: var(--neutral); font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
+.cn-steps li::before { content: counter(st); grid-row: 1 / span 3; width: 28px; height: 28px; border-radius: var(--r-control); display: grid; place-items: center; background: var(--neutral); font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
 .cn-steps b { font-weight: 600; color: var(--ink); }
 .cn-steps li > span { font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); }
 .cn-cmd { display: flex; gap: var(--s-8); align-items: center; margin-top: var(--s-4); }
