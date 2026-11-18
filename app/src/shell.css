@@ -209,10 +209,10 @@ html.wp-dragging .xterm { pointer-events: none; }
 .wp-bottom .stree { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; }
 .face { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: var(--r-control); font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); background: var(--inset); flex: none; }
 /* lane colours are BELLA's own lane tokens; ink on each is over 12:1 */
-.face[data-face='lane-a'] { background: var(--color-semantic-lane-a); color: var(--on-action); }
-.face[data-face='lane-b'] { background: var(--color-semantic-lane-b); color: var(--on-action); }
-.face[data-face='lane-c'] { background: var(--color-semantic-lane-c); color: var(--on-action); }
-.face[data-face='lane-d'] { background: var(--color-semantic-lane-d); color: var(--on-action); }
+.face[data-face='lane-a'] { background: var(--color-background-accent-3); color: var(--on-action); }
+.face[data-face='lane-b'] { background: var(--color-background-accent-1); color: var(--on-action); }
+.face[data-face='lane-c'] { background: var(--color-background-utility-success); color: var(--on-action); }
+.face[data-face='lane-d'] { background: var(--color-background-accent-2); color: var(--on-action); }
 .lwho { display: grid; line-height: var(--lh-head); }
 .ljob { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
 .lneeds { margin: 0; padding-left: var(--s-16); display: grid; gap: var(--s-8); color: var(--body); overflow-wrap: anywhere; }

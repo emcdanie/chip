@@ -2,37 +2,38 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "8e8d4d2",
-    "committedAt": "2026-10-15T09:21:20+02:00",
-    "version": "0.3.0"
+    "commit": "1030a0e",
+    "committedAt": "2026-11-18T21:42:19+01:00",
+    "version": null
   },
   "counts": {
-    "components": 37,
-    "withStory": 35,
-    "withDocs": 37,
-    "withContract": 37,
+    "components": 43,
+    "withStory": 41,
+    "withDocs": 43,
+    "withContract": 43,
     "semanticTokenGroups": {
       "light": [
-        "blur",
+        "border",
         "color",
-        "opacity",
-        "shadow"
+        "focus-ring",
+        "typography"
       ],
       "dark": [
+        "border",
         "color",
-        "opacity",
-        "shadow"
+        "focus-ring",
+        "typography"
       ]
     },
     "cssVars": {
-      "light": 740,
+      "light": 162,
       "darkOverrides": 0
     }
   },
   "gates": {
     "contrastPairs": {
-      "ok": false,
-      "summary": "contrast pairs: 1 failing"
+      "ok": true,
+      "summary": "contrast pairs: 373 checked across 4 themes (text 7:1, marks 3:1), OK; inset rule: 16 exempt, every consumer classified"
     },
     "contractParity": {
       "ok": true,
@@ -58,7 +59,6 @@ window.BELLA = {
         "kbd",
         "nav-list",
         "stat",
-        "score-strip",
         "data-table",
         "drawer",
         "combobox",
@@ -73,7 +73,14 @@ window.BELLA = {
         "chat-bubble",
         "avatar-stack",
         "typing-dots",
-        "chat-thread"
+        "chat-thread",
+        "pin",
+        "leader",
+        "list-row",
+        "section-nav",
+        "page-outline",
+        "tooltip",
+        "code-block"
       ],
       "exemptContracts": [
         "nav-link",
@@ -106,7 +113,7 @@ window.BELLA = {
       "name": "A11y",
       "score": 95,
       "assessment": "measured",
-      "basis": "35/37 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: FAILED)"
+      "basis": "41/43 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -134,21 +141,21 @@ window.BELLA = {
       "name": "Governance",
       "score": 100,
       "assessment": "measured",
-      "basis": "37/37 components: Tier 3 contract checked by contract-parity and passing"
+      "basis": "43/43 components: Tier 3 contract checked by contract-parity and passing"
     },
     {
       "id": "docs",
       "name": "Docs",
       "score": 95,
       "assessment": "measured",
-      "basis": "35/37 components: Storybook story and a docs description in the manifest"
+      "basis": "41/43 components: Storybook story and a docs description in the manifest"
     },
     {
       "id": "machine-readable",
       "name": "Machine-readable",
-      "score": 89,
+      "score": 100,
       "assessment": "measured",
-      "basis": "33/37 components: DSDS component entry and react-docgen props in the manifest"
+      "basis": "43/43 components: DSDS component entry and react-docgen props in the manifest"
     },
     {
       "id": "agent-access",
@@ -190,18 +197,6 @@ window.BELLA = {
       "storyCoverage": 100,
       "contractCoverage": 100,
       "gate": null
-    },
-    {
-      "commit": "492339b",
-      "committedAt": "2026-07-22T12:04:43+02:00",
-      "components": 1,
-      "storyCoverage": 100,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": null,
-        "contractParity": true,
-        "ok": true
-      }
     },
     {
       "commit": "0ceb2eb",
@@ -360,11 +355,11 @@ window.BELLA = {
       }
     },
     {
-      "commit": "d7c59d5",
-      "committedAt": "2026-10-13T15:57:03+02:00",
-      "components": 37,
-      "storyCoverage": 95,
-      "contractCoverage": 100,
+      "commit": "0917c26",
+      "committedAt": "2026-10-09T13:36:09+02:00",
+      "components": 33,
+      "storyCoverage": 94,
+      "contractCoverage": 0,
       "gate": {
         "contrastPairs": false,
         "contractParity": true,
@@ -372,11 +367,11 @@ window.BELLA = {
       }
     },
     {
-      "commit": "5d1ff6b",
-      "committedAt": "2026-10-13T17:45:57+02:00",
-      "components": 37,
+      "commit": "d0ce804",
+      "committedAt": "2026-11-08T14:31:42+01:00",
+      "components": 44,
       "storyCoverage": 95,
-      "contractCoverage": 100,
+      "contractCoverage": 0,
       "gate": {
         "contrastPairs": false,
         "contractParity": true,
@@ -384,11 +379,11 @@ window.BELLA = {
       }
     },
     {
-      "commit": "15a5e20",
-      "committedAt": "2026-10-13T20:56:47+02:00",
-      "components": 37,
+      "commit": "4bab4b0",
+      "committedAt": "2026-11-08T15:20:28+01:00",
+      "components": 44,
       "storyCoverage": 95,
-      "contractCoverage": 100,
+      "contractCoverage": 0,
       "gate": {
         "contrastPairs": false,
         "contractParity": true,
@@ -396,11 +391,11 @@ window.BELLA = {
       }
     },
     {
-      "commit": "c2d6bd9",
-      "committedAt": "2026-10-13T21:23:25+02:00",
-      "components": 37,
+      "commit": "b2b7ad4",
+      "committedAt": "2026-11-08T15:33:51+01:00",
+      "components": 44,
       "storyCoverage": 95,
-      "contractCoverage": 100,
+      "contractCoverage": 0,
       "gate": {
         "contrastPairs": false,
         "contractParity": true,
@@ -408,11 +403,11 @@ window.BELLA = {
       }
     },
     {
-      "commit": "2c07275",
-      "committedAt": "2026-10-14T09:33:46+02:00",
-      "components": 37,
+      "commit": "955dbc7",
+      "committedAt": "2026-11-09T14:05:03+01:00",
+      "components": 44,
       "storyCoverage": 95,
-      "contractCoverage": 100,
+      "contractCoverage": 0,
       "gate": {
         "contrastPairs": false,
         "contractParity": true,
@@ -420,520 +415,960 @@ window.BELLA = {
       }
     },
     {
-      "commit": "23fd8da",
-      "committedAt": "2026-10-14T09:50:32+02:00",
-      "components": 37,
+      "commit": "6228023",
+      "committedAt": "2026-11-09T14:34:05+01:00",
+      "components": 44,
       "storyCoverage": 95,
-      "contractCoverage": 100,
+      "contractCoverage": 0,
       "gate": {
         "contrastPairs": false,
-        "contractParity": true,
+        "contractParity": false,
         "ok": false
       }
     },
     {
-      "commit": "387d2da",
-      "committedAt": "2026-10-14T10:15:49+02:00",
-      "components": 37,
+      "commit": "12f7cb7",
+      "committedAt": "2026-11-09T14:50:42+01:00",
+      "components": 44,
       "storyCoverage": 95,
-      "contractCoverage": 100,
+      "contractCoverage": 0,
       "gate": {
         "contrastPairs": false,
-        "contractParity": true,
+        "contractParity": false,
         "ok": false
       }
     },
     {
-      "commit": "d2e5b69",
-      "committedAt": "2026-10-14T15:58:10+02:00",
-      "components": 37,
+      "commit": "3d74f7d",
+      "committedAt": "2026-11-09T17:36:11+01:00",
+      "components": 44,
       "storyCoverage": 95,
-      "contractCoverage": 100,
+      "contractCoverage": 0,
       "gate": {
         "contrastPairs": false,
-        "contractParity": true,
+        "contractParity": false,
         "ok": false
       }
     },
     {
-      "commit": "8e8d4d2",
-      "committedAt": "2026-10-15T09:21:20+02:00",
-      "components": 37,
+      "commit": "75859ce",
+      "committedAt": "2026-11-14T09:22:09+01:00",
+      "components": 44,
+      "storyCoverage": 95,
+      "contractCoverage": 0,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": false,
+        "ok": false
+      }
+    },
+    {
+      "commit": "3075f8e",
+      "committedAt": "2026-11-18T20:28:56+01:00",
+      "components": 44,
       "storyCoverage": 95,
       "contractCoverage": 100,
       "gate": {
         "contrastPairs": false,
-        "contractParity": true,
+        "contractParity": false,
+        "ok": false
+      }
+    },
+    {
+      "commit": "8e0fe05",
+      "committedAt": "2026-11-18T21:33:25+01:00",
+      "components": 43,
+      "storyCoverage": 95,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": false,
         "ok": false
       }
     }
   ],
   "palette": {
-    "--color-semantic-text-body": {
-      "light": "#2b2f3d",
-      "dark": "#eceef3",
-      "warm": "#2b2f3d"
-    },
-    "--color-semantic-hover-fill": {
-      "light": "#f6f7f9",
-      "dark": "#0f1117",
-      "warm": "#f6f7f9"
-    },
-    "--color-semantic-icon-muted": {
-      "light": "#686d7d",
-      "dark": "#858b9f",
-      "warm": "#686d7d"
-    },
-    "--color-semantic-background": {
-      "light": "#f0eeeb",
-      "dark": "#0f1117",
-      "warm": "#f6f1e8"
-    },
-    "--color-semantic-background-inverse": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-surface": {
-      "light": "#ffffff",
-      "dark": "#171a22",
-      "warm": "#f0ede8"
-    },
-    "--color-semantic-surface-card": {
-      "light": "#fcfcfa",
-      "dark": "#171a22",
-      "warm": "#fbfaf7"
-    },
-    "--color-semantic-surface-elevated": {
-      "light": "#ffffff",
-      "dark": "#262a35",
-      "warm": "#fbfaf7"
-    },
-    "--color-semantic-surface-inset": {
-      "light": "#eceef3",
-      "dark": "#1d2030",
-      "warm": "#ebe4d6"
-    },
-    "--color-semantic-ground": {
-      "light": "#f0eeeb",
-      "dark": "#0f1117",
-      "warm": "#e3dbcf"
-    },
-    "--color-semantic-raised": {
-      "light": "#fcfcfa",
-      "dark": "#262a35",
-      "warm": "#fbfaf7"
-    },
-    "--color-semantic-surface-inverse": {
-      "light": "#171a22",
-      "dark": "#f6f7f9",
-      "warm": "#171a22"
-    },
-    "--color-semantic-surface-glass": {
-      "light": "linear-gradient(180deg, #FFFFFFD1 0%, #FFFFFFAD 100%)",
-      "dark": "#1B191699",
-      "warm": "linear-gradient(180deg, #FFFFFFD1 0%, #FFFFFFAD 100%)"
-    },
-    "--color-semantic-surface-glass-elevated": {
-      "light": "linear-gradient(180deg, #FFFFFFAD 0%, #FFFFFF7A 100%)",
-      "dark": "#1B19167A",
-      "warm": "linear-gradient(180deg, #FFFFFFAD 0%, #FFFFFF7A 100%)"
-    },
-    "--color-semantic-surface-glass-light": {
-      "light": "linear-gradient(180deg, #FFFFFF7A 0%, #FFFFFF47 100%)",
-      "dark": "#1B191652",
-      "warm": "linear-gradient(180deg, #FFFFFF7A 0%, #FFFFFF47 100%)"
-    },
-    "--color-semantic-surface-glass-accent": {
-      "light": "#e8a83e26",
-      "dark": "#e8a83e26",
-      "warm": "#e8a83e26"
-    },
-    "--color-semantic-border-glass-top": {
-      "light": "#FFFFFFB8",
-      "dark": "#F4EFE624",
-      "warm": "#FFFFFFB8"
-    },
-    "--color-semantic-border-glass-edge": {
-      "light": "#FFFFFF8C",
-      "dark": "#F4EFE61A",
-      "warm": "#FFFFFF8C"
-    },
-    "--color-semantic-text-primary": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-text-secondary": {
-      "light": "#474c5e",
-      "dark": "#b1b7c7",
-      "warm": "#4f463d"
-    },
-    "--color-semantic-text-muted": {
-      "light": "#474c5e",
-      "dark": "#b1b7c7",
-      "warm": "#4f463d"
-    },
-    "--color-semantic-text-inverse": {
-      "light": "#eceef3",
-      "dark": "#1d2030",
-      "warm": "#eceef3"
-    },
-    "--color-semantic-text-accent": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-accent": {
-      "light": "#e8a83e",
-      "dark": "#e8a83e",
-      "warm": "#e8a83e"
-    },
-    "--color-semantic-accent-hover": {
-      "light": "#b97a14",
-      "dark": "#e8a83e",
-      "warm": "#b97a14"
-    },
-    "--color-semantic-text-on-accent": {
-      "light": "#1d2030",
-      "dark": "#1d2030",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-accent-subtle": {
-      "light": "#e6e4e1",
-      "dark": "#262a35",
-      "warm": "#ebe4d6"
-    },
-    "--color-semantic-accent-border": {
-      "light": "#858b9f",
-      "dark": "#686d7d",
-      "warm": "#857a6a"
-    },
-    "--color-semantic-border": {
-      "light": "#e4e6ec",
-      "dark": "#2e3240",
-      "warm": "#e3dbcf"
-    },
-    "--color-semantic-border-subtle": {
-      "light": "#e4e6ec",
-      "dark": "#262a35",
-      "warm": "#e3dbcf"
-    },
-    "--color-semantic-border-faint": {
-      "light": "#eceef3",
-      "dark": "#262a35",
-      "warm": "#e3dbcf"
-    },
-    "--color-semantic-border-strong": {
-      "light": "#686d7d",
-      "dark": "#858b9f",
-      "warm": "#857a6a"
-    },
-    "--color-semantic-border-ink": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-scrim": {
-      "light": "#1A172038",
-      "dark": "#1B191699",
-      "warm": "#1A172038"
-    },
-    "--color-semantic-highlight-wash": {
-      "light": "#1d203014",
-      "dark": "#eceef31f",
-      "warm": "#1d203014"
-    },
-    "--color-semantic-highlight-edge": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-highlight-text": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-focus-ring": {
-      "light": "#b97a14",
-      "dark": "#e8a83e",
-      "warm": "#b97a14"
-    },
-    "--color-semantic-danger-text": {
-      "light": "#b3261e",
-      "dark": "#ff8f84",
-      "warm": "#b3261e"
-    },
-    "--color-semantic-danger-border": {
-      "light": "#b3261e",
-      "dark": "#ff8f84",
-      "warm": "#b3261e"
-    },
-    "--color-semantic-danger-subtle": {
-      "light": "#fcebe9",
-      "dark": "#3a1714",
-      "warm": "#fcebe9"
-    },
-    "--color-semantic-success-text": {
-      "light": "#1a7439",
-      "dark": "#72d08b",
-      "warm": "#1a7439"
-    },
-    "--color-semantic-success-border": {
-      "light": "#1a7439",
-      "dark": "#72d08b",
-      "warm": "#1a7439"
-    },
-    "--color-semantic-success-subtle": {
-      "light": "#e6f3ea",
-      "dark": "#12301d",
-      "warm": "#e6f3ea"
-    },
-    "--color-semantic-chip-1": {
-      "light": "#cfe0ef",
-      "dark": "#cfe0ef",
-      "warm": "#cfe0ef"
-    },
-    "--color-semantic-chip-2": {
-      "light": "#f6c9a8",
-      "dark": "#f6c9a8",
-      "warm": "#f6c9a8"
-    },
-    "--color-semantic-chip-3": {
-      "light": "#cfe8dc",
-      "dark": "#cfe8dc",
-      "warm": "#cfe8dc"
-    },
-    "--color-semantic-chip-text": {
-      "light": "#17191a",
-      "dark": "#17191a",
-      "warm": "#17191a"
-    },
-    "--color-semantic-lane-a": {
-      "light": "#cfe0ef",
-      "dark": "#cfe0ef",
-      "warm": "#cfe0ef"
-    },
-    "--color-semantic-lane-b": {
-      "light": "#f6c9a8",
-      "dark": "#f6c9a8",
-      "warm": "#f6c9a8"
-    },
-    "--color-semantic-lane-c": {
-      "light": "#cfe8dc",
-      "dark": "#cfe8dc",
-      "warm": "#cfe8dc"
-    },
-    "--color-semantic-lane-d": {
-      "light": "#e8a83e",
-      "dark": "#e8a83e",
-      "warm": "#e8a83e"
-    },
-    "--color-semantic-link": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-link-hover": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-success": {
-      "light": "#4A7C6F",
-      "dark": "#4A7C6F",
-      "warm": "#4A7C6F"
-    },
-    "--color-semantic-info": {
-      "light": "#6495C5",
-      "dark": "#6495C5",
-      "warm": "#6495C5"
-    },
-    "--color-semantic-info-subtle": {
-      "light": "#6495C526",
-      "dark": "#6495C526",
-      "warm": "#6495C526"
-    },
-    "--color-semantic-info-border": {
-      "light": "#6495C54D",
-      "dark": "#6495C54D",
-      "warm": "#6495C54D"
-    },
-    "--color-semantic-accent-raised-hi": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-accent-raised-lo": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-accent-raised-hover": {
-      "light": "#3a3f50",
-      "dark": "#c3c7d2",
-      "warm": "#3a3f50"
-    },
-    "--color-semantic-accent-raised-edge": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-chat-surface-received": {
-      "light": "#eceef3",
-      "dark": "#1d2030",
-      "warm": "#ebe4d6"
-    },
-    "--color-semantic-action": {
-      "light": "#1d2030",
-      "dark": "#eceef3",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-action-on": {
-      "light": "#eceef3",
-      "dark": "#1d2030",
-      "warm": "#eceef3"
-    },
-    "--color-semantic-attention": {
-      "light": "#e8a83e",
-      "dark": "#e8a83e",
-      "warm": "#e8a83e"
-    },
-    "--color-semantic-attention-on": {
-      "light": "#1d2030",
-      "dark": "#1d2030",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-success-on": {
-      "light": "#1d2030",
-      "dark": "#1d2030",
-      "warm": "#1d2030"
-    },
-    "--color-semantic-danger": {
-      "light": "#b3261e",
-      "dark": "#ff8f84",
-      "warm": "#b3261e"
-    },
-    "--color-semantic-quiet": {
-      "light": "#cfe8dc",
-      "dark": "#cfe8dc",
-      "warm": "#cfe8dc"
-    },
-    "--color-semantic-quiet-on": {
-      "light": "#1d2030",
-      "dark": "#1d2030",
-      "warm": "#1d2030"
+    "--color-background-default": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-knockout": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-surface": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-subtle": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-accent-1": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-accent-1-hover": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-accent-subtle": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-utility-success-knockout": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-utility-info-knockout": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-utility-info": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-utility-error": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-utility-success": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-utility-warning-knockout": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-utility-error-knockout": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-utility-warning": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-utility-neutral": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-utility-warning-mark": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-brand-hover": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-transparent": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-default-hover": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-highlight": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-brand": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-lane": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-syntax-background": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-syntax-add": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-syntax-del": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-accent-2": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-accent-3": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-accent-4": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-logo-git": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-logo-claude": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-brand-subtle": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-brand-subtle-hover": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-transparent-none": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-disabled": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-pattern-ground": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-pattern-tiger": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-pattern-cream": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-pattern-rosette": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-pattern-pink": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-pattern-leopard": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-pattern-zebra": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-pattern-zebra-light": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-pattern-ink": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-pattern-coral": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-background-scrim": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-glass-top": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-glass-edge": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-accent": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-default": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-subtle": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-strong": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-utility-info": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-utility-error": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-utility-success": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-utility-warning": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-utility-neutral": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-ink": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-focus": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-action-raised": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-syntax": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-brand": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-disabled": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-border-accent-1": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-default": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-subtle": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-knockout": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-accent": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-on-accent-1": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-link": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-utility-error": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-utility-success": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-utility-on-status": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-utility-info": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-utility-warning": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-utility-neutral": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-icon-subtle": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-body": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-highlight": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-brand-knockout": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-syntax-foreground": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-syntax-keyword": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-syntax-string": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-syntax-number": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-syntax-comment": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-syntax-function": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-syntax-tag": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-syntax-attr": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-syntax-punct": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-syntax-line-number": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-brand": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-brand-hover": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-disabled": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-content-lane-subtle": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-data-viz-positive-1": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-data-viz-positive-2": {
+      "light": null,
+      "dark": null,
+      "warm": null
+    },
+    "--color-data-viz-positive-3": {
+      "light": null,
+      "dark": null,
+      "warm": null
     }
   },
   "ring": {
     "color": {
-      "token": "--ring-focus-color",
-      "light": "#b97a14",
-      "dark": "#e8a83e",
-      "warm": "#b97a14"
+      "token": "--color-border-focus",
+      "light": null,
+      "dark": null,
+      "warm": null
     },
     "ground": {
-      "token": "--color-semantic-background",
-      "light": "#f0eeeb",
-      "dark": "#0f1117",
-      "warm": "#f6f1e8"
+      "token": "--color-background-default",
+      "light": null,
+      "dark": null,
+      "warm": null
     }
   },
   "tokenUsage": {
-    "--border-width-thin": [
+    "--border-radius-round": [
       "ActionChip",
+      "Avatar",
+      "AvatarStack",
+      "Button",
+      "ChatBubble",
+      "FilterChip",
+      "Pin",
+      "ResourceCard",
+      "Slider",
+      "Stat",
+      "StatusPill",
+      "Tabs",
+      "Tag",
+      "TypingDots"
+    ],
+    "--border-width-1": [
+      "ActionChip",
+      "Button",
+      "ChatBubble",
+      "CodeBlock",
       "Combobox",
       "DataTable",
       "Disclosure",
       "Drawer",
       "Kbd",
+      "Link",
+      "ListRow",
       "NavList",
-      "ScoreStrip",
+      "PageOutline",
       "Stat",
-      "Tabs"
+      "Tabs",
+      "Tag",
+      "Tooltip"
     ],
-    "--color-semantic-border": [
+    "--color-background-subtle": [
+      "ActionChip",
+      "Avatar",
+      "AvatarStack",
+      "Button",
+      "ChatBubble",
+      "Input",
+      "Kbd",
+      "NavList",
+      "PageHeader",
+      "Stat",
+      "StatusPill",
+      "Tabs",
+      "TypingDots"
+    ],
+    "--color-neutral-100": [
+      "ActionChip",
+      "Avatar",
+      "AvatarStack",
+      "BrandWordmark",
+      "Button",
+      "Card",
+      "ChatBubble",
+      "ChatThread",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "Drawer",
+      "Eyebrow",
+      "FilterChip",
+      "Heading",
+      "Input",
+      "Kbd",
+      "Link",
+      "ListRow",
+      "NavList",
+      "PageHeader",
+      "PageOutline",
+      "Pin",
+      "ResourceCard",
+      "Section",
+      "SectionHeader",
+      "SectionNav",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Stat",
+      "StatusPill",
+      "Tabs",
+      "Tooltip",
+      "TypingDots"
+    ],
+    "--color-neutral-white-alpha-10": [
+      "ActionChip",
+      "Avatar",
+      "AvatarStack",
+      "Button",
+      "ChatBubble",
+      "CodeBlock",
+      "Input",
+      "Kbd",
+      "NavList",
+      "PageHeader",
+      "Stat",
+      "StatusPill",
+      "Tabs",
+      "TypingDots"
+    ],
+    "--color-border-default": [
       "ActionChip",
       "Button",
       "Combobox",
       "DataTable",
+      "Disclosure",
+      "Drawer",
+      "ListRow",
       "NavList",
+      "PageOutline",
       "SegmentedControl",
       "StatusPill",
       "Tabs"
     ],
-    "--color-semantic-border-ink": [
+    "--color-neutral-alpha-20": [
       "ActionChip",
+      "Button",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "Drawer",
+      "ListRow",
+      "NavList",
+      "PageOutline",
+      "SegmentedControl",
+      "StatusPill",
+      "Tabs"
+    ],
+    "--color-neutral-700": [
+      "ActionChip",
+      "Avatar",
+      "AvatarStack",
+      "Button",
+      "Card",
+      "ChatBubble",
+      "ChatThread",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "Drawer",
+      "FilterChip",
+      "Input",
+      "Kbd",
+      "ListRow",
+      "NavList",
+      "PageHeader",
+      "PageOutline",
+      "ResourceCard",
+      "Section",
+      "SectionNav",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Stat",
+      "StatusPill",
+      "Tabs",
+      "Tooltip",
+      "TypingDots"
+    ],
+    "--color-border-focus": [
+      "ActionChip",
+      "Button",
+      "Card",
+      "ChatThread",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "FilterChip",
+      "Input",
+      "Link",
+      "NavList",
+      "PageOutline",
+      "Pin",
+      "SectionNav",
+      "SegmentedControl",
+      "Select",
+      "SidebarLayout",
+      "Slider",
+      "Tabs"
+    ],
+    "--color-brand-blue-600": [
+      "ActionChip",
+      "Button",
+      "Card",
+      "ChatThread",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "FilterChip",
+      "Input",
+      "Link",
+      "NavList",
+      "PageOutline",
+      "Pin",
+      "SectionNav",
+      "SegmentedControl",
+      "Select",
+      "SidebarLayout",
+      "Slider",
+      "Tabs"
+    ],
+    "--color-brand-blue-300": [
+      "ActionChip",
+      "Button",
+      "Card",
+      "ChatThread",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "FilterChip",
+      "Input",
+      "Link",
+      "NavList",
+      "PageOutline",
+      "Pin",
+      "SectionNav",
+      "SegmentedControl",
+      "Select",
+      "SidebarLayout",
+      "Slider",
+      "Tabs"
+    ],
+    "--color-border-ink": [
+      "ActionChip",
+      "Avatar",
+      "AvatarStack",
+      "Button",
       "Combobox",
       "FilterChip",
       "Input",
       "Slider",
       "Tabs"
     ],
-    "--color-semantic-text-muted": [
+    "--color-neutral-900": [
       "ActionChip",
-      "Button",
-      "Combobox",
-      "Input"
-    ],
-    "--color-semantic-text-secondary": [
-      "ActionChip",
+      "Avatar",
       "AvatarStack",
+      "BrandWordmark",
+      "Button",
+      "Card",
       "ChatBubble",
-      "ChatThread",
+      "CodeBlock",
       "Combobox",
       "DataTable",
+      "Disclosure",
+      "Drawer",
+      "Eyebrow",
+      "FilterChip",
+      "Heading",
+      "Input",
+      "Link",
+      "ListRow",
       "NavList",
-      "ScoreStrip",
+      "PageHeader",
+      "PageOutline",
+      "Pin",
+      "ResourceCard",
       "Section",
+      "SectionNav",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Stat",
+      "StatusPill",
+      "Tabs",
+      "Tooltip"
+    ],
+    "--color-border-strong": [
+      "ActionChip",
+      "Button",
+      "ChatBubble",
+      "Combobox",
+      "FilterChip",
+      "Input",
+      "PageOutline",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Stat",
+      "Tabs"
+    ],
+    "--color-neutral-600": [
+      "ActionChip",
+      "Button",
+      "ChatBubble",
+      "Combobox",
+      "FilterChip",
+      "Input",
+      "PageOutline",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Stat",
+      "Tabs"
+    ],
+    "--color-neutral-300": [
+      "ActionChip",
+      "Button",
+      "ChatBubble",
+      "Combobox",
+      "FilterChip",
+      "Input",
+      "PageOutline",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Stat",
+      "Tabs"
+    ],
+    "--color-border-subtle": [
+      "ActionChip",
+      "Avatar",
+      "Card",
+      "FilterChip",
+      "Kbd",
+      "NavList",
+      "PageOutline",
+      "ResourceCard",
+      "SegmentedControl",
+      "Tabs",
+      "Tooltip"
+    ],
+    "--color-content-default": [
+      "ActionChip",
+      "BrandWordmark",
+      "ChatBubble",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "Drawer",
+      "Eyebrow",
+      "Heading",
+      "Input",
+      "ListRow",
+      "NavList",
+      "PageHeader",
+      "PageOutline",
+      "Pin",
+      "ResourceCard",
+      "Section",
+      "SectionNav",
       "Select",
       "Slider",
       "Stat",
       "Tabs",
+      "Tooltip"
+    ],
+    "--color-content-subtle": [
+      "ActionChip",
+      "AvatarStack",
+      "Button",
+      "ChatBubble",
+      "ChatThread",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "Input",
+      "Kbd",
+      "NavList",
+      "PageHeader",
+      "PageOutline",
+      "ResourceCard",
+      "Section",
+      "SectionNav",
+      "Select",
+      "Slider",
+      "Stat",
+      "StatusPill",
+      "Tabs",
       "TypingDots"
     ],
-    "--component-action-chip-border": [
-      "ActionChip"
-    ],
-    "--component-action-chip-border-radius": [
-      "ActionChip"
-    ],
-    "--component-action-chip-font-size": [
-      "ActionChip"
-    ],
-    "--component-action-chip-foreground": [
-      "ActionChip"
-    ],
-    "--component-action-chip-hover-background": [
-      "ActionChip"
-    ],
-    "--component-action-chip-min-height": [
-      "ActionChip"
-    ],
-    "--component-action-chip-quiet-hover-background": [
-      "ActionChip"
-    ],
-    "--motion-duration-fast": [
-      "ActionChip",
-      "Disclosure",
-      "FilterChip",
-      "Link",
-      "NavList",
-      "SegmentedControl",
-      "Tabs"
-    ],
-    "--motion-easing-standard": [
-      "ActionChip",
-      "Card",
-      "Disclosure",
-      "Drawer",
-      "FilterChip",
-      "Link",
-      "NavList",
-      "SegmentedControl",
-      "Tabs"
-    ],
-    "--ring-focus-color": [
+    "--focus-ring-offset": [
       "ActionChip",
       "Button",
       "Card",
@@ -944,47 +1379,13 @@ window.BELLA = {
       "FilterChip",
       "Input",
       "Link",
-      "NavList",
-      "SegmentedControl",
-      "Select",
-      "SidebarLayout",
-      "Slider",
-      "Tabs"
-    ],
-    "--color-semantic-focus-ring": [
-      "ActionChip",
-      "Button",
-      "Card",
-      "ChatThread",
-      "Combobox",
-      "DataTable",
-      "Disclosure",
-      "FilterChip",
-      "Input",
-      "Link",
-      "NavList",
-      "SegmentedControl",
-      "Select",
-      "SidebarLayout",
-      "Slider",
-      "Tabs"
-    ],
-    "--ring-focus-offset": [
-      "ActionChip",
-      "Button",
-      "Card",
-      "ChatThread",
-      "Combobox",
-      "DataTable",
-      "Disclosure",
-      "FilterChip",
-      "Input",
-      "Link",
+      "PageOutline",
+      "Pin",
       "Select",
       "SidebarLayout",
       "Slider"
     ],
-    "--ring-focus-width": [
+    "--size-4": [
       "ActionChip",
       "Button",
       "Card",
@@ -995,325 +1396,547 @@ window.BELLA = {
       "FilterChip",
       "Input",
       "Link",
+      "PageOutline",
+      "Pin",
+      "Select",
+      "SidebarLayout",
+      "Slider"
+    ],
+    "--focus-ring-width": [
+      "ActionChip",
+      "Button",
+      "Card",
+      "ChatThread",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "FilterChip",
+      "Input",
+      "Link",
       "NavList",
+      "PageOutline",
+      "Pin",
+      "SectionNav",
       "SegmentedControl",
       "Select",
       "SidebarLayout",
       "Slider",
       "Tabs"
     ],
-    "--spacing-2": [
+    "--border-width-4": [
       "ActionChip",
       "Button",
       "Card",
-      "ChatBubble",
+      "ChatThread",
+      "CodeBlock",
       "Combobox",
       "DataTable",
       "Disclosure",
       "FilterChip",
       "Input",
+      "Link",
+      "NavList",
+      "PageOutline",
+      "Pin",
+      "SectionNav",
+      "SegmentedControl",
+      "Select",
+      "SidebarLayout",
+      "Slider",
+      "Tabs"
+    ],
+    "--motion-duration-150": [
+      "ActionChip",
+      "Button",
+      "Disclosure",
+      "FilterChip",
+      "Link",
+      "NavList",
+      "SegmentedControl",
+      "Tabs",
+      "TypingDots"
+    ],
+    "--motion-easing-standard": [
+      "ActionChip",
+      "Button",
+      "Card",
+      "Disclosure",
+      "Drawer",
+      "FilterChip",
+      "Link",
+      "NavList",
+      "SegmentedControl",
+      "Tabs"
+    ],
+    "--spacing-12": [
+      "ActionChip",
+      "BrandWordmark",
+      "ChatBubble",
+      "ChatThread",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "Drawer",
+      "FilterChip",
+      "Input",
+      "ListRow",
       "NavList",
       "PageHeader",
+      "PageOutline",
+      "Pin",
       "ResourceCard",
-      "ScoreStrip",
+      "SectionNav",
+      "Select",
+      "Slider",
+      "StatusPill",
+      "Tag",
+      "Tooltip",
+      "TypingDots"
+    ],
+    "--spacing-16": [
+      "ActionChip",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "FilterChip",
+      "Input",
+      "ListRow",
+      "PageHeader",
+      "ResourceCard",
+      "Section",
+      "SectionHeader",
+      "SegmentedControl",
+      "Tabs"
+    ],
+    "--spacing-44": [
+      "ActionChip",
+      "Button",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "FilterChip",
+      "ListRow",
+      "NavList",
+      "PageOutline",
+      "Pin",
+      "SectionNav",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Tabs"
+    ],
+    "--spacing-8": [
+      "ActionChip",
+      "AvatarStack",
+      "Button",
+      "Card",
+      "ChatBubble",
+      "ChatThread",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "Drawer",
+      "FilterChip",
+      "Input",
+      "NavList",
+      "PageHeader",
+      "PageOutline",
+      "Pin",
+      "ResourceCard",
+      "Section",
       "SegmentedControl",
       "Select",
       "Slider",
       "Stat",
       "StatusPill",
       "Tabs",
+      "Tooltip",
       "TypingDots"
     ],
-    "--spacing-3": [
+    "--typography-body-default-font-family": [
       "ActionChip",
-      "BrandWordmark",
+      "Avatar",
+      "Button",
+      "ChatBubble",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "Eyebrow",
+      "FilterChip",
+      "Input",
+      "NavList",
+      "PageHeader",
+      "PageOutline",
+      "ResourceCard",
+      "Section",
+      "SectionNav",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Stat",
+      "StatusPill",
+      "Tabs",
+      "Tag",
+      "Tooltip"
+    ],
+    "--typography-font-family-lexend": [
+      "ActionChip",
+      "Avatar",
+      "Button",
       "ChatBubble",
       "Combobox",
       "DataTable",
       "Disclosure",
       "Drawer",
+      "Eyebrow",
       "FilterChip",
+      "Heading",
       "Input",
+      "ListRow",
       "NavList",
+      "PageHeader",
+      "PageOutline",
       "ResourceCard",
-      "ScoreStrip",
+      "Section",
+      "SectionNav",
+      "SegmentedControl",
       "Select",
       "Slider",
-      "TypingDots"
+      "Stat",
+      "StatusPill",
+      "Tabs",
+      "Tag",
+      "Tooltip"
     ],
-    "--spacing-4": [
+    "--typography-body-default-font-size": [
       "ActionChip",
+      "Avatar",
+      "ChatBubble",
       "Combobox",
       "DataTable",
       "Disclosure",
+      "Input",
+      "ListRow",
+      "NavList",
+      "ResourceCard",
+      "Section",
+      "SectionHeader",
+      "Slider"
+    ],
+    "--typography-font-size-16": [
+      "ActionChip",
+      "Avatar",
+      "AvatarStack",
+      "Button",
+      "ChatBubble",
+      "ChatThread",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Disclosure",
+      "Eyebrow",
       "FilterChip",
       "Input",
+      "Kbd",
+      "ListRow",
+      "NavList",
+      "PageOutline",
+      "Pin",
+      "ResourceCard",
+      "Section",
+      "SectionHeader",
+      "SectionNav",
+      "Slider",
+      "StatusPill",
+      "Tag",
+      "Tooltip"
+    ],
+    "--typography-font-weight-400": [
+      "ActionChip",
+      "Eyebrow",
+      "NavList",
+      "StatusPill",
+      "Tag"
+    ],
+    "--typography-letter-spacing-0": [
+      "ActionChip",
+      "Avatar",
+      "Button",
+      "DataTable",
+      "Drawer",
+      "Eyebrow",
+      "Input",
+      "Kbd",
+      "NavList",
       "ResourceCard",
       "SectionHeader",
       "SegmentedControl",
-      "Tabs"
-    ],
-    "--typography-font-family-body": [
-      "ActionChip",
-      "AvatarStack",
-      "ChatBubble",
-      "ChatThread",
-      "Combobox",
-      "DataTable",
-      "Disclosure",
-      "Drawer",
-      "Input",
-      "PageHeader",
-      "ResourceCard",
-      "ScoreStrip",
-      "Section",
       "Select",
-      "Slider",
-      "Stat"
-    ],
-    "--typography-font-weight-regular": [
-      "ActionChip",
-      "NavList",
-      "ScoreStrip"
-    ],
-    "--typography-letter-spacing-body": [
-      "ActionChip",
-      "DataTable",
-      "NavList",
-      "SectionHeader",
       "Stat",
-      "Tabs"
+      "StatusPill",
+      "Tabs",
+      "Tag"
     ],
-    "--typography-line-height-snug": [
+    "--typography-line-height-130": [
       "ActionChip",
+      "ChatBubble",
       "Disclosure",
       "Drawer",
       "Eyebrow",
       "ResourceCard",
-      "ScoreStrip",
-      "SectionHeader"
+      "SectionHeader",
+      "Tooltip"
     ],
-    "--color-semantic-background": [
+    "--border-width-2": [
       "Avatar",
-      "ChatBubble"
-    ],
-    "--component-avatar-default-background": [
-      "Avatar"
-    ],
-    "--component-avatar-default-border-color": [
-      "Avatar"
-    ],
-    "--component-avatar-default-border-radius": [
-      "Avatar"
-    ],
-    "--component-avatar-default-font-family": [
-      "Avatar"
-    ],
-    "--component-avatar-default-font-weight": [
-      "Avatar"
-    ],
-    "--component-avatar-default-foreground": [
-      "Avatar"
-    ],
-    "--component-avatar-default-ring-color": [
-      "Avatar"
-    ],
-    "--component-avatar-default-ring-gap": [
-      "Avatar"
-    ],
-    "--component-avatar-default-ring-width": [
-      "Avatar"
-    ],
-    "--component-avatar-lg-font-size": [
-      "Avatar"
-    ],
-    "--component-avatar-lg-size": [
-      "Avatar"
-    ],
-    "--component-avatar-md-font-size": [
-      "Avatar"
-    ],
-    "--component-avatar-md-size": [
-      "Avatar"
-    ],
-    "--component-avatar-sm-font-size": [
-      "Avatar"
-    ],
-    "--component-avatar-sm-size": [
-      "Avatar",
-      "AvatarStack"
-    ],
-    "--typography-letter-spacing-normal": [
-      "Avatar",
-      "Input",
-      "SegmentedControl",
-      "Select"
-    ],
-    "--avatar-stack-ring": [
-      "AvatarStack"
-    ],
-    "--color-semantic-surface-inset": [
       "AvatarStack",
       "Button",
-      "Input",
-      "NavList",
-      "StatusPill"
-    ],
-    "--component-avatar-stack-default-overlap": [
-      "AvatarStack"
-    ],
-    "--component-avatar-stack-default-ring-color": [
-      "AvatarStack"
-    ],
-    "--component-avatar-stack-default-ring-width": [
-      "AvatarStack"
-    ],
-    "--radius-full": [
-      "AvatarStack",
-      "ChatBubble",
-      "ResourceCard",
-      "ScoreStrip",
-      "Slider",
-      "Tabs",
-      "TypingDots"
-    ],
-    "--typography-font-size-label": [
-      "AvatarStack",
-      "ChatBubble",
-      "ChatThread"
-    ],
-    "--typography-font-weight-bold": [
-      "AvatarStack",
-      "Input"
-    ],
-    "--color-semantic-text-primary": [
-      "BrandWordmark",
-      "DataTable",
-      "Heading",
-      "Input",
-      "NavList",
-      "ScoreStrip",
-      "Section",
-      "Select",
+      "Card",
+      "Leader",
+      "Link",
+      "PageOutline",
+      "SectionNav",
       "Slider",
       "Stat",
       "Tabs"
     ],
-    "--component-brand-wordmark-nav-height": [
+    "--color-background-default": [
+      "Avatar",
+      "ChatBubble"
+    ],
+    "--color-brand-stone-100": [
+      "Avatar",
+      "Card",
+      "ChatBubble",
+      "CodeBlock"
+    ],
+    "--color-content-body": [
+      "Avatar",
+      "ChatBubble",
+      "Eyebrow",
+      "FilterChip",
+      "Heading",
+      "Input",
+      "ListRow",
+      "PageOutline",
+      "ResourceCard",
+      "SectionHeader",
+      "SegmentedControl",
+      "Select",
+      "StatusPill",
+      "Tooltip"
+    ],
+    "--color-neutral-800": [
+      "Avatar",
+      "AvatarStack",
+      "Button",
+      "Card",
+      "ChatBubble",
+      "CodeBlock",
+      "Combobox",
+      "DataTable",
+      "Drawer",
+      "Eyebrow",
+      "FilterChip",
+      "Heading",
+      "Input",
+      "ListRow",
+      "PageOutline",
+      "Pin",
+      "ResourceCard",
+      "SectionHeader",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "StatusPill",
+      "Tag",
+      "Tooltip"
+    ],
+    "--spacing-32": [
+      "Avatar",
+      "ChatBubble",
+      "DataTable",
+      "Pin",
+      "Select"
+    ],
+    "--spacing-40": [
+      "Avatar",
+      "AvatarStack",
       "BrandWordmark"
     ],
-    "--component-button-motion-press": [
+    "--spacing-48": [
+      "Avatar",
+      "AvatarStack",
+      "PageHeader",
+      "ResourceCard",
+      "Section",
+      "SectionHeader"
+    ],
+    "--spacing-80": [
+      "Avatar",
+      "AvatarStack",
+      "Combobox",
+      "DataTable",
+      "PageOutline",
+      "ResourceCard",
+      "Stat"
+    ],
+    "--typography-font-size-22": [
+      "Avatar",
+      "Drawer",
+      "ListRow",
+      "PageHeader",
+      "ResourceCard",
+      "SectionHeader"
+    ],
+    "--typography-font-weight-700": [
+      "Avatar",
+      "AvatarStack",
+      "Input",
+      "ResourceCard"
+    ],
+    "--typography-label-default-font-size": [
+      "Avatar",
+      "AvatarStack",
+      "Button",
+      "ChatBubble",
+      "ChatThread",
+      "CodeBlock",
+      "FilterChip",
+      "Input",
+      "PageOutline",
+      "Pin",
+      "ResourceCard",
+      "SectionNav",
+      "Slider",
+      "Tag",
+      "Tooltip"
+    ],
+    "--avatar-stack-ring": [
+      "AvatarStack"
+    ],
+    "--color-background-surface": [
+      "AvatarStack",
+      "Button",
+      "Card",
+      "ChatBubble",
+      "Combobox",
+      "DataTable",
+      "Drawer",
+      "Input",
+      "PageOutline",
+      "Pin",
+      "ResourceCard",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Tooltip"
+    ],
+    "--color-neutral-white": [
+      "AvatarStack",
+      "Button",
+      "Card",
+      "ChatBubble",
+      "Combobox",
+      "DataTable",
+      "Drawer",
+      "Input",
+      "PageOutline",
+      "Pin",
+      "ResourceCard",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Tooltip"
+    ],
+    "--typography-number-font-family": [
+      "AvatarStack",
+      "NavList",
+      "Pin",
+      "Slider",
+      "Stat"
+    ],
+    "--typography-font-family-geist-mono": [
+      "AvatarStack",
+      "ChatBubble",
+      "ChatThread",
+      "CodeBlock",
+      "DataTable",
+      "Kbd",
+      "ListRow",
+      "NavList",
+      "PageHeader",
+      "Pin",
+      "Slider",
+      "Stat"
+    ],
+    "--border-radius-12": [
+      "Button",
+      "Combobox",
+      "DataTable",
+      "PageHeader",
+      "SegmentedControl"
+    ],
+    "--button-color-background-active": [
       "Button"
     ],
-    "--component-button-motion-roll-duration": [
+    "--color-background-highlight": [
+      "Button",
+      "CodeBlock"
+    ],
+    "--color-neutral-alpha-10": [
+      "Button",
+      "CodeBlock"
+    ],
+    "--button-color-background-default": [
       "Button"
     ],
-    "--component-button-motion-roll-easing": [
+    "--button-color-background-hover": [
       "Button"
     ],
-    "--component-button-motion-shift-duration": [
+    "--button-color-border-default": [
       "Button"
     ],
-    "--component-button-motion-shift-easing": [
+    "--color-background-brand": [
       "Button"
     ],
-    "--component-button-primary-edge": [
+    "--color-background-brand-hover": [
       "Button"
     ],
-    "--component-button-primary-fill-hi": [
+    "--color-brand-blue-200": [
       "Button"
     ],
-    "--component-button-primary-fill-hi-hover": [
+    "--color-border-action-raised": [
       "Button"
     ],
-    "--component-button-primary-fill-lo": [
+    "--color-content-accent": [
+      "Button",
+      "ResourceCard",
+      "SegmentedControl"
+    ],
+    "--color-content-brand-knockout": [
       "Button"
     ],
-    "--component-button-primary-fill-lo-hover": [
+    "--color-brand-blue-900": [
       "Button"
     ],
-    "--component-button-primary-font-family": [
+    "--color-content-link": [
+      "Button",
+      "Link"
+    ],
+    "--component-button-sm-min-height": [
       "Button"
     ],
-    "--component-button-primary-font-size": [
-      "Button"
+    "--motion-duration-250": [
+      "Button",
+      "Drawer"
     ],
-    "--component-button-primary-font-weight": [
-      "Button"
-    ],
-    "--component-button-primary-foreground": [
-      "Button"
-    ],
-    "--component-button-primary-gloss": [
-      "Button"
-    ],
-    "--component-button-primary-gloss-pressed": [
-      "Button"
-    ],
-    "--component-button-primary-letter-spacing": [
-      "Button"
-    ],
-    "--component-button-primary-min-height": [
-      "Button"
-    ],
-    "--component-button-primary-padding-x": [
-      "Button"
-    ],
-    "--component-button-primary-padding-y": [
-      "Button"
-    ],
-    "--component-button-secondary-background": [
-      "Button"
-    ],
-    "--component-button-secondary-background-active": [
-      "Button"
-    ],
-    "--component-button-secondary-background-hover": [
-      "Button"
-    ],
-    "--component-button-secondary-border": [
-      "Button"
-    ],
-    "--component-button-secondary-border-hover": [
-      "Button"
-    ],
-    "--component-button-secondary-foreground": [
-      "Button"
-    ],
-    "--component-button-secondary-min-height": [
-      "Button"
-    ],
-    "--component-button-secondary-padding-x": [
-      "Button"
-    ],
-    "--component-button-secondary-padding-y": [
-      "Button"
-    ],
-    "--component-button-shape-default": [
-      "Button"
-    ],
-    "--component-button-shape-pill": [
-      "Button"
-    ],
-    "--component-button-tertiary-background": [
-      "Button"
-    ],
-    "--component-button-tertiary-foreground": [
-      "Button"
-    ],
-    "--component-button-tertiary-foreground-hover": [
-      "Button"
-    ],
-    "--component-button-tertiary-min-height": [
-      "Button"
-    ],
-    "--component-button-tertiary-underline-offset": [
-      "Button"
-    ],
-    "--component-button-tertiary-underline-thickness": [
-      "Button"
-    ],
-    "--component-button-tertiary-underline-thickness-hover": [
+    "--motion-easing-out": [
       "Button"
     ],
     "--shadow-key-pressed": [
@@ -1322,569 +1945,451 @@ window.BELLA = {
     "--shadow-key-resting": [
       "Button"
     ],
-    "--spacing-1": [
+    "--spacing-20": [
+      "Button",
+      "ChatThread",
+      "Drawer",
+      "ResourceCard",
+      "SectionHeader"
+    ],
+    "--spacing-4": [
       "Button",
       "ChatBubble",
       "ChatThread",
       "Combobox",
       "DataTable",
+      "Disclosure",
+      "Drawer",
       "FilterChip",
       "Kbd",
+      "Link",
+      "ListRow",
       "NavList",
+      "PageHeader",
+      "PageOutline",
       "ResourceCard",
-      "ScoreStrip",
+      "SectionNav",
       "Slider",
       "Stat",
       "StatusPill",
-      "Tabs"
+      "Tabs",
+      "Tag",
+      "Tooltip",
+      "TypingDots"
     ],
-    "--color-alpha-ink-10": [
+    "--typography-font-weight-600": [
+      "Button",
+      "ChatThread",
+      "ListRow",
+      "PageHeader",
+      "PageOutline",
+      "Pin",
+      "ResourceCard",
+      "SectionNav",
+      "Tooltip"
+    ],
+    "--border-radius-card": [
       "Card"
     ],
-    "--color-alpha-ink-6": [
-      "Card"
-    ],
-    "--color-brand-ink": [
-      "Card"
-    ],
-    "--color-neutral-border": [
-      "Card"
-    ],
-    "--color-neutral-ink-faint": [
-      "Card"
-    ],
-    "--color-neutral-ink-muted": [
-      "Card"
-    ],
-    "--color-neutral-ink-soft": [
-      "Card"
-    ],
-    "--color-neutral-paper": [
-      "Card"
-    ],
-    "--color-neutral-surface": [
-      "Card"
-    ],
-    "--color-semantic-border-faint": [
-      "Card"
-    ],
-    "--color-semantic-border-subtle": [
+    "--border-radius-20": [
       "Card",
-      "FilterChip",
-      "NavList",
-      "SegmentedControl",
-      "Tabs"
-    ],
-    "--color-semantic-surface-card": [
-      "Card"
-    ],
-    "--component-card-trace-width": [
-      "Card"
+      "ChatBubble",
+      "TypingDots"
     ],
     "--layout-card-padding": [
       "Card"
     ],
-    "--motion-duration-lift": [
+    "--spacing-24": [
+      "Card",
+      "ChatBubble",
+      "Columns",
+      "Drawer",
+      "Kbd",
+      "NavList",
+      "PageOutline",
+      "Section",
+      "SidebarLayout",
+      "Slider",
+      "Stat"
+    ],
+    "--motion-duration-200": [
       "Card"
     ],
-    "--motion-transform-hover-lift": [
+    "--shadow-card-ink": [
       "Card"
     ],
-    "--radius-card": [
-      "Card"
-    ],
-    "--shadow-card": [
+    "--shadow-card-ink-dark": [
       "Card"
     ],
     "--shadow-hover": [
       "Card"
     ],
-    "--color-semantic-surface": [
+    "--border-radius-4": [
       "ChatBubble",
-      "Input",
-      "ResourceCard",
-      "SegmentedControl",
-      "Select",
-      "Slider"
-    ],
-    "--component-chat-bubble-default-border-radius": [
-      "ChatBubble",
-      "TypingDots"
-    ],
-    "--component-chat-bubble-default-code-font-size": [
-      "ChatBubble"
-    ],
-    "--component-chat-bubble-default-code-radius": [
-      "ChatBubble"
-    ],
-    "--component-chat-bubble-default-disc-size": [
-      "ChatBubble"
-    ],
-    "--component-chat-bubble-default-padding-block": [
-      "ChatBubble"
-    ],
-    "--component-chat-bubble-default-padding-inline": [
-      "ChatBubble"
-    ],
-    "--component-chat-bubble-default-tail-radius": [
-      "ChatBubble"
-    ],
-    "--component-chat-bubble-received-background": [
-      "ChatBubble",
-      "TypingDots"
-    ],
-    "--component-chat-bubble-received-foreground": [
-      "ChatBubble"
-    ],
-    "--component-chat-bubble-sent-background": [
-      "ChatBubble"
-    ],
-    "--component-chat-bubble-sent-foreground": [
-      "ChatBubble"
-    ],
-    "--component-chat-thread-default-avatar-gutter": [
-      "ChatBubble"
-    ],
-    "--component-chat-thread-default-row-max-width": [
-      "ChatBubble"
-    ],
-    "--motion-duration-pop": [
-      "ChatBubble"
-    ],
-    "--motion-duration-slam": [
-      "ChatBubble"
-    ],
-    "--motion-easing-pop-enter": [
-      "ChatBubble"
-    ],
-    "--motion-easing-slam-enter": [
-      "ChatBubble"
-    ],
-    "--shadow-ui": [
-      "ChatBubble"
-    ],
-    "--typography-font-family-code": [
-      "ChatBubble"
-    ],
-    "--typography-font-size-body": [
-      "ChatBubble",
-      "Section",
-      "SectionHeader"
-    ],
-    "--typography-font-size-hero": [
-      "ChatBubble"
-    ],
-    "--typography-line-height-body": [
-      "ChatBubble"
-    ],
-    "--component-chat-thread-default-gap": [
-      "ChatThread"
-    ],
-    "--component-chat-thread-default-padding-block-end": [
-      "ChatThread"
-    ],
-    "--component-chat-thread-default-padding-block-start": [
-      "ChatThread"
-    ],
-    "--component-chat-thread-default-padding-inline": [
-      "ChatThread"
-    ],
-    "--component-chat-thread-default-stamp-margin-bottom": [
-      "ChatThread"
-    ],
-    "--component-chat-thread-default-stamp-margin-top": [
-      "ChatThread"
-    ],
-    "--typography-font-weight-semibold": [
-      "ChatThread"
-    ],
-    "--component-columns-gap": [
-      "Columns"
-    ],
-    "--component-combobox-active-background": [
-      "Combobox"
-    ],
-    "--component-combobox-active-foreground": [
-      "Combobox"
-    ],
-    "--component-combobox-background": [
-      "Combobox"
-    ],
-    "--component-combobox-border": [
-      "Combobox"
-    ],
-    "--component-combobox-border-radius": [
-      "Combobox"
-    ],
-    "--component-combobox-font-size": [
-      "Combobox"
-    ],
-    "--component-combobox-foreground": [
-      "Combobox"
-    ],
-    "--component-combobox-group-foreground": [
-      "Combobox"
-    ],
-    "--component-combobox-list-background": [
-      "Combobox"
-    ],
-    "--component-combobox-min-height": [
-      "Combobox"
-    ],
-    "--radius-lg": [
-      "Combobox"
-    ],
-    "--radius-md": [
-      "Combobox",
-      "Slider"
-    ],
-    "--shadow-lg": [
-      "Combobox"
-    ],
-    "--spacing-20": [
-      "Combobox",
+      "CodeBlock",
       "DataTable",
-      "ScoreStrip"
+      "Kbd",
+      "Link",
+      "PageOutline",
+      "SectionNav",
+      "Tooltip"
     ],
-    "--spacing-touch-target": [
+    "--border-radius-8": [
+      "ChatBubble",
       "Combobox",
-      "DataTable"
+      "NavList",
+      "Slider",
+      "Tabs",
+      "Tooltip"
     ],
-    "--typography-font-size-sm": [
+    "--motion-duration-400": [
+      "ChatBubble"
+    ],
+    "--motion-duration-450": [
+      "ChatBubble"
+    ],
+    "--motion-easing-pop": [
+      "ChatBubble"
+    ],
+    "--shadow-ui-ink": [
+      "ChatBubble",
+      "Tooltip"
+    ],
+    "--shadow-ui-ink-dark": [
+      "ChatBubble",
+      "Tooltip"
+    ],
+    "--typography-font-size-18": [
+      "ChatBubble",
       "Combobox",
       "DataTable",
       "Disclosure",
+      "FilterChip",
       "Input",
-      "ScoreStrip",
-      "Slider"
+      "NavList",
+      "PageHeader",
+      "SegmentedControl",
+      "Select",
+      "Slider",
+      "Stat",
+      "Tabs"
     ],
-    "--typography-line-height-normal": [
+    "--typography-font-size-display-hero": [
+      "ChatBubble",
+      "Heading"
+    ],
+    "--typography-line-height-150": [
+      "ChatBubble",
       "Combobox",
       "Input",
       "Kbd",
+      "ListRow",
       "PageHeader",
       "ResourceCard",
       "Section",
       "SectionHeader",
+      "Stat",
       "Tag"
     ],
-    "--component-data-table-border-radius": [
-      "DataTable"
-    ],
-    "--component-data-table-compact-row-min-height": [
-      "DataTable"
-    ],
-    "--component-data-table-font-size": [
-      "DataTable"
-    ],
-    "--component-data-table-header-background": [
-      "DataTable"
-    ],
-    "--component-data-table-row-min-height": [
-      "DataTable"
-    ],
-    "--component-data-table-selected-background": [
-      "DataTable"
-    ],
-    "--component-data-table-selected-foreground": [
-      "DataTable"
-    ],
-    "--radius-sm": [
+    "--typography-subtext-font-family": [
+      "ChatThread",
       "DataTable",
-      "Link",
-      "ScoreStrip"
+      "ListRow",
+      "PageHeader",
+      "Stat"
     ],
-    "--typography-font-weight-medium": [
-      "DataTable",
-      "Disclosure",
-      "Drawer",
-      "Input",
-      "NavList",
-      "ScoreStrip",
-      "Slider"
+    "--color-background-syntax-add": [
+      "CodeBlock"
     ],
-    "--component-disclosure-border": [
-      "Disclosure"
+    "--color-utility-green-100": [
+      "CodeBlock"
     ],
-    "--component-disclosure-font-size": [
-      "Disclosure"
+    "--color-utility-green-800": [
+      "CodeBlock"
     ],
-    "--component-disclosure-foreground": [
-      "Disclosure"
+    "--color-background-syntax-background": [
+      "CodeBlock"
     ],
-    "--component-disclosure-meta-foreground": [
-      "Disclosure"
+    "--color-background-syntax-del": [
+      "CodeBlock"
     ],
-    "--component-disclosure-min-height": [
-      "Disclosure"
+    "--color-utility-red-100": [
+      "CodeBlock"
     ],
-    "--component-link-default-underline-offset": [
-      "Disclosure",
-      "Link"
+    "--color-utility-red-900": [
+      "CodeBlock"
     ],
-    "--component-drawer-background": [
-      "Drawer"
+    "--color-border-syntax": [
+      "CodeBlock"
     ],
-    "--component-drawer-border": [
-      "Drawer"
+    "--color-brand-stone-200": [
+      "CodeBlock",
+      "SegmentedControl"
     ],
-    "--component-drawer-duration": [
-      "Drawer"
+    "--color-content-syntax-attr": [
+      "CodeBlock"
     ],
-    "--component-drawer-foreground": [
-      "Drawer"
+    "--color-brand-ochre-800": [
+      "CodeBlock"
     ],
-    "--component-drawer-padding": [
-      "Drawer"
+    "--color-utility-yellow-200": [
+      "CodeBlock"
     ],
-    "--component-drawer-scrim": [
-      "Drawer"
+    "--color-content-syntax-comment": [
+      "CodeBlock"
     ],
-    "--component-drawer-shadow": [
-      "Drawer"
+    "--color-brand-stone-700": [
+      "CodeBlock"
     ],
-    "--component-drawer-width": [
-      "Drawer"
+    "--color-brand-navy-200": [
+      "CodeBlock"
     ],
-    "--typography-font-size-xl": [
-      "Drawer",
-      "SectionHeader"
+    "--color-content-syntax-foreground": [
+      "CodeBlock"
     ],
-    "--typography-letter-spacing-title": [
-      "Drawer",
-      "ScoreStrip"
+    "--color-content-syntax-function": [
+      "CodeBlock"
     ],
-    "--component-eyebrow-ink-font-family": [
-      "Eyebrow"
+    "--color-brand-blue-700": [
+      "CodeBlock"
     ],
-    "--component-eyebrow-ink-font-feature-settings": [
-      "Eyebrow"
-    ],
-    "--component-eyebrow-ink-font-size": [
-      "Eyebrow"
-    ],
-    "--component-eyebrow-ink-font-weight": [
-      "Eyebrow"
-    ],
-    "--component-eyebrow-ink-foreground": [
-      "Eyebrow"
-    ],
-    "--component-eyebrow-ink-letter-spacing": [
-      "Eyebrow"
-    ],
-    "--component-eyebrow-muted-font-family": [
-      "Eyebrow"
-    ],
-    "--component-eyebrow-muted-font-feature-settings": [
-      "Eyebrow"
-    ],
-    "--component-eyebrow-muted-font-size": [
-      "Eyebrow"
-    ],
-    "--component-eyebrow-muted-font-weight": [
-      "Eyebrow"
-    ],
-    "--component-eyebrow-muted-foreground": [
-      "Eyebrow"
-    ],
-    "--component-eyebrow-muted-letter-spacing": [
-      "Eyebrow"
-    ],
-    "--color-semantic-background-inverse": [
-      "FilterChip"
-    ],
-    "--color-semantic-text-inverse": [
-      "FilterChip"
-    ],
-    "--component-filter-chip-border": [
-      "FilterChip"
-    ],
-    "--component-filter-chip-border-radius": [
-      "FilterChip"
-    ],
-    "--component-filter-chip-compact-font-size": [
-      "FilterChip"
-    ],
-    "--component-filter-chip-font-family": [
-      "FilterChip"
-    ],
-    "--component-filter-chip-font-size": [
-      "FilterChip"
-    ],
-    "--component-filter-chip-font-weight": [
-      "FilterChip"
-    ],
-    "--component-filter-chip-foreground": [
-      "FilterChip"
-    ],
-    "--component-filter-chip-min-height": [
-      "FilterChip"
-    ],
-    "--color-semantic-text-body": [
-      "Heading",
-      "Input",
-      "SectionHeader",
-      "SegmentedControl",
-      "Select",
+    "--color-utility-blue-300": [
+      "CodeBlock",
       "StatusPill"
     ],
-    "--component-heading-font-family": [
-      "Heading"
+    "--color-content-syntax-keyword": [
+      "CodeBlock"
     ],
-    "--component-heading-font-weight": [
-      "Heading"
+    "--color-brand-pink-700": [
+      "CodeBlock"
     ],
-    "--component-heading-hero-font-size": [
-      "Heading"
+    "--color-brand-pink-200": [
+      "CodeBlock"
     ],
-    "--component-heading-letter-spacing": [
-      "Heading"
+    "--color-content-syntax-line-number": [
+      "CodeBlock"
     ],
-    "--component-heading-line-height": [
-      "Heading"
+    "--color-content-syntax-number": [
+      "CodeBlock"
     ],
-    "--component-heading-page-font-size": [
-      "Heading"
+    "--color-brand-ochre-200": [
+      "CodeBlock"
     ],
-    "--component-heading-section-font-size": [
-      "Heading"
+    "--color-content-syntax-punct": [
+      "CodeBlock"
     ],
-    "--component-heading-section-letter-spacing": [
-      "Heading"
+    "--color-neutral-200": [
+      "CodeBlock",
+      "StatusPill",
+      "Tag"
     ],
-    "--icon-": [
-      "Icon"
+    "--color-content-syntax-string": [
+      "CodeBlock"
     ],
-    "--icon-stroke": [
-      "Icon"
+    "--color-utility-green-700": [
+      "CodeBlock"
     ],
-    "--color-semantic-border-strong": [
-      "Input",
-      "ScoreStrip",
+    "--color-utility-green-300": [
+      "CodeBlock",
+      "StatusPill"
+    ],
+    "--color-content-syntax-tag": [
+      "CodeBlock"
+    ],
+    "--color-utility-red-700": [
+      "CodeBlock",
+      "Input"
+    ],
+    "--color-utility-red-200": [
+      "CodeBlock",
+      "Input"
+    ],
+    "--layout-gutter": [
+      "Columns",
+      "SidebarLayout"
+    ],
+    "--color-background-accent-1": [
+      "Combobox",
+      "DataTable",
+      "Pin",
+      "StatusPill",
+      "Tag"
+    ],
+    "--color-brand-pink-300": [
+      "Combobox",
+      "DataTable",
+      "Leader",
+      "Pin",
+      "StatusPill",
+      "Tag"
+    ],
+    "--color-content-on-accent-1": [
+      "Combobox",
+      "DataTable",
+      "StatusPill",
+      "Tag"
+    ],
+    "--color-brand-stone-900": [
+      "Combobox",
+      "DataTable",
       "SegmentedControl",
-      "Select",
+      "StatusPill",
+      "Tag"
+    ],
+    "--shadow-lg": [
+      "Combobox",
+      "Drawer"
+    ],
+    "--typography-font-weight-500": [
+      "DataTable",
+      "Disclosure",
+      "Drawer",
+      "FilterChip",
+      "Heading",
+      "Input",
+      "NavList",
+      "ResourceCard",
+      "Section",
+      "SegmentedControl",
       "Slider",
       "Tabs"
     ],
-    "--color-semantic-danger-border": [
+    "--color-background-transparent": [
+      "Drawer"
+    ],
+    "--color-neutral-alpha-30": [
+      "Drawer"
+    ],
+    "--color-neutral-alpha-60": [
+      "Drawer"
+    ],
+    "--typography-title-default-font-family": [
+      "Drawer",
+      "ListRow",
+      "ResourceCard"
+    ],
+    "--color-background-knockout": [
+      "FilterChip",
+      "ResourceCard",
+      "Tooltip"
+    ],
+    "--color-content-knockout": [
+      "FilterChip",
+      "Tooltip"
+    ],
+    "--typography-font-size-24": [
+      "Heading"
+    ],
+    "--typography-font-size-display-page": [
+      "Heading"
+    ],
+    "--typography-font-size-display-section": [
+      "Heading",
+      "Section",
+      "Stat"
+    ],
+    "--typography-headline-sm-font-family": [
+      "Heading",
+      "PageHeader",
+      "Section"
+    ],
+    "--typography-letter-spacing-minus-1-half": [
+      "Heading",
+      "Section",
+      "Stat"
+    ],
+    "--typography-letter-spacing-minus-2": [
+      "Heading",
+      "PageHeader"
+    ],
+    "--typography-line-height-115": [
+      "Heading",
+      "PageHeader",
+      "Section",
+      "Stat"
+    ],
+    "--size-16": [
+      "Icon",
       "Input",
-      "ScoreStrip"
+      "SegmentedControl"
     ],
-    "--color-semantic-danger-text": [
-      "Input"
+    "--size-20": [
+      "Icon",
+      "Select",
+      "Stat"
     ],
-    "--component-icon-size-sm": [
-      "Input"
+    "--size-24": [
+      "Icon"
     ],
-    "--component-input-border-radius": [
-      "Input"
-    ],
-    "--component-input-font-size": [
-      "Input"
-    ],
-    "--component-input-min-height": [
-      "Input"
-    ],
-    "--typography-font-size-tag": [
+    "--border-radius-form": [
       "Input",
-      "Slider"
+      "Select"
     ],
-    "--component-kbd-background": [
+    "--border-radius-16": [
+      "Input",
+      "ResourceCard",
+      "Select"
+    ],
+    "--color-border-utility-error": [
+      "Input",
+      "StatusPill"
+    ],
+    "--color-utility-red-500": [
+      "Input",
+      "Leader",
+      "Pin",
+      "StatusPill"
+    ],
+    "--color-utility-red-300": [
+      "Input",
+      "StatusPill"
+    ],
+    "--color-content-utility-error": [
+      "Input"
+    ],
+    "--size-60": [
+      "Input"
+    ],
+    "--border-radius-sm": [
       "Kbd"
     ],
-    "--component-kbd-border": [
+    "--typography-font-feature-ss09": [
       "Kbd"
     ],
-    "--component-kbd-border-radius": [
-      "Kbd"
+    "--color-background-accent-2": [
+      "Leader",
+      "Pin"
     ],
-    "--component-kbd-font-family": [
-      "Kbd"
+    "--color-utility-yellow-300": [
+      "Leader",
+      "Pin"
     ],
-    "--component-kbd-font-feature-settings": [
-      "Kbd"
+    "--color-background-accent-3": [
+      "Leader",
+      "Pin"
     ],
-    "--component-kbd-font-size": [
-      "Kbd"
+    "--color-brand-blue-500": [
+      "Leader",
+      "Pin"
     ],
-    "--component-kbd-foreground": [
-      "Kbd"
+    "--color-background-accent-4": [
+      "Leader",
+      "Pin"
     ],
-    "--spacing-6": [
-      "Kbd",
-      "NavList",
-      "Slider"
+    "--color-border-accent-1": [
+      "Leader"
     ],
-    "--typography-letter-spacing-mono": [
-      "Kbd"
+    "--color-brand-pink-500": [
+      "Leader"
     ],
-    "--component-link-default-foreground": [
-      "Link"
+    "--leader-pop": [
+      "Leader"
     ],
-    "--component-link-default-foreground-hover": [
-      "Link"
+    "--layout-measure-body": [
+      "PageHeader",
+      "Section"
     ],
-    "--component-link-default-text-decoration": [
-      "Link"
-    ],
-    "--component-link-default-underline-thickness": [
-      "Link"
-    ],
-    "--component-link-default-underline-thickness-hover": [
-      "Link"
-    ],
-    "--component-nav-list-border-radius": [
-      "NavList"
-    ],
-    "--component-nav-list-current-background": [
-      "NavList"
-    ],
-    "--component-nav-list-font-family": [
-      "NavList"
-    ],
-    "--component-nav-list-font-size": [
-      "NavList"
-    ],
-    "--component-nav-list-label-font-family": [
-      "NavList"
-    ],
-    "--component-nav-list-label-font-size": [
-      "NavList"
-    ],
-    "--component-nav-list-min-height": [
-      "NavList"
-    ],
-    "--component-page-header-foreground": [
-      "PageHeader"
-    ],
-    "--component-page-header-gap": [
-      "PageHeader"
-    ],
-    "--component-page-header-lede-font-size": [
-      "PageHeader"
-    ],
-    "--component-page-header-lede-max-width": [
-      "PageHeader"
-    ],
-    "--component-page-header-meta-font-size": [
-      "PageHeader"
-    ],
-    "--component-page-header-meta-foreground": [
-      "PageHeader"
-    ],
-    "--component-page-header-title-font-size": [
-      "PageHeader"
-    ],
-    "--component-page-header-title-font-weight": [
-      "PageHeader"
-    ],
-    "--component-page-header-title-letter-spacing": [
-      "PageHeader"
-    ],
-    "--component-page-header-title-line-height": [
-      "PageHeader"
-    ],
-    "--component-section-space": [
+    "--layout-section-space": [
       "PageHeader",
       "Section"
     ],
@@ -1896,257 +2401,39 @@ window.BELLA = {
       "PageHeader",
       "Section"
     ],
-    "--typography-font-family-display": [
-      "PageHeader",
-      "ScoreStrip",
-      "Section"
+    "--typography-font-size-40": [
+      "PageHeader"
     ],
-    "--component-pattern-field-opacity": [
-      "PatternField"
+    "--shadow-soft": [
+      "PageOutline"
     ],
-    "--component-resource-card-default-action-font-size": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-action-font-weight": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-action-foreground": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-body-padding": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-cover-background": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-cover-height": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-description-font-size": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-description-foreground": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-divider-color": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-meta-font-size": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-meta-foreground": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-notch-size": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-sheet-overlap": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-status-dot-color": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-status-dot-size": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-tab-font-size": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-tab-font-weight": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-tab-foreground": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-tab-letter-spacing": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-tab-padding-top": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-tab-padding-x": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-tab-radius": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-title-font-size": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-title-font-weight": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-title-foreground": [
-      "ResourceCard"
-    ],
-    "--component-resource-card-default-title-letter-spacing": [
-      "ResourceCard"
-    ],
-    "--border-width-thick": [
-      "ScoreStrip"
-    ],
-    "--color-semantic-danger-subtle": [
-      "ScoreStrip"
-    ],
-    "--color-semantic-success-border": [
-      "ScoreStrip"
-    ],
-    "--color-semantic-success-subtle": [
-      "ScoreStrip"
-    ],
-    "--component-score-strip-cell-border-radius": [
-      "ScoreStrip"
-    ],
-    "--component-score-strip-cell-min-width": [
-      "ScoreStrip"
-    ],
-    "--component-score-strip-label-font-family": [
-      "ScoreStrip"
-    ],
-    "--component-score-strip-label-font-size": [
-      "ScoreStrip"
-    ],
-    "--component-score-strip-name-font-size": [
-      "ScoreStrip"
-    ],
-    "--component-score-strip-score-font-size": [
-      "ScoreStrip"
-    ],
-    "--component-score-strip-track": [
-      "ScoreStrip"
-    ],
-    "--component-score-strip-track-fill": [
-      "ScoreStrip"
-    ],
-    "--component-score-strip-value-font-size": [
-      "ScoreStrip"
-    ],
-    "--spacing-5": [
-      "ScoreStrip",
-      "SectionHeader"
-    ],
-    "--spacing-8": [
-      "ScoreStrip",
-      "Select"
-    ],
-    "--typography-font-weight-light": [
-      "ScoreStrip"
-    ],
-    "--typography-letter-spacing-h2": [
-      "ScoreStrip",
-      "Stat"
-    ],
-    "--typography-line-height-heading": [
-      "ScoreStrip",
-      "Section",
-      "Stat"
-    ],
-    "--component-section-body-gap": [
-      "Section"
-    ],
-    "--component-section-heading-font-size": [
-      "Section"
-    ],
-    "--component-section-heading-font-weight": [
-      "Section"
-    ],
-    "--component-section-heading-letter-spacing": [
-      "Section"
-    ],
-    "--header-height": [
-      "Section",
-      "SidebarLayout"
-    ],
-    "--layout-measure-body": [
-      "Section"
+    "--pin-pop": [
+      "Pin"
     ],
     "--layout-stack-lg": [
       "Section",
       "SidebarLayout"
     ],
-    "--spacing-12": [
-      "SectionHeader"
+    "--spacing-64": [
+      "Section",
+      "SidebarLayout",
+      "Slider"
     ],
-    "--color-semantic-accent-border": [
+    "--color-background-accent-subtle": [
       "SegmentedControl"
     ],
-    "--color-semantic-accent-subtle": [
+    "--color-border-accent": [
       "SegmentedControl"
     ],
-    "--color-semantic-text-accent": [
-      "SegmentedControl"
-    ],
-    "--component-segmented-control-border-radius": [
-      "SegmentedControl"
-    ],
-    "--component-segmented-control-font-family": [
-      "SegmentedControl"
-    ],
-    "--component-segmented-control-font-size": [
-      "SegmentedControl"
-    ],
-    "--component-segmented-control-font-weight": [
-      "SegmentedControl"
-    ],
-    "--component-segmented-control-min-height": [
-      "SegmentedControl"
-    ],
-    "--icon-sm": [
-      "SegmentedControl"
+    "--color-neutral-400": [
+      "SegmentedControl",
+      "Tag"
     ],
     "--seg-inset": [
       "SegmentedControl"
     ],
-    "--component-select-border-radius": [
-      "Select"
-    ],
-    "--component-select-font-size": [
-      "Select"
-    ],
-    "--component-select-label-font-family": [
-      "Select"
-    ],
-    "--component-select-label-font-size": [
-      "Select"
-    ],
-    "--component-select-min-height": [
-      "Select"
-    ],
-    "--component-sidebar-layout-columns": [
-      "SidebarLayout"
-    ],
-    "--component-sidebar-layout-gap": [
-      "SidebarLayout"
-    ],
     "--dock-height": [
       "SidebarLayout"
-    ],
-    "--border-width-medium": [
-      "Slider"
-    ],
-    "--component-slider-fill": [
-      "Slider"
-    ],
-    "--component-slider-mark": [
-      "Slider"
-    ],
-    "--component-slider-min-height": [
-      "Slider"
-    ],
-    "--component-slider-thumb-background": [
-      "Slider"
-    ],
-    "--component-slider-thumb-border": [
-      "Slider"
-    ],
-    "--component-slider-thumb-size": [
-      "Slider"
-    ],
-    "--component-slider-track": [
-      "Slider"
-    ],
-    "--component-slider-track-height": [
-      "Slider"
     ],
     "--mark-f": [
       "Slider"
@@ -2154,158 +2441,63 @@ window.BELLA = {
     "--slider-pct": [
       "Slider"
     ],
-    "--spacing-16": [
-      "Slider"
-    ],
     "--thumb": [
       "Slider"
     ],
-    "--typography-font-size-base": [
-      "Slider"
-    ],
-    "--component-stat-delta-font-size": [
+    "--typography-font-weight-300": [
       "Stat"
     ],
-    "--component-stat-label-font-family": [
-      "Stat"
-    ],
-    "--component-stat-label-font-size": [
-      "Stat"
-    ],
-    "--component-stat-trend-height": [
-      "Stat"
-    ],
-    "--component-stat-trend-stroke": [
-      "Stat"
-    ],
-    "--component-stat-trend-width": [
-      "Stat"
-    ],
-    "--component-stat-value-font-family": [
-      "Stat"
-    ],
-    "--component-stat-value-font-size": [
-      "Stat"
-    ],
-    "--component-stat-value-font-weight": [
-      "Stat"
-    ],
-    "--color-semantic-attention": [
+    "--color-background-utility-info": [
       "StatusPill"
     ],
-    "--color-semantic-attention-on": [
+    "--color-utility-blue-100": [
       "StatusPill"
     ],
-    "--color-semantic-danger": [
+    "--color-utility-blue-alpha-15": [
       "StatusPill"
     ],
-    "--color-semantic-info-border": [
-      "StatusPill"
-    ],
-    "--color-semantic-info-subtle": [
-      "StatusPill"
-    ],
-    "--color-semantic-quiet": [
-      "StatusPill"
-    ],
-    "--color-semantic-quiet-on": [
-      "StatusPill"
-    ],
-    "--color-semantic-success": [
-      "StatusPill"
-    ],
-    "--component-status-pill-accent-background": [
-      "StatusPill"
-    ],
-    "--component-status-pill-accent-foreground": [
-      "StatusPill"
-    ],
-    "--component-status-pill-border-radius": [
-      "StatusPill"
-    ],
-    "--component-status-pill-font-family": [
-      "StatusPill"
-    ],
-    "--component-status-pill-font-feature-settings": [
-      "StatusPill"
-    ],
-    "--component-status-pill-font-size": [
-      "StatusPill"
-    ],
-    "--component-status-pill-font-weight": [
-      "StatusPill"
-    ],
-    "--component-status-pill-letter-spacing": [
-      "StatusPill"
-    ],
-    "--component-tabs-border-radius": [
-      "Tabs"
-    ],
-    "--component-tabs-font-family": [
-      "Tabs"
-    ],
-    "--component-tabs-font-size": [
-      "Tabs"
-    ],
-    "--component-tabs-font-weight": [
-      "Tabs"
-    ],
-    "--component-tabs-indicator": [
-      "Tabs"
-    ],
-    "--component-tabs-indicator-width": [
-      "Tabs"
-    ],
-    "--component-tabs-min-height": [
-      "Tabs"
-    ],
-    "--component-tag-accent-background": [
+    "--color-background-utility-neutral": [
+      "StatusPill",
       "Tag"
     ],
-    "--component-tag-accent-foreground": [
+    "--color-brand-wash-grey": [
+      "StatusPill",
       "Tag"
     ],
-    "--component-tag-default-background": [
+    "--color-background-utility-warning-knockout": [
+      "StatusPill"
+    ],
+    "--color-brand-ochre-300": [
+      "StatusPill"
+    ],
+    "--color-border-utility-info": [
+      "StatusPill"
+    ],
+    "--color-utility-blue-500": [
+      "StatusPill"
+    ],
+    "--color-border-utility-success": [
+      "StatusPill"
+    ],
+    "--color-utility-green-600": [
+      "StatusPill"
+    ],
+    "--color-content-utility-neutral": [
+      "StatusPill",
       "Tag"
     ],
-    "--component-tag-default-border-radius": [
+    "--color-brand-wash-grey-ink": [
+      "StatusPill",
       "Tag"
     ],
-    "--component-tag-default-font-family": [
+    "--color-content-utility-on-status": [
+      "StatusPill"
+    ],
+    "--color-border-utility-neutral": [
       "Tag"
     ],
-    "--component-tag-default-font-feature-settings": [
+    "--color-brand-stone-500": [
       "Tag"
-    ],
-    "--component-tag-default-font-size": [
-      "Tag"
-    ],
-    "--component-tag-default-font-weight": [
-      "Tag"
-    ],
-    "--component-tag-default-foreground": [
-      "Tag"
-    ],
-    "--component-tag-default-letter-spacing": [
-      "Tag"
-    ],
-    "--component-tag-default-padding-x": [
-      "Tag"
-    ],
-    "--component-tag-default-padding-y": [
-      "Tag"
-    ],
-    "--component-typing-dots-default-delay-2": [
-      "TypingDots"
-    ],
-    "--component-typing-dots-default-delay-3": [
-      "TypingDots"
-    ],
-    "--component-typing-dots-default-dot-size": [
-      "TypingDots"
-    ],
-    "--component-typing-dots-default-gap": [
-      "TypingDots"
     ]
   },
   "components": [
@@ -2354,81 +2546,57 @@ window.BELLA = {
       ],
       "restNote": "Flat always: the control-border pill and its label. audit:quality asserts no elevation or animation (root carries data-bella-component=action-chip).",
       "a11y": "Verified 2026-10-03: a real button (or a link with href), 44px. Label ink on the page and on panel (AAA in light, warm and dark); the control border clears 3:1 on every surface; hover adds the hairline wash and the edge goes ink; focus is the shared ring.",
-      "minTarget": {
-        "token": "--component-action-chip-min-height",
-        "value": "44px"
-      },
+      "minTarget": null,
       "sandbox": {
-        "minHeight": {
-          "token": "--component-action-chip-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
-        },
+        "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-action-chip-foreground",
-          "light": "#1d2030",
-          "dark": "#eceef3",
-          "warm": "#1d2030"
-        },
+        "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.action-chip.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.action-chip.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-actionchip--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 24,
-        "component": 7,
-        "semantic": 4,
+        "count": 23,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--border-width-thin",
-          "--color-semantic-border",
-          "--color-semantic-border-ink",
-          "--color-semantic-text-muted",
-          "--color-semantic-text-secondary",
-          "--component-action-chip-border",
-          "--component-action-chip-border-radius",
-          "--component-action-chip-font-size",
-          "--component-action-chip-foreground",
-          "--component-action-chip-hover-background",
-          "--component-action-chip-min-height",
-          "--component-action-chip-quiet-hover-background",
-          "--motion-duration-fast",
+          "--border-radius-round",
+          "--border-width-1",
+          "--color-background-subtle",
+          "--color-border-default",
+          "--color-border-focus",
+          "--color-border-ink",
+          "--color-border-strong",
+          "--color-border-subtle",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--motion-duration-150",
           "--motion-easing-standard",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
-          "--spacing-2",
-          "--spacing-3",
-          "--spacing-4",
-          "--typography-font-family-body",
-          "--typography-font-weight-regular",
-          "--typography-letter-spacing-body",
-          "--typography-line-height-snug"
+          "--spacing-12",
+          "--spacing-16",
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-weight-400",
+          "--typography-letter-spacing-0",
+          "--typography-line-height-130"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 13,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -2484,48 +2652,38 @@ window.BELLA = {
         "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-avatar-default-foreground",
-          "light": "#2b2f3d",
-          "dark": "#eceef3",
-          "warm": "#2b2f3d"
-        },
-        "background": {
-          "token": "--component-avatar-default-background",
-          "light": "#eceef3",
-          "dark": "#1d2030",
-          "warm": "#ebe4d6"
-        },
+        "label": null,
+        "background": null,
         "backgroundPair": null,
         "ringWidth": null,
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.avatar.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.avatar.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-avatar--docs",
       "composedFrom": [],
       "tokens": {
         "count": 17,
-        "component": 15,
-        "semantic": 1,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-background",
-          "--component-avatar-default-background",
-          "--component-avatar-default-border-color",
-          "--component-avatar-default-border-radius",
-          "--component-avatar-default-font-family",
-          "--component-avatar-default-font-weight",
-          "--component-avatar-default-foreground",
-          "--component-avatar-default-ring-color",
-          "--component-avatar-default-ring-gap",
-          "--component-avatar-default-ring-width",
-          "--component-avatar-lg-font-size",
-          "--component-avatar-lg-size",
-          "--component-avatar-md-font-size",
-          "--component-avatar-md-size",
-          "--component-avatar-sm-font-size",
-          "--component-avatar-sm-size",
-          "--typography-letter-spacing-normal"
+          "--border-radius-round",
+          "--border-width-2",
+          "--color-background-default",
+          "--color-background-subtle",
+          "--color-border-ink",
+          "--color-border-subtle",
+          "--color-content-body",
+          "--spacing-32",
+          "--spacing-40",
+          "--spacing-48",
+          "--spacing-80",
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-size-22",
+          "--typography-font-weight-700",
+          "--typography-label-default-font-size",
+          "--typography-letter-spacing-0"
         ]
       },
       "compositionDepth": 0,
@@ -2534,8 +2692,8 @@ window.BELLA = {
       ],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 13,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -2555,7 +2713,7 @@ window.BELLA = {
       "description": "Overlapping Avatars with a separating ring in the column surface colour.\nExtends Avatar; see component-contract:avatar-stack.",
       "hasStory": true,
       "hasDocs": true,
-      "inDsds": false,
+      "inDsds": true,
       "hasContract": true,
       "hasA11yNotes": true,
       "props": [
@@ -2591,35 +2749,38 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.avatar-stack.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.avatar-stack.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-chat-avatarstack--docs",
       "composedFrom": [
         "Avatar"
       ],
       "tokens": {
-        "count": 11,
-        "component": 4,
-        "semantic": 2,
+        "count": 14,
+        "component": 0,
+        "semantic": 0,
         "list": [
           "--avatar-stack-ring",
-          "--color-semantic-surface-inset",
-          "--color-semantic-text-secondary",
-          "--component-avatar-sm-size",
-          "--component-avatar-stack-default-overlap",
-          "--component-avatar-stack-default-ring-color",
-          "--component-avatar-stack-default-ring-width",
-          "--radius-full",
-          "--typography-font-family-body",
-          "--typography-font-size-label",
-          "--typography-font-weight-bold"
+          "--border-radius-round",
+          "--border-width-2",
+          "--color-background-subtle",
+          "--color-background-surface",
+          "--color-border-ink",
+          "--color-content-subtle",
+          "--spacing-40",
+          "--spacing-48",
+          "--spacing-8",
+          "--spacing-80",
+          "--typography-font-weight-700",
+          "--typography-label-default-font-size",
+          "--typography-number-font-family"
         ]
       },
       "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 10,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -2684,27 +2845,27 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.brand-wordmark.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.brand-wordmark.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/brand-wordmark--docs",
       "composedFrom": [
         "Button"
       ],
       "tokens": {
         "count": 3,
-        "component": 1,
-        "semantic": 1,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-text-primary",
-          "--component-brand-wordmark-nav-height",
-          "--spacing-3"
+          "--color-content-default",
+          "--spacing-12",
+          "--spacing-40"
         ]
       },
       "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 8,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -2721,21 +2882,25 @@ window.BELLA = {
       "id": "button",
       "name": "Button",
       "category": "Actions",
-      "description": "Keycaps with real hierarchy: two colour treatments, three tiers, one\nprimary per view. Labels are Figtree SemiBold 16px, sentence case, never Unique. One job per\nstate: hover and focus-visible roll the label, active presses the\nkeycap; a button never lifts on hover (lift is for cards).",
+      "description": "Buttons with real hierarchy: two colour treatments, three tiers, one\nprimary per view. Labels are DM Sans 16px, sentence case, never Unique. One job per\nstate: hover and focus-visible roll the label, active presses the\nprimary down a little; a button never lifts on hover (lift is for cards).",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
       "hasContract": true,
       "hasA11yNotes": true,
       "props": [
+        "ariaExpanded",
+        "ariaHaspopup",
         "ariaLabel",
         "children",
         "className",
         "disabled",
         "href",
+        "iconOnly",
         "linkComponent",
         "onClick",
         "shape",
+        "size",
         "type",
         "variant"
       ],
@@ -2765,80 +2930,40 @@ window.BELLA = {
         "The primary contact CTA reads \"Let's talk\" (brand refresh, 2026-09-22)"
       ],
       "dont": [
-        "Do not render more than one primary per view: the keycap is the single 3D moment",
+        "Do not render more than one primary per view: the flat ink plate is the single main action",
         "Do not use for filters, toggles, or sort: that is FilterChip / SegmentedControl / Select territory",
         "Do not set labels in Unique at any size",
-        "Do not build a neutral keycap: that tier is retired",
+        "Do not build a neutral tier: it is retired",
         "Do not lift a button on hover: lift is reserved for cards; hover is the label roll",
         "Do not add the trace ring to a button: the trace is Card's affordance"
       ],
-      "restNote": "One job per state. At rest the keycap is calm: plate, gloss, edge, resting key shadow, label. Hover and focus-visible roll the label and shift the colour on every tier (primary plate, secondary fill, tertiary label); the button never lifts. Active is the keycap press, primary only. Reduced motion: colour only, the shift stays and the roll and press drop. audit:quality asserts the invariants on every story rendering the component (root carries data-bella-component=button).",
-      "a11y": "Verified 2026-09-22: primary label (text-inverse) 16.0:1 on the ink plate, 10.6:1 light / 11.8:1 dark on the hover plate (AAA). Secondary and tertiary labels are ink, 16.7:1 on panel. Secondary outline border-strong 3.00:1 worst (non-text AA). Focus ring 3px ochre-deep (3.20:1 on panel) / ochre (8.70:1 on the dark surface), 3px offset, focus-visible only.",
+      "restNote": "One job per state. At rest the primary is a calm flat plate and a label: no gloss, no key edge, no shadow. Hover and focus-visible roll the label and shift the colour on every tier (primary plate, secondary fill, tertiary label); the button never lifts. Active is a small press down, primary only. Reduced motion: colour only, the shift stays and the roll and press drop. audit:quality asserts the invariants on every story rendering the component (root carries data-bella-component=button).",
+      "a11y": "Verified 8 Nov 2026 (shared look): primary label 13.90:1 on the plate in both modes, and 9.01:1 light / 9.54:1 dark on the hover plate (AAA). Secondary label 16.13:1 light / 14.98:1 dark on the card. Control border 5.16:1 light / 5.13:1 dark on the card. Focus ring 3px, 3px offset, ink in light and near-white in dark: 15.04:1 and 16.26:1 on the page. Focus-visible only.",
       "minTarget": {
-        "token": "--component-button-primary-min-height",
-        "value": "44px"
+        "token": "--component-button-sm-min-height",
+        "value": null
       },
       "sandbox": {
-        "minHeight": {
-          "token": "--component-button-primary-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
-        },
-        "paddingY": {
-          "token": "--component-button-primary-padding-y",
-          "light": "0px",
-          "dark": "0px",
-          "warm": "0px"
-        },
-        "paddingX": {
-          "token": "--component-button-primary-padding-x",
-          "light": "20px",
-          "dark": "20px",
-          "warm": "20px"
-        },
-        "label": {
-          "token": "--component-button-primary-foreground",
-          "light": "#eceef3",
-          "dark": "#1d2030",
-          "warm": "#eceef3"
-        },
-        "background": {
-          "token": "--component-button-primary-fill-hi",
-          "light": "#1d2030",
-          "dark": "#eceef3",
-          "warm": "#1d2030"
-        },
-        "backgroundPair": {
-          "token": "--component-button-primary-fill-lo",
-          "light": "#1d2030",
-          "dark": "#eceef3",
-          "warm": "#1d2030"
-        },
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [
         {
           "key": "shadow",
           "n": 1,
-          "title": "Key shadow",
-          "detail": "0 2px 0 key edge one step darker than the face, soft drop, inset highlight (primary)",
+          "title": "Shadow",
+          "detail": "none on the primary: no key edge, no drop, no highlight (shared look, 8 Nov 2026)",
           "token": "--shadow-key-resting",
           "value": {
-            "light": "0 2px 0 #171a22, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66",
-            "dark": "0 2px 0 #e4e6ec, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66",
-            "warm": "0 2px 0 #171a22, 3px 6px 10px #1212123D, inset 0 1px 0 #FFFFFF66"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "shadow",
           "trigger": null,
@@ -2855,12 +2980,12 @@ window.BELLA = {
           "key": "fill",
           "n": 2,
           "title": "Fill",
-          "detail": "ink plate, 1px edge, white-alpha gloss",
-          "token": "--component-button-primary-fill-hi",
+          "detail": "flat ink plate, no gloss (near-white in dark)",
+          "token": "--color-background-brand",
           "value": {
-            "light": "#1d2030",
-            "dark": "#eceef3",
-            "warm": "#1d2030"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "fill",
           "trigger": null,
@@ -2877,11 +3002,11 @@ window.BELLA = {
           "n": 3,
           "title": "Box",
           "detail": "44px min, padding 12 / 20, radius 12",
-          "token": "--component-button-primary-min-height",
+          "token": "--spacing-44",
           "value": {
-            "light": "44px",
-            "dark": "44px",
-            "warm": "44px"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "box",
           "trigger": null,
@@ -2897,12 +3022,12 @@ window.BELLA = {
           "key": "label",
           "n": 4,
           "title": "Label",
-          "detail": "Figtree 16, 600, sentence case (font-size.tag)",
-          "token": "--component-button-primary-font-size",
+          "detail": "DM Sans 16, sentence case (font-size.tag)",
+          "token": "--typography-label-default-font-size",
           "value": {
-            "light": "16px",
-            "dark": "16px",
-            "warm": "16px"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "content",
           "trigger": null,
@@ -2919,11 +3044,11 @@ window.BELLA = {
           "n": 5,
           "title": "Focus ring",
           "detail": "3px, 3px offset, focus-visible only",
-          "token": "--ring-focus-color",
+          "token": "--color-border-focus",
           "value": {
-            "light": "#b97a14",
-            "dark": "#e8a83e",
-            "warm": "#b97a14"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "ring",
           "trigger": null,
@@ -2936,62 +3061,50 @@ window.BELLA = {
           "anchor": null
         }
       ],
-      "anatomySource": "tokens/component.json → component.button.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.button.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-button--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 48,
-        "component": 38,
-        "semantic": 3,
+        "count": 36,
+        "component": 1,
+        "semantic": 0,
         "list": [
-          "--color-semantic-border",
-          "--color-semantic-surface-inset",
-          "--color-semantic-text-muted",
-          "--component-button-motion-press",
-          "--component-button-motion-roll-duration",
-          "--component-button-motion-roll-easing",
-          "--component-button-motion-shift-duration",
-          "--component-button-motion-shift-easing",
-          "--component-button-primary-edge",
-          "--component-button-primary-fill-hi",
-          "--component-button-primary-fill-hi-hover",
-          "--component-button-primary-fill-lo",
-          "--component-button-primary-fill-lo-hover",
-          "--component-button-primary-font-family",
-          "--component-button-primary-font-size",
-          "--component-button-primary-font-weight",
-          "--component-button-primary-foreground",
-          "--component-button-primary-gloss",
-          "--component-button-primary-gloss-pressed",
-          "--component-button-primary-letter-spacing",
-          "--component-button-primary-min-height",
-          "--component-button-primary-padding-x",
-          "--component-button-primary-padding-y",
-          "--component-button-secondary-background",
-          "--component-button-secondary-background-active",
-          "--component-button-secondary-background-hover",
-          "--component-button-secondary-border",
-          "--component-button-secondary-border-hover",
-          "--component-button-secondary-foreground",
-          "--component-button-secondary-min-height",
-          "--component-button-secondary-padding-x",
-          "--component-button-secondary-padding-y",
-          "--component-button-shape-default",
-          "--component-button-shape-pill",
-          "--component-button-tertiary-background",
-          "--component-button-tertiary-foreground",
-          "--component-button-tertiary-foreground-hover",
-          "--component-button-tertiary-min-height",
-          "--component-button-tertiary-underline-offset",
-          "--component-button-tertiary-underline-thickness",
-          "--component-button-tertiary-underline-thickness-hover",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
+          "--border-radius-12",
+          "--border-radius-round",
+          "--border-width-1",
+          "--border-width-2",
+          "--button-color-background-active",
+          "--button-color-background-default",
+          "--button-color-background-hover",
+          "--button-color-border-default",
+          "--color-background-brand",
+          "--color-background-brand-hover",
+          "--color-background-subtle",
+          "--color-border-action-raised",
+          "--color-border-default",
+          "--color-border-focus",
+          "--color-border-ink",
+          "--color-content-accent",
+          "--color-content-brand-knockout",
+          "--color-content-link",
+          "--color-content-subtle",
+          "--component-button-sm-min-height",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--motion-duration-150",
+          "--motion-duration-250",
+          "--motion-easing-out",
+          "--motion-easing-standard",
           "--shadow-key-pressed",
           "--shadow-key-resting",
-          "--spacing-1",
-          "--spacing-2"
+          "--spacing-20",
+          "--spacing-4",
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-weight-600",
+          "--typography-label-default-font-size",
+          "--typography-letter-spacing-0"
         ]
       },
       "compositionDepth": 0,
@@ -3001,8 +3114,8 @@ window.BELLA = {
       ],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 11,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -3072,18 +3185,8 @@ window.BELLA = {
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [
         {
@@ -3093,9 +3196,9 @@ window.BELLA = {
           "detail": "interactive cards only: 2px lift plus shadow; reduced motion keeps the shadow, drops the lift",
           "token": "--shadow-hover",
           "value": {
-            "light": "0 8px 24px #1A172014",
-            "dark": "0 8px 24px rgba(0, 0, 0, 0.45)",
-            "warm": "0 8px 24px #1A172014"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "shadow",
           "trigger": "hover",
@@ -3113,11 +3216,11 @@ window.BELLA = {
           "n": 2,
           "title": "Rest shadow",
           "detail": "every card but peek (re-scoped to none), Colour B, 2026-10-04",
-          "token": "--shadow-card",
+          "token": "--shadow-card-ink",
           "value": {
-            "light": "0 1px 3px #1d20300f, 0 12px 28px #1d20301a",
-            "dark": "0 1px 3px rgba(4, 5, 10, 0.32), 0 12px 28px rgba(4, 5, 10, 0.44)",
-            "warm": "0 1px 3px #1d20300f, 0 12px 28px #1d20301a"
+            "light": "0px 1px 3px 0px #1d20300d, 0px 12px 28px 0px #1d20301a",
+            "dark": null,
+            "warm": "0px 1px 3px 0px #1d20300d, 0px 12px 28px 0px #1d20301a"
           },
           "kind": "shadow",
           "trigger": "rest",
@@ -3135,11 +3238,11 @@ window.BELLA = {
           "n": 3,
           "title": "Surface",
           "detail": "the card fill",
-          "token": "--color-semantic-surface-card",
+          "token": "--color-background-surface",
           "value": {
-            "light": "#fcfcfa",
-            "dark": "#171a22",
-            "warm": "#fbfaf7"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "fill",
           "trigger": "rest",
@@ -3155,12 +3258,12 @@ window.BELLA = {
           "key": "edge",
           "n": 4,
           "title": "Edge",
-          "detail": "1px border-subtle hairline, radius 16 (--radius-card)",
-          "token": "--color-semantic-border-subtle",
+          "detail": "1px border-subtle hairline, radius 16 (--border-radius-card)",
+          "token": "--color-border-subtle",
           "value": {
-            "light": "#e4e6ec",
-            "dark": "#262a35",
-            "warm": "#e3dbcf"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "edge",
           "trigger": "rest",
@@ -3177,11 +3280,11 @@ window.BELLA = {
           "n": 5,
           "title": "Padding",
           "detail": "24px all round",
-          "token": "--spacing-6",
+          "token": "--spacing-24",
           "value": {
-            "light": "24px",
-            "dark": "24px",
-            "warm": "24px"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "box",
           "trigger": "rest",
@@ -3198,11 +3301,11 @@ window.BELLA = {
           "n": 6,
           "title": "Focus ring",
           "detail": "interactive cards only: 3px, 3px offset, focus-visible only",
-          "token": "--ring-focus-color",
+          "token": "--color-border-focus",
           "value": {
-            "light": "#b97a14",
-            "dark": "#e8a83e",
-            "warm": "#b97a14"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "ring",
           "trigger": "focus",
@@ -3215,38 +3318,33 @@ window.BELLA = {
           "anchor": null
         }
       ],
-      "anatomySource": "tokens/component.json → component.card.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.card.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-card--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 24,
-        "component": 1,
-        "semantic": 3,
+        "count": 19,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-alpha-ink-10",
-          "--color-alpha-ink-6",
-          "--color-brand-ink",
-          "--color-neutral-border",
-          "--color-neutral-ink-faint",
-          "--color-neutral-ink-muted",
-          "--color-neutral-ink-soft",
-          "--color-neutral-paper",
-          "--color-neutral-surface",
-          "--color-semantic-border-faint",
-          "--color-semantic-border-subtle",
-          "--color-semantic-surface-card",
-          "--component-card-trace-width",
+          "--border-radius-card",
+          "--border-width-2",
+          "--border-width-4",
+          "--color-background-surface",
+          "--color-border-focus",
+          "--color-border-subtle",
+          "--color-brand-stone-100",
+          "--color-neutral-100",
+          "--color-neutral-700",
+          "--color-neutral-800",
+          "--color-neutral-900",
+          "--focus-ring-offset",
+          "--focus-ring-width",
           "--layout-card-padding",
-          "--motion-duration-lift",
+          "--motion-duration-200",
           "--motion-easing-standard",
-          "--motion-transform-hover-lift",
-          "--radius-card",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
-          "--shadow-card",
+          "--shadow-card-ink",
           "--shadow-hover",
-          "--spacing-2"
+          "--spacing-8"
         ]
       },
       "compositionDepth": 0,
@@ -3255,8 +3353,8 @@ window.BELLA = {
       ],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 19,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -3276,7 +3374,7 @@ window.BELLA = {
       "description": "A single message bubble. Geometry and motion values from the-bar-source.html;\nevery value resolves through a BELLA token. See component-contract:chat-bubble.",
       "hasStory": true,
       "hasDocs": true,
-      "inDsds": false,
+      "inDsds": true,
       "hasContract": true,
       "hasA11yNotes": true,
       "props": [
@@ -3286,6 +3384,7 @@ window.BELLA = {
         "disc",
         "emojiLabel",
         "kind",
+        "kindLabel",
         "senderName",
         "side",
         "tail",
@@ -3317,53 +3416,53 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.chat-bubble.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.chat-bubble.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-chat-chatbubble--docs",
-      "composedFrom": [],
+      "composedFrom": [
+        "StatusPill"
+      ],
       "tokens": {
-        "count": 31,
-        "component": 13,
-        "semantic": 3,
+        "count": 29,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-background",
-          "--color-semantic-surface",
-          "--color-semantic-text-secondary",
-          "--component-chat-bubble-default-border-radius",
-          "--component-chat-bubble-default-code-font-size",
-          "--component-chat-bubble-default-code-radius",
-          "--component-chat-bubble-default-disc-size",
-          "--component-chat-bubble-default-padding-block",
-          "--component-chat-bubble-default-padding-inline",
-          "--component-chat-bubble-default-tail-radius",
-          "--component-chat-bubble-received-background",
-          "--component-chat-bubble-received-foreground",
-          "--component-chat-bubble-sent-background",
-          "--component-chat-bubble-sent-foreground",
-          "--component-chat-thread-default-avatar-gutter",
-          "--component-chat-thread-default-row-max-width",
-          "--motion-duration-pop",
-          "--motion-duration-slam",
-          "--motion-easing-pop-enter",
-          "--motion-easing-slam-enter",
-          "--radius-full",
-          "--shadow-ui",
-          "--spacing-1",
-          "--spacing-2",
-          "--spacing-3",
-          "--typography-font-family-body",
-          "--typography-font-family-code",
-          "--typography-font-size-body",
-          "--typography-font-size-hero",
-          "--typography-font-size-label",
-          "--typography-line-height-body"
+          "--border-radius-20",
+          "--border-radius-4",
+          "--border-radius-8",
+          "--border-radius-round",
+          "--border-width-1",
+          "--color-background-default",
+          "--color-background-subtle",
+          "--color-background-surface",
+          "--color-border-strong",
+          "--color-content-body",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--motion-duration-400",
+          "--motion-duration-450",
+          "--motion-easing-pop",
+          "--shadow-ui-ink",
+          "--spacing-12",
+          "--spacing-24",
+          "--spacing-32",
+          "--spacing-4",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-family-geist-mono",
+          "--typography-font-size-18",
+          "--typography-font-size-display-hero",
+          "--typography-label-default-font-size",
+          "--typography-line-height-130",
+          "--typography-line-height-150"
         ]
       },
-      "compositionDepth": 0,
+      "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 19,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -3383,7 +3482,7 @@ window.BELLA = {
       "description": "Column layout for a sequence of ChatBubble rows.\nFluid from 320px, no fixed heights, no breakpoints outside BELLA's four.\ntabIndex=0: the log scrolls, so keyboard users must be able to focus it\n(Safari does not make scroll containers focusable on its own).\nSee component-contract:chat-thread.",
       "hasStory": true,
       "hasDocs": true,
-      "inDsds": false,
+      "inDsds": true,
       "hasContract": true,
       "hasA11yNotes": true,
       "props": [
@@ -3404,7 +3503,7 @@ window.BELLA = {
         "Do not put interactive controls directly inside ChatThread rows — use ActionChips via the ChatBubble slot"
       ],
       "restNote": null,
-      "a11y": "aria-live=polite on the log region. Timestamps are aria-hidden (they are visual aids; the message order itself is the reading order). Delivered line is aria-live=assertive on its own.",
+      "a11y": "aria-live=polite on the log region. Timestamps are read in order with the messages. Delivered line is aria-live=polite on its own, so a routine update never interrupts.",
       "minTarget": null,
       "sandbox": {
         "minHeight": null,
@@ -3413,50 +3512,142 @@ window.BELLA = {
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.chat-thread.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.chat-thread.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-chat-chatthread--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 14,
-        "component": 6,
-        "semantic": 1,
+        "count": 11,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-text-secondary",
-          "--component-chat-thread-default-gap",
-          "--component-chat-thread-default-padding-block-end",
-          "--component-chat-thread-default-padding-block-start",
-          "--component-chat-thread-default-padding-inline",
-          "--component-chat-thread-default-stamp-margin-bottom",
-          "--component-chat-thread-default-stamp-margin-top",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
-          "--spacing-1",
-          "--typography-font-family-body",
-          "--typography-font-size-label",
-          "--typography-font-weight-semibold"
+          "--color-border-focus",
+          "--color-content-subtle",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--spacing-12",
+          "--spacing-20",
+          "--spacing-4",
+          "--spacing-8",
+          "--typography-font-weight-600",
+          "--typography-label-default-font-size",
+          "--typography-subtext-font-family"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
+          "failing": []
+        },
+        "contract": {
           "status": "pass",
-          "pairs": 9,
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "code-block",
+      "name": "CodeBlock",
+      "category": "Data",
+      "description": "Code as an editor shows it: syntax colour by class, line numbers, a marked\nline, long lines wrapped, and one Copy. Diffs mark added and removed lines\nwith + and − as well as a wash, so colour is never the only signal.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "code",
+        "copy",
+        "currentLine",
+        "language",
+        "lineNumbers",
+        "title"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "copied"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Copy me on component pages",
+        "Contracts and guidance files",
+        "Diffs"
+      ],
+      "dont": [
+        "Do not colour code inline: every colour is a syntax token",
+        "Do not let a diff rely on colour: + and − lead the line"
+      ],
+      "restNote": null,
+      "a11y": "Verified 2026-11-07: the code is a focusable region named by its title; line numbers are aria-hidden; Copy is a 44px icon button named \"Copy <title>\" with a tooltip, and Copied is announced. Every syntax colour is 7:1 or more on the code ground and on added and removed lines, all four themes, checked in the gate. No marked line (Elleta's rule: no current-line highlight unless the page explains it).",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.code-block.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-codeblock--docs",
+      "composedFrom": [
+        "Icon",
+        "Tooltip"
+      ],
+      "tokens": {
+        "count": 25,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-4",
+          "--border-width-1",
+          "--color-background-highlight",
+          "--color-background-syntax-add",
+          "--color-background-syntax-background",
+          "--color-background-syntax-del",
+          "--color-border-focus",
+          "--color-border-syntax",
+          "--color-content-syntax-attr",
+          "--color-content-syntax-comment",
+          "--color-content-syntax-foreground",
+          "--color-content-syntax-function",
+          "--color-content-syntax-keyword",
+          "--color-content-syntax-line-number",
+          "--color-content-syntax-number",
+          "--color-content-syntax-punct",
+          "--color-content-syntax-string",
+          "--color-content-syntax-tag",
+          "--focus-ring-width",
+          "--spacing-12",
+          "--spacing-16",
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-font-family-geist-mono",
+          "--typography-label-default-font-size"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -3513,15 +3704,15 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.columns.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.columns.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-columns--docs",
       "composedFrom": [],
       "tokens": {
         "count": 1,
-        "component": 1,
+        "component": 0,
         "semantic": 0,
         "list": [
-          "--component-columns-gap"
+          "--layout-gutter"
         ]
       },
       "compositionDepth": 0,
@@ -3546,7 +3737,7 @@ window.BELLA = {
       "id": "combobox",
       "name": "Combobox",
       "category": "Inputs",
-      "description": "One field that filters a grouped list: the ARIA combobox pattern. Typing\nopens the list; Up and Down move the active option (aria-activedescendant,\nfocus stays in the field); Enter chooses it; Esc closes the list. The\nactive option is the ochre fill; nothing else dims.",
+      "description": "One field that filters a grouped list: the ARIA combobox pattern. Typing\nopens the list; Up and Down move the active option (aria-activedescendant,\nfocus stays in the field); Enter chooses it; Esc closes the list. The\nactive option is the pink fill; nothing else dims.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -3582,97 +3773,64 @@ window.BELLA = {
       ],
       "dont": [
         "Do not move focus into the list: focus stays in the field and the active option is aria-activedescendant",
-        "Do not dim the other options: the active one gets the ochre fill, nothing else changes",
+        "Do not dim the other options: the active one gets the pink fill, nothing else changes",
         "Do not use it for a fixed short list without typing: that is Select"
       ],
       "restNote": "Closed: the field alone. Open: the list floats with the large shadow.",
-      "a11y": "Verified 2026-10-03: input role=combobox with aria-expanded, aria-controls and aria-autocomplete=list; the list is role=listbox named by the label, groups are role=group named by their heading, options are role=option with aria-selected on the active one, referenced by aria-activedescendant. Esc closes the list and stops there; a second Esc belongs to the page. Option and field text ink on the panel (AAA), group headings and meta text-secondary (AAA), the active option ink on ochre 9.01:1 (AAA). Options and field are 44px. Focus ring on the field.",
-      "minTarget": {
-        "token": "--component-combobox-min-height",
-        "value": "44px"
-      },
+      "a11y": "Verified 2026-10-03: input role=combobox with aria-expanded, aria-controls and aria-autocomplete=list; the list is role=listbox named by the label, groups are role=group named by their heading, options are role=option with aria-selected on the active one, referenced by aria-activedescendant. Esc closes the list and stops there; a second Esc belongs to the page. Option and field text ink on the panel (AAA), group headings and meta text-secondary (AAA), the active option near-black on the pink fill 8.13:1 (AAA; shared look, 8 Nov 2026). Options and field are 44px. Focus ring on the field.",
+      "minTarget": null,
       "sandbox": {
-        "minHeight": {
-          "token": "--component-combobox-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
-        },
+        "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-combobox-foreground",
-          "light": "#1d2030",
-          "dark": "#eceef3",
-          "warm": "#1d2030"
-        },
-        "background": {
-          "token": "--component-combobox-background",
-          "light": "#fcfcfa",
-          "dark": "#171a22",
-          "warm": "#fbfaf7"
-        },
+        "label": null,
+        "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.combobox.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.combobox.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-combobox--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 30,
-        "component": 10,
-        "semantic": 4,
+        "count": 25,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--border-width-thin",
-          "--color-semantic-border",
-          "--color-semantic-border-ink",
-          "--color-semantic-text-muted",
-          "--color-semantic-text-secondary",
-          "--component-combobox-active-background",
-          "--component-combobox-active-foreground",
-          "--component-combobox-background",
-          "--component-combobox-border",
-          "--component-combobox-border-radius",
-          "--component-combobox-font-size",
-          "--component-combobox-foreground",
-          "--component-combobox-group-foreground",
-          "--component-combobox-list-background",
-          "--component-combobox-min-height",
-          "--radius-lg",
-          "--radius-md",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
+          "--border-radius-12",
+          "--border-radius-8",
+          "--border-width-1",
+          "--color-background-accent-1",
+          "--color-background-surface",
+          "--color-border-default",
+          "--color-border-focus",
+          "--color-border-ink",
+          "--color-border-strong",
+          "--color-content-default",
+          "--color-content-on-accent-1",
+          "--color-content-subtle",
+          "--focus-ring-offset",
+          "--focus-ring-width",
           "--shadow-lg",
-          "--spacing-1",
-          "--spacing-2",
-          "--spacing-20",
-          "--spacing-3",
+          "--spacing-12",
+          "--spacing-16",
           "--spacing-4",
-          "--spacing-touch-target",
-          "--typography-font-family-body",
-          "--typography-font-size-sm",
-          "--typography-line-height-normal"
+          "--spacing-44",
+          "--spacing-8",
+          "--spacing-80",
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-size-18",
+          "--typography-line-height-150"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 13,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -3689,7 +3847,7 @@ window.BELLA = {
       "id": "data-table",
       "name": "DataTable",
       "category": "Data",
-      "description": "Rows of facts in columns. Sortable headers are buttons with aria-sort,\nthe header sticks, and an optional single selection fills the chosen row\nochre without dimming any other row.",
+      "description": "Rows of facts in columns. Sortable headers are buttons with aria-sort,\nthe header sticks, and an optional single selection fills the chosen row\npink without dimming any other row.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -3722,18 +3880,15 @@ window.BELLA = {
         "Any comparison of the same facts across many items"
       ],
       "dont": [
-        "Do not dim unselected rows: selection is the ochre fill, everything else keeps its paint",
-        "Do not use ochre-deep for selection: it is the focus ring only",
+        "Do not dim unselected rows: selection is the pink fill, everything else keeps its paint",
+        "Do not use the focus ring colour for selection: the ring means focus only",
         "Do not left-align figures: numeric columns are right-aligned and tabular",
         "Do not drop the caption: it names the table",
         "Do not use density compact on a sortable or selectable table: interactive rows keep the 44px target (the component ignores compact there)"
       ],
       "restNote": "Flat: rules, the sticky header and the cell text. audit:quality asserts no elevation or animation (root carries data-bella-component=data-table).",
-      "a11y": "Verified 2026-10-03: a real table with a visible caption; column headers scope=col, the first cell of each row scope=row. Sortable headers hold a button and carry aria-sort (none, ascending, descending); the arrow is decorative. Selection is a toggle button with aria-pressed in the row header; the selected row is ochre fill with ink text, 9.01:1 (AAA), nested components included (a muted StatusPill label on ochre would be 3.51:1), and no other row changes. Header labels text-secondary on panel, 7.09:1 light / 8.44:1 dark (AAA). With maxHeight the scroll wrapper is a focusable region named by the caption. Sort and select buttons hit the 44px touch-target token; focus ring 3px.",
-      "minTarget": {
-        "token": "--component-data-table-compact-row-min-height",
-        "value": "32px"
-      },
+      "a11y": "Verified 2026-10-03: a real table with a visible caption; column headers scope=col, the first cell of each row scope=row. Sortable headers hold a button and carry aria-sort (none, ascending, descending); the arrow is decorative. Selection is a toggle button with aria-pressed in the row header; the selected row is the pink fill with a near-black label, 8.13:1 (AAA; shared look, 8 Nov 2026), nested components included (a muted StatusPill label on the fill fails contrast), and no other row changes. Header labels text-secondary on panel, 7.09:1 light / 8.44:1 dark (AAA). With maxHeight the scroll wrapper is a focusable region named by the caption. Sort and select buttons hit the 44px touch-target token; focus ring 3px.",
+      "minTarget": null,
       "sandbox": {
         "minHeight": null,
         "paddingY": null,
@@ -3741,63 +3896,53 @@ window.BELLA = {
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.data-table.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.data-table.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-datatable--docs",
       "composedFrom": [
         "Icon"
       ],
       "tokens": {
         "count": 25,
-        "component": 7,
-        "semantic": 3,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--border-width-thin",
-          "--color-semantic-border",
-          "--color-semantic-text-primary",
-          "--color-semantic-text-secondary",
-          "--component-data-table-border-radius",
-          "--component-data-table-compact-row-min-height",
-          "--component-data-table-font-size",
-          "--component-data-table-header-background",
-          "--component-data-table-row-min-height",
-          "--component-data-table-selected-background",
-          "--component-data-table-selected-foreground",
-          "--radius-sm",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
-          "--spacing-1",
-          "--spacing-2",
-          "--spacing-20",
-          "--spacing-3",
+          "--border-radius-12",
+          "--border-radius-4",
+          "--border-width-1",
+          "--color-background-accent-1",
+          "--color-background-surface",
+          "--color-border-default",
+          "--color-border-focus",
+          "--color-content-default",
+          "--color-content-on-accent-1",
+          "--color-content-subtle",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--spacing-12",
+          "--spacing-16",
+          "--spacing-32",
           "--spacing-4",
-          "--spacing-touch-target",
-          "--typography-font-family-body",
-          "--typography-font-size-sm",
-          "--typography-font-weight-medium",
-          "--typography-letter-spacing-body"
+          "--spacing-44",
+          "--spacing-8",
+          "--spacing-80",
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-size-18",
+          "--typography-font-weight-500",
+          "--typography-letter-spacing-0",
+          "--typography-subtext-font-family"
         ]
       },
       "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 18,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -3824,6 +3969,7 @@ window.BELLA = {
         "children",
         "className",
         "defaultOpen",
+        "flush",
         "id",
         "onToggle",
         "open",
@@ -3850,78 +3996,55 @@ window.BELLA = {
       ],
       "restNote": "Closed: a hairline, the title, the summary and a chevron pointing down.",
       "a11y": "Verified 2026-10-03: native details/summary, so the expanded state is announced and Enter or Space toggles it. The header row is at least 44px; title AAA and summary AA on panel in light, warm and dark; the hairline is a divider only; focus is the shared ring; the chevron does not turn under reduced motion.",
-      "minTarget": {
-        "token": "--component-disclosure-min-height",
-        "value": "44px"
-      },
+      "minTarget": null,
       "sandbox": {
-        "minHeight": {
-          "token": "--component-disclosure-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
-        },
+        "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-disclosure-foreground",
-          "light": "#1d2030",
-          "dark": "#eceef3",
-          "warm": "#1d2030"
-        },
+        "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.disclosure.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.disclosure.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-disclosure--docs",
       "composedFrom": [
         "Icon"
       ],
       "tokens": {
         "count": 19,
-        "component": 6,
+        "component": 0,
         "semantic": 0,
         "list": [
-          "--border-width-thin",
-          "--component-disclosure-border",
-          "--component-disclosure-font-size",
-          "--component-disclosure-foreground",
-          "--component-disclosure-meta-foreground",
-          "--component-disclosure-min-height",
-          "--component-link-default-underline-offset",
-          "--motion-duration-fast",
+          "--border-width-1",
+          "--color-border-default",
+          "--color-border-focus",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--motion-duration-150",
           "--motion-easing-standard",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
-          "--spacing-2",
-          "--spacing-3",
+          "--spacing-12",
+          "--spacing-16",
           "--spacing-4",
-          "--typography-font-family-body",
-          "--typography-font-size-sm",
-          "--typography-font-weight-medium",
-          "--typography-line-height-snug"
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-size-18",
+          "--typography-font-weight-500",
+          "--typography-line-height-130"
         ]
       },
       "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 4,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -3947,6 +4070,7 @@ window.BELLA = {
       "props": [
         "children",
         "className",
+        "footer",
         "label",
         "onClose",
         "open",
@@ -3976,57 +4100,49 @@ window.BELLA = {
         "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-drawer-foreground",
-          "light": "#1d2030",
-          "dark": "#eceef3",
-          "warm": "#1d2030"
-        },
-        "background": {
-          "token": "--component-drawer-background",
-          "light": "#ffffff",
-          "dark": "#262a35",
-          "warm": "#fbfaf7"
-        },
+        "label": null,
+        "background": null,
         "backgroundPair": null,
         "ringWidth": null,
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.drawer.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.drawer.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-drawer--docs",
       "composedFrom": [
         "Button"
       ],
       "tokens": {
-        "count": 16,
-        "component": 8,
+        "count": 18,
+        "component": 0,
         "semantic": 0,
         "list": [
-          "--border-width-thin",
-          "--component-drawer-background",
-          "--component-drawer-border",
-          "--component-drawer-duration",
-          "--component-drawer-foreground",
-          "--component-drawer-padding",
-          "--component-drawer-scrim",
-          "--component-drawer-shadow",
-          "--component-drawer-width",
+          "--border-width-1",
+          "--color-background-surface",
+          "--color-background-transparent",
+          "--color-border-default",
+          "--color-content-default",
+          "--motion-duration-250",
           "--motion-easing-standard",
-          "--spacing-3",
-          "--typography-font-family-body",
-          "--typography-font-size-xl",
-          "--typography-font-weight-medium",
-          "--typography-letter-spacing-title",
-          "--typography-line-height-snug"
+          "--shadow-lg",
+          "--spacing-12",
+          "--spacing-20",
+          "--spacing-24",
+          "--spacing-4",
+          "--spacing-8",
+          "--typography-font-size-22",
+          "--typography-font-weight-500",
+          "--typography-letter-spacing-0",
+          "--typography-line-height-130",
+          "--typography-title-default-font-family"
         ]
       },
       "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 1,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -4043,7 +4159,7 @@ window.BELLA = {
       "id": "eyebrow",
       "name": "Eyebrow",
       "category": "Layout",
-      "description": "Eyebrow (style unify, 2026-09-22): the label above a heading; Figtree 16px, sentence case since the type lock (2026-10-04).\n13px, ss09, no tracking, no caps. Never an accent: wayfinding is not action.",
+      "description": "Eyebrow (style unify, 2026-09-22): the label above a heading; DM Sans 16px, sentence case since the type lock (2026-10-04).\n16px (font-size.tag), ss09, no tracking, no caps. Never an accent: wayfinding is not action.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -4081,39 +4197,28 @@ window.BELLA = {
         "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-eyebrow-muted-foreground",
-          "light": "#2b2f3d",
-          "dark": "#eceef3",
-          "warm": "#2b2f3d"
-        },
+        "label": null,
         "background": null,
         "backgroundPair": null,
         "ringWidth": null,
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.eyebrow.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.eyebrow.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-eyebrow--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 13,
-        "component": 12,
+        "count": 7,
+        "component": 0,
         "semantic": 0,
         "list": [
-          "--component-eyebrow-ink-font-family",
-          "--component-eyebrow-ink-font-feature-settings",
-          "--component-eyebrow-ink-font-size",
-          "--component-eyebrow-ink-font-weight",
-          "--component-eyebrow-ink-foreground",
-          "--component-eyebrow-ink-letter-spacing",
-          "--component-eyebrow-muted-font-family",
-          "--component-eyebrow-muted-font-feature-settings",
-          "--component-eyebrow-muted-font-size",
-          "--component-eyebrow-muted-font-weight",
-          "--component-eyebrow-muted-foreground",
-          "--component-eyebrow-muted-letter-spacing",
-          "--typography-line-height-snug"
+          "--color-content-body",
+          "--color-content-default",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-font-weight-400",
+          "--typography-letter-spacing-0",
+          "--typography-line-height-130"
         ]
       },
       "compositionDepth": 0,
@@ -4170,44 +4275,21 @@ window.BELLA = {
       ],
       "dont": [
         "Do not use for mutually exclusive views: that is SegmentedControl",
-        "Do not raise it: the keycap is reserved for true actions",
+        "Do not make it a Button: a Button is reserved for true actions",
         "Do not fake the state with colour alone: aria-pressed is the state, the fill is its paint"
       ],
       "restNote": "At rest the chip is the flat outline and its label; hover wash and the pressed fill are state paints. audit:quality asserts no elevation ever (root carries data-bella-component=filter-chip).",
       "a11y": "Verified 2026-07-22: real button with aria-pressed, both themes. Default label text-secondary on transparent, 8.33:1 light / 9.20:1 dark (AAA). Pressed is the inverse fill: ground-on-ink 16.06:1 light, navy-on-dark-inverse equivalent in dark (AAA). Focus ring independent. Hit area 44px minimum (the touch-target token; the portfolio 32px chip is a recorded divergence, below the 2.5.5 Enhanced floor BELLA holds).",
-      "minTarget": {
-        "token": "--component-filter-chip-min-height",
-        "value": "44px"
-      },
+      "minTarget": null,
       "sandbox": {
-        "minHeight": {
-          "token": "--component-filter-chip-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
-        },
+        "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-filter-chip-foreground",
-          "light": "#2b2f3d",
-          "dark": "#eceef3",
-          "warm": "#2b2f3d"
-        },
+        "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [
         {
@@ -4215,11 +4297,11 @@ window.BELLA = {
           "n": 1,
           "title": "Box",
           "detail": "44px min, padding 4 / 16, pill radius",
-          "token": "--component-filter-chip-min-height",
+          "token": "--spacing-44",
           "value": {
-            "light": "44px",
-            "dark": "44px",
-            "warm": "44px"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "box",
           "trigger": "rest",
@@ -4236,11 +4318,11 @@ window.BELLA = {
           "n": 2,
           "title": "Outline",
           "detail": "1px border-strong, never raised",
-          "token": "--component-filter-chip-border",
+          "token": "--color-border-strong",
           "value": {
-            "light": "#686d7d",
-            "dark": "#858b9f",
-            "warm": "#857a6a"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "edge",
           "trigger": "rest",
@@ -4257,11 +4339,11 @@ window.BELLA = {
           "n": 3,
           "title": "Hover wash",
           "detail": "border-subtle wash, the edge goes ink",
-          "token": "--color-semantic-border-subtle",
+          "token": "--color-border-subtle",
           "value": {
-            "light": "#e4e6ec",
-            "dark": "#262a35",
-            "warm": "#e3dbcf"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "state",
           "trigger": "hover",
@@ -4278,11 +4360,11 @@ window.BELLA = {
           "n": 4,
           "title": "Pressed fill",
           "detail": "inverse fill, label text-inverse; aria-pressed is the state",
-          "token": "--color-semantic-background-inverse",
+          "token": "--color-background-knockout",
           "value": {
-            "light": "#1d2030",
-            "dark": "#eceef3",
-            "warm": "#1d2030"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "fill",
           "trigger": "pressed",
@@ -4299,11 +4381,11 @@ window.BELLA = {
           "n": 5,
           "title": "Label",
           "detail": "Geist 14, 500, text-secondary",
-          "token": "--component-filter-chip-foreground",
+          "token": "--color-content-body",
           "value": {
-            "light": "#2b2f3d",
-            "dark": "#eceef3",
-            "warm": "#2b2f3d"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "content",
           "trigger": "rest",
@@ -4320,11 +4402,11 @@ window.BELLA = {
           "n": 6,
           "title": "Focus ring",
           "detail": "3px, 3px offset, focus-visible only",
-          "token": "--ring-focus-color",
+          "token": "--color-border-focus",
           "value": {
-            "light": "#b97a14",
-            "dark": "#e8a83e",
-            "warm": "#b97a14"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "ring",
           "trigger": "focus",
@@ -4337,43 +4419,43 @@ window.BELLA = {
           "anchor": null
         }
       ],
-      "anatomySource": "tokens/component.json → component.filter-chip.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.filter-chip.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-filterchip--docs",
       "composedFrom": [],
       "tokens": {
         "count": 21,
-        "component": 8,
-        "semantic": 4,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-background-inverse",
-          "--color-semantic-border-ink",
-          "--color-semantic-border-subtle",
-          "--color-semantic-text-inverse",
-          "--component-filter-chip-border",
-          "--component-filter-chip-border-radius",
-          "--component-filter-chip-compact-font-size",
-          "--component-filter-chip-font-family",
-          "--component-filter-chip-font-size",
-          "--component-filter-chip-font-weight",
-          "--component-filter-chip-foreground",
-          "--component-filter-chip-min-height",
-          "--motion-duration-fast",
+          "--border-radius-round",
+          "--color-background-knockout",
+          "--color-border-focus",
+          "--color-border-ink",
+          "--color-border-strong",
+          "--color-border-subtle",
+          "--color-content-body",
+          "--color-content-knockout",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--motion-duration-150",
           "--motion-easing-standard",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
-          "--spacing-1",
-          "--spacing-2",
-          "--spacing-3",
-          "--spacing-4"
+          "--spacing-12",
+          "--spacing-16",
+          "--spacing-4",
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-18",
+          "--typography-font-weight-500",
+          "--typography-label-default-font-size"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 2,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -4390,7 +4472,7 @@ window.BELLA = {
       "id": "heading",
       "name": "Heading",
       "category": "Layout",
-      "description": "Figtree SemiBold 600 carries every heading tier (heading weight, 2026-10-04); Unique is the wordmark only.\n32px floor, never inside a card.",
+      "description": "Newsreader 500 carries every heading tier (shared look, 8 Nov 2026; was Figtree 600, 2026-10-04); Unique is the wordmark only.\n32px floor, never inside a card.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -4410,7 +4492,8 @@ window.BELLA = {
       "variants": [
         "hero",
         "page",
-        "section"
+        "section",
+        "subsection"
       ],
       "states": [
         "default"
@@ -4423,11 +4506,11 @@ window.BELLA = {
         "The hero headline"
       ],
       "dont": [
-        "Never inside a card: cards carry titles (Figtree 600), not headings (contract-enforced by audit:quality)",
-        "Never below 32px: the section tier floors at 32px"
+        "Never inside a card: cards carry titles (DM Sans), not headings (contract-enforced by audit:quality)",
+        "Never below 32px for hero, page or section: only the subsection tier (24px) sits under the section ramp"
       ],
       "restNote": "Type only, entirely static; and a Heading may never sit inside a Card. audit:quality asserts both (root carries data-bella-component=heading).",
-      "a11y": "Verified 2026-09-22: text-primary 18.73:1 light (bg) / 16.60:1 dark (bg), AAA. The accent segment is the muted half-line, text-secondary, 7.09:1 light / 7.06:1 dark (AAA): ochre is a fill, never text. Semantic level decouples from the visual tier via the as prop, so the outline stays honest.",
+      "a11y": "Verified 8 Nov 2026 (shared look): text-primary 15.04:1 light / 16.26:1 dark on the page, AAA. The accent segment is the muted half-line, text-secondary, 7.95:1 light / 9.41:1 dark (AAA). Semantic level decouples from the visual tier via the as prop, so the outline stays honest.",
       "minTarget": null,
       "sandbox": {
         "minHeight": null,
@@ -4440,24 +4523,25 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.heading.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.heading.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-heading--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 10,
-        "component": 8,
-        "semantic": 2,
+        "count": 11,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-text-body",
-          "--color-semantic-text-primary",
-          "--component-heading-font-family",
-          "--component-heading-font-weight",
-          "--component-heading-hero-font-size",
-          "--component-heading-letter-spacing",
-          "--component-heading-line-height",
-          "--component-heading-page-font-size",
-          "--component-heading-section-font-size",
-          "--component-heading-section-letter-spacing"
+          "--color-content-body",
+          "--color-content-default",
+          "--typography-font-size-24",
+          "--typography-font-size-display-hero",
+          "--typography-font-size-display-page",
+          "--typography-font-size-display-section",
+          "--typography-font-weight-500",
+          "--typography-headline-sm-font-family",
+          "--typography-letter-spacing-minus-1-half",
+          "--typography-letter-spacing-minus-2",
+          "--typography-line-height-115"
         ]
       },
       "compositionDepth": 0,
@@ -4466,8 +4550,8 @@ window.BELLA = {
       ],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 13,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -4529,26 +4613,31 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.icon.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.icon.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-icon--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 2,
+        "count": 3,
         "component": 0,
         "semantic": 0,
         "list": [
-          "--icon-",
-          "--icon-stroke"
+          "--size-16",
+          "--size-20",
+          "--size-24"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [
+        "CodeBlock",
         "DataTable",
         "Disclosure",
         "Input",
         "NavList",
+        "PageHeader",
         "ResourceCard",
-        "Select"
+        "Select",
+        "Stat",
+        "Tabs"
       ],
       "health": {
         "contrast": {
@@ -4612,34 +4701,16 @@ window.BELLA = {
       ],
       "restNote": "Flat always: field, border, label, messages. audit:quality asserts no elevation ever (root carries data-bella-component=input).",
       "a11y": "Verified 2026-07-22: real label element (for/id), 8.33:1 light / 9.20:1 dark (AAA). Field text text-primary on surface, 16.92:1 light (AAA); placeholder text-muted, 4.67:1 worst (AA, opacity reset for Firefox). Errors (status tokens, 2026-09-22): aria-invalid + role=alert message via aria-describedby; 2px danger-border (3:1+ on every surface), WarningCircle icon, message in danger-text (5.84:1 light on panel, 6.86:1 dark on raised; AA). Focus: the 3px focus ring (3px offset) plus an ink edge; an invalid field keeps its danger edge under the ring. 44px min-height.",
-      "minTarget": {
-        "token": "--component-input-min-height",
-        "value": "60px"
-      },
+      "minTarget": null,
       "sandbox": {
-        "minHeight": {
-          "token": "--component-input-min-height",
-          "light": "60px",
-          "dark": "60px",
-          "warm": "60px"
-        },
+        "minHeight": null,
         "paddingY": null,
         "paddingX": null,
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [
         {
@@ -4647,11 +4718,11 @@ window.BELLA = {
           "n": 1,
           "title": "Label",
           "detail": "Geist 13, 700, caps; a real label wired for/id",
-          "token": "--color-semantic-text-secondary",
+          "token": "--color-content-subtle",
           "value": {
-            "light": "#474c5e",
-            "dark": "#b1b7c7",
-            "warm": "#4f463d"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "content",
           "trigger": "rest",
@@ -4668,11 +4739,11 @@ window.BELLA = {
           "n": 2,
           "title": "Field",
           "detail": "surface, padding 12 / 16, radius 8",
-          "token": "--color-semantic-surface",
+          "token": "--color-background-surface",
           "value": {
-            "light": "#ffffff",
-            "dark": "#171a22",
-            "warm": "#f0ede8"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "fill",
           "trigger": "rest",
@@ -4689,11 +4760,11 @@ window.BELLA = {
           "n": 3,
           "title": "Border",
           "detail": "1px border-strong, the 3:1 control edge",
-          "token": "--color-semantic-border-strong",
+          "token": "--color-border-strong",
           "value": {
-            "light": "#686d7d",
-            "dark": "#858b9f",
-            "warm": "#857a6a"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "edge",
           "trigger": "rest",
@@ -4710,11 +4781,11 @@ window.BELLA = {
           "n": 4,
           "title": "Box",
           "detail": "44px min, field text 16px",
-          "token": "--component-input-min-height",
+          "token": "--size-60",
           "value": {
-            "light": "60px",
-            "dark": "60px",
-            "warm": "60px"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "box",
           "trigger": "rest",
@@ -4731,11 +4802,11 @@ window.BELLA = {
           "n": 5,
           "title": "Placeholder",
           "detail": "text-muted, opacity reset for Firefox; never the label",
-          "token": "--color-semantic-text-muted",
+          "token": "--color-content-subtle",
           "value": {
-            "light": "#474c5e",
-            "dark": "#b1b7c7",
-            "warm": "#4f463d"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "content",
           "trigger": "rest",
@@ -4752,11 +4823,11 @@ window.BELLA = {
           "n": 6,
           "title": "Focus ring",
           "detail": "3px, 3px offset, and the edge goes ink",
-          "token": "--ring-focus-color",
+          "token": "--color-border-focus",
           "value": {
-            "light": "#b97a14",
-            "dark": "#e8a83e",
-            "warm": "#b97a14"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "ring",
           "trigger": "focus",
@@ -4769,50 +4840,50 @@ window.BELLA = {
           "anchor": null
         }
       ],
-      "anatomySource": "tokens/component.json → component.input.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.input.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-input--docs",
       "composedFrom": [
         "Icon"
       ],
       "tokens": {
         "count": 26,
-        "component": 4,
-        "semantic": 9,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-border-ink",
-          "--color-semantic-border-strong",
-          "--color-semantic-danger-border",
-          "--color-semantic-danger-text",
-          "--color-semantic-surface",
-          "--color-semantic-surface-inset",
-          "--color-semantic-text-body",
-          "--color-semantic-text-muted",
-          "--color-semantic-text-primary",
-          "--component-icon-size-sm",
-          "--component-input-border-radius",
-          "--component-input-font-size",
-          "--component-input-min-height",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
-          "--spacing-2",
-          "--spacing-3",
-          "--spacing-4",
-          "--typography-font-family-body",
-          "--typography-font-size-sm",
-          "--typography-font-size-tag",
-          "--typography-font-weight-bold",
-          "--typography-font-weight-medium",
-          "--typography-letter-spacing-normal",
-          "--typography-line-height-normal"
+          "--border-radius-form",
+          "--color-background-subtle",
+          "--color-background-surface",
+          "--color-border-focus",
+          "--color-border-ink",
+          "--color-border-strong",
+          "--color-border-utility-error",
+          "--color-content-body",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--color-content-utility-error",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--size-16",
+          "--size-60",
+          "--spacing-12",
+          "--spacing-16",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-size-18",
+          "--typography-font-weight-500",
+          "--typography-font-weight-700",
+          "--typography-label-default-font-size",
+          "--typography-letter-spacing-0",
+          "--typography-line-height-150"
         ]
       },
       "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 26,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -4853,7 +4924,7 @@ window.BELLA = {
       ],
       "dont": [
         "Do not make it clickable: a pressable keycap is Button",
-        "Do not raise or animate it: the raised keycap is Button's, Kbd is recessed and flat",
+        "Do not raise or animate it: Kbd is recessed and flat, and a pressable thing is a Button",
         "Do not leave a symbol key unlabelled: pass label so screen readers say the shortcut, not the glyph"
       ],
       "restNote": "Entirely static, like Tag. audit:quality asserts it never lifts or animates (root carries data-bella-component=kbd).",
@@ -4863,43 +4934,119 @@ window.BELLA = {
         "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-kbd-foreground",
-          "light": "#474c5e",
-          "dark": "#b1b7c7",
-          "warm": "#4f463d"
-        },
-        "background": {
-          "token": "--component-kbd-background",
-          "light": "#eceef3",
-          "dark": "#1d2030",
-          "warm": "#ebe4d6"
-        },
+        "label": null,
+        "background": null,
         "backgroundPair": null,
         "ringWidth": null,
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.kbd.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.kbd.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-kbd--docs",
       "composedFrom": [],
       "tokens": {
         "count": 12,
-        "component": 7,
+        "component": 0,
         "semantic": 0,
         "list": [
-          "--border-width-thin",
-          "--component-kbd-background",
-          "--component-kbd-border",
-          "--component-kbd-border-radius",
-          "--component-kbd-font-family",
-          "--component-kbd-font-feature-settings",
-          "--component-kbd-font-size",
-          "--component-kbd-foreground",
-          "--spacing-1",
-          "--spacing-6",
-          "--typography-letter-spacing-mono",
-          "--typography-line-height-normal"
+          "--border-radius-sm",
+          "--border-width-1",
+          "--color-background-subtle",
+          "--color-border-subtle",
+          "--color-content-subtle",
+          "--spacing-24",
+          "--spacing-4",
+          "--typography-font-family-geist-mono",
+          "--typography-font-feature-ss09",
+          "--typography-font-size-16",
+          "--typography-letter-spacing-0",
+          "--typography-line-height-150"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "leader",
+      "name": "Leader",
+      "category": "Annotation",
+      "description": "A dashed elbow line, measured from one element to another, from the site's\nhero leaders (elleta.design). It goes sideways when its ends are side by\nside and down when they are stacked, and redraws when anything resizes.\nA labelled image, like every diagram in BELLA, because the line is meaning too.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "end",
+        "from",
+        "label",
+        "style",
+        "to",
+        "variant"
+      ],
+      "variants": [
+        "yellow",
+        "pink",
+        "blue",
+        "red"
+      ],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "From a Pin to the part it numbers",
+        "From a note to a specimen"
+      ],
+      "dont": [
+        "Do not leave out the label: the line is meaning too, so it says what it ties together",
+        "Do not hard-code coordinates: it measures its ends and redraws on resize"
+      ],
+      "restNote": null,
+      "a11y": "Verified 2026-11-07: a labelled image, role img with an aria-label that says what it ties together, per the diagram rule. No pointer events. Forced colours draw it in CanvasText.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.leader.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-leader--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 6,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-width-2",
+          "--color-background-accent-2",
+          "--color-background-accent-3",
+          "--color-background-accent-4",
+          "--color-border-accent-1",
+          "--leader-pop"
         ]
       },
       "compositionDepth": 0,
@@ -4924,7 +5071,7 @@ window.BELLA = {
       "id": "link",
       "name": "Link",
       "category": "Actions",
-      "description": "Link (brand refresh, 2026-09-22): the inline text link. Ink with an\nunderline at rest; hover thickens the underline to 2px; focus-visible is\nthe shared ochre ring (3px, 3px offset). Visited stays ink. Never colour\nalone: the underline is the affordance.",
+      "description": "Link (brand refresh, 2026-09-22): the inline text link. Ink with an\nunderline at rest; hover thickens the underline to 2px; focus-visible is\nthe shared focus ring (3px, 3px offset, ink in light, near-white in dark). Visited stays ink. Never colour\nalone: the underline is the affordance.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -4960,26 +5107,11 @@ window.BELLA = {
         "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-link-default-foreground",
-          "light": "#1d2030",
-          "dark": "#eceef3",
-          "warm": "#1d2030"
-        },
+        "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [
         {
@@ -4987,11 +5119,11 @@ window.BELLA = {
           "n": 1,
           "title": "Text",
           "detail": "ink; visited stays ink",
-          "token": "--component-link-default-foreground",
+          "token": "--color-content-link",
           "value": {
-            "light": "#1d2030",
-            "dark": "#eceef3",
-            "warm": "#1d2030"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "content",
           "trigger": "rest",
@@ -5007,12 +5139,12 @@ window.BELLA = {
           "key": "underline",
           "n": 2,
           "title": "Underline",
-          "detail": "1px, 4px offset (--component-link-default-underline-offset)",
-          "token": "--component-link-default-underline-thickness",
+          "detail": "1px, 4px offset (--spacing-4)",
+          "token": "--border-width-1",
           "value": {
-            "light": "1px",
-            "dark": "1px",
-            "warm": "1px"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "edge",
           "trigger": "rest",
@@ -5030,11 +5162,11 @@ window.BELLA = {
           "n": 3,
           "title": "Hover underline",
           "detail": "thickens to 2px; colour stays ink",
-          "token": "--component-link-default-underline-thickness-hover",
+          "token": "--border-width-2",
           "value": {
-            "light": "2px",
-            "dark": "2px",
-            "warm": "2px"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "state",
           "trigger": "hover",
@@ -5052,11 +5184,11 @@ window.BELLA = {
           "n": 4,
           "title": "Focus ring",
           "detail": "3px, 3px offset, radius 4, focus-visible only",
-          "token": "--ring-focus-color",
+          "token": "--color-border-focus",
           "value": {
-            "light": "#b97a14",
-            "dark": "#e8a83e",
-            "warm": "#b97a14"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "ring",
           "trigger": "focus",
@@ -5069,34 +5201,122 @@ window.BELLA = {
           "anchor": null
         }
       ],
-      "anatomySource": "tokens/component.json → component.link.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.link.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-link--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 12,
-        "component": 6,
+        "count": 10,
+        "component": 0,
         "semantic": 0,
         "list": [
-          "--component-link-default-foreground",
-          "--component-link-default-foreground-hover",
-          "--component-link-default-text-decoration",
-          "--component-link-default-underline-offset",
-          "--component-link-default-underline-thickness",
-          "--component-link-default-underline-thickness-hover",
-          "--motion-duration-fast",
+          "--border-radius-4",
+          "--border-width-1",
+          "--border-width-2",
+          "--color-border-focus",
+          "--color-content-link",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--motion-duration-150",
           "--motion-easing-standard",
-          "--radius-sm",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width"
+          "--spacing-4"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
+          "failing": []
+        },
+        "contract": {
           "status": "pass",
-          "pairs": 2,
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "list-row",
+      "name": "ListRow",
+      "category": "Data",
+      "description": "One item in a work list: a status with a word, a title, one line of why and\none action. The action brings its own 44px box.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "action",
+        "className",
+        "description",
+        "status",
+        "style",
+        "title",
+        "titleAs"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Work lists: what to do next, changes, projects",
+        "Any list where each item has one action"
+      ],
+      "dont": [
+        "Do not use it for tabular data with several comparable columns: that is DataTable",
+        "Do not put more than one action in a row",
+        "Do not rely on the status colour: StatusPill carries a word"
+      ],
+      "restNote": null,
+      "a11y": "Verified 2026-11-07: an li in a ul. Title is text-primary, why is text-body, AAA on the ground and card in every theme. titleAs sets the heading level when the page needs one. The row holds no target of its own: its action brings its own 44px box.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.list-row.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-listrow--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 14,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-width-1",
+          "--color-border-default",
+          "--color-content-body",
+          "--color-content-default",
+          "--spacing-12",
+          "--spacing-16",
+          "--spacing-4",
+          "--spacing-44",
+          "--typography-body-default-font-size",
+          "--typography-font-size-22",
+          "--typography-font-weight-600",
+          "--typography-line-height-150",
+          "--typography-subtext-font-family",
+          "--typography-title-default-font-family"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -5150,73 +5370,59 @@ window.BELLA = {
       ],
       "restNote": "Flat: text rows and the current wash. audit:quality asserts no elevation or animation (root carries data-bella-component=nav-list).",
       "a11y": "Verified 2026-10-03: a nav landmark with a required aria-label; groups with a heading are lists labelled by it; the current item is aria-current=page. Labels text-secondary at rest, 7.09:1 light / 8.44:1 dark on panel (AAA); hover and current go text-primary, current on the border-subtle wash 14.60:1 / 12.26:1 (AAA); counts go ink on the current wash (muted would be 6.18:1). The toggle is a real button with aria-expanded, aria-controls and a spoken Hide / Show name; its icon is decorative. Focus ring 3px, inset. Rows and the toggle hit the 44px touch-target token.",
-      "minTarget": {
-        "token": "--component-nav-list-min-height",
-        "value": "44px"
-      },
+      "minTarget": null,
       "sandbox": {
-        "minHeight": {
-          "token": "--component-nav-list-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
-        },
+        "minHeight": null,
         "paddingY": null,
         "paddingX": null,
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
+        "ringWidth": null,
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.nav-list.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.nav-list.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-navlist--docs",
       "composedFrom": [
         "Icon"
       ],
       "tokens": {
-        "count": 24,
-        "component": 7,
-        "semantic": 5,
+        "count": 23,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--border-width-thin",
-          "--color-semantic-border",
-          "--color-semantic-border-subtle",
-          "--color-semantic-surface-inset",
-          "--color-semantic-text-primary",
-          "--color-semantic-text-secondary",
-          "--component-nav-list-border-radius",
-          "--component-nav-list-current-background",
-          "--component-nav-list-font-family",
-          "--component-nav-list-font-size",
-          "--component-nav-list-label-font-family",
-          "--component-nav-list-label-font-size",
-          "--component-nav-list-min-height",
-          "--motion-duration-fast",
+          "--border-radius-8",
+          "--border-width-1",
+          "--color-background-subtle",
+          "--color-border-default",
+          "--color-border-focus",
+          "--color-border-subtle",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--focus-ring-width",
+          "--motion-duration-150",
           "--motion-easing-standard",
-          "--ring-focus-color",
-          "--ring-focus-width",
-          "--spacing-1",
-          "--spacing-2",
-          "--spacing-3",
-          "--spacing-6",
-          "--typography-font-weight-medium",
-          "--typography-font-weight-regular",
-          "--typography-letter-spacing-body"
+          "--spacing-12",
+          "--spacing-24",
+          "--spacing-4",
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-size-18",
+          "--typography-font-weight-400",
+          "--typography-font-weight-500",
+          "--typography-letter-spacing-0",
+          "--typography-number-font-family"
         ]
       },
       "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 19,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -5242,6 +5448,7 @@ window.BELLA = {
       "props": [
         "actions",
         "className",
+        "icon",
         "id",
         "lede",
         "meta",
@@ -5260,7 +5467,7 @@ window.BELLA = {
       ],
       "dont": [
         "Do not use a display Heading tier for an app page title: display is for editorial heroes",
-        "Do not put more than one keycap Button in actions: the main action only; the rest are secondary Buttons or ActionChips",
+        "Do not put more than one primary Button in actions: the main action only; the rest are secondary Buttons or ActionChips",
         "Do not use it twice on a page: one h1"
       ],
       "restNote": "Type only, entirely static.",
@@ -5270,51 +5477,148 @@ window.BELLA = {
         "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-page-header-foreground",
-          "light": "#1d2030",
-          "dark": "#eceef3",
-          "warm": "#1d2030"
-        },
+        "label": null,
         "background": null,
         "backgroundPair": null,
         "ringWidth": null,
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.page-header.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.page-header.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-pageheader--docs",
-      "composedFrom": [],
+      "composedFrom": [
+        "Icon"
+      ],
       "tokens": {
-        "count": 17,
-        "component": 11,
+        "count": 21,
+        "component": 0,
         "semantic": 0,
         "list": [
-          "--component-page-header-foreground",
-          "--component-page-header-gap",
-          "--component-page-header-lede-font-size",
-          "--component-page-header-lede-max-width",
-          "--component-page-header-meta-font-size",
-          "--component-page-header-meta-foreground",
-          "--component-page-header-title-font-size",
-          "--component-page-header-title-font-weight",
-          "--component-page-header-title-letter-spacing",
-          "--component-page-header-title-line-height",
-          "--component-section-space",
+          "--border-radius-12",
+          "--color-background-subtle",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--layout-measure-body",
+          "--layout-section-space",
           "--layout-stack-md",
           "--layout-stack-sm",
-          "--spacing-2",
-          "--typography-font-family-body",
-          "--typography-font-family-display",
-          "--typography-line-height-normal"
+          "--spacing-12",
+          "--spacing-4",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-18",
+          "--typography-font-size-22",
+          "--typography-font-size-40",
+          "--typography-font-weight-600",
+          "--typography-headline-sm-font-family",
+          "--typography-letter-spacing-minus-2",
+          "--typography-line-height-115",
+          "--typography-line-height-150",
+          "--typography-subtext-font-family"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "page-outline",
+      "name": "PageOutline",
+      "category": "Navigation",
+      "description": "\"On this page\", as documentation sites draw it: a small marker of lines,\none per section, the one you are reading darker. It opens a list to jump.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "items",
+        "label",
+        "onNavigate"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "open",
+        "focus"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Pages with three or more sections"
+      ],
+      "dont": [
+        "Do not pass fewer than three sections: it renders nothing then",
+        "Do not let the marker carry the only cue: the open list marks the current section by weight and aria-current"
+      ],
+      "restNote": null,
+      "a11y": "Verified 2026-11-07: a 44px button with aria-expanded and aria-controls, named \"On this page, reading <section>\"; the list marks the current section aria-current=\"location\"; Esc closes it and returns focus to the button, a click outside closes it where the click lands; a jump moves focus to the section heading; reduced motion jumps without the smooth scroll. It renders nothing with fewer than three sections.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.page-outline.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-pageoutline--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 23,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-4",
+          "--border-width-1",
+          "--border-width-2",
+          "--color-background-surface",
+          "--color-border-default",
+          "--color-border-focus",
+          "--color-border-strong",
+          "--color-border-subtle",
+          "--color-content-body",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--shadow-soft",
+          "--spacing-12",
+          "--spacing-24",
+          "--spacing-4",
+          "--spacing-44",
+          "--spacing-8",
+          "--spacing-80",
+          "--typography-body-default-font-family",
+          "--typography-font-weight-600",
+          "--typography-label-default-font-size"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 2,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -5369,15 +5673,115 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.pattern-field.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.pattern-field.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/brand-pattern--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 1,
-        "component": 1,
+        "count": 0,
+        "component": 0,
+        "semantic": 0,
+        "list": []
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "pin",
+      "name": "Pin",
+      "category": "Annotation",
+      "description": "A numbered marker that explains something in place, from the site's hero\npins (elleta.design). The number and word sit on the card disc, never on the\npop colour, because ink fails AA on the pop red.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "ariaLabel",
+        "className",
+        "label",
+        "number",
+        "onClick",
+        "style",
+        "variant"
+      ],
+      "variants": [
+        "yellow",
+        "pink",
+        "blue",
+        "red"
+      ],
+      "states": [
+        "default",
+        "hover",
+        "focus"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Numbering the parts of a specimen or picture",
+        "Tying a note to what it explains, with Leader"
+      ],
+      "dont": [
+        "Do not use colour alone: a pin always has a number",
+        "Do not use a pop colour for a status: StatusPill carries status",
+        "Do not make a label-less pin clickable without ariaLabel"
+      ],
+      "restNote": null,
+      "a11y": "Verified 2026-11-07: number and label are text-primary on surface-card, AAA in every theme. The pop ring is decoration (pink 2.40:1, yellow 1.85:1 on white). With onClick it is a button with a 44px box and BELLA's focus ring.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.pin.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-pin--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 19,
+        "component": 0,
         "semantic": 0,
         "list": [
-          "--component-pattern-field-opacity"
+          "--border-radius-round",
+          "--border-width-4",
+          "--color-background-accent-1",
+          "--color-background-accent-2",
+          "--color-background-accent-3",
+          "--color-background-accent-4",
+          "--color-background-surface",
+          "--color-border-focus",
+          "--color-content-default",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--pin-pop",
+          "--spacing-12",
+          "--spacing-32",
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-font-weight-600",
+          "--typography-label-default-font-size",
+          "--typography-number-font-family"
         ]
       },
       "compositionDepth": 0,
@@ -5452,52 +5856,44 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.resource-card.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.resource-card.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-resourcecard--docs",
       "composedFrom": [
         "Card",
         "Icon"
       ],
       "tokens": {
-        "count": 35,
-        "component": 26,
-        "semantic": 1,
+        "count": 27,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-surface",
-          "--component-resource-card-default-action-font-size",
-          "--component-resource-card-default-action-font-weight",
-          "--component-resource-card-default-action-foreground",
-          "--component-resource-card-default-body-padding",
-          "--component-resource-card-default-cover-background",
-          "--component-resource-card-default-cover-height",
-          "--component-resource-card-default-description-font-size",
-          "--component-resource-card-default-description-foreground",
-          "--component-resource-card-default-divider-color",
-          "--component-resource-card-default-meta-font-size",
-          "--component-resource-card-default-meta-foreground",
-          "--component-resource-card-default-notch-size",
-          "--component-resource-card-default-sheet-overlap",
-          "--component-resource-card-default-status-dot-color",
-          "--component-resource-card-default-status-dot-size",
-          "--component-resource-card-default-tab-font-size",
-          "--component-resource-card-default-tab-font-weight",
-          "--component-resource-card-default-tab-foreground",
-          "--component-resource-card-default-tab-letter-spacing",
-          "--component-resource-card-default-tab-padding-top",
-          "--component-resource-card-default-tab-padding-x",
-          "--component-resource-card-default-tab-radius",
-          "--component-resource-card-default-title-font-size",
-          "--component-resource-card-default-title-font-weight",
-          "--component-resource-card-default-title-foreground",
-          "--component-resource-card-default-title-letter-spacing",
-          "--radius-full",
-          "--spacing-1",
-          "--spacing-2",
-          "--spacing-3",
+          "--border-radius-16",
+          "--border-radius-round",
+          "--color-background-knockout",
+          "--color-background-surface",
+          "--color-border-subtle",
+          "--color-content-accent",
+          "--color-content-body",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--spacing-12",
+          "--spacing-16",
+          "--spacing-20",
           "--spacing-4",
-          "--typography-font-family-body",
-          "--typography-line-height-normal",
-          "--typography-line-height-snug"
+          "--spacing-48",
+          "--spacing-8",
+          "--spacing-80",
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-size-22",
+          "--typography-font-weight-500",
+          "--typography-font-weight-600",
+          "--typography-font-weight-700",
+          "--typography-label-default-font-size",
+          "--typography-letter-spacing-0",
+          "--typography-line-height-130",
+          "--typography-line-height-150",
+          "--typography-title-default-font-family"
         ]
       },
       "compositionDepth": 1,
@@ -5564,7 +5960,7 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.scaled-frame.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.scaled-frame.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-scaledframe--docs",
       "composedFrom": [],
       "tokens": {
@@ -5579,121 +5975,6 @@ window.BELLA = {
         "contrast": {
           "status": "not-covered",
           "pairs": 0,
-          "failing": []
-        },
-        "contract": {
-          "status": "pass",
-          "issues": []
-        },
-        "visual": {
-          "status": "skipped",
-          "note": "TODO: audit:visual not run by sync (slow)"
-        }
-      }
-    },
-    {
-      "id": "score-strip",
-      "name": "ScoreStrip",
-      "category": "Data",
-      "description": "One system's readiness: an overall score and a strip of station scores,\nbanded sturdy, drifting or check engine. Measured and self-assessed are\ntold apart in text, never by fill alone.",
-      "hasStory": true,
-      "hasDocs": true,
-      "inDsds": true,
-      "hasContract": true,
-      "hasA11yNotes": true,
-      "props": [
-        "as",
-        "cells",
-        "className",
-        "kind",
-        "name",
-        "score"
-      ],
-      "variants": [],
-      "states": [
-        "strong",
-        "mid",
-        "low",
-        "self"
-      ],
-      "shapes": [],
-      "rendersAs": null,
-      "usage": [
-        "CHIP readiness map, fed by the station scores in bella.json",
-        "Any per-dimension score for a named system"
-      ],
-      "dont": [
-        "Do not invent a warning colour for the mid band: it stays neutral until the status ladder adds one (issue #1)",
-        "Do not show a self-assessed score as a measured number",
-        "Do not drop ScoreLegend from a map: the bands need their key",
-        "Do not rely on the wash: the edge, the figure and the spoken band carry the meaning"
-      ],
-      "restNote": "Entirely static. audit:quality asserts it never lifts or animates (root carries data-bella-component=score-strip).",
-      "a11y": "Verified 2026-10-03: a region labelled by the system heading (level set by as); stations are a labelled list, each spoken as full name, value of 100 and band word, or self-assessed; the visible figure and short label are aria-hidden duplicates. Cell text is ink on every wash, 16.24:1 light / 12.23:1 dark worst (AAA; muted would fall to 6.68:1). Band edges are status borders at 3:1 or better on panel (success, danger) or the control border (3.00:1); the washes alone are near 1:1 on light panel and never carry meaning. The overall bar is aria-hidden, ink on the border-subtle track (14.60:1 / 12.26:1).",
-      "minTarget": null,
-      "sandbox": {
-        "minHeight": null,
-        "paddingY": null,
-        "paddingX": null,
-        "label": null,
-        "background": null,
-        "backgroundPair": null,
-        "ringWidth": null,
-        "ringOffset": null
-      },
-      "parts": [],
-      "anatomySource": "tokens/component.json → component.score-strip.$extensions.bella.anatomy",
-      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-scorestrip--docs",
-      "composedFrom": [],
-      "tokens": {
-        "count": 36,
-        "component": 9,
-        "semantic": 7,
-        "list": [
-          "--border-width-thick",
-          "--border-width-thin",
-          "--color-semantic-border-strong",
-          "--color-semantic-danger-border",
-          "--color-semantic-danger-subtle",
-          "--color-semantic-success-border",
-          "--color-semantic-success-subtle",
-          "--color-semantic-text-primary",
-          "--color-semantic-text-secondary",
-          "--component-score-strip-cell-border-radius",
-          "--component-score-strip-cell-min-width",
-          "--component-score-strip-label-font-family",
-          "--component-score-strip-label-font-size",
-          "--component-score-strip-name-font-size",
-          "--component-score-strip-score-font-size",
-          "--component-score-strip-track",
-          "--component-score-strip-track-fill",
-          "--component-score-strip-value-font-size",
-          "--radius-full",
-          "--radius-sm",
-          "--spacing-1",
-          "--spacing-2",
-          "--spacing-20",
-          "--spacing-3",
-          "--spacing-5",
-          "--spacing-8",
-          "--typography-font-family-body",
-          "--typography-font-family-display",
-          "--typography-font-size-sm",
-          "--typography-font-weight-light",
-          "--typography-font-weight-medium",
-          "--typography-font-weight-regular",
-          "--typography-letter-spacing-h2",
-          "--typography-letter-spacing-title",
-          "--typography-line-height-heading",
-          "--typography-line-height-snug"
-        ]
-      },
-      "compositionDepth": 0,
-      "composesInto": [],
-      "health": {
-        "contrast": {
-          "status": "pass",
-          "pairs": 24,
           "failing": []
         },
         "contract": {
@@ -5754,39 +6035,38 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.section.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.section.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-section--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 17,
-        "component": 5,
-        "semantic": 2,
+        "count": 16,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-text-primary",
-          "--color-semantic-text-secondary",
-          "--component-section-body-gap",
-          "--component-section-heading-font-size",
-          "--component-section-heading-font-weight",
-          "--component-section-heading-letter-spacing",
-          "--component-section-space",
-          "--header-height",
+          "--color-content-default",
+          "--color-content-subtle",
           "--layout-measure-body",
+          "--layout-section-space",
           "--layout-stack-lg",
           "--layout-stack-md",
           "--layout-stack-sm",
-          "--typography-font-family-body",
-          "--typography-font-family-display",
-          "--typography-font-size-body",
-          "--typography-line-height-heading",
-          "--typography-line-height-normal"
+          "--spacing-64",
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-size-display-section",
+          "--typography-font-weight-500",
+          "--typography-headline-sm-font-family",
+          "--typography-letter-spacing-minus-1-half",
+          "--typography-line-height-115",
+          "--typography-line-height-150"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 15,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -5849,7 +6129,7 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.section-header.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.section-header.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-sectionheader--docs",
       "composedFrom": [
         "Eyebrow",
@@ -5858,25 +6138,111 @@ window.BELLA = {
       "tokens": {
         "count": 9,
         "component": 0,
-        "semantic": 1,
+        "semantic": 0,
         "list": [
-          "--color-semantic-text-body",
-          "--spacing-12",
-          "--spacing-4",
-          "--spacing-5",
-          "--typography-font-size-body",
-          "--typography-font-size-xl",
-          "--typography-letter-spacing-body",
-          "--typography-line-height-normal",
-          "--typography-line-height-snug"
+          "--color-content-body",
+          "--spacing-16",
+          "--spacing-20",
+          "--spacing-48",
+          "--typography-body-default-font-size",
+          "--typography-font-size-22",
+          "--typography-letter-spacing-0",
+          "--typography-line-height-130",
+          "--typography-line-height-150"
         ]
       },
       "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
+          "failing": []
+        },
+        "contract": {
           "status": "pass",
-          "pairs": 5,
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "section-nav",
+      "name": "SectionNav",
+      "category": "Navigation",
+      "description": "The top bar's row of sections, as documentation sites draw it: plain links,\nthe current one marked by weight and a line under it, never by colour alone.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "items",
+        "label",
+        "onNavigate"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "hover",
+        "focus",
+        "current"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "The sections of an app or documentation site, in its top bar"
+      ],
+      "dont": [
+        "Do not use it for the items inside a section: that is NavList in the sidebar",
+        "Do not mark the current section by colour alone: it carries weight, the line and aria-current"
+      ],
+      "restNote": null,
+      "a11y": "Verified 2026-11-07: a nav landmark named by label; the current link is aria-current=\"page\", ink and semibold with the indicator line; every link a 44px target; the focus ring sits inside the link.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.section-nav.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-sectionnav--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 12,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-4",
+          "--border-width-2",
+          "--color-border-focus",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--focus-ring-width",
+          "--spacing-12",
+          "--spacing-4",
+          "--spacing-44",
+          "--typography-body-default-font-family",
+          "--typography-font-weight-600",
+          "--typography-label-default-font-size"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -5926,69 +6292,56 @@ window.BELLA = {
       ],
       "restNote": "Flat always: the group border, dividers, and the selected fill are the whole paint. audit:quality asserts no elevation ever (root carries data-bella-component=segmented-control).",
       "a11y": "Verified 2026-07-22: each segment is a real button; Tab moves between segments, Enter/Space selects, arrows deliberately inert; aria-current=true marks the selection in the tree; the group carries a required aria-label. Segment icons are a decorative leading slot, aria-hidden, sized by the icon tokens; the text label always stays and carries the name (restored 2026-07-22 after the first extraction dropped it, a recorded divergence). Labels text-secondary 8.33:1 light / 9.20:1 dark (AAA); selected label text-accent on accent-subtle, 5.25:1 worst light / 5.30:1 worst dark (AA). Focus ring inset. Segments hit the 44px touch-target token (portfolio 38px is a recorded divergence).",
-      "minTarget": {
-        "token": "--component-segmented-control-min-height",
-        "value": "44px"
-      },
+      "minTarget": null,
       "sandbox": {
-        "minHeight": {
-          "token": "--component-segmented-control-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
-        },
+        "minHeight": null,
         "paddingY": null,
         "paddingX": null,
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
+        "ringWidth": null,
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.segmented-control.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.segmented-control.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-segmentedcontrol--docs",
       "composedFrom": [],
       "tokens": {
         "count": 22,
-        "component": 5,
-        "semantic": 8,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-accent-border",
-          "--color-semantic-accent-subtle",
-          "--color-semantic-border",
-          "--color-semantic-border-strong",
-          "--color-semantic-border-subtle",
-          "--color-semantic-surface",
-          "--color-semantic-text-accent",
-          "--color-semantic-text-body",
-          "--component-segmented-control-border-radius",
-          "--component-segmented-control-font-family",
-          "--component-segmented-control-font-size",
-          "--component-segmented-control-font-weight",
-          "--component-segmented-control-min-height",
-          "--icon-sm",
-          "--motion-duration-fast",
+          "--border-radius-12",
+          "--color-background-accent-subtle",
+          "--color-background-surface",
+          "--color-border-accent",
+          "--color-border-default",
+          "--color-border-focus",
+          "--color-border-strong",
+          "--color-border-subtle",
+          "--color-content-accent",
+          "--color-content-body",
+          "--focus-ring-width",
+          "--motion-duration-150",
           "--motion-easing-standard",
-          "--ring-focus-color",
-          "--ring-focus-width",
           "--seg-inset",
-          "--spacing-2",
-          "--spacing-4",
-          "--typography-letter-spacing-normal"
+          "--size-16",
+          "--spacing-16",
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-18",
+          "--typography-font-weight-500",
+          "--typography-letter-spacing-0"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 11,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -6014,6 +6367,7 @@ window.BELLA = {
       "props": [
         "className",
         "label",
+        "leading",
         "onChange",
         "options",
         "value"
@@ -6037,72 +6391,53 @@ window.BELLA = {
       ],
       "restNote": "Flat always: field, border, chevron, label. audit:quality asserts no elevation ever (root carries data-bella-component=select).",
       "a11y": "Verified 2026-07-22: native select labelled by containment; the platform popup needs no re-verification. Closed control: text-primary on surface, 16.92:1 light (AAA); label text-secondary 8.33:1 light / 9.20:1 dark (AAA). Option text at 14px is the closed-control field; the popup renders at platform size. Focus ring on the field; 44px min-height via the touch-target token.",
-      "minTarget": {
-        "token": "--component-select-min-height",
-        "value": "44px"
-      },
+      "minTarget": null,
       "sandbox": {
-        "minHeight": {
-          "token": "--component-select-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
-        },
+        "minHeight": null,
         "paddingY": null,
         "paddingX": null,
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.select.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.select.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-select--docs",
       "composedFrom": [
         "Icon"
       ],
       "tokens": {
-        "count": 18,
-        "component": 5,
-        "semantic": 5,
+        "count": 17,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-border-strong",
-          "--color-semantic-surface",
-          "--color-semantic-text-body",
-          "--color-semantic-text-primary",
-          "--color-semantic-text-secondary",
-          "--component-select-border-radius",
-          "--component-select-font-size",
-          "--component-select-label-font-family",
-          "--component-select-label-font-size",
-          "--component-select-min-height",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
-          "--spacing-2",
-          "--spacing-3",
+          "--border-radius-form",
+          "--color-background-surface",
+          "--color-border-focus",
+          "--color-border-strong",
+          "--color-content-body",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--size-20",
+          "--spacing-12",
+          "--spacing-32",
+          "--spacing-44",
           "--spacing-8",
-          "--typography-font-family-body",
-          "--typography-letter-spacing-normal"
+          "--typography-body-default-font-family",
+          "--typography-font-size-18",
+          "--typography-letter-spacing-0"
         ]
       },
       "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 26,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -6158,44 +6493,33 @@ window.BELLA = {
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.sidebar-layout.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.sidebar-layout.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-sidebarlayout--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 8,
-        "component": 2,
+        "count": 7,
+        "component": 0,
         "semantic": 0,
         "list": [
-          "--component-sidebar-layout-columns",
-          "--component-sidebar-layout-gap",
+          "--color-border-focus",
           "--dock-height",
-          "--header-height",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--layout-gutter",
           "--layout-stack-lg",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width"
+          "--spacing-64"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 2,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -6252,84 +6576,60 @@ window.BELLA = {
       ],
       "restNote": "Flat: the track, the fill to the value, the thumb, the value field and any marks.",
       "a11y": "Verified 2026-10-03: a native range (slider role, arrow keys, Home and End from the browser) labelled by its visible label, aria-valuetext with the unit, marks listed and referenced by aria-describedby; the number field is labelled too. The input is the 44px target; the thumb border is ink and the track the 3:1 control border; focus is the shared ring.",
-      "minTarget": {
-        "token": "--component-slider-min-height",
-        "value": "44px"
-      },
+      "minTarget": null,
       "sandbox": {
-        "minHeight": {
-          "token": "--component-slider-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
-        },
+        "minHeight": null,
         "paddingY": null,
         "paddingX": null,
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
-        "ringOffset": {
-          "token": "--ring-focus-offset",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        }
+        "ringWidth": null,
+        "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.slider.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.slider.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-slider--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 32,
-        "component": 8,
-        "semantic": 5,
+        "count": 26,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--border-width-medium",
-          "--color-semantic-border-ink",
-          "--color-semantic-border-strong",
-          "--color-semantic-surface",
-          "--color-semantic-text-primary",
-          "--color-semantic-text-secondary",
-          "--component-slider-fill",
-          "--component-slider-mark",
-          "--component-slider-min-height",
-          "--component-slider-thumb-background",
-          "--component-slider-thumb-border",
-          "--component-slider-thumb-size",
-          "--component-slider-track",
-          "--component-slider-track-height",
+          "--border-radius-8",
+          "--border-radius-round",
+          "--border-width-2",
+          "--color-background-surface",
+          "--color-border-focus",
+          "--color-border-ink",
+          "--color-border-strong",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--focus-ring-offset",
+          "--focus-ring-width",
           "--mark-f",
-          "--radius-full",
-          "--radius-md",
-          "--ring-focus-color",
-          "--ring-focus-offset",
-          "--ring-focus-width",
           "--slider-pct",
-          "--spacing-1",
-          "--spacing-16",
-          "--spacing-2",
-          "--spacing-3",
-          "--spacing-6",
+          "--spacing-12",
+          "--spacing-24",
+          "--spacing-4",
+          "--spacing-44",
+          "--spacing-64",
+          "--spacing-8",
           "--thumb",
-          "--typography-font-family-body",
-          "--typography-font-size-base",
-          "--typography-font-size-sm",
-          "--typography-font-size-tag",
-          "--typography-font-weight-medium"
+          "--typography-body-default-font-family",
+          "--typography-body-default-font-size",
+          "--typography-font-size-18",
+          "--typography-font-weight-500",
+          "--typography-label-default-font-size",
+          "--typography-number-font-family"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 24,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -6355,7 +6655,11 @@ window.BELLA = {
       "props": [
         "className",
         "delta",
+        "icon",
         "label",
+        "measure",
+        "measureLabel",
+        "measured",
         "series",
         "seriesLabel",
         "trend",
@@ -6397,11 +6701,11 @@ window.BELLA = {
           "n": 1,
           "title": "Label",
           "detail": "Geist 14, muted",
-          "token": "--component-stat-label-font-size",
+          "token": "--typography-font-size-18",
           "value": {
-            "light": "18px",
-            "dark": "18px",
-            "warm": "18px"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "content",
           "trigger": null,
@@ -6418,11 +6722,11 @@ window.BELLA = {
           "n": 2,
           "title": "Figure",
           "detail": "Geist 300, 32, tabular numerals",
-          "token": "--component-stat-value-font-size",
+          "token": "--typography-font-size-display-section",
           "value": {
-            "light": "clamp(34px, 34px + 6 * (100vw - 390px) / 1050, 40px)",
-            "dark": "clamp(34px, 34px + 6 * (100vw - 390px) / 1050, 40px)",
-            "warm": "clamp(34px, 34px + 6 * (100vw - 390px) / 1050, 40px)"
+            "light": "40px",
+            "dark": "40px",
+            "warm": "40px"
           },
           "kind": "content",
           "trigger": null,
@@ -6439,11 +6743,11 @@ window.BELLA = {
           "n": 3,
           "title": "Change line",
           "detail": "Geist 14, muted; arrow hidden, direction spoken",
-          "token": "--component-stat-delta-font-size",
+          "token": "--typography-font-size-18",
           "value": {
-            "light": "18px",
-            "dark": "18px",
-            "warm": "18px"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "content",
           "trigger": null,
@@ -6460,11 +6764,11 @@ window.BELLA = {
           "n": 4,
           "title": "Sparkline",
           "detail": "1px ink line and end dot, 80 by 24; shown with two or more points",
-          "token": "--component-stat-trend-stroke",
+          "token": "--color-content-default",
           "value": {
-            "light": "#1d2030",
-            "dark": "#eceef3",
-            "warm": "#1d2030"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "content",
           "trigger": "rest",
@@ -6477,40 +6781,46 @@ window.BELLA = {
           "anchor": null
         }
       ],
-      "anatomySource": "tokens/component.json → component.stat.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.stat.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-stat--docs",
-      "composedFrom": [],
+      "composedFrom": [
+        "Icon"
+      ],
       "tokens": {
-        "count": 18,
-        "component": 9,
-        "semantic": 2,
+        "count": 22,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--border-width-thin",
-          "--color-semantic-text-primary",
-          "--color-semantic-text-secondary",
-          "--component-stat-delta-font-size",
-          "--component-stat-label-font-family",
-          "--component-stat-label-font-size",
-          "--component-stat-trend-height",
-          "--component-stat-trend-stroke",
-          "--component-stat-trend-width",
-          "--component-stat-value-font-family",
-          "--component-stat-value-font-size",
-          "--component-stat-value-font-weight",
-          "--spacing-1",
-          "--spacing-2",
-          "--typography-font-family-body",
-          "--typography-letter-spacing-body",
-          "--typography-letter-spacing-h2",
-          "--typography-line-height-heading"
+          "--border-radius-round",
+          "--border-width-1",
+          "--border-width-2",
+          "--color-background-subtle",
+          "--color-border-strong",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--size-20",
+          "--spacing-24",
+          "--spacing-4",
+          "--spacing-8",
+          "--spacing-80",
+          "--typography-body-default-font-family",
+          "--typography-font-size-18",
+          "--typography-font-size-display-section",
+          "--typography-font-weight-300",
+          "--typography-letter-spacing-0",
+          "--typography-letter-spacing-minus-1-half",
+          "--typography-line-height-115",
+          "--typography-line-height-150",
+          "--typography-number-font-family",
+          "--typography-subtext-font-family"
         ]
       },
-      "compositionDepth": 0,
+      "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 16,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -6536,6 +6846,7 @@ window.BELLA = {
       "props": [
         "children",
         "className",
+        "shape",
         "variant"
       ],
       "variants": [
@@ -6554,14 +6865,16 @@ window.BELLA = {
       "shapes": [],
       "rendersAs": null,
       "usage": [
+        "shape=\"dot\": the state's mark only, the word kept as the accessible name (CHIP Today, Elleta 7 Nov 2026)",
         "Current-focus marker",
         "Project state rows",
         "Availability notes",
-        "neutral: a state that is neither good nor bad (not tested, draft, disabled), no tint (CHIP, 2026-10-03)"
+        "neutral: a state that is neither good nor bad (not tested, draft, disabled), no tint (CHIP, 2026-10-03)",
+        "Per variant, background, foreground and border are tokens, so a theme can restyle every state without touching the component (chip: soft washes, same-hue labels, no border; 7 Nov 2026)"
       ],
       "dont": [
         "Do not make it clickable: a pill that toggles is a FilterChip",
-        "Do not colour the label with the state tint: the tint is border and wash only, the word carries the meaning",
+        "Do not colour the label with the state tint in BELLA's own themes. A theme may set a same-hue dark label only where it holds AAA on its wash, as chip does",
         "Do not design new status UI on the carried tints without asking: the BELLA-native status ladder (issue #1) is pending and will restyle this"
       ],
       "restNote": "Entirely static, like Tag. audit:quality asserts it never lifts or animates (root carries data-bella-component=status-pill).",
@@ -6571,60 +6884,53 @@ window.BELLA = {
         "minHeight": null,
         "paddingY": null,
         "paddingX": null,
-        "label": {
-          "token": "--component-status-pill-accent-foreground",
-          "light": "#1d2030",
-          "dark": "#1d2030",
-          "warm": "#1d2030"
-        },
-        "background": {
-          "token": "--component-status-pill-accent-background",
-          "light": "#e8a83e",
-          "dark": "#e8a83e",
-          "warm": "#e8a83e"
-        },
+        "label": null,
+        "background": null,
         "backgroundPair": null,
         "ringWidth": null,
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.status-pill.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.status-pill.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-statuspill--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 21,
-        "component": 8,
-        "semantic": 11,
+        "count": 22,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-attention",
-          "--color-semantic-attention-on",
-          "--color-semantic-border",
-          "--color-semantic-danger",
-          "--color-semantic-info-border",
-          "--color-semantic-info-subtle",
-          "--color-semantic-quiet",
-          "--color-semantic-quiet-on",
-          "--color-semantic-success",
-          "--color-semantic-surface-inset",
-          "--color-semantic-text-body",
-          "--component-status-pill-accent-background",
-          "--component-status-pill-accent-foreground",
-          "--component-status-pill-border-radius",
-          "--component-status-pill-font-family",
-          "--component-status-pill-font-feature-settings",
-          "--component-status-pill-font-size",
-          "--component-status-pill-font-weight",
-          "--component-status-pill-letter-spacing",
-          "--spacing-1",
-          "--spacing-2"
+          "--border-radius-round",
+          "--color-background-accent-1",
+          "--color-background-subtle",
+          "--color-background-utility-info",
+          "--color-background-utility-neutral",
+          "--color-background-utility-warning-knockout",
+          "--color-border-default",
+          "--color-border-utility-error",
+          "--color-border-utility-info",
+          "--color-border-utility-success",
+          "--color-content-body",
+          "--color-content-on-accent-1",
+          "--color-content-subtle",
+          "--color-content-utility-neutral",
+          "--color-content-utility-on-status",
+          "--spacing-12",
+          "--spacing-4",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-font-weight-400",
+          "--typography-letter-spacing-0"
         ]
       },
       "compositionDepth": 0,
-      "composesInto": [],
+      "composesInto": [
+        "ChatBubble"
+      ],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 9,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -6677,28 +6983,15 @@ window.BELLA = {
       ],
       "restNote": "Flat: the hairline, the selected bar and the labels are the whole paint. audit:quality asserts no elevation or animation (root carries data-bella-component=tabs).",
       "a11y": "Verified 2026-10-03: tablist with a required aria-label; one tab stop (roving tabindex); ArrowLeft/ArrowRight move and select with wrap, Home/End jump; aria-selected and aria-controls in the tree, each panel labelled by its tab. Labels text-secondary 7.94:1 light / 9.06:1 dark at rest (AAA), selected text-primary 18.73:1 / 16.60:1 on the page (AAA); the selected bar is ink (non-text, far above 3:1). Run state is a filled ink dot or an idle border-strong ring (3.00:1 worst) and also text in the name. Focus ring 3px, inset. Tabs hit the 44px touch-target token.",
-      "minTarget": {
-        "token": "--component-tabs-min-height",
-        "value": "44px"
-      },
+      "minTarget": null,
       "sandbox": {
-        "minHeight": {
-          "token": "--component-tabs-min-height",
-          "light": "44px",
-          "dark": "44px",
-          "warm": "44px"
-        },
+        "minHeight": null,
         "paddingY": null,
         "paddingX": null,
         "label": null,
         "background": null,
         "backgroundPair": null,
-        "ringWidth": {
-          "token": "--ring-focus-width",
-          "light": "3px",
-          "dark": "3px",
-          "warm": "3px"
-        },
+        "ringWidth": null,
         "ringOffset": null
       },
       "parts": [
@@ -6707,11 +7000,11 @@ window.BELLA = {
           "n": 1,
           "title": "Hairline",
           "detail": "1px decorative rule under the list",
-          "token": "--color-semantic-border",
+          "token": "--color-border-default",
           "value": {
-            "light": "#e4e6ec",
-            "dark": "#2e3240",
-            "warm": "#e3dbcf"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "edge",
           "trigger": null,
@@ -6729,11 +7022,11 @@ window.BELLA = {
           "n": 2,
           "title": "Selected bar",
           "detail": "2px ink bar under the selected tab",
-          "token": "--component-tabs-indicator",
+          "token": "--color-border-ink",
           "value": {
-            "light": "#1d2030",
-            "dark": "#eceef3",
-            "warm": "#1d2030"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "part",
           "trigger": null,
@@ -6751,11 +7044,11 @@ window.BELLA = {
           "n": 3,
           "title": "Labels",
           "detail": "Geist 14, 500; muted at rest, ink when selected",
-          "token": "--component-tabs-font-size",
+          "token": "--typography-font-size-18",
           "value": {
-            "light": "18px",
-            "dark": "18px",
-            "warm": "18px"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "content",
           "trigger": null,
@@ -6772,11 +7065,11 @@ window.BELLA = {
           "n": 4,
           "title": "Run dots",
           "detail": "ink fill running, control ring idle",
-          "token": "--color-semantic-border-ink",
+          "token": "--color-border-ink",
           "value": {
-            "light": "#1d2030",
-            "dark": "#eceef3",
-            "warm": "#1d2030"
+            "light": null,
+            "dark": null,
+            "warm": null
           },
           "kind": "part",
           "trigger": null,
@@ -6789,45 +7082,47 @@ window.BELLA = {
           "anchor": null
         }
       ],
-      "anatomySource": "tokens/component.json → component.tabs.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.tabs.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-tabs--docs",
-      "composedFrom": [],
+      "composedFrom": [
+        "Icon"
+      ],
       "tokens": {
         "count": 23,
-        "component": 7,
-        "semantic": 6,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--border-width-thin",
-          "--color-semantic-border",
-          "--color-semantic-border-ink",
-          "--color-semantic-border-strong",
-          "--color-semantic-border-subtle",
-          "--color-semantic-text-primary",
-          "--color-semantic-text-secondary",
-          "--component-tabs-border-radius",
-          "--component-tabs-font-family",
-          "--component-tabs-font-size",
-          "--component-tabs-font-weight",
-          "--component-tabs-indicator",
-          "--component-tabs-indicator-width",
-          "--component-tabs-min-height",
-          "--motion-duration-fast",
+          "--border-radius-8",
+          "--border-radius-round",
+          "--border-width-1",
+          "--border-width-2",
+          "--color-background-subtle",
+          "--color-border-default",
+          "--color-border-focus",
+          "--color-border-ink",
+          "--color-border-strong",
+          "--color-border-subtle",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--focus-ring-width",
+          "--motion-duration-150",
           "--motion-easing-standard",
-          "--radius-full",
-          "--ring-focus-color",
-          "--ring-focus-width",
-          "--spacing-1",
-          "--spacing-2",
+          "--spacing-16",
           "--spacing-4",
-          "--typography-letter-spacing-body"
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-18",
+          "--typography-font-weight-500",
+          "--typography-letter-spacing-0"
         ]
       },
-      "compositionDepth": 0,
+      "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 22,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {
@@ -6880,60 +7175,134 @@ window.BELLA = {
       "minTarget": null,
       "sandbox": {
         "minHeight": null,
-        "paddingY": {
-          "token": "--component-tag-default-padding-y",
-          "light": "4px",
-          "dark": "4px",
-          "warm": "4px"
-        },
-        "paddingX": {
-          "token": "--component-tag-default-padding-x",
-          "light": "12px",
-          "dark": "12px",
-          "warm": "12px"
-        },
-        "label": {
-          "token": "--component-tag-default-foreground",
-          "light": "#2b2f3d",
-          "dark": "#eceef3",
-          "warm": "#2b2f3d"
-        },
-        "background": {
-          "token": "--component-tag-default-background",
-          "light": "#eceef3",
-          "dark": "#1d2030",
-          "warm": "#ebe4d6"
-        },
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
         "backgroundPair": null,
         "ringWidth": null,
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.tag.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.tag.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-tag--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 13,
-        "component": 12,
+        "count": 14,
+        "component": 0,
         "semantic": 0,
         "list": [
-          "--component-tag-accent-background",
-          "--component-tag-accent-foreground",
-          "--component-tag-default-background",
-          "--component-tag-default-border-radius",
-          "--component-tag-default-font-family",
-          "--component-tag-default-font-feature-settings",
-          "--component-tag-default-font-size",
-          "--component-tag-default-font-weight",
-          "--component-tag-default-foreground",
-          "--component-tag-default-letter-spacing",
-          "--component-tag-default-padding-x",
-          "--component-tag-default-padding-y",
-          "--typography-line-height-normal"
+          "--border-radius-round",
+          "--border-width-1",
+          "--color-background-accent-1",
+          "--color-background-utility-neutral",
+          "--color-border-utility-neutral",
+          "--color-content-on-accent-1",
+          "--color-content-utility-neutral",
+          "--spacing-12",
+          "--spacing-4",
+          "--typography-body-default-font-family",
+          "--typography-font-weight-400",
+          "--typography-label-default-font-size",
+          "--typography-letter-spacing-0",
+          "--typography-line-height-150"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "not-covered",
+          "pairs": 0,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "tooltip",
+      "name": "Tooltip",
+      "category": "Feedback",
+      "description": "A short label that shows on hover and on keyboard focus, for an icon\nbutton. The trigger's own aria-label is its name, so the plain bubble is\nvisual only; a rich card describes the trigger (aria-describedby). It stays\nwhile the pointer is over it, and Esc hides it (WCAG 1.4.13).",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "children",
+        "className",
+        "kind",
+        "label",
+        "placement",
+        "rows"
+      ],
+      "variants": [],
+      "states": [
+        "hidden",
+        "shown"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Naming an icon button in a toolbar"
+      ],
+      "dont": [
+        "Do not put anything a person must read only in a tooltip: it labels, it never explains",
+        "Do not use it on a trigger without an aria-label of the same words"
+      ],
+      "restNote": null,
+      "a11y": "Verified 2026-11-07: shows on hover and focus, stays while the pointer is on it, Esc hides it (WCAG 1.4.13). Visual only (aria-hidden): the trigger carries the same words as its aria-label. Label is text-inverse on surface-inverse, AAA.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.tooltip.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-tooltip--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 17,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-4",
+          "--border-radius-8",
+          "--border-width-1",
+          "--color-background-knockout",
+          "--color-background-surface",
+          "--color-border-subtle",
+          "--color-content-body",
+          "--color-content-default",
+          "--color-content-knockout",
+          "--shadow-ui-ink",
+          "--spacing-12",
+          "--spacing-4",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-weight-600",
+          "--typography-label-default-font-size",
+          "--typography-line-height-130"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [
+        "CodeBlock"
+      ],
       "health": {
         "contrast": {
           "status": "not-covered",
@@ -6957,7 +7326,7 @@ window.BELLA = {
       "description": "Three animated dots indicating a lane is composing a message.\nStill under reduced-motion (no animation, dots remain visible).\nSee component-contract:typing-dots.",
       "hasStory": true,
       "hasDocs": true,
-      "inDsds": false,
+      "inDsds": true,
       "hasContract": true,
       "hasA11yNotes": true,
       "props": [
@@ -6990,32 +7359,30 @@ window.BELLA = {
         "ringOffset": null
       },
       "parts": [],
-      "anatomySource": "tokens/component.json → component.typing-dots.$extensions.bella.anatomy",
+      "anatomySource": "tokens/contracts.json → component.typing-dots.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-chat-typingdots--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 10,
-        "component": 6,
-        "semantic": 1,
+        "count": 8,
+        "component": 0,
+        "semantic": 0,
         "list": [
-          "--color-semantic-text-secondary",
-          "--component-chat-bubble-default-border-radius",
-          "--component-chat-bubble-received-background",
-          "--component-typing-dots-default-delay-2",
-          "--component-typing-dots-default-delay-3",
-          "--component-typing-dots-default-dot-size",
-          "--component-typing-dots-default-gap",
-          "--radius-full",
-          "--spacing-2",
-          "--spacing-3"
+          "--border-radius-20",
+          "--border-radius-round",
+          "--color-background-subtle",
+          "--color-content-subtle",
+          "--motion-duration-150",
+          "--spacing-12",
+          "--spacing-4",
+          "--spacing-8"
         ]
       },
       "compositionDepth": 0,
       "composesInto": [],
       "health": {
         "contrast": {
-          "status": "pass",
-          "pairs": 7,
+          "status": "not-covered",
+          "pairs": 0,
           "failing": []
         },
         "contract": {

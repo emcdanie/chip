@@ -28,10 +28,10 @@ function themeOf(el) {
   const css = getComputedStyle(el);
   const v = (name) => rgba(css.getPropertyValue(name).trim());
   return {
-    background: v('--color-semantic-surface-card'),
-    foreground: v('--color-semantic-text-primary'),
-    cursor: v('--color-semantic-text-primary'),
-    cursorAccent: v('--color-semantic-surface-card'),
+    background: v('--color-background-surface'),
+    foreground: v('--color-content-default'),
+    cursor: v('--color-content-default'),
+    cursorAccent: v('--color-background-surface'),
     selectionBackground: v('--color-semantic-highlight-wash'),
   };
 }

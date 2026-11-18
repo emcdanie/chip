@@ -59,7 +59,7 @@ const whyOf = (r) => {
 const tagsOf = (r) => {
   const t = `${r.title} ${whyOf(r) ?? ''}`;
   return [
-    r.type === 'Contract' || r.files?.includes('tokens/component.json') ? 'contract' : '',
+    r.type === 'Contract' || r.files?.includes('tokens/contracts.json') ? 'contract' : '',
     /token|semantic|colou?r|padding/i.test(t) ? 'tokens' : '',
     /focus|keyboard|skip link|contrast|a11y|accessib/i.test(t) ? 'a11y' : '',
   ].filter(Boolean);
@@ -962,7 +962,7 @@ function WrittenDown({ bella, docId, version, onOpenAtlas, decisions }) {
           <span className="ln2">1</span>
           <div>
             <b>Contract</b>
-            <code>tokens/<wbr />component.json</code>
+            <code>tokens/<wbr />contracts.json</code>
             <p>What to build: tokens, variants, don’ts, contrast.</p>
           </div>
           <span className="lv">{n ? <><b>{bella.components.filter((c) => c.hasContract).length}</b>/{n} components</> : 'Not measured'}</span>

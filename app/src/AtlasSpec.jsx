@@ -38,8 +38,8 @@ function measure(frame) {
     radiusRaw: cs.borderTopLeftRadius,
     minH: cs.minHeight === 'auto' ? null : px(cs.minHeight),
     height: px(root.offsetHeight),
-    ring: px(doc.getPropertyValue('--ring-focus-width')),
-    offset: px(doc.getPropertyValue('--ring-focus-offset')),
+    ring: px(doc.getPropertyValue('--focus-ring-width')),
+    offset: px(doc.getPropertyValue('--focus-ring-offset')),
   };
 }
 
@@ -143,8 +143,8 @@ export function SpecStage({ c, overrides }) {
               <b>
                 {m.ring}px, {m.offset}px offset
               </b>
-              <span className="mono label legend-token"><Token name="--ring-focus-width" /></span>
-              <span className="mono label legend-token"><Token name="--ring-focus-offset" /></span>
+              <span className="mono label legend-token"><Token name="--focus-ring-width" /></span>
+              <span className="mono label legend-token"><Token name="--focus-ring-offset" /></span>
             </dd>
           </div>
         </dl>
@@ -251,7 +251,7 @@ export function SpecSection({ c, figmaNames = null, onSend, sendOpen }) {
           <dl className="facts">
             <div><dt>Renders as</dt><dd>{c.rendersAs ?? 'not in the contract'}</dd></div>
             <div><dt>Keyboard</dt><dd>{keyboardOf(c)}</dd></div>
-            <div><dt>Focus</dt><dd>{ring('--ring-focus-width')} ring, {ring('--ring-focus-offset')} offset, focus-visible only</dd></div>
+            <div><dt>Focus</dt><dd>{ring('--focus-ring-width')} ring, {ring('--focus-ring-offset')} offset, focus-visible only</dd></div>
             <div><dt>Target</dt><dd>{c.minTarget ? `${c.minTarget.value} minimum` : 'not a control'}</dd></div>
           </dl>
           {c.a11y ? <p className="label">{c.a11y}</p> : null}

@@ -21,7 +21,6 @@ import NavList from '@bella/components/NavList/NavList';
 import PatternField from '@bella/components/PatternField/PatternField';
 import ResourceCard from '@bella/components/ResourceCard/ResourceCard';
 import ScaledFrame from '@bella/components/ScaledFrame/ScaledFrame';
-import ScoreStrip from '@bella/components/ScoreStrip/ScoreStrip';
 import SectionHeader from '@bella/components/SectionHeader/SectionHeader';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import Select from '@bella/components/Select/Select';
@@ -33,7 +32,7 @@ import Tag from '@bella/components/Tag/Tag';
 const noop = () => {};
 
 // every component imported here, by its name: Atlas writes a specimen out as JSX with these
-export const COMPONENTS = { ActionChip, Avatar, Combobox, BrandWordmark, Button, Card, DataTable, Disclosure, Eyebrow, FilterChip, Heading, Icon, Input, Kbd, Link, NavList, PatternField, ResourceCard, ScaledFrame, ScoreStrip, SectionHeader, SegmentedControl, Select, Stat, StatusPill, Tabs, Tag };
+export const COMPONENTS = { ActionChip, Avatar, Combobox, BrandWordmark, Button, Card, DataTable, Disclosure, Eyebrow, FilterChip, Heading, Icon, Input, Kbd, Link, NavList, PatternField, ResourceCard, ScaledFrame, SectionHeader, SegmentedControl, Select, Stat, StatusPill, Tabs, Tag };
 
 export const SPECIMENS = {
   Avatar: () => <Avatar name="Ada Lovelace" size="lg" ring />,
@@ -104,20 +103,6 @@ export const SPECIMENS = {
       <ScaledFrame title="Sample frame" designWidth={800} designHeight={500}>
         <p style={{ margin: 'var(--spacing-8)' }}>Scaled content</p>
       </ScaledFrame>
-    </div>
-  ),
-  ScoreStrip: () => (
-    <div style={{ inlineSize: 'calc(var(--spacing-20) * 7)' }}>
-      <ScoreStrip
-        name="Sample"
-        score={81}
-        cells={[
-          { label: 'A11y', value: 92 },
-          { label: 'Docs', value: 70 },
-          { label: 'Test', value: 55 },
-          { label: 'Gov', value: null },
-        ]}
-      />
     </div>
   ),
   SectionHeader: () => <SectionHeader heading="Pattern studies" lead="Course briefs, prototypes and hackathons." />,

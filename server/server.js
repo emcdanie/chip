@@ -593,7 +593,7 @@ app.get('/component-tests/:id', (req, res) => {
     tests: [
       row('Stories: axe and interactions', !c.hasStory ? 'fail' : !suite ? 'not-run' : suite[1], !c.hasStory ? `${c.name} has no story, so nothing renders it in the gate.` : suite ? `${suite[0]} in the visual audit of ${visual.commit}.` : 'The visual audit has not run since CHIP started keeping per-story results.', !suite && c.hasStory ? { type: 'run', check: 'visual', label: 'Run the stories' } : null),
       row('Contrast of its tokens', usesFailing ? 'fail' : c.health?.contrast?.status === 'fail' ? 'fail' : 'pass', usesFailing ? failingLine : `${c.health?.contrast?.pairs ?? 0} pairs checked on the tokens it reads.`, usesFailing ? { type: 'review', check: 'contrast', label: 'Review the fix' } : null),
-      row('Contract matches the code', c.health?.contract?.status === 'fail' ? 'fail' : 'pass', c.health?.contract?.issues?.join('; ') || 'Props, variants and states agree with tokens/component.json.'),
+      row('Contract matches the code', c.health?.contract?.status === 'fail' ? 'fail' : 'pass', c.health?.contract?.issues?.join('; ') || 'Props, variants and states agree with tokens/contracts.json.'),
       row('DSDS spec entry', c.inDsds ? 'pass' : 'fail', c.inDsds ? 'bella.dsds.yaml has it.' : 'Missing from bella.dsds.yaml.'),
       row('Docs page', c.hasDocs ? 'pass' : 'fail', c.hasDocs ? `docs/components/${c.id}.md` : 'No guidance page yet.'),
     ],

@@ -107,10 +107,10 @@ export function playPages(id) {
 }
 
 /* ---------- the source map ---------- */
-// BELLA's catalogue: component names from its contracts (tokens/component.json)
+// BELLA's catalogue: component names from its contracts (tokens/contracts.json)
 function bellaCatalogue() {
   const pascal = (k) => k.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join('');
-  const json = JSON.parse(readFileSync(join(BELLA_DIR, 'tokens', 'component.json'), 'utf8'));
+  const json = JSON.parse(readFileSync(join(BELLA_DIR, 'tokens', 'contracts.json'), 'utf8'));
   return new Map(Object.entries(json.component).map(([k, v]) => [pascal(k), v.$extensions?.bella ?? {}]));
 }
 
@@ -154,7 +154,7 @@ function nextMap(p, page) {
     // the project's own parts it is built from that carry a BELLA name (not next/link and the like)
     const uses = file ? [...importsOf(readFileSync(file, 'utf8'))].filter(([n, m]) => m.startsWith('@/') && cat.has(n)).map(([n]) => n) : [];
     if (cat.has(name)) return { name, file: rel, kind: 'copy', note: `${short}’s own ${name}, not synced from BELLA`, source: 'lib/bella/sync-manifest.json', uses };
-    return { name, file: rel, kind: 'site', note: uses.length ? `${short} only, built from ${short}’s ${uses.join(', ')}` : `${short} only, no BELLA-named parts`, source: 'tokens/component.json', uses };
+    return { name, file: rel, kind: 'site', note: uses.length ? `${short} only, built from ${short}’s ${uses.join(', ')}` : `${short} only, no BELLA-named parts`, source: 'tokens/contracts.json', uses };
   };
   const src = readFileSync(join(dir, page.file), 'utf8');
   const imports = importsOf(src);
@@ -204,8 +204,8 @@ function hashMap(p, page) {
     const m = imports.get(name);
     if (m.startsWith('@bella/components/')) return { name, file: m, kind: 'bella', note: 'BELLA’s own, read in place from its checkout', source: 'app/vite.config.js' };
     const rel = m.startsWith('./') ? join('app/src', m.slice(2)) : m;
-    if (cat.has(name)) return { name, file: rel, kind: 'copy', note: `CHIP’s own ${name}, not BELLA’s`, source: 'tokens/component.json' };
-    return { name, file: rel, kind: 'site', note: 'CHIP only, not in BELLA’s catalogue', source: 'tokens/component.json' };
+    if (cat.has(name)) return { name, file: rel, kind: 'copy', note: `CHIP’s own ${name}, not BELLA’s`, source: 'tokens/contracts.json' };
+    return { name, file: rel, kind: 'site', note: 'CHIP only, not in BELLA’s catalogue', source: 'tokens/contracts.json' };
   };
   const components = Object.fromEntries([comp, ...used].filter((n) => n === comp || imports.has(n)).map((n) => [n, n === comp ? { name: n, file: relative(p.src, file), kind: 'site', note: `The ${page.label} page`, source: page.file } : classify(n)]));
   return {

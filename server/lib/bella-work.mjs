@@ -25,7 +25,7 @@ function component(id) {
 }
 
 const guidancePath = (id) => `docs/components/${id}.md`;
-const contractBlock = (id) => JSON.parse(readFileSync(join(BELLA, 'tokens/component.json'), 'utf8')).component?.[id] ?? null;
+const contractBlock = (id) => JSON.parse(readFileSync(join(BELLA, 'tokens/contracts.json'), 'utf8')).component?.[id] ?? null;
 
 /** Lines of BELLA's AGENTS.md that name the component, with their line numbers. */
 function agentRules(name) {
@@ -48,7 +48,7 @@ export function readDoc(id) {
     id,
     name: c.name,
     guidance: { path: gp, md },
-    contract: { path: 'tokens/component.json', block: block ? JSON.stringify(block, null, 2) : null, usage: c.usage ?? [], dont: c.dont ?? [], props: c.props ?? [], states: c.states ?? [] },
+    contract: { path: 'tokens/contracts.json', block: block ? JSON.stringify(block, null, 2) : null, usage: c.usage ?? [], dont: c.dont ?? [], props: c.props ?? [], states: c.states ?? [] },
     agents: { path: 'AGENTS.md', rules: agentRules(c.name) },
     related,
     proposals: proposals(id),
@@ -90,10 +90,10 @@ function applyEdit(dir, id, kind, content) {
     const block = JSON.parse(content); // throws on invalid JSON
     for (const k of ['name', 'variants', 'states', 'props']) if (!(k in (block.$extensions?.bella ?? {}))) throw new Error(`The contract needs $extensions.bella.${k}`);
     // replace only this component's block, so the rest of the hand-formatted file is untouched
-    const file = join(dir, 'tokens/component.json');
+    const file = join(dir, 'tokens/contracts.json');
     const text = readFileSync(file, 'utf8');
     const start = text.indexOf(`\n    "${id}": {`);
-    if (start < 0) throw new Error(`No "${id}" block in tokens/component.json`);
+    if (start < 0) throw new Error(`No "${id}" block in tokens/contracts.json`);
     const open = text.indexOf('{', start);
     let depth = 0;
     let end = -1;
@@ -114,7 +114,7 @@ function applyEdit(dir, id, kind, content) {
     const body = JSON.stringify(block, null, 2).split('\n').map((l, i) => (i ? `    ${l}` : l)).join('\n');
     writeFileSync(file, text.slice(0, open) + body + text.slice(end));
     JSON.parse(readFileSync(file, 'utf8'));
-    return ['tokens/component.json'];
+    return ['tokens/contracts.json'];
   }
   if (kind === 'agents') {
     // content: [{ line, text }], each replacing that line of AGENTS.md
@@ -161,7 +161,7 @@ export function propose(id, { kind, content, summary }) {
         set({ step: 'Rebuilding the generated token files' });
         const b = await run('npm', ['run', 'build'], dir);
         if (b.code !== 0) throw new Error(`npm run build failed:\n${b.out.slice(-1500)}`);
-        files.push('tokens/bella.css', 'tokens/bella.json', 'tokens/preview.html', 'bella.dsds.yaml', 'docs/bella.css', 'docs/tokens.md');
+        files.push('tokens/bella.css', 'tokens/bella.json', 'bella.dsds.yaml', 'docs/bella.css', 'docs/tokens.md');
       }
       git(['add', ...files], { cwd: dir });
       set({ step: 'Committing: the pre-commit hook runs the NDA scan and the gate' });
@@ -254,7 +254,7 @@ const historyCache = new Map();
 
 function contractAt(sha, id) {
   try {
-    return JSON.parse(git(['show', `${sha}:tokens/component.json`])).component?.[id]?.$extensions?.bella ?? null;
+    return JSON.parse(git(['show', `${sha}:tokens/contracts.json`])).component?.[id]?.$extensions?.bella ?? null;
   } catch {
     return null;
   }
@@ -279,7 +279,7 @@ export function history(id) {
     if (files.some((f) => f.startsWith('tokens/'))) types.add('tokens');
     // API: the contract's props or states changed for this component
     let api = null;
-    if (files.includes('tokens/component.json')) {
+    if (files.includes('tokens/contracts.json')) {
       const now = contractAt(sha, id);
       const before = contractAt(`${sha}^`, id);
       if (now && before) {

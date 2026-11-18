@@ -26,7 +26,7 @@ function components() {
 function typeOf(subject, files = []) {
   const s = subject.toLowerCase();
   if (/^fix|\bfix\b/.test(s)) return 'Fix';
-  if (files.includes('tokens/component.json') || /contract|props?\b|api\b/.test(s)) return 'Contract';
+  if (files.includes('tokens/contracts.json') || /contract|props?\b|api\b/.test(s)) return 'Contract';
   if (/^feat\(tokens\)|token|colour|color|theme|oklch|contrast/.test(s) || files.some((f) => f.startsWith('tokens/'))) return 'Tokens';
   if (/^docs|readme|guidance/.test(s)) return 'Docs';
   if (/^(chore|ci|build|test)/.test(s)) return 'Tooling';

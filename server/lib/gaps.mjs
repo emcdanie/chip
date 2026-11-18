@@ -1,7 +1,7 @@
 // Do next, one component at a time (4 Nov): for each gap the Overview counts,
 // what is missing, where it lives, what to add, why, what it changes and how
 // to undo it. Every suggestion is read from BELLA's own files: the contract
-// (tokens/component.json), the built tokens (tokens/bella.css), the gate
+// (tokens/contracts.json), the built tokens (tokens/bella.css), the gate
 // scripts and the component sources. Where those can't suggest a fix, the
 // item says so and names what is needed instead of guessing.
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -83,7 +83,7 @@ function measure(T, fg, bg) {
 /* ---------- shared reads ---------- */
 function load() {
   const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
-  const contracts = JSON.parse(read('tokens/component.json')).component;
+  const contracts = JSON.parse(read('tokens/contracts.json')).component;
   const pairSrc = read('scripts/contrast-pairs.mjs');
   const pairs = [...pairSrc.matchAll(/\['([^']+)',\s*'(--[\w-]+)',\s*'(--[\w-]+)',\s*(\w+|[\d.]+)\]/g)]
     .map((m) => ({ label: m[1], fg: m[2], bg: m[3], min: m[4] }))
@@ -232,7 +232,7 @@ function dsdsGap(c, ctx) {
   const k = ctx.contracts[key]?.$extensions?.bella;
   const base = { why: RULES.dsds, where: [{ file: 'scripts/build-dsds.mjs', field: `IMPL (line ${ctx.implEnd})` }, { file: 'bella.dsds.yaml', field: 'entries (generated)' }] };
   if (!k) {
-    return { ...base, missing: `${c.name} has no contract, so build-dsds.mjs has nothing to extract.`, suggest: null, noSuggest: { why: 'DSDS entries are extracted from the contract.', needed: `A contract for ${c.name} in tokens/component.json first.` }, change: '—', undo: '—', brief: `${c.name}: write its contract in tokens/component.json first; then add it to IMPL in scripts/build-dsds.mjs.` };
+    return { ...base, missing: `${c.name} has no contract, so build-dsds.mjs has nothing to extract.`, suggest: null, noSuggest: { why: 'DSDS entries are extracted from the contract.', needed: `A contract for ${c.name} in tokens/contracts.json first.` }, change: '—', undo: '—', brief: `${c.name}: write its contract in tokens/contracts.json first; then add it to IMPL in scripts/build-dsds.mjs.` };
   }
   const fields = ['description', 'variants', 'states', 'props', 'usage', 'dont', 'a11y'].filter((f) => (Array.isArray(k[f]) ? k[f].length : k[f]));
   const sib = similar(c, ctx.bella.components, (o) => ctx.impl[kebab(o.name)])[0]?.o;
@@ -283,7 +283,7 @@ function storyGap(c, ctx) {
 
 function a11yGap(c, ctx) {
   const key = kebab(c.name);
-  const where = [{ file: 'tokens/component.json', field: `component.${key}.$extensions.bella.a11y` }];
+  const where = [{ file: 'tokens/contracts.json', field: `component.${key}.$extensions.bella.a11y` }];
   const base = { why: RULES.a11y, where };
   if (!ctx.contracts[key]) {
     return { ...base, missing: `${c.name} has no contract to hold a11y notes.`, suggest: null, noSuggest: { why: 'The notes live in the contract.', needed: `A contract for ${c.name} first.` }, change: '—', undo: '—', brief: `${c.name}: write its contract first.` };
@@ -314,20 +314,20 @@ function a11yGap(c, ctx) {
     },
     change: `${c.name}’s contract gains an a11y note; on npm run build, bella.dsds.yaml records it as reviewed, so commit the regenerated file.`,
     undo: 'Remove the a11y field and run npm run build again.',
-    brief: `${c.name}: add $extensions.bella.a11y to component.${key} in tokens/component.json. Source facts: ${facts.join(', ') || 'none found'}${props.length ? `; props ${props.join(', ')}` : ''}.${sib ? ` Follow ${sib.o.name}'s note.` : ''} Check with a screen reader before writing "Verified".`,
+    brief: `${c.name}: add $extensions.bella.a11y to component.${key} in tokens/contracts.json. Source facts: ${facts.join(', ') || 'none found'}${props.length ? `; props ${props.join(', ')}` : ''}.${sib ? ` Follow ${sib.o.name}'s note.` : ''} Check with a screen reader before writing "Verified".`,
   };
 }
 
 function noSuggester(gap, c) {
   return {
     why: RULES[gap],
-    where: gap === 'contract' ? [{ file: 'tokens/component.json', field: `component.${kebab(c.name)}` }] : [{ file: `src/components/${c.name}/`, field: 'docs' }],
+    where: gap === 'contract' ? [{ file: 'tokens/contracts.json', field: `component.${kebab(c.name)}` }] : [{ file: `src/components/${c.name}/`, field: 'docs' }],
     missing: gap === 'contract' ? `${c.name} has no Tier 3 contract.` : `${c.name} has no docs page.`,
     suggest: null,
     noSuggest: { why: 'CHIP has no suggester for this gap yet.', needed: gap === 'contract' ? 'Its props from the .tsx and a description from you.' : 'A docs page written from its contract.' },
     change: '—',
     undo: '—',
-    brief: gap === 'contract' ? `${c.name}: write its Tier 3 contract in tokens/component.json from the exported Props.` : `${c.name}: write its docs page from the contract.`,
+    brief: gap === 'contract' ? `${c.name}: write its Tier 3 contract in tokens/contracts.json from the exported Props.` : `${c.name}: write its docs page from the contract.`,
   };
 }
 

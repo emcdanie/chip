@@ -331,7 +331,7 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
   const [view, setView] = useState('overview');
   const [file, setFile] = useState('contract');
   const text = file === 'contract' ? doc?.contract?.block : doc?.guidance?.md;
-  const path = file === 'contract' ? `${doc?.contract?.path ?? 'tokens/component.json'} → component.${c.id.replace(/-/g, '-')}` : doc?.guidance?.path ?? `docs/components/${c.id}.md`;
+  const path = file === 'contract' ? `${doc?.contract?.path ?? 'tokens/contracts.json'} → component.${c.id.replace(/-/g, '-')}` : doc?.guidance?.path ?? `docs/components/${c.id}.md`;
   const marks = marksOf(file === 'contract' ? 'contract' : 'guide', text);
   const fv = useFileView({ path, text, marks, notify, label: file === 'contract' ? 'Contract file' : 'Guidance file' });
   const semantic = (c.tokens?.list ?? []).filter((t) => t.startsWith('--color-semantic') || !t.startsWith('--component'));
@@ -405,7 +405,7 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
               {row('States', (c.states ?? []).join(' · ') || 'none')}
               {c.minTarget ? row('Target', `${c.minTarget.value} min · ${c.minTarget.token}`) : null}
               {c.rendersAs ? row('Renders as', c.rendersAs) : null}
-              {row('Contract', c.hasContract ? `${doc?.contract?.path ?? 'tokens/component.json'} · ${c.health?.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code'}` : NO_CONTRACT)}
+              {row('Contract', c.hasContract ? `${doc?.contract?.path ?? 'tokens/contracts.json'} · ${c.health?.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code'}` : NO_CONTRACT)}
               {c.tokens ? row('Tokens', `${c.tokens.count}: ${c.tokens.component} component, ${c.tokens.semantic} semantic`) : null}
             </tbody>
           </table>
@@ -476,7 +476,7 @@ function SourcePanel({ c, doc, notify }) {
       .sort((a, b) => a.name.length - b.name.length);
     return [
       ...own,
-      ...(doc?.contract ? [{ key: 'contract', dir: 'tokens/', name: 'component.json', text: doc.contract.block, note: `component.${c.id}` }] : []),
+      ...(doc?.contract ? [{ key: 'contract', dir: 'tokens/', name: 'contracts.json', text: doc.contract.block, note: `component.${c.id}` }] : []),
       ...(doc?.guidance ? [{ key: 'guide', dir: 'docs/components/', name: doc.guidance.path.split('/').pop(), text: doc.guidance.md }] : []),
     ];
   }, [c.id, doc]);
@@ -925,8 +925,8 @@ function geoOf(canvas, root, parts) {
     if (p.kind === 'ring') {
       // the outline itself when it shows, BELLA's ring tokens when it doesn't
       const ring = ringOf(root);
-      const w = ring?.width ?? num(cs.getPropertyValue('--ring-focus-width')) ?? 3;
-      const off = ring?.offset ?? num(cs.getPropertyValue('--ring-focus-offset')) ?? 3;
+      const w = ring?.width ?? num(cs.getPropertyValue('--focus-ring-width')) ?? 3;
+      const off = ring?.offset ?? num(cs.getPropertyValue('--focus-ring-offset')) ?? 3;
       const [t, r, b, l] = (ring?.ins ?? [0, 0, 0, 0]).map((v) => v * k);
       const base = { x: box.x + l, y: box.y + t, w: box.w - l - r, h: box.h - t - b };
       zone = grow(base, (off + w) * k);
@@ -1255,7 +1255,7 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
         <h3 tabIndex={-1}>{sc.title}</h3>
         <span className={`dm-verdict ${ok ? 'ok' : 'bad'}`}>{ok ? '✓ Follows the contract' : `× Breaks ${finds[0].rule}`}</span>
       </header>
-      <div className="dm-scenebox dm-sp" data-theme={theme} ref={box}>
+      <div className="dm-scenebox dm-sp" data-theme={theme === 'dark' ? 'chip-dark' : 'chip-light'} ref={box}>
         {sc.head ? <p className="dm-sh">{sc.head}</p> : null}
         {sc.text ? <p className="dm-sp2">{sc.text}</p> : null}
         {sc.nav ? (
@@ -1969,7 +1969,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       .catch(() => setToast('The CHIP server did not answer'));
   }
 
-  const sp = { 'data-theme': theme };
+  const sp = { 'data-theme': theme === 'dark' ? 'chip-dark' : 'chip-light' };
   const detail = stage ? Detail() : null;
 
   return (
@@ -2324,7 +2324,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           <p>The files and results this page reads from, one row each.</p>
         </div>
         <div className="dm-behind dm-card">
-          <Row name="Contract" sum={`tokens/component.json → component.${c.id} · ${c.tokens?.count ?? 0} tokens, ${(c.props ?? []).length} props, ${states.length} states · ${(c.usage ?? []).length} usage, ${(c.dont ?? []).length} rules, ${(c.parts ?? []).length} parts · ${c.hasContract ? (hl.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code') : NO_CONTRACT}`} hint="overview, compliance, file">
+          <Row name="Contract" sum={`tokens/contracts.json → component.${c.id} · ${c.tokens?.count ?? 0} tokens, ${(c.props ?? []).length} props, ${states.length} states · ${(c.usage ?? []).length} usage, ${(c.dont ?? []).length} rules, ${(c.parts ?? []).length} parts · ${c.hasContract ? (hl.contract?.status === 'fail' ? 'disagrees with the code' : 'matches the code') : NO_CONTRACT}`} hint="overview, compliance, file">
             <ContractPanel c={c} bella={bella} doc={doc} tests={tests} hist={hist} notify={notify} onOpen={onOpen} />
           </Row>
           <Row name="Accessibility" sum={`${c.minTarget ? `${c.minTarget.value} target` : 'no target'} · ${hl.contrast?.status === 'pass' ? `${hl.contrast.pairs} contrast pairs pass` : hl.contrast?.status === 'fail' ? 'contrast fails' : 'no pairs'} · ${keyboardOf(c).split('.')[0]}`} hint="role, name, keyboard">

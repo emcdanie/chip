@@ -34,10 +34,10 @@ if (!existsSync(join(BELLA, 'package.json'))) {
 
 // ---- sources ------------------------------------------------------------
 const manifest = readJson('storybook-static/manifests/components.json').components;
-const contracts = readJson('tokens/component.json').component;
+const contracts = readJson('tokens/contracts.json').component;
 const bellaTokens = readJson('tokens/bella.json');
-const semLight = readJson('tokens/semantic/light.json');
-const semDark = readJson('tokens/semantic/dark.json');
+const semLight = readJson('tokens/figma/semantic/chip-light.json');
+const semDark = readJson('tokens/figma/semantic/chip-dark.json');
 const dsds = read('bella.dsds.yaml');
 const css = read('tokens/bella.css');
 
@@ -79,9 +79,9 @@ function cssBlock(re) {
   for (const d of css.slice(start, i - 1).matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) vars[d[1]] = d[2].trim();
   return vars;
 }
-const lightVars = cssBlock(/:root\s*\{/);
-const darkVars = { ...lightVars, ...cssBlock(/\[data-theme=["']?dark["']?\]\s*\{/) };
-const warmVars = { ...lightVars, ...cssBlock(/\[data-theme=["']?warm["']?\]\s*\{/) };
+const lightVars = { ...cssBlock(/:root\s*\{/), ...cssBlock(/\[data-theme=["']?chip-light["']?\]\s*\{/) };
+const darkVars = { ...lightVars, ...cssBlock(/\[data-theme=["']?chip-dark["']?\]\s*\{/) };
+const warmVars = lightVars; // Warm left BELLA with the Figma tokens (17 Nov); kept so readers of .warm still work
 const themed = (t) => ({ token: t, light: resolve(lightVars, t), dark: resolve(darkVars, t), warm: resolve(warmVars, t) });
 
 // a token's final value in one theme, following var() references
@@ -200,7 +200,7 @@ const components = names.map((name) => {
     minTarget: minTarget ? { token: minTarget, value: resolve(lightVars, minTarget) } : null,
     sandbox,
     parts,
-    anatomySource: `tokens/component.json → component.${key}.$extensions.bella.anatomy`,
+    anatomySource: `tokens/contracts.json → component.${key}.$extensions.bella.anatomy`,
     storyUrl: man?.id ? `${STORYBOOK}?path=/docs/${man.id}--docs` : null,
     composedFrom: imports,
     tokens: {
@@ -333,7 +333,7 @@ function gateAt(sha, files) {
   }
 }
 
-const shas = git('log', '--first-parent', `-${HISTORY_MAX}`, '--format=%h %cI', '--', 'src/components', 'tokens/component.json')
+const shas = git('log', '--first-parent', `-${HISTORY_MAX}`, '--format=%h %cI', '--', 'src/components', 'tokens/contracts.json')
   .split('\n').filter(Boolean).map((l) => l.split(' '));
 const history = shas.reverse().map(([sha, at]) => {
   if (previous[sha]) return previous[sha];
@@ -342,7 +342,7 @@ const history = shas.reverse().map(([sha, at]) => {
   const stories = comps.filter((c) => files.includes(`src/components/${c}/${c}.stories.tsx`)).length;
   let contracts = 0;
   try {
-    const cj = JSON.parse(git('show', `${sha}:tokens/component.json`)).component ?? {};
+    const cj = JSON.parse(git('show', `${sha}:tokens/contracts.json`)).component ?? {};
     contracts = comps.filter((c) => cj[kebab(c)]?.$extensions?.bella).length;
   } catch {}
   const n = comps.length;
@@ -377,12 +377,12 @@ const out = {
   // semantic colours, resolved per theme, for the sandbox's token pickers and
   // its live contrast maths; ground is what the focus ring sits on
   palette: Object.fromEntries(
-    Object.keys(lightVars).filter((t) => t.startsWith('--color-semantic-'))
+    Object.keys(lightVars).filter((t) => /^--color-(background|border|content|data-viz)-/.test(t))
       .map((t) => [t, { light: resolve(lightVars, t), dark: resolve(darkVars, t), warm: resolve(warmVars, t) }])
   ),
   ring: {
-    color: themed('--ring-focus-color'),
-    ground: themed('--color-semantic-background'),
+    color: themed('--color-border-focus'),
+    ground: themed('--color-background-default'),
   },
   tokenUsage,
   components,

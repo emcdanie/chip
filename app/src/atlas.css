@@ -12,7 +12,7 @@
   --ln-ink: color-mix(in srgb, var(--code-ink) 55%, var(--code-ground));
   display: grid; gap: var(--s-16); min-width: 0; container: atlas / inline-size;
 }
-:root[data-theme="dark"] .atlas { --grid-line: rgb(110 182 240 / 0.12); }
+:root[data-theme="chip-dark"] .atlas { --grid-line: rgb(110 182 240 / 0.12); }
 .atlas p, .atlas h2, .atlas h3, .atlas ol, .atlas ul, .atlas figure { margin: 0; }
 .atlas code { font-family: var(--code); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
 /* a k-chrome wrapper that adds no box: BELLA's Button inside it takes CHIP's blue */
@@ -173,9 +173,9 @@
 .atlas .dm-tog { min-height: var(--h-compact); }
 
 /* BELLA specimens: BELLA's own surface and focus ring, light or dark, never CHIP's */
-.atlas .dm-sp { --dm-dot: rgb(13 153 255 / 0.16); background-color: var(--color-semantic-surface); color: var(--color-semantic-text-primary); }
-.atlas .dm-sp:not([data-theme='dark']) { --ring-focus-color: var(--color-semantic-focus-ring); --component-link-default-foreground: var(--color-semantic-text-primary); --component-tabs-indicator: var(--color-semantic-text-primary); }
-.atlas .dm-sp[data-theme='dark'] { --dm-dot: rgb(255 255 255 / 0.1); }
+.atlas .dm-sp { --dm-dot: rgb(13 153 255 / 0.16); background-color: var(--color-background-surface); color: var(--color-content-default); }
+.atlas .dm-sp:not([data-theme='chip-dark']) { --ring-focus-color: var(--color-border-focus); --component-link-default-foreground: var(--color-content-default); --component-tabs-indicator: var(--color-content-default); }
+.atlas .dm-sp[data-theme='chip-dark'] { --dm-dot: rgb(255 255 255 / 0.1); }
 
 /* head */
 .atlas .dm-head { display: grid; gap: var(--s-16); grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
@@ -243,7 +243,7 @@
 /* all at once */
 .atlas .dm-mx { position: absolute; inset: 0; overflow: auto; display: grid; place-items: center; padding: var(--s-24); background: inherit; }
 .atlas .dm-mx table { border-collapse: separate; border-spacing: 12px 8px; }
-.atlas .dm-mx th { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--color-semantic-text-primary); text-align: left; padding-right: var(--s-8); white-space: nowrap; }
+.atlas .dm-mx th { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--color-content-default); text-align: left; padding-right: var(--s-8); white-space: nowrap; }
 .atlas .dm-mx thead th { text-align: center; font-weight: 400; font-family: var(--code); }
 .atlas .dm-mx td { position: relative; text-align: center; padding: var(--s-12) var(--s-8); border-radius: var(--r); }
 .atlas .dm-mx .dm-cell { position: absolute; inset: 0; border: 0; background: transparent; border-radius: var(--r); cursor: pointer; }
@@ -257,7 +257,7 @@
 .atlas .dm-frame[aria-checked='true'] { border-color: var(--ink); }
 .atlas .dm-frame[aria-checked='true'] .dm-fl { text-decoration: underline; text-underline-offset: 3px; }
 .atlas .dm-frame:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.atlas .dm-frame .dm-fl { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--color-semantic-text-primary); }
+.atlas .dm-frame .dm-fl { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--color-content-default); }
 .atlas .dm-frame.live::after { content: 'you'; position: absolute; top: 6px; right: 6px; padding: 0 var(--s-8); border-radius: var(--r-control); background: var(--note); color: var(--on-note); font: 600 var(--fs-14)/20px var(--sans); }
 .atlas .dm-thumb { pointer-events: none; min-height: 52px; max-width: 100%; display: grid; place-items: center; }
 .atlas .dm-ctl { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-16); align-items: center; padding: var(--s-8) var(--s-12) var(--s-12); background: var(--card); }
@@ -321,12 +321,12 @@
 .atlas .dm-verdict.ok { background: color-mix(in srgb, var(--pass) 24%, var(--card)); box-shadow: inset 0 0 0 1px var(--pass); }
 .atlas .dm-verdict.bad { background: color-mix(in srgb, var(--fail) 14%, var(--card)); box-shadow: inset 0 0 0 1px var(--fail); }
 .atlas .dm-scenebox { overflow: hidden; position: relative; min-height: 170px; padding: var(--s-24) 20px; display: grid; align-content: center; gap: 14px; }
-.atlas .dm-sh { font: var(--typography-font-weight-semibold) var(--typography-font-size-xl)/1.25 var(--typography-font-family-body); color: var(--color-semantic-text-primary); }
-.atlas .dm-sp2 { font: var(--typography-font-weight-regular) var(--typography-font-size-body)/1.5 var(--typography-font-family-body); color: var(--color-semantic-text-body); }
+.atlas .dm-sh { font: var(--typography-font-weight-600) var(--typography-font-size-22)/1.25 var(--typography-font-family-dm-sans); color: var(--color-content-default); }
+.atlas .dm-sp2 { font: var(--typography-font-weight-400) var(--typography-body-default-font-size)/1.5 var(--typography-font-family-dm-sans); color: var(--color-content-body); }
 .atlas .dm-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.atlas .dm-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: var(--s-8) var(--s-12); border: 1px solid var(--color-semantic-border); border-radius: 12px; }
-.atlas .dm-nl { font: var(--typography-font-weight-medium) var(--typography-font-size-body)/1.5 var(--typography-font-family-body); color: var(--color-semantic-text-primary); }
-.atlas .dm-wm { white-space: nowrap; margin-right: auto; font: var(--typography-font-weight-semibold) var(--typography-font-size-body)/1.5 var(--typography-font-family-body); color: var(--color-semantic-text-primary); }
+.atlas .dm-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; padding: var(--s-8) var(--s-12); border: 1px solid var(--color-border-default); border-radius: 12px; }
+.atlas .dm-nl { font: var(--typography-font-weight-500) var(--typography-body-default-font-size)/1.5 var(--typography-font-family-dm-sans); color: var(--color-content-default); }
+.atlas .dm-wm { white-space: nowrap; margin-right: auto; font: var(--typography-font-weight-600) var(--typography-body-default-font-size)/1.5 var(--typography-font-family-dm-sans); color: var(--color-content-default); }
 .atlas .dm-it { display: inline-flex; border-radius: var(--r); }
 .atlas .dm-it.bad { outline: 2px dashed var(--fail); outline-offset: 4px; }
 .atlas .dm-scene footer { display: grid; gap: var(--s-8); padding: 10px var(--s-12) var(--s-12) var(--s-16); border-top: 1px solid var(--line); font-size: var(--fs-14); line-height: var(--lh-body); }
@@ -354,7 +354,7 @@
 .atlas .dm-bd .docpanel .fig { padding: 0; }
 .atlas .dm-bd .docpanel:not(.one) > .insp { padding-top: 0; }
 .atlas .dm-a11y { display: grid; gap: var(--s-16); }
-.atlas .dm-a11ystrip { display: flex; flex-wrap: wrap; gap: var(--s-16); padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--color-semantic-surface); }
+.atlas .dm-a11ystrip { display: flex; flex-wrap: wrap; gap: var(--s-16); padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--color-background-surface); }
 
 /* layout: the inspector narrows, then drops under the stage (container widths, the frame has a nav) */
 @container atlas (min-width: 1360px) { .atlas .dm-work { --dm-insp: 380px; } }

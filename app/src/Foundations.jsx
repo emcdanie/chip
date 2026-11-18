@@ -359,7 +359,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
       </div>
 
       <p className="fd-src">
-        Read from <code>primitive.json</code>, <code>semantic</code>, <code>component.json</code> and each component’s CSS.
+        Read from <code>primitive.json</code>, <code>semantic</code>, <code>contracts.json</code> and each component’s CSS.
       </p>
 
       <Sheet open={!!sheet} kicker={sheet?.kicker} title={sheet?.title ?? ''} onClose={close} footer={sheet?.footer} actions={sheet?.actions}>

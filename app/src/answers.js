@@ -54,7 +54,7 @@ export function answerFromData(q, bella, page) {
     const rows = all.filter((c) => !c.hasStory).map((c) => ({ name: c.name, docs: yes(c.hasDocs) }));
     return list(`${rows.length} of ${all.length} components have no story`, rows, [{ key: 'docs', label: 'Docs' }]);
   }
-  // "contract" means two things in BELLA: the token contract (tokens/component.json)
+  // "contract" means two things in BELLA: the token contract (tokens/contracts.json)
   // and the DSDS spec entry (bella.dsds.yaml). Answer both, never just one.
   if (without('(contracts?|dsds|spec)')) {
     const rows = all.filter((c) => !c.hasContract || !c.inDsds)
