@@ -361,8 +361,8 @@
 }
 
 .zone[data-hl] {
-  background: color-mix(in srgb, var(--component-leader-pink) 22%, transparent);
-  box-shadow: 0 0 0 var(--border-width-2) var(--component-leader-pink);
+  background: color-mix(in srgb, var(--color-border-accent-1) 22%, transparent);
+  box-shadow: 0 0 0 var(--border-width-2) var(--color-border-accent-1);
 }
 
 .leaders {
@@ -378,12 +378,12 @@
 }
 
 .leaders g[data-hl] line {
-  stroke: var(--component-leader-pink);
+  stroke: var(--color-border-accent-1);
   stroke-width: 2;
 }
 
 .leaders g[data-hl] .anc {
-  fill: var(--component-leader-pink);
+  fill: var(--color-border-accent-1);
 }
 
 .leaders .anc {
@@ -401,7 +401,7 @@
   display: grid;
   place-items: center;
   /* pink at rest, the hero's pin 02; ink on the part that is selected or hovered */
-  background: var(--component-leader-pink);
+  background: var(--color-border-accent-1);
   color: var(--color-content-default);
   box-shadow: 0 0 0 var(--border-width-4) var(--color-background-surface);
   font-family: var(--typography-body-default-font-family);
@@ -412,7 +412,7 @@
 
 .pin[data-hl] {
   background: var(--color-content-default);
-  color: var(--component-leader-pink);
+  color: var(--color-border-accent-1);
 }
 
 .legend,
@@ -522,7 +522,7 @@
 /* highlight, never dim: the row fills pink, everything on it goes ink */
 .legend button[aria-pressed='true'],
 .ex-labels .label[aria-pressed='true'] {
-  background: var(--component-leader-pink);
+  background: var(--color-border-accent-1);
   color: var(--color-content-default);
 }
 
@@ -587,7 +587,7 @@
 
 .exploded[data-open] .card[data-hl] {
   border-color: var(--color-border-ink);
-  background: color-mix(in srgb, var(--component-leader-pink) 22%, transparent);
+  background: color-mix(in srgb, var(--color-border-accent-1) 22%, transparent);
 }
 
 .exploded[data-drag] .rig,
@@ -618,7 +618,7 @@
 }
 
 .ex-lines circle {
-  fill: var(--component-leader-pink);
+  fill: var(--color-border-accent-1);
 }
 
 .ex-labels .label {
