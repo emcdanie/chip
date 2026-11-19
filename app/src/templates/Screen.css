@@ -89,7 +89,9 @@
 .chip-flow--gap-24 { gap: var(--spacing-24); }
 
 .chip-screen__content > .chip-span-8 { grid-column: span 8; }
+.chip-screen__content > .chip-span-7 { grid-column: span 7; }
 .chip-screen__content > .chip-span-6 { grid-column: span 6; }
+.chip-screen__content > .chip-span-5 { grid-column: span 5; }
 .chip-screen__content > .chip-span-4 { grid-column: span 4; }
 
 @media (width < 1280px) {
@@ -103,7 +105,9 @@
   .chip-screen__content { grid-template-columns: minmax(0, 1fr); }
 
   .chip-screen__content > .chip-span-8,
+  .chip-screen__content > .chip-span-7,
   .chip-screen__content > .chip-span-6,
+  .chip-screen__content > .chip-span-5,
   .chip-screen__content > .chip-span-4 { grid-column: 1 / -1; }
 }
 

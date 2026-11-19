@@ -21,7 +21,6 @@ import Input from '@bella/components/Input/Input';
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Drawer from '@bella/components/Drawer/Drawer';
-import Eyebrow from '@bella/components/Eyebrow/Eyebrow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
@@ -74,6 +73,8 @@ const fileWords = (f) => {
   if (parts.includes('templates')) return `${name} template`;
   if (parts.includes('components')) return `${name} part`;
   if (parts[0] === 'server') return 'CHIP server';
+  if (parts[0] === 'data') return 'CHIP data';
+  if (parts[0] === 'scripts') return `${name} script`;
   if (/\.css$/.test(f)) return `${name} styles`;
   if (/\.md$/.test(f)) return `${name} notes`;
   return name;
@@ -109,7 +110,7 @@ function Activity({ records, total, open, onOpen }) {
             last = d;
             return (
               <li key={r.id}>
-                {head ? <Eyebrow>{head}</Eyebrow> : null}
+                {head ? <TextStack subtitle={head} /> : null}
                 <Step
                   title={plain(r.title)}
                   time={time(r.date)}
@@ -135,6 +136,9 @@ function Activity({ records, total, open, onOpen }) {
   );
 }
 
+/* Files in plain words, one row per thing: a page's two files are one page (they showed twice). */
+const touched = (files) => [...files.reduce((m, f) => m.set(fileWords(f), (m.get(fileWords(f)) ?? 0) + 1), new Map())];
+
 function Record({ id }) {
   const rec = useRecord(id);
   const [q, setQ] = useState('');
@@ -157,7 +161,7 @@ function Record({ id }) {
         <Flow gap={8}>
           <Flow direction="row" justify="between" wrap gap={8} align="center">
             <Tag tone={STATUS_TONE[rec.status] ?? 'neutral'}>{rec.status}</Tag>
-            <Eyebrow>{[day(rec.date), time(rec.date), rec.who, rec.repo.toUpperCase() === 'CHIP' ? 'CHIP' : rec.repo === 'bella' ? 'BELLA' : rec.repo].join(' · ')}</Eyebrow>
+            <TextStack subtitle={[day(rec.date), time(rec.date), rec.who, rec.repo.toUpperCase() === 'CHIP' ? 'CHIP' : rec.repo === 'bella' ? 'BELLA' : rec.repo].join(' · ')} />
           </Flow>
           <TextStack title={plain(rec.title)} />
         </Flow>
@@ -182,10 +186,10 @@ function Record({ id }) {
         <Flow gap={8}>
           <SectionHead title="What it touched" titleLevel={3} words={count(files.length, 'file')} />
           <Flow gap={12} as="ul" aria-label="Files this record touched">
-            {files.map((f) => (
-              <li key={f}>
+            {touched(files).map(([what, n]) => (
+              <li key={what}>
                 <Card>
-                  <TextStack title={fileWords(f)} subtitle={String(rec.status).toLowerCase()} />
+                  <TextStack title={what} subtitle={`${n === 1 ? 'file' : `${n} files`} · ${String(rec.status).toLowerCase()}`} />
                 </Card>
               </li>
             ))}
@@ -243,28 +247,26 @@ export default function HistoryContent() {
         <Flow direction={phone ? 'column' : 'row'} gap={8} grow={phone ? undefined : 'first'} as="form" role="search" onSubmit={(e) => (e.preventDefault(), setQ(draft.trim()))}>
           <Input label="Ask about a change, in plain words" leadingIcon="Search" value={draft} onChange={setDraft} />
           <Flow direction={phone ? 'row' : 'column'} justify="end">
-            {/* secondary: Ask's send is the one blue button in view (19 Nov audit) */}
-            <Button variant="secondary" type="submit">
-              Search
-            </Button>
+            {/* Figma: Search is the blue action of the search row, Filters beside it (buttons right, primary last on a phone too) */}
+            <Flow direction="row" gap={8} justify="end">
+              <Button variant="secondary" icon="FilterList" onClick={() => setFilters(true)} ariaHaspopup="dialog">
+                {extra ? `Filters · ${extra}` : 'Filters'}
+              </Button>
+              <Button variant="primary" type="submit">
+                Search
+              </Button>
+            </Flow>
           </Flow>
         </Flow>
-        <Flow direction={phone ? 'column' : 'row'} gap={8} wrap={!phone} justify="between">
-          <Flow direction="row" gap={8} wrap aria-label="Kinds">
-            <FilterChip size="compact" pressed={!kind} onClick={() => setKind(null)}>
-              All {all?.total ?? ''}
+        <Flow direction="row" gap={8} wrap aria-label="Kinds">
+          <FilterChip size="compact" pressed={!kind} onClick={() => setKind(null)}>
+            All {all?.total ?? ''}
+          </FilterChip>
+          {KINDS.map((k) => (
+            <FilterChip key={k} size="compact" pressed={kind === k} onClick={() => setKind(kind === k ? null : k)}>
+              {k} {counts[k] ?? 0}
             </FilterChip>
-            {KINDS.map((k) => (
-              <FilterChip key={k} size="compact" pressed={kind === k} onClick={() => setKind(kind === k ? null : k)}>
-                {k} {counts[k] ?? 0}
-              </FilterChip>
-            ))}
-          </Flow>
-          <Flow direction="row" justify="end">
-            <Button variant="secondary" icon="FilterList" onClick={() => setFilters(true)} ariaHaspopup="dialog">
-              {extra ? `Filters · ${extra}` : 'Filters'}
-            </Button>
-          </Flow>
+          ))}
         </Flow>
       </Flow>
 
@@ -285,10 +287,10 @@ export default function HistoryContent() {
         <EmptyState size="page" title="Reading the record" line="Pulling BELLA's and CHIP's git logs. Won't be a minute." />
       ) : (
         <>
-          <Flow span={4}>
+          <Flow span={5}>
             <Activity records={records} total={data.total} open={open} onOpen={setOpen} />
           </Flow>
-          <Flow span={8}>
+          <Flow span={7}>
             <Record id={open} />
           </Flow>
         </>

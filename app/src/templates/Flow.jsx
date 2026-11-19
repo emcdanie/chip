@@ -15,7 +15,8 @@ const GAPS = new Set([4, 8, 12, 16, 24]);
  * group at the right end (control bars: what you look at left, filters and
  * switchers right), 'end' pushes everything right; align: 'center' centres
  * a row's items; span: 12-column cells it takes when it
- * sits in the template's content grid (12, 8, 6 or 4).
+ * sits in the template's content grid (12, 8, 7, 6, 5 or 4; 5 and 7 are
+ * History's list and record, as Figma).
  */
 export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, children, ...rest }) {
   if (!GAPS.has(gap)) throw new Error(`Flow: gap ${gap} is not on the spacing scale (4, 8, 12, 16, 24)`);
