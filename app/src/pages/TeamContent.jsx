@@ -195,7 +195,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
       <Flow span={6} fill>
         <Card>
           <Flow gap={16}>
-            <SectionHead icon="InfoCircle" iconTone="info" title="Team chat" description="Today, with every agent" />
+            <SectionHead icon="ChatBubbleEmpty" iconTone="info" title="Team chat" description="Today, with every agent" />
             {data.thread.length || sent.length ? (
               <Flow gap={16} aria-label="Team chat, today">
                 {data.thread.map((m, i) => (
@@ -219,12 +219,8 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
               <EmptyState size="lane" mark="🤫" title="Quiet today" line="No one has reported yet. Say something to get them going." />
             )}
             {isDraft ? <Tag variant="outline" tone="info">The agent’s draft, in your words · edit before sending</Tag> : null}
-            <Input id="team-reply" label={replyTo ? `Reply to ${replyTo.agent}` : 'Reply'} value={text} placeholder="Reply to all, or @ one agent" onChange={setText} />
-            <Flow direction="row" gap={8} justify="end">
-              <Button variant="primary" size="sm" disabled={!text.trim()} onClick={send}>
-                Send
-              </Button>
-            </Flow>
+            {/* Figma: the send button sits in the field, as History's Ask */}
+            <Input id="team-reply" label={replyTo ? `Reply to ${replyTo.agent}` : 'Reply'} value={text} placeholder="Reply to all, or @ one agent" onChange={setText} onSend={() => text.trim() && send()} sendLabel="Send" />
             {failed ? <Notification tone="danger" title="Not sent" message={`The progress board doesn't answer at ${BOARD}. Your reply is still in the box.`} /> : null}
           </Flow>
         </Card>
@@ -232,7 +228,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
 
       <Card>
         <Flow gap={16}>
-          <SectionHead icon="CheckCircle" iconTone="info" title="Trust by kind of fix" number={1} words="kind always asks" description="The more a kind is trusted, the fewer you approve one by one." />
+          <SectionHead icon="ShieldCheck" iconTone="info" title="Trust by kind of fix" number={1} words="kind always asks" description="The more a kind is trusted, the fewer you approve one by one." />
           <Flow as="ul" gap={8} aria-label="Kinds of fix">
             <ListRow layout="stacked" title="Push and merge" body="Never moves up. Rule: earned trust, 11 Nov" tag={<Tag variant="outline" tone="attention">Always asks</Tag>} />
           </Flow>
