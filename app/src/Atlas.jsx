@@ -11,6 +11,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import Select from '@bella/components/Select/Select';
+import Input from '@bella/components/Input/Input';
 import { StatusPill, Chips } from './kit/index.jsx';
 import { keyboardOf } from './AtlasSpec.jsx';
 import { canSee, settingsOf } from './visibility.jsx';
@@ -90,30 +92,6 @@ const CopyIcon = () => (
 );
 
 // a radio group drawn as the mock's .seg (a view switch inside a panel, not tabs)
-// the pointer modes' instructions, as tooltips on Inspect and Use
-const HINT = { inspect: 'Hover a part, click to pin it. Arrows move, Esc unpins.', use: 'The real thing: hover, press, tab to it.' };
-
-function RadioSeg({ label, items, value, onChange }) {
-  const ref = useRef(null);
-  function onKeyDown(e) {
-    const i = items.findIndex((t) => t.id === value);
-    const n = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[e.key];
-    if (n === undefined) return;
-    e.preventDefault();
-    const next = items[(n + items.length) % items.length];
-    onChange(next.id);
-    ref.current.querySelector(`[data-id="${CSS.escape(next.id)}"]`)?.focus();
-  }
-  return (
-    <div className="seg" role="radiogroup" aria-label={label} ref={ref} onKeyDown={onKeyDown}>
-      {items.map((t) => (
-        <button key={t.id} type="button" role="radio" data-id={t.id} title={t.title} aria-checked={t.id === value} tabIndex={t.id === value ? 0 : -1} onClick={() => onChange(t.id)}>
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function Panel({ name, one, below, children, insp, label }) {
   return (
@@ -384,13 +362,13 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
     >
       <div className="statebar">
         <p className="cap">What {c.name} promises, whether it keeps its promises, and who relies on them.</p>
-        <RadioSeg
+        <SegmentedControl
           label="Contract view"
-          items={[
-            { id: 'overview', label: 'Overview' },
-            { id: 'compliance', label: 'Compliance' },
-            { id: 'consumption', label: 'Consumption' },
-            { id: 'versions', label: 'Versions' },
+          options={[
+            { value: 'overview', label: 'Overview' },
+            { value: 'compliance', label: 'Compliance' },
+            { value: 'consumption', label: 'Consumption' },
+            { value: 'versions', label: 'Versions' },
           ]}
           value={view}
           onChange={setView}
@@ -460,7 +438,7 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
       <div className="slafile">
         <div className="statebar">
           <p className="cap">The file itself. Marked lines matter most.</p>
-          <RadioSeg label="File" items={[{ id: 'contract', label: 'Contract' }, { id: 'guide', label: 'Guidance' }]} value={file} onChange={setFile} />
+          <SegmentedControl label="File" options={[{ value: 'contract', label: 'Contract' }, { value: 'guide', label: 'Guidance' }]} value={file} onChange={setFile} />
         </div>
         {fv.view}
       </div>
@@ -997,11 +975,14 @@ function placePins(geo, widths) {
       used += (lines.at(-1).length ? 12 : 0) + bw;
       lines.at(-1).push(p);
     }
+    // the gap to the specimen shrinks (72 down to 32) so a wrapped stack stays inside the stage
+    const room2 = row === 'T' ? box.y - PAD : geo.h - PAD - (box.y + box.h);
+    const off = clamp(room2 - CH / 2 - (lines.length - 1) * (CH + 12), 32, 72);
     lines.forEach((line, li) => {
       const total = line.reduce((a, p) => a + bwOf(p), 0) + Math.max(0, line.length - 1) * 12;
       let x = clamp(box.x + box.w / 2 - total / 2, PAD, Math.max(PAD, cw - PAD - total));
       const step = li * (CH + 12);
-      const y = row === 'T' ? box.y - 72 - CH / 2 - step : box.y + box.h + 72 - CH / 2 + step;
+      const y = row === 'T' ? box.y - off - CH / 2 - step : box.y + box.h + off - CH / 2 + step;
       for (const p of line) {
         const bw = bwOf(p);
         const e = p.edge;
@@ -1287,7 +1268,7 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
           <button type="button" className="k-link" aria-expanded={why} onClick={() => setWhy(!why)}>
             Why
           </button>
-          <span className="dm-grow" />
+          <span className="dm-fxacts">
           {sc.fix && !fixed ? (
             <Button
               variant="secondary"
@@ -1320,6 +1301,7 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
           <button type="button" className="k-link" onClick={openPlay}>
             Open in Playground
           </button>
+          </span>
         </div>
         {why ? <blockquote className="dm-wq">“{lineOf(c, sc.from)}”</blockquote> : null}
       </footer>
@@ -2056,14 +2038,15 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       <section className={`dm-work dm-card${stage ? '' : ' dm-nospec'}`} aria-label="Specimen">
         <div className="dm-stage">
           <div className="dm-sbar k-chrome">
-            <RadioSeg label="Pointer" items={[{ id: 'inspect', label: 'Inspect', title: HINT.inspect }, { id: 'use', label: 'Use', title: HINT.use }]} value={mode} onChange={(v) => (setMode(v), setLive(null), v === 'use' && (setSel(null), setHov(null), setPlaying(false)))} />
-            <span className="dm-hint" />
-            <button type="button" className="k-toggle dm-tog" aria-pressed={theme === 'dark'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-              Dark
-            </button>
-            <button type="button" className="k-toggle dm-tog" aria-pressed={all} onClick={() => setAll(!all)}>
-              All at once
-            </button>
+            <SegmentedControl label="Pointer" options={[{ value: 'inspect', label: 'Inspect' }, { value: 'use', label: 'Use' }]} value={mode} onChange={(v) => (setMode(v), setLive(null), v === 'use' && (setSel(null), setHov(null), setPlaying(false)))} />
+            <span className="dm-sbacts">
+              <button type="button" className="k-toggle dm-tog" aria-pressed={theme === 'dark'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                Dark
+              </button>
+              <button type="button" className="k-toggle dm-tog" aria-pressed={all} onClick={() => setAll(!all)}>
+                All at once
+              </button>
+            </span>
           </div>
           <div className="dm-canvas dm-sp" {...sp} ref={canvas} data-mode={mode}>
             <div className="dm-specwrap" ref={wrap} style={{ '--z': z }} inert={mode === 'inspect' || all} aria-hidden={mode === 'inspect' || all ? true : undefined} {...useEvents} key={mode === 'inspect' && cfg.generic ? `${o.st}-${o.variant}` : 'live'}>
@@ -2189,19 +2172,9 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           </div>
           <div className="dm-ctl k-chrome">
             {axes.map((ax) => (
-              <span className="dm-field" key={ax.key}>
-                <span className="dm-lwl">{ax.label}</span>
-                <RadioSeg label={ax.label} items={axisVals(ax).map((v) => ({ id: v, label: cap1(v) }))} value={o[ax.key]} onChange={(v) => setAxis(ax.key, v)} />
-              </span>
+              <Select key={ax.key} label={ax.label} options={axisVals(ax).map((v) => ({ value: v, label: cap1(v) }))} value={o[ax.key]} onChange={(v) => setAxis(ax.key, v)} />
             ))}
-            {!cfg.generic ? (
-              <span className="dm-field">
-                <label htmlFor="dm-label" className="dm-lwl">
-                  Label
-                </label>
-                <input id="dm-label" type="text" className="dm-input" value={o.label ?? ''} onChange={(e) => setO((x) => ({ ...x, label: e.target.value || cfg.label(c) }))} />
-              </span>
-            ) : null}
+            {!cfg.generic ? <Input id="dm-label" label="Label" value={o.label ?? ''} onChange={(v) => setO((x) => ({ ...x, label: v || cfg.label(c) }))} /> : null}
             {states.length > 1 ? (
               <button type="button" className="k-toggle dm-tog" aria-pressed={playing} onClick={() => (setPlaying(!playing), setMode('inspect'))}>
                 {playing ? 'Stop' : 'Play states'}

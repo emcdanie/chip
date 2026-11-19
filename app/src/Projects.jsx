@@ -40,9 +40,11 @@ function List({ items, empty, cap = 6, render, label }) {
         {shown.map(render)}
       </ul>
       {items.length > cap ? (
-        <Toggle expanded={all} onClick={() => setAll((a) => !a)} className="pj-more">
-          {all ? 'Show fewer' : `Show all ${items.length}`}
-        </Toggle>
+        <div className="pj-more">
+          <Toggle expanded={all} onClick={() => setAll((a) => !a)}>
+            {all ? 'Show fewer' : `Show all ${items.length}`}
+          </Toggle>
+        </div>
       ) : null}
     </>
   );
@@ -71,12 +73,12 @@ function Note({ p, onSaved }) {
       </label>
       <textarea id={`pj-note-${p.id}`} className="pj-note" rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="Nothing written yet." />
       <div className="pj-noteacts">
-        <Button onClick={save} disabled={text === p.note}>
-          Save note
-        </Button>
         <span className="pj-saved" role="status">
           {state || (p.noteAt ? `Last saved ${ago(p.noteAt)}` : '')}
         </span>
+        <Button onClick={save} disabled={text === p.note}>
+          Save note
+        </Button>
       </div>
     </Card>
   );
@@ -161,9 +163,6 @@ function Panel({ p, reload }) {
         </h2>
         {p.description ? <p className="pj-desc">{p.description}</p> : null}
         <div className="pj-acts">
-          <Button variant="primary" href={playHref(p.id)}>
-            Open in Playground
-          </Button>
           <Button onClick={() => terminal(p.terminal, '')}>Open terminal</Button>
           <Button onClick={() => terminal(p.terminal, 'claude')}>Start Claude here</Button>
           {p.run?.state === 'running' && !p.run.self ? (
@@ -178,6 +177,9 @@ function Panel({ p, reload }) {
               Stop the server CHIP started
             </Button>
           ) : null}
+          <Button variant="primary" href={playHref(p.id)}>
+            Open in Playground
+          </Button>
         </div>
         {busy.startsWith('Could not') ? (
           <p className="k-note pj-err" role="alert">

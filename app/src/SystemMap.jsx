@@ -180,13 +180,13 @@ function linkPath(a, b, via) {
   const y1 = a.y + NH;
   const x2 = b.x + NW / 2;
   const y2 = b.y;
+  // curved, never square elbows (guideline 17): vertical S-curves, a straight run only down a long via lane
   if (via == null) {
-    const m = (y1 + y2) / 2;
-    return `M${x1} ${y1}V${m}H${x2}V${y2}`;
+    return `M${x1} ${y1}C${x1} ${y2} ${x2} ${y1} ${x2} ${y2}`;
   }
   const m1 = y1 + GY / 2;
   const m2 = y2 - GY / 2;
-  return `M${x1} ${y1}V${m1}H${via}V${m2}H${x2}V${y2}`;
+  return `M${x1} ${y1}C${x1} ${m1} ${via} ${y1} ${via} ${m1}V${m2}C${via} ${y2} ${x2} ${m2} ${x2} ${y2}`;
 }
 
 const readPos = () => {

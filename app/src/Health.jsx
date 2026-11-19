@@ -7,7 +7,9 @@
 // measures it, the page says "Not measured" instead of a number.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { Segmented, segPanelProps, Sheet, StatusPill, Toggle } from './kit/index.jsx';
+import { Sheet, StatusPill, Toggle } from './kit/index.jsx';
+import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
+import Progress from '@bella/components/Progress/Progress';
 import { CheckSheet, failingTokens, shortResult, STATUS as CHECK_STATUS, useChecks, when } from './Checks.jsx';
 import { openReview } from './ReviewSheet.jsx';
 import { GapCard, GapReport, useGapFixes } from './DoNext.jsx';
@@ -49,25 +51,6 @@ function changesBetween(a, b) {
 }
 
 const ICON = {
-  cov: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3" y="3" width="7.5" height="7.5" rx="2" />
-      <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
-      <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
-      <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
-    </svg>
-  ),
-  gate: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z" />
-      <path d="m8.5 12 2.5 2.5 4.5-5" />
-    </svg>
-  ),
-  drift: (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 8h15m-4-4 4 4-4 4M21 16H6m4-4-4 4 4 4" />
-    </svg>
-  ),
   refresh: (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -117,16 +100,6 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
     [bella, failing.join()],
   );
   const G = useMemo(() => gateRuns(bella), [bella]);
-
-  // the strip's columns animate up once, like the mock's capsules
-  const strip = useRef(null);
-  const [filled, setFilled] = useState(false);
-  useEffect(() => {
-    if (view !== 'cov' || !rows.length) return;
-    setFilled(false);
-    const t = requestAnimationFrame(() => requestAnimationFrame(() => setFilled(true)));
-    return () => cancelAnimationFrame(t);
-  }, [view, rows.length]);
 
   if (!bella)
     return (
@@ -591,66 +564,54 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
             </h2>
             <p className="wc-s">{SUB[view]}</p>
           </div>
-          <Segmented
-            id="hv"
+          <Tabs
+            idBase="hv"
             label="Health view"
             value={view}
             onChange={setView}
-            items={[
-              { id: 'cov', label: 'Coverage', icon: ICON.cov },
-              { id: 'gate', label: 'Gate', icon: ICON.gate },
-              { id: 'drift', label: 'Drift', icon: ICON.drift },
+            tabs={[
+              { id: 'cov', label: 'Coverage' },
+              { id: 'gate', label: 'Gate' },
+              { id: 'drift', label: 'Drift' },
             ]}
           />
         </div>
-        <div {...segPanelProps('hv', 'cov', view)}>
-          <div className="hstrip caps" ref={strip}>
+        <div {...tabPanelProps('hv', 'cov', view === 'cov')}>
+          {/* one BELLA Progress bar a check (round ends, status tones); a check with gaps opens its list */}
+          <ul className="covlist">
             {COLS.map((k, i) => {
               const ok = rows.filter((r) => r.v[i]).length;
               const pct = n ? ok / n : 0;
               // red: a component misses contrast because of a token the gate fails on
               const bad = k.short === 'Contrast' && rows.some((r) => (r.c.tokens?.list ?? []).some((t) => failing.includes(t)));
               const low = pct < 0.9;
-              const tone = bad ? ' bad' : low ? ' low' : ' ok';
-              const label = <span className="hp">{Math.round(pct * 100)}%</span>;
+              const bar = (
+                <Progress
+                  label={k.short}
+                  value={`${Math.round(pct * 100)}% · ${ok}/${n}`}
+                  fill={pct * 100}
+                  tone={bad ? 'danger' : low ? 'attention' : 'info'}
+                />
+              );
               return (
-                // a column every component passes has nothing to fix: it reads, it doesn't open
-                ok === n ? (
-                  <div key={k.short} className={`hcol full${tone}`} style={{ gridColumn: i + 1 }} role="group" aria-label={`${k.short} ${ok}/${n}, ${k.long}, all pass`}>
-                  <span className="hl">{k.short}</span>
-                  {label}
-                  <span className="tube">
-                    <i style={{ height: filled ? `calc((100% - 8px) * ${pct})` : 0 }} />
-                  </span>
-                  <span className="hv">
-                    {low ? <i className="vdot low" aria-hidden="true" /> : null}
-                    {ok}/{n}
-                  </span>
-                </div>
-                ) : (
-                // named by its own text ("DSDS 33/37"), the long name and the warning after it
-                <button type="button" key={k.short} className={`hcol${tone}`} style={{ gridColumn: i + 1 }} aria-haspopup="dialog" onClick={() => colSheet(i)}>
-                  <span className="hl">{k.short}</span>{' '}
-                  {label}{' '}
-                  <span className="tube">
-                    <i style={{ height: filled ? `calc((100% - 8px) * ${pct})` : 0 }} />
-                  </span>
-                  <span className="hv">
-                    {low ? <i className="vdot low" aria-hidden="true" /> : null}
-                    {ok}/{n}
-                  </span>
-                  <span className="k-vh">
-                    , {k.long}
-                    {bad ? ', fails the gate' : low ? ', under 90%' : ''}
-                  </span>
-                </button>
-                )
+                <li key={k.short}>
+                  {ok === n ? (
+                    bar
+                  ) : (
+                    <button type="button" className="covrow" aria-haspopup="dialog" onClick={() => colSheet(i)}>
+                      {bar}
+                      <span className="k-vh">
+                        , {k.long}
+                        {bad ? ', fails the gate' : low ? ', under 90%' : ''}
+                      </span>
+                    </button>
+                  )}
+                </li>
               );
             })}
-            <span className="hrule" aria-hidden="true" />
-          </div>
+          </ul>
         </div>
-        <div {...segPanelProps('hv', 'gate', view)}>
+        <div {...tabPanelProps('hv', 'gate', view === 'gate')}>
           <div className="hstrip wind" role="img" aria-label={`Gate history${latestGate ? `: the latest commit on record, ${fmt(latestGate.day)}, passed ${latestGate.ok} of ${latestGate.of} kept checks` : ''}. Over all ${G.length} commits with a gate, ${G.filter((g) => g.pass).length} passed${redSince ? `, then ${red} failed from ${fmt(redSince.day)}` : ''}.`}>
             {runs.map((r) => (
               <span key={r.sha} className={`wcol${r.pass ? '' : ' bad'}`} aria-hidden="true">
@@ -668,7 +629,7 @@ export default function Health({ bella, onOpenAtlas, onSession, onRefresh }) {
             <span className="wdot" aria-hidden="true" />
           </div>
         </div>
-        <div {...segPanelProps('hv', 'drift', view)}>
+        <div {...tabPanelProps('hv', 'drift', view === 'drift')}>
           <div className="hstrip cond">
             {SRC.map((x) => (
               <span key={x.k} className="ccol">
