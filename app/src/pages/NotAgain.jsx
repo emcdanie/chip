@@ -10,8 +10,9 @@ const TABS = [
   { id: 'library', label: 'Library' },
 ];
 
-export default function NotAgain() {
-  const [tab, setTab] = useState('flow');
+/** state: one of Figma's six (STATES in NotAgainContent); the Library state opens the Library tab. */
+export default function NotAgain({ state = 'suggested' }) {
+  const [tab, setTab] = useState(state === 'library' ? 'library' : 'flow');
   return (
     <Screen
       place="not-again"
@@ -25,7 +26,7 @@ export default function NotAgain() {
       }}
       tabs={{ items: TABS, value: tab, onChange: setTab, label: 'Not again views', idBase: 'not-again' }}
     >
-      <NotAgainContent state={tab === 'library' ? 'library' : 'suggested'} />
+      <NotAgainContent state={tab === 'library' ? 'library' : state === 'library' ? 'suggested' : state} />
     </Screen>
   );
 }

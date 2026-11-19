@@ -1,21 +1,25 @@
 // Not again · content: the code twin of the Figma slot fill (CHIP Dashboard
-// 612:73919). One component, Figma's states as a prop: suggested, running,
-// your call, kept, gate fails, library. Built from BELLA parts and the
-// template's Flow only; no page CSS.
+// 612:73919). One component, Figma's six states as a prop: suggested,
+// running, your-call, kept, gate-fails, library. Built from BELLA parts and
+// the template's Flow only; no page CSS.
 //
-// Built so far: "suggested". The other five states follow.
-// Icon gap: Figma's stat cards use Iconoir shield-check, not in BELLA's
-// registry yet; RefreshDouble and CheckCircle stand in until it is added.
+// Gaps (library board): Figma's stat cards use Iconoir shield-check, not in
+// BELLA's registry yet (RefreshDouble and CheckCircle stand in); StatCard has
+// no empty slot; actions that run the agent (Run, Send back) wait for a Menu
+// part for the model menu (Auto, local first).
 import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Tag from '@bella/components/Tag/Tag';
 import Step from '@bella/components/Step/Step';
+import ListRow from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
-import { explainer, suggestion } from './notAgainFixture.js';
+import { explainer, fix, states, library } from './notAgainFixture.js';
+
+export const STATES = ['suggested', 'running', 'your-call', 'kept', 'gate-fails', 'library'];
 
 /* Stats CHIP does not count yet: Elleta's words (19 Nov 2026), Belfast mode. */
 const EMPTY_STATS = [
@@ -23,63 +27,124 @@ const EMPTY_STATS = [
   { title: 'Kept', icon: 'CheckCircle', tone: 'success', mark: '✅', empty: 'Nothing kept yet', line: 'Accept a fix and it lands here.' },
 ];
 
-function Suggested() {
+/* The card's own action, by state, as Figma places it: on the head line
+   (Run on 9, Stop, Send back) or in a footer at the bottom right (your call). */
+const HEAD_ACTION = {
+  suggested: { label: 'Run on 9', variant: 'primary' },
+  running: { label: 'Stop', variant: 'secondary' },
+  'gate-fails': { label: 'Send back', variant: 'primary' },
+};
+
+function Banner({ state }) {
+  if (state === 'gate-fails') return null;
+  const banner = states[state].banner;
+  if (banner) return <Notification tone="success" title={banner.title} message={banner.message} action={{ label: 'Undo' }} />;
+  return <Notification tone="info" icon="InfoCircle" title={explainer.title} message={explainer.message} />;
+}
+
+function FixCard({ state }) {
   const narrow = useNarrow();
+  const s = states[state];
+  const head = HEAD_ACTION[state];
   return (
-    <>
-      <Notification tone="info" icon="InfoCircle" title={explainer.title} message={explainer.message} />
-      <Card>
-        <Flow gap={24}>
-          <SectionHead
-            icon="Book"
-            iconTone="info"
-            title={suggestion.title}
-            description={suggestion.description}
-            action={
-              <Button variant="primary" size="sm">
-                {suggestion.action}
+    <Card>
+      <Flow gap={24}>
+        <SectionHead
+          icon="Book"
+          iconTone="info"
+          title={`${s.lead}: ${fix.name}`}
+          description={s.description}
+          action={
+            head ? (
+              <Button variant={head.variant} size="sm">
+                {head.label}
               </Button>
-            }
-          />
-          <Flow as="ul" direction="row" gap={8} wrap aria-label="Components with no declared pair">
-            {suggestion.components.map((c) => (
-              <li key={c}>
-                <Tag variant="flat">{c}</Tag>
-              </li>
-            ))}
+            ) : undefined
+          }
+        />
+        <Flow as="ul" direction="row" gap={8} wrap aria-label="Components with no declared pair">
+          {fix.components.map((c) => (
+            <li key={c}>
+              <Tag variant="flat">{c}</Tag>
+            </li>
+          ))}
+        </Flow>
+        <Flow as="ol" direction={narrow ? 'column' : 'row'} gap={4} aria-label="How the fix runs">
+          {s.steps.map((step, i) => (
+            <Step
+              key={step.title}
+              layout={narrow ? 'vertical' : 'horizontal'}
+              state={step.state}
+              title={step.title}
+              detail={step.detail}
+              showConnector={i < s.steps.length - 1}
+            />
+          ))}
+        </Flow>
+        {state === 'your-call' ? (
+          <Flow direction="row" gap={8} justify="end">
+            <Button variant="secondary" size="sm">
+              Undo
+            </Button>
+            <Button variant="primary" size="sm">
+              Accept
+            </Button>
           </Flow>
-          <Flow as="ol" direction={narrow ? 'column' : 'row'} gap={4} aria-label="How the fix runs">
-            {suggestion.steps.map((s, i) => (
-              <Step
-                key={s.title}
-                layout={narrow ? 'vertical' : 'horizontal'}
-                state="pending"
-                title={s.title}
-                detail={s.detail}
-                showConnector={i < suggestion.steps.length - 1}
-              />
-            ))}
-          </Flow>
+        ) : null}
+      </Flow>
+    </Card>
+  );
+}
+
+function Stats() {
+  /* No data yet: the stat card shows the Empty state, not a number.
+     StatCard has no empty slot (library gap), so the card body holds its
+     head and the Empty state. Neutral, no wash (one page, one colour). */
+  return EMPTY_STATS.map((e) => (
+    <Flow key={e.title} span={6} fill>
+      <Card>
+        <Flow gap={8}>
+          <SectionHead icon={e.icon} iconTone={e.tone} title={e.title} titleLevel={3} />
+          <EmptyState size="lane" mark={e.mark} title={e.empty} line={e.line} />
         </Flow>
       </Card>
-      {/* No data yet: the stat card shows the Empty state, not a number.
-          StatCard has no empty slot (library gap), so the card body holds
-          its head and the Empty state. Neutral, no wash (one page, one colour). */}
-      {EMPTY_STATS.map((e) => (
-        <Flow key={e.title} span={6} fill>
-          <Card>
-            <Flow gap={8}>
-              <SectionHead icon={e.icon} iconTone={e.tone} title={e.title} titleLevel={3} />
-              <EmptyState size="lane" mark={e.mark} title={e.empty} line={e.line} />
-            </Flow>
-          </Card>
+    </Flow>
+  ));
+}
+
+function Library() {
+  return (
+    <Card>
+      <Flow gap={24}>
+        <SectionHead icon="Book" iconTone="info" title="Library" description="Fixes saved as steps" number={library.length} words="fixes" />
+        <Flow as="ul" gap={8} aria-label="Saved fixes">
+          {library.map((f) => (
+            <ListRow
+              key={f.name}
+              layout="stacked"
+              title={f.name}
+              description={f.when}
+              actionButton={
+                <Button variant="secondary" size="sm" ariaLabel={`Run ${f.name}`}>
+                  Run
+                </Button>
+              }
+            />
+          ))}
         </Flow>
-      ))}
-    </>
+      </Flow>
+    </Card>
   );
 }
 
 export default function NotAgainContent({ state = 'suggested' }) {
-  if (state === 'suggested') return <Suggested />;
-  return null;
+  if (state === 'library') return <Library />;
+  if (!states[state]) return null;
+  return (
+    <>
+      <Banner state={state} />
+      <FixCard state={state} />
+      <Stats />
+    </>
+  );
 }
