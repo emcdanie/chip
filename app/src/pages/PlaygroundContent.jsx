@@ -24,8 +24,8 @@ import Pin from '@bella/components/Pin/Pin';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import Select from '@bella/components/Select/Select';
 import Stage from '@bella/components/Stage/Stage';
-import Card from '@bella/components/Card/Card';
-import { SPECIMENS } from '../specimens.jsx';
+import { CONTROLS, SPECIMENS, THEME } from '../specimens.jsx';
+import ListRow from '@bella/components/ListRow/ListRow';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
 
@@ -91,17 +91,23 @@ const PART_HEIGHT = 480;
 const FIRST_PART = 'DataTable';
 const PARTS = Object.keys(SPECIMENS).sort();
 
-/** One part, live, in a card on the Stage at its design width (Figma's default state). */
-function PartSlot({ name, width }) {
+/**
+ * One part, live, on the Stage at its design width (Figma's default state).
+ * The Stage's frame is Figma's specimen card ("1440 wide · shown at 67%"), so
+ * the part sits straight in it: no second card (b23, nothing three deep).
+ * Controls set its props and theme (Figma "controls open").
+ */
+function PartSlot({ name, width, values }) {
   const [zoom, setZoom] = useState('fit');
+  const ctl = CONTROLS[name];
   const Specimen = SPECIMENS[name];
   return (
-    <Stage frameWidth={Number(width)} frameHeight={PART_HEIGHT} zoom={zoom} onZoomChange={setZoom} label={`${name}, live at ${width}`}>
-      {/* the Stage says the width and the zoom; the part sits in a card, as Figma */}
-      <Card>
-        <Specimen />
-      </Card>
-    </Stage>
+    // Theme: the whole stage takes the theme, so the frame's surface flips with the part
+    <div data-theme={values.theme === 'Dark' ? 'chip-dark' : 'chip-light'}>
+      <Stage frameWidth={Number(width)} frameHeight={PART_HEIGHT} zoom={zoom} onZoomChange={setZoom} label={`${name}, live at ${width}`}>
+        {ctl ? ctl.render(values) : <Specimen />}
+      </Stage>
+    </div>
   );
 }
 // a click asks for what sits in this box around it, in page px
@@ -160,12 +166,19 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
   // what is on the canvas: a part (Figma's default) or a page; a link with a route opens the page
   const [part, setPart] = useState(() => (route ? null : FIRST_PART));
   const { projects, pages, map, down, again } = usePlayData(project, route);
-  const [width, setWidth] = useState('1440');
+  // a phone opens at phone width (Figma "375 wide"), so the part is readable, not 15%
+  const [width, setWidth] = useState(() => (narrow ? '375' : '1440'));
   const [marking, setMarking] = useState(false);
   const [notes, setNotes] = useState([]);
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(null); // 'sent' | 'failed'
   const [starting, setStarting] = useState(false);
+  const [controls, setControls] = useState(false);
+  // each part's control values, kept while you switch parts
+  const [values, setValues] = useState({});
+  const partValues = part ? { theme: 'Light', ...CONTROLS[part]?.start, ...values[part] } : {};
+  const setValue = (key, v) => setValues((all) => ({ ...all, [part]: { ...all[part], [key]: v } }));
+  const controlRows = part ? [...(CONTROLS[part]?.rows ?? []), THEME] : [];
   const nextId = useRef(1);
 
   // a page view opens the project's first page unless one was asked for
@@ -261,7 +274,11 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
         <Flow direction="row" gap={12} wrap>
           {/* below 800px the four widths don't fit in one row: the same choice as a Select */}
           {narrow ? <Select label="Width" value={width} onChange={setWidth} options={WIDTHS} /> : <SegmentedControl label="Width" options={WIDTHS} value={width} onChange={setWidth} />}
-          {part ? null : (
+          {part ? (
+            <Button variant="secondary" ariaHaspopup="dialog" ariaExpanded={controls} onClick={() => setControls(true)}>
+              Controls
+            </Button>
+          ) : (
             <Button variant="secondary" ariaExpanded={marking} onClick={() => (marking ? setMarking(false) : (setMarking(true), notes.length ? setOpen(true) : null))}>
               {marking ? 'Done marking' : 'Mark up'}
             </Button>
@@ -274,7 +291,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
         </Flow>
       </Flow>
 
-      {part ? <PartSlot name={part} width={width} /> : null}
+      {part ? <PartSlot name={part} width={width} values={{ ...partValues, onSelected: (k) => setValue('selected', k) }} /> : null}
 
       {!part && map && !running ? (
         <Notification
@@ -297,6 +314,25 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
           onPicked={onPicked}
         />
       ) : !map ? <EmptyState size="lane" title="Loading the page" /> : null}
+
+      {/* Figma "controls open": the part's props as rows, value on the right; a click moves to the next value */}
+      <Drawer open={controls && !!part} onClose={() => setControls(false)} label="Controls" side="right">
+        <Flow as="ul" gap={4} aria-label={`${part ?? ''} controls`}>
+          {controlRows.map((c) => {
+            const now = partValues[c.key] ?? c.options[0];
+            const next = c.options[(c.options.indexOf(now) + 1) % c.options.length];
+            return (
+              <ListRow
+                key={c.key}
+                layout="inline"
+                title={c.label}
+                value={now}
+                onClick={() => setValue(c.key, next)}
+              />
+            );
+          })}
+        </Flow>
+      </Drawer>
 
       <Drawer
         open={open}

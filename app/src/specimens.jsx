@@ -53,20 +53,7 @@ export const SPECIMENS = {
     </div>
   ),
   Combobox: () => <Combobox label="Ask OBI or jump to" hideLabel value="" onChange={noop} groups={[]} onSelect={noop} placeholder="Ask OBI or jump to…" />,
-  DataTable: () => (
-    <DataTable
-      caption="Sample"
-      rowKey="name"
-      columns={[
-        { key: 'name', label: 'Name', sortable: true },
-        { key: 'count', label: 'Count', numeric: true, sortable: true },
-      ]}
-      rows={[
-        { name: 'Alpha', count: 12 },
-        { name: 'Beta', count: 3 },
-      ]}
-    />
-  ),
+  DataTable: () => <DataTable {...tableArgs(CONTROLS.DataTable.start)} />,
   Eyebrow: () => <Eyebrow>Design system</Eyebrow>,
   FilterChip: () => (
     <FilterChip pressed={false} onClick={noop}>
@@ -165,4 +152,50 @@ export const PLAY = {
   Tag: { C: Tag, children: 'Case study' },
   StatusPill: { C: StatusPill, children: 'Passing' },
   Eyebrow: { C: Eyebrow, children: 'Design system' },
+};
+
+// Playground Controls (Figma "controls open" 612:138211): each part's props as
+// rows with their current value; a click moves a row to its next value. The
+// first value is the specimen's own. Theme sits on every part.
+const SAMPLE_ROWS = [
+  { name: 'Alpha', count: 12 },
+  { name: 'Beta', count: 3 },
+  { name: 'Gamma', count: 7 },
+  { name: 'Delta', count: 21 },
+  { name: 'Epsilon', count: 5 },
+];
+function tableArgs(v) {
+  const sortable = v.sortable === 'On';
+  return {
+    caption: 'Sample',
+    rowKey: 'name',
+    density: v.density === 'Compact' ? 'compact' : 'default',
+    columns: [
+      { key: 'name', label: 'Name', sortable },
+      { key: 'count', label: 'Count', numeric: true, sortable },
+    ],
+    rows: SAMPLE_ROWS.slice(0, Number(v.rows)),
+    ...(v.select === 'On' ? { selectedKey: v.selected ?? null, onSelect: v.onSelected ?? noop } : {}),
+    ...(v.sticky === 'On' ? { maxHeight: 'calc(var(--spacing-44) * 4)' } : {}),
+  };
+}
+export const THEME = { key: 'theme', label: 'Theme', options: ['Light', 'Dark'] };
+export const CONTROLS = {
+  DataTable: {
+    rows: [
+      { key: 'density', label: 'Density', options: ['Comfortable', 'Compact'] },
+      { key: 'rows', label: 'Rows', options: ['2', '3', '5'] },
+      { key: 'sortable', label: 'Sortable', options: ['On', 'Off'] },
+      { key: 'select', label: 'Row select', options: ['Off', 'On'] },
+      { key: 'sticky', label: 'Sticky header', options: ['Off', 'On'] },
+    ],
+    start: { density: 'Comfortable', rows: '2', sortable: 'On', select: 'Off', sticky: 'Off' },
+    render: (v) => <DataTable {...tableArgs(v)} />,
+  },
+  ...Object.fromEntries(
+    Object.entries({ Button: ['primary', 'secondary', 'tertiary'], Tag: ['default', 'accent', 'outline', 'flat', 'index'], StatusPill: ['success', 'info', 'neutral', 'attention', 'danger', 'accent', 'quiet', 'serving'], Eyebrow: ['muted', 'ink'] }).map(([name, opts]) => [
+      name,
+      { rows: [{ key: 'variant', label: 'Variant', options: opts }], start: { variant: opts[0] }, render: (v) => VARIANTS[name](v.variant) },
+    ]),
+  ),
 };
