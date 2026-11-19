@@ -14,7 +14,7 @@ export default function Work({ model: given, view: startView = 'board' }) {
   const [view, setView] = useState(startView);
   return (
     <Screen
-      place="home"
+      place="projects"
       // Figma's main action is "New task"; CHIP has no new-task flow yet, so
       // it waits rather than pointing somewhere it doesn't do.
       header={{ title: 'CHIP' }}

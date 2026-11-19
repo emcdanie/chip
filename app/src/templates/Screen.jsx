@@ -35,15 +35,16 @@ import './Screen.css';
  * app, which stays beside the new routes until Elleta has seen that list. */
 const PLACES = [
   // Home has no page of its own yet (Figma Home waits on Elleta's pick), so it
-  // opens Work, the board, and Work marks Home current (19 Nov re-audit).
+  // opens Work, the board; Work is a project view, so it marks Projects (Figma).
   // Projects opens the project's overview (Health), and every other project
-  // view marks Projects: one current item, the one you are on. Settings has no page either and opens
-  // Projects, where each repo's setup lives (an old page until it is rebuilt).
+  // view marks Projects: one current item, the one you are on. Settings holds
+  // Connectors (Elleta, 19 Nov: "under Settings, titled Connectors"); there is no Projects page.
   { id: 'home', label: 'Home', icon: 'Home', href: '#/work' },
   { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/health' },
   { id: 'not-again', label: 'Not again', icon: 'Book', href: '#/not-again' },
   { id: 'team', label: 'Team', icon: 'Group', href: '#/team' },
-  { id: 'map', label: 'System map', icon: 'Map', href: '#/connectors' },
+  // the system map has no rebuilt page yet: it opens the old one, which holds it
+  { id: 'map', label: 'System map', icon: 'Map', href: '#/connectors-old' },
 ];
 
 /* CHIP's own data for the panel, kept between pages (useCached) so the
@@ -168,7 +169,7 @@ export default function Screen({ place, header, tabs, children }) {
   return (
     <div className="chip-screen">
       <div className="chip-screen__rail">
-        <IconRail end={<NavItem iconOnly label="Settings" icon="Settings" href="#/projects" />}>
+        <IconRail end={<NavItem iconOnly label="Settings" icon="Settings" href="#/connectors" current={place === 'settings' && !projectsOpen} />}>
           {PLACES.map((p) =>
             p.id === 'projects' && panelOut ? (
               // one current item: while the Projects drawer is open it is Projects, else the page you are on

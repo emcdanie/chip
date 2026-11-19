@@ -6,7 +6,7 @@ import ConnectorsContent from './ConnectorsContent.jsx';
 
 export default function Connectors() {
   return (
-    <Screen place="map" header={{ title: 'Connectors', lede: 'The tools CHIP reads from, and whether each one answers.' }}>
+    <Screen place="settings" header={{ title: 'Connectors' }}>
       <ConnectorsContent />
     </Screen>
   );
