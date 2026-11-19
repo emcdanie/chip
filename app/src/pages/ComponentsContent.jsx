@@ -11,8 +11,9 @@
 // Part gaps (asked of parts-dev, never styled around): no zoom in / fit / zoom
 // out or Light / Dark overlay; pins and chips can't be clicked (the Anatomy tab
 // picks); the selected leader's ink look isn't passed through Stage; Step has
-// no kind colours; no Switch for "Try it"; Button has no preview state yet (hover / pressed / focus are BELLA's own
-// rules copied onto attributes).
+// no kind colours; Button has no preview state yet (hover / pressed / focus
+// are BELLA's own rules copied onto attributes). No Try it switch: Elleta
+// removed it from the stage, 20 Nov 2026 ("Remove it").
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
