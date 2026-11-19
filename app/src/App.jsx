@@ -40,7 +40,14 @@ const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digi
 const MODEL_KEY = 'chip-model-v2';
 
 // #/play/<project>?route=<page> opens a project's page in the Playground
+// A rebuilt page takes the old route; the old page stays reachable at
+// <route>-old until Elleta has decided on its code-only features
+// (her rule: "A rebuild never overwrites a code-only feature she has not decided on").
+const OLD_AT = { connectors: '#/connectors-old' };
+const ALIAS = { 'connectors-old': 'connectors', 'history-old': 'docs' };
 function routeOf(hash) {
+  const a = hash.match(/^#\/([\w-]+-old)$/);
+  if (a && ALIAS[a[1]]) return { ws: ALIAS[a[1]] };
   const m = hash.match(/^#\/(health|foundations|atlas|play|docs|connectors|projects)(?:\/([\w-]+))?(?:\?route=([^&]*))?$/);
   if (!m) return null;
   let route;
@@ -184,7 +191,7 @@ export default function App() {
       : ws === 'docs' && docId ? `#/docs/${docId}`
       : ws === 'projects' && projId ? `#/projects/${projId}`
       : ws === 'play' && playTarget ? `#/play/${playTarget.project}${playTarget.route ? `?route=${encodeURIComponent(playTarget.route)}` : ''}`
-      : `#/${ws}`;
+      : OLD_AT[ws] ?? `#/${ws}`;
     if (window.location.hash !== want) window.history.replaceState(null, '', want);
   }, [ws, atlasId, docId, projId, playTarget]);
   useEffect(() => {
