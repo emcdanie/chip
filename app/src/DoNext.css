@@ -5,7 +5,7 @@
 .gap1.dn > .n { align-self: stretch; font-size: var(--fs-20); padding: var(--s-8); }
 .gap1.dn > .n small { margin-top: 0; }
 .gap1.dn > div { padding: var(--s-12) 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8); }
-.gap1.dn > [data-bella-component='button'] { align-self: center; margin-block: var(--s-8); }
+.gap1.dn > .gap1-act { align-self: center; margin-block: var(--s-8); }
 
 .dn-pick { display: flex; flex-wrap: wrap; gap: var(--s-8); }
 .dn-pick .k-chip { margin: 0; min-height: var(--h-control); }
