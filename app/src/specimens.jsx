@@ -4,6 +4,7 @@
 import React from 'react';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Avatar from '@bella/components/Avatar/Avatar';
+import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import Combobox from '@bella/components/Combobox/Combobox';
 import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
 import Button from '@bella/components/Button/Button';
@@ -32,7 +33,7 @@ import Tag from '@bella/components/Tag/Tag';
 const noop = () => {};
 
 // every component imported here, by its name: Atlas writes a specimen out as JSX with these
-export const COMPONENTS = { ActionChip, Avatar, Combobox, BrandWordmark, Button, Card, DataTable, Disclosure, Eyebrow, FilterChip, Heading, Icon, Input, Kbd, Link, NavList, PatternField, ResourceCard, ScaledFrame, SectionHeader, SegmentedControl, Select, Stat, StatusPill, Tabs, Tag };
+export const COMPONENTS = { ActionChip, Avatar, CodeBlock, Combobox, BrandWordmark, Button, Card, DataTable, Disclosure, Eyebrow, FilterChip, Heading, Icon, Input, Kbd, Link, NavList, PatternField, ResourceCard, ScaledFrame, SectionHeader, SegmentedControl, Select, Stat, StatusPill, Tabs, Tag };
 
 export const SPECIMENS = {
   Avatar: () => <Avatar name="Ada Lovelace" size="lg" ring />,
@@ -43,6 +44,16 @@ export const SPECIMENS = {
     <Card href="#specimen">
       <p style={{ margin: 0 }}>A card that links somewhere.</p>
     </Card>
+  ),
+  // Figma's CodeBlock specimen (Components 612:57717)
+  CodeBlock: () => (
+    <CodeBlock
+      title="Button.tsx"
+      language="tsx"
+      lineNumbers
+      copy
+      code={`import { Button } from 'bella';\n\n<Button variant="primary">Copy</Button>\n// one primary per view: the rest are secondary\n<Button variant="secondary">Title</Button>`}
+    />
   ),
   ActionChip: () => <ActionChip onClick={noop}>Try in sandbox</ActionChip>,
   Disclosure: () => (
