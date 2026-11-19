@@ -63,6 +63,12 @@
   grid-column: 1 / -1;
 }
 
+/* The project's health bar under the title: Figma's 180 (three 60 steps). */
+.chip-screen__health-bar {
+  inline-size: calc(var(--size-60) * 3);
+  flex-shrink: 0;
+}
+
 /* Flow (Flow.jsx): the one layout primitive pages use. */
 
 /* The Work board: the window's height from where it starts (Flow sets the
@@ -76,6 +82,7 @@
   overflow-y: hidden;
   align-items: stretch;
   overscroll-behavior-x: contain;
+  position: relative; /* so the parts' screen-reader-only labels stay inside the scroll box */
 }
 
 .chip-flow--board > * {
@@ -83,6 +90,7 @@
   min-block-size: 0;
   max-block-size: 100%;
   overflow-y: auto;
+  position: relative;
 }
 .chip-flow {
   display: flex;
