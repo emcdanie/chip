@@ -27,11 +27,12 @@ import './Screen.css';
  * app, which stays beside the new routes until Elleta has seen that list. */
 const PLACES = [
   // Home has no page of its own yet (Figma Home waits on Elleta's pick), so it
-  // opens Work, the board, and Work marks Home current (19 Nov re-audit); the
-  // other project views mark Projects. Settings has no page either and opens
+  // opens Work, the board, and Work marks Home current (19 Nov re-audit).
+  // Projects opens the project's overview (Health), and every other project
+  // view marks Projects: one current item, the one you are on. Settings has no page either and opens
   // Projects, where each repo's setup lives (an old page until it is rebuilt).
   { id: 'home', label: 'Home', icon: 'Home', href: '#/work' },
-  { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/work' },
+  { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/health' },
   { id: 'not-again', label: 'Not again', icon: 'Book', href: '#/not-again' },
   { id: 'team', label: 'Team', icon: 'Group', href: '#/team' },
   { id: 'map', label: 'System map', icon: 'Map', href: '#/connectors' },

@@ -33,10 +33,13 @@ const EMPTY = {
   ready: { mark: '📭', title: 'Nothing ready', line: 'Finished work waits here for your Accept.' },
 };
 
+/* Each lane's dot is the panel's Status dot for the same lane (dots mean status). */
+const LANE_TONE = { needs: 'attention', agent: 'info', gate: 'neutral', ready: 'success' };
+
 function Lane({ lane, index }) {
   const e = EMPTY[lane.id];
   return (
-    <BoardLane name={lane.name} index={String(index + 1).padStart(2, '0')} order={lane.order} lane={lane.id === 'needs' ? 'needs-you' : 'other'} count={lane.cards.length} headingLevel={2}>
+    <BoardLane name={lane.name} index={String(index + 1).padStart(2, '0')} order={lane.order} lane={lane.id === 'needs' ? 'needs-you' : 'other'} statusTone={LANE_TONE[lane.id]} count={lane.cards.length} headingLevel={2}>
       {lane.cards.length
         ? lane.cards.map((c) => <TaskCard key={c.id} title={c.title} line={c.line} branch={c.branch} status={c.status} statusTone={c.tone} href="#/health-old" />)
         : [<EmptyState key="empty" size="lane" mark={e.mark} title={e.title} line={e.line} />]}

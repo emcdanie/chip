@@ -16,6 +16,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Input from '@bella/components/Input/Input';
@@ -106,8 +107,28 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
     return <Notification tone="danger" title="The team can't be read" message="The Bar isn't answering. Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
 
   const answered = new Set(sent.map((s) => s.ask?.id));
-  const asks = data.asks.filter((a) => !answered.has(a.id));
+  const open = data.asks.filter((a) => !answered.has(a.id));
+  // One count everywhere: like /needs (the panel's "Needs you"), an ask quiet
+  // for over a week is history, not something waiting on you (19 Nov audit).
+  const asks = open.filter((a) => Date.now() - a.at <= QUIET_DAYS * DAY);
+  const older = open.filter((a) => Date.now() - a.at > QUIET_DAYS * DAY);
   const isDraft = draft && replyTo?.id === draft.ask?.id && text === draft.text;
+
+  const askRow = (a) => (
+    <ListRow
+      key={a.id}
+      layout="stacked"
+      selected={replyTo?.id === a.id}
+      title={a.agent}
+      // the ask is a sentence: ListRow's body (reading face), not its subtitle (mono, short meta)
+      body={`${short(a.text)} · ${dateOf(a.at)}`}
+      actionButton={
+        <Button variant="secondary" size="sm" ariaLabel={`Reply to ${a.agent}`} onClick={() => setReplyTo(a)}>
+          Reply
+        </Button>
+      }
+    />
+  );
 
   async function send() {
     const body = { type: 'reply', to: replyTo?.agent ?? 'all', ask: replyTo?.text ?? null, text: text.trim(), page: 'Team' };
@@ -155,25 +176,18 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
             <SectionHead icon="Group" iconTone="warning" title="Waiting on you" number={asks.length} words={asks.length === 1 ? 'ask' : 'asks'} description="Every ask lands here. Reply to one, or to all" />
             {asks.length ? (
               <Flow as="ul" gap={8} aria-label="Asks waiting on you">
-                {asks.map((a) => (
-                  <ListRow
-                    key={a.id}
-                    layout="stacked"
-                    selected={replyTo?.id === a.id}
-                    title={a.agent}
-                    // the ask is a sentence: ListRow's body (reading face), not its subtitle (mono, short meta)
-                    body={`${short(a.text)} · ${dateOf(a.at)}`}
-                    actionButton={
-                      <Button variant="secondary" size="sm" ariaLabel={`Reply to ${a.agent}`} onClick={() => setReplyTo(a)}>
-                        Reply
-                      </Button>
-                    }
-                  />
-                ))}
+                {asks.map((a) => askRow(a))}
               </Flow>
             ) : (
               <EmptyState size="lane" mark="🍻" title="No one's waiting on you" line="Every ask is answered. Put the kettle on." />
             )}
+            {older.length ? (
+              <Disclosure title={`${older.length} older ${older.length === 1 ? 'ask' : 'asks'}`} summary="Quiet for over a week, so not counted as waiting on you">
+                <Flow as="ul" gap={8} aria-label="Older asks">
+                  {older.map((a) => askRow(a))}
+                </Flow>
+              </Disclosure>
+            ) : null}
           </Flow>
         </Card>
       </Flow>

@@ -30,14 +30,18 @@ const LIVE = { ok: ['Live', 'success'], bad: ['Needs setup', 'danger'], blocked:
 const REACHES = [
   { id: 'ci', name: 'GitHub CI', icon: 'Network', ok: 'Ran' },
   { id: 'git', name: 'git', icon: 'Code', ok: 'Up to date' },
-  { id: 'claude', name: 'Agent', icon: 'Sparks', ok: 'Ready', sub: 'OBI uses it' },
-  { id: 'ollama', name: 'Local model', icon: 'Activity', ok: 'Ready', sub: ':11434' },
+  { id: 'claude', name: 'Agent', icon: 'Sparks', ok: 'Ready', sub: 'OBI uses it to answer.' },
+  { id: 'ollama', name: 'Local model', icon: 'Activity', ok: 'Ready', sub: 'Runs on this Mac.' },
 ];
 const PATHS = [
-  { id: 'figma', name: 'Figma desktop MCP', icon: 'Activity' },
-  { id: 'figma-console', name: 'figma-console', icon: 'Code' },
-  { id: 'figma-rest', name: 'figma-rest', icon: 'EvPlug' },
+  { id: 'figma', name: 'Figma desktop app', icon: 'Activity' },
+  { id: 'figma-console', name: 'Figma plugin bridge', icon: 'Code' },
+  { id: 'figma-rest', name: 'Figma web access', icon: 'EvPlug' },
 ];
+/* Plain names for what each connector is (19 Nov audit: no tool ids or "REST API" on the page). */
+const NAMES = { figma: 'Figma desktop app', 'figma-console': 'Figma plugin bridge', 'figma-rest': 'Figma web access', notion: 'Notion' };
+const nameOf = (n) => NAMES[n?.id] ?? n?.name;
+const plainWords = (t) => String(t ?? '').replace(/\bthe Figma REST API\b/gi, "Figma's web access").replace(/\bFigma REST( API)?\b/g, 'Figma web access').replace(/\bREST API\b/g, 'web access').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0];
 // Figma's own short words for each connector (601:126716): plain, no paths, tokens or hashes
 const SAYS = {
@@ -108,12 +112,12 @@ export default function ConnectorsContent() {
                       <IconWell icon={r.icon} tone="neutral" />
                       <StateTag state={r.n.state} />
                     </Flow>
-                    {/* short meta (":11434") in the meta face; a sentence in the reading face */}
+                    {/* short meta (the last commit) in the meta face; sentences in the reading face */}
                     <TextStack
                       overline={r.name}
                       title={r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested'}
-                      subtitle={r.id === 'git' ? sha(r.n.detail) : r.sub && r.n.state === 'ok' ? r.sub : undefined}
-                      body={r.id === 'git' || (r.sub && r.n.state === 'ok') ? undefined : first(r.n.detail)}
+                      subtitle={r.id === 'git' && sha(r.n.detail) ? `Last commit ${sha(r.n.detail)}` : undefined}
+                      body={r.id === 'git' ? undefined : r.sub && r.n.state === 'ok' ? r.sub : plainWords(first(r.n.detail))}
                     />
                     <Flow direction="row" justify="end">
                       {r.id === 'git' ? (
@@ -155,7 +159,7 @@ export default function ConnectorsContent() {
               tone={compare.state === 'ok' ? 'success' : 'info'}
               icon="InfoCircle"
               title="Compare with Figma"
-              message={compare.state === 'ok' ? 'Figma matches the code.' : `Can't compare yet. ${compare.blockedBy ? `Waits on ${compare.blockedBy.name}. ` : ''}${first(compare.detail)}`}
+              message={compare.state === 'ok' ? 'Figma matches the code.' : `Can't compare yet. ${compare.blockedBy ? `Waits on ${nameOf(compare.blockedBy)}. ` : ''}${plainWords(first(compare.detail))}`}
             />
           ) : null}
         </Flow>
@@ -169,7 +173,7 @@ export default function ConnectorsContent() {
               {needs.map((n) => (
                   <Card key={n.id}>
                     <Flow gap={8}>
-                      <ListRow as="div" iconWell={<IconWell icon="Settings" tone="neutral" />} title={n.name} description={why(n)} actionButton={phone ? undefined : <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} />
+                      <ListRow as="div" layout="stacked" iconWell={<IconWell icon="Settings" tone="neutral" />} title={nameOf(n)} body={why(n)} actionButton={phone ? undefined : <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} />
                       {phone ? (
                         <Flow direction="row" justify="end">
                           <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>
@@ -186,12 +190,12 @@ export default function ConnectorsContent() {
       <Drawer
         open={!!setup}
         onClose={() => setSetup(null)}
-        label={setup ? `Set up ${setup.name}` : 'Set up'}
+        label={setup ? `Set up ${nameOf(setup)}` : 'Set up'}
         footer={setup ? <Flow direction="row" justify="end">{testButton(setup, 'Test it')}</Flow> : null}
       >
         {setup ? (
           <Flow gap={16}>
-            <TextStack title={setup.name} body={setup.detail} />
+            <TextStack title={nameOf(setup)} body={plainWords(setup.detail)} />
             {setup.dependents?.length ? <TextStack overline="Unlocks" body={setup.dependents.join(', ')} /> : null}
           </Flow>
         ) : null}

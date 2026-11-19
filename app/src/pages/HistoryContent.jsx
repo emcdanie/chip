@@ -57,10 +57,27 @@ const plain = (t) =>
     .replace(/#\/([\w-]+)/g, (_, r) => `the ${r.replace(/-/g, ' ')} page`)
     .replace(/(?:[\w.-]+\/)+[\w.-]+\.\w+|\b[\w-]+\.(?:jsx?|tsx?|css|html|json|mjs|md|ya?ml)\b/g, '')
     .replace(/\bClaude Code\b|\bClaude\b/g, 'the agent')
+    // a commit reference in brackets ("(bella-parts f134741)") is bookkeeping, not words
+    .replace(/\s*\([^()]*\b[0-9a-f]{7,40}\b[^()]*\)/g, '')
+    .replace(/\bbella-parts\b/g, "BELLA's parts")
     .replace(/\s+([,.;:)])/g, '$1')
     .replace(/\(\s*\)|,\s*(?=[,.;])/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
+/* A touched file in plain words: what it is, not its path ("Team page", "Button part"). */
+const fileWords = (f) => {
+  const parts = String(f).split('/');
+  const base = parts.pop().replace(/\.(stories)?\.?(jsx?|tsx?|mjs|css|md|json|ya?ml|html)$/, '');
+  const name = base.replace(/Content$/, '').replace(/\.stories$/, '');
+  if (/\.stories\./.test(f)) return `${name} stories`;
+  if (parts.includes('pages')) return `${name} page`;
+  if (parts.includes('templates')) return `${name} template`;
+  if (parts.includes('components')) return `${name} part`;
+  if (parts[0] === 'server') return 'CHIP server';
+  if (/\.css$/.test(f)) return `${name} styles`;
+  if (/\.md$/.test(f)) return `${name} notes`;
+  return name;
+};
 const count = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
 const lines = (stat) => [...String(stat ?? '').matchAll(/(\d+) (?:insertion|deletion)/g)].reduce((n, m) => n + Number(m[1]), 0);
 
@@ -168,7 +185,7 @@ function Record({ id }) {
             {files.map((f) => (
               <li key={f}>
                 <Card>
-                  <TextStack title={f.split('/').pop()} subtitle={`file · ${String(rec.status).toLowerCase()}`} />
+                  <TextStack title={fileWords(f)} subtitle={String(rec.status).toLowerCase()} />
                 </Card>
               </li>
             ))}
@@ -226,7 +243,8 @@ export default function HistoryContent() {
         <Flow direction={phone ? 'column' : 'row'} gap={8} grow={phone ? undefined : 'first'} as="form" role="search" onSubmit={(e) => (e.preventDefault(), setQ(draft.trim()))}>
           <Input label="Ask about a change, in plain words" leadingIcon="Search" value={draft} onChange={setDraft} />
           <Flow direction={phone ? 'row' : 'column'} justify="end">
-            <Button variant="primary" type="submit">
+            {/* secondary: Ask's send is the one blue button in view (19 Nov audit) */}
+            <Button variant="secondary" type="submit">
               Search
             </Button>
           </Flow>

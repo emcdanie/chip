@@ -38,6 +38,9 @@ function Root() {
     return () => window.removeEventListener('hashchange', on);
   }, []);
   if (hash === '#/kit') return <Kit />;
+  // The root opens the new shell on Work (19 Nov audit); the old app's
+  // Overview stays at #/health-old until Elleta has decided on it.
+  if (hash === '' || hash === '#' || hash === '#/') return <Work />;
   if (hash === '#/not-again') return <NotAgain />;
   if (hash.split('?')[0] === '#/playground') return <Playground />;
   if (hash.split('?')[0] === '#/team') return <Team />;
