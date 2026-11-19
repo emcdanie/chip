@@ -177,15 +177,15 @@
 .chip-screen__content > .chip-span-6 { grid-column: span 6; }
 .chip-screen__content > .chip-span-5 { grid-column: span 5; }
 .chip-screen__content > .chip-span-4 { grid-column: span 4; }
+/* a main card with a side column (Components' History | Ask and Checks, Figma 690:491763): 7 / 5 */
+.chip-screen__content > .chip-span-8:has(+ .chip-span-4) { grid-column: span 7; }
+.chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: span 5; }
 
 @container chip-content (width < 1000px) {
   .chip-screen__content > .chip-span-4 { grid-column: span 6; }
   /* the third of three third-width groups takes the row and lays its cards side by side */
   .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; flex-direction: row; }
   .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) > * { flex: 1 1 0; min-inline-size: 0; }
-  /* a main card with a side column (Components' History | Ask and Checks): 7 / 5, so the side keeps room */
-  .chip-screen__content > .chip-span-8:has(+ .chip-span-4) { grid-column: span 7; }
-  .chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: span 5; }
 }
 
 @container chip-content (width < 800px) {

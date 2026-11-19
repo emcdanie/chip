@@ -110,6 +110,19 @@ function pinAt(kind, i, box) {
   return { x: Math.round(at[0]), y: Math.round(at[1] + (kind in { fill: 1, content: 1, box: 1, border: 1, ring: 1, shadow: 1 } ? 0 : i * 8)) };
 }
 
+/* An element's width, kept current. */
+function useWidth(id) {
+  const [w, setW] = useState(0);
+  useLayoutEffect(() => {
+    const el = document.getElementById(id);
+    if (!el) return undefined;
+    const ro = new ResizeObserver(() => setW(Math.round(el.getBoundingClientRect().width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [id]);
+  return w;
+}
+
 /* The live part's box against the stage's centre, measured after layout and
    again when the stage resizes. */
 function useBox(stageWrapId, partId, deps) {
@@ -167,9 +180,11 @@ function PartCard({ a, onFix }) {
 function OnTheStage({ part, detail, picked, onPick, onAsk }) {
   const narrow = useNarrow();
   const tiny = useNarrow(420);
-  // the part's card stands beside the part only when the stage has room for the chips, the part and the card
-  const beside = !useNarrow(1400);
+  // the part's card stands beside the part inside the stage (as the frame) when the stage is wide enough for
+  // the chips, the 2x part and the card; narrower, it goes under the stage so the chips keep their room
   const stageId = useId();
+  const stageW = useWidth(stageId);
+  const beside = stageW >= 900;
   const liveId = useId();
   const variants = PLAY[part.name] ? part.variants : [];
   const [variant, setVariant] = useState(variants[0] ?? null);
@@ -240,9 +255,11 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
           {/* Stopgap until Stage takes a height (asked of parts-dev): the Anatomy story's 400 for a 2x part, else tall enough for the chip column */}
           <Stage label={`${part.name} on the stage`} markers={markers} style={twoX ? { minBlockSize: 'calc(var(--spacing-80) * 5)' } : markers.some((m) => m.chipX != null) ? { minBlockSize: `calc(var(--spacing-40) * ${anatomy.length + 1})` } : undefined}>
             {!beside || !card ? live : (
-              <Flow direction="row" gap={24} align="center" equal>
+              // the stage centres its content, so the row asks for the stage's full width (stopgap until Stage lays out a part beside a card)
+              <Flow direction="row" gap={24} align="center" grow="first" style={{ alignSelf: 'stretch' }}>
                 {live}
-                {card}
+                {/* the frame's finding card is 280 wide (7 x 40); stopgap until Card takes a width */}
+                <Flow style={{ inlineSize: 'calc(var(--spacing-40) * 7)' }}>{card}</Flow>
               </Flow>
             )}
           </Stage>
@@ -296,32 +313,44 @@ function HistoryCard({ part, detail, all }) {
   );
 }
 
-function AskCard({ part, detail, onAsk, answer }) {
-  const [q, setQ] = useState('');
+/* Questions from the part's own data: its first finding or failing check, then its use. */
+function questions(part, detail) {
   const failing = part.checks.find((k) => !k.ok);
   const finding = detail.anatomy.find((x) => x.status === 'finding');
-  // questions from the part's own data: its first finding or failing check, then its use
-  const asks = [
+  return [
     finding ? `Why is the ${finding.title.toLowerCase()} a finding?` : failing ? `Why does ${failing.title} fail?` : `When do I use ${part.name}?`,
     detail.anatomy.length ? `Which tokens does ${part.name} use?` : `What are ${part.name}'s parts?`,
   ];
-  const send = (text) => {
-    if (!text.trim()) return;
-    onAsk(text.trim());
+}
+
+/* The frame's "Ask BELLA · questions" row (786:879378): under the notice, full width, wraps. */
+function AskRow({ part, detail, onAsk }) {
+  return (
+    <Flow direction="row" gap={8} wrap align="center">
+      <TextStack title="Ask BELLA" />
+      {questions(part, detail).map((t) => (
+        <ActionChip key={t} onClick={() => onAsk(t)}>
+          {t}
+        </ActionChip>
+      ))}
+    </Flow>
+  );
+}
+
+/* Card · Ask BELLA: its title, what it knows, and the field; the questions sit in the row at the top. */
+function AskCard({ part, detail, onAsk, answer }) {
+  const [q, setQ] = useState('');
+  const send = () => {
+    if (!q.trim()) return;
+    onAsk(q.trim());
     setQ('');
   };
+  const knows = detail.findings ? `the contract and the ${detail.findings} ${detail.findings === 1 ? 'finding' : 'findings'}` : 'the contract and its checks';
   return (
     <Card>
       <Flow gap={12}>
-        <TextStack title="Ask BELLA" body={detail.findings ? `Knows the contract and the ${detail.findings} ${detail.findings === 1 ? 'finding' : 'findings'}.` : `Knows ${part.name}'s contract and its checks.`} />
-        <Flow gap={8} align="start">
-          {asks.map((t) => (
-            <ActionChip key={t} onClick={() => send(t)}>
-              {t}
-            </ActionChip>
-          ))}
-        </Flow>
-        <Input label={`Ask about ${part.name}`} value={q} onChange={setQ} onSend={() => send(q)} sendLabel="Ask" />
+        <TextStack title="Ask BELLA" body={`Ask about ${part.name}: ${knows}.`} />
+        <Input label={`Ask about ${part.name}`} value={q} onChange={setQ} onSend={send} sendLabel="Ask" />
         {answer ? <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title={answer.pending ? 'Asking…' : 'BELLA'} message={answer.reply} /> : null}
       </Flow>
     </Card>
@@ -404,6 +433,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
           {detail?.figmaBlind ? (
             <Notification tone="attention" title="Figma can’t see it" message="CHIP has no Figma file key or token, so it can’t compare this part with Figma." action={{ label: 'Add file key', href: '#/connectors' }} />
           ) : null}
+          {detail ? <AskRow part={part} detail={detail} onAsk={ask} /> : null}
           {!detail ? (
             <EmptyState size="lane" mark="⏳" title={`Reading ${part.name}`} line="Fetching its history and contrast pairs." />
           ) : view === 'history' ? (
@@ -433,10 +463,10 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                 ) : null
               ) : (
                 <>
-                  <Flow span={8}>
+                  <Flow span={8} fill>
                     <HistoryCard part={part} detail={detail} />
                   </Flow>
-                  <Flow span={4} gap={24}>
+                  <Flow span={4} gap={24} grow="last">
                     <AskCard part={part} detail={detail} onAsk={ask} answer={answer} />
                     <ChecksCard part={part} detail={detail} checked={model.checked} />
                   </Flow>
