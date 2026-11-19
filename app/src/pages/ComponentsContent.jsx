@@ -82,13 +82,15 @@ function StateThumb({ part, variant, label, state }) {
     if (el && f) el.setAttribute(f[0], f[1]);
   });
   return (
-    <Flow gap={8} align="center">
+    <Flow gap={8}>
       <Card>
         <Flow id={id} align="center" inert="" aria-hidden="true">
           <LivePart part={part} variant={variant} label={label} state={state.id} small />
         </Flow>
       </Card>
-      <TextStack body={state.label} />
+      <Flow align="center">
+        <TextStack body={state.label} />
+      </Flow>
     </Flow>
   );
 }
@@ -99,7 +101,7 @@ function pinAt(kind, i, box) {
   const { cx, cy, w, h } = box;
   const at = {
     fill: [cx + w / 2, cy - h / 2],
-    content: [cx, cy - h / 2],
+    content: [cx, cy - h / 4],
     box: [cx, cy + h / 2],
     border: [cx - w / 2, cy],
     ring: [cx - w / 2, cy + h / 2],
@@ -183,25 +185,45 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
   const box = useBox(stageId, liveId, [part.id, variant, label, narrow, beside, anatomy.length, a?.key]);
   const markers = useMemo(() => {
     if (!box || !anatomy.length) return [];
-    // chips in a column left of the part, one per anatomy part, 36 apart; on a phone, the pins alone
-    const top = box.cy - ((anatomy.length - 1) * 36) / 2;
+    // chips in a column left of the part, each level with its pin (as the frame), at least 36 apart; on a phone, the pins alone
     const chips = !narrow && box.room > 160;
+    const pins = anatomy.map((x, i) => pinAt(x.kind, i, box));
+    // where each chip wants to sit: above the part for the top pins, level for the side ones, below for the bottom ones (as the frame)
+    const top = box.cy - box.h / 2;
+    const bottom = box.cy + box.h / 2;
+    const want = anatomy.map((x, i) => ({ fill: top - 40, content: top - 4, border: box.cy, ring: box.cy + box.h / 4 + 12, box: bottom + 24, shadow: bottom + 60 })[x.kind] ?? pins[i].y);
+    const order = want.map((y, i) => i).sort((i, j) => want[i] - want[j]);
+    const chipY = [];
+    order.forEach((i, k) => {
+      chipY[i] = Math.round(k === 0 ? want[i] : Math.max(want[i], chipY[order[k - 1]] + 36));
+    });
+    // centre the column on the part when spreading pushed it down
+    const shift = Math.round((Math.max(...chipY) + Math.min(...chipY)) / 2 - box.cy) > 0 ? Math.round(((Math.max(...chipY) + Math.min(...chipY)) / 2 - box.cy)) : 0;
     return anatomy.map((x, i) => ({
       id: x.key,
-      ...pinAt(x.kind, i, box),
+      ...pins[i],
       part: x.title,
       status: x.status,
-      ...(chips ? { chipX: box.cx - box.w / 2 - 48, chipY: Math.round(top + i * 36) } : {}),
-      leader: chips && x.key === a?.key,
+      ...(chips ? { chipX: box.cx - box.w / 2 - 48, chipY: chipY[i] - shift } : {}),
+      // a pink leader to every chip, as the finished frame (690:490822) draws; the picked chip has the ink edge
+      leader: chips,
       selected: x.key === a?.key,
     }));
   }, [box, anatomy, narrow, a?.key]);
-  const live = <Flow id={liveId} align="center"><LivePart part={part} variant={variant} label={label} state="default" /></Flow>;
+  // small controls stand at 2x, as the frame and BELLA's own Stage Anatomy story show them (a scale wrapper)
+  const twoX = !!PLAY[part.name];
+  const live = (
+    <Flow id={liveId} align="center">
+      <Flow align="center" style={twoX ? { scale: '2' } : undefined}>
+        <LivePart part={part} variant={variant} label={label} state="default" />
+      </Flow>
+    </Flow>
+  );
   const card = a ? <PartCard a={a} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
   return (
     <Card>
       <Flow gap={16}>
-        <TextStack title="On the stage" body={anatomy.length ? 'Pick a part: green passes, ochre is a finding.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`} />
+        <TextStack title="On the stage" body={`${twoX ? 'Shown at 2×. ' : ''}${anatomy.length ? 'Pick a part: green passes, ochre is a finding.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`}`} />
         {PLAY[part.name] ? (
           <Flow direction="row" gap={16} wrap align="center">
             <Input label="Label" value={label} onChange={setLabel} placeholder={PLAY[part.name].children} />
@@ -215,8 +237,8 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
           </Flow>
         ) : null}
         <Flow id={stageId}>
-          {/* Stopgap until Stage takes a height (asked of parts-dev): tall enough for the chip column, one 40 step per part */}
-          <Stage label={`${part.name} on the stage`} markers={markers} style={markers.some((m) => m.chipX != null) ? { minBlockSize: `calc(var(--spacing-40) * ${anatomy.length + 1})` } : undefined}>
+          {/* Stopgap until Stage takes a height (asked of parts-dev): the Anatomy story's 400 for a 2x part, else tall enough for the chip column */}
+          <Stage label={`${part.name} on the stage`} markers={markers} style={twoX ? { minBlockSize: 'calc(var(--spacing-80) * 5)' } : markers.some((m) => m.chipX != null) ? { minBlockSize: `calc(var(--spacing-40) * ${anatomy.length + 1})` } : undefined}>
             {!beside || !card ? live : (
               <Flow direction="row" gap={24} align="center" equal>
                 {live}

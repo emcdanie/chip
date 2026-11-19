@@ -12,6 +12,7 @@ import { CHECKS } from './healthModel.js';
 /* Figma 690:492657's link words per check row ("Contrast · See pairs ›"). */
 const LINK_WORDS = { story: 'Open stories', docs: 'Open docs', contract: 'Open contract', dsds: 'Open spec', contrast: 'See pairs', a11y: 'Open notes' };
 const MISSING_WORDS = { story: 'No story', docs: 'No doc page', contract: "Doesn't match", dsds: 'Not in the spec', contrast: 'No pair', a11y: 'No checks' };
+const ORDER = ['contrast', 'story', 'contract', 'docs', 'dsds', 'a11y'];
 /* The contract's state names in Figma's words. */
 const STATE_WORDS = { default: 'Default', hover: 'Hover', active: 'Pressed', pressed: 'Pressed', focus: 'Focus', disabled: 'Disabled' };
 
@@ -22,9 +23,10 @@ const firstSentence = (s) => (s ?? '').replace(/\s+/g, ' ').trim().match(/^.*?[.
 export function componentsModel({ components = [], gaps = {}, version, checkedAt }) {
   const parts = components
     .map((c) => {
-      const checks = CHECKS.map((k) => {
+      // the finished frame's order and words (690:490822): Contrast, Stories, Contract, Docs, Machine-readable spec; A11y is CHIP's sixth
+      const checks = ORDER.map((id) => CHECKS.find((k) => k.id === id)).map((k) => {
         const ok = !gaps[k.id]?.[c.name];
-        return { id: k.id, title: k.title, ok, words: ok ? LINK_WORDS[k.id] : MISSING_WORDS[k.id], action: k.action };
+        return { id: k.id, title: k.id === 'story' ? 'Stories' : k.title, ok, words: ok ? LINK_WORDS[k.id] : MISSING_WORDS[k.id], action: k.action };
       });
       const pass = checks.filter((k) => k.ok).length;
       return {
