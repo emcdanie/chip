@@ -131,7 +131,9 @@ export function GapCard({ gap, idx, title, why, who, first, fixes, fixesError, d
         </button>
         {first ? <StatusPill tone="needs">Do next</StatusPill> : null}
       </div>
-      <Button onClick={start}>Review the fix</Button>
+      <span className="gap1-act">
+        <Button onClick={start}>Review the fix</Button>
+      </span>
       <Sheet
         open={picking}
         onClose={() => setPicking(false)}
