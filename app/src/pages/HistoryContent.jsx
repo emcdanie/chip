@@ -48,10 +48,14 @@ const PAGE = 10;
 const day = (d) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const time = (d) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const STATUS_TONE = { Merged: 'success', Shipped: 'success', Decided: 'info', 'On a branch': 'attention', Undone: 'neutral' };
+/* Who made a record, as Figma says it: the role, never a person or a handle
+   (Many users, not one, 20 Nov); the agent stays the agent. */
+const roleOf = (who) => (!who ? null : /claude|agent|bot/i.test(who) ? 'the agent' : /in CHIP/i.test(who) ? 'a maintainer, in CHIP' : 'a maintainer');
 // Plain words on screen (her rule): no Figma node ids, file paths, app routes or model names.
 const plain = (t) =>
   String(t ?? '')
-    .replace(/\s*\(?\b\d{2,4}:\d{2,7}\b\)?/g, '')
+    // the node id goes, its bracket stays whole ("(Health content 601:111049)" reads "(Health content)"); an emptied bracket goes below
+    .replace(/\s*\b\d{2,4}:\d{2,7}\b/g, '')
     .replace(/#\/[\w-]+-old\b/g, 'its old address')
     .replace(/#\/([\w-]+)/g, (_, r) => `the ${r.replace(/-/g, ' ')} page`)
     .replace(/(?:[\w.-]+\/)+[\w.-]+\.\w+|\b[\w-]+\.(?:jsx?|tsx?|css|html|json|mjs|md|ya?ml)\b/g, '')
@@ -161,7 +165,7 @@ function Record({ id }) {
         <Flow gap={8}>
           <Flow direction="row" justify="between" wrap gap={8} align="center">
             <Tag tone={STATUS_TONE[rec.status] ?? 'neutral'}>{rec.status}</Tag>
-            <TextStack subtitle={[day(rec.date), time(rec.date), rec.who, rec.repo.toUpperCase() === 'CHIP' ? 'CHIP' : rec.repo === 'bella' ? 'BELLA' : rec.repo].join(' · ')} />
+            <TextStack subtitle={[day(rec.date), time(rec.date), roleOf(rec.who), rec.repo.toUpperCase() === 'CHIP' ? 'CHIP' : rec.repo === 'bella' ? 'BELLA' : rec.repo].filter(Boolean).join(' · ')} />
           </Flow>
           <TextStack title={plain(rec.title)} />
         </Flow>
@@ -247,13 +251,13 @@ export default function HistoryContent() {
         <Flow direction={phone ? 'column' : 'row'} gap={8} grow={phone ? undefined : 'first'} as="form" role="search" onSubmit={(e) => (e.preventDefault(), setQ(draft.trim()))}>
           <Input label="Ask about a change, in plain words" leadingIcon="Search" value={draft} onChange={setDraft} />
           <Flow direction={phone ? 'row' : 'column'} justify="end">
-            {/* Figma: Search is the blue action of the search row, Filters beside it (buttons right, primary last on a phone too) */}
+            {/* Figma (664:123671): Search, then Filters, both white, words only; the page's one blue action is New task */}
             <Flow direction="row" gap={8} justify="end">
-              <Button variant="secondary" icon="FilterList" onClick={() => setFilters(true)} ariaHaspopup="dialog">
-                {extra ? `Filters · ${extra}` : 'Filters'}
-              </Button>
-              <Button variant="primary" type="submit">
+              <Button variant="secondary" type="submit">
                 Search
+              </Button>
+              <Button variant="secondary" onClick={() => setFilters(true)} ariaHaspopup="dialog">
+                {extra ? `Filters · ${extra}` : 'Filters'}
               </Button>
             </Flow>
           </Flow>
