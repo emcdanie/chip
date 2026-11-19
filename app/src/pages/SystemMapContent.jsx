@@ -53,9 +53,10 @@ const SHORT = {
   review: () => 'Accept or Undo',
   ci: (d) => (/nothing unpushed/i.test(d) ? 'All pushed' : null),
   ship: () => 'Elleta merges',
+  compare: (d, n) => (n.state === 'ok' ? 'Figma matches the code' : 'Not compared yet'),
 };
 // a blocked node says what it waits on; anything left is cut to its first clause
-const metaOf = (n) => n.meta ?? (n.blockedBy ? `Waits on ${plain(n.blockedBy.name)}` : null) ?? SHORT[n.id]?.(String(n.detail ?? '')) ?? plain(first(n.detail)).split(/[;(,:]/)[0].trim();
+const metaOf = (n) => n.meta ?? (n.blockedBy ? `Waits on ${plain(n.blockedBy.name)}` : null) ?? SHORT[n.id]?.(String(n.detail ?? ''), n) ?? plain(first(n.detail)).split(/[;(,:]/)[0].trim();
 const plain = (t) => String(t ?? '').replace(/\bFigma REST( API)?\b/g, 'Figma web access').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
 // a count only where the node's own detail has one ("71 of 73" → 2 still to do)
 function countOf(node) {
