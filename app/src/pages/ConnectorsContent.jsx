@@ -38,6 +38,8 @@ const PATHS = [
   { id: 'figma-rest', name: 'figma-rest', icon: 'EvPlug' },
 ];
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0];
+// a branch and hash ("main @ 3d74f7d") is meta, not a sentence
+const meta = (t) => /^[\w./-]+ @ [0-9a-f]{6,}\.?$/.test(t);
 
 function useMap() {
   const [map, setMap] = useState(null);
@@ -109,8 +111,8 @@ export default function ConnectorsContent() {
                     <TextStack
                       overline={r.name}
                       title={r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested'}
-                      subtitle={r.sub && r.n.state === 'ok' ? r.sub : undefined}
-                      body={r.sub && r.n.state === 'ok' ? undefined : first(r.n.detail)}
+                      subtitle={r.sub && r.n.state === 'ok' ? r.sub : meta(first(r.n.detail)) ? first(r.n.detail) : undefined}
+                      body={(r.sub && r.n.state === 'ok') || meta(first(r.n.detail)) ? undefined : first(r.n.detail)}
                     />
                     <Flow direction="row" justify="end">
                       {r.id === 'git' ? (
