@@ -8,7 +8,10 @@ const THEME = 'chip-light';
 
 export function useTheme() {
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', THEME);
+    // keep a Chip theme someone already set (CHIP's Storybook switch, Chip
+    // dark); anything else, or nothing, becomes Chip light
+    const now = document.documentElement.getAttribute('data-theme') || '';
+    if (!now.startsWith('chip-')) document.documentElement.setAttribute('data-theme', THEME);
     try {
       localStorage.removeItem('chip-theme');
     } catch {}
