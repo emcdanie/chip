@@ -11,6 +11,7 @@ import Playground from './pages/Playground.jsx';
 import History from './pages/History.jsx';
 import Connectors from './pages/Connectors.jsx';
 import SystemMap from './pages/SystemMap.jsx';
+import Foundations from './pages/Foundations.jsx';
 import Team from './pages/Team.jsx';
 import Health from './pages/Health.jsx';
 import Work from './pages/Work.jsx';
@@ -31,6 +32,7 @@ const NEW_PAGES = [
   { id: 'history', label: 'History' },
   { id: 'connectors', label: 'Connectors' },
   { id: 'system-map', label: 'System map' },
+  { id: 'foundations', label: 'Foundations' },
 ];
 
 function Root() {
@@ -51,6 +53,7 @@ function Root() {
   if (hash.split('?')[0] === '#/history') return <History />;
   if (hash.split('?')[0] === '#/connectors') return <Connectors />;
   if (hash === '#/system-map') return <SystemMap />;
+  if (hash === '#/foundations') return <Foundations />;
   if (hash === '#/work') return <Work />;
   if (hash === '#/components' || hash.startsWith('#/components/')) return <Components />;
   return <App />;
