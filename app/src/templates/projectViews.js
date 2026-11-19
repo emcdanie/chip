@@ -6,7 +6,7 @@ export const PROJECT_VIEWS = [
   { id: 'health', label: 'Health', href: '#/health' },
   { id: 'components', label: 'Components', href: '#/components' },
   { id: 'foundations', label: 'Foundations', href: '#/foundations' },
-  { id: 'history', label: 'History', href: '#/docs' },
+  { id: 'history', label: 'History', href: '#/history' },
   { id: 'playground', label: 'Playground', href: '#/playground' },
 ];
 

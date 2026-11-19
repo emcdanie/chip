@@ -43,8 +43,8 @@ const MODEL_KEY = 'chip-model-v2';
 // A rebuilt page takes the old route; the old page stays reachable at
 // <route>-old until Elleta has decided on its code-only features
 // (her rule: "A rebuild never overwrites a code-only feature she has not decided on").
-const OLD_AT = { connectors: '#/connectors-old' };
-const ALIAS = { 'connectors-old': 'connectors', 'history-old': 'docs' };
+const OLD_AT = { connectors: '#/connectors-old', health: '#/health-old' };
+const ALIAS = { 'connectors-old': 'connectors', 'history-old': 'docs', 'health-old': 'health' };
 function routeOf(hash) {
   const a = hash.match(/^#\/([\w-]+-old)$/);
   if (a && ALIAS[a[1]]) return { ws: ALIAS[a[1]] };
