@@ -28,15 +28,17 @@ const EMPTY_STATS = [
 ];
 
 /* The card's own action, by state, in the card footer at the bottom right
-   (Figma's audited fix, 19 Nov): Run on 9, Stop, Send back; Undo + Accept in your call.
-   One primary per view: "New fix" in the PageHeader, except in Your call,
-   where Accept is the primary while it waits on her and New fix is
-   secondary (Elleta, 19 Nov, y28: "B · Accept is blue while it waits on you"). */
+   (Figma's audited fix, 19 Nov). One primary per view (her y28 B, "Accept is
+   blue while it waits on you; New fix is white", applied everywhere, Figma
+   f8): an action that commits is the view's blue button and the header's New
+   fix goes white; Stop commits nothing, so New fix stays blue. */
 const HEAD_ACTION = {
-  suggested: { label: 'Run on 9', variant: 'secondary' },
+  suggested: { label: 'Run on 9', variant: 'primary' },
   running: { label: 'Stop', variant: 'secondary' },
-  'gate-fails': { label: 'Send back', variant: 'secondary' },
+  'gate-fails': { label: 'Send back', variant: 'primary' },
 };
+/** States whose card holds the committing action: New fix is white there. */
+export const COMMITS = new Set(['suggested', 'gate-fails', 'your-call']);
 
 function Banner({ state }) {
   if (state === 'gate-fails') return null;

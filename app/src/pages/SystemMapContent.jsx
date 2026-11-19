@@ -40,12 +40,22 @@ const FRAME = 1040;
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0].replace(/\.$/, '');
 // Figma's node line is short meta ("9 have no pair", "Static score 85.3"), read from the node's own detail
 const SHORT = {
-  contrast: (d) => (d.match(/(\d+) checked/) ? `${d.match(/(\d+) checked/)[1]} pairs checked` : null),
+  contrast: (d) => (d.match(/(\d+) pairs? checked/) ? `${d.match(/(\d+) pairs? checked/)[1]} pairs checked` : null),
+  contracts: (d) => (d.match(/(\d+) of (\d+)/) ? `${d.match(/(\d+) of (\d+)/)[1]} of ${d.match(/(\d+) of (\d+)/)[2]} match` : null),
+  stories: (d) => {
+    const m = d.match(/(\d+) of (\d+)/);
+    if (!m) return null;
+    const left = Number(m[2]) - Number(m[1]);
+    return left ? `${left} have no story` : 'All have a story';
+  },
+  gate: (d) => (/not run/i.test(d) ? 'Not run yet' : d.match(/(\d+) of (\d+)/) ? `${d.match(/(\d+) of (\d+)/)[0]} checks pass` : null),
   bench: (d) => (d.match(/Composite ([\d.]+)/) ? `Score ${d.match(/Composite ([\d.]+)/)[1]}` : null),
   review: () => 'Accept or Undo',
   ci: (d) => (/nothing unpushed/i.test(d) ? 'All pushed' : null),
+  ship: () => 'Elleta merges',
 };
-const metaOf = (n) => n.meta ?? SHORT[n.id]?.(String(n.detail ?? '')) ?? plain(first(n.detail)).split(/[;(]/)[0].trim();
+// a blocked node says what it waits on; anything left is cut to its first clause
+const metaOf = (n) => n.meta ?? (n.blockedBy ? `Waits on ${plain(n.blockedBy.name)}` : null) ?? SHORT[n.id]?.(String(n.detail ?? '')) ?? plain(first(n.detail)).split(/[;(,:]/)[0].trim();
 const plain = (t) => String(t ?? '').replace(/\bFigma REST( API)?\b/g, 'Figma web access').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
 // a count only where the node's own detail has one ("71 of 73" → 2 still to do)
 function countOf(node) {

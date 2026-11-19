@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Screen from '../templates/Screen.jsx';
-import NotAgainContent from './NotAgainContent.jsx';
+import NotAgainContent, { COMMITS } from './NotAgainContent.jsx';
 
 const TABS = [
   { id: 'flow', label: 'Flow' },
@@ -19,7 +19,7 @@ export default function NotAgain({ state = 'suggested' }) {
       header={{
         title: 'Not again',
         actions: (
-          <Button variant={state === 'your-call' ? 'secondary' : 'primary'} size="sm">
+          <Button variant={COMMITS.has(state) ? 'secondary' : 'primary'} size="sm">
             New fix
           </Button>
         ),
