@@ -10,8 +10,10 @@
 // own branch, the gate, then her Accept). Pull, merge and push cards stay
 // put. The drop space shows only while dragging.
 //
-// Gaps (parts-dev): the model menu on Fix; Figma's
-// deadline bar has no CHIP data, so it is left out (no number invented).
+// Gaps (parts-dev): the model menu on Fix; Figma's deadline bar has no CHIP
+// data, so it is left out (no number invented); Iconoir "List" for the List
+// card's head is not in BELLA's registry (Clock stands in); BoardLane always
+// draws its dot, so lanes are wider than Figma's (Screen.css).
 import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
 import BoardLane, { BoardLaneDropSpace } from '@bella/components/BoardLane/BoardLane';
@@ -20,7 +22,6 @@ import Toast from '@bella/components/Toast/Toast';
 import Toasts from '../templates/Toasts.jsx';
 import TaskCard from '@bella/components/TaskCard/TaskCard';
 import ListRow from '@bella/components/ListRow/ListRow';
-import IconWell from '@bella/components/IconWell/IconWell';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
@@ -46,8 +47,9 @@ const EMPTY = {
    Figma's lane head has no dot, but BoardLane always draws one (part gap, parts-dev). */
 const LANE_TONE = { needs: 'attention', agent: 'info', gate: 'neutral', ready: 'success' };
 
-/* The List view's mark per lane, as Figma's "list" state draws it. */
-const LANE_WELL = { needs: ['WarningCircle', 'warning'], agent: ['Activity', 'info'], gate: ['ShieldCheck', 'info'], ready: ['CheckCircle', 'success'] };
+/* The List view's status bar per lane: the short rounded bar at the row's
+   left (20 Nov rule; published List row), the same tone as the lane's dot. */
+const LANE_BAR = { needs: 'attention', agent: 'info', gate: 'neutral', ready: 'success' };
 
 function Lane({ lane: given, index, move }) {
   const e = EMPTY[given.id];
@@ -180,14 +182,17 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
                   <Flow as="ul" gap={8} aria-label="All tasks">
                     {model.lanes.flatMap((l) =>
                       l.cards.map((c) => (
+                        // Figma 612:88931: the lane as the overline, name, detail; the
+                        // action on the right as text, else the › that opens it
                         <ListRow
                           key={c.id}
                           layout="stacked"
                           divider
-                          iconWell={<IconWell icon={LANE_WELL[l.id][0]} tone={LANE_WELL[l.id][1]} />}
+                          statusBar={LANE_BAR[l.id]}
+                          overline={l.name}
                           title={c.title}
-                          description={[c.line, c.status].filter(Boolean).join(' · ')}
-                          actionButton={c.action ? <Button variant="secondary" size="sm" href="#/health-old">{c.action}</Button> : undefined}
+                          description={c.line}
+                          actionButton={c.action ? <Button variant="tertiary" size="sm" href="#/health-old">{c.action}</Button> : undefined}
                           trailing={c.action ? undefined : true}
                           href={c.action ? undefined : '#/health-old'}
                         />

@@ -244,8 +244,8 @@ export default function Screen({ place, header, tabs, children }) {
         />
         <div className="chip-screen__page">
           <div className="chip-screen__head">
-            {/* project pages carry the project's health and New task, as Figma; rail pages (Team, Not again) don't */}
-            <PageHeader {...(place === 'projects' ? { health: <HealthLine />, actions: <NewTask />, ...header } : header)} />
+            {/* project pages carry New task, as Figma; the health bar only on the Health tab (Elleta, 20 Nov: "Take it off"); rail pages (Team, Not again) carry neither */}
+            <PageHeader {...(place === 'projects' ? { ...(tabs?.value === 'health' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header } : header)} />
             {tabs ? (
               <Tabs tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}
