@@ -27,8 +27,8 @@ const EMPTY_STATS = [
   { title: 'Kept', icon: 'ShieldCheck', tone: 'success', mark: '✅', empty: 'Nothing kept yet', line: 'Accept a fix and it lands here.' },
 ];
 
-/* The card's own action, by state, as Figma places it: on the head line
-   (Run on 9, Stop, Send back) or in a footer at the bottom right (your call).
+/* The card's own action, by state, in the card footer at the bottom right
+   (Figma's audited fix, 19 Nov): Run on 9, Stop, Send back; Undo + Accept in your call.
    One primary per view: "New fix" in the PageHeader, except in Your call,
    where Accept is the primary while it waits on her and New fix is
    secondary (Elleta, 19 Nov, y28: "B · Accept is blue while it waits on you"). */
@@ -50,21 +50,27 @@ function FixCard({ state }) {
   const s = states[state];
   const head = HEAD_ACTION[state];
   return (
-    <Card>
+    // Figma's audited fix: the card's action sits in its footer, bottom right
+    <Card
+      footerAction={
+        state === 'your-call' ? (
+          <Flow direction="row" gap={8} justify="end" wrap>
+            <Button variant="secondary" size="sm">
+              Undo
+            </Button>
+            <Button variant="primary" size="sm">
+              Accept
+            </Button>
+          </Flow>
+        ) : head ? (
+          <Button variant={head.variant} size="sm">
+            {head.label}
+          </Button>
+        ) : undefined
+      }
+    >
       <Flow gap={24}>
-        <SectionHead
-          icon="Book"
-          iconTone="info"
-          title={`${s.lead}: ${fix.name}`}
-          description={s.description}
-          action={
-            head ? (
-              <Button variant={head.variant} size="sm">
-                {head.label}
-              </Button>
-            ) : undefined
-          }
-        />
+        <SectionHead icon="Book" iconTone="info" title={`${s.lead}: ${fix.name}`} description={s.description} />
         {/* Figma (b10): the components as one plain Geist Mono line, not tags */}
         <TextStack subtitle={fix.components.join(', ')} />
         <Flow as="ol" direction={narrow ? 'column' : 'row'} gap={4} aria-label="How the fix runs">
@@ -79,16 +85,6 @@ function FixCard({ state }) {
             />
           ))}
         </Flow>
-        {state === 'your-call' ? (
-          <Flow direction="row" gap={8} justify="end" wrap>
-            <Button variant="secondary" size="sm">
-              Undo
-            </Button>
-            <Button variant="primary" size="sm">
-              Accept
-            </Button>
-          </Flow>
-        ) : null}
       </Flow>
     </Card>
   );
