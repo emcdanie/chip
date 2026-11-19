@@ -19,7 +19,7 @@ export default function NotAgain() {
         title: 'Not again',
         actions: (
           <Button variant="primary" size="sm">
-            New playbook
+            New fix
           </Button>
         ),
       }}

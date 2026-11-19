@@ -11,11 +11,17 @@ import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Tag from '@bella/components/Tag/Tag';
 import Step from '@bella/components/Step/Step';
-import StatCard from '@bella/components/StatCard/StatCard';
+import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import { explainer, suggestion } from './notAgainFixture.js';
+
+/* Stats CHIP does not count yet: Elleta's words (19 Nov 2026), Belfast mode. */
+const EMPTY_STATS = [
+  { title: 'Runs this week', icon: 'RefreshDouble', tone: 'info', mark: '🔁', empty: 'Nothing counted yet', line: "Not a single run this week. Start one and I'll keep score." },
+  { title: 'Kept', icon: 'CheckCircle', tone: 'success', mark: '✅', empty: 'Nothing kept yet', line: 'Accept a fix and it lands here.' },
+];
 
 function Suggested() {
   const narrow = useNarrow();
@@ -42,7 +48,7 @@ function Suggested() {
               </li>
             ))}
           </Flow>
-          <Flow as="ol" direction={narrow ? 'column' : 'row'} gap={4} aria-label="How the playbook runs">
+          <Flow as="ol" direction={narrow ? 'column' : 'row'} gap={4} aria-label="How the fix runs">
             {suggestion.steps.map((s, i) => (
               <Step
                 key={s.title}
@@ -56,12 +62,19 @@ function Suggested() {
           </Flow>
         </Flow>
       </Card>
-      <Flow span={6}>
-        <StatCard icon="RefreshDouble" tone="info" title="Runs this week" value="Not measured" caption="CHIP does not count playbook runs yet" />
-      </Flow>
-      <Flow span={6}>
-        <StatCard icon="CheckCircle" tone="success" title="Kept" value="Not measured" caption="Undone runs stay in History" />
-      </Flow>
+      {/* No data yet: the stat card shows the Empty state, not a number.
+          StatCard has no empty slot (library gap), so the card body holds
+          its head and the Empty state. Neutral, no wash (one page, one colour). */}
+      {EMPTY_STATS.map((e) => (
+        <Flow key={e.title} span={6} fill>
+          <Card>
+            <Flow gap={8}>
+              <SectionHead icon={e.icon} iconTone={e.tone} title={e.title} titleLevel={3} />
+              <EmptyState size="lane" mark={e.mark} title={e.empty} line={e.line} />
+            </Flow>
+          </Card>
+        </Flow>
+      ))}
     </>
   );
 }

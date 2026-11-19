@@ -1,6 +1,8 @@
 // FIXTURE, not CHIP data. CHIP has no playbook store yet, so the "Not again"
 // suggestion is Figma's own example (CHIP Dashboard, Not again · content,
-// state "suggested", 612:72478), word for word. Replace with the real
+// state "suggested", 612:72478), word for word, except where Elleta's
+// 19 Nov rules changed the words: the page is "Not again" (not "playbook")
+// and CHIP never names a model ("the agent", not "Claude"). Replace with the real
 // playbook list when CHIP records playbooks. Numbers CHIP does not count are
 // not here: the page shows "Not measured" for them.
 export const suggestion = {
@@ -10,13 +12,13 @@ export const suggestion = {
   components: ['PatternField', 'ScaledFrame', 'Columns', 'Icon', 'Leader', 'Eyebrow', 'Kbd', 'ResourceCard', 'Tag'],
   steps: [
     { title: 'Trigger: Contrast check', detail: 'Finds a component with no pair declared.' },
-    { title: 'Claude runs the script', detail: 'Adds the 9 pairs, one commit.' },
+    { title: 'The agent runs the script', detail: 'Adds the 9 pairs, one commit.' },
     { title: 'The gate', detail: '5 checks must pass.' },
     { title: 'You', detail: 'Accept, or Undo.' },
   ],
 };
 
 export const explainer = {
-  title: 'What is a playbook?',
-  message: 'A fix that worked before, saved as steps, so Claude repeats it the same way when a check finds that problem again.',
+  title: 'What is Not again?',
+  message: 'A fix that worked before, saved as steps, so the agent repeats it the same way when a check finds that problem again.',
 };

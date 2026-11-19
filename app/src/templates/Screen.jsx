@@ -89,7 +89,7 @@ export default function Screen({ place, header, tabs, children }) {
           status={
             <>
               <TreeItem kind="status" label="Needs you" tone="attention" count={needs ?? undefined} showCount={needs != null} />
-              <TreeItem kind="status" label="Claude" tone="info" />
+              <TreeItem kind="status" label="Agent" tone="info" />
               <TreeItem kind="status" label="Gate" tone="neutral" />
               <TreeItem kind="status" label="Ready" tone="success" />
             </>

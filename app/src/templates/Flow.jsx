@@ -8,12 +8,13 @@ const GAPS = new Set([4, 8, 12, 16, 24]);
 
 /**
  * direction: 'column' (stack) or 'row'; gap: 4, 8, 12, 16 or 24;
- * wrap: rows wrap onto the next line; span: 12-column cells it takes when it
+ * wrap: rows wrap onto the next line; fill: children grow to fill it (cards
+ * in a row the same height, guideline 15); span: 12-column cells it takes when it
  * sits in the template's content grid (12, 6 or 4).
  */
-export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, span = 12, children, ...rest }) {
+export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, span = 12, children, ...rest }) {
   if (!GAPS.has(gap)) throw new Error(`Flow: gap ${gap} is not on the spacing scale (4, 8, 12, 16, 24)`);
-  const cls = ['chip-flow', `chip-flow--${direction}`, `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', `chip-span-${span}`]
+  const cls = ['chip-flow', `chip-flow--${direction}`, `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', `chip-span-${span}`]
     .filter(Boolean)
     .join(' ');
   return (

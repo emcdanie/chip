@@ -72,6 +72,7 @@
 .chip-flow--column { flex-direction: column; }
 .chip-flow--row { flex-direction: row; }
 .chip-flow--wrap { flex-wrap: wrap; }
+.chip-flow--fill > * { flex: 1 1 auto; }
 .chip-flow--gap-4 { gap: var(--spacing-4); }
 .chip-flow--gap-8 { gap: var(--spacing-8); }
 .chip-flow--gap-12 { gap: var(--spacing-12); }
