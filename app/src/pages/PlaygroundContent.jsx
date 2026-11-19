@@ -86,8 +86,6 @@ function shortName(text) {
 
 // the frame's design height: one laptop screen; the page scrolls inside it
 const FRAME_HEIGHT = 900;
-// a part's frame: Figma's card on the canvas (612:138093)
-const PART_HEIGHT = 480;
 // Figma opens on a part (Show · Parts › DataTable)
 const FIRST_PART = 'DataTable';
 const PARTS = Object.keys(SPECIMENS).sort();
@@ -108,7 +106,8 @@ function PartSlot({ name, width, values }) {
   return (
     // Theme: the whole stage takes the theme, so the frame's surface flips with the part
     <div data-theme={values.theme === 'Dark' ? 'chip-dark' : 'chip-light'}>
-      <Stage frameWidth={Number(width)} frameHeight={PART_HEIGHT} zoom={zoom} onZoomChange={setZoom} label={`${name}, live at ${width}`}>
+      {/* a part's frame hugs the part, as Figma's card on the canvas (612:138093); a page keeps a screen's height */}
+      <Stage frameWidth={Number(width)} zoom={zoom} onZoomChange={setZoom} label={`${name}, live at ${width}`}>
         {ctl ? ctl.render({ ...values, data }) : <Specimen />}
       </Stage>
     </div>
