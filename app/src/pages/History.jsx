@@ -8,7 +8,7 @@ import { projectTabs } from '../templates/projectViews.js';
 
 export default function History() {
   return (
-    <Screen place="projects" tabs={projectTabs('history')} header={{ title: 'History', lede: 'What we agreed, when and why, across BELLA and CHIP.' }}>
+    <Screen place="projects" tabs={projectTabs('history')} header={{ title: 'CHIP' }}>
       <HistoryContent />
     </Screen>
   );
