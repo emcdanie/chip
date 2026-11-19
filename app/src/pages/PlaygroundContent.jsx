@@ -171,7 +171,9 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
   const [part, setPart] = useState(() => (route ? null : FIRST_PART));
   const { projects, pages, map, down, again } = usePlayData(project, route);
   // a phone opens at phone width (Figma "375 wide"), so the part is readable, not 15%
-  const [width, setWidth] = useState(() => (narrow ? '375' : '1440'));
+  // open at the widest preset that shows near full size: a 1440 frame at her ~1100 window shrank to 45%
+  const roomy = !useNarrow(1440);
+  const [width, setWidth] = useState(() => (narrow ? '375' : roomy ? '1440' : '768'));
   const [marking, setMarking] = useState(false);
   const [notes, setNotes] = useState([]);
   const [open, setOpen] = useState(false);
