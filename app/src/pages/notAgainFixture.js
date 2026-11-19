@@ -8,7 +8,8 @@
 // week, kept) are not here: the page shows the Empty state for them.
 export const explainer = {
   title: 'What is Not again?',
-  message: 'A fix that worked before, saved as steps, so the agent repeats it the same way when a check finds that problem again.',
+  // Figma's worked example (b9): what happened, what was saved, what you do next time
+  message: (n) => `The contrast check failed on ${n} parts. This saved fix added their pairs. Next time it fails, the agent repeats it and you only press Accept.`,
 };
 
 export const fix = {

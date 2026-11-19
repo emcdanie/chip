@@ -10,7 +10,7 @@
 import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
-import Tag from '@bella/components/Tag/Tag';
+import TextStack from '@bella/components/TextStack/TextStack';
 import Step from '@bella/components/Step/Step';
 import ListRow from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
@@ -42,7 +42,7 @@ function Banner({ state }) {
   if (state === 'gate-fails') return null;
   const banner = states[state].banner;
   if (banner) return <Notification tone="success" title={banner.title} message={banner.message} action={{ label: 'Undo' }} />;
-  return <Notification tone="info" icon="InfoCircle" title={explainer.title} message={explainer.message} />;
+  return <Notification tone="info" icon="InfoCircle" title={explainer.title} message={explainer.message(fix.components.length)} />;
 }
 
 function FixCard({ state }) {
@@ -65,13 +65,8 @@ function FixCard({ state }) {
             ) : undefined
           }
         />
-        <Flow as="ul" direction="row" gap={8} wrap aria-label="Components with no declared pair">
-          {fix.components.map((c) => (
-            <li key={c}>
-              <Tag variant="flat">{c}</Tag>
-            </li>
-          ))}
-        </Flow>
+        {/* Figma (b10): the components as one plain Geist Mono line, not tags */}
+        <TextStack subtitle={fix.components.join(', ')} />
         <Flow as="ol" direction={narrow ? 'column' : 'row'} gap={4} aria-label="How the fix runs">
           {s.steps.map((step, i) => (
             <Step
