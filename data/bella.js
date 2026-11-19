@@ -2,9 +2,9 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "631a27b",
-    "committedAt": "2026-11-19T18:46:56+01:00",
-    "version": null
+    "commit": "7014518",
+    "committedAt": "2026-11-19T18:55:15+01:00",
+    "version": "0.3.0"
   },
   "counts": {
     "components": 73,
@@ -32,10 +32,10 @@ window.BELLA = {
   },
   "gates": {
     "contrastPairs": {
-      "ok": false,
-      "checked": null,
+      "ok": true,
+      "checked": 409,
       "pairs": 100,
-      "summary": "contrast pairs: 1 failing"
+      "summary": "contrast pairs: 409 checked across 4 themes (text 7:1, marks 3:1), OK; inset rule: 20 exempt, every consumer classified"
     },
     "contractParity": {
       "ok": true,
@@ -145,7 +145,7 @@ window.BELLA = {
       "name": "A11y",
       "score": 64,
       "assessment": "measured",
-      "basis": "47/73 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: FAILED)"
+      "basis": "47/73 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -198,18 +198,6 @@ window.BELLA = {
     }
   ],
   "history": [
-    {
-      "commit": "4bab4b0",
-      "committedAt": "2026-11-08T15:20:28+01:00",
-      "components": 44,
-      "storyCoverage": 95,
-      "contractCoverage": 0,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": true,
-        "ok": false
-      }
-    },
     {
       "commit": "b2b7ad4",
       "committedAt": "2026-11-08T15:33:51+01:00",
@@ -549,6 +537,18 @@ window.BELLA = {
     {
       "commit": "631a27b",
       "committedAt": "2026-11-19T18:46:56+01:00",
+      "components": 73,
+      "storyCoverage": 97,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": false,
+        "contractParity": false,
+        "ok": false
+      }
+    },
+    {
+      "commit": "7014518",
+      "committedAt": "2026-11-19T18:55:15+01:00",
       "components": 73,
       "storyCoverage": 97,
       "contractCoverage": 100,

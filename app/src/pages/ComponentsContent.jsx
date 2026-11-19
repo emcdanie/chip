@@ -94,7 +94,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
               <SectionHead icon="CheckCircle" iconTone={part.ready ? 'success' : 'warning'} title={`Checks for ${part.name}`} description="Six checks the gate runs" number={part.pass} words={`of ${part.checks.length} pass · target all`} />
               <Flow gap={16}>
                 {[0, 2, 4].map((i) => (
-                  <Flow key={i} direction={narrow ? 'column' : 'row'} gap={24} fill>
+                  <Flow key={i} direction={narrow ? 'column' : 'row'} gap={24} equal>
                     {part.checks.slice(i, i + 2).map((k) => (
                       <CheckRow key={k.id} as="div" status={k.ok ? 'pass' : 'fail'} title={k.title} subtitle={k.line} value={k.ok ? '1/1' : '0/1'} fill={k.ok ? 100 : 0} target={100} actionLabel={k.ok ? undefined : k.action} />
                     ))}

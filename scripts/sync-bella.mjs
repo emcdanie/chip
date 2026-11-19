@@ -50,7 +50,7 @@ const source = {
   repo: 'bella',
   commit: git('rev-parse', '--short', 'HEAD'),
   committedAt: git('log', '-1', '--format=%cI'),
-  version: bellaTokens.$metadata?.version ?? null,
+  version: bellaTokens.$metadata?.version ?? JSON.parse(read('package.json')).version ?? null,
 };
 
 // DSDS component entries: `- kind: component` followed by `name: X`
