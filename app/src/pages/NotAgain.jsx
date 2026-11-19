@@ -18,9 +18,10 @@ export default function NotAgain({ state = 'suggested' }) {
       place="not-again"
       header={{
         title: 'Not again',
+        // Figma's header action is New task, white while the card holds the committing action
         actions: (
-          <Button variant={COMMITS.has(state) ? 'secondary' : 'primary'} size="sm">
-            New fix
+          <Button variant={COMMITS.has(state) && tab !== 'library' ? 'secondary' : 'primary'} size="sm">
+            New task
           </Button>
         ),
       }}

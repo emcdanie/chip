@@ -4,8 +4,8 @@
 // kept 612:73238, gate fails 612:73471, library 612:73704), word for word,
 // except where Elleta's 19 Nov rules changed the words: the page is "Not
 // again" and CHIP never names a model ("the agent"). Replace with the real
-// list when CHIP records its fixes. Stats CHIP does not count (runs this
-// week, kept) are not here: the page shows the Empty state for them.
+// list when CHIP records its fixes. The two stats (runs this week, kept) are
+// not here: NotAgainContent counts them from CHIP's run log (/runs).
 export const explainer = {
   title: 'What is Not again?',
   // Figma's worked example (b9): what happened, what was saved, what you do next time
@@ -19,11 +19,13 @@ export const fix = {
 
 const FOUND = { title: 'Trigger: Contrast check', detail: 'Found 9 components with no pair.', state: 'done' };
 const ADDED = { title: 'The agent runs the script', detail: 'Added 9 pairs, one commit.', state: 'done' };
-const PASSED = { title: 'The gate', detail: '5 of 5 checks passed.', state: 'done' };
+const PASSED = { title: 'The gate', detail: 'Gate: 5 of 5 passed.', state: 'done' };
 const GATE_WAITS = { title: 'The gate', detail: '5 checks must pass.', state: 'pending' };
-const YOU_WAIT = { title: 'You', detail: 'Accept, or Undo.', state: 'pending' };
+// the role that keeps a fix, never "you" (Many users, not one: 20 Nov)
+const KEEPER_WAITS = { title: 'Maintainer', detail: 'Accept, or Undo.', state: 'pending' };
 
-/* Each state: the card's lead word, its line, and the four steps. */
+/* Each state: the card's lead word, what follows the fix's name, its line,
+   and the four steps. */
 export const states = {
   suggested: {
     lead: 'Suggested',
@@ -32,29 +34,30 @@ export const states = {
       { title: 'Trigger: Contrast check', detail: 'Finds a component with no pair declared.', state: 'pending' },
       { title: 'The agent runs the script', detail: 'Adds the 9 pairs, one commit.', state: 'pending' },
       GATE_WAITS,
-      YOU_WAIT,
+      KEEPER_WAITS,
     ],
   },
   running: {
     lead: 'Running',
     description: '9 components have no declared pair',
-    steps: [FOUND, { title: 'The agent runs the script', detail: 'Working now: 4 of 9 pairs added.', state: 'current' }, GATE_WAITS, YOU_WAIT],
+    steps: [FOUND, { title: 'The agent runs the script', detail: 'Working now: 4 of 9 pairs added.', state: 'current' }, GATE_WAITS, KEEPER_WAITS],
   },
   'your-call': {
     lead: 'Your call',
+    after: ' · a maintainer keeps it',
     description: 'The agent added 9 pairs and the gate passed',
-    steps: [FOUND, ADDED, PASSED, { title: 'You', detail: 'Waiting on you.', state: 'current' }],
+    steps: [FOUND, ADDED, PASSED, { title: 'Maintainer', detail: 'Waiting on a maintainer.', state: 'current' }],
   },
   kept: {
     lead: 'Kept',
     description: '9 pairs added. Logged in History',
     banner: { title: 'Kept', message: 'Add contrast pair: 9 pairs added. Logged in History.' },
-    steps: [FOUND, ADDED, PASSED, { title: 'You', detail: 'Accepted 10:52.', state: 'done' }],
+    steps: [FOUND, ADDED, PASSED, { title: 'Maintainer', detail: 'Accepted 10:52.', state: 'done' }],
   },
   'gate-fails': {
     lead: 'Stopped',
     description: '9 components have no declared pair',
-    steps: [FOUND, ADDED, { title: 'The gate', detail: '4 of 5 checks passed. Colour contrast failed.', state: 'current' }, YOU_WAIT],
+    steps: [FOUND, ADDED, { title: 'The gate', detail: 'Gate: 4 of 5 passed. Colour contrast failed.', state: 'current' }, KEEPER_WAITS],
   },
 };
 
