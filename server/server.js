@@ -520,9 +520,41 @@ app.get('/review-img/:dir/:file', (req, res) => {
     res.status(404).end();
   }
 });
-app.get('/needs', (_req, res) => {
+// Reads that walk git across the repos (/needs, /projects, /map) take 0.3 to
+// 0.9 s, and /needs blocks the server while it runs. A page gets the last
+// answer at once; a fresh read follows 2 s later, after the page's own burst
+// of requests, at most once a minute. ?fresh=1 ("Check again") waits for a new one.
+// Each is read once at start, so no page opens on a loading state (19 Nov
+// audit: 1 to 5 s of loading on Work, Components, Connectors and History).
+const kept = new Map(); // key -> { value, at, running }
+function keptRead(key, fn, { fresh = false } = {}) {
+  const k = kept.get(key) ?? {};
+  kept.set(key, k);
+  const refresh = () =>
+    (k.running ??= Promise.resolve()
+      .then(fn)
+      .then((v) => {
+        k.value = v;
+        k.at = Date.now();
+        return v;
+      })
+      .finally(() => {
+        k.running = null;
+      }));
+  if (fresh || !('value' in k)) return refresh();
+  if (Date.now() - k.at > 60_000 && !k.queued) {
+    k.queued = setTimeout(() => {
+      k.queued = null;
+      refresh().catch(() => {});
+    }, 2000);
+  }
+  return Promise.resolve(k.value);
+}
+const READS = { needs: () => needsYou(), projects: async () => ({ projects: await projectsSummary() }), map: () => systemMap() };
+const isFresh = (req) => req.query.fresh === '1';
+app.get('/needs', async (req, res) => {
   try {
-    res.json(needsYou());
+    res.json(await keptRead('needs', READS.needs, { fresh: isFresh(req) }));
   } catch (e) {
     errorOut(res, e, 500);
   }
@@ -565,9 +597,9 @@ app.get('/history/record', (req, res) => {
   const r = historyRecord(String(req.query.id ?? ''));
   return r ? res.json(r) : res.status(404).json({ error: 'No such record' });
 });
-app.get('/map', async (_req, res) => {
+app.get('/map', async (req, res) => {
   try {
-    res.json(await systemMap());
+    res.json(await keptRead('map', READS.map, { fresh: isFresh(req) }));
   } catch (e) {
     errorOut(res, e, 500);
   }
@@ -605,9 +637,9 @@ app.get('/term/repos', (_req, res) => res.json(repoList()));
 
 // Projects: the repos CHIP works on (projects.mjs). GET reads; the note, and
 // starting or stopping a dev server CHIP started, come from CHIP's page only.
-app.get('/projects', async (_req, res) => {
+app.get('/projects', async (req, res) => {
   try {
-    res.json({ projects: await projectsSummary() });
+    res.json(await keptRead('projects', READS.projects, { fresh: isFresh(req) }));
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -673,3 +705,4 @@ startPlayProxy([...APP_ORIGINS]);
 // start when they have no result (the stories audit takes minutes; it waits
 // for Run now)
 refreshIfStale();
+for (const [key, fn] of Object.entries(READS)) keptRead(key, fn).catch((e) => console.error(`[CHIP] ${key} at start:`, e.message));

@@ -7,9 +7,10 @@ import { useCallback, useEffect, useState } from 'react';
 const cache = new Map(); // url -> { data, at }
 const inflight = new Map(); // url -> Promise
 
-export function fetchCached(url) {
-  if (inflight.has(url)) return inflight.get(url);
-  const p = fetch(url)
+/** fresh: ask the server for a new read, not its last answer ("Check again"). */
+export function fetchCached(url, { fresh = false } = {}) {
+  if (inflight.has(url) && !fresh) return inflight.get(url);
+  const p = fetch(fresh ? `${url}${url.includes('?') ? '&' : '?'}fresh=1` : url)
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${url} answered ${r.status}`))))
     .then((data) => {
       cache.set(url, { data, at: Date.now() });
@@ -25,11 +26,11 @@ export default function useCached(urls) {
   const key = urls.join('|');
   const now = () => (urls.every((u) => cache.has(u)) ? urls.map((u) => cache.get(u).data) : null);
   const [state, setState] = useState(() => ({ key, data: now(), error: null, at:urls.every((u) => cache.has(u)) ? Math.min(...urls.map((u) => cache.get(u).at)) : null }));
-  const load = useCallback(() => {
+  const load = useCallback((fresh = false) => {
     let live = true;
     // a new address shows its own cached answer (or nothing), never the last one's
     setState((s) => ({ ...s, data: now() ?? (s.key === key ? s.data : null), key }));
-    Promise.all(urls.map(fetchCached))
+    Promise.all(urls.map((u) => fetchCached(u, { fresh: fresh === true })))
       .then((data) => live && setState({ data, error: null, at: Date.now(), key }))
       .catch((e) => live && setState((s) => ({ ...s, error: e.message })));
     return () => {
@@ -38,5 +39,17 @@ export default function useCached(urls) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   useEffect(() => load(), [load]);
-  return { ...state, reload: load };
+  const reload = useCallback(() => load(true), [load]);
+  return { ...state, reload };
+}
+
+/* Every new page's data, read once when CHIP opens, so the first visit to a
+   page shows its answer instead of a loading state. */
+const PAGE_DATA = ['/projects', '/needs', '/runs', '/data/bella.json', '/gaps', '/contrast-pairs', '/map', '/history?limit=1'];
+export function warmPages() {
+  for (const u of PAGE_DATA) fetchCached(u).catch(() => {});
+  // History opens on its newest record
+  fetchCached('/history?limit=400')
+    .then((h) => h?.records?.[0]?.id && fetchCached(`/history/record?id=${encodeURIComponent(h.records[0].id)}`))
+    .catch(() => {});
 }

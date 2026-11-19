@@ -14,6 +14,7 @@ import Team from './pages/Team.jsx';
 import Health from './pages/Health.jsx';
 import Work from './pages/Work.jsx';
 import Components from './pages/Components.jsx';
+import { warmPages } from './templates/useCached.js';
 
 // #/kit shows the shared pieces on their own, outside the app shell.
 // Pages on the new CHIP / Screen template; the old app stays beside them
@@ -52,4 +53,5 @@ function Root() {
   return <App />;
 }
 
+warmPages();
 createRoot(document.getElementById('root')).render(<Root />);
