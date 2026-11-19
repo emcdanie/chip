@@ -5,8 +5,11 @@
 // template's Flow only.
 //
 // Gaps (library board): the curved path drawing and its Hub (Map line pieces
-// placed by position), the GitHub, git and Notion brand marks. Push on the CI
-// tile waits: pushing runs only on Elleta's own yes, never from a page button.
+// placed by position), so the paths are a list with Compare under it; the
+// Claude mark for the agent tile (Brain stands in), a chip icon for the local
+// model and the Figma path (Activity stands in), Figma's mark as a section
+// icon (Map stands in). Push on the CI tile waits: pushing runs only on the
+// maintainer's own yes, never from a page button.
 import { useCallback, useEffect, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -53,21 +56,23 @@ function meta(r) {
   if (r.id === 'ollama') return d.match(/:(\d{2,5})\b/) ? `:${d.match(/:(\d{2,5})\b/)[1]}` : undefined;
   return undefined;
 }
+/* The published Figma's names (601:126716, 20 Nov): the tool each path is, as
+   the developers and designers who set them up know it. */
 const PATHS = [
-  { id: 'figma', name: 'Figma desktop app', icon: 'Activity' },
-  { id: 'figma-console', name: 'Figma plugin bridge', icon: 'Code' },
-  { id: 'figma-rest', name: 'Figma web access', icon: 'EvPlug' },
+  { id: 'figma', name: 'Figma desktop MCP', icon: 'Activity' },
+  { id: 'figma-console', name: 'figma-console', icon: 'Code' },
+  { id: 'figma-rest', name: 'figma-rest', icon: 'Key' },
 ];
-/* Plain names for what each connector is (19 Nov audit: no tool ids or "REST API" on the page). */
-const NAMES = { figma: 'Figma desktop app', 'figma-console': 'Figma plugin bridge', 'figma-rest': 'Figma web access', notion: 'Notion' };
+const NAMES = { figma: 'Figma desktop MCP', 'figma-console': 'figma-console', 'figma-rest': 'figma-rest', notion: 'Notion' };
 const nameOf = (n) => NAMES[n?.id] ?? n?.name;
-const plainWords = (t) => String(t ?? '').replace(/\bthe Figma REST API\b/gi, "Figma's web access").replace(/\bFigma REST( API)?\b/g, 'Figma web access').replace(/\bREST API\b/g, 'web access').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
+// the server's words, in the page's own names for the paths
+const plainWords = (t) => String(t ?? '').replace(/\bthe Figma REST API\b/gi, 'figma-rest').replace(/\bFigma REST( API)?\b/g, 'figma-rest').replace(/\bREST API\b/g, 'figma-rest').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0];
 // Figma's own short words for each connector (601:126716): plain, no paths, tokens or hashes
 const SAYS = {
   figma: { ok: 'Answers', other: 'Not configured' },
   'figma-console': { ok: 'Answers', other: 'Not configured' },
-  'figma-rest': { ok: 'Answers', other: 'Needs a token', why: 'Reads Figma, no app open' },
+  'figma-rest': { ok: 'Answers', other: 'Needs a token', why: 'Reads Figma with no app open' },
   notion: { ok: 'Answers', other: 'Needs a token', why: 'Reads shared pages' },
 };
 const says = (n) => (n.state === 'ok' ? SAYS[n.id]?.ok : SAYS[n.id]?.other) ?? (n.state === 'ok' ? 'Answers' : 'Not set up yet');
@@ -112,7 +117,8 @@ export default function ConnectorsContent() {
   const compare = node('compare');
   const needs = map.nodes.filter((n) => n.state === 'bad' && n.action?.type === 'test');
   const testButton = (n, label = 'Test') => (
-    <Button variant="secondary" size="sm" icon="Play" leadingIcon onClick={() => test(n.id)} disabled={busy === n.id}>
+    // Figma's buttons carry words only (20 Nov polish: no leading icons)
+    <Button variant="secondary" size="sm" onClick={() => test(n.id)} disabled={busy === n.id}>
       {busy === n.id ? 'Testing…' : label}
     </Button>
   );
@@ -157,7 +163,7 @@ export default function ConnectorsContent() {
           <SectionHead icon="Map" iconTone="info" title="Figma paths" description="Ways CHIP can read Figma" showDescription words="Any one path is enough" />
           <Flow gap={8} as="ul" aria-label="Figma paths">
             {paths.map((p) => {
-              const act = p.n.state === 'bad' ? <Button variant="secondary" size="sm" icon="Settings" leadingIcon onClick={() => setSetup(p.n)}>Set up</Button> : testButton(p.n);
+              const act = p.n.state === 'bad' ? <Button variant="secondary" size="sm" onClick={() => setSetup(p.n)}>Set up</Button> : testButton(p.n);
               // ListRow moves its button under the words on a narrow row by itself (parts-dev b69a5de)
               return <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} status={<StateTag state={p.n.state} />} actionButton={act} />;
             })}
@@ -179,8 +185,9 @@ export default function ConnectorsContent() {
             <SectionHead icon="WarningCircle" iconTone="warning" title="Need setup" description="Connect these to unlock more checks" showDescription number={needs.length} words="to set up" showNumber />
             <Columns count={3}>
               {needs.map((n) => (
-                  <Card key={n.id}>
-                    <ListRow as="div" layout="stacked" iconWell={<IconWell icon="Settings" tone="neutral" />} title={nameOf(n)} body={why(n)} actionButton={<Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} />
+                  // Figma: name, one line, the action in the card footer at the bottom right; no icon
+                  <Card key={n.id} footerAction={<Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>}>
+                    <TextStack title={nameOf(n)} body={why(n)} />
                   </Card>
               ))}
             </Columns>
