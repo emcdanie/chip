@@ -39,8 +39,18 @@ const PATHS = [
   { id: 'figma-rest', name: 'figma-rest', icon: 'EvPlug' },
 ];
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0];
-// a branch and hash ("main @ 3d74f7d") is meta, not a sentence
-const meta = (t) => /^[\w./-]+ @ [0-9a-f]{6,}\.?$/.test(t);
+// Figma's own short words for each connector (601:126716): plain, no paths, tokens or hashes
+const SAYS = {
+  figma: { ok: 'Answers', other: 'Not configured' },
+  'figma-console': { ok: 'Answers', other: 'Not configured' },
+  'figma-rest': { ok: 'Answers', other: 'Needs a token', why: 'Reads Figma, no app open' },
+  notion: { ok: 'Answers', other: 'Needs a token', why: 'Reads shared pages' },
+};
+const says = (n) => (n.state === 'ok' ? SAYS[n.id]?.ok : SAYS[n.id]?.other) ?? (n.state === 'ok' ? 'Answers' : 'Not set up yet');
+const why = (n) => SAYS[n.id]?.why ?? 'Unlocks more checks';
+// git: the short commit only, as Figma shows it ("3d74f7d"), never the branch path
+const sha = (t) => String(t ?? '').match(/\b[0-9a-f]{7,}\b/)?.[0];
+
 
 /* The system map, kept between visits (useCached); `load` reads it again. */
 function useMap() {
@@ -102,8 +112,8 @@ export default function ConnectorsContent() {
                     <TextStack
                       overline={r.name}
                       title={r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested'}
-                      subtitle={r.sub && r.n.state === 'ok' ? r.sub : meta(first(r.n.detail)) ? first(r.n.detail) : undefined}
-                      body={(r.sub && r.n.state === 'ok') || meta(first(r.n.detail)) ? undefined : first(r.n.detail)}
+                      subtitle={r.id === 'git' ? sha(r.n.detail) : r.sub && r.n.state === 'ok' ? r.sub : undefined}
+                      body={r.id === 'git' || (r.sub && r.n.state === 'ok') ? undefined : first(r.n.detail)}
                     />
                     <Flow direction="row" justify="end">
                       {r.id === 'git' ? (
@@ -131,12 +141,12 @@ export default function ConnectorsContent() {
               return phone ? (
                 <li key={p.id}>
                   <Flow gap={8}>
-                    <ListRow as="div" iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={p.n.state === 'ok' ? 'Answers' : first(p.n.detail)} />
+                    <ListRow as="div" iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} />
                     <Flow direction="row" justify="end">{act}</Flow>
                   </Flow>
                 </li>
               ) : (
-                <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={p.n.state === 'ok' ? 'Answers' : first(p.n.detail)} status={<StateTag state={p.n.state} />} actionButton={act} />
+                <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} status={<StateTag state={p.n.state} />} actionButton={act} />
               );
             })}
           </Flow>
@@ -159,7 +169,7 @@ export default function ConnectorsContent() {
               {needs.map((n) => (
                   <Card key={n.id}>
                     <Flow gap={8}>
-                      <ListRow as="div" iconWell={<IconWell icon="Settings" tone="neutral" />} title={n.name} description={first(n.detail)} actionButton={phone ? undefined : <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} />
+                      <ListRow as="div" iconWell={<IconWell icon="Settings" tone="neutral" />} title={n.name} description={why(n)} actionButton={phone ? undefined : <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} />
                       {phone ? (
                         <Flow direction="row" justify="end">
                           <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>
@@ -182,7 +192,6 @@ export default function ConnectorsContent() {
         {setup ? (
           <Flow gap={16}>
             <TextStack title={setup.name} body={setup.detail} />
-            <TextStack overline="Where it lives" body={setup.source} />
             {setup.dependents?.length ? <TextStack overline="Unlocks" body={setup.dependents.join(', ')} /> : null}
           </Flow>
         ) : null}
