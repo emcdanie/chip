@@ -204,7 +204,8 @@
   .chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: 1 / -1; }
   .chip-screen__content > .chip-span-6,
   .chip-screen__content > .chip-span-4 { grid-column: 1 / -1; }
-  .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4 { flex-direction: column; }
+  /* as specific as the row rule above, or it loses and a phone gets two 160 wide cards side by side (21 Nov: Health scrolled 18 sideways at 375) */
+  .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { flex-direction: column; }
 }
 
 @media (width < 1024px) {

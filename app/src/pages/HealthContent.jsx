@@ -17,6 +17,8 @@ import ListRow from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
+import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import { useState } from 'react';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import { TARGET } from './healthModel.js';
@@ -44,7 +46,7 @@ function NoData({ title, icon, tone, mark, empty, line }) {
   );
 }
 
-function GateCard({ gate, run }) {
+function GateCard({ gate, run, onOpen }) {
   if (!gate) return <NoData title="Gate" icon="ShieldCheck" tone="success" mark="🚦" empty="No gate runs yet" line="Run the gate once and I'll keep the tally." />;
   if (run?.state === 'running')
     return <StatCard title="Gate" icon="ShieldCheck" tone="info" value={run.done} unit={`of ${run.of} so far`} chart="segments" meter={{ segments: run.of, done: run.done }} context={`Running ${run.now}`} caption="Started just now" />;
@@ -62,15 +64,24 @@ function GateCard({ gate, run }) {
       meter={{ segments: of, done: ok }}
       context={run && run.state !== 'none' ? 'Last run just now' : `Last run ${gate.when}`}
       caption={failed ? run.why : ok === of ? 'All pass, every commit' : `${of - ok} failing`}
+      href={onOpen ? undefined : '#/history'}
+      onOpen={onOpen}
     />
   );
 }
 
-export default function HealthContent({ model, run, checked, onCheck }) {
+/* Figma's views of the Component checks card: coverage per check, the gate per day, drift from Figma. */
+const CHECK_VIEWS = [
+  { value: 'coverage', label: 'Coverage' },
+  { value: 'gate', label: 'Gate' },
+  { value: 'drift', label: 'Drift' },
+];
+
+export default function HealthContent({ model, run, checked, onCheck, view: startView = 'coverage' }) {
   const narrow = useNarrow();
+  const [view, setView] = useState(startView);
   if (!model) return <EmptyState size="lane" mark="⏳" title="Reading BELLA" line="Counting every part and its checks." />;
   const { health, contrast, rows, fixes, fixCount, n } = model;
-  const pairs = [rows.slice(0, 2), rows.slice(2, 4), rows.slice(4, 6)];
   return (
     <>
       {/* Control bar, as on Work: the last check and Check again, one group on the left. */}
@@ -97,7 +108,7 @@ export default function HealthContent({ model, run, checked, onCheck }) {
         )}
       </Flow>
       <Flow span={4} gap={24} fill>
-        <GateCard gate={model.gate} run={run} />
+        <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => setView('gate') : undefined} />
         <NoData title="Drift from BELLA" icon="Activity" tone="info" mark="🧭" empty="Nothing compared yet" line="Take a Figma baseline and I'll spot what drifted." />
       </Flow>
       <Flow span={4} gap={24} fill>
@@ -134,32 +145,58 @@ export default function HealthContent({ model, run, checked, onCheck }) {
       </Flow>
       <Card>
         <Flow gap={24}>
-          <SectionHead icon="ShieldCheck" iconTone="info" title="Component checks" description={`Six checks across ${n} components`} number={n} words={`components · target ${TARGET}%`} />
-          <Flow gap={16}>
-            {pairs.map((pair) => (
-              <Flow key={pair[0].id} direction={narrow ? 'column' : 'row'} gap={24} equal>
-                {pair.map((r) => (
-                  <CheckRow
-                    key={r.id}
-                    as="div"
-                    status={r.missing.length ? 'fail' : 'pass'}
-                    title={r.title}
-                    subtitle={r.line}
-                    value={`${r.pass}/${n}`}
-                    fill={r.fill}
-                    target={TARGET}
-                    actionLabel={r.missing.length ? r.action : undefined}
-                    onAction={r.href ? () => (window.location.hash = r.href) : undefined}
-                  />
-                ))}
-              </Flow>
-            ))}
+          {(() => {
+            const days = model.gateDays;
+            const runs = days.reduce((t, d) => t + d.runs, 0);
+            const head =
+              view === 'gate' ? { description: `${days.length} days of gate runs`, number: runs, words: `runs · target ${TARGET}%` }
+              : view === 'drift' ? { description: 'Each part against its Figma set', number: n, words: 'components' }
+              : { description: `Seven checks; six measured across ${n} parts`, number: n, words: `components · target ${TARGET}%` };
+            return <SectionHead icon="ShieldCheck" iconTone="info" title="Component checks" {...head} />;
+          })()}
+          {/* the view switch at the right, as Figma */}
+          <Flow direction="row" justify="end">
+            <SegmentedControl options={CHECK_VIEWS} value={view} onChange={setView} label="Component checks view" />
           </Flow>
+          {view === 'drift' ? (
+            <EmptyState size="lane" mark="🧭" title="Nothing compared yet" line="Take a Figma baseline and I'll spot what drifted." />
+          ) : view === 'gate' && !model.gateDays.length ? (
+            <EmptyState size="lane" mark="🚦" title="No gate runs yet" line="Run the gate once and I'll keep the tally." />
+          ) : (
+            <Flow gap={16}>
+              {(view === 'gate'
+                ? model.gateDays.map((d) => ({ id: d.id, missing: d.passed < d.runs ? [1] : [], title: d.title, line: d.line, value: `${d.passed}/${d.runs}`, fill: Math.round((d.passed / d.runs) * 100) }))
+                : rows.map((r) => ({ ...r, value: `${r.pass}/${n}` }))
+              )
+                .map((r, i, all) => (i % 2 ? null : all.slice(i, i + 2)))
+                .filter(Boolean)
+                .map((pair) => (
+                  <Flow key={pair[0].id} direction={narrow ? 'column' : 'row'} gap={24} equal>
+                    {pair.map((r) => (
+                      <CheckRow
+                        key={r.id}
+                        as="div"
+                        status={r.missing.length ? 'fail' : 'pass'}
+                        title={r.title}
+                        subtitle={r.line}
+                        value={r.value}
+                        fill={r.fill}
+                        target={TARGET}
+                        actionLabel={r.missing.length && r.action ? r.action : undefined}
+                        onAction={r.href ? () => (window.location.hash = r.href) : undefined}
+                      />
+                    ))}
+                    {/* a lone last row keeps its half, as the rows above */}
+                    {pair.length === 1 && !narrow ? <div aria-hidden="true" /> : null}
+                  </Flow>
+                ))}
+            </Flow>
+          )}
         </Flow>
       </Card>
       <Card>
         <Flow gap={24}>
-          <SectionHead icon="WarningCircle" iconTone="warning" title="Needs you" description="Fixes that wait on you" number={fixCount} words="to fix" />
+          <SectionHead icon="WarningCircle" iconTone="warning" title="Needs you" description="Fixes that need a reviewer" number={fixCount} words="to fix" />
           {fixes.length ? (
             <>
               {/* Wide: a card per fix, as Figma. Narrow: a card inside a card
@@ -168,7 +205,7 @@ export default function HealthContent({ model, run, checked, onCheck }) {
                 <Flow as="ul" gap={16} aria-label="Fixes">
                   {fixes.map((f) => (
                     // ListRow moves the button under the names on a narrow row (parts-dev b69a5de)
-                    <ListRow key={f.id} layout="stacked" title={f.title} description={f.names} actionButton={<Button variant="secondary" size="sm" href={f.href}>{f.action}</Button>} />
+                    <ListRow key={f.id} layout="stacked" title={f.title} description={f.who ? `${f.names} · ${f.who}` : f.names} actionButton={<Button variant="secondary" size="sm" href={f.href}>{f.action}</Button>} />
                   ))}
                 </Flow>
               ) : (
@@ -183,7 +220,7 @@ export default function HealthContent({ model, run, checked, onCheck }) {
                               as="div"
                               layout="stacked"
                               title={f.title}
-                              description={f.names}
+                              description={f.who ? `${f.names} · ${f.who}` : f.names}
                               actionButton={
                                 <Button variant="secondary" size="sm" href={f.href}>
                                   {f.action}

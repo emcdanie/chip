@@ -18,6 +18,11 @@ export const CHECKS = [
 
 export const TARGET = 90;
 
+/* Who takes each fix, as Figma's Needs you cards say it (601:109235: pairs a
+   maintainer, keyboard lines a developer); the code checks are a developer's.
+   Docs names no role in Figma, so none here. */
+const WHO = { contrast: 'a maintainer', a11y: 'a developer', story: 'a developer', contract: 'a developer', dsds: 'a developer' };
+
 const names = (list) => (list.length > 3 ? `${list.slice(0, 2).join(', ')} +${list.length - 2}` : list.join(', '));
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
@@ -44,10 +49,31 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
     gate: last ? { ok: parts.filter(Boolean).length, of: parts.length, when: day(last.committedAt), allPass: last.gate.ok } : null,
     contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,
     drift: null, // CHIP has no Figma baseline yet (/figma-baseline answers at: null)
+    gateDays: gateDays(runs),
     lowest: lowestPair(pairs),
-    fixes: rows.filter((r) => r.missing.length).map((r) => ({ id: r.id, title: `${r.missing.length} ${r.some}`, names: names(r.missing), action: r.action, href: r.href })),
+    fixes: rows.filter((r) => r.missing.length).map((r) => ({ id: r.id, title: `${r.missing.length} ${r.some}`, names: names(r.missing), who: WHO[r.id] ?? null, action: r.action, href: r.href })),
     fixCount: rows.reduce((s, r) => s + r.missing.length, 0),
   };
+}
+
+/* Figma's Gate view (767:102821): the last six days with gate runs, newest
+   first: how many ran, how many passed, and which check failed most. A run is
+   one of BELLA's commits with a gate result. */
+const WEEKDAY = (iso) => new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace(',', '');
+function gateDays(runs) {
+  const by = new Map();
+  for (const r of runs) {
+    const k = r.committedAt.slice(0, 10);
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(r);
+  }
+  return [...by.entries()].slice(0, 6).map(([k, list]) => {
+    const passed = list.filter((r) => r.gate.ok).length;
+    const contrast = list.filter((r) => r.gate.contrastPairs === false).length;
+    const contract = list.filter((r) => r.gate.contractParity === false).length;
+    const worst = contrast >= contract ? (contrast ? `contrast failed ${contrast}` : null) : `contract failed ${contract}`;
+    return { id: k, title: WEEKDAY(list[0].committedAt), runs: list.length, passed, line: passed === list.length ? (list.length === 1 ? 'The one run passed' : `All ${list.length} runs passed`) : `${passed} of ${list.length} ${list.length === 1 ? 'run' : 'runs'} passed${worst ? `: ${worst}` : ''}` };
+  });
 }
 
 /* The weakest text pair BELLA's gate measures (/contrast-pairs: BELLA's own list
