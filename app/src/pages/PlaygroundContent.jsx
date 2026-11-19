@@ -9,14 +9,13 @@
 // The page arrives through CHIP's own proxy (server/lib/play.mjs), the same
 // one the old Playground uses.
 //
-// STAGE SLOT: the dot-grid Stage part (Figma Stage{grid=dots}) is being built
-// by parts-dev. Until it lands, StageSlot shows the live page in a Card at the
-// column's width, and notes are page-wide (no pin on a spot yet). When Stage
-// lands: frameWidth = width, zoom with Fit / 100% inside it, markers = notes,
-// picking = marking, onPick asks the page what sits there (chip:pick).
+// STAGE SLOT: BELLA's Stage part (Figma Stage{grid=dots}) holds the live page
+// at its design width: Fit / 100% float in its top-right corner, notes are
+// pink Pins on the page, and while marking a click asks the page what sits
+// there (chip:pick, answered by the proxy's probe). The frame options wait on
+// her card y22.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import Card from '@bella/components/Card/Card';
 import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Input from '@bella/components/Input/Input';
@@ -24,6 +23,7 @@ import Notification from '@bella/components/Notification/Notification';
 import Pin from '@bella/components/Pin/Pin';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import Select from '@bella/components/Select/Select';
+import Stage from '@bella/components/Stage/Stage';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
 
@@ -73,12 +73,64 @@ function usePlayData(project, route) {
   return { projects, pages, map, down, again: () => setTick((t) => t + 1) };
 }
 
-/** The live page. Interim until the Stage part lands (see the header note). */
-function StageSlot({ src, title }) {
+// what a note is on, short: the probe's text can repeat itself ("Review the fix Review the fix")
+function shortName(text) {
+  const t = text.replace(/\s+/g, ' ').trim();
+  const half = t.slice(0, Math.floor(t.length / 2)).trim();
+  const once = half && t === `${half} ${half}` ? half : t;
+  return once.length > 24 ? `${once.slice(0, 23).trimEnd()}…` : once;
+}
+
+// the frame's design height: one laptop screen; the page scrolls inside it
+const FRAME_HEIGHT = 900;
+// a click asks for what sits in this box around it, in page px
+const PICK = { w: 240, h: 64 };
+
+/**
+ * The live page on the Stage at its design width. Notes are page px; the page
+ * scrolls inside its frame, so pins move with it. While marking, a click asks
+ * the page (through the proxy's probe) what sits there.
+ */
+function StageSlot({ src, proxy, sections, title, width, notes, picking, onPicked }) {
+  const frame = useRef(null);
+  const [zoom, setZoom] = useState('fit');
+  const [scrollY, setScrollY] = useState(0);
+  const origin = proxy ? new URL(proxy).origin : null;
+
+  const toPage = useCallback(
+    (m) => {
+      const w = frame.current?.contentWindow;
+      if (w && origin) w.postMessage(m, origin);
+    },
+    [origin],
+  );
+  const hello = useCallback(() => toPage({ type: 'chip:hello', sections }), [toPage, sections]);
+
+  useEffect(() => {
+    const on = (e) => {
+      if (e.origin !== origin) return;
+      const m = e.data || {};
+      if (m.type === 'chip:probe' || m.type === 'chip:scroll') setScrollY(m.scrollY ?? 0);
+      else if (m.type === 'chip:picked') onPicked(m);
+    };
+    window.addEventListener('message', on);
+    return () => window.removeEventListener('message', on);
+  }, [origin, onPicked]);
+
+  function pick(x, y) {
+    const py = y + scrollY;
+    toPage({ type: 'chip:pick', id: `${x},${py}`, x: x - PICK.w / 2, y: py - PICK.h / 2, w: PICK.w, h: PICK.h });
+  }
+
+  const markers = notes
+    .map((n, i) => ({ n, i }))
+    .filter(({ n }) => n.x != null && n.y - scrollY >= 0 && n.y - scrollY <= FRAME_HEIGHT)
+    .map(({ n, i }) => ({ id: String(n.id), x: n.x, y: n.y - scrollY, label: i + 1 }));
+
   return (
-    <Card>
-      <iframe title={title} src={src} width="100%" height="640" />
-    </Card>
+    <Stage frameWidth={Number(width)} frameHeight={FRAME_HEIGHT} zoom={zoom} onZoomChange={setZoom} markers={markers} picking={picking} onPick={pick} label={title}>
+      <iframe ref={frame} title={title} src={src} width={width} height={FRAME_HEIGHT} onLoad={hello} />
+    </Stage>
   );
 }
 
@@ -141,6 +193,15 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
     }
   }
 
+  const onPicked = useCallback(
+    (m) => {
+      const [x, y] = String(m.id).split(',').map(Number);
+      const first = m.picked?.[0];
+      addNote({ on: first ? `“${shortName(first.text)}”` : 'the page', section: m.section ?? null, x, y });
+    },
+    [addNote],
+  );
+
   const written = notes.filter((n) => n.note.trim()).length;
 
   if (down)
@@ -162,7 +223,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
         <Flow direction="row" gap={12} wrap>
           {/* below 800px the four widths don't fit in one row: the same choice as a Select */}
           {narrow ? <Select label="Width" value={width} onChange={setWidth} options={WIDTHS} /> : <SegmentedControl label="Width" options={WIDTHS} value={width} onChange={setWidth} />}
-          <Button variant="secondary" ariaExpanded={marking} onClick={() => (marking ? setMarking(false) : (setMarking(true), notes.length ? setOpen(true) : addNote()))}>
+          <Button variant="secondary" ariaExpanded={marking} onClick={() => (marking ? setMarking(false) : (setMarking(true), notes.length ? setOpen(true) : null))}>
             {marking ? 'Done marking' : 'Mark up'}
           </Button>
           {notes.length ? (
@@ -182,7 +243,18 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
         />
       ) : null}
 
-      {src ? <StageSlot src={src} title={`${map.name} · ${page?.label ?? route}, live`} /> : !map ? <EmptyState size="lane" title="Loading the page" /> : null}
+      {src ? (
+        <StageSlot
+          src={src}
+          proxy={map.proxy}
+          sections={(map.sections ?? []).map((sec) => sec.id)}
+          title={`${map.name} · ${page?.label ?? route}, live`}
+          width={width}
+          notes={notes}
+          picking={marking}
+          onPicked={onPicked}
+        />
+      ) : !map ? <EmptyState size="lane" title="Loading the page" /> : null}
 
       <Drawer
         open={open}
@@ -215,7 +287,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
             </Flow>
           ))}
         </Flow>
-        {/* Interim: until the Stage part lands, a note is added here; then by clicking the page */}
+        {/* a note on the page as a whole; a note on a spot comes from clicking the page while marking */}
         <Flow direction="row" gap={8}>
           <Button variant="secondary" size="sm" onClick={() => addNote()}>
             Add a note
