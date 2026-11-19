@@ -154,7 +154,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
       {sent === 'sent' ? <Notification tone="success" title="Notes sent" message="They are on the progress board for the team." onClose={() => setSent(null)} /> : null}
 
       {/* Control bar: what you look at on the left, switches on the right */}
-      <Flow direction={narrow ? 'column' : 'row'} gap={16} wrap>
+      <Flow direction={narrow ? 'column' : 'row'} gap={16} wrap justify={narrow ? 'start' : 'between'} align={narrow ? undefined : 'center'}>
         <Flow direction="row" gap={12} wrap>
           {projects?.length ? <Select label="Project" value={project} onChange={onProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
           {pages?.length ? <Select label="Page" value={route ?? ''} onChange={onRoute} options={pages.map((p) => ({ value: p.route, label: p.label }))} /> : null}
