@@ -8,6 +8,8 @@ import App from './App.jsx';
 import Kit from './Kit.jsx';
 import NotAgain from './pages/NotAgain.jsx';
 import Playground from './pages/Playground.jsx';
+import History from './pages/History.jsx';
+import Connectors from './pages/Connectors.jsx';
 import Team from './pages/Team.jsx';
 import Health from './pages/Health.jsx';
 import Work from './pages/Work.jsx';
@@ -24,6 +26,8 @@ const NEW_PAGES = [
   { id: 'health', label: 'Health' },
   { id: 'work', label: 'Work' },
   { id: 'components', label: 'Components' },
+  { id: 'history', label: 'History' },
+  { id: 'connectors', label: 'Connectors' },
 ];
 
 function Root() {
@@ -38,6 +42,8 @@ function Root() {
   if (hash.split('?')[0] === '#/playground') return <Playground />;
   if (hash.split('?')[0] === '#/team') return <Team />;
   if (hash === '#/health') return <Health />;
+  if (hash.split('?')[0] === '#/history') return <History />;
+  if (hash.split('?')[0] === '#/connectors') return <Connectors />;
   if (hash === '#/work') return <Work />;
   if (hash === '#/components' || hash.startsWith('#/components/')) return <Components />;
   return <App />;
