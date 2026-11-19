@@ -1,5 +1,5 @@
-// Components: the CHIP / Screen template plus Components · content (Figma
-// 612:57549), on CHIP's own data. #/components/<id> opens one part. The old
+// Components: the CHIP / Screen template plus Components · content (her design,
+// CHIP · Dashboard 690:492657), on CHIP's own data. #/components/<id> opens one part. The old
 // Atlas stays at #/atlas until Elleta has seen what it has that Figma
 // doesn't ("Nothing made is lost").
 import { useState } from 'react';
@@ -21,7 +21,7 @@ export default function Components({ model: given, filter: startFilter = 'all', 
   };
   return (
     <Screen place="projects" header={{ title: 'CHIP' }} tabs={projectTabs('components')}>
-      <ComponentsContent model={given ?? live.model} filter={filter} onFilter={setFilter} partId={partId} onPart={pick} />
+      <ComponentsContent model={given ?? live.model} filter={filter} onFilter={setFilter} partId={partId} onPart={pick} onCheckAgain={live.reload} />
     </Screen>
   );
 }

@@ -157,6 +157,7 @@
 .chip-flow--between { justify-content: space-between; }
 .chip-flow--end { justify-content: flex-end; }
 .chip-flow--center-items { align-items: center; }
+.chip-flow--start-items { align-items: flex-start; }
 .chip-flow--gap-4 { gap: var(--spacing-4); }
 .chip-flow--gap-8 { gap: var(--spacing-8); }
 .chip-flow--gap-12 { gap: var(--spacing-12); }
@@ -182,12 +183,17 @@
   /* the third of three third-width groups takes the row and lays its cards side by side */
   .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; flex-direction: row; }
   .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) > * { flex: 1 1 0; min-inline-size: 0; }
+  /* a main card with a side column (Components' History | Ask and Checks): 7 / 5, so the side keeps room */
+  .chip-screen__content > .chip-span-8:has(+ .chip-span-4) { grid-column: span 7; }
+  .chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: span 5; }
 }
 
 @container chip-content (width < 800px) {
   .chip-screen__content > .chip-span-7,
   .chip-screen__content > .chip-span-5,
-  .chip-screen__content > .chip-span-8 { grid-column: 1 / -1; }
+  .chip-screen__content > .chip-span-8,
+  .chip-screen__content > .chip-span-8:has(+ .chip-span-4),
+  .chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: 1 / -1; }
 }
 
 @container chip-content (width < 640px) {
