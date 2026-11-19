@@ -1,0 +1,97 @@
+/* CHIP / Screen grid (Figma CHIP Dashboard 601:112027). The template's only
+ * CSS: where the published BELLA parts sit, never how they look. Token values
+ * only; no part is restyled here (scripts/on-system-guard.mjs).
+ *
+ * Rail (layout/rail/width) | project panel (layout/panel/width) | main
+ * column: the top bar, then the page (header, tabs) on the surface and the
+ * content on the page ground, with the BELLA container padding (16 on a
+ * phone, 32 from 800px) and the 24 gutter. The rail and panel stay in view
+ * while the page scrolls.
+ *
+ * Below 1024px the panel steps out so nothing scrolls sideways (Figma draws
+ * the template at 1440 only; how the panel comes back on a narrow screen is
+ * an open question for Elleta, not decided here). */
+
+.chip-screen {
+  display: grid;
+  grid-template-columns: var(--layout-rail-width) var(--layout-panel-width) minmax(0, 1fr);
+  min-block-size: 100dvh;
+  background: var(--color-background-default);
+}
+
+.chip-screen__rail,
+.chip-screen__panel {
+  position: sticky;
+  inset-block-start: 0;
+  block-size: 100dvh;
+}
+
+.chip-screen__main {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.chip-screen__page {
+  display: flex;
+  flex-direction: column;
+  padding-block-start: var(--layout-stack-lg);
+  background: var(--color-background-surface);
+}
+
+.chip-screen__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-stack-lg);
+  padding-inline: var(--layout-container-pad);
+}
+
+.chip-screen__content {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--layout-gutter);
+  align-content: start;
+  flex: 1;
+  padding: var(--layout-gutter) var(--layout-container-pad);
+  background: var(--color-background-default);
+}
+
+.chip-screen__content > * {
+  grid-column: 1 / -1;
+}
+
+/* Flow (Flow.jsx): the one layout primitive pages use. */
+.chip-flow {
+  display: flex;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip-flow--column { flex-direction: column; }
+.chip-flow--row { flex-direction: row; }
+.chip-flow--wrap { flex-wrap: wrap; }
+.chip-flow--gap-4 { gap: var(--spacing-4); }
+.chip-flow--gap-8 { gap: var(--spacing-8); }
+.chip-flow--gap-12 { gap: var(--spacing-12); }
+.chip-flow--gap-16 { gap: var(--spacing-16); }
+.chip-flow--gap-24 { gap: var(--spacing-24); }
+
+.chip-screen__content > .chip-span-6 { grid-column: span 6; }
+.chip-screen__content > .chip-span-4 { grid-column: span 4; }
+
+@media (width < 800px) {
+  .chip-screen__content > .chip-span-6,
+  .chip-screen__content > .chip-span-4 { grid-column: 1 / -1; }
+}
+
+@media (width < 1024px) {
+  .chip-screen {
+    grid-template-columns: var(--layout-rail-width) minmax(0, 1fr);
+  }
+
+  .chip-screen__panel {
+    display: none;
+  }
+}
