@@ -1,19 +1,19 @@
-// Components · content: Elleta's design, CHIP · Dashboard 690:492657 ("this is
-// meant to be the design but it never got finished", 19 Nov), on CHIP's own
-// data. One part per view: picker and filter, the part's header, Overview /
-// Anatomy / History tabs. Overview: the Figma notice, the stage (variant and
-// label, the live part with a pin per anatomy part and its name chip, the
-// picked part's card with its measured contrast, the part in each state), then
-// History | Ask BELLA and a compact Checks card (one segmented bar, rows that
-// link out). BELLA parts and Flow only; nothing is styled here.
+// Components · content: Elleta's design ("this is meant to be the design but it
+// never got finished", 19 Nov), now CHIP flows Screen 1 · Components 612:57719
+// (content state "on the stage" 690:490822), on CHIP's own data. One part per
+// view: picker and filter, the part's header, Overview / Anatomy / History tabs.
+// Overview: the Figma notice, the Ask BELLA questions, the stage (variant and
+// label, the live part at 2x with a pin per anatomy part, name chips, one dashed
+// pink leader to the part in focus, its card with the measured contrast, the
+// part in each state as VariantTiles that pick what the stage shows), then
+// History | Ask BELLA and a compact Checks card. BELLA parts and Flow only.
 //
-// Part gaps (asked of parts-dev, never styled around): the stage can't show the
-// part at 2x, has no zoom in / fit / zoom out or Light / Dark overlay, and its
-// pins and chips can't be clicked to pick a part (the first finding is picked,
-// else the first part; the Anatomy tab picks); Figma draws a grey leader to
-// every chip; there is no Variant tile (states show in plain cards, the picked
-// one unmarked), no Switch for "Try it", and no contrast meter (Progress
-// stands in).
+// Part gaps (asked of parts-dev, never styled around): no zoom in / fit / zoom
+// out or Light / Dark overlay; pins and chips can't be clicked (the Anatomy tab
+// picks); the selected leader's ink look isn't passed through Stage; Step has
+// no kind colours; no Switch for "Try it"; no contrast meter (Progress stands
+// in); Button has no preview state yet (hover / pressed / focus are BELLA's own
+// rules copied onto attributes).
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -32,6 +32,7 @@ import Stat from '@bella/components/Stat/Stat';
 import Progress from '@bella/components/Progress/Progress';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Step from '@bella/components/Step/Step';
+import VariantTile from '@bella/components/VariantTile/VariantTile';
 import Link from '@bella/components/Link/Link';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
@@ -74,24 +75,29 @@ function LivePart({ part, variant, label, state, small }) {
 /* One state, worn by the live part: BELLA's own :hover / :focus-visible /
    :active rules copied onto attributes (forcedStates.js), so no value is
    written here. */
-function StateThumb({ part, variant, label, state }) {
-  const id = useId();
+/* BELLA's own :hover / :focus-visible / :active rules worn by the live part
+   (forcedStates.js copies them onto attributes), so no value is written here. */
+function useForcedState(id, state) {
   useLayoutEffect(() => {
     const el = document.getElementById(id)?.querySelector('[data-bella-component]');
-    const f = forceAttr(state.id === 'active' || state.id === 'pressed' ? 'active' : state.id === 'hover' || state.id === 'focus' ? state.id : null);
-    if (el && f) el.setAttribute(f[0], f[1]);
+    if (!el) return;
+    for (const a of ['data-force-hover', 'data-force-focus', 'data-force-active']) el.removeAttribute(a);
+    const f = forceAttr(state === 'active' || state === 'pressed' ? 'active' : state === 'hover' || state === 'focus' ? state : null);
+    if (f) el.setAttribute(f[0], f[1]);
   });
+}
+
+/* One state in a VariantTile (BELLA fc64c23, Figma VariantTile): the live part
+   wearing it; a click shows that state on the stage. */
+function StateThumb({ part, variant, label, state, selected, onPick }) {
+  const id = useId();
+  useForcedState(id, state.id);
   return (
-    <Flow gap={8}>
-      <Card>
-        <Flow id={id} align="center" inert="" aria-hidden="true">
-          <LivePart part={part} variant={variant} label={label} state={state.id} small />
-        </Flow>
-      </Card>
-      <Flow align="center">
-        <TextStack body={state.label} />
+    <VariantTile label={state.label} selected={selected} onClick={onPick}>
+      <Flow id={id} align="center" inert="" aria-hidden="true">
+        <LivePart part={part} variant={variant} label={label} state={state.id} small />
       </Flow>
-    </Flow>
+    </VariantTile>
   );
 }
 
@@ -186,12 +192,17 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
   const stageW = useWidth(stageId);
   const beside = stageW >= 900;
   const liveId = useId();
+  const shownId = useId();
+  // the state the stage shows, picked from the tiles under it
+  const [shown, setShown] = useState('default');
+  useForcedState(shownId, shown);
   const variants = PLAY[part.name] ? part.variants : [];
   const [variant, setVariant] = useState(variants[0] ?? null);
   const [label, setLabel] = useState(SAMPLE_LABEL[part.name] ?? '');
   useEffect(() => {
     setVariant(variants[0] ?? null);
     setLabel(SAMPLE_LABEL[part.name] ?? '');
+    setShown('default');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [part.id]);
   useEffect(() => installForcedStates(), []);
@@ -229,8 +240,8 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
   const twoX = !!PLAY[part.name];
   const live = (
     <Flow id={liveId} align="center">
-      <Flow align="center" style={twoX ? { scale: '2' } : undefined}>
-        <LivePart part={part} variant={variant} label={label} state="default" />
+      <Flow id={shownId} align="center" style={twoX ? { scale: '2' } : undefined}>
+        <LivePart part={part} variant={variant} label={label} state={shown} />
       </Flow>
     </Flow>
   );
@@ -266,11 +277,10 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
         </Flow>
         {beside ? null : card}
         {part.states.length && PLAY[part.name] ? (
-          <Flow direction="row" gap={8} wrap={tiny} fill={tiny} equal={!tiny} as="ul" aria-label={`${part.name} in each state`}>
+          // the tiles are the flex items (no list wrapper) so they share the row, as the frame's five tiles do
+          <Flow direction="row" gap={8} wrap={tiny} fill={tiny} equal={!tiny} role="group" aria-label={`Show ${part.name} on the stage in a state`}>
             {part.states.map((s) => (
-              <li key={s.id}>
-                <StateThumb part={part} variant={variant} label={label} state={s} />
-              </li>
+              <StateThumb key={s.id} part={part} variant={variant} label={label} state={s} selected={s.id === shown} onPick={() => setShown(s.id)} />
             ))}
           </Flow>
         ) : null}
