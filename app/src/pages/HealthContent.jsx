@@ -4,9 +4,6 @@
 // BELLA parts and the template's Flow only; no page CSS.
 //
 // Stand-ins and gaps (parts-dev):
-// - System health is Figma's segmented arc gauge; BELLA has no gauge part
-//   yet, so the published StatCard with a bar stands in, and the failing
-//   checks it lists under the arc are left out (StatCard has no list slot).
 // - Fix actions run an agent: Figma's model menu needs a button-with-menu
 //   part; plain buttons until then.
 // - Needs you cards: Figma draws a brain icon well; no brain icon in BELLA.
@@ -14,6 +11,7 @@ import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import StatCard from '@bella/components/StatCard/StatCard';
+import SystemHealth from '@bella/components/SystemHealth/SystemHealth';
 import CheckRow from '@bella/components/CheckRow/CheckRow';
 import ListRow from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
@@ -77,16 +75,14 @@ export default function HealthContent({ model, run }) {
       <GateBanner run={run} />
       <Flow span={4} gap={24} fill>
         {health ? (
-          <StatCard
-            title="System health"
-            icon="Activity"
-            tone={health.pct >= TARGET ? 'success' : 'warning'}
+          <SystemHealth
+            subtitle="Component checks that pass"
             value={health.pct}
-            unit="%"
-            chart="bar"
-            meter={{ fill: health.pct, target: TARGET }}
-            context={`${health.passed} of ${health.total} pass`}
-            caption={health.failing.length ? `Healthy means ${TARGET}% or more pass. ${health.failing.length} checks still fail.` : `Healthy means ${TARGET}% or more pass. Every check passes.`}
+            status={health.pct >= TARGET ? 'Healthy' : 'Below target'}
+            target={TARGET}
+            passed={`${health.passed} of ${health.total} pass`}
+            why={`Healthy means ${TARGET}% or more pass (the blue tick). ${health.failing.length ? `${health.failing.reduce((s, r) => s + r.missing.length, 0)} checks still fail:` : 'Every check passes.'}`}
+            failing={health.failing.map((r) => ({ name: r.title, count: r.missing.length, ofTotal: `of ${n} parts`, href: '#/components' }))}
           />
         ) : (
           <NoData title="System health" icon="Activity" tone="info" mark="🩺" empty="No components yet" line="Point me at BELLA and I'll take its pulse." />
