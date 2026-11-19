@@ -21,6 +21,7 @@ import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Input from '@bella/components/Input/Input';
 import ListRow from '@bella/components/ListRow/ListRow';
+import TextStack from '@bella/components/TextStack/TextStack';
 import Notification from '@bella/components/Notification/Notification';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Tag from '@bella/components/Tag/Tag';
@@ -182,9 +183,13 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
               <EmptyState size="lane" mark="🍻" title="No one's waiting on you" line="Every ask is answered. Put the kettle on." />
             )}
             {older.length ? (
-              <Disclosure title={`${older.length} older ${older.length === 1 ? 'ask' : 'asks'}`} summary="Quiet for over a week, so not counted as waiting on you">
-                <Flow as="ul" gap={8} aria-label="Older asks">
-                  {older.map((a) => askRow(a))}
+              // the summary is short meta on one line (T5); the why is the first line inside
+              <Disclosure title={`${older.length} older ${older.length === 1 ? 'ask' : 'asks'}`} summary={`over ${QUIET_DAYS} days`}>
+                <Flow gap={8}>
+                  <TextStack body="Not counted as waiting on you." />
+                  <Flow as="ul" gap={8} aria-label="Older asks">
+                    {older.map((a) => askRow(a))}
+                  </Flow>
                 </Flow>
               </Disclosure>
             ) : null}
