@@ -114,7 +114,21 @@ export default function HealthContent({ model, run, checked, onCheck }) {
             caption={`Target ${TARGET}%`}
           />
         ) : null}
-        <NoData title="Lowest contrast" icon="SunLight" tone="success" mark="🔍" empty="No pairs measured yet" line="Declare a pair and I'll find the weakest one." />
+        {model.lowest ? (
+          <StatCard
+            title="Lowest contrast"
+            icon="SunLight"
+            tone={model.lowest.below ? 'warning' : 'success'}
+            value={model.lowest.ratio.toFixed(2)}
+            unit=":1"
+            chart="bar"
+            meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100) }}
+            context={model.lowest.below ? `${model.lowest.below} text pairs below ${model.lowest.bar}:1` : 'Every pair clears the target'}
+            caption={`Target ${model.lowest.bar}:1 · ${model.lowest.checked} checked`}
+          />
+        ) : (
+          <NoData title="Lowest contrast" icon="SunLight" tone="success" mark="🔍" empty="No pairs measured yet" line="Declare a pair and I'll find the weakest one." />
+        )}
       </Flow>
       <Card>
         <Flow gap={24}>

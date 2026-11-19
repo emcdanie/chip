@@ -19,6 +19,7 @@ import { spawnSync, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { bellaDir } from './lib/bella-dir.mjs';
+import { bellaPairs, pairTokens } from './lib/bella-pairs.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BELLA = bellaDir();
@@ -232,15 +233,11 @@ function runGate(script, args = []) {
   return { script, exitCode: r.status, ok: r.status === 0, stdout: r.stdout.trim(), stderr: r.stderr.trim() };
 }
 
-// contrast-pairs: pairs declared in the script, failures parsed from its output
-const contrastRun = runGate('contrast-pairs.mjs');
-const pairSrc = read('scripts/contrast-pairs.mjs');
-const pairs = [...pairSrc.matchAll(/\['([^']+)',\s*'(--[\w-]+)',\s*'(--[\w-]+)',\s*(\w+|[\d.]+)\]/g)]
-  .map((m) => ({ label: m[1], fg: m[2], bg: m[3] }))
-  .filter((p) => !p.label.includes('forbidden'));
-const failedLabels = new Set(
-  [...contrastRun.stderr.matchAll(/^\s*- (?:light|dark): (.+?) (?:is|now passes) /gm)].map((m) => m[1])
-);
+// contrast-pairs: BELLA's own list and ratios (scripts/lib/bella-pairs.mjs);
+// the list is built in code, so it is evaluated, never scraped
+const contrastRun = bellaPairs(BELLA);
+const pairs = contrastRun.pairs;
+const failedLabels = new Set(contrastRun.failing);
 
 // contract-parity: "checked a, b" and "key: ..." failure lines
 const parityRun = runGate('contract-parity.mjs');
@@ -255,7 +252,7 @@ const tokenUsage = {};
 for (const c of components) for (const t of c._closure) (tokenUsage[t] ??= []).push(c.name);
 
 for (const c of components) {
-  const covering = pairs.filter((p) => c._closure.has(p.fg) || c._closure.has(p.bg));
+  const covering = pairs.filter((p) => pairTokens(p).some((t) => c._closure.has(t)));
   const failing = covering.filter((p) => failedLabels.has(p.label));
   c.health = {
     contrast: {
@@ -369,7 +366,7 @@ const out = {
     cssVars: { light: Object.keys(lightVars).length, darkOverrides: Object.keys(darkVars).length - Object.keys(lightVars).length },
   },
   gates: {
-    contrastPairs: { ok: contrastRun.ok, summary: contrastRun.ok ? contrastRun.stdout : contrastRun.stderr.split('\n')[0] },
+    contrastPairs: { ok: contrastRun.ok, checked: contrastRun.checked, pairs: pairs.length, summary: contrastRun.summary },
     contractParity: { ok: parityRun.ok, checked: [...checked], exemptContracts: exempt },
     visual: { ok: null, note: 'TODO: audit:visual skipped (slow)' },
   },

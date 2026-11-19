@@ -10,6 +10,7 @@ import { DATA_DIR, ROOT } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
 import { BASE, readResult } from './checks.mjs';
 import { lastLint } from './spec-lint.mjs';
+import { bellaPairs, declaredLists } from '../../scripts/lib/bella-pairs.mjs';
 
 const read = (rel) => readFileSync(join(BELLA, rel), 'utf8');
 const lineOf = (text, re) => text.split('\n').findIndex((l) => re.test(l)) + 1;
@@ -85,9 +86,8 @@ function load() {
   const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
   const contracts = JSON.parse(read('tokens/contracts.json')).component;
   const pairSrc = read('scripts/contrast-pairs.mjs');
-  const pairs = [...pairSrc.matchAll(/\['([^']+)',\s*'(--[\w-]+)',\s*'(--[\w-]+)',\s*(\w+|[\d.]+)\]/g)]
-    .map((m) => ({ label: m[1], fg: m[2], bg: m[3], min: m[4] }))
-    .filter((p) => !p.label.includes('forbidden'));
+  // BELLA builds its pairs in code: evaluated, never scraped (scripts/lib/bella-pairs.mjs)
+  const { pairs } = declaredLists(BELLA);
   const dsdsSrc = read('scripts/build-dsds.mjs');
   const implStart = lineOf(dsdsSrc, /^const IMPL = \{/);
   const implBody = dsdsSrc.slice(dsdsSrc.indexOf('const IMPL = {'), dsdsSrc.indexOf('};', dsdsSrc.indexOf('const IMPL = {')));
@@ -118,7 +118,7 @@ function similar(c, comps, keep) {
 function contrastGap(c, ctx) {
   const where = [{ file: 'scripts/contrast-pairs.mjs', field: 'PAIRS' }];
   const base = { why: RULES.contrast, where };
-  const failingNow = c.health.contrast.status === 'fail' || c.health.contrast.status === 'pass';
+  const failingNow = c.health.contrast.status === 'fail';
   if (failingNow) {
     // the live check's failure line naming a token this component reads, as the Overview counts it
     const live = (readResult('contrast')?.failures ?? []).find((f) => c.tokens.list.includes(f.match(/--[\w-]+/)?.[0]));
@@ -496,47 +496,10 @@ export function gapReport(pairs) {
  * PAIRS (with its highlight-wash pairs, '<wash> over <surface>') at their bar,
  * and DISTINCT (fills kept apart) at APART, in all four themes, worst shown. */
 export function declaredPairs() {
-  const { pairSrc: src, T } = load();
-  const BAR = { AAA: 7, AA: 4.5, NON_TEXT: 3 };
-  const blockOf = (name) => {
-    const a = src.indexOf(`const ${name} = [`);
-    return a < 0 ? '' : src.slice(a, src.indexOf('\n];', a));
-  };
-  const out = [];
-  const P = blockOf('PAIRS');
-  for (const m of P.matchAll(/\['([^']+)',\s*'(--[\w-]+)',\s*'(--[\w-]+)',\s*(AAA|AA|NON_TEXT|[\d.]+)\]/g)) out.push({ label: m[1], fg: m[2], bg: m[3], bar: BAR[m[4]] ?? Number(m[4]) });
-  // the highlight pairs are written once over a list of surfaces
-  const surf = P.match(/\.\.\.\[([^\]]+)\]\.flatMap/);
-  if (surf)
-    for (const sf of [...surf[1].matchAll(/'([\w-]+)'/g)].map((x) => x[1]))
-      for (const m of P.slice(surf.index).matchAll(/\[`([^`]+)`,\s*'(--[\w-]+)',\s*`([^`]+)`,\s*(AAA|AA|NON_TEXT)\]/g))
-        out.push({ label: m[1].replace('${s}', sf), fg: m[2], bg: m[3].replace('${s}', sf), bar: BAR[m[4]] });
-  const apart = Number(src.match(/const APART = ([\d.]+)/)?.[1] ?? 1.08);
-  for (const m of blockOf('DISTINCT').matchAll(/\['([^']+)',\s*'(--[\w-]+)',\s*'(--[\w-]+)'\]/g)) out.push({ label: m[1], fg: m[2], bg: m[3], bar: apart });
-  // the gate's maths: an 8-digit wash composites over its surface; otherwise the first six digits count
-  const six = (h) => (isHex(h) ? h.slice(0, 7) : null);
-  const colour = (vars, spec) => {
-    const [top, base] = spec.split(' over ');
-    if (!base) return six(resolve(vars, top));
-    const t = resolve(vars, top);
-    const b = six(resolve(vars, base));
-    return isHex(t) && b ? over(t, b) : null;
-  };
-  return out
-    .map((p) => {
-      const measured = [];
-      for (const [theme, vars] of Object.entries(T)) {
-        const f = colour(vars, p.fg);
-        const b = colour(vars, p.bg);
-        if (!f || !b) return null;
-        const [x, y] = [lum(f), lum(b)];
-        measured.push({ theme, raw: (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05) });
-      }
-      const raw = Math.min(...measured.map((m) => m.raw));
-      const r2 = (v) => Math.round(v * 100) / 100;
-      return { ...p, bg: p.bg.split(' over ')[0], measured: measured.map((m) => ({ theme: m.theme, ratio: r2(m.raw) })), worst: r2(raw), ok: raw >= p.bar };
-    })
-    .filter(Boolean);
+  // BELLA's own list and its own ratios in its four themes (contrast-pairs.mjs --verbose)
+  const r = bellaPairs(BELLA);
+  const pairs = [...r.pairs, ...r.distinct].filter((p) => p.measured.length).map((p) => ({ ...p, bg: p.bg.split(' over ')[0] }));
+  return { pairs, checked: r.checked, ok: r.ok };
 }
 
 export function gapFixes() {
@@ -547,8 +510,8 @@ export function gapFixes() {
     if (!c.hasDocs) out.docs[c.name] = noSuggester('docs', c);
     if (!c.hasContract) out.contract[c.name] = noSuggester('contract', c);
     if (!c.inDsds) out.dsds[c.name] = dsdsGap(c, ctx);
-    // every component, so a token the live check finds failing has an answer too
-    out.contrast[c.name] = contrastGap(c, ctx);
+    // a part is a contrast gap when no declared pair reads its tokens, or one of them fails
+    if (c.health.contrast.status !== 'pass') out.contrast[c.name] = contrastGap(c, ctx);
     if (!c.hasA11yNotes) out.a11y[c.name] = a11yGap(c, ctx);
   }
   // who can fix each one, said on the card before anything opens; and a

@@ -530,7 +530,7 @@ app.get('/needs', (_req, res) => {
 // Foundations' contrast column: the pairs the gate declares, measured as it does
 app.get('/contrast-pairs', (_req, res) => {
   try {
-    res.json({ pairs: declaredPairs() });
+    res.json(declaredPairs());
   } catch (e) {
     errorOut(res, e, 500);
   }

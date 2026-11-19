@@ -22,7 +22,7 @@ const names = (list) => (list.length > 3 ? `${list.slice(0, 2).join(', ')} +${li
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 /** components: BELLA's list; gaps: /gaps .gaps ({ story: { Name: … } }); history: BELLA's commits. */
-export function healthModel({ components = [], gaps = {}, history = [] }) {
+export function healthModel({ components = [], gaps = {}, history = [], pairs = null }) {
   const n = components.length;
   const rows = CHECKS.map((c) => {
     const missing = Object.keys(gaps[c.id] ?? {});
@@ -42,16 +42,26 @@ export function healthModel({ components = [], gaps = {}, history = [] }) {
     gate: last ? { ok: parts.filter(Boolean).length, of: parts.length, when: day(last.committedAt), allPass: last.gate.ok } : null,
     contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length } : null,
     drift: null, // CHIP has no Figma baseline yet (/figma-baseline answers at: null)
-    lowest: null, // CHIP has no measured contrast pairs yet (/contrast-pairs answers [])
+    lowest: lowestPair(pairs),
     fixes: rows.filter((r) => r.missing.length).map((r) => ({ id: r.id, title: `${r.missing.length} ${r.some}`, names: names(r.missing), action: r.action })),
     fixCount: rows.reduce((s, r) => s + r.missing.length, 0),
   };
 }
 
+/* The weakest text pair BELLA's gate measures (/contrast-pairs: BELLA's own list
+   and ratios), against the 7:1 bar every text pair has. null when BELLA has none. */
+function lowestPair(res) {
+  const text = (res?.pairs ?? []).filter((p) => p.bar >= 7 && p.worst != null);
+  if (!text.length) return null;
+  const w = text.reduce((a, b) => (b.worst < a.worst ? b : a));
+  const below = text.filter((p) => !p.ok).length;
+  return { ratio: w.worst, label: w.label, bar: 7, below, checked: res.checked };
+}
+
 /** Reads CHIP's data (kept between pages); `model` is null only on the very first visit. */
 export function useHealth() {
-  const { data, error, at, reload } = useCached(['/data/bella.json', '/gaps']);
-  const model = useMemo(() => (data ? healthModel({ components: data[0].components, gaps: data[1].gaps, history: data[0].history }) : null), [data]);
+  const { data, error, at, reload } = useCached(['/data/bella.json', '/gaps', '/contrast-pairs']);
+  const model = useMemo(() => (data ? healthModel({ components: data[0].components, gaps: data[1].gaps, history: data[0].history, pairs: data[2] }) : null), [data]);
   const checked = at ? new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
   return { model, error, reload, checked };
 }
