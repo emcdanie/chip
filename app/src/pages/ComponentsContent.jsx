@@ -77,7 +77,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                     {part.anatomy.map((a) => (
                       <li key={a.key}>
                         <Flow direction="row" gap={12}>
-                          <Pin number={a.n} variant="yellow" />
+                          <Pin number={a.n} variant="yellow" pinStyle="solid" />
                           {/* Figma: the part's detail is a sentence, in the reading face */}
                           <TextStack title={a.title} body={a.detail} />
                         </Flow>

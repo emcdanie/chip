@@ -136,7 +136,10 @@ const components = names.map((name) => {
   // component root), a zone shape and a layer kind. pin and anchor are
   // measured by the app from the rendered component, in the specimen's own
   // coordinate space, so they stay null in the data.
-  const parts = (contract?.anatomy ?? []).map((p, i) => ({
+  // contracts name their parts as `anatomy` ({key, title, detail, token…}) or,
+  // newer, as `parts` ({number, name, does}, CodeBlock 20 Nov): both are read
+  const listed = contract?.anatomy ?? (contract?.parts ?? []).map((p) => ({ key: p.name, title: p.name, detail: p.does }));
+  const parts = listed.map((p, i) => ({
     key: p.key,
     n: i + 1,
     title: p.title,

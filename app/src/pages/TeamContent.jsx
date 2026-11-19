@@ -121,8 +121,8 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
       layout="stacked"
       selected={replyTo?.id === a.id}
       title={a.agent}
-      // the ask is a sentence: ListRow's body (reading face), not its subtitle (mono, short meta)
-      body={`${short(a.text)} · ${dateOf(a.at)}`}
+      // Figma: the ask and its date as one short Geist Mono line (ListRow meta)
+      meta={`${short(a.text)} · ${dateOf(a.at)}`}
       actionButton={
         <Button variant="secondary" size="sm" ariaLabel={`Reply to ${a.agent}`} onClick={() => setReplyTo(a)}>
           Reply

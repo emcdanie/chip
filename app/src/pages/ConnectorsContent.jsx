@@ -4,8 +4,7 @@
 // /map (each node's state and detail) and /host/test. BELLA parts and the
 // template's Flow only.
 //
-// Gaps (library board): the App tile part (Figma's Reaches tiles; Card with
-// Text stack stands in), the curved path drawing and its Hub (Map line pieces
+// Gaps (library board): the curved path drawing and its Hub (Map line pieces
 // placed by position), the GitHub, git and Notion brand marks. Push on the CI
 // tile waits: pushing runs only on Elleta's own yes, never from a page button.
 import { useCallback, useEffect, useState } from 'react';
@@ -16,6 +15,7 @@ import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Heading from '@bella/components/Heading/Heading';
 import ListRow from '@bella/components/ListRow/ListRow';
 import IconWell from '@bella/components/IconWell/IconWell';
+import AppTile from '@bella/components/AppTile/AppTile';
 import Notification from '@bella/components/Notification/Notification';
 import Button from '@bella/components/Button/Button';
 import Drawer from '@bella/components/Drawer/Drawer';
@@ -29,10 +29,11 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' };
 // map state → the words and tone Figma uses on a tile
 const LIVE = { ok: ['Live', 'success'], bad: ['Needs setup', 'danger'], blocked: ['Waiting', 'attention'], unknown: ['Not tested', 'neutral'] };
 const REACHES = [
-  { id: 'ci', name: 'GitHub CI', icon: 'Network', ok: 'Ran' },
-  { id: 'git', name: 'git', icon: 'Code', ok: 'Up to date' },
-  { id: 'claude', name: 'Agent', icon: 'Sparks', ok: 'Ready' },
-  { id: 'ollama', name: 'Local model', icon: 'Activity', ok: 'Ready' },
+  // Figma's App tiles: GitHub's mark on ink, git's branch on its orange, the agent on Claude's colour, the local model outlined
+  { id: 'ci', name: 'GitHub CI', tile: { tone: 'inverse', brand: 'github' }, ok: 'Ran' },
+  { id: 'git', name: 'git', tile: { tone: 'git', icon: 'GitBranch' }, ok: 'Up to date' },
+  { id: 'claude', name: 'Agent', tile: { tone: 'claude', icon: 'Brain' }, ok: 'Ready' },
+  { id: 'ollama', name: 'Local model', tile: { tone: 'outline', icon: 'Activity' }, ok: 'Ready' },
 ];
 // Figma's tile: a large headline, then one short meta line, both from the node's own detail
 const pushes = (d) => (/nothing unpushed/i.test(d ?? '') ? 0 : Number(String(d ?? '').match(/(\d+) (?:commits? )?unpushed/i)?.[1] ?? NaN));
@@ -136,7 +137,7 @@ export default function ConnectorsContent() {
                 >
                   <Flow gap={12}>
                     <Flow direction="row" justify="between" align="center" gap={8} wrap>
-                      <IconWell icon={r.icon} tone="neutral" />
+                      <AppTile {...r.tile} />
                       <StateTag state={r.n.state} />
                     </Flow>
                     {/* Figma's tile: the service, its state large, one short meta line */}
