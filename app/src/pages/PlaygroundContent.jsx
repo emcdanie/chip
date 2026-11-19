@@ -12,8 +12,8 @@
 // STAGE SLOT: BELLA's Stage part (Figma Stage{grid=dots}) holds the live page
 // at its design width: Fit / 100% float in its top-right corner, notes are
 // pink Pins on the page, and while marking a click asks the page what sits
-// there (chip:pick, answered by the proxy's probe). The frame options wait on
-// her card y22.
+// there (chip:pick, answered by the proxy's probe). Frame, zoom and Mark up:
+// her card y22, "A · Yes" (19 Nov).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Drawer from '@bella/components/Drawer/Drawer';
