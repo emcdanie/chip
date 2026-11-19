@@ -33,7 +33,6 @@ import Progress from '@bella/components/Progress/Progress';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Step from '@bella/components/Step/Step';
 import VariantTile from '@bella/components/VariantTile/VariantTile';
-import Link from '@bella/components/Link/Link';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Flow from '../templates/Flow.jsx';
@@ -55,6 +54,14 @@ const SAMPLE_LABEL = { Button: 'Send' };
 const ICON = { visual: 'Eye', tokens: 'Sparks', API: 'Code', docs: 'Book', fix: 'RefreshDouble' };
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
 const ratio = (r) => `${Number(r).toFixed(2)}:1`;
+/* An anatomy part's value as Figma's chip says it: a hex, "none" for an empty shadow or edge, else a short size. */
+function valueOf(x) {
+  const v = String(x.value ?? '').trim().replace(/\s+/g, ' ');
+  if (!v) return null;
+  if (/^#[0-9a-f]{6}$/i.test(v)) return v.toLowerCase();
+  if (/^(0px )*0px #[0-9a-f]{6}00$|^none$|^0(px)?$/i.test(v)) return 'none';
+  return v.length <= 12 ? v : null;
+}
 
 /* The live part, as the code renders it: the Playground's props when the part
    has them (variant and label follow the controls), else its specimen. */
@@ -155,7 +162,7 @@ function useBox(stageWrapId, partId, deps) {
 
 /* The picked anatomy part: name, pass or finding, its sentence, BELLA's measured
    contrast for its token against the bar, the token, and Fix for a finding. */
-function PartCard({ a, onFix }) {
+function PartCard({ a, touch, onFix }) {
   const c = a.contrast;
   return (
     <Card footerAction={a.status === 'finding' ? <Button variant="primary" size="sm" onClick={onFix}>Fix</Button> : undefined}>
@@ -175,7 +182,8 @@ function PartCard({ a, onFix }) {
         ) : null}
         <Flow gap={4}>
           {c ? <ListRow as="div" layout="inline" title="Target" value={`${c.bar}:1`} /> : null}
-          {c ? <ListRow as="div" layout="inline" title="Pair" description={c.label} /> : null}
+          {/* the touch target against 44 (20 Nov: Accessibility shows it), measured on the live part */}
+          {touch ? <ListRow as="div" layout="inline" title="Touch" value={`${touch.w} × ${touch.h} · ${touch.w >= 44 && touch.h >= 44 ? 'passes' : 'under 44'}`} /> : null}
           {a.token ? <ListRow as="div" layout="stacked" title="Token" value={a.token} /> : null}
         </Flow>
       </Flow>
@@ -209,6 +217,17 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
   const anatomy = detail?.anatomy ?? [];
   const a = anatomy.find((x) => x.key === picked) ?? anatomy[0] ?? null;
   const box = useBox(stageId, liveId, [part.id, variant, label, narrow, beside, anatomy.length, a?.key]);
+  // the live part's touch target, unscaled: its own box or its hit area (a small part's 44 area is a pseudo-element), whichever is larger
+  const [touch, setTouch] = useState(null);
+  useLayoutEffect(() => {
+    const el = document.getElementById(shownId)?.querySelector('button, a, input, [role]');
+    if (!el) return setTouch(null);
+    const px = (v) => (/px$/.test(v) ? parseFloat(v) : 0);
+    const hit = ['::before', '::after'].map((p) => getComputedStyle(el, p)).filter((c) => c.position === 'absolute');
+    const w = Math.round(Math.max(el.offsetWidth, ...hit.map((c) => px(c.width))));
+    const h = Math.round(Math.max(el.offsetHeight, ...hit.map((c) => px(c.height))));
+    setTouch((t) => (t && t.w === w && t.h === h ? t : { w, h }));
+  }, [box, shownId]);
   const markers = useMemo(() => {
     if (!box || !anatomy.length) return [];
     // chips in a column left of the part, each level with its pin (as the frame), at least 36 apart; on a phone, the pins alone
@@ -228,7 +247,10 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
     return anatomy.map((x, i) => ({
       id: x.key,
       ...pins[i],
-      part: x.title,
+      // her light red numbered pin, and the chip as Figma: "part · value" (Plate · its hex)
+      // numbered top to bottom down the chip column, as Figma (1 Plate, 2 Label, …)
+      label: order.indexOf(i) + 1,
+      part: valueOf(x) ? `${x.title} · ${valueOf(x)}` : x.title,
       status: x.status,
       ...(chips ? { chipX: box.cx - box.w / 2 - 48, chipY: chipY[i] - shift } : {}),
       // her frame (690:492657, parts-dev 60c3a4c): one dashed pink leader, to the part in focus; its chip has the ink edge
@@ -245,11 +267,13 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
       </Flow>
     </Flow>
   );
-  const card = a ? <PartCard a={a} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
+  // the part stands right of centre, so the chip column keeps room for its longest chip (Focus ring and its hex), as Figma 690:490822 places it; stopgap until Stage lays out the chips itself
+  const shifted = markers.some((m) => m.chipX != null) ? <Flow style={{ paddingInlineStart: 'calc(var(--spacing-40) * 5)' }}>{live}</Flow> : live;
+  const card = a ? <PartCard a={a} touch={twoX ? touch : null} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
   return (
     <Card>
       <Flow gap={16}>
-        <TextStack title="On the stage" body={`${twoX ? 'Shown at 2×. ' : ''}${anatomy.length ? 'Pick a part: green passes, ochre is a finding.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`}`} />
+        <TextStack title="On the stage" body={`${twoX ? 'Shown at 2×. ' : ''}${anatomy.length ? 'Pick a numbered pin: its card names the part and says if it passes or is a finding.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`}`} />
         {PLAY[part.name] ? (
           <Flow direction="row" gap={16} wrap align="center">
             <Input label="Label" value={label} onChange={setLabel} placeholder={PLAY[part.name].children} />
@@ -265,10 +289,10 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
         <Flow id={stageId}>
           {/* Stopgap until Stage takes a height (asked of parts-dev): the Anatomy story's 400 for a 2x part, else tall enough for the chip column */}
           <Stage label={`${part.name} on the stage`} markers={markers} style={twoX ? { minBlockSize: 'calc(var(--spacing-80) * 5)' } : markers.some((m) => m.chipX != null) ? { minBlockSize: `calc(var(--spacing-40) * ${anatomy.length + 1})` } : undefined}>
-            {!beside || !card ? live : (
+            {!beside || !card ? shifted : (
               // the stage centres its content, so the row asks for the stage's full width (stopgap until Stage lays out a part beside a card)
               <Flow direction="row" gap={24} align="center" grow="first" style={{ alignSelf: 'stretch' }}>
-                {live}
+                {shifted}
                 {/* the frame's finding card is 280 wide (7 x 40); stopgap until Card takes a width */}
                 <Flow style={{ inlineSize: 'calc(var(--spacing-40) * 7)' }}>{card}</Flow>
               </Flow>
@@ -293,9 +317,10 @@ function HistoryCard({ part, detail, all }) {
   const list = all ? detail.history : detail.history.slice(0, HISTORY_SHOWN);
   let last = null;
   return (
-    <Card>
+    // See all sits in the card footer at the bottom right, as Figma
+    <Card footerAction={!all && detail.history.length > HISTORY_SHOWN ? <Button variant="tertiary" size="sm" href="#/history">See all in History</Button> : undefined}>
       <Flow gap={8}>
-        <SectionHead title="History" words={`${list.length} of ${detail.history.length} records`} />
+        <SectionHead title="History" number={list.length} words="merged" />
         {list.length ? (
           <Flow gap={4} as="ol" aria-label={`${part.name}'s records, newest first`}>
             {list.map((r) => {
@@ -305,7 +330,8 @@ function HistoryCard({ part, detail, all }) {
               return (
                 <li key={r.id}>
                   {head ? <TextStack subtitle={head} /> : null}
-                  <Step title={r.title} tag={<Tag tone="success">Merged</Tag>} icon={ICON[r.type] ?? 'Clock'} state="done" />
+                  {/* Figma: the record's title and its Why line; green Merged tags went in the 20 Nov polish (one thing stands out) */}
+                  <Step title={r.title} detail={r.why ?? undefined} icon={ICON[r.type] ?? 'Clock'} state="done" />
                 </li>
               );
             })}
@@ -313,11 +339,6 @@ function HistoryCard({ part, detail, all }) {
         ) : (
           <EmptyState size="lane" mark="📜" title="No records yet" line={`BELLA has no commits that touch ${part.name}.`} />
         )}
-        {!all && detail.history.length > HISTORY_SHOWN ? (
-          <Flow direction="row" justify="center">
-            <Link href="#/history">See all in History</Link>
-          </Flow>
-        ) : null}
       </Flow>
     </Card>
   );
@@ -360,7 +381,7 @@ function AskCard({ part, detail, onAsk, answer }) {
     <Card>
       <Flow gap={12}>
         <TextStack title="Ask BELLA" body={`Ask about ${part.name}: ${knows}.`} />
-        <Input label={`Ask about ${part.name}`} value={q} onChange={setQ} onSend={send} sendLabel="Ask" />
+        <Input label={`Ask about ${part.name}`} placeholder={`Ask about ${part.name}`} value={q} onChange={setQ} onSend={send} sendLabel="Ask" />
         {answer ? <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title={answer.pending ? 'Asking…' : 'BELLA'} message={answer.reply} /> : null}
       </Flow>
     </Card>
@@ -369,17 +390,24 @@ function AskCard({ part, detail, onAsk, answer }) {
 
 function ChecksCard({ part, detail, checked }) {
   const linkFor = (k) => (k.id === 'story' && part.storyUrl ? part.storyUrl : k.id === 'contrast' ? '#/foundations' : null);
+  // Figma's seven rows: the six checks, then Figma set, which counts (5 of 7 while CHIP can't reach Figma)
+  const total = part.checks.length + 1;
+  const pass = part.pass + (detail.figmaBlind ? 0 : 1);
   return (
     <Card>
       <Flow gap={8}>
-        <SectionHead title="Checks" description={checked ? `Run ${checked} on main` : undefined} number={part.pass} words={`of ${part.checks.length} pass`} />
-        <Progress label={`${part.pass} of ${part.checks.length} checks pass`} showLabel={false} shape="segments" segments={part.checks.length} done={part.pass} tone={part.ready ? 'success' : 'attention'} />
+        <SectionHead title="Checks" description={checked ? `Run ${checked} on main` : undefined} number={pass} words={`of ${total} pass`} />
         <Flow gap={4} as="ul" aria-label={`${part.name}'s checks`}>
           {part.checks.map((k) => {
             const href = k.ok ? linkFor(k) : null;
             return <ListRow key={k.id} layout="inline" title={k.title} value={k.words} trailing={href ? true : undefined} href={href ?? undefined} statusDot={k.ok ? undefined : <StatusDot tone="attention" showLabel={false} label="Fails" />} />;
           })}
-          {detail.figmaBlind ? <ListRow layout="inline" title="Figma set" value="No file key" /> : null}
+          <ListRow
+            layout="inline"
+            title="Figma set"
+            value={detail.figmaBlind ? undefined : 'Reachable'}
+            actionButton={detail.figmaBlind ? <Button variant="secondary" size="sm" href="#/connectors">Add file key</Button> : undefined}
+          />
         </Flow>
       </Flow>
     </Card>
@@ -428,12 +456,11 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         <EmptyState size="lane" mark="🤷" title="Nothing matches" line="No part fits that filter. Try All." />
       ) : (
         <>
-          {/* Part header: name, live status, checks and findings, the contract's first sentence */}
+          {/* Part header: name, live status, its findings (the checks count lives in the Checks card, Figma 20 Nov polish), the contract's first sentence */}
           <Flow gap={8}>
             <Flow direction="row" gap={12} wrap align="center">
               <Heading tier="section" as="h2">{part.name}</Heading>
               <StatusDot tone="success" label={live} />
-              <Tag tone={part.ready ? 'success' : 'attention'} showDot>{`${part.pass} of ${part.checks.length} checks pass`}</Tag>
               {detail?.findings ? <Tag tone="attention" showDot>{`${detail.findings} ${detail.findings === 1 ? 'finding' : 'findings'}`}</Tag> : null}
             </Flow>
             {tiny && detail?.updated ? <TextStack subtitle={`Updated ${detail.updated}`} /> : null}
@@ -441,7 +468,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
           </Flow>
           <Tabs label={`${part.name} views`} idBase="part-view" value={view} onChange={setView} tabs={VIEWS} />
           {detail?.figmaBlind ? (
-            <Notification tone="attention" title="Figma can’t see it" message="CHIP has no Figma file key or token, so it can’t compare this part with Figma." action={{ label: 'Add file key', href: '#/connectors' }} />
+            <Notification tone="attention" title="Figma can’t see it" message="No file key in server/.env." action={{ label: 'Add file key', href: '#/connectors' }} />
           ) : null}
           {detail ? <AskRow part={part} detail={detail} onAsk={ask} /> : null}
           {!detail ? (

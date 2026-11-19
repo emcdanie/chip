@@ -12,7 +12,7 @@ import { CHECKS } from './healthModel.js';
 /* Figma 690:492657's link words per check row ("Contrast · See pairs ›"). */
 const LINK_WORDS = { story: 'Open stories', docs: 'Open docs', contract: 'Open contract', dsds: 'Open spec', contrast: 'See pairs', a11y: 'Open notes' };
 const MISSING_WORDS = { story: 'No story', docs: 'No doc page', contract: "Doesn't match", dsds: 'Not in the spec', contrast: 'No pair', a11y: 'No checks' };
-const ORDER = ['contrast', 'story', 'contract', 'docs', 'dsds', 'a11y'];
+const ORDER = ['story', 'docs', 'contract', 'dsds', 'contrast', 'a11y'];
 /* The contract's state names in Figma's words. */
 const STATE_WORDS = { default: 'Default', hover: 'Hover', active: 'Pressed', pressed: 'Pressed', focus: 'Focus', disabled: 'Disabled' };
 
@@ -23,10 +23,10 @@ const firstSentence = (s) => (s ?? '').replace(/\s+/g, ' ').trim().match(/^.*?[.
 export function componentsModel({ components = [], gaps = {}, version, checkedAt }) {
   const parts = components
     .map((c) => {
-      // the finished frame's order and words (690:490822): Contrast, Stories, Contract, Docs, Machine-readable spec; A11y is CHIP's sixth
+      // the published content's order and words (690:490822, 21 Nov): Story, Docs, Contract, Machine-readable spec, Contrast, A11y; Figma set is the seventh row (ChecksCard)
       const checks = ORDER.map((id) => CHECKS.find((k) => k.id === id)).map((k) => {
         const ok = !gaps[k.id]?.[c.name];
-        return { id: k.id, title: k.id === 'story' ? 'Stories' : k.title, ok, words: ok ? LINK_WORDS[k.id] : MISSING_WORDS[k.id], action: k.action };
+        return { id: k.id, title: k.id === 'story' ? 'Story' : k.title, ok, words: ok ? LINK_WORDS[k.id] : MISSING_WORDS[k.id], action: k.action };
       });
       const pass = checks.filter((k) => k.ok).length;
       return {
@@ -37,7 +37,7 @@ export function componentsModel({ components = [], gaps = {}, version, checkedAt
         variants: c.variants ?? [],
         states: (c.states ?? []).filter((s) => STATE_WORDS[s]).map((s) => ({ id: s, label: STATE_WORDS[s] })),
         storyUrl: c.storyUrl ?? null,
-        anatomy: (c.parts ?? []).map((a) => ({ key: a.key, n: a.n, title: a.title, detail: a.detail, token: a.token, kind: a.kind, trigger: a.trigger, zone: a.zone })),
+        anatomy: (c.parts ?? []).map((a) => ({ key: a.key, n: a.n, title: a.title, detail: a.detail, token: a.token, value: a.value?.light ?? null, kind: a.kind, trigger: a.trigger, zone: a.zone })),
         checks,
         pass,
         ready: pass === checks.length,
@@ -71,12 +71,20 @@ export function pairFor(token, pairs) {
 }
 
 /** history: /bella-history/:id; pairs: /contrast-pairs; map: /map. */
+/* Figma's Why line under a record: the commit body's first plain sentence,
+   without the "Name, date: \"quote\"" attribution (copy speaks to the role). */
+function whyOf(body) {
+  const t = String(body ?? '').replace(/\s+/g, ' ').trim().replace(/^[A-Z][\w ]*, \d{1,2} \w{3} \d{4}:?\s*(\([^)]*\)\s*)?("[^"]*"[.,]?\s*)?/, '');
+  const one = firstSentence(t);
+  return one && !/\bElleta\b/.test(one) && one.length <= 160 ? one : null;
+}
+
 export function detailModel(part, { history, pairs, map }) {
   const anatomy = part.anatomy.map((a) => {
     const contrast = pairFor(a.token, pairs?.pairs);
     return { ...a, contrast, status: contrast && !contrast.ok ? 'finding' : 'pass' };
   });
-  const entries = (history?.entries ?? []).map((e) => ({ id: e.sha, title: cap(e.subject.replace(/^\w+(\([^)]*\))?!?:\s*/, '')), date: e.date, type: (e.types ?? [])[0] ?? null }));
+  const entries = (history?.entries ?? []).map((e) => ({ id: e.sha, title: cap(e.subject.replace(/^\w+(\([^)]*\))?!?:\s*/, '')), why: whyOf(e.detail), date: e.date, type: (e.types ?? [])[0] ?? null }));
   const figma = (map?.nodes ?? []).find((n) => n.id === 'figma-rest') ?? null;
   return {
     anatomy,
