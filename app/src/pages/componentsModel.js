@@ -15,7 +15,7 @@ const PART_WORDS = {
   a11y: ['Keyboard and labels pass', 'No keyboard and label checks'],
 };
 
-export function componentsModel({ components = [], gaps = {}, commit }) {
+export function componentsModel({ components = [], gaps = {}, version }) {
   const parts = components
     .map((c) => {
       const checks = CHECKS.map((k) => {
@@ -26,12 +26,13 @@ export function componentsModel({ components = [], gaps = {}, commit }) {
       return { id: c.id ?? c.name, name: c.name, category: c.category ?? 'Other', anatomy: c.parts ?? [], checks, pass, ready: pass === checks.length };
     })
     .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
-  return { parts, version: commit ? `BELLA ${commit}` : null, ready: parts.filter((p) => p.ready).length };
+  // BELLA's version number when it has one ("BELLA 0.3.0", as Figma); never a commit hash
+  return { parts, version: version ? `BELLA ${version}` : null, ready: parts.filter((p) => p.ready).length };
 }
 
 /** Reads CHIP's data (kept between pages, shared with Health). */
 export function useComponents() {
   const { data, error } = useCached(['/data/bella.json', '/gaps']);
-  const model = useMemo(() => (data ? componentsModel({ components: data[0].components, gaps: data[1].gaps, commit: data[0].source?.commit }) : null), [data]);
+  const model = useMemo(() => (data ? componentsModel({ components: data[0].components, gaps: data[1].gaps, version: data[0].source?.version }) : null), [data]);
   return { model, error };
 }

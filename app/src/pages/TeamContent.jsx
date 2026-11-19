@@ -236,7 +236,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
           <Flow as="ul" gap={8} aria-label="Kinds of fix">
             <ListRow layout="stacked" title="Push and merge" body="Never moves up. Rule: earned trust, 11 Nov" tag={<Tag variant="outline" tone="attention">Always asks</Tag>} />
           </Flow>
-          <EmptyState size="lane" mark="📊" title="No fixes counted yet" line="Hex → token and px → type token start counting after the backfill." />
+          <EmptyState size="lane" mark="📊" title="No fixes counted yet" line="Swapping a typed colour or size for its token starts counting once CHIP has read back through past fixes." />
         </Flow>
       </Card>
     </>

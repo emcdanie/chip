@@ -14,4 +14,4 @@ const codeBlock = {
   ],
 };
 const others = ['Button', 'Card', 'Tag', 'Tabs'].map((name) => ({ name, category: 'Actions', parts: [] }));
-export const figmaModel = componentsModel({ components: [codeBlock, ...others], gaps: { dsds: { CodeBlock: {} }, story: { Tag: {} } }, commit: '0.3.0' });
+export const figmaModel = componentsModel({ components: [codeBlock, ...others], gaps: { dsds: { CodeBlock: {} }, story: { Tag: {} } }, version: '0.3.0' });

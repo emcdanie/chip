@@ -92,9 +92,10 @@ export default function Screen({ place, header, tabs, children }) {
         <IconRail end={<NavItem iconOnly label="Settings" icon="Settings" href="#/projects" />}>
           {PLACES.map((p) =>
             p.id === 'projects' && panelOut ? (
+              // one current item: while the Projects drawer is open it is Projects, else the page you are on
               <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} onClick={() => setProjectsOpen(true)} current={projectsOpen || p.id === place} />
             ) : (
-              <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} href={p.href} current={p.id === place} />
+              <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} href={p.href} current={p.id === place && !projectsOpen} />
             ),
           )}
         </IconRail>
