@@ -42,6 +42,19 @@ const PAGE = 10;
 const day = (d) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const time = (d) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const STATUS_TONE = { Merged: 'success', Shipped: 'success', Decided: 'info', 'On a branch': 'attention', Undone: 'neutral' };
+// Plain words on screen (her rule): no Figma node ids, file paths, app routes or model names.
+const plain = (t) =>
+  String(t ?? '')
+    .replace(/\s*\(?\b\d{2,4}:\d{2,7}\b\)?/g, '')
+    .replace(/#\/[\w-]+-old\b/g, 'its old address')
+    .replace(/#\/([\w-]+)/g, (_, r) => `the ${r.replace(/-/g, ' ')} page`)
+    .replace(/(?:[\w.-]+\/)+[\w.-]+\.\w+|\b[\w-]+\.(?:jsx?|tsx?|css|html|json|mjs|md|ya?ml)\b/g, '')
+    .replace(/\bClaude Code\b|\bClaude\b/g, 'the agent')
+    .replace(/\s+([,.;:)])/g, '$1')
+    .replace(/\(\s*\)|,\s*(?=[,.;])/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+const count = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
 const lines = (stat) => [...String(stat ?? '').matchAll(/(\d+) (?:insertion|deletion)/g)].reduce((n, m) => n + Number(m[1]), 0);
 
 function useHistory(params) {
@@ -95,7 +108,7 @@ function Activity({ records, total, open, onOpen }) {
               <li key={r.id}>
                 {head ? <Eyebrow>{head}</Eyebrow> : null}
                 <Step
-                  title={r.title}
+                  title={plain(r.title)}
                   time={time(r.date)}
                   tag={<Tag tone={STATUS_TONE[r.status] ?? 'neutral'}>{r.status}</Tag>}
                   icon={ICON[r.type] ?? 'Clock'}
@@ -143,7 +156,7 @@ function Record({ id }) {
             <Tag tone={STATUS_TONE[rec.status] ?? 'neutral'}>{rec.status}</Tag>
             <Eyebrow>{[day(rec.date), time(rec.date), rec.who, rec.repo.toUpperCase() === 'CHIP' ? 'CHIP' : rec.repo === 'bella' ? 'BELLA' : rec.repo].join(' · ')}</Eyebrow>
           </Flow>
-          <TextStack title={rec.title} />
+          <TextStack title={plain(rec.title)} />
         </Flow>
         {rec.why ? (
           <Notification
@@ -153,7 +166,7 @@ function Record({ id }) {
             message={
               <Flow gap={4} as="span">
                 {rec.why.split(/\n(?=-\s)|\n{2,}/).map((l) => l.replace(/^-\s*/, '').replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean).map((l) => (
-                  <span key={l}>{l}</span>
+                  <span key={l}>{plain(l)}</span>
                 ))}
               </Flow>
             }
@@ -161,15 +174,15 @@ function Record({ id }) {
         ) : null}
         <Flow gap={8}>
           <SectionHead title="What changed" titleLevel={3} />
-          <TextStack body={rec.stat ? `${files.length} files, ${lines(rec.stat)} lines.` : 'No before picture: this commit has no saved screenshot.'} />
+          <TextStack body={rec.stat ? `${count(files.length, 'file')}, ${count(lines(rec.stat), 'line')}.` : 'No before picture: this commit has no saved screenshot.'} />
         </Flow>
         <Flow gap={8}>
-          <SectionHead title="What it touched" titleLevel={3} words={`${files.length} files`} />
+          <SectionHead title="What it touched" titleLevel={3} words={count(files.length, 'file')} />
           <Flow gap={12} as="ul" aria-label="Files this record touched">
             {files.map((f) => (
               <li key={f}>
                 <Card>
-                  <TextStack title={f.split('/').pop()} subtitle={`file · ${String(rec.status).toLowerCase()} · ${f}`} />
+                  <TextStack title={f.split('/').pop()} subtitle={`file · ${String(rec.status).toLowerCase()}`} />
                 </Card>
               </li>
             ))}
