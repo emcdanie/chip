@@ -29,6 +29,12 @@
   block-size: 100dvh;
 }
 
+/* The rail's tooltips open over the panel and the page: the rail paints
+   above its later siblings (Elleta, 19 Nov: "Team" read "Tear" under a card). */
+.chip-screen__rail {
+  z-index: 1;
+}
+
 .chip-screen__main {
   display: flex;
   flex-direction: column;
