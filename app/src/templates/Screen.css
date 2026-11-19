@@ -77,6 +77,8 @@
 .chip-flow--wrap { flex-wrap: wrap; }
 .chip-flow--fill > * { flex: 1 1 auto; }
 .chip-flow--equal > * { flex: 1 1 0; min-inline-size: 0; }
+.chip-flow--grow-first > :first-child,
+.chip-flow--grow-last > :last-child { flex: 1 1 auto; min-inline-size: 0; }
 .chip-flow--between { justify-content: space-between; }
 .chip-flow--end { justify-content: flex-end; }
 .chip-flow--center-items { align-items: center; }
@@ -86,6 +88,7 @@
 .chip-flow--gap-16 { gap: var(--spacing-16); }
 .chip-flow--gap-24 { gap: var(--spacing-24); }
 
+.chip-screen__content > .chip-span-8 { grid-column: span 8; }
 .chip-screen__content > .chip-span-6 { grid-column: span 6; }
 .chip-screen__content > .chip-span-4 { grid-column: span 4; }
 
@@ -93,6 +96,7 @@
   /* 12 columns of 24 gutters need 264; on a phone the content is one column */
   .chip-screen__content { grid-template-columns: minmax(0, 1fr); }
 
+  .chip-screen__content > .chip-span-8,
   .chip-screen__content > .chip-span-6,
   .chip-screen__content > .chip-span-4 { grid-column: 1 / -1; }
 }
