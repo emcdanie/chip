@@ -17,6 +17,8 @@ import TopBar from '@bella/components/TopBar/TopBar';
 import SearchField from '@bella/components/SearchField/SearchField';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
 import Tabs from '@bella/components/Tabs/Tabs';
+import Drawer from '@bella/components/Drawer/Drawer';
+import useNarrow from './useNarrow.js';
 import { useTheme } from '../theme.js';
 import './Screen.css';
 
@@ -62,40 +64,56 @@ export default function Screen({ place, header, tabs, children }) {
   useTheme();
   const { projects, needs } = useShellData();
   const current = projects?.find((p) => p.id === 'chip') ?? projects?.[0];
+  const panelOut = useNarrow(1024);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const panel = (
+    <ProjectPanel
+      switcher={<ClientSwitcher name="BELLA" caption="Design system" />}
+      projects={
+        projects == null ? null : (
+          <>
+            {/* Branch rows wait for a real status: StatusSquare has no
+                "not measured" state, and CHIP does not track one per
+                branch yet (part gap, reported). */}
+            {projects.map((p) => (
+              <TreeItem key={p.id} kind="folder" label={p.name} open={p === current} current={p === current} />
+            ))}
+          </>
+        )
+      }
+      status={
+        <>
+          <TreeItem kind="status" label="Needs you" tone="attention" count={needs ?? undefined} showCount={needs != null} />
+          <TreeItem kind="status" label="Agent" tone="info" />
+          <TreeItem kind="status" label="Gate" tone="neutral" />
+          <TreeItem kind="status" label="Ready" tone="success" />
+        </>
+      }
+    />
+  );
   return (
     <div className="chip-screen">
       <div className="chip-screen__rail">
         <IconRail end={<NavItem iconOnly label="Settings" icon="Settings" href="#/" />}>
-          {PLACES.map((p) => (
-            <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} href={p.href} current={p.id === place} />
-          ))}
+          {PLACES.map((p) =>
+            p.id === 'projects' && panelOut ? (
+              <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} onClick={() => setProjectsOpen(true)} current={projectsOpen} />
+            ) : (
+              <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} href={p.href} current={p.id === place} />
+            ),
+          )}
         </IconRail>
       </div>
-      <div className="chip-screen__panel">
-        <ProjectPanel
-          switcher={<ClientSwitcher name="BELLA" caption="Design system" />}
-          projects={
-            projects == null ? null : (
-              <>
-                {/* Branch rows wait for a real status: StatusSquare has no
-                    "not measured" state, and CHIP does not track one per
-                    branch yet (part gap, reported). */}
-                {projects.map((p) => (
-                  <TreeItem key={p.id} kind="folder" label={p.name} open={p === current} current={p === current} />
-                ))}
-              </>
-            )
-          }
-          status={
-            <>
-              <TreeItem kind="status" label="Needs you" tone="attention" count={needs ?? undefined} showCount={needs != null} />
-              <TreeItem kind="status" label="Agent" tone="info" />
-              <TreeItem kind="status" label="Gate" tone="neutral" />
-              <TreeItem kind="status" label="Ready" tone="success" />
-            </>
-          }
-        />
-      </div>
+      {/* Below 1024 the panel steps out; the rail's Projects button opens it
+          as a Drawer (Elleta, 19 Nov 2026, y13: "A · a Projects button in
+          the rail opens it as a drawer"). */}
+      {panelOut ? (
+        <Drawer open={projectsOpen} onClose={() => setProjectsOpen(false)} label="Projects">
+          {panel}
+        </Drawer>
+      ) : (
+        <div className="chip-screen__panel">{panel}</div>
+      )}
       <div className="chip-screen__main">
         <TopBar search={<SearchField />} />
         <div className="chip-screen__page">

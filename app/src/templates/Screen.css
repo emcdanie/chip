@@ -8,15 +8,18 @@
  * phone, 32 from 800px) and the 24 gutter. The rail and panel stay in view
  * while the page scrolls.
  *
- * Below 1024px the panel steps out so nothing scrolls sideways (Figma draws
- * the template at 1440 only; how the panel comes back on a narrow screen is
- * an open question for Elleta, not decided here). */
+ * Below 1024px the panel steps out so nothing scrolls sideways and the
+ * rail's Projects button opens it as a Drawer (Screen.jsx; Elleta, y13). */
 
 .chip-screen {
   display: grid;
   grid-template-columns: var(--layout-rail-width) var(--layout-panel-width) minmax(0, 1fr);
   min-block-size: 100dvh;
   background: var(--color-background-default);
+  /* The shell sets its own reading face and ink, so it looks the same in
+     the app and in Storybook (the ⌘ K hint fell back to Times there). */
+  color: var(--color-content-default);
+  font-family: var(--typography-body-default-font-family);
 }
 
 .chip-screen__rail,
@@ -96,9 +99,5 @@
 @media (width < 1024px) {
   .chip-screen {
     grid-template-columns: var(--layout-rail-width) minmax(0, 1fr);
-  }
-
-  .chip-screen__panel {
-    display: none;
   }
 }
