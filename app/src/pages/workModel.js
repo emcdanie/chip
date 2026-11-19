@@ -26,10 +26,10 @@ export function workModel({ needs = [], runs = [] }) {
   const needsYou = needs.map(needCard).sort((a, b) => Number(b.failed) - Number(a.failed) || (a.at ?? 0) - (b.at ?? 0));
   const by = (...s) => runs.filter((r) => s.includes(r.status));
   const lanes = [
-    { id: 'needs', name: 'Needs you', order: 'Failures first, then what blocks a push.', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r), status: 'Failed', tone: 'danger' })), ...needsYou] },
-    { id: 'agent', name: 'Agent', order: 'In the order sent; one runs, the rest queue.', cards: by('starting', 'running').map((r) => ({ ...runCard(r), status: 'Working', tone: 'info' })) },
-    { id: 'gate', name: 'Gate', order: 'In the order the agent finished. Nothing waiting.', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info' })) },
-    { id: 'ready', name: 'Ready', order: 'Longest waiting first. Accept, or Undo.', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success' })) },
+    { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r), status: 'Failed', tone: 'danger' })), ...needsYou] },
+    { id: 'agent', name: 'Agent', cards: by('starting', 'running').map((r) => ({ ...runCard(r), status: 'Working', tone: 'info' })) },
+    { id: 'gate', name: 'Gate', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info' })) },
+    { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success' })) },
   ];
   const merged = by('kept').filter((r) => today(r.endedAt ?? r.startedAt ?? 0));
   const total = lanes.reduce((s, l) => s + l.cards.length, 0);
