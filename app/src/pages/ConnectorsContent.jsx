@@ -31,9 +31,27 @@ const LIVE = { ok: ['Live', 'success'], bad: ['Needs setup', 'danger'], blocked:
 const REACHES = [
   { id: 'ci', name: 'GitHub CI', icon: 'Network', ok: 'Ran' },
   { id: 'git', name: 'git', icon: 'Code', ok: 'Up to date' },
-  { id: 'claude', name: 'Agent', icon: 'Sparks', ok: 'Ready', sub: 'OBI uses it to answer.' },
-  { id: 'ollama', name: 'Local model', icon: 'Activity', ok: 'Ready', sub: 'Runs on this Mac.' },
+  { id: 'claude', name: 'Agent', icon: 'Sparks', ok: 'Ready' },
+  { id: 'ollama', name: 'Local model', icon: 'Activity', ok: 'Ready' },
 ];
+// Figma's tile: a large headline, then one short meta line, both from the node's own detail
+const pushes = (d) => (/nothing unpushed/i.test(d ?? '') ? 0 : Number(String(d ?? '').match(/(\d+) (?:commits? )?unpushed/i)?.[1] ?? NaN));
+function headline(r) {
+  if (r.id === 'ci') {
+    const n = pushes(r.n.detail);
+    if (n === 0) return 'All pushed';
+    if (n > 0) return `${n} to push`;
+  }
+  return r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested';
+}
+function meta(r) {
+  const d = String(r.n.detail ?? '');
+  if (r.id === 'ci') return r.n.state === 'ok' ? 'CI ran' : 'CI hasn’t run';
+  if (r.id === 'git') return sha(d);
+  if (r.id === 'claude') return r.n.state === 'ok' ? 'OBI uses it' : 'Not installed';
+  if (r.id === 'ollama') return d.match(/:(\d{2,5})\b/) ? `:${d.match(/:(\d{2,5})\b/)[1]}` : undefined;
+  return undefined;
+}
 const PATHS = [
   { id: 'figma', name: 'Figma desktop app', icon: 'Activity' },
   { id: 'figma-console', name: 'Figma plugin bridge', icon: 'Code' },
@@ -121,14 +139,11 @@ export default function ConnectorsContent() {
                       <IconWell icon={r.icon} tone="neutral" />
                       <StateTag state={r.n.state} />
                     </Flow>
-                    {/* Figma's tile: the service, then its state large, then short meta */}
+                    {/* Figma's tile: the service, its state large, one short meta line */}
                     <Flow gap={4}>
                       <TextStack title={r.name} />
-                      <Heading tier="subsection" as="h3">{r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested'}</Heading>
-                      <TextStack
-                        subtitle={r.id === 'git' && sha(r.n.detail) ? `Last commit ${sha(r.n.detail)}` : undefined}
-                        body={r.id === 'git' ? undefined : r.sub && r.n.state === 'ok' ? r.sub : plainWords(first(r.n.detail))}
-                      />
+                      <Heading tier="subsection" as="h3">{headline(r)}</Heading>
+                      {meta(r) ? <TextStack subtitle={meta(r)} /> : null}
                     </Flow>
                   </Flow>
               </Card>
