@@ -226,6 +226,8 @@ export default function HistoryContent() {
   return (
     <>
       <Flow gap={24}>
+        {/* Figma's content set opens with its lede (664:123672) */}
+        <TextStack body="What we agreed, when and why, across BELLA and CHIP." />
         {/* Search beside the field, lined up with its box (the label sits above); a phone stacks them */}
         <Flow direction={phone ? 'column' : 'row'} gap={8} grow={phone ? undefined : 'first'} as="form" role="search" onSubmit={(e) => (e.preventDefault(), setQ(draft.trim()))}>
           <Input label="Ask about a change, in plain words" leadingIcon="Search" value={draft} onChange={setDraft} />
