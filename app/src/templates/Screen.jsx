@@ -7,7 +7,7 @@
 // Built only from published BELLA parts. The grid is the one template CSS
 // file (Screen.css), token values only. Data is CHIP's own where it has it
 // (/projects, /needs); anything CHIP does not measure shows no number.
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import useCached from './useCached.js';
 import IconRail from '@bella/components/IconRail/IconRail';
 import NavItem from '@bella/components/NavItem/NavItem';
@@ -19,6 +19,14 @@ import SearchField from '@bella/components/SearchField/SearchField';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
 import Tabs from '@bella/components/Tabs/Tabs';
 import Drawer from '@bella/components/Drawer/Drawer';
+import Button from '@bella/components/Button/Button';
+import Avatar from '@bella/components/Avatar/Avatar';
+import Progress from '@bella/components/Progress/Progress';
+import TextStack from '@bella/components/TextStack/TextStack';
+import Input from '@bella/components/Input/Input';
+import Notification from '@bella/components/Notification/Notification';
+import Flow from './Flow.jsx';
+import { useHealth } from '../pages/healthModel.js';
 import useNarrow from './useNarrow.js';
 import { useTheme } from '../theme.js';
 import './Screen.css';
@@ -48,6 +56,76 @@ function useShellData() {
   return { projects: p?.projects ?? [], needs: Array.isArray(n) ? n.length : Array.isArray(n?.items) ? n.items.length : null };
 }
 
+/* The open project's branches for the tree under it (Figma's project panel):
+   the newest four, with what CHIP knows of each: the one checked out is
+   "working", one not yet in the default branch is "waiting", one already in
+   it "passed". CHIP has no per-branch gate result, so nothing says failed. */
+function useBranches(id) {
+  const { data } = useCached(id ? [`/projects/${id}`] : []);
+  const live = data?.[0]?.live;
+  if (!live?.branches) return [];
+  return live.branches.slice(0, 4).map((b) => ({ name: b.name, status: b.name === live.branch ? 'working' : b.ahead > 0 ? 'waiting' : 'passed' }));
+}
+
+// where a new task goes: the progress board, as Team's replies and Playground's notes
+const BOARD = 'http://localhost:3123';
+
+/* New task (Figma's page header action): a sentence, sent to the progress board. */
+function NewTask() {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [said, setSaid] = useState(null); // 'sent' | 'failed'
+  async function send() {
+    try {
+      const r = await fetch(`${BOARD}/answers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'task', text: text.trim(), page: window.location.hash }) });
+      if (!r.ok) throw new Error(String(r.status));
+      setText('');
+      setOpen(false);
+      setSaid('sent');
+    } catch {
+      setSaid('failed');
+    }
+  }
+  return (
+    <>
+      <Button variant="primary" size="sm" onClick={() => (setSaid(null), setOpen(true))}>
+        {said === 'sent' ? 'Task sent' : 'New task'}
+      </Button>
+      <Drawer
+        open={open}
+        onClose={() => setOpen(false)}
+        label="New task"
+        footer={
+          <Button variant="primary" disabled={!text.trim()} onClick={send}>
+            Send task
+          </Button>
+        }
+      >
+        <Flow gap={16}>
+          <Input label="What needs doing?" multiline value={text} onChange={setText} placeholder="One sentence is enough" />
+          {said === 'failed' ? <Notification tone="danger" title="Not sent" message={`The progress board doesn't answer at ${BOARD}. Your task is still in the box.`} /> : null}
+        </Flow>
+      </Drawer>
+    </>
+  );
+}
+
+/* The project's health under its title, as Figma: a bar and "95% healthy · 13 checks to fix". */
+function HealthLine() {
+  const { model } = useHealth();
+  const phone = useNarrow();
+  if (!model?.health) return null;
+  const { pct } = model.health;
+  return (
+    <Flow direction={phone ? 'column' : 'row'} gap={phone ? 8 : 12} align={phone ? undefined : 'center'}>
+      <div className="chip-screen__health-bar">
+        <Progress label="Project health" shape="bar" showLabel={false} showTarget={false} tone={pct >= 90 ? 'success' : 'attention'} fill={pct} target={0} />
+      </div>
+      <TextStack subtitle={`${pct}% healthy · ${model.fixCount} ${model.fixCount === 1 ? 'check' : 'checks'} to fix`} />
+    </Flow>
+  );
+}
+
 /**
  * place: the rail item you are on (an id from PLACES).
  * header: PageHeader props (title, lede, health, actions, ...).
@@ -58,6 +136,7 @@ export default function Screen({ place, header, tabs, children }) {
   useTheme();
   const { projects, needs } = useShellData();
   const current = projects?.find((p) => p.id === 'chip') ?? projects?.[0];
+  const branches = useBranches(current?.id);
   const panelOut = useNarrow(1024);
   const phone = useNarrow();
   const [projectsOpen, setProjectsOpen] = useState(false);
@@ -67,11 +146,11 @@ export default function Screen({ place, header, tabs, children }) {
       projects={
         projects == null ? null : (
           <>
-            {/* Branch rows wait for a real status: StatusSquare has no
-                "not measured" state, and CHIP does not track one per
-                branch yet (part gap, reported). */}
             {projects.map((p) => (
-              <TreeItem key={p.id} kind="folder" label={p.name} open={p === current} current={p === current} />
+              <Fragment key={p.id}>
+                <TreeItem kind="folder" label={p.name} open={p === current} current={p === current} />
+                {p === current ? branches.map((b, i) => <TreeItem key={b.name} kind="branch" label={b.name} status={b.status} lineBelow={i < branches.length - 1} />) : null}
+              </Fragment>
             ))}
           </>
         )
@@ -112,10 +191,20 @@ export default function Screen({ place, header, tabs, children }) {
       )}
       <div className="chip-screen__main">
         {/* On a phone the ⌘ K legend steps out so the field keeps room for its words. */}
-        <TopBar search={<SearchField showShortcut={!phone} />} />
+        <TopBar
+          search={<SearchField showShortcut={!phone} />}
+          right={
+            <Flow direction="row" gap={12} align="center">
+              {/* the bell opens what needs you, on Work */}
+              <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you` : 'What needs you'} href="#/work" />
+              <Avatar name="Elleta McDaniel" size="sm" />
+            </Flow>
+          }
+        />
         <div className="chip-screen__page">
           <div className="chip-screen__head">
-            <PageHeader {...header} />
+            {/* project pages carry the project's health and New task, as Figma; rail pages (Team, Not again) don't */}
+            <PageHeader {...(place === 'projects' ? { health: <HealthLine />, actions: <NewTask />, ...header } : header)} />
             {tabs ? (
               <Tabs tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}
