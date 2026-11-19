@@ -78,7 +78,7 @@ Elleta: build before the talk, first real test is About (`ctrl-alt-design/app/ab
 | Measure (targets, type, contrast) | Yes, if CHIP can read the DOM: cross-origin blocks it, so a CHIP proxy on its own port serves the site and adds one probe script that `postMessage`s measurements | No | Guess |
 | Map to components | No: the DOM doesn't say which component drew it | Yes: page imports and JSX tags, joined to the DOM by `id` | No |
 
-**How edits flow back** (picked: site process, CHIP never writes the site)
+**How edits flow back** (picked: site process, CHIP never writes the site). Retired 19 Nov 2026 (Elleta's pick on docs/reference/screens/2026-11-19-playground/): no brief and no box notes; Mark up notes go to the progress board from the new Playground.
 - CHIP writes a brief (notes, the element under each box, findings with sources) to `data/playground/briefs/` and types `claude` with it into the terminal in the site repo.
 - That Claude follows the site's `CLAUDE.md`: branch from `origin/release/v6`, plan, stop for her go, PR, her `OK #n`. Its dev server on that branch is what the Playground can load, so the change shows live.
 - Proposal-only in CHIP (no site edits) was the other option: safer, but nothing to play with.

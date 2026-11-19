@@ -103,7 +103,12 @@ function hashPages(repo, file = 'app/src/App.jsx') {
   const at = src.search(/const (PAGES|WORKSPACES) = \[/);
   if (at < 0) return [];
   const list = src.slice(at, src.indexOf('];', at));
-  return [...list.matchAll(/\{\s*id:\s*'([\w-]+)',\s*label:\s*'([^']+)'/g)].map(([, id, label]) => ({ route: `#/${id}`, label, file }));
+  const pages = [...list.matchAll(/\{\s*id:\s*'([\w-]+)',\s*label:\s*'([^']+)'/g)].map(([, id, label]) => ({ route: `#/${id}`, label, file }));
+  // pages on the new CHIP / Screen template (app/src/main.jsx NEW_PAGES)
+  const main = join(repo, 'app/src/main.jsx');
+  const m = existsSync(main) ? readFileSync(main, 'utf8').match(/const NEW_PAGES = \[([\s\S]*?)\];/) : null;
+  if (m) for (const [, id, label] of m[1].matchAll(/\{\s*id:\s*'([\w-]+)',\s*label:\s*'([^']+)'/g)) pages.push({ route: `#/${id}`, label, file: 'app/src/main.jsx' });
+  return pages;
 }
 
 // BELLA: one entry per stories file, at its docs page in Storybook (the
