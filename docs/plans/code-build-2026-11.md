@@ -244,3 +244,50 @@ If any gate slips past Fri 20 Nov (her look yes, the re-score, or the BELLA file
 Copilot (`npm run review -- docs/plans/code-build-2026-11.md`) ran on this plan on 18 Nov. All 9 findings were measured:
 - 8 held up and are fixed in the plan above: the Figma-first conflict, Stage missing from the pick, the floor checks, the full width sweep, the re-score, the slip rule, the regression check, and the BELLA open files.
 - 1 didn't: "Playground depends on batch 2". The Figma read shows Playground uses no Section head; the plan's own line was wrong and is corrected.
+
+## Not again (was Playbooks): re-score and done lists, 19 Nov
+
+Her go, 19 Nov: "Yes, start it" (the look, the push, the name). Target: on localhost Mon 23 Nov evening. A wave that slips past its day is said the same day.
+
+**Re-score, 19 Nov (craft-check on the content set and its 6 screens, after the rename):** 91 lowest, 6 of 6 pass, unchanged from 18 Nov night. Only finding: the › in two Stat cards is a loose Icon, not the Trailing part (R12). Code builds Stat card with Trailing; the Figma fix goes to the library queue.
+
+**Renamed in Figma (CHIP Dashboard, 19 Nov):** the 6 page titles, the Flow 6 header title and breadcrumb, and the rail nav label → "Not again". Not renamed (content, not titles; her call): "New playbook", "What is a playbook?", "Playbook runs since Monday", "Showing 4 playbooks".
+
+**Parts the page uses (Figma, read 19 Nov):**
+- Page: Notification, Section head, Icon well, Text stack, Step, Map line, Stat card, Progress (+ fill), ListRow, Tag, Button, ActionChip, Icon, Trailing.
+- Shell: Icon rail, Nav item, Brand / CHIP logo, Project panel, Client switcher, Brand / BELLA mark, Tree item, Status square, StatusDot, Top bar, Search field, Kbd, Avatar, PageHeader, Tabs, Tab.
+- In code today: Button, Tag, Icon, ActionChip, ListRow, PageHeader, Tabs, Kbd, Avatar (all older looks). Everything else is new code.
+
+### Wave 2 · parts (BELLA, own branch and worktree) · due Fri 20 Nov
+Done when, for every part above:
+- [ ] Named as in Figma; props = the Figma properties (zones and booleans, same order); variants = the Figma variant axes.
+- [ ] Binds only to existing tokens (no new variable); no hex, no raw px, no fallbacks.
+- [ ] Story with every state, Chip light and Chip dark.
+- [ ] Spec rebuilt from code (`spec-build.mjs`); contract in `tokens/contracts.json` matches (contract-parity).
+- [ ] AGENTS.md component map lists it (agents-md-check).
+- [ ] Floors measured in the story: text 16+, line height 1.5, 7:1 text, 3:1 marks, 44 targets, 4px ring with 4px gap.
+- [ ] Older parts re-synced additively; any prop removed goes to her as a list first (public API).
+- [ ] BELLA gate green (build, contract-parity, contrast-pairs, agents-md, audit:visual).
+
+### Wave 3 · shell (CHIP, own branch and worktree) · due Sat 21 Nov
+Before any CHIP app change: the app record (every page and panel at 1440 and 375 into `docs/reference/screens/2026-11-19-app-record/`, placed on Figma "07 · Process board").
+Done when:
+- [ ] One `Screen` layout, the twin of CHIP / Screen: icon rail (tooltip and accessible name per item), project panel with tree and status, top bar (search, avatar), PageHeader with the main action top right and 24 below, Tabs under the header, 12-column work area (gutter 24; container padding 16, 32 from 800px).
+- [ ] Used only by the new page; old pages keep the old shell until they are rebuilt (old routes stay until she has seen that list).
+- [ ] Nothing hand-built: every piece is a BELLA part from wave 2.
+
+### Wave 4 · the Not again page · due Sun 22 Nov
+Done when:
+- [ ] One content component, `NotAgainContent`, with the 6 Figma states as a prop: suggested, running, your call, kept, gate fails, library.
+- [ ] Flow and Library are Tabs; "New playbook" sits top right in PageHeader.
+- [ ] Every element in Figma is in code, in the same place; no code-only feature is lost (there is no Playbooks page in code today, so nothing is overwritten).
+- [ ] Real data only where CHIP has it; otherwise "Not measured", never invented numbers.
+
+### Wave 5 · side by side and checks · Mon 23 Nov
+Done when (plan section 6):
+- [ ] Figma at 1x beside code at 1x, every state, both in view on chip-review (:3122).
+- [ ] 320, 768, 1024, 1440, light and dark; resize sweep 320–1440, nothing clipped or sideways.
+- [ ] axe AAA 0; 44 targets, 16px text, 7:1, keyboard focus through each state.
+- [ ] CHIP checks: on-system-guard, check:system, app:build, pre-commit (NDA).
+- [ ] Copilot review on the diff, each finding measured.
+- [ ] Shown to her with pictures; push and merge only on her OK.
