@@ -220,8 +220,8 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
       part: x.title,
       status: x.status,
       ...(chips ? { chipX: box.cx - box.w / 2 - 48, chipY: chipY[i] - shift } : {}),
-      // a pink leader to every chip, as the finished frame (690:490822) draws; the picked chip has the ink edge
-      leader: chips,
+      // her frame (690:492657, parts-dev 60c3a4c): one dashed pink leader, to the part in focus; its chip has the ink edge
+      leader: chips && x.key === a?.key,
       selected: x.key === a?.key,
     }));
   }, [box, anatomy, narrow, a?.key]);
