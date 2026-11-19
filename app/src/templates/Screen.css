@@ -64,6 +64,26 @@
 }
 
 /* Flow (Flow.jsx): the one layout primitive pages use. */
+
+/* The Work board: the window's height from where it starts (Flow sets the
+   block size), sideways scroll when the lanes don't fit, each lane scrolling
+   on its own. Lanes keep at least Figma's lane width, 240 (the panel width
+   less a gutter: BELLA has no lane width token), so a lane name never breaks
+   mid-word and four lanes fit at 1440. */
+.chip-flow--board {
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+  align-items: stretch;
+  overscroll-behavior-x: contain;
+}
+
+.chip-flow--board > * {
+  flex: 1 0 calc(var(--layout-panel-width) - var(--layout-gutter));
+  min-block-size: 0;
+  max-block-size: 100%;
+  overflow-y: auto;
+}
 .chip-flow {
   display: flex;
   min-inline-size: 0;

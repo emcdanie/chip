@@ -20,7 +20,6 @@ import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import { useState } from 'react';
 import Flow from '../templates/Flow.jsx';
-import useNarrow from '../templates/useNarrow.js';
 
 export const VIEWS = [
   { value: 'board', label: 'Board' },
@@ -55,8 +54,6 @@ function Lane({ lane, index }) {
 }
 
 export default function WorkContent({ model, view = 'board', onView, checked, onCheck, loading }) {
-  // Four lanes need about 1200px; below that they stack, full width.
-  const stacked = useNarrow(1200);
   const [briefShut, setBriefShut] = useState(false);
   return (
     <>
@@ -125,7 +122,7 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
               </Flow>
             </Card>
           ) : (
-            <Flow direction={stacked ? 'column' : 'row'} gap={24} equal={!stacked}>
+            <Flow board direction="row" gap={24} aria-label="Work board">
               {model.lanes.map((l, i) => (
                 <Lane key={l.id} lane={l} index={i} />
               ))}
