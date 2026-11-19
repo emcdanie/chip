@@ -79,7 +79,7 @@ function cssBlock(re) {
   for (const d of css.slice(start, i - 1).matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) vars[d[1]] = d[2].trim();
   return vars;
 }
-const lightVars = { ...cssBlock(/:root\s*\{/), ...cssBlock(/\[data-theme=["']?chip-light["']?\]\s*\{/) };
+const lightVars = { ...cssBlock(/:root[\s,][^{]*\{/), ...cssBlock(/\[data-theme=["']?chip-light["']?\]\s*\{/) };
 const darkVars = { ...lightVars, ...cssBlock(/\[data-theme=["']?chip-dark["']?\]\s*\{/) };
 const warmVars = lightVars; // Warm left BELLA with the Figma tokens (17 Nov); kept so readers of .warm still work
 const themed = (t) => ({ token: t, light: resolve(lightVars, t), dark: resolve(darkVars, t), warm: resolve(warmVars, t) });

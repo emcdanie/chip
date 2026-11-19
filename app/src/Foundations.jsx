@@ -7,21 +7,17 @@
 // "Not measured".
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { DataTable, Facts, PageHeader, Segmented, segPanelProps, Sheet, SheetPart, StatusPill } from './kit/index.jsx';
+import { DataTable, Facts, PageHeader, Sheet, SheetPart, StatusPill } from './kit/index.jsx';
+import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import './Foundations.css';
 
-const SVG = (d) => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    {d}
-  </svg>
-);
 const TABS = [
-  { id: 'colours', label: 'Colour', icon: SVG(<><circle cx="12" cy="12" r="9" /><path className="fd-solid" d="M12 3a9 9 0 0 0 0 18z" /></>) },
-  { id: 'matrix', label: 'Who uses what', icon: SVG(<><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 3v18" /></>) },
-  { id: 'type', label: 'Type', icon: <span className="fd-ticon" aria-hidden="true">Aa</span> },
-  { id: 'shape', label: 'Shape and space', icon: SVG(<path d="M4 20V10a6 6 0 0 1 6-6h10" />) },
-  { id: 'motion', label: 'Motion', icon: SVG(<path d="M3 17c4 0 5-10 9-10s5 10 9 10" />) },
-  { id: 'tokenized', label: 'Tokenized?', icon: SVG(<path d="M5 12l4 4 10-10" />) },
+  { id: 'colours', label: 'Colour' },
+  { id: 'matrix', label: 'Who uses what' },
+  { id: 'type', label: 'Type' },
+  { id: 'shape', label: 'Shape and space' },
+  { id: 'motion', label: 'Motion' },
+  { id: 'tokenized', label: 'Tokenized?' },
 ];
 
 /* ---------- contrast: one number per role, from the pairs BELLA's gate
@@ -37,7 +33,7 @@ const hexRgb = (h) => {
 const lum = (c) => c.map((v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
 const TEXTISH = /^(text|link|icon|border|danger-text|success-text|highlight-text|highlight-edge|focus-ring|signal|accent-raised-edge|chip-text|danger-border|success-border|accent-border)/;
 const grade = (r) => (r >= 7 ? 'AAA' : r >= 4.5 ? 'AA' : r >= 3 ? '3:1' : 'fails');
-const SEM = '--color-semantic-';
+const SEM = '--color-';
 // what a sheet's "Fix in a session" does, and where its facts come from
 const SESSION = { changes: 'Claude Code runs the brief headless on a BELLA branch, then BELLA’s gate. The result shows in Work › Sessions to Accept or Undo; nothing merges.', undo: 'Undo in the result deletes the branch.' };
 const USAGE_SOURCE = (
@@ -250,7 +246,7 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
   }
 
   if (!bella) return null;
-  const panel = (id) => segPanelProps('fd', id, tab);
+  const panel = (id) => tabPanelProps('fd', id, tab === id);
 
   return (
     <div className="fd-page k-chrome">
@@ -259,11 +255,9 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
         lede="Every token, who uses it, and what isn’t a token yet."
       />
 
-      <div className="fd-tabs">
-        <Segmented id="fd" label="Foundations" items={TABS} value={tab} onChange={setTab} />
-      </div>
+      <Tabs idBase="fd" label="Foundations" tabs={TABS} value={tab} onChange={setTab} />
 
-      <div {...panel('colours')} tabIndex={0} className="fd-panel">
+      <div {...panel('colours')} className="fd-panel">
         <div className="fd-tok">
           <DataTable
             label="colour roles"
@@ -337,24 +331,24 @@ export default function Foundations({ bella, onSession, onOpenAtlas }) {
         </div>
       </div>
 
-      <div {...panel('matrix')} tabIndex={0} className="fd-panel">
+      <div {...panel('matrix')} className="fd-panel">
         <Matrix roles={roles} bella={bella} />
       </div>
 
-      <div {...panel('type')} tabIndex={0} className="fd-panel">
+      <div {...panel('type')} className="fd-panel">
         {f ? <TypePanel f={f} onSession={onSession} setSheet={setSheet} close={close} /> : <NotMeasured what={failed ? 'data/foundations.json is missing: run node scripts/sync-foundations.mjs.' : 'Loading…'} />}
       </div>
 
-      <div {...panel('shape')} tabIndex={0} className="fd-panel">
+      <div {...panel('shape')} className="fd-panel">
         {f ? <ShapePanel f={f} /> : <NotMeasured what={failed ? 'data/foundations.json is missing: run node scripts/sync-foundations.mjs.' : 'Loading…'} />}
       </div>
 
-      <div {...panel('motion')} tabIndex={0} className="fd-panel">
+      <div {...panel('motion')} className="fd-panel">
         <p className="fd-sublede">Select a duration or easing to play it.</p>
         {f ? <MotionPanel f={f} /> : <NotMeasured what={failed ? 'data/foundations.json is missing: run node scripts/sync-foundations.mjs.' : 'Loading…'} />}
       </div>
 
-      <div {...panel('tokenized')} tabIndex={0} className="fd-panel">
+      <div {...panel('tokenized')} className="fd-panel">
         {f ? <TokenizedPanel f={f} roles={roles.length} onColour={() => setTab('colours')} onSession={onSession} setSheet={setSheet} close={close} /> : <NotMeasured what={failed ? 'No CSS count: data/foundations.json is missing (node scripts/sync-foundations.mjs).' : 'Loading…'} />}
       </div>
 

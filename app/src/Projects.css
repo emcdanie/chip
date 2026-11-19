@@ -20,7 +20,7 @@
 /* the selected card's actions: joined to the cards row above */
 .pj-page .pj-panel { margin-top: calc(-1 * var(--s-16)); }
 .pj-desc { margin: 0; max-width: 70ch; color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
-.pj-acts { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
+.pj-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-8); align-items: center; }
 .pj-err { margin: 0; }
 .pj-log { margin: 0; max-height: 12em; overflow: auto; padding: var(--s-12); border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--typography-font-family-geist-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 
@@ -32,7 +32,7 @@
 
 .pj-note { box-sizing: border-box; display: block; width: 100%; min-height: calc(4 * var(--lh-body) * var(--fs-16) + 2 * var(--s-12)); padding: var(--s-12); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--ink); font: 400 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); resize: vertical; }
 .pj-note:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.pj-noteacts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-12); margin-top: var(--s-12); }
+.pj-noteacts { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--s-12); margin-top: var(--s-12); }
 .pj-saved { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
 
 /* in progress: four lists, then the commits across the width */
@@ -46,7 +46,7 @@
 .pj-list a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .pj-list a:focus-visible { outline: var(--focus); outline-offset: 2px; }
 .pj-list .pj-commit { grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-12); align-items: baseline; }
-.pj-more { margin-top: var(--s-8); }
+.pj-more { display: flex; justify-content: flex-end; margin-top: var(--s-8); }
 
 .pj-rowlink { display: inline-flex; align-items: center; min-height: var(--h-compact); color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
 .pj-rowlink:focus-visible { outline: var(--focus); outline-offset: 2px; }

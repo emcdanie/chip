@@ -64,15 +64,8 @@
 .atlas .code-v .ln.mk { background: color-mix(in srgb, var(--note) 16%, transparent); box-shadow: inset 2px 0 0 var(--note); }
 .atlas .code-v .ln.on { background: color-mix(in srgb, var(--note) 45%, transparent); }
 
-/* the mock's .seg: a view switch inside a panel */
-.atlas .seg { display: inline-flex; flex-wrap: wrap; gap: var(--s-4); padding: var(--s-4); max-width: 100%; border-radius: var(--r-control); background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
-.atlas .seg button { min-height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--body); font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); cursor: pointer; }
-.atlas .seg button:hover { color: var(--ink); background: color-mix(in srgb, var(--action) 8%, transparent); }
-.atlas .seg button[aria-checked='true'] { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
-.atlas .seg button:focus-visible { outline-offset: -3px; }
 .atlas .statebar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-16); min-width: 0; }
 .atlas .statebar .cap { flex: 1 1 280px; min-width: 0; }
-.atlas .statebar .seg { margin-left: auto; }
 
 .atlas .a-tscroll { overflow-x: auto; }
 .atlas .ttab { width: 100%; border-collapse: collapse; font-size: var(--fs-16); line-height: var(--lh-body); }
@@ -165,7 +158,6 @@
 /* ================= the Dev Mode surface (chip-docs-01) ================= */
 .atlas.dm { gap: var(--s-24); padding-bottom: var(--s-48); }
 .atlas .dm-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
-.atlas .dm-grow { flex: 1; }
 .atlas .cap { color: var(--muted); font-size: var(--fs-14); font-weight: 400; line-height: var(--lh-body); }
 .atlas .dm h2, .atlas.dm h2 { font: 600 var(--fs-20)/var(--lh-head) var(--typography-body-default-font-family); color: var(--ink); }
 .atlas.dm h3 { font: 600 var(--fs-16)/var(--lh-head) var(--typography-body-default-font-family); color: var(--ink); }
@@ -207,8 +199,9 @@
 /* the stage is about a viewport tall (frame and gutter off, a floor and a ceiling), sticky; the inspector scrolls in its own column */
 .atlas .dm-work { --dm-insp: 340px; --dm-h: clamp(560px, calc(100dvh - var(--frame-top) - var(--s-48)), 820px); display: grid; grid-template-columns: minmax(0, 1fr) var(--dm-insp); align-items: start; overflow: clip; }
 .atlas .dm-stage { position: sticky; top: calc(var(--frame-top) + var(--s-12)); height: var(--dm-h); display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; border-right: 1px solid var(--line); min-width: 0; background: var(--card); }
+/* the stage's toggles stay one group at the right, also when the bar wraps */
+.atlas .dm-sbacts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-8); margin-left: auto; }
 .atlas .dm-sbar { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-16); align-items: center; padding: var(--s-8) var(--s-12); border-bottom: 1px solid var(--line); }
-.atlas .dm-hint { flex: 1 1 8em; min-width: 8em; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
 .atlas .dm-canvas { position: relative; overflow: hidden; min-height: 0; display: grid; place-items: center; padding: var(--s-24) var(--s-32); background-image: radial-gradient(var(--dm-dot) 1.2px, transparent 1.4px); background-size: 16px 16px; transition: background-color 0.2s; }
 .atlas .dm-specwrap { transform: scale(var(--z, 2)); transform-origin: center; transition: transform 0.2s; }
 .atlas .dm-none { margin: 0; color: var(--ink); font-size: var(--fs-16); line-height: var(--lh-body); }
@@ -260,11 +253,10 @@
 .atlas .dm-frame .dm-fl { font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--color-content-default); }
 .atlas .dm-frame.live::after { content: 'you'; position: absolute; top: 6px; right: 6px; padding: 0 var(--s-8); border-radius: var(--r-control); background: var(--note); color: var(--on-note); font: 600 var(--fs-14)/20px var(--typography-body-default-font-family); }
 .atlas .dm-thumb { pointer-events: none; min-height: 52px; max-width: 100%; display: grid; place-items: center; }
-.atlas .dm-ctl { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-16); align-items: center; padding: var(--s-8) var(--s-12) var(--s-12); background: var(--card); }
-.atlas .dm-lwl { font-size: var(--fs-14); color: var(--muted); white-space: nowrap; }
+/* the row's one action, Play states, sits at the right */
+.atlas .dm-ctl > .dm-tog { margin-left: auto; }
+.atlas .dm-ctl { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-16); align-items: end; padding: var(--s-8) var(--s-12) var(--s-12); background: var(--card); }
 /* a label stays with its control when the row wraps */
-.atlas .dm-field { display: inline-flex; align-items: center; gap: var(--s-8); min-width: 0; max-width: 100%; }
-.atlas .dm-input { min-height: var(--h-compact); flex: 0 1 12em; min-width: 7em; padding: 0 var(--s-12); border: 1px solid var(--muted); border-radius: var(--r); background: var(--card); font: 400 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
 
 /* inspector */
 .atlas .dm-insp { display: grid; align-content: start; min-width: 0; max-height: var(--dm-h); overflow-y: auto; overscroll-behavior: contain; background: var(--card); }
@@ -333,6 +325,8 @@
 .atlas .dm-find { display: grid; gap: var(--s-4); color: var(--ink); }
 .atlas .dm-find code { color: var(--muted); }
 .atlas .dm-fx { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
+/* the actions stay one group at the right, also when the row wraps */
+.atlas .dm-fxacts { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--s-8); margin-left: auto; }
 .atlas .dm-src { font: 400 var(--fs-14)/var(--lh-body) var(--typography-font-family-geist-mono); color: var(--muted); }
 .atlas .dm-wq { margin: 0; padding: var(--s-8) var(--s-12); border-left: 3px solid var(--note); color: var(--ink); }
 
@@ -345,7 +339,7 @@
 .atlas .dm-behind summary b { color: var(--ink); white-space: nowrap; }
 .atlas .dm-behind summary b::before { content: '▸'; display: inline-block; width: 1.2em; color: var(--muted); }
 .atlas .dm-behind details[open] > summary b::before { content: '▾'; }
-.atlas .dm-behind summary span { font-size: var(--fs-14); color: var(--body); overflow-wrap: anywhere; } /* the summaries and paths wrap, never cut */
+.atlas .dm-behind summary span { font-size: var(--fs-14); color: var(--body); overflow-wrap: break-word; } /* the summaries and paths wrap at spaces, never cut */
 .atlas .dm-behind summary em { font-style: normal; font-size: var(--fs-14); color: var(--muted); }
 .atlas .dm-behind summary:hover { background: color-mix(in srgb, var(--action) 6%, var(--card)); }
 .atlas .dm-behind summary:focus-visible { outline-offset: -3px; }
@@ -368,6 +362,10 @@
   .atlas .dm-behind summary { grid-template-columns: 120px minmax(0, 1fr); }
   .atlas .dm-behind summary em { display: none; }
 }
+/* a phone: the name above its line, so the line gets the full width */
+@container atlas (max-width: 520px) {
+  .atlas .dm-behind summary { grid-template-columns: minmax(0, 1fr); gap: var(--s-4); padding-block: var(--s-12); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .atlas .dm-specwrap, .atlas .dm-ck, .atlas .dm-verdict, .atlas .dm-anno, .atlas .dm-canvas { transition: none; }
@@ -375,4 +373,3 @@
 /* the page's own Pin (the component tree has none) and the folded pass pill */
 .atlas .dm-pin { align-self: start; min-height: var(--h-compact); }
 .atlas .dm-pin.on { background: var(--sel); border-color: var(--action); }
-.atlas .dm-hint:empty { flex: 1 1 auto; min-width: 0; }

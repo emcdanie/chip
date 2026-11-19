@@ -5,6 +5,8 @@
 
 /* ==== frame: top bar, nav, main ==== */
 html { scroll-padding-top: calc(var(--frame-top) + var(--s-8)); }
+/* code, keys and paths read in the number face (Geist Mono in Chip), never the browser's monospace */
+code, kbd, samp { font-family: var(--typography-number-font-family); }
 .app { --nav: var(--frame-nav); --wpw: 0px; --wpb: 0px; display: grid; overflow-x: clip; grid-template-rows: auto 1fr; min-height: 100dvh; grid-template-columns: var(--nav) minmax(0, 1fr) var(--wpw); }
 /* the page makes room for the panel: a column on the right, or padding under it */
 .app.wpon.dock-right { --wpw: var(--wp-w); }
@@ -26,7 +28,7 @@ main h1:focus { outline: none; }
 
 /* the top bar's Find: OBI's input in find mode (BELLA's Combobox), dressed as the
    mock's .search through its own tokens: one box, the ground, ⌘K at the end */
-.top .search { align-self: center; margin-left: auto; min-width: 0; flex: 0 1 300px;
+.top .search { align-self: center; margin-left: auto; min-width: 0; flex: 0 1 340px;
   --component-combobox-border: var(--line); --component-combobox-border-radius: var(--r); --component-combobox-background: var(--ground);
   --component-combobox-foreground: var(--ink); --component-combobox-font-size: var(--fs-14); --component-combobox-min-height: var(--h-control);
   --component-kbd-border: transparent; --component-kbd-background: transparent; --component-kbd-foreground: var(--muted); --component-kbd-font-size: var(--fs-14); }
@@ -143,7 +145,6 @@ html.wp-dragging .xterm { pointer-events: none; }
 .wp .k-seg .n { font: 400 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); font-variant-numeric: tabular-nums; color: var(--muted); }
 .wp-what { margin: 0; padding: var(--s-8) var(--s-16) var(--s-12); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); border-bottom: 1px solid var(--line); }
 .wp-what b { color: var(--ink); font-weight: 600; }
-.wp-what code { font-family: var(--typography-font-family-geist-mono); }
 /* the list always takes the spare height, with or without the What line */
 .wp > .wp-body { grid-row: -3 / -2; }
 .wp > .one { grid-row: -2 / -1; }
@@ -285,11 +286,17 @@ html.wp-dragging .xterm { pointer-events: none; }
   .app.navon .side { bottom: var(--wpb); }
   .lwl { display: none; }
 }
+/* a phone has no ⌘J; the bar keeps brand, Menu and Work inside 320 */
+@media (max-width: 480px) {
+  .top { gap: var(--s-12); padding-inline: var(--s-16); }
+  .wtoggle { margin-left: auto; }
+  .wtoggle kbd { display: none; }
+}
 
 /* ==== Overview ==== */
 .ov-page { display: grid; gap: var(--s-32); min-width: 0; }
 #hhead .tline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-12) var(--s-16); }
-.hsync { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-16); align-items: center; margin-left: auto; }
+.hsync { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-8) var(--s-16); align-items: center; margin-left: auto; }
 .alertline { display: flex; flex-wrap: wrap; gap: var(--s-12) var(--s-24); align-items: center; justify-content: space-between; margin-top: var(--s-12); padding: var(--s-12) var(--s-16); border-radius: var(--r); border-left: 1px solid var(--fail); font-size: var(--fs-16); line-height: var(--lh-body); color: var(--ink); background: color-mix(in srgb, var(--fail) 12%, var(--card)); }
 .alertline p { flex: 1 1 360px; margin: 0; }
 .alertfix { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-12); margin-left: auto; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
@@ -314,24 +321,30 @@ html.wp-dragging .xterm { pointer-events: none; }
 .trends { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--s-16) var(--s-24); }
 .trends li { display: block; padding-left: var(--s-12); border-left: 1px solid var(--line); }
 .trends li.bad { border-left-color: var(--fail); }
-.trends li b { font: 600 var(--fs-28)/var(--lh-head) var(--typography-body-default-font-family); color: var(--ink); }
+.trends li b { font: 600 var(--fs-28)/var(--lh-head) var(--typography-number-font-family); color: var(--ink); }
 .trends li .w { font-size: var(--fs-16); line-height: var(--lh-body); color: var(--ink); }
 .trends li .d { display: block; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); margin-top: var(--s-4); }
 
 .wx-card { --pad: var(--s-24); --tint: color-mix(in srgb, var(--ink) 8%, var(--card)); container: hc / inline-size; background: var(--card); border: 1px solid var(--line); padding: var(--s-24) var(--pad); overflow: hidden; border-radius: var(--r); min-width: 0; }
 .wx-card .wc-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--s-16); margin-bottom: var(--s-16); }
-.wx-card .wc-head > .k-seg { justify-self: end; }
 .wc-t { margin: 0; font: 600 var(--fs-20)/var(--lh-head) var(--typography-body-default-font-family); color: var(--ink); }
 .wc-s { margin: var(--s-4) 0 0; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--ink); }
 .hstrip { position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: var(--s-8); grid-template-rows: auto auto 24px auto; }
 .hstrip.caps { grid-template-rows: auto auto auto 24px auto; }
+/* each column in its own track; the rule across row 4 would otherwise push them out */
+.hstrip.caps .hcol:nth-child(1) { grid-column: 1; }
+.hstrip.caps .hcol:nth-child(2) { grid-column: 2; }
+.hstrip.caps .hcol:nth-child(3) { grid-column: 3; }
+.hstrip.caps .hcol:nth-child(4) { grid-column: 4; }
+.hstrip.caps .hcol:nth-child(5) { grid-column: 5; }
+.hstrip.caps .hcol:nth-child(6) { grid-column: 6; }
 .hstrip.wind { grid-template-rows: auto auto auto 64px; column-gap: 0; }
 .hstrip.cond { grid-template-rows: auto auto auto; row-gap: var(--s-12); }
 .hl { font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); padding-bottom: var(--s-12); }
-.hv { display: inline-flex; align-items: center; gap: var(--s-4); font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
+.hv { display: inline-flex; align-items: center; gap: var(--s-4); font: 600 var(--fs-16)/var(--lh-body) var(--typography-number-font-family); color: var(--ink); }
 .hcol { display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; justify-items: center; border: 0; background: none; padding: 0; font: inherit; color: inherit; min-width: 0; cursor: pointer; }
-.hcol .hl { white-space: normal; overflow-wrap: anywhere; text-align: center; }
-.hcol .hv { grid-row: 5; padding-top: var(--s-4); white-space: normal; overflow-wrap: anywhere; text-align: center; }
+.hcol .hl { white-space: nowrap; text-align: center; }
+.hcol .hv { grid-row: 5; padding-top: var(--s-4); white-space: nowrap; text-align: center; }
 .hcol:hover .tube { outline: 2px solid var(--action); outline-offset: 3px; }
 .hcol.full { cursor: default; }
 .hcol.full:hover .tube { outline: none; }
@@ -346,13 +359,13 @@ html.wp-dragging .xterm { pointer-events: none; }
 .hcol.low .tube i { background: var(--needs); }
 .hcol.bad .tube i { background: var(--fail); }
 /* each bar's value, above it in ink, so its height needn't be guessed */
-.hp { font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); padding-bottom: var(--s-4); font-variant-numeric: tabular-nums; }
+.hp { font: 600 var(--fs-14)/var(--lh-body) var(--typography-number-font-family); color: var(--ink); padding-bottom: var(--s-4); font-variant-numeric: tabular-nums; }
 .hrule { grid-column: 1 / -1; grid-row: 4; align-self: center; border-top: 1px dashed color-mix(in srgb, var(--ink) 35%, var(--card)); }
 .vdot { display: inline-block; margin-right: var(--s-8); width: 14px; height: 14px; border-radius: var(--r-control); background: var(--card); border: 1px solid color-mix(in srgb, var(--ink) 35%, var(--card)); }
 .vdot.low { background: var(--needs); }
 .wcol { display: grid; grid-row: 1 / 4; grid-template-rows: subgrid; justify-items: center; border-left: 1px dashed color-mix(in srgb, var(--ink) 18%, var(--card)); }
 .wcol:first-child { border-left: 0; }
-.wv { font: 600 var(--fs-28)/var(--lh-head) var(--typography-body-default-font-family); color: var(--ink); padding-top: var(--s-16); }
+.wv { font: 600 var(--fs-28)/var(--lh-head) var(--typography-number-font-family); color: var(--ink); padding-top: var(--s-16); }
 .wu { font-size: var(--fs-16); line-height: var(--lh-body); color: var(--ink); }
 .wline { grid-column: 1 / -1; grid-row: 4; height: 64px; position: relative; z-index: 1; width: 100%; margin: 0; }
 .wline path { fill: none; stroke-width: 4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
@@ -360,8 +373,8 @@ html.wp-dragging .xterm { pointer-events: none; }
 .wline .bad { stroke: var(--fail); }
 .wdot { position: absolute; bottom: 34px; right: 2px; width: 14px; height: 14px; border-radius: var(--r-control); background: var(--card); border: 1px solid var(--ink); z-index: 2; }
 .ccol { display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; justify-items: center; min-width: 0; }
-.cond .hl { overflow-wrap: anywhere; text-align: center; font-size: var(--fs-14); }
-.cond .hv { font-weight: 400; color: var(--body); overflow-wrap: anywhere; text-align: center; font-size: var(--fs-14); }
+.cond .hl { text-align: center; font-size: var(--fs-14); }
+.cond .hv { font-weight: 400; color: var(--body); text-align: center; font-size: var(--fs-14); }
 .cicon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-control); font: 600 var(--fs-20)/var(--lh-head) var(--typography-body-default-font-family); }
 .cicon.ok { background: var(--tint); color: var(--ink); }
 .cicon.warn { background: color-mix(in srgb, var(--needs) 22%, var(--card)); color: var(--ink); }
@@ -394,7 +407,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .cktab .ck { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: var(--r-control); font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
 .cktab .ck.yes { color: var(--muted); font-weight: 400; }
 .cktab .ck.no { background: color-mix(in srgb, var(--needs) 34%, var(--card)); }
-.cktab .sc { font-weight: 600; color: var(--ink); text-align: right; }
+.cktab .sc { font-family: var(--typography-number-font-family); font-weight: 600; color: var(--ink); text-align: right; }
 .drow { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(120px, 1.1fr) minmax(0, 1fr) 72px; gap: var(--s-16); align-items: center; min-height: 68px; border-bottom: 1px solid var(--line); }
 .drow:last-child { border-bottom: 0; }
 .dn { font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
@@ -410,7 +423,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .gapsec { display: grid; }
 .gaph { margin-bottom: var(--s-12); }
 .gaph .sub2 { font-weight: 400; margin-left: var(--s-8); }
-.ov-more { justify-self: start; margin-top: var(--s-8); }
+.ov-more { justify-self: end; margin-top: var(--s-8); }
 .daily .dlt .ov-fold { margin-left: calc(-1 * var(--s-16)); border-color: transparent; background: transparent; font: 600 var(--fs-20)/var(--lh-head) var(--typography-body-default-font-family); }
 .daily .dlt .ov-fold:hover { border-color: var(--line); }
 .gaplist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-12); container: acts / inline-size; }
@@ -418,7 +431,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .gap1:hover { border-color: var(--action); }
 .gap1 > div { padding: var(--s-16) 0; min-width: 0; }
 .gap1 > [data-bella-component='button'] { align-self: center; margin-right: var(--s-16); }
-.gap1 .n { font: 600 var(--fs-28)/var(--lh-head) var(--typography-body-default-font-family); text-align: center; display: grid; align-content: center; justify-items: center; padding: var(--s-16) var(--s-8); background: var(--neutral); border-right: 1px solid var(--line); color: var(--ink); }
+.gap1 .n { font: 600 var(--fs-28)/var(--lh-head) var(--typography-number-font-family); text-align: center; display: grid; align-content: center; justify-items: center; padding: var(--s-16) var(--s-8); background: var(--neutral); border-right: 1px solid var(--line); color: var(--ink); }
 .gap1 .n small { display: block; font: 400 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--muted); margin-top: var(--s-4); }
 .gap1 .rowbtn + .k-pill { margin-left: var(--s-8); }
 .gap1 .why { display: block; margin-top: var(--s-4); }
@@ -445,16 +458,35 @@ html.wp-dragging .xterm { pointer-events: none; }
   .wx-card { --pad: var(--s-16); }
   .hstrip .tube { height: 96px; }
 }
+/* six columns stop fitting their words under 480: two rows of three, each column whole */
+@container hc (max-width: 480px) {
+  .hstrip.caps { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto auto var(--s-24) auto auto auto auto var(--s-24) auto; }
+  .hstrip.caps .hcol { grid-row: 1 / 6; }
+  .hstrip.caps .hcol:nth-child(n + 4) { grid-row: 6 / 11; }
+  .hstrip.caps .hcol:nth-child(4) { grid-column: 1; }
+  .hstrip.caps .hcol:nth-child(5) { grid-column: 2; }
+  .hstrip.caps .hcol:nth-child(6) { grid-column: 3; }
+  .hstrip.caps .hcol:nth-child(n + 4) .hl { padding-top: var(--s-24); }
+  .hstrip.caps .hrule { display: none; }
+}
 @container hc (max-width: 560px) {
   .cktab th, .cktab td { padding: var(--s-8) var(--s-4); }
   .cktab .ck { width: 22px; height: 22px; }
   .wx-card .wc-head { grid-template-columns: minmax(0, 1fr); }
-  .wx-card .wc-head > .k-seg { justify-self: start; }
 }
 @container acts (max-width: 560px) {
   .gap1 { grid-template-columns: 96px minmax(0, 1fr); column-gap: var(--s-16); }
   .gap1 .n { grid-row: span 2; padding-inline: var(--s-4); }
-  .gap1 > [data-bella-component='button'] { grid-column: 2; justify-self: start; margin: 0 0 var(--s-16); }
+  .gap1 > [data-bella-component='button'] { grid-column: 2; justify-self: end; margin: 0 var(--s-16) var(--s-16) 0; }
+}
+/* a phone: the count sits on top as one line, the text and button get the full width */
+@container acts (max-width: 400px) {
+  .gap1 { grid-template-columns: minmax(0, 1fr); row-gap: var(--s-8); }
+  .gap1 .n, .gap1.dn > .n { grid-row: auto; grid-auto-flow: column; justify-content: start; align-items: baseline; gap: var(--s-8); padding: var(--s-12) var(--s-16); border-right: 0; border-bottom: var(--border-width-1) solid var(--line); }
+  .gap1 .n small { margin-top: 0; }
+  .gap1 > * { margin-inline: var(--s-16); }
+  .gap1 > .n { margin-inline: 0; }
+  .gap1 > [data-bella-component='button'] { grid-column: 1; margin: 0 var(--s-16) var(--s-16); }
 }
 
 /* ==== sheets: the review card, a check, the work sheet ==== */
