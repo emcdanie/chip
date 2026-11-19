@@ -24,6 +24,8 @@ import Pin from '@bella/components/Pin/Pin';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import Select from '@bella/components/Select/Select';
 import Stage from '@bella/components/Stage/Stage';
+import Card from '@bella/components/Card/Card';
+import { SPECIMENS } from '../specimens.jsx';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
 
@@ -83,6 +85,25 @@ function shortName(text) {
 
 // the frame's design height: one laptop screen; the page scrolls inside it
 const FRAME_HEIGHT = 900;
+// a part's frame: Figma's card on the canvas (612:138093)
+const PART_HEIGHT = 480;
+// Figma opens on a part (Show · Parts › DataTable)
+const FIRST_PART = 'DataTable';
+const PARTS = Object.keys(SPECIMENS).sort();
+
+/** One part, live, in a card on the Stage at its design width (Figma's default state). */
+function PartSlot({ name, width }) {
+  const [zoom, setZoom] = useState('fit');
+  const Specimen = SPECIMENS[name];
+  return (
+    <Stage frameWidth={Number(width)} frameHeight={PART_HEIGHT} zoom={zoom} onZoomChange={setZoom} label={`${name}, live at ${width}`}>
+      {/* the Stage says the width and the zoom; the part sits in a card, as Figma */}
+      <Card>
+        <Specimen />
+      </Card>
+    </Stage>
+  );
+}
 // a click asks for what sits in this box around it, in page px
 const PICK = { w: 240, h: 64 };
 
@@ -136,6 +157,8 @@ function StageSlot({ src, proxy, sections, title, width, notes, picking, onPicke
 
 export default function PlaygroundContent({ project, onProject, route, onRoute }) {
   const narrow = useNarrow();
+  // what is on the canvas: a part (Figma's default) or a page; a link with a route opens the page
+  const [part, setPart] = useState(() => (route ? null : FIRST_PART));
   const { projects, pages, map, down, again } = usePlayData(project, route);
   const [width, setWidth] = useState('1440');
   const [marking, setMarking] = useState(false);
@@ -145,10 +168,24 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
   const [starting, setStarting] = useState(false);
   const nextId = useRef(1);
 
-  // the project's first page opens unless one was asked for
+  // a page view opens the project's first page unless one was asked for
   useEffect(() => {
-    if (pages?.length && !pages.some((p) => p.route === route)) onRoute(pages[0].route);
-  }, [pages, route, onRoute]);
+    if (!part && pages?.length && !pages.some((p) => p.route === route)) onRoute(pages[0].route);
+  }, [part, pages, route, onRoute]);
+  const showValue = part ? `part:${part}` : `page:${route ?? ''}`;
+  const showOptions = [
+    ...PARTS.map((n) => ({ value: `part:${n}`, label: `Parts › ${n}` })),
+    ...(pages ?? []).map((p) => ({ value: `page:${p.route}`, label: `Pages › ${p.label}` })),
+  ];
+  const onShow = (v) => {
+    if (v.startsWith('part:')) {
+      setPart(v.slice(5));
+      setMarking(false);
+    } else {
+      setPart(null);
+      onRoute(v.slice(5));
+    }
+  };
 
   const page = pages?.find((p) => p.route === route);
   const running = map?.run?.state === 'running';
@@ -207,7 +244,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
   if (down)
     return <Notification tone="danger" title="The CHIP server is not answering" message="Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
 
-  if (pages && !pages.length)
+  if (!part && pages && !pages.length)
     return <EmptyState size="page" wash="blue" mark="🤷" title="No pages to open here" line="This project has no pages CHIP can load yet. Pick another one." />;
 
   return (
@@ -215,18 +252,21 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
       {sent === 'sent' ? <Notification tone="success" title="Notes sent" message="They are on the progress board for the team." onClose={() => setSent(null)} /> : null}
 
       {/* Control bar: what you look at on the left, switches on the right */}
-      <Flow direction={narrow ? 'column' : 'row'} gap={16} wrap justify={narrow ? 'start' : 'between'} align={narrow ? undefined : 'center'}>
+      <Flow direction={narrow ? 'column' : 'row'} gap={16} wrap={!narrow} justify={narrow ? 'start' : 'between'} align={narrow ? undefined : 'center'}>
         <Flow direction="row" gap={12} wrap>
-          {projects?.length ? <Select label="Project" value={project} onChange={onProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
-          {pages?.length ? <Select label="Page" value={route ?? ''} onChange={onRoute} options={pages.map((p) => ({ value: p.route, label: p.label }))} /> : null}
+          {/* Figma: one Show select; a page also names its project */}
+          {!part && projects?.length ? <Select label="Project" value={project} onChange={onProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
+          <Select label="Show" value={showValue} onChange={onShow} options={showOptions} />
         </Flow>
         <Flow direction="row" gap={12} wrap>
           {/* below 800px the four widths don't fit in one row: the same choice as a Select */}
           {narrow ? <Select label="Width" value={width} onChange={setWidth} options={WIDTHS} /> : <SegmentedControl label="Width" options={WIDTHS} value={width} onChange={setWidth} />}
-          <Button variant="secondary" ariaExpanded={marking} onClick={() => (marking ? setMarking(false) : (setMarking(true), notes.length ? setOpen(true) : null))}>
-            {marking ? 'Done marking' : 'Mark up'}
-          </Button>
-          {notes.length ? (
+          {part ? null : (
+            <Button variant="secondary" ariaExpanded={marking} onClick={() => (marking ? setMarking(false) : (setMarking(true), notes.length ? setOpen(true) : null))}>
+              {marking ? 'Done marking' : 'Mark up'}
+            </Button>
+          )}
+          {!part && notes.length ? (
             <Button variant="secondary" ariaHaspopup="dialog" onClick={() => setOpen(true)}>
               {`Notes · ${notes.length}`}
             </Button>
@@ -234,7 +274,9 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
         </Flow>
       </Flow>
 
-      {map && !running ? (
+      {part ? <PartSlot name={part} width={width} /> : null}
+
+      {!part && map && !running ? (
         <Notification
           tone="attention"
           title={`${map.name ?? 'This project'} isn’t running`}
@@ -243,7 +285,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
         />
       ) : null}
 
-      {src ? (
+      {part ? null : src ? (
         <StageSlot
           src={src}
           proxy={map.proxy}
