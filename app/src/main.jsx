@@ -8,6 +8,7 @@ import App from './App.jsx';
 import Kit from './Kit.jsx';
 import NotAgain from './pages/NotAgain.jsx';
 import Playground from './pages/Playground.jsx';
+import Team from './pages/Team.jsx';
 
 // #/kit shows the shared pieces on their own, outside the app shell.
 // Pages on the new CHIP / Screen template; the old app stays beside them
@@ -16,6 +17,7 @@ import Playground from './pages/Playground.jsx';
 const NEW_PAGES = [
   { id: 'not-again', label: 'Not again' },
   { id: 'playground', label: 'Playground' },
+  { id: 'team', label: 'Team' },
 ];
 
 function Root() {
@@ -28,6 +30,7 @@ function Root() {
   if (hash === '#/kit') return <Kit />;
   if (hash === '#/not-again') return <NotAgain />;
   if (hash.split('?')[0] === '#/playground') return <Playground />;
+  if (hash.split('?')[0] === '#/team') return <Team />;
   return <App />;
 }
 
