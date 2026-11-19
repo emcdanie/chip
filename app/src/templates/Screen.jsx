@@ -26,7 +26,7 @@ const PLACES = [
   { id: 'home', label: 'Home', icon: 'Home', href: '#/' },
   { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/' },
   { id: 'not-again', label: 'Not again', icon: 'Book', href: '#/not-again' },
-  { id: 'team', label: 'Team', icon: 'Group', href: '#/' },
+  { id: 'team', label: 'Team', icon: 'Group', href: '#/team' },
   { id: 'map', label: 'System map', icon: 'Map', href: '#/' },
 ];
 
