@@ -43,8 +43,7 @@ const PLACES = [
   { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/health' },
   { id: 'not-again', label: 'Not again', icon: 'Book', href: '#/not-again' },
   { id: 'team', label: 'Team', icon: 'Group', href: '#/team' },
-  // System map comes back when its page is rebuilt from Figma (coordinator,
-  // 20 Nov: never send people to a retired page)
+  { id: 'map', label: 'System map', icon: 'Map', href: '#/system-map' },
 ];
 
 /* CHIP's own data for the panel, kept between pages (useCached) so the
