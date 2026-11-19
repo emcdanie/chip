@@ -78,14 +78,19 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                       <li key={a.key}>
                         <Flow direction="row" gap={12}>
                           <Pin number={a.n} variant="yellow" />
-                          <TextStack title={a.title} subtitle={a.detail} />
+                          {/* Figma: the part's detail is a sentence, in the reading face */}
+                          <TextStack title={a.title} body={a.detail} />
                         </Flow>
                       </li>
                     ))}
                   </Flow>
                 </Flow>
               ) : (
-                <EmptyState size="lane" mark="🦴" title="No anatomy written yet" line={`${part.name}'s contract doesn't list its parts. Add them and they show up here.`} />
+                // no parts in the contract: the live part still shows, the empty note beside it
+                <Flow direction={narrow ? 'column' : 'row'} gap={24} equal={!narrow}>
+                  {Specimen ? <Flow align="center" justify="between"><Specimen /></Flow> : null}
+                  <EmptyState size="lane" mark="🦴" title="No anatomy written yet" line={`${part.name}'s contract doesn't list its parts. Add them and they show up here.`} />
+                </Flow>
               )}
             </Flow>
           </Card>
