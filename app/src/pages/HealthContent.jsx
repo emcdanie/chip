@@ -37,7 +37,7 @@ function NoData({ title, icon, tone, mark, empty, line }) {
   return (
     <Card>
       <Flow gap={8}>
-        <SectionHead icon={icon} iconTone={tone} title={title} titleLevel={3} />
+        <SectionHead size="card" icon={icon} iconTone={tone} title={title} titleLevel={3} />
         <EmptyState size="lane" mark={mark} title={empty} line={line} />
       </Flow>
     </Card>
