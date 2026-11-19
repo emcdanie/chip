@@ -27,9 +27,9 @@ import './Screen.css';
  * app, which stays beside the new routes until Elleta has seen that list. */
 const PLACES = [
   // Home has no page of its own yet (Figma Home waits on Elleta's pick), so it
-  // opens Work, the first project view; Settings has none either and opens
-  // Projects, where each repo's setup lives (19 Nov audit: the rail opened
-  // the old Overview).
+  // opens Work, the board, and Work marks Home current (19 Nov re-audit); the
+  // other project views mark Projects. Settings has no page either and opens
+  // Projects, where each repo's setup lives (an old page until it is rebuilt).
   { id: 'home', label: 'Home', icon: 'Home', href: '#/work' },
   { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/work' },
   { id: 'not-again', label: 'Not again', icon: 'Book', href: '#/not-again' },
@@ -91,7 +91,7 @@ export default function Screen({ place, header, tabs, children }) {
         <IconRail end={<NavItem iconOnly label="Settings" icon="Settings" href="#/projects" />}>
           {PLACES.map((p) =>
             p.id === 'projects' && panelOut ? (
-              <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} onClick={() => setProjectsOpen(true)} current={projectsOpen} />
+              <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} onClick={() => setProjectsOpen(true)} current={projectsOpen || p.id === place} />
             ) : (
               <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} href={p.href} current={p.id === place} />
             ),

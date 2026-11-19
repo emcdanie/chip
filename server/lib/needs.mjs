@@ -33,6 +33,10 @@ const short = (text, n = 64) => {
 function failureTitle(c) {
   const f = c.failures?.[0] ?? c.summary;
   const prefix = c.gate ? 'Gate' : c.name;
+  // a crash, not a finding: never show the raw command or a path in a title
+  // (19 Nov re-audit: "Command failed: git -C /Users/…" on the page). The raw
+  // text stays in `what` and the review card.
+  if (/Command failed|^fatal:|\/Users\/|ENOENT|EACCES/.test(String(f))) return c.gate ? `Gate: ${c.name} couldn't run` : `${c.name} couldn't run`;
   // contrast: "wee-dote: selected wash vs the page is 1.04:1, … (needs 1.08:1; …)"
   const pair = f.match(/^([\w-]+): (.+?) is ([\d.]+:1).*?needs ([\d.]+:1)/);
   if (pair) return `${prefix}: ${pair[1].replace(/-/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase())} ${pair[2]} ${pair[3]}, needs ${pair[4]}`;
