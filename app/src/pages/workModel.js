@@ -1,11 +1,10 @@
 // Work's board, from CHIP's own data: what needs her (/needs) and the agent
 // runs CHIP started (/runs). Lanes as Figma (Work · content 608:207182):
-// Needs you, Agent, Gate, Ready, and Merged today under Ready.
+// Needs you, Agent, Gate, Ready (slim Work: no Merged today, no Just finished).
 import { useEffect, useMemo } from 'react';
 import useCached from '../templates/useCached.js';
 
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-const today = (t) => new Date(t).toDateString() === new Date().toDateString();
 
 /* A Needs-you item as a card: the check's own name, not the raw error. */
 function needCard(n) {
@@ -19,7 +18,8 @@ function needCard(n) {
 
 /* An agent run as a card, by where it is. */
 function runCard(r) {
-  return { id: r.id, title: r.title ?? 'Fix', line: r.startedAt ? `Started ${hhmm(r.startedAt)}` : undefined, branch: r.branch };
+  return { id: r.id, title: r.title ?? 'Fix', // Figma slim: the branch and time on the card's line ("main checkout · 10:19"), no separate branch tag
+    line: [r.branch, r.startedAt ? hhmm(r.startedAt) : null].filter(Boolean).join(' · ') || undefined };
 }
 
 export function workModel({ needs = [], runs = [] }) {
@@ -31,13 +31,12 @@ export function workModel({ needs = [], runs = [] }) {
     { id: 'gate', name: 'Gate', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info' })) },
     { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success' })) },
   ];
-  const merged = by('kept').filter((r) => today(r.endedAt ?? r.startedAt ?? 0));
   const total = lanes.reduce((s, l) => s + l.cards.length, 0);
   const top = needsYou[0];
   const brief = needsYou.length
     ? { message: `${needsYou.length} ${needsYou.length === 1 ? 'thing needs' : 'things need'} you; the top one is ${top.title}${top.failed ? ', which failed' : ''}.${lanes[1].cards.length ? ` ${lanes[1].cards.length} agent ${lanes[1].cards.length === 1 ? 'run is' : 'runs are'} working.` : ''}`, action: top.action }
     : null;
-  return { lanes, merged, total, brief, finished: merged.map((r) => ({ id: r.id, text: `${hhmm(r.endedAt ?? r.startedAt)} · ${r.title}` })) };
+  return { lanes, total, brief };
 }
 
 /** Reads CHIP's data (kept between pages); `reload` reads it again (Check again). */

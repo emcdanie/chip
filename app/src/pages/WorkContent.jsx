@@ -47,7 +47,7 @@ function Lane({ lane, index }) {
     // Figma's lane head: number, name, count; no order line
     <BoardLane name={lane.name} index={String(index + 1).padStart(2, '0')} lane={lane.id === 'needs' ? 'needs-you' : 'other'} statusTone={LANE_TONE[lane.id]} count={lane.cards.length} headingLevel={2}>
       {lane.cards.length
-        ? lane.cards.map((c) => <TaskCard key={c.id} title={c.title} line={c.line} branch={c.branch} status={c.status} statusTone={c.tone} href="#/health-old" />)
+        ? lane.cards.map((c) => <TaskCard key={c.id} title={c.title} line={c.line} status={c.status} statusTone={c.tone} href="#/health-old" />)
         : [<EmptyState key="empty" size="lane" mark={e.mark} title={e.title} line={e.line} />]}
     </BoardLane>
   );
@@ -83,16 +83,6 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
               onClose={() => setBriefShut(true)}
               closeLabel="Hide the brief"
             />
-          ) : null}
-          {model.finished.length ? (
-            <Card>
-              <Flow gap={8}>
-                <SectionHead title="Just finished" titleLevel={2} />
-                {model.finished.map((f) => (
-                  <span key={f.id}>{f.text}</span>
-                ))}
-              </Flow>
-            </Card>
           ) : null}
           {view === 'list' ? (
             <Card>
