@@ -11,8 +11,7 @@
 // Part gaps (asked of parts-dev, never styled around): no zoom in / fit / zoom
 // out or Light / Dark overlay; pins and chips can't be clicked (the Anatomy tab
 // picks); the selected leader's ink look isn't passed through Stage; Step has
-// no kind colours; no Switch for "Try it"; no contrast meter (Progress stands
-// in); Button has no preview state yet (hover / pressed / focus are BELLA's own
+// no kind colours; no Switch for "Try it"; Button has no preview state yet (hover / pressed / focus are BELLA's own
 // rules copied onto attributes).
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
@@ -169,7 +168,7 @@ function PartCard({ a, onFix }) {
         {c ? (
           <Flow gap={8}>
             <Stat label="Contrast" value={ratio(c.ratio)} />
-            {/* 21:1 is the most contrast there is; the target mark is the bar */}
+            {/* the contrast meter as Figma builds it: Stat plus Progress with its target mark; 21:1 is the most contrast there is */}
             <Progress label={`Contrast ${ratio(c.ratio)}, target ${c.bar}:1`} showLabel={false} showTarget tone={c.ok ? 'success' : 'attention'} fill={Math.min(100, Math.round((c.ratio / 21) * 100))} target={Math.round((c.bar / 21) * 100)} />
           </Flow>
         ) : null}
