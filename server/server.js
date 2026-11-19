@@ -29,7 +29,7 @@ import { historyRecord, searchHistory } from './lib/history.mjs';
 import { systemMap } from './lib/map.mjs';
 import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
 import { appOrigins, onlyChip } from './lib/origin.mjs';
-import { playMap, playPages, playTarget, saveBrief, startPlayProxy, PROXY } from './lib/play.mjs';
+import { playMap, playPages, playTarget, startPlayProxy, PROXY } from './lib/play.mjs';
 
 const app = express();
 // Only CHIP's own page may read this server, /ask included (product inspection
@@ -654,14 +654,6 @@ app.get('/play/map', async (req, res) => {
     map ? res.json({ ...map, run }) : res.status(404).json({ error: 'No such page', run });
   } catch (e) {
     res.status(500).json({ error: e.message });
-  }
-});
-app.post('/play/brief', (req, res) => {
-  if (req.headers.origin && !APP_ORIGINS.has(req.headers.origin)) return res.status(403).json({ error: 'Not from CHIP' });
-  try {
-    res.json(saveBrief(req.body ?? {}));
-  } catch (e) {
-    res.status(400).json({ error: e.message });
   }
 });
 

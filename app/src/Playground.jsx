@@ -1,21 +1,23 @@
 // The Playground (docs/plans/playground.md): a page from any project (the
 // site, CHIP, BELLA's Storybook; GET /projects), live, to play with; a markup
-// layer for boxes and notes; each section mapped to BELLA (BELLA's, the
+// each section mapped to BELLA (BELLA's, the
 // project's own copy, or the project's only); and BELLA's rules run on what
-// the browser measured, each finding naming its rule and its source. Send to
-// Claude writes a brief and types `claude` with it in the project's terminal;
-// CHIP never edits the project. Every note says what it is pinned to, the rule
-// there and a suggested change, with its own send. BELLA components dragged
-// from the Components tab drop as placed proposals: drawn for real in the
-// overlay, moved, resized, swapped, optionally replacing the section under
-// them, checked against the same rules, and written into the brief. The page arrives through CHIP's proxy (play.mjs),
-// which adds the probe that posts the measurements here.
+// the browser measured, each finding naming its rule and its source. CHIP
+// never edits the project. BELLA components dragged from the Components tab
+// drop as placed proposals: drawn for real in the overlay, moved, resized,
+// swapped, optionally replacing the section under them, checked against the
+// same rules. The page arrives through CHIP's proxy (play.mjs), which adds the
+// probe that posts the measurements here.
+//
+// Retired 19 Nov 2026 (Elleta's picks on /screens/2026-11-19-playground/):
+// "Send to Claude" (the brief) and box notes (the Use / Mark up switch). Mark
+// up lives in the new Playground (pages/PlaygroundContent.jsx). Map, Rules and
+// drop-a-part stay here until the design track draws them in Figma.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
 import Select from '@bella/components/Select/Select';
 import { PageHeader, Segmented, segPanelProps, StatusPill, LinkButton } from './kit/index.jsx';
-import Disclosure from '@bella/components/Disclosure/Disclosure';
 import { contrast } from './Sandbox.jsx';
 import { SPECIMENS, VARIANTS } from './specimens.jsx';
 import './Playground.css';
@@ -27,11 +29,6 @@ const WIDTHS = [
   { id: '1024', label: '1024' },
   { id: '390', label: '390' },
 ];
-const MODES = [
-  { id: 'use', label: 'Use the page' },
-  { id: 'mark', label: 'Mark up' },
-];
-
 /* ---------- BELLA's rules, run on what the probe measured ---------- */
 const FLOORS = 'BELLA AGENTS.md · Floors';
 // a part's kind in the project's own words ("Site copy", "CHIP only")
@@ -130,19 +127,6 @@ export function findingsOf(map, probe, placed = [], cats = {}) {
   return out.sort((a, b) => rank[a.tone] - rank[b.tone]);
 }
 
-// a note's suggested change and its reasoning: the rule broken where it sits,
-// or what the component it is pinned to is
-function suggestFor(n, findings, map) {
-  const f = findings.find((x) => x.section && x.section === n.section && x.tone === 'fail') ?? findings.find((x) => x.section === n.section);
-  if (f) return { change: f.instead, why: `${f.rule}: ${f.detail} (${f.source})`, rule: f };
-  const c = map?.components[n.component];
-  if (!n.section) return null;
-  if (c?.kind === 'copy') return { change: `Use BELLA’s ${n.component}, ${map.getBella}, instead of editing ${map.short}’s copy`, why: `${c.note}, so a change here drifts from BELLA (${c.source})` };
-  if (c?.kind === 'site') return { change: `Compose it from BELLA parts; if none fits, name the missing component`, why: `${c.note}: BELLA AGENTS.md rule 3` };
-  if (c?.kind === 'bella') return map.bella?.kind === 'self' ? { change: `Change ${n.component} in its source, ${c.file}`, why: `${c.note} (${c.source})` } : { change: `Change ${n.component} in BELLA, not in ${map.short}`, why: `${c.note}: ${map.short} only uses it (${c.source})` };
-  return null;
-}
-
 /* ---------- the page ---------- */
 // the address a route loads at on the project's server, and the path the probe reports
 const srcOf = (route) => (route.startsWith('#') ? `/${route}` : route);
@@ -158,19 +142,14 @@ export default function Playground({ onToast, project: askedProject, route: aske
   const [probe, setProbe] = useState(null);
   const [scrollY, setScrollY] = useState(0);
   const [width, setWidth] = useState('1440');
-  const [mode, setMode] = useState('use');
   const [tab, setTab] = useState('map');
-  const [notes, setNotes] = useState([]);
   const [placed, setPlaced] = useState([]); // BELLA components dropped on the page
   const [catalogue, setCatalogue] = useState(null);
   const [q, setQ] = useState('');
   const [dragging, setDragging] = useState(null); // a component name on its way from the list
   const [grab, setGrab] = useState(null); // moving or resizing a placement
-  const [draft, setDraft] = useState(null); // the box being drawn
   const [hot, setHot] = useState(null); // a section or finding being pointed at
-  const [preview, setPreview] = useState(null);
   const [error, setError] = useState(null);
-  const [sending, setSending] = useState(false);
   const frame = useRef(null);
   const stage = useRef(null);
   const over = useRef(null);
@@ -225,7 +204,6 @@ export default function Playground({ onToast, project: askedProject, route: aske
   useEffect(() => {
     setMap(null);
     setProbe(null);
-    setNotes([]);
     setPlaced([]);
     if (pages?.project === project && route) loadMap();
   }, [loadMap, pages]);
@@ -284,7 +262,6 @@ export default function Playground({ onToast, project: askedProject, route: aske
         setProbe(m);
         setScrollY(m.scrollY);
       } else if (m.type === 'chip:scroll') setScrollY(m.scrollY);
-      else if (m.type === 'chip:picked') setNotes((ns) => ns.map((n) => (n.id === m.id ? { ...n, picked: m.picked, section: n.section ?? m.section } : n)));
     };
     window.addEventListener('message', on);
     return () => window.removeEventListener('message', on);
@@ -303,45 +280,15 @@ export default function Playground({ onToast, project: askedProject, route: aske
   const sectionAt = (y) => probe?.sections.find((s) => y >= s.y && y <= s.y + s.h)?.id ?? null;
   const rulesOf = (pid) => findings.filter((f) => f.at?.some((x) => x.pid === pid));
 
-  /* ---- drawing a note: drag on the overlay in Mark up; or "Note on this section" ---- */
+  /* ---- the overlay: moving a placed part, and the wheel scrolls the page ---- */
   const pageAt = (e) => {
     const r = over.current.getBoundingClientRect();
     return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale + scrollY };
   };
-  const addNote = (b, section) => {
-    const id = `n${Date.now()}`;
-    setNotes((ns) => [...ns, { id, ...b, text: '', section, inBrief: true, component: map.sections.find((s) => s.id === section)?.component }]);
-    send({ type: 'chip:pick', id, ...b });
-    setTab('notes');
-    requestAnimationFrame(() => document.getElementById(`note-${id}`)?.focus());
-  };
-  const down = (e) => {
-    if (mode !== 'mark' || e.button !== 0) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const p = pageAt(e);
-    setDraft({ x0: p.x, y0: p.y, x: p.x, y: p.y, w: 0, h: 0 });
-  };
-  const move = (e) => {
-    if (grab) return moveGrab(e);
-    if (!draft) return;
-    const p = pageAt(e);
-    setDraft((d) => ({ ...d, x: Math.min(d.x0, p.x), y: Math.min(d.y0, p.y), w: Math.abs(p.x - d.x0), h: Math.abs(p.y - d.y0) }));
-  };
-  const up = () => {
-    if (grab) return setGrab(null);
-    if (!draft) return;
-    const { x, y, w, h } = draft;
-    setDraft(null);
-    if (w < 12 || h < 12) return;
-    addNote({ x, y, w, h }, sectionAt(y + h / 2));
-  };
+  const move = (e) => grab && moveGrab(e);
+  const up = () => grab && setGrab(null);
   const wheel = (e) => send({ type: 'chip:scrollby', dy: e.deltaY });
-  const noteOn = (s) => {
-    const b = box(s.id);
-    if (b) addNote({ x: b.x, y: b.y, w: b.w, h: b.h }, s.id);
-  };
   const goTo = (id) => id && send({ type: 'chip:scrollto', id });
-  const setNote = (id, patch) => setNotes((ns) => ns.map((x) => (x.id === id ? { ...x, ...patch } : x)));
 
   /* ---- placing BELLA components: drop from the list, then move, resize, swap ---- */
   const place = (component, cx, cy) => {
@@ -349,8 +296,8 @@ export default function Playground({ onToast, project: askedProject, route: aske
     const x = Math.max(0, Math.min(W - w, cx - w / 2));
     const y = Math.max(0, cy - h / 2);
     const id = `p${Date.now()}`;
-    setPlaced((ps) => [...ps, { id, component, variant: component === 'Button' ? 'primary' : null, x, y, w, h, section: sectionAt(y + h / 2), replaces: null, note: '' }]);
-    setTab('notes');
+    setPlaced((ps) => [...ps, { id, component, variant: component === 'Button' ? 'primary' : null, x, y, w, h, section: sectionAt(y + h / 2), replaces: null }]);
+    setTab('placed');
     onToast?.(`${component} placed. Drag it to move it; the corner resizes it.`);
   };
   const setPlace = (id, patch) =>
@@ -394,46 +341,11 @@ export default function Playground({ onToast, project: askedProject, route: aske
     setPlace(p.id, { x: Math.max(0, Math.min(W - p.w, p.x + d[0])), y: Math.max(0, p.y + d[1]) });
   };
 
-  /* ---- the brief ---- */
-  const inBrief = notes.filter((n) => n.inBrief);
-  const noteBody = (n) => ({ ...n, kind: KIND[map?.components[n.component]?.kind]?.word, suggest: suggestFor(n, findings, map) && { change: suggestFor(n, findings, map).change, why: suggestFor(n, findings, map).why } });
-  const plain = (fs) => fs.map(({ at: _, ...f }) => f);
-  const bodyOf = (only) =>
-    only
-      ? { project, route, width: W, scope: 'note', notes: [noteBody(only)], proposals: [], findings: plain(findings.filter((f) => f.section === only.section || (!f.section && f.tone === 'fail'))) }
-      : { project, route, width: W, notes: inBrief.map(noteBody), proposals: placed, findings: plain(findings) };
-  async function toClaude(only) {
-    setSending(true);
-    try {
-      const r = await fetch('/play/brief', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(bodyOf(only)) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
-      window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: map.terminal, command: `claude "Read ${j.file} and follow it."` } }));
-      onToast?.('Brief saved. Press Return in the terminal to start Claude.');
-    } catch (e) {
-      onToast?.(`Could not write the brief: ${e.message}`);
-    } finally {
-      setSending(false);
-    }
-  }
-  // the preview: the same brief, not written; refreshed while the notes tab shows
-  const briefKey = JSON.stringify(map && tab === 'notes' ? bodyOf(null) : null);
-  useEffect(() => {
-    if (!map || tab !== 'notes') return;
-    const t = setTimeout(() => {
-      fetch('/play/brief', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ ...bodyOf(null), dry: true }) })
-        .then((r) => r.json())
-        .then((j) => setPreview(j.text ?? null))
-        .catch(() => setPreview(null));
-    }, 400);
-    return () => clearTimeout(t);
-  }, [briefKey]);
-
   const tabs = [
     { id: 'map', label: 'Map' },
     { id: 'rules', label: `Rules${findings.length ? ` · ${fails}` : ''}` },
     { id: 'parts', label: 'Components' },
-    { id: 'notes', label: `Notes${notes.length + placed.length ? ` · ${notes.length + placed.length}` : ''}` },
+    { id: 'placed', label: `Placed${placed.length ? ` · ${placed.length}` : ''}` },
   ];
   const live = probe && route && probe.url === pathOf(route);
   const groups = useMemo(() => {
@@ -442,23 +354,18 @@ export default function Playground({ onToast, project: askedProject, route: aske
     for (const c of catalogue ?? []) if (!ql || `${c.name} ${c.description ?? ''}`.toLowerCase().includes(ql)) (g[c.category ?? 'Other'] ??= []).push(c);
     return GROUP_ORDER.filter((k) => g[k]).map((k) => [k, g[k].sort((a, b) => a.name.localeCompare(b.name))]);
   }, [catalogue, q]);
-  const nBrief = inBrief.length + placed.length;
   const copies = (s) => [s.component, ...s.children].filter((name) => KIND[map.components[name]?.kind] === KIND.copy).length;
-  const sendLabel = `Send ${plural(inBrief.length, 'note')}${placed.length ? ` and ${plural(placed.length, 'placed component')}` : ''} to Claude`;
   const draw = (p) => (p.component === 'Button' && p.variant ? VARIANTS.Button(p.variant) : SPECIMENS[p.component]?.() ?? <span className="pg-nospec">{p.component}</span>);
 
   return (
     <div className="pg-page k-chrome">
       <PageHeader
         title="Playground"
-        lede="Use a project’s page live, mark it up, then send it to Claude."
+        lede="Use a project’s page live, check it against BELLA, and try BELLA parts on it."
         actions={
           <div className="pg-actions">
             {projects?.length ? <Select label="Project" value={project} onChange={setProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
             {pages?.pages?.length ? <Select label="Page" value={route ?? ''} onChange={setRoute} options={pages.pages.map((p) => ({ value: p.route, label: p.label === p.route || p.label === 'Home' ? p.route : `${p.label}` }))} /> : null}
-            <Button variant="primary" onClick={() => toClaude()} disabled={sending || !map || !nBrief}>
-              {sending ? 'Writing the brief…' : 'Send to Claude'}
-            </Button>
           </div>
         }
       />
@@ -468,7 +375,6 @@ export default function Playground({ onToast, project: askedProject, route: aske
         <section className="pg-stagecol" aria-label="The page">
           <div className="pg-bar">
             <Segmented id="pgw" label="Width" panels={false} items={WIDTHS} value={width} onChange={setWidth} />
-            <Segmented id="pgm" label="Mode" panels={false} items={MODES} value={mode} onChange={setMode} />
             <span className="pg-src">
               {map?.run?.url ? (
                 <>
@@ -489,7 +395,7 @@ export default function Playground({ onToast, project: askedProject, route: aske
               <div className="pg-down" role="status">
                 <p>
                   <b>{map.name} isn’t running</b> at <code>{map.run.url ?? 'no address in the config'}</code>
-                  {map.run.state === 'starting' || starting ? ', starting…' : '.'} The map and notes work from the source; the page loads once its dev server answers.
+                  {map.run.state === 'starting' || starting ? ', starting…' : '.'} The map works from the source; the page loads once its dev server answers.
                 </p>
                 {map.run.command ? (
                   <Button onClick={startDev} disabled={starting || map.run.state === 'starting'}>
@@ -514,11 +420,10 @@ export default function Playground({ onToast, project: askedProject, route: aske
                 {proxy ? <iframe key={project} ref={frame} title={`${map.name} page ${map.label}`} src={`${proxy}${srcOf(route)}`} width={W} height={VIEW_H} onLoad={hello} /> : null}
                 <div
                   ref={over}
-                  className={['pg-over', mode === 'mark' && 'mark', (dragging || grab) && 'drop'].filter(Boolean).join(' ')}
-                  onPointerDown={down}
+                  className={['pg-over', (dragging || grab) && 'drop'].filter(Boolean).join(' ')}
                   onPointerMove={move}
                   onPointerUp={up}
-                  onWheel={mode === 'mark' || grab ? wheel : undefined}
+                  onWheel={grab ? wheel : undefined}
                   onDragOver={(e) => e.dataTransfer.types.includes('text/plain') && e.preventDefault()}
                   onDrop={onDrop}
                 >
@@ -530,17 +435,12 @@ export default function Playground({ onToast, project: askedProject, route: aske
                     const by = placed.find((p) => p.replaces === s.id);
                     return (
                       <div key={s.id} className={`pg-sec k-${k}${on ? ' on' : ''}${by ? ' gone' : ''}`} style={{ left: b.x, top: b.y - scrollY, width: b.w, height: b.h }} aria-hidden="true">
-                        {by ? <span className="pg-gone">#{s.id} replaced by {by.component}</span> : mode === 'mark' || on ? <span className="pg-tag">#{s.id} · {s.component}</span> : null}
+                        {by ? <span className="pg-gone">#{s.id} replaced by {by.component}</span> : on ? <span className="pg-tag">#{s.id} · {s.component}</span> : null}
                       </div>
                     );
                   })}
                   {hot?.at?.map((x, i) => (
                     <div key={i} className="pg-hit" style={{ left: x.x, top: x.y - scrollY, width: x.w, height: x.h }} aria-hidden="true" />
-                  ))}
-                  {notes.map((n, i) => (
-                    <div key={n.id} className="pg-note" style={{ left: n.x, top: n.y - scrollY, width: n.w, height: n.h }} aria-hidden="true">
-                      <span className="pg-pin">{i + 1}</span>
-                    </div>
                   ))}
                   {placed.map((p, i) => (
                     <div
@@ -558,7 +458,6 @@ export default function Playground({ onToast, project: askedProject, route: aske
                       <span className="pg-grip" aria-hidden="true" onPointerDown={(e) => startGrab(e, p, 'size')} />
                     </div>
                   ))}
-                  {draft ? <div className="pg-note draft" style={{ left: draft.x, top: draft.y - scrollY, width: draft.w, height: draft.h }} aria-hidden="true" /> : null}
                 </div>
               </div>
             </div>
@@ -566,13 +465,11 @@ export default function Playground({ onToast, project: askedProject, route: aske
           <p className="pg-cap" hidden={!!map && !running}>
             {dragging
               ? `Drop ${dragging} where it should go on the page.`
-              : mode === 'mark'
-                ? 'Drag a box over anything to add a note. The scroll wheel still moves the page.'
-                : `The real page, running from ${map?.name ?? 'the project'}. Click, open, turn the cards over. Switch to Mark up to draw, or drag a component in from Components.`}
+              : `The real page, running from ${map?.name ?? 'the project'}. Click, open, turn the cards over, or drag a component in from Components.`}
           </p>
         </section>
 
-        <aside className="pg-insp" id="pg-insp" tabIndex={-1} aria-label="Map, rules, components and notes">
+        <aside className="pg-insp" id="pg-insp" tabIndex={-1} aria-label="Map, rules, components and placed parts">
           <Segmented id="pgtab" label="Inspector" items={tabs} value={tab} onChange={setTab} />
 
           {tab === 'map' ? (
@@ -593,9 +490,6 @@ export default function Playground({ onToast, project: askedProject, route: aske
                           {KIND.copy.word} · {copies(s)}
                         </StatusPill>
                       ) : null}
-                      <LinkButton className="pg-noteon" onClick={() => noteOn(s)}>
-                        Note on this section
-                      </LinkButton>
                     </div>
                     <ul className="pg-comps">
                       {[s.component, ...s.children].map((name) => {
@@ -706,58 +600,14 @@ export default function Playground({ onToast, project: askedProject, route: aske
             </div>
           ) : null}
 
-          {tab === 'notes' ? (
-            <div {...segPanelProps('pgtab', 'notes', tab)} className="pg-panel">
-              {notes.length || placed.length ? null : (
+          {tab === 'placed' ? (
+            <div {...segPanelProps('pgtab', 'placed', tab)} className="pg-panel">
+              {placed.length ? null : (
                 <div className="pg-empty">
-                  <b>Nothing to send yet</b>
-                  <p>Mark up the page or drop BELLA components on it, then send it to Claude. CHIP writes the brief; Claude makes the change in {map?.short ?? 'the project'}’s terminal once you press Return.</p>
+                  <b>Nothing placed yet</b>
+                  <p>Drag a BELLA component from Components onto the page.</p>
                 </div>
               )}
-              {notes.length ? (
-                <ol className="pg-list" aria-label="Notes">
-                  {notes.map((n, i) => {
-                    const c = map?.components[n.component];
-                    const k = KIND[c?.kind];
-                    const sg = suggestFor(n, findings, map);
-                    const el = n.picked?.[0];
-                    return (
-                      <li key={n.id} className={`pg-row pg-noterow${n.inBrief ? '' : ' out'}`}>
-                        <div className="pg-rowhead">
-                          <span className="pg-pin static">{i + 1}</span>
-                          <span className="pg-where">
-                            <span>
-                              Pinned to {n.section ? <code>#{n.section}</code> : 'no section'}
-                              {n.component ? <> · {n.component}</> : null}
-                            </span>
-                            <small>{el ? el.text || el.selector : 'Element not reported yet'}</small>
-                          </span>
-                          {k ? <StatusPill tone={k.tone}>{k.word}</StatusPill> : null}
-                        </div>
-                        <Input id={`note-${n.id}`} label="What should change?" multiline value={n.text} onChange={(v) => setNote(n.id, { text: v })} />
-                        <dl className="pg-why">
-                          <dt>Rule here</dt>
-                          <dd>{sg?.rule ? <>{sg.rule.rule} <span className="pg-source">({sg.rule.source})</span></> : n.section ? 'No BELLA rule broken in this section' : 'Not measured: draw the box inside a section'}</dd>
-                          <dt>CHIP suggests</dt>
-                          <dd>{sg ? <>{sg.change}. <span className="pg-source">Why: {sg.why}.</span></> : 'Not measured'}</dd>
-                        </dl>
-                        <div className="pg-noteacts">
-                          <Button onClick={() => toClaude(n)} disabled={sending}>
-                            Send this note to Claude
-                          </Button>
-                          <Button variant="tertiary" onClick={() => setNote(n.id, { inBrief: !n.inBrief })}>
-                            {n.inBrief ? 'Leave out of brief' : 'Add to brief'}
-                          </Button>
-                          <LinkButton onClick={() => setNotes((ns) => ns.filter((x) => x.id !== n.id))} aria-label={`Delete note ${i + 1}`}>
-                            Delete
-                          </LinkButton>
-                        </div>
-                        {n.inBrief ? null : <p className="pg-sub">Left out of the brief.</p>}
-                      </li>
-                    );
-                  })}
-                </ol>
-              ) : null}
               {placed.length ? (
                 <>
                   <h3 className="pg-h">Placed components</h3>
@@ -803,7 +653,6 @@ export default function Playground({ onToast, project: askedProject, route: aske
                           ) : (
                             <p className="pg-sub">No BELLA rule broken by this placement.</p>
                           )}
-                          <Input label="Note for Claude" multiline value={p.note} onChange={(v) => setPlace(p.id, { note: v })} />
                           <div className="pg-noteacts">
                             <LinkButton onClick={() => setPlaced((ps) => ps.filter((x) => x.id !== p.id))} aria-label={`Delete placed ${p.component} P${i + 1}`}>
                               Delete
@@ -815,17 +664,6 @@ export default function Playground({ onToast, project: askedProject, route: aske
                   </ol>
                 </>
               ) : null}
-              <Disclosure title="Preview the brief" summary={preview ? `${preview.split('\n').length} lines` : undefined}>
-                <pre className="pg-brief">{preview ?? 'Writing the preview…'}</pre>
-              </Disclosure>
-              <div className="pg-send">
-                <Button variant="primary" onClick={() => toClaude()} disabled={sending || !nBrief}>
-                  {sending ? 'Writing the brief…' : sendLabel}
-                </Button>
-                <p className="pg-sub">
-                  Writes one brief, then types <code>claude</code> with it in {map?.short ?? 'the project'}’s terminal. You press Return; Claude branches, plans and waits for your go.
-                </p>
-              </div>
             </div>
           ) : null}
         </aside>

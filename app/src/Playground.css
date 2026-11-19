@@ -4,7 +4,6 @@
  * section outlines take the status colours. Values from kit/tokens.css only. */
 
 .pg-page { container: pg / inline-size; display: grid; gap: var(--s-24); grid-template-columns: minmax(0, 1fr); min-width: 0; }
-.pg-noteon { margin-left: auto; }
 .pg-actions { display: flex; flex-wrap: wrap; gap: var(--s-12); align-items: end; }
 .pg-actions [data-bella-component='select'] { min-width: 180px; }
 .pg-error { margin: 0; padding: var(--s-12) var(--s-16); border: 1px solid var(--fail); border-radius: var(--r); background: color-mix(in srgb, var(--fail) 8%, var(--card)); color: var(--ink); }
@@ -26,17 +25,14 @@
 
 /* the overlay: invisible to the pointer while she uses the page */
 .pg-over { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.pg-over.mark { pointer-events: auto; cursor: crosshair; touch-action: none; }
 .pg-over.drop { pointer-events: auto; }
 .pg-sec { position: absolute; box-sizing: border-box; border: 2px dashed transparent; }
-.pg-over.mark .pg-sec, .pg-sec.on { border-color: color-mix(in srgb, var(--ink) 40%, transparent); }
-.pg-over.mark .pg-sec.k-copy, .pg-sec.on.k-copy { border-color: var(--needs); }
-.pg-over.mark .pg-sec.k-bella, .pg-sec.on.k-bella { border-color: var(--pass); }
+.pg-sec.on { border-color: color-mix(in srgb, var(--ink) 40%, transparent); }
+.pg-sec.on.k-copy { border-color: var(--needs); }
+.pg-sec.on.k-bella { border-color: var(--pass); }
 .pg-sec.on { background: color-mix(in srgb, var(--action) 6%, transparent); }
 .pg-tag { position: absolute; left: 0; top: 0; padding: var(--s-4) var(--s-8); background: var(--ink); color: var(--card); font: 400 var(--fs-16)/var(--lh-body) var(--typography-font-family-geist-mono); border-radius: 0 0 var(--r) 0; }
 .pg-hit { position: absolute; box-sizing: border-box; outline: 3px solid var(--fail); outline-offset: 2px; background: color-mix(in srgb, var(--fail) 10%, transparent); }
-.pg-note { position: absolute; box-sizing: border-box; border: 3px solid var(--note); background: color-mix(in srgb, var(--note) 14%, transparent); border-radius: var(--r); }
-.pg-note.draft { border-style: dashed; }
 .pg-pin { position: absolute; left: calc(-1 * var(--s-16)); top: calc(-1 * var(--s-16)); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--note); color: var(--ink); font: 700 var(--fs-16)/1 var(--typography-body-default-font-family); box-shadow: var(--shadow); }
 .pg-pin.static { position: static; flex: none; box-shadow: none; }
 .pg-pin.prop { width: auto; min-width: 32px; padding: 0 var(--s-8); border-radius: var(--r-control); font-size: var(--fs-14); }
@@ -79,8 +75,6 @@
 .pg-f.needs { box-shadow: inset 3px 0 0 var(--needs); }
 .pg-instead b { color: var(--ink); font-weight: 600; }
 .pg-source { font-size: var(--fs-14); color: var(--muted); }
-.pg-noterow .pg-rowhead { justify-content: flex-start; }
-.pg-noterow .pg-rowhead .k-link { margin-left: auto; }
 .pg-where { display: grid; min-width: 0; }
 .pg-empty { display: grid; gap: var(--s-4); padding: var(--s-24) var(--s-16); border: 1px dashed var(--line); border-radius: var(--r); text-align: center; color: var(--body); }
 .pg-empty b { color: var(--ink); }
@@ -88,18 +82,12 @@
 
 /* a note's purpose: where it sits, the rule there, the suggestion, its actions */
 .pg-where > span { color: var(--ink); }
-.pg-noterow.out { border-style: dashed; }
-.pg-why { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-4) var(--s-12); margin: 0; font-size: var(--fs-14); line-height: var(--lh-body); }
-.pg-why dt { color: var(--muted); font-weight: 600; }
-.pg-why dd { margin: 0; color: var(--ink); }
 .pg-noteacts { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-12); align-items: center; }
 .pg-h { margin: var(--s-8) 0 0; font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
 .pg-propctl { display: flex; flex-wrap: wrap; gap: var(--s-12); }
 .pg-prules { display: grid; gap: var(--s-8); margin: 0; padding: 0; list-style: none; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
 .pg-prules li.fail { padding-left: var(--s-12); box-shadow: inset 3px 0 0 var(--fail); }
 /* the send footer: one button, what it does, the brief it will write */
-.pg-send { position: sticky; bottom: calc(-1 * var(--s-16)); display: grid; gap: var(--s-12); margin: 0 calc(-1 * var(--s-16)) calc(-1 * var(--s-16)); padding: var(--s-16); border-top: 1px solid var(--line); background: var(--card); }
-.pg-brief { margin: 0; max-height: 320px; overflow: auto; padding: var(--s-12); border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--typography-font-family-geist-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* the components list: grouped as the left nav groups them, each one draggable */
 .pg-group { display: grid; gap: var(--s-8); }
