@@ -92,6 +92,12 @@
 .chip-screen__content > .chip-span-6 { grid-column: span 6; }
 .chip-screen__content > .chip-span-4 { grid-column: span 4; }
 
+@media (width < 1280px) {
+  /* With the panel in view the content is 630 to 890 wide: three columns
+     would be under 280 each, so a third-width group takes the row. */
+  .chip-screen__content > .chip-span-4 { grid-column: 1 / -1; }
+}
+
 @media (width < 800px) {
   /* 12 columns of 24 gutters need 264; on a phone the content is one column */
   .chip-screen__content { grid-template-columns: minmax(0, 1fr); }

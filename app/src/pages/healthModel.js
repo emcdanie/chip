@@ -24,10 +24,12 @@ const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric',
 /** components: BELLA's list; gaps: /gaps .gaps ({ story: { Name: … } }); history: BELLA's commits. */
 export function healthModel({ components = [], gaps = {}, history = [], pairs = null }) {
   const n = components.length;
+  // a fix opens the first part that needs it on Components (#/components/<id>)
+  const idOf = (name) => components.find((c) => c.name === name)?.id ?? name;
   const rows = CHECKS.map((c) => {
     const missing = Object.keys(gaps[c.id] ?? {});
     const pass = n - missing.length;
-    return { ...c, pass, missing, fill: n ? Math.round((pass / n) * 100) : 0, line: missing.length ? `${missing.length} ${c.some}: ${names(missing)}` : c.all(n) };
+    return { ...c, pass, missing, href: missing.length ? `#/components/${idOf(missing[0])}` : null, fill: n ? Math.round((pass / n) * 100) : 0, line: missing.length ? `${missing.length} ${c.some}: ${names(missing)}` : c.all(n) };
   });
   const total = n * CHECKS.length;
   const passed = rows.reduce((s, r) => s + r.pass, 0);
@@ -40,10 +42,10 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
     rows,
     health: n ? { pct: Math.round((passed / total) * 100), passed, total, failing: rows.filter((r) => r.missing.length) } : null,
     gate: last ? { ok: parts.filter(Boolean).length, of: parts.length, when: day(last.committedAt), allPass: last.gate.ok } : null,
-    contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length } : null,
+    contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,
     drift: null, // CHIP has no Figma baseline yet (/figma-baseline answers at: null)
     lowest: lowestPair(pairs),
-    fixes: rows.filter((r) => r.missing.length).map((r) => ({ id: r.id, title: `${r.missing.length} ${r.some}`, names: names(r.missing), action: r.action })),
+    fixes: rows.filter((r) => r.missing.length).map((r) => ({ id: r.id, title: `${r.missing.length} ${r.some}`, names: names(r.missing), action: r.action, href: r.href })),
     fixCount: rows.reduce((s, r) => s + r.missing.length, 0),
   };
 }

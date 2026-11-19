@@ -112,6 +112,7 @@ export default function HealthContent({ model, run, checked, onCheck }) {
             meter={{ fill: contrast.pct, target: TARGET }}
             context={`${contrast.pass} of ${contrast.of} have pairs${contrast.toGo ? ` · ${contrast.toGo} to go` : ''}`}
             caption={`Target ${TARGET}%`}
+            href={contrast.href ?? undefined}
           />
         ) : null}
         {model.lowest ? (
@@ -125,6 +126,7 @@ export default function HealthContent({ model, run, checked, onCheck }) {
             meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100) }}
             context={model.lowest.below ? `${model.lowest.below} text pairs below ${model.lowest.bar}:1` : 'Every pair clears the target'}
             caption={`Target ${model.lowest.bar}:1 · ${model.lowest.checked} checked`}
+            href="#/foundations"
           />
         ) : (
           <NoData title="Lowest contrast" icon="SunLight" tone="success" mark="🔍" empty="No pairs measured yet" line="Declare a pair and I'll find the weakest one." />
@@ -135,7 +137,7 @@ export default function HealthContent({ model, run, checked, onCheck }) {
           <SectionHead icon="ShieldCheck" iconTone="info" title="Component checks" description={`Six checks across ${n} components`} number={n} words={`components · target ${TARGET}%`} />
           <Flow gap={16}>
             {pairs.map((pair) => (
-              <Flow key={pair[0].id} direction={narrow ? 'column' : 'row'} gap={24} fill>
+              <Flow key={pair[0].id} direction={narrow ? 'column' : 'row'} gap={24} equal>
                 {pair.map((r) => (
                   <CheckRow
                     key={r.id}
@@ -147,6 +149,7 @@ export default function HealthContent({ model, run, checked, onCheck }) {
                     fill={r.fill}
                     target={TARGET}
                     actionLabel={r.missing.length ? r.action : undefined}
+                    onAction={r.href ? () => (window.location.hash = r.href) : undefined}
                   />
                 ))}
               </Flow>
@@ -164,25 +167,34 @@ export default function HealthContent({ model, run, checked, onCheck }) {
               {narrow ? (
                 <Flow as="ul" gap={8} aria-label="Fixes">
                   {fixes.map((f) => (
-                    <ListRow key={f.id} layout="stacked" title={f.title} description={f.names} actionButton={<Button variant="secondary" size="sm">{f.action}</Button>} />
+                    <ListRow key={f.id} layout="stacked" title={f.title} description={f.names} actionButton={<Button variant="secondary" size="sm" href={f.href}>{f.action}</Button>} />
                   ))}
                 </Flow>
               ) : (
-                <Flow direction="row" gap={24} wrap fill>
-                  {fixes.map((f) => (
-                    <Card key={f.id}>
-                      <ListRow
-                        as="div"
-                        layout="stacked"
-                        title={f.title}
-                        description={f.names}
-                        actionButton={
-                          <Button variant="secondary" size="sm">
-                            {f.action}
-                          </Button>
-                        }
-                      />
-                    </Card>
+                <Flow gap={24}>
+                  {/* two to a row, equal widths, as Figma */}
+                  {fixes.map((f, i) => (i % 2 ? null : [f, fixes[i + 1]])).filter(Boolean).map((two) => (
+                    <Flow key={two[0].id} direction="row" gap={24} equal>
+                      {two.map((f) =>
+                        f ? (
+                          <Card key={f.id}>
+                            <ListRow
+                              as="div"
+                              layout="stacked"
+                              title={f.title}
+                              description={f.names}
+                              actionButton={
+                                <Button variant="secondary" size="sm" href={f.href}>
+                                  {f.action}
+                                </Button>
+                              }
+                            />
+                          </Card>
+                        ) : (
+                          <div key="empty" aria-hidden="true" />
+                        ),
+                      )}
+                    </Flow>
                   ))}
                 </Flow>
               )}
