@@ -28,6 +28,17 @@ import Notification from '@bella/components/Notification/Notification';
 import Flow from './Flow.jsx';
 import { useHealth } from '../pages/healthModel.js';
 import useNarrow from './useNarrow.js';
+
+// A page opens at its top with nothing scrolled or focused, unless a link
+// names a section (Elleta, 20 Nov 2026: "the pages open to weird places").
+// The one reset for every CHIP page: main.jsx calls it when the address moves
+// to another page, the old app (App.jsx) when its view changes. A section
+// link scrolls after this runs, so it still wins. The browser's own restore
+// (reload, Back) is off for the same reason.
+if (typeof history !== 'undefined' && 'scrollRestoration' in history) history.scrollRestoration = 'manual';
+export function openAtTop() {
+  window.scrollTo(0, 0);
+}
 import { workModel } from '../pages/workModel.js';
 import { useTheme } from '../theme.js';
 import './Screen.css';

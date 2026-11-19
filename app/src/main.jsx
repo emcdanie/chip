@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@bella/fonts.css';
 import '@bella/tokens.css';
@@ -17,6 +17,7 @@ import Health from './pages/Health.jsx';
 import Work from './pages/Work.jsx';
 import Components from './pages/Components.jsx';
 import { warmPages } from './templates/useCached.js';
+import { openAtTop } from './templates/Screen.jsx';
 
 // #/kit shows the shared pieces on their own, outside the app shell.
 // Pages on the new CHIP / Screen template; the old app stays beside them
@@ -42,6 +43,10 @@ function Root() {
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
+  // a new page opens at its top; a part, query or view inside the same page
+  // (#/components/Button, #/history?…) keeps its place
+  const page = hash.match(/^#\/([\w-]+)/)?.[1] ?? '';
+  useLayoutEffect(openAtTop, [page]);
   if (hash === '#/kit') return <Kit />;
   // The root opens the new shell on Work (19 Nov audit); the old app's
   // Overview stays at #/health-old until Elleta has decided on it.

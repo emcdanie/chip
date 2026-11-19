@@ -20,6 +20,7 @@ import { useObi, OneInput, SourceSheet } from './Obi.jsx';
 import { useTheme } from './theme.js';
 import { useRole, useVisibility } from './visibility.jsx';
 import './shell.css';
+import { openAtTop } from './templates/Screen.jsx';
 
 // route ids stay (#/health, #/atlas/<id>, #/docs, #/connectors), so old links open
 const PAGES = [
@@ -205,16 +206,8 @@ export default function App() {
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
-  // a new page starts at its top, with focus on its heading
-  const firstView = useRef(true);
-  useEffect(() => {
-    if (firstView.current) {
-      firstView.current = false;
-      return;
-    }
-    window.scrollTo(0, 0);
-    requestAnimationFrame(() => document.querySelector('main h1')?.focus({ preventScroll: true }));
-  }, [ws]);
+  // a new view opens at its top, nothing focused (templates/Screen.jsx)
+  useEffect(openAtTop, [ws]);
 
   useEffect(() => {
     if (!toast) return;
