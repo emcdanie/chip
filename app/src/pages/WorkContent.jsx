@@ -2,14 +2,20 @@
 // 608:207182), on CHIP's own data. Built so far: the board (default, bad day,
 // clear day, loading follow from the data), the List view as Figma's "list"
 // state, the Brief with its action and close, Check again. Figma states still
-// to build: dragging, push / push rejected, filtered to a branch, agent
-// unavailable; Figma's Table has no drawn state yet. BELLA parts and Flow only.
+// to build: push / push rejected, filtered to a branch, agent unavailable; Figma's Table has no drawn state yet. BELLA parts and Flow only.
 //
-// Gaps (parts-dev): the model menu on Fix; Figma's
+// Dragging (b21, Figma 608:207314; rule A from the coordinator, 19 Nov): a
+// failed check drags from Needs you to Agent (or its handle's menu, by
+// keyboard), which hands the check's brief to an agent run (POST /runs: its
+// own branch, the gate, then her Accept). Pull, merge and push cards stay
+// put. The drop space shows only while dragging.
+//
+// Gaps (parts-dev): Toast (a Notification stands in); the model menu on Fix; Figma's
 // deadline bar has no CHIP data, so it is left out (no number invented).
 import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
-import BoardLane from '@bella/components/BoardLane/BoardLane';
+import BoardLane, { BoardLaneDropSpace } from '@bella/components/BoardLane/BoardLane';
+import Menu, { MenuItem } from '@bella/components/Menu/Menu';
 import TaskCard from '@bella/components/TaskCard/TaskCard';
 import ListRow from '@bella/components/ListRow/ListRow';
 import IconWell from '@bella/components/IconWell/IconWell';
@@ -41,20 +47,91 @@ const LANE_TONE = { needs: 'attention', agent: 'info', gate: 'neutral', ready: '
 /* The List view's mark per lane, as Figma's "list" state draws it. */
 const LANE_WELL = { needs: ['WarningCircle', 'warning'], agent: ['Activity', 'info'], gate: ['ShieldCheck', 'info'], ready: ['CheckCircle', 'success'] };
 
-function Lane({ lane, index }) {
-  const e = EMPTY[lane.id];
+function Lane({ lane: given, index, move }) {
+  const e = EMPTY[given.id];
+  // a card on its way to the agent leaves Needs you at once
+  const lane = given.id === 'needs' ? { ...given, cards: given.cards.filter((c) => !move.starting.some((s) => s.id === c.id)) } : given;
+  const agent = lane.id === 'agent';
+  const cards = [
+    // the drop space shows only while a card is being dragged, at the top of Agent
+    ...(agent && move.dragging ? [<BoardLaneDropSpace key="drop" label="Drop here to start" />] : []),
+    ...(agent ? move.starting.filter((c) => !lane.cards.some((t) => t.title === c.title)).map((c) => <TaskCard key={`start-${c.id}`} title={c.title} line="Sent from Needs you" status="Starting" statusTone="info" />) : []),
+    ...lane.cards.flatMap((c) => {
+      const needs = lane.id === 'needs';
+      const card = (
+        <TaskCard
+          key={c.id}
+          title={c.title}
+          line={c.line}
+          status={c.status}
+          statusTone={c.tone}
+          href="#/health-old"
+          dragging={move.dragging === c.id}
+          draggable={needs && c.fixable ? true : undefined}
+          onDragStart={needs && c.fixable ? (ev) => (ev.dataTransfer.setData('text/plain', c.id), (ev.dataTransfer.effectAllowed = 'move'), move.setDragging(c.id)) : undefined}
+          onDragEnd={needs && c.fixable ? () => move.setDragging(null) : undefined}
+          onMoveTo={needs ? () => move.setMenu(move.menu === c.id ? null : c.id) : undefined}
+        />
+      );
+      if (move.menu !== c.id) return [card];
+      return [
+        card,
+        <Menu key={`menu-${c.id}`} label={`Move ${c.title}`} onClose={() => move.setMenu(null)}>
+          {c.fixable ? (
+            <MenuItem label="Send to the agent" icon="Sparks" onSelect={() => (move.setMenu(null), move.send(c))} />
+          ) : (
+            <MenuItem label="Stays with you: pull, merge and push are your call" onSelect={() => move.setMenu(null)} />
+          )}
+        </Menu>,
+      ];
+    }),
+  ].filter(Boolean);
+  const live = agent ? lane.cards.length + move.starting.filter((c) => !lane.cards.some((t) => t.title === c.title)).length : lane.cards.length;
   return (
     // Figma's lane head: number, name, count; no order line
-    <BoardLane name={lane.name} index={String(index + 1).padStart(2, '0')} lane={lane.id === 'needs' ? 'needs-you' : 'other'} statusTone={LANE_TONE[lane.id]} count={lane.cards.length} headingLevel={2}>
-      {lane.cards.length
-        ? lane.cards.map((c) => <TaskCard key={c.id} title={c.title} line={c.line} status={c.status} statusTone={c.tone} href="#/health-old" />)
-        : [<EmptyState key="empty" size="lane" mark={e.mark} title={e.title} line={e.line} />]}
+    <BoardLane name={lane.name} index={String(index + 1).padStart(2, '0')} lane={lane.id === 'needs' ? 'needs-you' : 'other'} statusTone={LANE_TONE[lane.id]} count={live} headingLevel={2} dropTarget={agent && !!move.dragging}>
+      {cards.length ? cards : [<EmptyState key="empty" size="lane" mark={e.mark} title={e.title} line={e.line} />]}
     </BoardLane>
   );
 }
 
+/** Hands a failed check to an agent run: the check's brief from its review card, then POST /runs. */
+function useMove() {
+  const [dragging, setDragging] = useState(null);
+  const [menu, setMenu] = useState(null);
+  const [starting, setStarting] = useState([]);
+  const [notice, setNotice] = useState(null);
+  const send = async (card) => {
+    setStarting((s) => [...s, card]);
+    try {
+      const review = await fetch(`/review/${encodeURIComponent(card.check)}`).then((r) => r.json());
+      if (!review.brief) throw new Error('CHIP has its own fix for this one, so it waits on its review card, not an agent.');
+      const r = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief: review.brief, title: card.title, from: 'Work board' }) });
+      const run = await r.json();
+      if (!r.ok || run.error) throw new Error(run.error ?? 'The agent did not start.');
+      setNotice({ tone: 'success', title: `Sent to the agent: ${card.title}`, message: 'It works on its own branch, then the gate checks it. You Accept or Undo when it’s ready.' });
+      window.dispatchEvent(new Event('chip:changed'));
+    } catch (err) {
+      // the card goes back to Needs you; it shows "Starting" only while the run is on its way
+      setStarting((s) => s.filter((c) => c.id !== card.id));
+      setNotice({ tone: 'danger', title: `Not sent: ${card.title}`, message: err.message });
+    }
+  };
+  return { dragging, setDragging, menu, setMenu, starting, send, notice, setNotice };
+}
+
 export default function WorkContent({ model, view = 'board', onView, checked, onCheck, loading }) {
   const [briefShut, setBriefShut] = useState(false);
+  const move = useMove();
+  // a drop anywhere on the Agent lane sends the dragged card
+  const onDrop = (ev) => {
+    const lane = ev.target.closest?.('[data-bella-component="board-lane"]');
+    const card = model?.lanes[0].cards.find((c) => c.id === move.dragging);
+    move.setDragging(null);
+    if (!card || lane?.querySelector('h2')?.textContent !== 'Agent') return;
+    ev.preventDefault();
+    move.send(card);
+  };
   return (
     <>
       {/* Control bar: what you look at and the last check on the left, the view switch on the right. */}
@@ -85,6 +162,8 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
               closeLabel="Hide the brief"
             />
           ) : null}
+          {/* feedback for a move, beside the card's own "Starting" (Toast is a part gap) */}
+          {move.notice ? <Notification tone={move.notice.tone} title={move.notice.title} message={move.notice.message} onClose={() => move.setNotice(null)} closeLabel="Hide" /> : null}
           {view === 'list' ? (
             <Card>
               <Flow gap={16}>
@@ -113,9 +192,9 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
               </Flow>
             </Card>
           ) : (
-            <Flow board direction="row" gap={24} aria-label="Work board">
+            <Flow board direction="row" gap={24} aria-label="Work board" onDragOver={(ev) => move.dragging && ev.preventDefault()} onDrop={onDrop}>
               {model.lanes.map((l, i) => (
-                <Lane key={l.id} lane={l} index={i} />
+                <Lane key={l.id} lane={l} index={i} move={move} />
               ))}
             </Flow>
           )}

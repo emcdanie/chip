@@ -13,7 +13,9 @@ function needCard(n) {
   // The line is short meta in the subtext face: what kind and how risky.
   // The long detail is the same paragraph on every gate item, so it stays in
   // the review, never repeated on the board (19 Nov audit).
-  return { id: n.id, title: name, line: [n.kind, n.risk ? `${n.risk} risk` : null].filter(Boolean).join(' · ') || undefined, status: n.status, tone: failed ? 'danger' : 'attention', failed, at: n.at, action: n.action?.label };
+  // an agent can take a failed check (b21, rule A); pull, merge and push stay hers ("Push and merge: never moves up, always asks")
+  const fixable = failed && (n.kind === 'Gate' || n.kind === 'Check') && n.action?.type === 'review';
+  return { id: n.id, title: name, line: [n.kind, n.risk ? `${n.risk} risk` : null].filter(Boolean).join(' · ') || undefined, status: n.status, tone: failed ? 'danger' : 'attention', failed, at: n.at, action: n.action?.label, fixable, check: n.action?.check };
 }
 
 /* An agent run as a card, by where it is. */
@@ -23,7 +25,9 @@ function runCard(r) {
 }
 
 export function workModel({ needs = [], runs = [] }) {
-  const needsYou = needs.map(needCard).sort((a, b) => Number(b.failed) - Number(a.failed) || (a.at ?? 0) - (b.at ?? 0));
+  // a check an agent is already working on leaves Needs you (its run shows in Agent)
+  const working = new Set(runs.filter((r) => ['starting', 'running', 'gate'].includes(r.status)).map((r) => r.title));
+  const needsYou = needs.map(needCard).filter((c) => !(c.fixable && working.has(c.title))).sort((a, b) => Number(b.failed) - Number(a.failed) || (a.at ?? 0) - (b.at ?? 0));
   const by = (...s) => runs.filter((r) => s.includes(r.status));
   const lanes = [
     { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r), status: 'Failed', tone: 'danger' })), ...needsYou] },
