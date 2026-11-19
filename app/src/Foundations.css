@@ -46,7 +46,7 @@
 .fd-matrix thead th.fd-nc { padding: 0 var(--s-12) var(--s-8); text-align: left; border-right: 1px solid var(--line); }
 .fd-matrix tbody th { position: sticky; left: 0; z-index: 1; padding: 0 var(--s-16); background: var(--card); text-align: left; font: 400 var(--fs-14)/var(--lh-body) var(--typography-font-family-geist-mono); color: var(--ink); white-space: nowrap; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .fd-matrix td { width: 30px; min-width: 30px; height: 32px; padding: 0; border-bottom: 1px solid var(--line); text-align: center; }
-.fd-matrix td.fd-nc { width: 110px; padding: 0 var(--s-12); font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); white-space: nowrap; text-align: left; border-right: 1px solid var(--line); }
+.fd-matrix td.fd-nc { width: 110px; padding: 0 var(--s-12); font: 600 var(--fs-14)/var(--lh-body) var(--typography-number-font-family); color: var(--ink); white-space: nowrap; text-align: left; border-right: 1px solid var(--line); }
 .fd-matrix tbody tr:nth-child(even) :is(th, td) { background: color-mix(in srgb, var(--ink) 2.5%, var(--card)); }
 .fd-matrix tbody tr.fd-xr :is(th, td), .fd-matrix tbody td.fd-xc { background: color-mix(in srgb, var(--action) 8%, var(--card)); }
 .fd-matrix thead th.fd-xc > span { font-weight: 600; }
@@ -117,14 +117,14 @@
 /* tokenized? */
 .fd-tzsum { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--s-12); margin-bottom: var(--s-16); }
 .fd-tzsum div { display: grid; gap: var(--s-4); align-content: start; padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
-.fd-tzsum b { font: 600 var(--fs-28)/var(--lh-head) var(--typography-body-default-font-family); color: var(--ink); }
+.fd-tzsum b { font: 600 var(--fs-28)/var(--lh-head) var(--typography-number-font-family); color: var(--ink); }
 .fd-tzsum span { font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); }
 .fd-tz .k-dt td:nth-child(2) { text-align: right; }
 .fd-tz .k-dt td:nth-child(3) { white-space: nowrap; text-align: right; }
 .fd-tzbar { display: inline-block; width: 120px; height: 10px; margin-right: var(--s-12); border-radius: var(--r); background: color-mix(in srgb, var(--note) 18%, var(--card)); vertical-align: 0; }
 .fd-tzbar i { display: block; height: 100%; border-radius: var(--r); background: var(--action); }
 .fd-tzbar.full i { background: var(--pass); }
-.fd-tzn { font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
+.fd-tzn { font: 600 var(--fs-16)/var(--lh-body) var(--typography-number-font-family); color: var(--ink); }
 .fd-tzact { white-space: nowrap; }
 .fd-link { padding: 0; border: 0; background: none; font: inherit; color: var(--body); text-align: left; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 

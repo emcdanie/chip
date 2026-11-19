@@ -169,7 +169,7 @@
 .k-part-src { display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-8); align-items: baseline; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
 .k-part-src > span:first-child { font-weight: 600; color: var(--ink); }
 /* the recommended fix: the one highlighted part */
-.k-part-fix { padding: var(--s-16) var(--s-24) var(--s-24); border-radius: var(--r); background: var(--sel); box-shadow: inset 3px 0 0 var(--action); }
+.k-part-fix { padding: var(--s-16) var(--s-24) var(--s-24); border-radius: var(--r); background: var(--sel); box-shadow: inset 0 0 0 var(--border-width-1) var(--action); }
 .k-part + .k-part-fix { margin-top: 0; padding-top: var(--s-16); border-top: 0; }
 .k-sheet-b .k-part-fix .k-part-h h3 { color: var(--ink); }
 .k-part-fix > p { color: var(--ink); }

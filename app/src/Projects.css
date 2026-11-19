@@ -9,7 +9,7 @@
 .pj-card { box-sizing: border-box; display: grid; gap: var(--s-4); width: 100%; min-height: var(--h-control); padding: var(--s-16); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .pj-card:hover { border-color: var(--action); }
 .pj-card:focus-visible { outline: var(--focus); outline-offset: 2px; }
-.pj-card[aria-pressed='true'] { background: var(--sel); border-color: var(--action); box-shadow: inset 0 3px 0 var(--action); }
+.pj-card[aria-pressed='true'] { background: var(--sel); border-color: var(--action); box-shadow: inset 0 0 0 var(--border-width-1) var(--action); } /* a full edge, never one side (guideline 9) */
 .pj-card b { font: 600 var(--fs-20)/var(--lh-head) var(--typography-body-default-font-family); }
 .pj-card small { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
 .pj-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-12); margin-top: var(--s-8); color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }
@@ -39,7 +39,7 @@
 .pj-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: var(--s-24) var(--s-32); }
 .pj-wide { grid-column: 1 / -1; }
 .pj-h3 { display: flex; align-items: center; gap: var(--s-8); margin: 0 0 var(--s-8); font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
-.pj-h3 .n { padding: 0 var(--s-8); border-radius: var(--r-control); background: var(--neutral); font: 400 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); font-variant-numeric: tabular-nums; color: var(--body); }
+.pj-h3 .n { padding: 0 var(--s-8); border-radius: var(--r-control); background: var(--neutral); font: 400 var(--fs-14)/var(--lh-body) var(--typography-number-font-family); font-variant-numeric: tabular-nums; color: var(--body); }
 .pj-list { display: grid; gap: var(--s-8); margin: 0; padding: 0; list-style: none; font-size: var(--fs-14); line-height: var(--lh-body); }
 .pj-list li { display: grid; gap: 0; min-width: 0; color: var(--ink); overflow-wrap: anywhere; }
 .pj-list small { color: var(--muted); font-size: var(--fs-14); }

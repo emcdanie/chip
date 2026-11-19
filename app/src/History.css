@@ -116,7 +116,7 @@
 
 /* on the cards: type, status, the why */
 .hchips { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
-.hwhy { display: grid; gap: var(--s-4); padding: var(--s-8) var(--s-12); border-left: 1px solid var(--action); border-radius: var(--r); background: color-mix(in srgb, var(--action) 6%, var(--card)); }
+.hwhy { display: grid; gap: var(--s-4); padding: var(--s-8) var(--s-12); border-radius: var(--r); background: color-mix(in srgb, var(--action) 6%, var(--card)); }
 .hwhy .rk span { font-weight: 400; }
 .hsumm { max-width: 70ch; color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); overflow-wrap: anywhere; white-space: pre-line; }
 .hrefdl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--s-4) var(--s-16); margin: 0; padding: var(--s-8) var(--s-12); border-radius: var(--r); background: color-mix(in srgb, var(--ink) 3%, var(--card)); font-size: var(--fs-14); line-height: var(--lh-body); }
@@ -134,7 +134,7 @@
 .layers code { color: var(--muted); }
 .layers p { margin-top: var(--s-4); color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
 .layers .lv { grid-column: 2; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
-.layers .lv b { display: inline; font: 600 var(--fs-20)/var(--lh-head) var(--typography-body-default-font-family); }
+.layers .lv b { display: inline; font: 600 var(--fs-20)/var(--lh-head) var(--typography-number-font-family); }
 .ln2 { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-control); background: var(--ink); color: var(--card); font: 600 var(--fs-16)/var(--lh-body) var(--typography-number-font-family); }
 .dtitle { display: grid; gap: var(--s-4); max-width: 46ch; }
 .dtitle .k-rowbtn { font-size: var(--fs-16); }
