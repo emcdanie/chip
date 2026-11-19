@@ -89,7 +89,6 @@ function StateTag({ state }) {
 }
 
 export default function ConnectorsContent() {
-  const phone = useNarrow();
   // Figma's four tiles in one row need about 1200 of window; below that two by two
   const four = !useNarrow(1200);
   const [map, reload] = useMap();
@@ -159,17 +158,8 @@ export default function ConnectorsContent() {
           <Flow gap={8} as="ul" aria-label="Figma paths">
             {paths.map((p) => {
               const act = p.n.state === 'bad' ? <Button variant="secondary" size="sm" icon="Settings" leadingIcon onClick={() => setSetup(p.n)}>Set up</Button> : testButton(p.n);
-              // a phone: ListRow keeps its button beside the words (part gap), so the button gets its own row
-              return phone ? (
-                <li key={p.id}>
-                  <Flow gap={8}>
-                    <ListRow as="div" iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} />
-                    <Flow direction="row" justify="end">{act}</Flow>
-                  </Flow>
-                </li>
-              ) : (
-                <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} status={<StateTag state={p.n.state} />} actionButton={act} />
-              );
+              // ListRow moves its button under the words on a narrow row by itself (parts-dev b69a5de)
+              return <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} status={<StateTag state={p.n.state} />} actionButton={act} />;
             })}
           </Flow>
           {compare ? (
@@ -190,14 +180,7 @@ export default function ConnectorsContent() {
             <Columns count={3}>
               {needs.map((n) => (
                   <Card key={n.id}>
-                    <Flow gap={8}>
-                      <ListRow as="div" layout="stacked" iconWell={<IconWell icon="Settings" tone="neutral" />} title={nameOf(n)} body={why(n)} actionButton={phone ? undefined : <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} />
-                      {phone ? (
-                        <Flow direction="row" justify="end">
-                          <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>
-                        </Flow>
-                      ) : null}
-                    </Flow>
+                    <ListRow as="div" layout="stacked" iconWell={<IconWell icon="Settings" tone="neutral" />} title={nameOf(n)} body={why(n)} actionButton={<Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} />
                   </Card>
               ))}
             </Columns>

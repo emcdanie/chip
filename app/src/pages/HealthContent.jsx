@@ -167,15 +167,8 @@ export default function HealthContent({ model, run, checked, onCheck }) {
               {narrow ? (
                 <Flow as="ul" gap={16} aria-label="Fixes">
                   {fixes.map((f) => (
-                    // the button takes its own row, right, so the names get the full width (as Connectors)
-                    <li key={f.id}>
-                      <Flow gap={8}>
-                        <ListRow as="div" layout="stacked" title={f.title} description={f.names} />
-                        <Flow direction="row" justify="end">
-                          <Button variant="secondary" size="sm" href={f.href}>{f.action}</Button>
-                        </Flow>
-                      </Flow>
-                    </li>
+                    // ListRow moves the button under the names on a narrow row (parts-dev b69a5de)
+                    <ListRow key={f.id} layout="stacked" title={f.title} description={f.names} actionButton={<Button variant="secondary" size="sm" href={f.href}>{f.action}</Button>} />
                   ))}
                 </Flow>
               ) : (
