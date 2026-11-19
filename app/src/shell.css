@@ -405,7 +405,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .gap1 { display: grid; gap: var(--s-8) var(--s-24); border: 1px solid var(--line); background: var(--card); border-radius: var(--r); padding: 0; align-items: stretch; overflow: hidden; grid-template-columns: 96px minmax(0, 1fr) auto; }
 .gap1:hover { border-color: var(--action); }
 .gap1 > div { padding: var(--s-16) 0; min-width: 0; }
-.gap1 > [data-bella-component='button'] { align-self: center; margin-right: var(--s-16); }
+.gap1 > .gap1-act { align-self: center; margin-right: var(--s-16); }
 .gap1 .n { font: 600 var(--fs-28)/var(--lh-head) var(--typography-number-font-family); text-align: center; display: grid; align-content: center; justify-items: center; padding: var(--s-16) var(--s-8); background: var(--neutral); border-right: 1px solid var(--line); color: var(--ink); }
 .gap1 .n small { display: block; font: 400 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--muted); margin-top: var(--s-4); }
 .gap1 .rowbtn + .k-pill { margin-left: var(--s-8); }
@@ -440,7 +440,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 @container acts (max-width: 560px) {
   .gap1 { grid-template-columns: 96px minmax(0, 1fr); column-gap: var(--s-16); }
   .gap1 .n { grid-row: span 2; padding-inline: var(--s-4); }
-  .gap1 > [data-bella-component='button'] { grid-column: 2; justify-self: end; margin: 0 var(--s-16) var(--s-16) 0; }
+  .gap1 > .gap1-act { grid-column: 2; justify-self: end; margin: 0 var(--s-16) var(--s-16) 0; }
 }
 /* a phone: the count sits on top as one line, the text and button get the full width */
 @container acts (max-width: 400px) {
@@ -449,7 +449,7 @@ html.wp-dragging .xterm { pointer-events: none; }
   .gap1 .n small { margin-top: 0; }
   .gap1 > * { margin-inline: var(--s-16); }
   .gap1 > .n { margin-inline: 0; }
-  .gap1 > [data-bella-component='button'] { grid-column: 1; margin: 0 var(--s-16) var(--s-16); }
+  .gap1 > .gap1-act { grid-column: 1; margin: 0 var(--s-16) var(--s-16); }
 }
 
 /* ==== sheets: the review card, a check, the work sheet ==== */
