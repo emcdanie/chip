@@ -23,8 +23,8 @@ export const STATES = ['suggested', 'running', 'your-call', 'kept', 'gate-fails'
 
 /* Stats CHIP does not count yet: Elleta's words (19 Nov 2026), Belfast mode. */
 const EMPTY_STATS = [
-  { title: 'Runs this week', icon: 'RefreshDouble', tone: 'info', mark: '🔁', empty: 'Nothing counted yet', line: "Not a single run this week. Start one and I'll keep score." },
-  { title: 'Kept', icon: 'CheckCircle', tone: 'success', mark: '✅', empty: 'Nothing kept yet', line: 'Accept a fix and it lands here.' },
+  { title: 'Runs this week', icon: 'ShieldCheck', tone: 'info', mark: '🔁', empty: 'Nothing counted yet', line: "Not a single run this week. Start one and I'll keep score." },
+  { title: 'Kept', icon: 'ShieldCheck', tone: 'success', mark: '✅', empty: 'Nothing kept yet', line: 'Accept a fix and it lands here.' },
 ];
 
 /* The card's own action, by state, as Figma places it: on the head line
@@ -107,7 +107,7 @@ function Stats() {
     <Flow key={e.title} span={6} fill>
       <Card>
         <Flow gap={8}>
-          <SectionHead icon={e.icon} iconTone={e.tone} title={e.title} titleLevel={3} />
+          <SectionHead size="card" icon={e.icon} iconTone={e.tone} title={e.title} titleLevel={3} />
           <EmptyState size="lane" mark={e.mark} title={e.empty} line={e.line} />
         </Flow>
       </Card>
