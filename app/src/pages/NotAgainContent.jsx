@@ -53,7 +53,10 @@ function Banner({ state }) {
 }
 
 function FixCard({ state }) {
-  const narrow = useNarrow();
+  /* Four steps across only where each column keeps its title on one line
+     (about 220 wide, so a window of 1400 with the rail and panel); below
+     that they stack, Figma's narrow layout (audit 7: ~130 wide at 1100). */
+  const narrow = useNarrow(1400);
   const s = states[state];
   const head = HEAD_ACTION[state];
   return (
@@ -74,7 +77,7 @@ function FixCard({ state }) {
     >
       {/* Figma 782:59605: the head, 8, then the content: the parts line, 16, the steps */}
       <Flow gap={8}>
-        <SectionHead icon="Book" iconTone="info" title={`${s.lead}: ${fix.name}${s.after ?? ''}`} description={s.description} />
+        <SectionHead icon="Book" iconTone="info" title={`${s.lead}: ${fix.name}`} description={s.description} />
         <Flow gap={16}>
           {/* the parts as one plain line in the reading face, as Figma's Components text stack */}
           <TextStack body={fix.components.join(', ')} />

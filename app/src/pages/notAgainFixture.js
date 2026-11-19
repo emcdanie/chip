@@ -24,8 +24,7 @@ const GATE_WAITS = { title: 'The gate', detail: '5 checks must pass.', state: 'p
 // the role that keeps a fix, never "you" (Many users, not one: 20 Nov)
 const KEEPER_WAITS = { title: 'Maintainer', detail: 'Accept, or Undo.', state: 'pending' };
 
-/* Each state: the card's lead word, what follows the fix's name, its line,
-   and the four steps. */
+/* Each state: the card's lead word, its line, and the four steps. */
 export const states = {
   suggested: {
     lead: 'Suggested',
@@ -43,8 +42,8 @@ export const states = {
     steps: [FOUND, { title: 'The agent runs the script', detail: 'Working now: 4 of 9 pairs added.', state: 'current' }, GATE_WAITS, KEEPER_WAITS],
   },
   'your-call': {
-    lead: 'Your call',
-    after: ' · a maintainer keeps it',
+    // published Figma 612:72978 / screen 612:74070 (21 Nov)
+    lead: 'Maintainer’s call',
     description: 'The agent added 9 pairs and the gate passed',
     steps: [FOUND, ADDED, PASSED, { title: 'Maintainer', detail: 'Waiting on a maintainer.', state: 'current' }],
   },

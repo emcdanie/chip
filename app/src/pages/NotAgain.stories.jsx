@@ -12,7 +12,7 @@ export const Suggested = { args: { state: 'suggested' } };
 /** Figma 612:72730: the agent is adding pairs; Stop on the card. */
 export const Running = { args: { state: 'running' } };
 /** Figma 612:72978: the gate passed; Undo or Accept at the bottom right. */
-export const YourCall = { name: 'Your call', args: { state: 'your-call' } };
+export const YourCall = { name: 'Maintainer’s call', args: { state: 'your-call' } };
 /** Figma 612:73238: accepted; the success line with Undo. */
 export const Kept = { args: { state: 'kept' } };
 /** Figma 612:73471: the gate stopped it; Send back. */
