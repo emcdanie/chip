@@ -7,10 +7,17 @@ import './app.css';
 import App from './App.jsx';
 import Kit from './Kit.jsx';
 import NotAgain from './pages/NotAgain.jsx';
+import Playground from './pages/Playground.jsx';
 
 // #/kit shows the shared pieces on their own, outside the app shell.
-// #/not-again is the first page on the new CHIP / Screen template; the old
-// app stays beside it until each page is rebuilt.
+// Pages on the new CHIP / Screen template; the old app stays beside them
+// until each page is rebuilt. The Playground lists these too
+// (server/lib/projects.mjs reads NEW_PAGES).
+const NEW_PAGES = [
+  { id: 'not-again', label: 'Not again' },
+  { id: 'playground', label: 'Playground' },
+];
+
 function Root() {
   const [hash, setHash] = useState(window.location.hash);
   useEffect(() => {
@@ -20,6 +27,7 @@ function Root() {
   }, []);
   if (hash === '#/kit') return <Kit />;
   if (hash === '#/not-again') return <NotAgain />;
+  if (hash.split('?')[0] === '#/playground') return <Playground />;
   return <App />;
 }
 
