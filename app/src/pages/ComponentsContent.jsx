@@ -48,6 +48,8 @@ const VIEWS = [
   { id: 'history', label: 'History' },
 ];
 const HISTORY_SHOWN = 4;
+/* The stage's sample label: Figma 690:492657's own ("Send"), short enough for five state tiles in one row. */
+const SAMPLE_LABEL = { Button: 'Send' };
 /* BELLA's change types (bella-history) to History's icons */
 const ICON = { visual: 'Eye', tokens: 'Sparks', API: 'Code', docs: 'Book', fix: 'RefreshDouble' };
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
@@ -169,10 +171,10 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
   const liveId = useId();
   const variants = PLAY[part.name] ? part.variants : [];
   const [variant, setVariant] = useState(variants[0] ?? null);
-  const [label, setLabel] = useState('');
+  const [label, setLabel] = useState(SAMPLE_LABEL[part.name] ?? '');
   useEffect(() => {
     setVariant(variants[0] ?? null);
-    setLabel('');
+    setLabel(SAMPLE_LABEL[part.name] ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [part.id]);
   useEffect(() => installForcedStates(), []);
@@ -225,7 +227,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
         </Flow>
         {beside ? null : card}
         {part.states.length && PLAY[part.name] ? (
-          <Flow direction="row" gap={8} wrap fill as="ul" aria-label={`${part.name} in each state`}>
+          <Flow direction="row" gap={8} wrap={tiny} fill={tiny} equal={!tiny} as="ul" aria-label={`${part.name} in each state`}>
             {part.states.map((s) => (
               <li key={s.id}>
                 <StateThumb part={part} variant={variant} label={label} state={s} />

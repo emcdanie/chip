@@ -191,12 +191,13 @@
 @container chip-content (width < 800px) {
   .chip-screen__content > .chip-span-7,
   .chip-screen__content > .chip-span-5,
-  .chip-screen__content > .chip-span-8,
-  .chip-screen__content > .chip-span-8:has(+ .chip-span-4),
-  .chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: 1 / -1; }
+  .chip-screen__content > .chip-span-8:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; }
 }
 
 @container chip-content (width < 640px) {
+  /* the main card and its side column stack only on phones (coordinator, 20 Nov: the bento from 1100 up) */
+  .chip-screen__content > .chip-span-8:has(+ .chip-span-4),
+  .chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: 1 / -1; }
   .chip-screen__content > .chip-span-6,
   .chip-screen__content > .chip-span-4 { grid-column: 1 / -1; }
   .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4 { flex-direction: column; }
