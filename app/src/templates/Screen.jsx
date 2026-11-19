@@ -43,8 +43,8 @@ const PLACES = [
   { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/health' },
   { id: 'not-again', label: 'Not again', icon: 'Book', href: '#/not-again' },
   { id: 'team', label: 'Team', icon: 'Group', href: '#/team' },
-  // the system map has no rebuilt page yet: it opens the old one, which holds it
-  { id: 'map', label: 'System map', icon: 'Map', href: '#/connectors-old' },
+  // System map comes back when its page is rebuilt from Figma (coordinator,
+  // 20 Nov: never send people to a retired page)
 ];
 
 /* CHIP's own data for the panel, kept between pages (useCached) so the
@@ -168,24 +168,41 @@ export default function Screen({ place, header, tabs, children }) {
   );
   return (
     <div className="chip-screen">
-      <div className="chip-screen__rail">
-        <IconRail end={<NavItem iconOnly label="Settings" icon="Settings" href="#/connectors" current={place === 'settings' && !projectsOpen} />}>
-          {PLACES.map((p) =>
-            p.id === 'projects' && panelOut ? (
-              // one current item: while the Projects drawer is open it is Projects, else the page you are on
-              <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} onClick={() => setProjectsOpen(true)} current={projectsOpen || p.id === place} />
-            ) : (
-              <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} href={p.href} current={p.id === place && !projectsOpen} />
-            ),
-          )}
-        </IconRail>
-      </div>
+      {/* Below 800 the rail steps out too: the top bar's Menu opens the places
+          and the projects in one Drawer, so a phone's content gets the full width
+          (b23: at 320 the 72 rail left 248 and words broke). */}
+      {phone ? null : (
+        <div className="chip-screen__rail">
+          <IconRail end={<NavItem iconOnly label="Settings" icon="Settings" href="#/connectors" current={place === 'settings' && !projectsOpen} />}>
+            {PLACES.map((p) =>
+              p.id === 'projects' && panelOut ? (
+                // one current item: while the Projects drawer is open it is Projects, else the page you are on
+                <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} onClick={() => setProjectsOpen(true)} current={projectsOpen || p.id === place} />
+              ) : (
+                <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} href={p.href} current={p.id === place && !projectsOpen} />
+              ),
+            )}
+          </IconRail>
+        </div>
+      )}
       {/* Below 1024 the panel steps out; the rail's Projects button opens it
           as a Drawer (Elleta, 19 Nov 2026, y13: "A · a Projects button in
           the rail opens it as a drawer"). */}
       {panelOut ? (
-        <Drawer open={projectsOpen} onClose={() => setProjectsOpen(false)} label="Projects">
-          {panel}
+        <Drawer open={projectsOpen} onClose={() => setProjectsOpen(false)} label={phone ? 'Menu' : 'Projects'}>
+          {phone ? (
+            <Flow gap={24}>
+              <Flow as="nav" gap={4} aria-label="Places">
+                {PLACES.filter((p) => p.id !== 'projects').map((p) => (
+                  <NavItem key={p.id} label={p.label} icon={p.icon} href={p.href} current={p.id === place} />
+                ))}
+                <NavItem label="Settings" icon="Settings" href="#/connectors" current={place === 'settings'} />
+              </Flow>
+              {panel}
+            </Flow>
+          ) : (
+            panel
+          )}
         </Drawer>
       ) : (
         <div className="chip-screen__panel">{panel}</div>
@@ -196,6 +213,7 @@ export default function Screen({ place, header, tabs, children }) {
           search={<SearchField showShortcut={!phone} />}
           right={
             <Flow direction="row" gap={12} align="center">
+              {phone ? <Button variant="tertiary" iconOnly icon="SidebarExpand" ariaLabel="Menu" ariaExpanded={projectsOpen} onClick={() => setProjectsOpen(true)} /> : null}
               {/* the bell opens what needs you, on Work */}
               <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you` : 'What needs you'} href="#/work" />
               <Avatar name="Elleta McDaniel" size="sm" />

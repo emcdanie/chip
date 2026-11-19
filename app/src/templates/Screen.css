@@ -150,3 +150,9 @@
     grid-template-columns: var(--layout-rail-width) minmax(0, 1fr);
   }
 }
+
+@media (width < 800px) {
+  /* no rail on a phone (Screen.jsx): the main column takes the width;
+     after the 1024 step so it wins */
+  .chip-screen { grid-template-columns: minmax(0, 1fr); }
+}

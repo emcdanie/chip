@@ -11,7 +11,7 @@ export const CHECKS = [
   { id: 'story', title: 'Story', all: (n) => `All ${n} have a story`, some: 'have no story', action: 'Add stories' },
   { id: 'docs', title: 'Docs', all: (n) => `All ${n} have a doc page`, some: 'have no doc page', action: 'Add docs' },
   { id: 'contract', title: 'Contract', all: (n) => `All ${n} match the code`, some: "don't match the code", action: 'Fix contracts' },
-  { id: 'dsds', title: 'DSDS', all: (n) => `All ${n} have one`, some: 'have no DSDS entry', action: 'Add entries' },
+  { id: 'dsds', title: 'Machine-readable spec', all: (n) => `All ${n} have one`, some: 'have no machine-readable spec', action: 'Add entries' },
   { id: 'contrast', title: 'Contrast', all: (n) => `All ${n} have a pair`, some: 'lack a pair', action: 'Add pairs' },
   { id: 'a11y', title: 'A11y', all: (n) => `All ${n} have keyboard and label checks`, some: 'lack keyboard and label checks', action: 'Fill a11y' },
 ];

@@ -10,7 +10,7 @@ const PART_WORDS = {
   story: ['Has a story', 'No story yet'],
   docs: ['Doc page is current', 'No doc page'],
   contract: ['Contract matches the code', "Contract doesn't match the code"],
-  dsds: ['In the DSDS spec', 'Not in the DSDS spec'],
+  dsds: ['In the machine-readable spec', 'Not in the machine-readable spec'],
   contrast: ['All pairs pass', 'No contrast pair declared'],
   a11y: ['Keyboard and labels pass', 'No keyboard and label checks'],
 };
