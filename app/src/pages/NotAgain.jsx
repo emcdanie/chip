@@ -19,7 +19,7 @@ export default function NotAgain({ state = 'suggested' }) {
       header={{
         title: 'Not again',
         actions: (
-          <Button variant="primary" size="sm">
+          <Button variant={state === 'your-call' ? 'secondary' : 'primary'} size="sm">
             New fix
           </Button>
         ),

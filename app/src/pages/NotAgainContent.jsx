@@ -29,8 +29,9 @@ const EMPTY_STATS = [
 
 /* The card's own action, by state, as Figma places it: on the head line
    (Run on 9, Stop, Send back) or in a footer at the bottom right (your call).
-   All secondary: the page's one primary is "New fix" in the PageHeader
-   (19 Nov audit, one primary per view). */
+   One primary per view: "New fix" in the PageHeader, except in Your call,
+   where Accept is the primary while it waits on her and New fix is
+   secondary (Elleta, 19 Nov, y28: "B · Accept is blue while it waits on you"). */
 const HEAD_ACTION = {
   suggested: { label: 'Run on 9', variant: 'secondary' },
   running: { label: 'Stop', variant: 'secondary' },
@@ -88,7 +89,7 @@ function FixCard({ state }) {
             <Button variant="secondary" size="sm">
               Undo
             </Button>
-            <Button variant="secondary" size="sm">
+            <Button variant="primary" size="sm">
               Accept
             </Button>
           </Flow>
