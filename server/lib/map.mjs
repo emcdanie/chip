@@ -85,7 +85,7 @@ export async function systemMap() {
     // Review and ship
     node({ id: 'review', group: 'Review', name: 'Review card', state: 'ok', detail: 'Accept makes a local chip/fix-* branch; Undo deletes it.', source: 'server/lib/review.mjs', deps: ['gate'] }),
     node({ id: 'ci', group: 'Review', name: 'CI', state: 'unknown', detail: `GitHub runs the gate after a push. ${git(['rev-list', '--count', `${BASE}@{upstream}..${BASE}`]) === '0' ? `${BASE} has nothing unpushed.` : 'Local commits are not pushed yet.'}`, source: 'GitHub Actions (read only through gh)', deps: ['gate'] }),
-    node({ id: 'ship', group: 'Ship', name: 'Merge and release', state: 'unknown', detail: 'Elleta merges. CHIP never merges or pushes.', source: 'git', deps: ['review', 'ci'] }),
+    node({ id: 'ship', group: 'Ship', name: 'Merge and release', state: 'unknown', detail: 'A maintainer merges. CHIP never merges or pushes.', source: 'git', deps: ['review', 'ci'] }),
     // Context
     node({ id: 'git', group: 'Context', name: 'git', state: git(['rev-parse', BASE]) ? 'ok' : 'bad', detail: `${BASE} @ ${git(['rev-parse', '--short', BASE]) ?? '?'}.`, source: BELLA.replace(process.env.HOME, '~') }),
     node({ id: 'ollama', group: 'Context', name: 'Local model', state: ollama, detail: ollama === 'ok' ? `Ollama answers at ${OLLAMA_URL}.` : `Ollama is not answering at ${OLLAMA_URL}.`, source: 'OBI (search, local answers)' }),

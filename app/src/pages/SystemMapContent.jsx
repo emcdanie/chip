@@ -8,7 +8,8 @@
 // Gaps (library board): the curved connector that follows the nodes (Figma's
 // wires; until it is published, the detail card says what a node waits on and
 // what it feeds, and a failing one shows red there); Card has no selected
-// state (Figma's pale blue node), so the open node shows in the detail card.
+// state (Figma's pale blue node), so the open node shows in the detail card;
+// Figma's zoom bar (100%, zoom in, fit, zoom out) has no published part.
 import { useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -50,12 +51,14 @@ const SHORT = {
   bench: (d) => (d.match(/Composite ([\d.]+)/) ? `Score ${d.match(/Composite ([\d.]+)/)[1]}` : null),
   review: () => 'Accept or Undo',
   ci: (d) => (/nothing unpushed/i.test(d) ? 'All pushed' : null),
-  ship: () => 'Elleta merges',
+  // the role, never a person (Many users, not one: 20 Nov)
+  ship: () => 'A maintainer merges',
   compare: (d, n) => (n.state === 'ok' ? 'Figma matches the code' : 'Not compared yet'),
 };
 // a blocked node says what it waits on; anything left is cut to its first clause
 const metaOf = (n) => n.meta ?? (n.blockedBy ? `Waits on ${plain(n.blockedBy.name)}` : null) ?? SHORT[n.id]?.(String(n.detail ?? ''), n) ?? plain(first(n.detail)).split(/[;(,:]/)[0].trim();
-const plain = (t) => String(t ?? '').replace(/\bFigma REST( API)?\b/g, 'Figma web access').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
+// the paths by the names Connectors and Figma give them
+const plain = (t) => String(t ?? '').replace(/\bFigma REST( API)?\b/g, 'figma-rest').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
 // a count only where the node's own detail has one ("71 of 73" → 2 still to do)
 function countOf(node) {
   const m = String(node.detail ?? '').match(/(\d+) of (\d+)/);
@@ -95,7 +98,8 @@ function NodeCard({ node, open, onOpen }) {
           <TextStack title={node.name} />
           {count ? <TextStack title={String(count)} /> : null}
         </Flow>
-        <TextStack subtitle={metaOf(node)} />
+        {/* Figma's node line is in the reading face */}
+        <TextStack body={metaOf(node)} />
         <Flow direction="row">
           <Tag tone={tone} showDot>
             {word}
@@ -126,7 +130,7 @@ function Detail({ node, byId }) {
       Open Connectors
     </Button>
   ) : node.action?.type === 'test' ? (
-    <Button variant="secondary" size="sm" icon="Play" leadingIcon onClick={test} disabled={busy}>
+    <Button variant="secondary" size="sm" onClick={test} disabled={busy}>
       {busy ? 'Testing…' : 'Test it'}
     </Button>
   ) : null;
@@ -206,7 +210,7 @@ export default function SystemMapContent() {
   const rows = [];
   for (let i = 0; i < steps.length; i += per) rows.push(steps.slice(i, i + per));
   const columns = (
-    <Flow gap={24}>
+    <Flow gap={24} stretch>
       {rows.map((row) => (
         <Flow key={row[0].n} direction={per === 1 ? 'column' : 'row'} gap={24} equal>
           {row.map(stepCol)}
