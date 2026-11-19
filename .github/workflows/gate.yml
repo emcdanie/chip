@@ -1,7 +1,7 @@
 # CHIP gate (19 Nov 2026, build review: "CHIP has no CI"). Runs on every PR so
 # the local pre-commit hook is not the only gate: the on-system guard, the hex
-# and px font-size checks, and the app build against the one BELLA
-# (scripts/lib/bella-dir.mjs).
+# and px font-size checks, and the app build against a pinned BELLA commit
+# (BELLA_REF and BELLA_SHA below; scripts/lib/bella-dir.mjs prints it).
 #
 # Self-hosted only (Elleta's Mac, runner elleta-mac); never ubuntu-latest
 # (GitHub-hosted runners do not start on this account). This repo is PUBLIC:
@@ -26,12 +26,28 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, elleta-mac]
     timeout-minutes: 20
+    # The BELLA this branch builds against: its branch and exact commit, read
+    # from the BELLA repo on the Mac (the chip/* parts branches are local). The
+    # gate builds a clean copy of that commit, never whatever a BELLA checkout
+    # has open. Move BELLA_SHA forward when this branch needs newer parts.
+    env:
+      BELLA_REF: chip/not-again-parts
+      BELLA_SHA: d2329dfa854e980bdf9b1d0e2c2eb4f115b0aea1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm ci
+      - name: BELLA, pinned
+        run: |
+          BELLA_REPO="$HOME/DEV/bella"
+          git -C "$BELLA_REPO" merge-base --is-ancestor "$BELLA_SHA" "$BELLA_REF" || { echo "BELLA $BELLA_SHA is not on $BELLA_REF"; exit 1; }
+          rm -rf "${RUNNER_TEMP:?}/bella"
+          git clone --quiet --local --no-checkout "$BELLA_REPO" "$RUNNER_TEMP/bella"
+          git -C "$RUNNER_TEMP/bella" checkout --quiet -B "$BELLA_REF" "$BELLA_SHA"
+          echo "BELLA_DIR=$RUNNER_TEMP/bella" >> "$GITHUB_ENV"
+          echo "BELLA pinned: $BELLA_REF @ $(git -C "$RUNNER_TEMP/bella" rev-parse --short HEAD)"
       - name: On-system guard
         run: node scripts/on-system-guard.mjs
       - name: No hex values in app/src
