@@ -76,6 +76,10 @@ export function prepare(dir, { branch, withStaged = true } = {}) {
   if (branch) git(['worktree', 'add', '-q', '-b', branch, dir, sha]);
   else if (!existsSync(join(dir, '.git'))) {
     mkdirSync(join(dir, '..'), { recursive: true });
+    // the system clears the temp folder but git still lists the old worktree,
+    // and every check then "couldn't run" (19 Nov): forget worktrees whose
+    // folder is gone (prune touches nothing else) before adding it again
+    git(['worktree', 'prune']);
     git(['worktree', 'add', '-q', '--detach', dir, sha]);
   } else {
     git(['checkout', '-q', '--detach', '--force', sha], dir);
