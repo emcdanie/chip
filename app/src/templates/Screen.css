@@ -76,6 +76,7 @@
 .chip-flow--row { flex-direction: row; }
 .chip-flow--wrap { flex-wrap: wrap; }
 .chip-flow--fill > * { flex: 1 1 auto; }
+.chip-flow--equal > * { flex: 1 1 0; min-inline-size: 0; }
 .chip-flow--between { justify-content: space-between; }
 .chip-flow--end { justify-content: flex-end; }
 .chip-flow--center-items { align-items: center; }
