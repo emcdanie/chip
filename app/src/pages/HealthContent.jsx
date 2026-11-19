@@ -165,9 +165,17 @@ export default function HealthContent({ model, run, checked, onCheck }) {
               {/* Wide: a card per fix, as Figma. Narrow: a card inside a card
                   leaves no room, so the fixes are plain rows. */}
               {narrow ? (
-                <Flow as="ul" gap={8} aria-label="Fixes">
+                <Flow as="ul" gap={16} aria-label="Fixes">
                   {fixes.map((f) => (
-                    <ListRow key={f.id} layout="stacked" title={f.title} description={f.names} actionButton={<Button variant="secondary" size="sm" href={f.href}>{f.action}</Button>} />
+                    // the button takes its own row, right, so the names get the full width (as Connectors)
+                    <li key={f.id}>
+                      <Flow gap={8}>
+                        <ListRow as="div" layout="stacked" title={f.title} description={f.names} />
+                        <Flow direction="row" justify="end">
+                          <Button variant="secondary" size="sm" href={f.href}>{f.action}</Button>
+                        </Flow>
+                      </Flow>
+                    </li>
                   ))}
                 </Flow>
               ) : (

@@ -110,7 +110,8 @@
 .chip-flow--row { flex-direction: row; }
 .chip-flow--wrap { flex-wrap: wrap; }
 .chip-flow--fill > * { flex: 1 1 auto; }
-.chip-flow--equal > * { flex: 1 1 0; min-inline-size: 0; }
+/* equal shares a row; a stacked (column) Flow keeps each child its own height, or rows collapse and overlap on a phone */
+.chip-flow--row.chip-flow--equal > * { flex: 1 1 0; min-inline-size: 0; }
 .chip-flow--grow-first > :first-child,
 .chip-flow--grow-last > :last-child { flex: 1 1 auto; min-inline-size: 0; }
 .chip-flow--between { justify-content: space-between; }
