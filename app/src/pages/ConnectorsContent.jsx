@@ -12,7 +12,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
-import Tag from '@bella/components/Tag/Tag';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
+import Heading from '@bella/components/Heading/Heading';
 import ListRow from '@bella/components/ListRow/ListRow';
 import IconWell from '@bella/components/IconWell/IconWell';
 import Notification from '@bella/components/Notification/Notification';
@@ -62,17 +63,16 @@ function useMap() {
   return [error ? { error: true, nodes: [] } : data ? data[0] : null, reload];
 }
 
+/* Figma's tile status: a status dot and one word (a part's own status is a StatusDot plus one word). */
 function StateTag({ state }) {
   const [word, tone] = LIVE[state] ?? LIVE.unknown;
-  return (
-    <Tag tone={tone} showDot>
-      {word}
-    </Tag>
-  );
+  return <StatusDot tone={tone} label={word} />;
 }
 
 export default function ConnectorsContent() {
   const phone = useNarrow();
+  // Figma's four tiles in one row need about 1200 of window; below that two by two
+  const four = !useNarrow(1200);
   const [map, reload] = useMap();
   const [busy, setBusy] = useState(null);
   const [setup, setSetup] = useState(null);
@@ -94,7 +94,7 @@ export default function ConnectorsContent() {
   const compare = node('compare');
   const needs = map.nodes.filter((n) => n.state === 'bad' && n.action?.type === 'test');
   const testButton = (n, label = 'Test') => (
-    <Button variant="secondary" size="sm" icon="Play" onClick={() => test(n.id)} disabled={busy === n.id}>
+    <Button variant="secondary" size="sm" icon="Play" leadingIcon onClick={() => test(n.id)} disabled={busy === n.id}>
       {busy === n.id ? 'Testing…' : label}
     </Button>
   );
@@ -104,34 +104,36 @@ export default function ConnectorsContent() {
       <Card>
         <Flow gap={16}>
           <SectionHead icon="EvPlug" iconTone="info" title="Reaches" description="Services CHIP talks to now" showDescription number={live} words="answer now" showNumber />
-          <Columns count={2}>
-            {reaches.map((r) => (
-                <Card key={r.id}>
+          {(four ? (tiles) => <Flow direction="row" gap={24} equal fill>{tiles}</Flow> : (tiles) => <Columns count={2}>{tiles}</Columns>)(
+            reaches.map((r) => (
+                <Card
+                  key={r.id}
+                  footerAction={r.id === 'git' ? (
+                    <Button variant="secondary" size="sm" href="#/history">
+                      Log
+                    </Button>
+                  ) : r.id === 'ci' ? undefined : (
+                    testButton(r.n)
+                  )}
+                >
                   <Flow gap={12}>
                     <Flow direction="row" justify="between" align="center" gap={8} wrap>
                       <IconWell icon={r.icon} tone="neutral" />
                       <StateTag state={r.n.state} />
                     </Flow>
-                    {/* short meta (the last commit) in the meta face; sentences in the reading face */}
-                    <TextStack
-                      overline={r.name}
-                      title={r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested'}
-                      subtitle={r.id === 'git' && sha(r.n.detail) ? `Last commit ${sha(r.n.detail)}` : undefined}
-                      body={r.id === 'git' ? undefined : r.sub && r.n.state === 'ok' ? r.sub : plainWords(first(r.n.detail))}
-                    />
-                    <Flow direction="row" justify="end">
-                      {r.id === 'git' ? (
-                        <Button variant="secondary" size="sm" href="#/history">
-                          Log
-                        </Button>
-                      ) : r.id === 'ci' ? null : (
-                        testButton(r.n)
-                      )}
+                    {/* Figma's tile: the service, then its state large, then short meta */}
+                    <Flow gap={4}>
+                      <TextStack title={r.name} />
+                      <Heading tier="subsection" as="h3">{r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested'}</Heading>
+                      <TextStack
+                        subtitle={r.id === 'git' && sha(r.n.detail) ? `Last commit ${sha(r.n.detail)}` : undefined}
+                        body={r.id === 'git' ? undefined : r.sub && r.n.state === 'ok' ? r.sub : plainWords(first(r.n.detail))}
+                      />
                     </Flow>
                   </Flow>
               </Card>
-            ))}
-          </Columns>
+            )),
+          )}
         </Flow>
       </Card>
 
@@ -140,7 +142,7 @@ export default function ConnectorsContent() {
           <SectionHead icon="Map" iconTone="info" title="Figma paths" description="Ways CHIP can read Figma" showDescription words="Any one path is enough" />
           <Flow gap={8} as="ul" aria-label="Figma paths">
             {paths.map((p) => {
-              const act = p.n.state === 'bad' ? <Button variant="secondary" size="sm" icon="Settings" onClick={() => setSetup(p.n)}>Set up</Button> : testButton(p.n);
+              const act = p.n.state === 'bad' ? <Button variant="secondary" size="sm" icon="Settings" leadingIcon onClick={() => setSetup(p.n)}>Set up</Button> : testButton(p.n);
               // a phone: ListRow keeps its button beside the words (part gap), so the button gets its own row
               return phone ? (
                 <li key={p.id}>
