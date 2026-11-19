@@ -6,7 +6,15 @@
 // against the surface; the rest is data/foundations.json (sync-foundations,
 // from BELLA's token files and its parts' CSS). BELLA parts and Flow only.
 //
-// Gaps: the tier chain (Figma: pick a token, see where it comes from and
+// The control bar (Figma 612:60963 / table 800:79888): filter the colour
+// roles by name, All / Used / Used by nothing, and the Cards | Table switch
+// (Elleta, 20 Nov: "B, the switch"). The Table lists every colour role BELLA
+// ships with its Chip light and dark values, contrast on the surface and the
+// parts that use it (data/bella.json palette and tokenUsage).
+//
+// Gaps: DataTable takes no cell kind, so the Light and Dark columns show the
+// hex without Figma's colour chip (TableCell has kind=swatch; DataTable
+// doesn't pass it); Figma's Columns menu waits on that too. The tier chain (Figma: pick a token, see where it comes from and
 // where it goes, drawn with connectors) waits on the connector tile; the
 // Figma states sent to Claude / checking / tested / check failed wait on a
 // fix route for token problems (CHIP has none yet).
@@ -21,6 +29,11 @@ import Progress from '@bella/components/Progress/Progress';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Button from '@bella/components/Button/Button';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
+import Input from '@bella/components/Input/Input';
+import FilterChip from '@bella/components/FilterChip/FilterChip';
+import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import DataTable from '@bella/components/DataTable/DataTable';
+import Link from '@bella/components/Link/Link';
 import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
@@ -101,21 +114,23 @@ function useRoles() {
   return roles;
 }
 
-function Roles({ roles }) {
+function Roles({ roles, empty }) {
   // two groups to a row need about 1040 of content (the panel takes 400 of the window); below that one group per row, so a name never breaks mid-word
   const narrow = useNarrow(1440);
   const count = roles.reduce((n, g) => n + g.items.length, 0);
   return (
     <Card>
       <Flow gap={24}>
-        <SectionHead icon="Palette" iconTone="info" title="Roles" description="What each colour is for, one job each" number={count} words="roles" />
+        <SectionHead icon="Palette" iconTone="info" title="Roles" description="What each colour is for, one job each" />
+        {count ? null : empty}
         {/* Figma pairs the groups two to a row: Surface | Text, Border | Action, Status | Highlight */}
         <Flow gap={24}>
           {[0, 2, 4].map((i) => (
             <Flow key={i} direction={narrow ? 'column' : 'row'} gap={24} equal>
-              {roles.slice(i, i + 2).map((g) => (
+              {roles.slice(i, i + 2).filter((g) => g.items.length).map((g) => (
                 <Flow key={g.name} gap={12} aria-label={g.name}>
-                  <TextStack title={g.name} subtitle={g.job} />
+                  {/* a section description is in the reading face (Fonts rule) */}
+                  <TextStack title={g.name} body={g.job} />
                   {/* three to a row in equal columns, as Figma; a short last row keeps the column widths */}
                   <Flow as="ul" gap={8} aria-label={`${g.name} colours`}>
                     {[0, 3].filter((i) => i < g.items.length).map((i) => (
@@ -251,15 +266,125 @@ function Problems({ rows }) {
   );
 }
 
-export default function FoundationsContent() {
+/** Every colour role BELLA ships, with its live Chip light and dark value, contrast on the light surface and the parts that use it. */
+function useAllRoles(bella) {
+  const [rows, setRows] = useState(null);
+  useEffect(() => {
+    if (!bella) return undefined;
+    const probe = (theme) => {
+      const el = document.createElement('span');
+      el.setAttribute('data-theme', theme);
+      el.style.position = 'absolute';
+      el.style.visibility = 'hidden';
+      document.body.appendChild(el);
+      return el;
+    };
+    const light = probe('chip-light');
+    const dark = probe('chip-dark');
+    const read = (el, v) => {
+      if (!getComputedStyle(el).getPropertyValue(v).trim()) return null;
+      el.style.color = `var(${v})`;
+      return channels(getComputedStyle(el).color);
+    };
+    const surface = read(light, '--color-background-surface');
+    const nameOf = Object.fromEntries((bella.components ?? []).map((c) => [c.name, c.id]));
+    const words = (c) => (c.a < 1 ? `${hex(c)} ${Math.round(c.a * 100)}%` : hex(c));
+    const out = Object.keys(bella.palette ?? {})
+      .filter((t) => t.startsWith('--color-'))
+      .map((t) => {
+        const l = read(light, t);
+        const d = read(dark, t);
+        if (!l || !d || !surface) return null;
+        const used = bella.tokenUsage?.[t] ?? [];
+        return {
+          token: t,
+          role: t.replace(/^--color-/, ''),
+          light: words(l),
+          dark: words(d),
+          contrast: /^--color-background-/.test(t) ? 'Base' : `${ratio(over(l, surface), surface).toFixed(1)}:1`,
+          ratio: /^--color-background-/.test(t) ? 0 : ratio(over(l, surface), surface),
+          used: used.length,
+          firstPart: used[0] ? nameOf[used[0]] ?? null : null,
+        };
+      })
+      .filter(Boolean);
+    light.remove();
+    dark.remove();
+    setRows(out);
+  }, [bella]);
+  return rows;
+}
+
+const VIEWS = [
+  { value: 'cards', label: 'Cards' },
+  { value: 'table', label: 'Table' },
+];
+
+function RolesTable({ rows, total }) {
+  const columns = [
+    { key: 'role', label: 'Role', sortable: true },
+    { key: 'light', label: 'Light', sortable: true },
+    { key: 'dark', label: 'Dark', sortable: true },
+    { key: 'contrast', label: 'Contrast', sortable: true, sortValue: (r) => r.ratio },
+    {
+      key: 'used',
+      label: 'Used by',
+      numeric: true,
+      sortable: true,
+      // "parts", not Figma's "components": the shorter word keeps the cell on one line at 1100
+      render: (r) => (r.used ? <Link href={r.firstPart ? `#/components/${r.firstPart}` : '#/components'}>{`${r.used} ${r.used === 1 ? 'part' : 'parts'}`}</Link> : 'Nothing'),
+    },
+  ];
+  return (
+    <Card>
+      <Flow gap={16}>
+        <SectionHead icon="Palette" iconTone="info" title="Roles" description="What each colour is for, one job each" />
+        {rows.length ? (
+          <DataTable caption="Colour roles in the Chip theme" columns={columns} rows={rows} rowKey="token" defaultSort={{ key: 'used', direction: 'descending' }} maxHeight="calc(var(--spacing-80) * 5)" />
+        ) : (
+          <EmptyState size="lane" mark="🔎" title="No role matches" line="Nothing by that name. Try fewer letters." />
+        )}
+        <TextStack body={`Read from BELLA's tokens and each component's CSS · ${rows.length} of ${total} shown${rows.length > 8 ? ', scroll for the rest' : ''}.`} />
+      </Flow>
+    </Card>
+  );
+}
+
+export default function FoundationsContent({ view: startView = 'cards' }) {
   const roles = useRoles();
-  const { data, error } = useCached(['/data/foundations.json']);
+  const { data, error } = useCached(['/data/foundations.json', '/data/bella.json']);
+  const all = useAllRoles(data?.[1] ?? null);
+  const [view, setView] = useState(startView);
+  const [q, setQ] = useState('');
+  const [used, setUsed] = useState('all');
   if (error) return <EmptyState size="page" title="Foundations isn't answering" line="CHIP couldn't read BELLA's token files. Run the sync and refresh." />;
-  if (!data || !roles) return <EmptyState size="page" title="Reading BELLA's tokens" line="Colours, type and steps. Two ticks." />;
+  if (!data || !roles || !all) return <EmptyState size="page" title="Reading BELLA's tokens" line="Colours, type and steps. Two ticks." />;
   const f = data[0];
+  const usage = data[1].tokenUsage ?? {};
+  const words = q.trim().toLowerCase();
+  const keep = (token, name = '') => (!words || token.includes(words) || name.toLowerCase().includes(words)) && (used === 'all' || (used === 'used') === (usage[token]?.length ?? 0) > 0);
+  const tableRows = all.filter((r) => keep(r.token));
+  const cardRoles = roles.map((g) => ({ ...g, items: g.items.filter((i) => keep(i.token, `${g.name} ${i.name}`)) }));
+  const usedN = all.filter((r) => r.used).length;
   return (
     <>
-      <Roles roles={roles} />
+      {/* Control bar on the page ground: what you look at on the left (filter, chips), the view switch on the right */}
+      <Flow direction="row" gap={16} wrap justify="between" align="center">
+        <Flow direction="row" gap={12} wrap align="center">
+          <Input label="Filter colour roles" leadingIcon="Search" placeholder="Filter colour roles…" value={q} onChange={setQ} />
+          <Flow direction="row" gap={8} wrap align="center" aria-label="Which roles">
+            <FilterChip pressed={used === 'all'} onClick={() => setUsed('all')}>{`All ${all.length}`}</FilterChip>
+            <FilterChip pressed={used === 'used'} onClick={() => setUsed('used')}>{`Used ${usedN}`}</FilterChip>
+            <FilterChip pressed={used === 'unused'} onClick={() => setUsed('unused')}>{`Used by nothing ${all.length - usedN}`}</FilterChip>
+          </Flow>
+        </Flow>
+        <SegmentedControl options={VIEWS} value={view} onChange={setView} label="Show the roles as" />
+      </Flow>
+      {view === 'table' ? (
+        <RolesTable rows={tableRows} total={all.length} />
+      ) : (
+        <Roles roles={cardRoles} empty={<EmptyState size="lane" mark="🔎" title="No role matches" line="Nothing by that name. Try fewer letters." />} />
+      )}
       <Flow span={4} fill>
         <TypeRamp />
       </Flow>
