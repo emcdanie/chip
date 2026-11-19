@@ -28,6 +28,7 @@ import Notification from '@bella/components/Notification/Notification';
 import Flow from './Flow.jsx';
 import { useHealth } from '../pages/healthModel.js';
 import useNarrow from './useNarrow.js';
+import { workModel } from '../pages/workModel.js';
 import { useTheme } from '../theme.js';
 import './Screen.css';
 
@@ -47,13 +48,15 @@ const PLACES = [
 ];
 
 /* CHIP's own data for the panel, kept between pages (useCached) so the
- * Projects group never blanks while a page loads. Status lanes CHIP does not
- * count yet show their name only: never an invented number. */
+ * Projects group never blanks while a page loads. The Status counts are the
+ * Work board's own lanes (workModel), so the panel and the board always agree;
+ * 0 is a real count (no runs), shown as Figma shows it. */
 function useShellData() {
-  const { data } = useCached(['/projects', '/needs']);
-  if (!data) return { projects: null, needs: null };
-  const [p, n] = data;
-  return { projects: p?.projects ?? [], needs: Array.isArray(n) ? n.length : Array.isArray(n?.items) ? n.items.length : null };
+  const { data } = useCached(['/projects', '/needs', '/runs']);
+  if (!data) return { projects: null, lanes: null };
+  const [p, n, r] = data;
+  const { lanes } = workModel({ needs: n?.items ?? [], runs: r?.runs ?? [] });
+  return { projects: p?.projects ?? [], lanes: Object.fromEntries(lanes.map((l) => [l.id, l.cards.length])) };
 }
 
 /* The open project's branches for the tree under it (Figma's project panel):
@@ -134,7 +137,8 @@ function HealthLine() {
  */
 export default function Screen({ place, header, tabs, children }) {
   useTheme();
-  const { projects, needs } = useShellData();
+  const { projects, lanes } = useShellData();
+  const needs = lanes?.needs ?? null;
   const current = projects?.find((p) => p.id === 'chip') ?? projects?.[0];
   const branches = useBranches(current?.id);
   const panelOut = useNarrow(1024);
@@ -160,10 +164,10 @@ export default function Screen({ place, header, tabs, children }) {
       }
       status={
         <>
-          <TreeItem kind="status" label="Needs you" tone="attention" count={needs ?? undefined} showCount={needs != null} />
-          <TreeItem kind="status" label="Agent" tone="info" />
-          <TreeItem kind="status" label="Gate" tone="neutral" />
-          <TreeItem kind="status" label="Ready" tone="success" />
+          <TreeItem kind="status" label="Needs you" tone="attention" count={lanes?.needs} showCount={lanes != null} />
+          <TreeItem kind="status" label="Agent" tone="info" count={lanes?.agent} showCount={lanes != null} />
+          <TreeItem kind="status" label="Gate" tone="neutral" count={lanes?.gate} showCount={lanes != null} />
+          <TreeItem kind="status" label="Ready" tone="success" count={lanes?.ready} showCount={lanes != null} />
         </>
       }
     />
