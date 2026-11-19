@@ -6,11 +6,12 @@
 // request. CHIP never merges and never pushes anything else.
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, readFileSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT } from './config.mjs';
+import { bellaDir } from '../../scripts/lib/bella-dir.mjs';
 
-export const BELLA = process.env.BELLA_DIR || join(homedir(), 'DEV', 'bella');
+export const BELLA = bellaDir();
 // proposals branch from this and open their draft PR against it (Elleta, 2026-10-03)
 const PROPOSAL_BASE = process.env.BELLA_PROPOSAL_BASE || 'feat/chip-components';
 const BRANCH = /^docs\/[a-z0-9]+(?:-[a-z0-9]+)*$/;

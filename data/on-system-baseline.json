@@ -32,6 +32,7 @@
    "kit Toggle": 1
   },
   "app/src/DoNext.css": {
+   "css part selector": 1,
    "css raw size": 21
   },
   "app/src/DoNext.jsx": {
@@ -41,12 +42,14 @@
    "kit StatusPill": 1
   },
   "app/src/Foundations.css": {
+   "css part selector": 1,
    "css raw size": 79
   },
   "app/src/Foundations.jsx": {
    "<button>": 7,
    "<input>": 2,
    "<table>": 1,
+   "inline font-family literal": 1,
    "kit DataTable": 1,
    "kit PageHeader": 1,
    "kit Segmented": 1,
@@ -56,12 +59,16 @@
   "app/src/Health.jsx": {
    "<button>": 12,
    "<table>": 1,
+   "inline style raw size": 2,
    "kit Segmented": 1,
    "kit Sheet": 1,
    "kit StatusPill": 1,
    "kit Toggle": 1
   },
   "app/src/History.css": {
+   "css defines custom property": 2,
+   "css font-family literal": 1,
+   "css part selector": 1,
    "css raw size": 42
   },
   "app/src/History.jsx": {
@@ -87,6 +94,7 @@
    "kit Sheet": 1
   },
   "app/src/Playground.css": {
+   "css part selector": 1,
    "css raw size": 33
   },
   "app/src/Playground.jsx": {
@@ -119,6 +127,7 @@
   },
   "app/src/SystemMap.jsx": {
    "<button>": 2,
+   "inline style raw size": 1,
    "kit Sheet": 1,
    "kit StatusPill": 1
   },
@@ -131,9 +140,12 @@
    "kit StatusPill": 1
   },
   "app/src/app.css": {
+   "css part selector": 7,
    "css raw size": 20
   },
   "app/src/atlas.css": {
+   "css defines custom property": 11,
+   "css font-family literal": 1,
    "css overrides --component-*": 2,
    "css raw colour": 4,
    "css raw size": 141
@@ -142,18 +154,25 @@
    "<button>": 7,
    "<dialog>": 1,
    "<input>": 2,
-   "<table>": 1
+   "<table>": 1,
+   "kit defines a BELLA duplicate": 7
   },
   "app/src/kit/kit.css": {
+   "css font-family literal": 20,
+   "css part selector": 2,
    "css raw size": 48
   },
   "app/src/kit/tokens.css": {
+   "css defines custom property": 69,
+   "css font-family literal": 1,
    "css overrides --component-*": 27,
    "css raw colour": 37,
    "css raw size": 25
   },
   "app/src/shell.css": {
+   "css defines custom property": 11,
    "css overrides --component-*": 24,
+   "css part selector": 4,
    "css raw size": 128
   }
  }

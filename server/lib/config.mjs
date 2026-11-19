@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 import dotenv from 'dotenv';
+import { bellaDir } from '../../scripts/lib/bella-dir.mjs';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 dotenv.config({ path: join(ROOT, 'server', '.env'), quiet: true });
@@ -39,7 +40,7 @@ const localConfig = (() => {
 })();
 export const CHIP_CLAUDE_MODEL = env.CHIP_CLAUDE_MODEL || localConfig.claudeModel || 'sonnet';
 export const NOTION_API_TOKEN = env.NOTION_API_TOKEN || '';
-export const BELLA_DIR = env.BELLA_DIR || join(homedir(), 'DEV', 'bella');
+export const BELLA_DIR = bellaDir();
 
 export const DATA_DIR = join(ROOT, 'data');
 export const NOTION_DIR = join(DATA_DIR, 'notion');
