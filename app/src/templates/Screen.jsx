@@ -95,6 +95,7 @@ function NewTask() {
         {said === 'sent' ? 'Task sent' : 'New task'}
       </Button>
       <Drawer
+        side="right"
         open={open}
         onClose={() => setOpen(false)}
         label="New task"

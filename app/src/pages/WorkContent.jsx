@@ -10,12 +10,14 @@
 // own branch, the gate, then her Accept). Pull, merge and push cards stay
 // put. The drop space shows only while dragging.
 //
-// Gaps (parts-dev): Toast (a Notification stands in); the model menu on Fix; Figma's
+// Gaps (parts-dev): the model menu on Fix; Figma's
 // deadline bar has no CHIP data, so it is left out (no number invented).
 import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
 import BoardLane, { BoardLaneDropSpace } from '@bella/components/BoardLane/BoardLane';
 import Menu, { MenuItem } from '@bella/components/Menu/Menu';
+import Toast from '@bella/components/Toast/Toast';
+import Toasts from '../templates/Toasts.jsx';
 import TaskCard from '@bella/components/TaskCard/TaskCard';
 import ListRow from '@bella/components/ListRow/ListRow';
 import IconWell from '@bella/components/IconWell/IconWell';
@@ -162,8 +164,14 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
               closeLabel="Hide the brief"
             />
           ) : null}
-          {/* feedback for a move, beside the card's own "Starting" (Toast is a part gap) */}
-          {move.notice ? <Notification tone={move.notice.tone} title={move.notice.title} message={move.notice.message} onClose={() => move.setNotice(null)} closeLabel="Hide" /> : null}
+          {/* feedback for a move: the card's own "Starting", plus a toast */}
+          {move.notice ? (
+            <Toasts>
+              <Toast tone={move.notice.tone} onClose={() => move.setNotice(null)}>
+                {`${move.notice.title}. ${move.notice.message}`}
+              </Toast>
+            </Toasts>
+          ) : null}
           {view === 'list' ? (
             <Card>
               <Flow gap={16}>

@@ -297,6 +297,7 @@ export default function HistoryContent() {
       )}
 
       <Drawer
+        side="right"
         open={filters}
         onClose={() => setFilters(false)}
         label="Filters"

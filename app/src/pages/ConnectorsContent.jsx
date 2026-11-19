@@ -189,6 +189,7 @@ export default function ConnectorsContent() {
       ) : null}
 
       <Drawer
+        side="right"
         open={!!setup}
         onClose={() => setSetup(null)}
         label={setup ? `Set up ${nameOf(setup)}` : 'Set up'}

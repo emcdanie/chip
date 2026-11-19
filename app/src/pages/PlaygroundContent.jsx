@@ -25,6 +25,7 @@ import SegmentedControl from '@bella/components/SegmentedControl/SegmentedContro
 import Select from '@bella/components/Select/Select';
 import Stage from '@bella/components/Stage/Stage';
 import { CONTROLS, SPECIMENS, THEME } from '../specimens.jsx';
+import { useComponents } from './componentsModel.js';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
@@ -99,13 +100,16 @@ const PARTS = Object.keys(SPECIMENS).sort();
  */
 function PartSlot({ name, width, values }) {
   const [zoom, setZoom] = useState('fit');
+  // the DataTable specimen shows CHIP's real per-part checks, as Figma's component-health table
+  const { model } = useComponents();
+  const data = model?.parts.map((p) => ({ name: p.name, contract: p.checks.find((k) => k.id === 'contract')?.ok ? 'pass' : 'fail', checks: p.pass }));
   const ctl = CONTROLS[name];
   const Specimen = SPECIMENS[name];
   return (
     // Theme: the whole stage takes the theme, so the frame's surface flips with the part
     <div data-theme={values.theme === 'Dark' ? 'chip-dark' : 'chip-light'}>
       <Stage frameWidth={Number(width)} frameHeight={PART_HEIGHT} zoom={zoom} onZoomChange={setZoom} label={`${name}, live at ${width}`}>
-        {ctl ? ctl.render(values) : <Specimen />}
+        {ctl ? ctl.render({ ...values, data }) : <Specimen />}
       </Stage>
     </div>
   );

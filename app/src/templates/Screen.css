@@ -207,3 +207,16 @@
      after the 1024 step so it wins */
   .chip-screen { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Toasts (Toasts.jsx): bottom right, above the page, 24 from the edges, stacked 8 apart */
+.chip-toasts {
+  position: fixed;
+  inset-inline-end: var(--layout-gutter);
+  inset-block-end: var(--layout-gutter);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  inline-size: calc(var(--size-60) * 6);
+  max-inline-size: calc(100% - 2 * var(--layout-gutter)); /* a fixed box's % is the window */
+}

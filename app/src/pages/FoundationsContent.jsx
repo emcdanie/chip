@@ -102,7 +102,8 @@ function useRoles() {
 }
 
 function Roles({ roles }) {
-  const narrow = useNarrow();
+  // two groups to a row need about 1040 of content (the panel takes 400 of the window); below that one group per row, so a name never breaks mid-word
+  const narrow = useNarrow(1440);
   const count = roles.reduce((n, g) => n + g.items.length, 0);
   return (
     <Card>
@@ -115,11 +116,21 @@ function Roles({ roles }) {
               {roles.slice(i, i + 2).map((g) => (
                 <Flow key={g.name} gap={12} aria-label={g.name}>
                   <TextStack title={g.name} subtitle={g.job} />
-                  <Flow as="ul" direction="row" gap={8} wrap aria-label={`${g.name} colours`}>
-                    {g.items.map((s) => (
-                      <li key={s.token}>
-                        <Swatch color={s.color} name={s.name} hex={s.hex} ratio={s.ratio} />
-                      </li>
+                  {/* three to a row in equal columns, as Figma; a short last row keeps the column widths */}
+                  <Flow as="ul" gap={8} aria-label={`${g.name} colours`}>
+                    {[0, 3].filter((i) => i < g.items.length).map((i) => (
+                      <Flow key={i} direction="row" gap={8} equal>
+                        {[0, 1, 2].map((k) => {
+                          const sw = g.items[i + k];
+                          return sw ? (
+                            <li key={sw.token}>
+                              <Swatch color={sw.color} name={sw.name} hex={sw.hex} ratio={sw.ratio} />
+                            </li>
+                          ) : (
+                            <li key={`gap-${k}`} aria-hidden="true" />
+                          );
+                        })}
+                      </Flow>
                     ))}
                   </Flow>
                 </Flow>
@@ -196,7 +207,7 @@ function Tiers({ tiers }) {
                 <TextStack title={name} />
                 <TextStack title={String(tiers[k])} />
               </Flow>
-              <TextStack subtitle={job} />
+              <TextStack body={job} />
             </Flow>
           ))}
         </Flow>

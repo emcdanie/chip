@@ -177,15 +177,23 @@ const SAMPLE_ROWS = [
 ];
 function tableArgs(v) {
   const sortable = v.sortable === 'On';
+  // Figma's specimen is CHIP's own component health (Component, Contract, a count); the page passes the real rows as v.data
+  const real = Array.isArray(v.data) && v.data.length;
   return {
-    caption: 'Sample',
+    caption: real ? 'Component health, latest run' : 'Sample',
     rowKey: 'name',
     density: v.density === 'Compact' ? 'compact' : 'default',
-    columns: [
-      { key: 'name', label: 'Name', sortable },
-      { key: 'count', label: 'Count', numeric: true, sortable },
-    ],
-    rows: SAMPLE_ROWS.slice(0, Number(v.rows)),
+    columns: real
+      ? [
+          { key: 'name', label: 'Component', sortable },
+          { key: 'contract', label: 'Contract', sortable },
+          { key: 'checks', label: 'Checks pass', numeric: true, sortable },
+        ]
+      : [
+          { key: 'name', label: 'Name', sortable },
+          { key: 'count', label: 'Count', numeric: true, sortable },
+        ],
+    rows: (real ? v.data : SAMPLE_ROWS).slice(0, Number(v.rows)),
     ...(v.select === 'On' ? { selectedKey: v.selected ?? null, onSelect: v.onSelected ?? noop } : {}),
     ...(v.sticky === 'On' ? { maxHeight: 'calc(var(--spacing-44) * 4)' } : {}),
   };
@@ -195,12 +203,12 @@ export const CONTROLS = {
   DataTable: {
     rows: [
       { key: 'density', label: 'Density', options: ['Comfortable', 'Compact'] },
-      { key: 'rows', label: 'Rows', options: ['2', '3', '5'] },
+      { key: 'rows', label: 'Rows', options: ['5', '3', '10'] },
       { key: 'sortable', label: 'Sortable', options: ['On', 'Off'] },
       { key: 'select', label: 'Row select', options: ['Off', 'On'] },
       { key: 'sticky', label: 'Sticky header', options: ['Off', 'On'] },
     ],
-    start: { density: 'Comfortable', rows: '2', sortable: 'On', select: 'Off', sticky: 'Off' },
+    start: { density: 'Comfortable', rows: '5', sortable: 'On', select: 'Off', sticky: 'Off' },
     render: (v) => <DataTable {...tableArgs(v)} />,
   },
   ...Object.fromEntries(

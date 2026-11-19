@@ -10,7 +10,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Health, { COLS } from './Health.jsx';
 import Atlas from './Atlas.jsx';
 import Connectors from './Connectors.jsx';
-import Foundations from './Foundations.jsx';
 import History from './History.jsx';
 import Playground from './Playground.jsx';
 import Projects from './Projects.jsx';
@@ -25,7 +24,6 @@ import './shell.css';
 // route ids stay (#/health, #/atlas/<id>, #/docs, #/connectors), so old links open
 const PAGES = [
   { id: 'health', label: 'Overview', icon: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /></> },
-  { id: 'foundations', label: 'Foundations', icon: <><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5a8.5 8.5 0 0 0 0 17z" fill="currentColor" /></> },
   { id: 'atlas', label: 'Components', icon: <><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" /></> },
   { id: 'play', label: 'Playground', icon: <><rect x="3.5" y="4.5" width="17" height="13" rx="1.5" /><path d="M9 21h6M12 17.5V21" /><path d="M8 13l3-3 2 2 3-3" /></> },
   { id: 'docs', label: 'History', icon: <><path d="M3 12h18" /><circle cx="7" cy="12" r="2.2" fill="currentColor" /><circle cx="13" cy="12" r="2.2" fill="currentColor" /><circle cx="19" cy="12" r="2.2" /></> },
@@ -34,7 +32,7 @@ const PAGES = [
 ];
 const NAME = Object.fromEntries(PAGES.map((p) => [p.id, p.label]));
 const GROUP_ORDER = ['Actions', 'Inputs', 'Layout', 'Data', 'Chat', 'Brand', 'Other'];
-const WS_KEYS = { Digit1: 'health', Digit2: 'foundations', Digit3: 'atlas', Digit4: 'play', Digit5: 'docs', Digit6: 'connectors', Digit7: 'projects' };
+const WS_KEYS = { Digit1: 'health', Digit3: 'atlas', Digit4: 'play', Digit5: 'docs', Digit6: 'connectors', Digit7: 'projects' };
 // v2: Claude answers by default (Elleta, 3 Nov: the local model isn't good
 // enough on stage); the local model stays one pick away
 const MODEL_KEY = 'chip-model-v2';
@@ -48,7 +46,7 @@ const ALIAS = { 'connectors-old': 'connectors', 'history-old': 'docs', 'health-o
 function routeOf(hash) {
   const a = hash.match(/^#\/([\w-]+-old)$/);
   if (a && ALIAS[a[1]]) return { ws: ALIAS[a[1]] };
-  const m = hash.match(/^#\/(health|foundations|atlas|play|docs|connectors|projects)(?:\/([\w-]+))?(?:\?route=([^&]*))?$/);
+  const m = hash.match(/^#\/(health|atlas|play|docs|connectors|projects)(?:\/([\w-]+))?(?:\?route=([^&]*))?$/);
   if (!m) return null;
   let route;
   try {
@@ -523,7 +521,6 @@ export default function App() {
             </p>
           ) : null}
           {ws === 'health' ? <Health bella={bella} onOpenAtlas={openAtlas} onSession={session} onRefresh={() => loadBella(true)} /> : null}
-          {ws === 'foundations' ? <Foundations bella={bella} onSession={session} onOpenAtlas={openAtlas} /> : null}
           {ws === 'docs' ? <History docId={docId} version={docsVersion} bella={bella} lens={lens} onOpenAtlas={openAtlas} onSession={session} /> : null}
           {ws === 'play' ? <Playground onToast={setToast} project={playTarget?.project} route={playTarget?.route} onTarget={setPlayTarget} /> : null}
           {ws === 'projects' ? <Projects projectId={projId} onProject={setProjId} /> : null}
