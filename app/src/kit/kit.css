@@ -15,7 +15,7 @@
 /* page header (the mock's .chead, .meta, h1, .lede) */
 .k-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--s-12) var(--s-24); }
 .k-head > div:first-child { flex: 1 1 420px; }
-.k-head-acts { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; padding-top: var(--s-8); }
+.k-head-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-8); align-items: center; padding-top: var(--s-8); margin-left: auto; }
 .k-meta { margin: 0; color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }
 .k-meta b { color: var(--ink); font-weight: 600; }
 .k-meta + .k-h1, .k-meta + .k-tline { margin-top: var(--s-12); }
@@ -50,9 +50,9 @@
 
 /* filter chips */
 .k-chips { display: flex; flex-wrap: wrap; gap: var(--s-8); }
-.k-chip { display: inline-flex; align-items: center; gap: var(--s-8); min-height: var(--h-compact); margin: var(--s-8) 0; padding: 0 var(--s-16); border-radius: var(--r-control); border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
+.k-chip { display: inline-flex; align-items: center; gap: var(--s-8); min-height: var(--size-32); margin: var(--s-8) 0; padding: 0 var(--s-16); border-radius: var(--r-control); border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
 .k-chip[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--card); }
-.k-chip .n { font-weight: 400; font-variant-numeric: tabular-nums; color: var(--muted); }
+.k-chip .n { font-family: var(--typography-number-font-family); font-weight: 400; font-variant-numeric: tabular-nums; color: var(--muted); }
 .k-chip[aria-pressed='true'] .n { color: color-mix(in srgb, var(--card) 85%, transparent); }
 
 /* segmented control (the mock's .iconseg): a tablist; top right in a card head */
@@ -84,16 +84,21 @@
   .k-tbar .k-count { order: -2; margin-left: 0; }
   .k-tbar .k-cols { order: -1; }
 }
+/* a phone: the filter takes its own row so its words show whole; Columns stays at the right */
+@container kdt (max-width: 480px) {
+  .k-tbar .k-search { flex-basis: 100%; }
+  .k-tbar .k-cols { margin-left: auto; }
+}
 .k-search { display: flex; align-items: center; gap: var(--s-8); min-width: min(320px, 100%); min-height: var(--h-control); margin: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
 .k-search input { flex: 1; min-width: 0; min-height: var(--h-control); border: 0; border-radius: var(--r); background: transparent; padding: 0 var(--s-16); font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
 .k-count { margin-left: auto; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
 .k-cols { position: relative; }
-.k-cols .n { font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--muted); }
+.k-cols .n { font: 400 var(--fs-14)/var(--lh-body) var(--typography-number-font-family); color: var(--muted); }
 .k-colsp { position: absolute; z-index: 6; left: 0; top: calc(100% + 4px); min-width: 220px; display: grid; padding: var(--s-12) var(--s-16); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
 .k-colsp .k-chk { min-height: var(--h-compact); font-size: var(--fs-14); }
 .k-colsp .k-link { justify-self: start; min-height: var(--h-compact); }
 .k-chk { display: inline-flex; gap: var(--s-12); align-items: center; min-height: var(--h-control); color: var(--ink); cursor: pointer; }
-.k-chk .n { margin-left: auto; color: var(--muted); font-size: var(--fs-14); }
+.k-chk .n { margin-left: auto; font-family: var(--typography-number-font-family); color: var(--muted); font-size: var(--fs-14); }
 /* checkbox: its edge is muted, not --line, so the box itself holds 3:1 */
 .k-chk input { appearance: none; display: inline-grid; place-content: center; flex: none; width: 20px; height: 20px; margin: 0; border: 1px solid var(--muted); border-radius: var(--r); background: var(--card); cursor: pointer; }
 .k-chk input::before { content: ''; width: 10px; height: 5px; margin-top: -3px; border: solid var(--ink); border-width: 0 0 2px 2px; transform: rotate(-45deg); opacity: 0; }
@@ -132,7 +137,7 @@
 .k-rowbtn { min-height: 28px; padding: 0; border: 0; background: none; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-align: left; cursor: pointer; }
 /* a short label ("git", "16") still gets a 24px target; a count in an end column gets a full one */
 .k-rowbtn { min-width: var(--s-24); }
-.k-dt .k-end .k-rowbtn { min-width: var(--h-control); min-height: var(--h-compact); text-align: right; }
+.k-dt .k-end .k-rowbtn { font-family: var(--typography-number-font-family); min-width: var(--h-control); min-height: var(--h-compact); text-align: right; }
 
 /* side sheet: one modal for every "select it to see more"; Esc closes, focus returns */
 .k-sheet { margin: 0 0 0 auto; width: min(560px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; padding: 0; border: 0; border-left: 1px solid var(--line); background: var(--card); color: var(--body); overflow: hidden; }
@@ -169,7 +174,7 @@
 .k-part-src { display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-8); align-items: baseline; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
 .k-part-src > span:first-child { font-weight: 600; color: var(--ink); }
 /* the recommended fix: the one highlighted part */
-.k-part-fix { padding: var(--s-16) var(--s-24) var(--s-24); border-radius: var(--r); background: var(--sel); box-shadow: inset 3px 0 0 var(--action); }
+.k-part-fix { padding: var(--s-16) var(--s-24) var(--s-24); border-radius: var(--r); background: var(--sel); box-shadow: inset 0 0 0 var(--border-width-1) var(--action); }
 .k-part + .k-part-fix { margin-top: 0; padding-top: var(--s-16); border-top: 0; }
 .k-sheet-b .k-part-fix .k-part-h h3 { color: var(--ink); }
 .k-part-fix > p { color: var(--ink); }
@@ -206,3 +211,17 @@
 /* a wide sheet for working panels (OBI, Claude, the terminal) */
 .k-sheet.k-wide { width: min(880px, 100vw); }
 .k-sheet.k-wide .k-sheet-b { padding: 0; gap: 0; overflow: hidden; }
+
+/* ---------- tap area: every small kit and page control keeps a 44 target ----------
+   As BELLA's Button sm: the plate stays small (32 to 36), an invisible ::after
+   reaches 44 in both directions around its centre (WCAG 2.5.5, her AAA rule). */
+:where(.k-chip, .k-rowbtn, .k-link, .k-toggle, .rowbtn, .cn-tog, .pj-rowlink, .pj-list a, .dm-plist button) { position: relative; }
+:is(.k-chip, .k-rowbtn, .k-link, .k-toggle, .rowbtn, .cn-tog, .dm-anno, .pj-rowlink, .pj-list a, .dm-plist button)::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  inline-size: max(100%, var(--spacing-44));
+  block-size: max(100%, var(--spacing-44));
+  translate: -50% -50%;
+}

@@ -11,7 +11,7 @@
 .hist code { font-family: var(--typography-font-family-geist-mono); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
 
 /* ask in plain words */
-.hq { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-12); }
+.hq { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--s-12); }
 .hql { width: 100%; font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
 .hqbox { position: relative; flex: 1 1 18em; min-width: 0; display: flex; }
 .hqbox input { flex: 1; min-width: 0; min-height: 48px; padding: 0 var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--ink); font: 400 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); }
@@ -78,9 +78,13 @@
 .hrun[data-scrub] .htx { scrollbar-width: none; }
 .hrun[data-scrub] .htx::-webkit-scrollbar { display: none; }
 .htx:focus-visible { outline: var(--focus); outline-offset: 2px; }
-/* room for the lit card's details, so opening one never moves the page */
-.htrack { display: grid; grid-auto-flow: column; grid-auto-columns: 20rem; align-items: start; gap: var(--s-16); width: max-content; min-height: 34rem; margin: 0; padding: 0 var(--s-8); list-style: none; }
-.hitem { display: grid; grid-template-rows: auto auto var(--s-12) auto; justify-items: start; min-width: 0; }
+/* whole cards only: three, two or one fill the visible width exactly (each W/n less one gap),
+   and every card in the row is as tall as the tallest (guideline 15) */
+.htx { container: htx / inline-size; }
+.htrack { --hn: 3; display: grid; grid-auto-flow: column; grid-auto-columns: calc(100cqi / var(--hn) - var(--s-16)); align-items: stretch; gap: var(--s-16); width: max-content; margin: 0; padding: 0 var(--s-8); list-style: none; }
+@container htx (max-width: 900px) { .htrack { --hn: 2; } }
+@container htx (max-width: 560px) { .htrack { --hn: 1; } }
+.hitem { display: grid; grid-template-rows: auto auto var(--s-12) 1fr; justify-items: start; min-width: 0; }
 .hmon { min-height: 1.3em; margin-bottom: var(--s-8); font: 400 var(--fs-20)/var(--lh-head) var(--display); color: var(--ink); }
 /* the dot on the rail: fills once the marker has passed it; an action-blue ring is a decision record */
 .hdot { position: relative; z-index: 2; width: 16px; height: 16px; margin-left: var(--s-12); border: 2px solid var(--ink); border-radius: 50%; background: var(--canvas); transition: background 0.3s; }
@@ -90,7 +94,7 @@
 .hitem::after { content: ''; grid-row: 3; justify-self: start; margin-left: calc(var(--s-12) + 7px); border-left: 1px solid var(--ink); }
 .hcard { grid-row: 4; justify-self: stretch; display: grid; align-content: start; gap: var(--s-8); min-width: 0; padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); transform-origin: 50% 0; transition: border-color 0.25s, box-shadow 0.35s, scale 0.35s cubic-bezier(0.3, 1.4, 0.5, 1); }
 /* the lit card: forward, a little bigger, an ink edge, its details open */
-.hitem[data-now] .hcard { position: relative; z-index: 1; border-color: var(--ink); box-shadow: var(--shadow); scale: 1.03; }
+.hitem[data-now] .hcard { position: relative; z-index: 1; background: var(--sel); border-color: var(--action); box-shadow: var(--shadow); scale: 1.03; }
 .hcard h3 { margin: 0; }
 .hct { display: block; width: 100%; min-height: var(--h-control); padding: 0; border: 0; background: none; color: var(--ink); font: 600 var(--fs-20)/var(--lh-head) var(--typography-body-default-font-family); text-align: left; overflow-wrap: anywhere; cursor: pointer; }
 .hct:hover { text-decoration: underline; }
@@ -112,7 +116,7 @@
 
 /* on the cards: type, status, the why */
 .hchips { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
-.hwhy { display: grid; gap: var(--s-4); padding: var(--s-8) var(--s-12); border-left: 1px solid var(--action); border-radius: var(--r); background: color-mix(in srgb, var(--action) 6%, var(--card)); }
+.hwhy { display: grid; gap: var(--s-4); padding: var(--s-8) var(--s-12); border-radius: var(--r); background: color-mix(in srgb, var(--action) 6%, var(--card)); }
 .hwhy .rk span { font-weight: 400; }
 .hsumm { max-width: 70ch; color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); overflow-wrap: anywhere; white-space: pre-line; }
 .hrefdl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--s-4) var(--s-16); margin: 0; padding: var(--s-8) var(--s-12); border-radius: var(--r); background: color-mix(in srgb, var(--ink) 3%, var(--card)); font-size: var(--fs-14); line-height: var(--lh-body); }
@@ -130,8 +134,8 @@
 .layers code { color: var(--muted); }
 .layers p { margin-top: var(--s-4); color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
 .layers .lv { grid-column: 2; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
-.layers .lv b { display: inline; font: 600 var(--fs-20)/var(--lh-head) var(--typography-body-default-font-family); }
-.ln2 { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-control); background: var(--ink); color: var(--card); font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); }
+.layers .lv b { display: inline; font: 600 var(--fs-20)/var(--lh-head) var(--typography-number-font-family); }
+.ln2 { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-control); background: var(--ink); color: var(--card); font: 600 var(--fs-16)/var(--lh-body) var(--typography-number-font-family); }
 .dtitle { display: grid; gap: var(--s-4); max-width: 46ch; }
 .dtitle .k-rowbtn { font-size: var(--fs-16); }
 .dtitle span { color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }

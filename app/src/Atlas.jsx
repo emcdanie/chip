@@ -11,6 +11,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import Select from '@bella/components/Select/Select';
+import Input from '@bella/components/Input/Input';
 import { StatusPill, Chips } from './kit/index.jsx';
 import { keyboardOf } from './AtlasSpec.jsx';
 import { canSee, settingsOf } from './visibility.jsx';
@@ -90,30 +92,6 @@ const CopyIcon = () => (
 );
 
 // a radio group drawn as the mock's .seg (a view switch inside a panel, not tabs)
-// the pointer modes' instructions, as tooltips on Inspect and Use
-const HINT = { inspect: 'Hover a part, click to pin it. Arrows move, Esc unpins.', use: 'The real thing: hover, press, tab to it.' };
-
-function RadioSeg({ label, items, value, onChange }) {
-  const ref = useRef(null);
-  function onKeyDown(e) {
-    const i = items.findIndex((t) => t.id === value);
-    const n = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[e.key];
-    if (n === undefined) return;
-    e.preventDefault();
-    const next = items[(n + items.length) % items.length];
-    onChange(next.id);
-    ref.current.querySelector(`[data-id="${CSS.escape(next.id)}"]`)?.focus();
-  }
-  return (
-    <div className="seg" role="radiogroup" aria-label={label} ref={ref} onKeyDown={onKeyDown}>
-      {items.map((t) => (
-        <button key={t.id} type="button" role="radio" data-id={t.id} title={t.title} aria-checked={t.id === value} tabIndex={t.id === value ? 0 : -1} onClick={() => onChange(t.id)}>
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function Panel({ name, one, below, children, insp, label }) {
   return (
@@ -384,13 +362,13 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
     >
       <div className="statebar">
         <p className="cap">What {c.name} promises, whether it keeps its promises, and who relies on them.</p>
-        <RadioSeg
+        <SegmentedControl
           label="Contract view"
-          items={[
-            { id: 'overview', label: 'Overview' },
-            { id: 'compliance', label: 'Compliance' },
-            { id: 'consumption', label: 'Consumption' },
-            { id: 'versions', label: 'Versions' },
+          options={[
+            { value: 'overview', label: 'Overview' },
+            { value: 'compliance', label: 'Compliance' },
+            { value: 'consumption', label: 'Consumption' },
+            { value: 'versions', label: 'Versions' },
           ]}
           value={view}
           onChange={setView}
@@ -460,7 +438,7 @@ function ContractPanel({ c, bella, doc, tests, hist, notify, onOpen }) {
       <div className="slafile">
         <div className="statebar">
           <p className="cap">The file itself. Marked lines matter most.</p>
-          <RadioSeg label="File" items={[{ id: 'contract', label: 'Contract' }, { id: 'guide', label: 'Guidance' }]} value={file} onChange={setFile} />
+          <SegmentedControl label="File" options={[{ value: 'contract', label: 'Contract' }, { value: 'guide', label: 'Guidance' }]} value={file} onChange={setFile} />
         </div>
         {fv.view}
       </div>
@@ -949,6 +927,20 @@ const CH = 36; // chip height
 const GAP = 48; // chip pitch
 const OUT = 64; // chip distance from the specimen
 const PAD = 16;
+/** A leader as her 19 Nov mock draws it: out of the chip along its side, one
+ * rounded bend, into the dot (guideline 17). Straight only when already in line. */
+function leaderPath(side, ex, ey, ax, ay) {
+  const flat = side === 'L' || side === 'R'; // leaves the chip sideways; T and B leave it up or down
+  const d1 = flat ? ax - ex : ay - ey;
+  const d2 = flat ? ay - ey : ax - ex;
+  if (Math.abs(d2) < 2 || Math.abs(d1) < 2) return `M${ex} ${ey}L${ax} ${ay}`;
+  const r = Math.min(12, Math.abs(d1), Math.abs(d2));
+  const s1 = Math.sign(d1), s2 = Math.sign(d2);
+  return flat
+    ? `M${ex} ${ey}H${ax - s1 * r}Q${ax} ${ey} ${ax} ${ey + s2 * r}V${ay}`
+    : `M${ex} ${ey}V${ay - s1 * r}Q${ex} ${ay} ${ex + s2 * r} ${ay}H${ax}`;
+}
+
 /** Where each chip goes and where its leader lands: beside the specimen, or above and below when it is too wide. */
 function placePins(geo, widths) {
   if (!geo) return [];
@@ -971,7 +963,11 @@ function placePins(geo, widths) {
         const x = side === 'L' ? Math.max(PAD, Math.min(box.x - OUT - bw, cw * 0.08)) : Math.min(cw - PAD - bw, Math.max(box.x + box.w + OUT, cw * 0.92 - bw));
         const e = p.edge;
         const inset = Math.min(3, e.h / 2);
-        out.push({ p, side, x, y: y - CH / 2, bw, ex: side === 'L' ? x + bw : x, ey: y, ax: side === 'L' ? Math.min(e.x, box.x) : Math.max(e.x + e.w, box.x + box.w), ay: clamp(y, box.y + inset, box.y + box.h - inset) });
+        // a chip level with the part meets its side; one above or below meets its top or bottom, after one bend
+        const level = y >= box.y + inset && y <= box.y + box.h - inset;
+        const ax = level ? (side === 'L' ? Math.min(e.x, box.x) : Math.max(e.x + e.w, box.x + box.w)) : clamp(e.x + e.w / 2, box.x + 8, box.x + box.w - 8);
+        const ay = level ? y : y < box.y ? Math.min(e.y, box.y) : Math.max(e.y + e.h, box.y + box.h);
+        out.push({ p, side, x, y: y - CH / 2, bw, ex: side === 'L' ? x + bw : x, ey: y, ax, ay });
       });
     }
     return out;
@@ -997,11 +993,14 @@ function placePins(geo, widths) {
       used += (lines.at(-1).length ? 12 : 0) + bw;
       lines.at(-1).push(p);
     }
+    // the gap to the specimen shrinks (72 down to 32) so a wrapped stack stays inside the stage
+    const room2 = row === 'T' ? box.y - PAD : geo.h - PAD - (box.y + box.h);
+    const off = clamp(room2 - CH / 2 - (lines.length - 1) * (CH + 12), 32, 72);
     lines.forEach((line, li) => {
       const total = line.reduce((a, p) => a + bwOf(p), 0) + Math.max(0, line.length - 1) * 12;
       let x = clamp(box.x + box.w / 2 - total / 2, PAD, Math.max(PAD, cw - PAD - total));
       const step = li * (CH + 12);
-      const y = row === 'T' ? box.y - 72 - CH / 2 - step : box.y + box.h + 72 - CH / 2 + step;
+      const y = row === 'T' ? box.y - off - CH / 2 - step : box.y + box.h + off - CH / 2 + step;
       for (const p of line) {
         const bw = bwOf(p);
         const e = p.edge;
@@ -1287,7 +1286,7 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
           <button type="button" className="k-link" aria-expanded={why} onClick={() => setWhy(!why)}>
             Why
           </button>
-          <span className="dm-grow" />
+          <span className="dm-fxacts">
           {sc.fix && !fixed ? (
             <Button
               variant="secondary"
@@ -1320,6 +1319,7 @@ function Scene({ sc, c, bella, theme, label, onGoto, notify }) {
           <button type="button" className="k-link" onClick={openPlay}>
             Open in Playground
           </button>
+          </span>
         </div>
         {why ? <blockquote className="dm-wq">“{lineOf(c, sc.from)}”</blockquote> : null}
       </footer>
@@ -1429,13 +1429,16 @@ function A11yFacts({ c, cfg, label }) {
 }
 
 /* ---------- Behind it: where the words still live, one row each ---------- */
+// paths and links may break after a "/", never inside a name like Button.tsx
+const atSlashes = (t) => (typeof t === 'string' ? t.split('/').flatMap((part, i, all) => (i < all.length - 1 ? [part, '/', <wbr key={i} />] : [part])) : t);
+
 function Row({ name, sum, hint, children }) {
   const [open, setOpen] = useState(false);
   return (
     <details onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary>
         <b>{name}</b>
-        <span>{sum}</span>
+        <span>{atSlashes(sum)}</span>
         <em>{hint}</em>
       </summary>
       {open ? <div className="dm-bd">{children}</div> : null}
@@ -2056,14 +2059,15 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
       <section className={`dm-work dm-card${stage ? '' : ' dm-nospec'}`} aria-label="Specimen">
         <div className="dm-stage">
           <div className="dm-sbar k-chrome">
-            <RadioSeg label="Pointer" items={[{ id: 'inspect', label: 'Inspect', title: HINT.inspect }, { id: 'use', label: 'Use', title: HINT.use }]} value={mode} onChange={(v) => (setMode(v), setLive(null), v === 'use' && (setSel(null), setHov(null), setPlaying(false)))} />
-            <span className="dm-hint" />
-            <button type="button" className="k-toggle dm-tog" aria-pressed={theme === 'dark'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-              Dark
-            </button>
-            <button type="button" className="k-toggle dm-tog" aria-pressed={all} onClick={() => setAll(!all)}>
-              All at once
-            </button>
+            <SegmentedControl label="Pointer" options={[{ value: 'inspect', label: 'Inspect' }, { value: 'use', label: 'Use' }]} value={mode} onChange={(v) => (setMode(v), setLive(null), v === 'use' && (setSel(null), setHov(null), setPlaying(false)))} />
+            <span className="dm-sbacts">
+              <button type="button" className="k-toggle dm-tog" aria-pressed={theme === 'dark'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                Dark
+              </button>
+              <button type="button" className="k-toggle dm-tog" aria-pressed={all} onClick={() => setAll(!all)}>
+                All at once
+              </button>
+            </span>
           </div>
           <div className="dm-canvas dm-sp" {...sp} ref={canvas} data-mode={mode}>
             <div className="dm-specwrap" ref={wrap} style={{ '--z': z }} inert={mode === 'inspect' || all} aria-hidden={mode === 'inspect' || all ? true : undefined} {...useEvents} key={mode === 'inspect' && cfg.generic ? `${o.st}-${o.variant}` : 'live'}>
@@ -2076,11 +2080,11 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
             {geo && !all ? (
               <>
                 <svg className="dm-ov" aria-hidden="true" width={geo.w} height={geo.h}>
-                  {pins.map(({ p, ex, ey, ax, ay }) => {
+                  {pins.map(({ p, side, ex, ey, ax, ay }) => {
                     const latent = !visible(p);
                     return (
                       <g key={p.key} className={on(p.key) ? 'on' : undefined} data-latent={latent || undefined}>
-                        <line x1={ex} y1={ey} x2={ax} y2={ay} />
+                        <path className="dm-lead" d={leaderPath(side, ex, ey, ax, ay)} />
                         <circle cx={ax} cy={ay} r={on(p.key) ? 5 : 4} />
                         {on(p.key) ? <rect className="dm-zone" x={p.zone.x} y={p.zone.y} width={Math.max(1, p.zone.w)} height={Math.max(1, p.zone.h)} rx={3} /> : null}
                       </g>
@@ -2189,19 +2193,9 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
           </div>
           <div className="dm-ctl k-chrome">
             {axes.map((ax) => (
-              <span className="dm-field" key={ax.key}>
-                <span className="dm-lwl">{ax.label}</span>
-                <RadioSeg label={ax.label} items={axisVals(ax).map((v) => ({ id: v, label: cap1(v) }))} value={o[ax.key]} onChange={(v) => setAxis(ax.key, v)} />
-              </span>
+              <Select key={ax.key} label={ax.label} options={axisVals(ax).map((v) => ({ value: v, label: cap1(v) }))} value={o[ax.key]} onChange={(v) => setAxis(ax.key, v)} />
             ))}
-            {!cfg.generic ? (
-              <span className="dm-field">
-                <label htmlFor="dm-label" className="dm-lwl">
-                  Label
-                </label>
-                <input id="dm-label" type="text" className="dm-input" value={o.label ?? ''} onChange={(e) => setO((x) => ({ ...x, label: e.target.value || cfg.label(c) }))} />
-              </span>
-            ) : null}
+            {!cfg.generic ? <Input id="dm-label" label="Label" value={o.label ?? ''} onChange={(v) => setO((x) => ({ ...x, label: v || cfg.label(c) }))} /> : null}
             {states.length > 1 ? (
               <button type="button" className="k-toggle dm-tog" aria-pressed={playing} onClick={() => (setPlaying(!playing), setMode('inspect'))}>
                 {playing ? 'Stop' : 'Play states'}

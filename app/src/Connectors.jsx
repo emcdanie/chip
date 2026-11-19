@@ -6,7 +6,8 @@
 // explains how to add a connector.
 import React, { useCallback, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import { Overflow, PageHeader, Segmented, segPanelProps, DataTable, StatusPill, Sheet, SheetPart, Facts, NotMeasured, LinkButton, Card, Toggle } from './kit/index.jsx';
+import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
+import { Overflow, PageHeader, DataTable, StatusPill, Sheet, SheetPart, Facts, NotMeasured, LinkButton, Card, Toggle } from './kit/index.jsx';
 import SystemMap, { useMapControls } from './SystemMap.jsx';
 import { changed } from './ReviewSheet.jsx';
 import './Connectors.css';
@@ -428,27 +429,20 @@ export default function Connectors() {
           )
         }
       />
-      <Segmented
-        id="conn"
+      <Tabs
+        idBase="conn"
         label="Connectors"
         value={tab}
         onChange={setTab}
-        items={[
+        tabs={[
           { id: 'map', label: 'System map' },
-          {
-            id: 'list',
-            label: (
-              <>
-                Connectors {counts ? <span className="n">{counts.total}</span> : null}
-              </>
-            ),
-          },
+          { id: 'list', label: 'Connectors', count: counts?.total },
         ]}
       />
-      <section {...segPanelProps('conn', 'map', tab)} className="cn-panel">
+      <section {...tabPanelProps('conn', 'map', tab === 'map')} className="cn-panel">
         {tab === 'map' ? <SystemMap map={map} controls={controls} onReload={() => Promise.all([loadMap(), loadHost()])} /> : null}
       </section>
-      <section {...segPanelProps('conn', 'list', tab)} className="cn-panel">
+      <section {...tabPanelProps('conn', 'list', tab === 'list')} className="cn-panel">
         {error ? <p role="alert">{error}</p> : null}
         {servers && !servers.length ? <p>No servers yet. Copy chip.config.example.json to chip.config.local.json.</p> : null}
         {servers?.length ? <FigmaCard servers={servers} figma={figma} onOpen={setOpen} /> : null}
