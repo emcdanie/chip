@@ -139,6 +139,9 @@ export default function Screen({ place, header, tabs, children }) {
   const branches = useBranches(current?.id);
   const panelOut = useNarrow(1024);
   const phone = useNarrow();
+  // below 400 the field would read "Sea": a search button that opens the field across the bar
+  const tiny = useNarrow(400);
+  const [searching, setSearching] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const panel = (
     <ProjectPanel
@@ -209,14 +212,18 @@ export default function Screen({ place, header, tabs, children }) {
       <div className="chip-screen__main">
         {/* On a phone the ⌘ K legend steps out so the field keeps room for its words. */}
         <TopBar
-          search={<SearchField showShortcut={!phone} />}
+          search={tiny && !searching ? <Button variant="tertiary" iconOnly icon="Search" ariaLabel="Search" onClick={() => (setSearching(true), requestAnimationFrame(() => document.querySelector('.chip-screen__main [role="search"] input, .chip-screen__main input[type="search"]')?.focus()))} /> : <SearchField showShortcut={!phone} />}
           right={
+            tiny && searching ? (
+              <Button variant="tertiary" iconOnly icon="Xmark" ariaLabel="Close search" onClick={() => setSearching(false)} />
+            ) : (
             <Flow direction="row" gap={12} align="center">
               {phone ? <Button variant="tertiary" iconOnly icon="SidebarExpand" ariaLabel="Menu" ariaExpanded={projectsOpen} onClick={() => setProjectsOpen(true)} /> : null}
               {/* the bell opens what needs you, on Work */}
               <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you` : 'What needs you'} href="#/work" />
               <Avatar name="Elleta McDaniel" size="sm" />
             </Flow>
+            )
           }
         />
         <div className="chip-screen__page">
