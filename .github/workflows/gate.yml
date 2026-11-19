@@ -1,0 +1,44 @@
+# CHIP gate (19 Nov 2026, build review: "CHIP has no CI"). Runs on every PR so
+# the local pre-commit hook is not the only gate: the on-system guard, the hex
+# and px font-size checks, and the app build against the one BELLA
+# (scripts/lib/bella-dir.mjs).
+#
+# Self-hosted only (Elleta's Mac, runner elleta-mac); never ubuntu-latest
+# (GitHub-hosted runners do not start on this account). This repo is PUBLIC:
+# a pull request from a fork must never run on her Mac, so every job is
+# skipped unless the PR's branch lives in this repo.
+name: gate
+
+on:
+  pull_request:
+  push:
+    branches: [main, chip-2.0]
+
+concurrency:
+  group: gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, elleta-mac]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: On-system guard
+        run: node scripts/on-system-guard.mjs
+      - name: No hex values in app/src
+        run: |
+          if grep -rnE "#[0-9a-fA-F]{3,8}\b" app/src; then echo "hex value in app/src"; exit 1; fi
+      - name: No px font sizes in app/src
+        run: |
+          if grep -rnE "font-size:[[:space:]]*[0-9.]+px|fontSize:[[:space:]]*['\"]?[0-9.]+(px)?['\"]?[,} ]" app/src; then echo "px font size in app/src"; exit 1; fi
+      - name: Build (prints which BELLA it used)
+        run: npm run app:build

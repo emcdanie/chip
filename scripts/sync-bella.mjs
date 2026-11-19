@@ -17,10 +17,11 @@ import { readFileSync, readdirSync, existsSync, writeFileSync, mkdirSync, mkdtem
 import { join, dirname } from 'node:path';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { homedir, tmpdir } from 'node:os';
+import { tmpdir } from 'node:os';
+import { bellaDir } from './lib/bella-dir.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BELLA = process.env.BELLA_DIR || join(homedir(), 'DEV', 'bella');
+const BELLA = bellaDir();
 const OUT_DIR = join(ROOT, 'data');
 
 const read = (p) => readFileSync(join(BELLA, p), 'utf8');

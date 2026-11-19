@@ -18,9 +18,10 @@ import { createRequire } from 'node:module';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { bellaDir } from './lib/bella-dir.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BELLA = process.env.BELLA_DIR || join(homedir(), 'DEV', 'bella');
+const BELLA = bellaDir();
 const APP = process.env.CHIP_APP_URL || 'http://127.0.0.1:5173';
 const OUT = join(ROOT, 'docs/reference/screens/checkpoint');
 const failures = [];

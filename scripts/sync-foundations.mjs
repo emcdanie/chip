@@ -13,10 +13,10 @@ import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { homedir } from 'node:os';
+import { bellaDir } from './lib/bella-dir.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BELLA = process.env.BELLA_DIR || join(homedir(), 'DEV', 'bella');
+const BELLA = bellaDir();
 const read = (p) => readFileSync(join(BELLA, p), 'utf8');
 const readJson = (p) => JSON.parse(read(p));
 
