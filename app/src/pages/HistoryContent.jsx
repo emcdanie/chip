@@ -5,11 +5,10 @@
 // /history/record. Built from BELLA parts and the template's Flow only.
 //
 // Gaps (library board): the "What it touched" tree (Map line pieces placed
-// by position) has no part yet, so the files show as a list of cards; Input
-// has no button inside the field (Ask sits beside it, in the template's grow
-// row); the Count in Figma is
-// Stat without its chart. Actions that run the agent (Ask) wait for the Menu
-// part for the model menu (Auto, local first).
+// by position) has no part yet, so the files show as a list of cards; the
+// Count in Figma is Stat without its chart. Ask uses Input's own Send button.
+// Actions that run the agent (Ask) wait for the Menu part for the model menu
+// (Auto, local first).
 import { useEffect, useMemo, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -182,14 +181,7 @@ function Record({ id }) {
           <Stat label="lines changed" value={lines(rec.stat)} />
         </Flow>
         <Flow gap={8}>
-          <Flow direction="row" gap={8} grow="first">
-            <Input label="Ask about this change" value={q} onChange={setQ} />
-            <Flow justify="end">
-              <Button variant="primary" icon="SendDiagonal" onClick={ask} disabled={!q.trim()}>
-                Ask
-              </Button>
-            </Flow>
-          </Flow>
+          <Input label="Ask about this change" value={q} onChange={setQ} onSend={ask} sendLabel="Ask" />
           {answer ? <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title="The agent" message={answer.reply} /> : null}
         </Flow>
       </Flow>
