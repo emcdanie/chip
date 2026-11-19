@@ -3,6 +3,7 @@
 // BELLA parts with Flow; it never writes its own CSS. Gaps are the 4-point
 // spacing tokens only.
 import { useLayoutEffect, useRef, useState } from 'react';
+import Button from '@bella/components/Button/Button';
 import './Screen.css';
 
 const GAPS = new Set([4, 8, 12, 16, 24]);
@@ -48,14 +49,64 @@ function useToBottom(on) {
   return [ref, on && top != null ? { blockSize: window.innerWidth < 800 ? `max(${fit}, 70dvh)` : fit } : undefined];
 }
 
+/* The board's sideways cue (Elleta, 20 Nov at ~1100: the fourth lane was cut
+   with no cue): like Tabs (her "B · chevron button"), a chevron at each end
+   that has more lanes, over a fade, scrolling one lane that way; swipe and
+   trackpad still scroll. */
+function useMore(ref, on) {
+  const [more, setMore] = useState({ start: false, end: false });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!on || !el) return undefined;
+    const check = () => {
+      const start = el.scrollLeft > 1;
+      const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      setMore((m) => (m.start === start && m.end === end ? m : { start, end }));
+    };
+    check();
+    el.addEventListener('scroll', check, { passive: true });
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', check);
+      ro.disconnect();
+    };
+  }, [ref, on]);
+  const step = (dir) => {
+    const el = ref.current;
+    const lane = el?.firstElementChild?.getBoundingClientRect().width ?? 240;
+    el?.scrollBy({ left: dir * lane, behavior: 'smooth' });
+  };
+  return [more, step];
+}
+
 export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, children, ...rest }) {
   const [boardRef, boardSize] = useToBottom(board);
   if (!GAPS.has(gap)) throw new Error(`Flow: gap ${gap} is not on the spacing scale (4, 8, 12, 16, 24)`);
   const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : '', `chip-span-${span}`]
     .filter(Boolean)
     .join(' ');
+  const [more, step] = useMore(boardRef, board);
+  if (board)
+    return (
+      <div className="chip-board" style={boardSize}>
+        <Tag className={cls} ref={boardRef} {...rest}>
+          {children}
+        </Tag>
+        {more.start ? (
+          <div className="chip-board__more chip-board__more--start">
+            <Button variant="secondary" size="sm" iconOnly icon="NavArrowLeft" ariaLabel="Earlier lanes" onClick={() => step(-1)} />
+          </div>
+        ) : null}
+        {more.end ? (
+          <div className="chip-board__more chip-board__more--end">
+            <Button variant="secondary" size="sm" iconOnly icon="NavArrowRight" ariaLabel="More lanes" onClick={() => step(1)} />
+          </div>
+        ) : null}
+      </div>
+    );
   return (
-    <Tag className={cls} ref={board ? boardRef : undefined} style={boardSize} {...rest}>
+    <Tag className={cls} {...rest}>
       {children}
     </Tag>
   );

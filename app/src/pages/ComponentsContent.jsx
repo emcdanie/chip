@@ -86,10 +86,10 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                   </Flow>
                 </Flow>
               ) : (
-                // no parts in the contract: the live part still shows, the empty note beside it
-                <Flow direction={narrow ? 'column' : 'row'} gap={24} equal={!narrow}>
-                  {Specimen ? <Flow align="center" justify="between"><Specimen /></Flow> : null}
+                // no parts in the contract: one column, the empty note, then the live part under it
+                <Flow gap={16} align="center">
                   <EmptyState size="lane" mark="🦴" title="No anatomy written yet" line={`${part.name}'s contract doesn't list its parts. Add them and they show up here.`} />
+                  {Specimen ? <Specimen /> : null}
                 </Flow>
               )}
             </Flow>

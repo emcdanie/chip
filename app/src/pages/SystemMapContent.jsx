@@ -34,8 +34,6 @@ const FIGMA_PATHS = ['figma', 'figma-console', 'figma-rest'];
 // a node's state in Figma's words and tone
 const SAYS = { ok: ['Healthy', 'success'], bad: ['Needs you', 'attention'], blocked: ['Not known', 'default'], unknown: ['Not known', 'default'] };
 const DOT = { ok: 'success', bad: 'attention', blocked: 'neutral', unknown: 'neutral' };
-// the map's frame on the stage: four columns of Figma's 216 nodes
-const FRAME = 1040;
 
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0].replace(/\.$/, '');
 // Figma's node line is short meta ("9 have no pair", "Static score 85.3"), read from the node's own detail
@@ -172,7 +170,8 @@ export default function SystemMapContent() {
   const got = useNodes();
   const [only, setOnly] = useState(false);
   const [openId, setOpenId] = useState(null);
-  const [zoom, setZoom] = useState('fit');
+  // four steps across need about 1040 of content: the panel and rail take 400 of the window
+  const four = !useNarrow(1440);
   // a phone stacks the map, so the detail card is far below: bring it into view
   const openNode = (id) => {
     setOpenId(id);
@@ -193,19 +192,24 @@ export default function SystemMapContent() {
   const shown = (s) => (only ? s.nodes.filter((n) => n.state === 'bad') : s.nodes);
   const sentence = needs.length ? `${needs.map((n) => plain(n.name)).join(' and ')} ${needs.length === 1 ? 'needs' : 'need'} you.` : 'Nothing needs you.';
 
+  // the steps at full size, never scaled: four across with room, two by two at her ~1100 width, one on a phone
+  const stepCol = (s) => (
+    <Flow key={s.n} gap={12} aria-label={`Step ${s.n}, ${s.name}`}>
+      <Flow direction="row" gap={8} align="center">
+        <Tag variant="index">{s.n}</Tag>
+        <TextStack title={s.name} />
+      </Flow>
+      {shown(s).length ? shown(s).map((n) => <NodeCard key={n.id} node={n} open={n === open} onOpen={openNode} />) : <TextStack subtitle="Nothing here needs you" />}
+    </Flow>
+  );
+  const per = narrow ? 1 : four ? 4 : 2;
+  const rows = [];
+  for (let i = 0; i < steps.length; i += per) rows.push(steps.slice(i, i + per));
   const columns = (
-    <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
-      {steps.map((s) => (
-        <Flow key={s.n} gap={12} aria-label={`Step ${s.n}, ${s.name}`}>
-          <Flow direction="row" gap={8} align="center">
-            <Tag variant="index">{s.n}</Tag>
-            <TextStack title={s.name} />
-          </Flow>
-          {shown(s).length ? (
-            shown(s).map((n) => <NodeCard key={n.id} node={n} open={n === open} onOpen={openNode} />)
-          ) : (
-            <TextStack subtitle="Nothing here needs you" />
-          )}
+    <Flow gap={24}>
+      {rows.map((row) => (
+        <Flow key={row[0].n} direction={per === 1 ? 'column' : 'row'} gap={24} equal>
+          {row.map(stepCol)}
         </Flow>
       ))}
     </Flow>
@@ -221,14 +225,10 @@ export default function SystemMapContent() {
               {`Needs you ${needs.length}`}
             </FilterChip>
           </Flow>
-          {/* the map on a stage with its zoom; a phone shows the steps stacked at full size instead */}
-          {narrow ? (
-            columns
-          ) : (
-            <Stage grid="none" frameWidth={FRAME} zoom={zoom} onZoomChange={setZoom} label="BELLA pipeline">
-              {columns}
-            </Stage>
-          )}
+          {/* the map on the stage's tinted ground, at full size (Elleta, 20 Nov: fluid, not scaled) */}
+          <Stage grid="none" label="BELLA pipeline">
+            {columns}
+          </Stage>
         </Flow>
       </Card>
       {open ? (
