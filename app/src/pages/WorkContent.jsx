@@ -1,8 +1,9 @@
 // Work · content: the code twin of the Figma slot fill (CHIP Dashboard
 // 608:207182), on CHIP's own data. Built so far: the board (default, bad day,
 // clear day, loading follow from the data), the List view as Figma's "list"
-// state, the Brief with its action and close, Check again. Figma states still
-// to build: push / push rejected, filtered to a branch, agent unavailable; Figma's Table has no drawn state yet. BELLA parts and Flow only.
+// state, the Table view as Figma's "table" state (800:81240), the Brief
+// with its action and close, Check again. Figma states still
+// to build: push / push rejected, filtered to a branch, agent unavailable. BELLA parts and Flow only.
 //
 // Dragging (b21, Figma 608:207314; rule A from the coordinator, 19 Nov): a
 // failed check drags from Needs you to Agent (or its handle's menu, by
@@ -22,6 +23,7 @@ import Toast from '@bella/components/Toast/Toast';
 import Toasts from '../templates/Toasts.jsx';
 import TaskCard from '@bella/components/TaskCard/TaskCard';
 import ListRow from '@bella/components/ListRow/ListRow';
+import DataTable from '@bella/components/DataTable/DataTable';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
@@ -32,7 +34,17 @@ import Flow from '../templates/Flow.jsx';
 
 export const VIEWS = [
   { value: 'board', label: 'Board' },
+  { value: 'table', label: 'Table' },
   { value: 'list', label: 'List' },
+];
+
+/* Figma's Table state (800:81240): every task as a row, sortable, on the page ground. */
+const TABLE_COLUMNS = [
+  { key: 'title', label: 'Task', sortable: true },
+  { key: 'lane', label: 'Lane', sortable: true },
+  { key: 'status', label: 'Status', sortable: true },
+  { key: 'branch', label: 'Branch', sortable: true, render: (r) => r.branch ?? 'No branch' },
+  { key: 'who', label: 'Who acts', sortable: true },
 ];
 
 /* Lanes with nothing in them: Belfast-mode lines (her 19 Nov empty states). */
@@ -174,7 +186,13 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
               </Toast>
             </Toasts>
           ) : null}
-          {view === 'list' ? (
+          {view === 'table' ? (
+            model.total ? (
+              <DataTable caption="Every task on the board" columns={TABLE_COLUMNS} rows={model.lanes.flatMap((l) => l.cards.map((c) => ({ ...c, lane: l.name })))} rowKey="id" />
+            ) : (
+              <EmptyState size="lane" mark="🏖️" title="A clear day" line="Nothing on the board. Go on, take the afternoon." />
+            )
+          ) : view === 'list' ? (
             <Card>
               <Flow gap={16}>
                 <SectionHead icon="Clock" iconTone="info" title="Today" description="Everything on the board, as rows" number={model.total} words={model.total === 1 ? 'task' : 'tasks'} />

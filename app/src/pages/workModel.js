@@ -6,6 +6,11 @@ import useCached from '../templates/useCached.js';
 
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
+/* The Table's "Who acts" (Figma 800:81240), by the kind of item: the role, never a person. */
+const WHO_ACTS = { Git: 'a maintainer', Fix: 'a reviewer', Gate: 'a developer', Check: 'a developer' };
+/* The branch an item names ("Merge chip/fix-llms-txt?", "BELLA's feat/chip-components is behind"); null when it names none. */
+const branchIn = (t) => String(t).match(/\b(?:feat|fix|chip|chore|main|release)\/[\w.-]*\w/)?.[0] ?? null;
+
 /* A Needs-you item as a card: the check's own name, not the raw error. */
 function needCard(n) {
   const name = n.kind === 'Gate' || n.kind === 'Check' ? String(n.what ?? n.title).split(':')[0] : n.title;
@@ -15,12 +20,12 @@ function needCard(n) {
   // the review, never repeated on the board (19 Nov audit).
   // an agent can take a failed check (b21, rule A); pull, merge and push stay hers ("Push and merge: never moves up, always asks")
   const fixable = failed && (n.kind === 'Gate' || n.kind === 'Check') && n.action?.type === 'review';
-  return { id: n.id, title: name, line: [n.kind, n.risk ? `${n.risk} risk` : null].filter(Boolean).join(' · ') || undefined, status: n.status, tone: failed ? 'danger' : 'attention', failed, at: n.at, action: n.action?.label, fixable, check: n.action?.check };
+  return { id: n.id, title: name, branch: branchIn(`${n.title} ${n.what ?? ''}`), who: WHO_ACTS[n.kind] ?? 'a maintainer', line: [n.kind, n.risk ? `${n.risk} risk` : null].filter(Boolean).join(' · ') || undefined, status: n.status, tone: failed ? 'danger' : 'attention', failed, at: n.at, action: n.action?.label, fixable, check: n.action?.check };
 }
 
 /* An agent run as a card, by where it is. */
 function runCard(r) {
-  return { id: r.id, title: r.title ?? 'Fix', // Figma slim: the branch and time on the card's line ("main checkout · 10:19"), no separate branch tag
+  return { id: r.id, title: r.title ?? 'Fix', branch: r.branch ?? null, // Figma slim: the branch and time on the card's line ("main checkout · 10:19"), no separate branch tag
     line: [r.branch, r.startedAt ? hhmm(r.startedAt) : null].filter(Boolean).join(' · ') || undefined };
 }
 
@@ -30,10 +35,10 @@ export function workModel({ needs = [], runs = [] }) {
   const needsYou = needs.map(needCard).filter((c) => !(c.fixable && working.has(c.title))).sort((a, b) => Number(b.failed) - Number(a.failed) || (a.at ?? 0) - (b.at ?? 0));
   const by = (...s) => runs.filter((r) => s.includes(r.status));
   const lanes = [
-    { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r), status: 'Failed', tone: 'danger' })), ...needsYou] },
-    { id: 'agent', name: 'Agent', cards: by('starting', 'running').map((r) => ({ ...runCard(r), status: 'Working', tone: 'info' })) },
-    { id: 'gate', name: 'Gate', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info' })) },
-    { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success' })) },
+    { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r), status: 'Failed', tone: 'danger', who: 'a developer' })), ...needsYou] },
+    { id: 'agent', name: 'Agent', cards: by('starting', 'running').map((r) => ({ ...runCard(r), status: 'Working', tone: 'info', who: 'the agent' })) },
+    { id: 'gate', name: 'Gate', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info', who: 'the gate' })) },
+    { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success', who: 'a reviewer' })) },
   ];
   const total = lanes.reduce((s, l) => s + l.cards.length, 0);
   const top = needsYou[0];
