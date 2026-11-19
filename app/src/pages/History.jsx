@@ -4,10 +4,11 @@
 // timeline beside the opened record.
 import Screen from '../templates/Screen.jsx';
 import HistoryContent from './HistoryContent.jsx';
+import { projectTabs } from '../templates/projectViews.js';
 
 export default function History() {
   return (
-    <Screen place="history" header={{ title: 'History', lede: 'What we agreed, when and why, across BELLA and CHIP.' }}>
+    <Screen place="projects" tabs={projectTabs('history')} header={{ title: 'History', lede: 'What we agreed, when and why, across BELLA and CHIP.' }}>
       <HistoryContent />
     </Screen>
   );

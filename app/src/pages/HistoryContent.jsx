@@ -6,7 +6,8 @@
 //
 // Gaps (library board): the "What it touched" tree (Map line pieces placed
 // by position) has no part yet, so the files show as a list of cards; Input
-// has no button inside the field (Ask sits beside it); the Count in Figma is
+// has no button inside the field (Ask sits beside it, in the template's grow
+// row); the Count in Figma is
 // Stat without its chart. Actions that run the agent (Ask) wait for the Menu
 // part for the model menu (Auto, local first).
 import { useEffect, useMemo, useState } from 'react';
@@ -149,7 +150,7 @@ function Record({ id }) {
             title="Why"
             message={
               <Flow gap={4} as="span">
-                {rec.why.split(/\n+/).map((l) => l.replace(/^-\s*/, '').trim()).filter(Boolean).map((l) => (
+                {rec.why.split(/\n(?=-\s)|\n{2,}/).map((l) => l.replace(/^-\s*/, '').replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean).map((l) => (
                   <span key={l}>{l}</span>
                 ))}
               </Flow>
@@ -178,11 +179,13 @@ function Record({ id }) {
           <Stat label="lines changed" value={lines(rec.stat)} />
         </Flow>
         <Flow gap={8}>
-          <Input label="Ask about this change" value={q} onChange={setQ} />
-          <Flow direction="row" justify="end">
-            <Button variant="primary" icon="SendDiagonal" onClick={ask} disabled={!q.trim()}>
-              Ask
-            </Button>
+          <Flow direction="row" gap={8} grow="first">
+            <Input label="Ask about this change" value={q} onChange={setQ} />
+            <Flow justify="end">
+              <Button variant="primary" icon="SendDiagonal" onClick={ask} disabled={!q.trim()}>
+                Ask
+              </Button>
+            </Flow>
           </Flow>
           {answer ? <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title="The agent" message={answer.reply} /> : null}
         </Flow>
@@ -223,10 +226,10 @@ export default function HistoryContent() {
   return (
     <>
       <Flow gap={24}>
-        {/* Figma sets Search beside the field; Flow has no "this child grows" yet (template ask), so it sits under it, at the right */}
-        <Flow gap={8} as="form" role="search" onSubmit={(e) => (e.preventDefault(), setQ(draft.trim()))}>
+        {/* Search beside the field, lined up with its box (the label sits above); a phone stacks them */}
+        <Flow direction={phone ? 'column' : 'row'} gap={8} grow={phone ? undefined : 'first'} as="form" role="search" onSubmit={(e) => (e.preventDefault(), setQ(draft.trim()))}>
           <Input label="Ask about a change, in plain words" leadingIcon="Search" value={draft} onChange={setDraft} />
-          <Flow direction="row" justify="end">
+          <Flow direction={phone ? 'row' : 'column'} justify="end">
             <Button variant="primary" type="submit">
               Search
             </Button>
