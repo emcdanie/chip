@@ -5,7 +5,7 @@
 // to build: dragging, push / push rejected, filtered to a branch, agent
 // unavailable; Figma's Table has no drawn state yet. BELLA parts and Flow only.
 //
-// Gaps (parts-dev): the Brief's brain icon; the model menu on Fix; Figma's
+// Gaps (parts-dev): the model menu on Fix; Figma's
 // deadline bar has no CHIP data, so it is left out (no number invented).
 import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
@@ -77,6 +77,7 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
           {model.brief && !briefShut ? (
             <Notification
               tone="info"
+              icon="Brain"
               title="Brief · from CHIP’s checks"
               message={model.brief.message}
               action={model.brief.action ? { label: model.brief.action, href: '#/health-old' } : undefined}
