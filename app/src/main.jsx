@@ -21,7 +21,7 @@ function Root() {
   }, []);
   if (hash === '#/kit') return <Kit />;
   if (hash === '#/not-again') return <NotAgain />;
-  if (hash === '#/team') return <Team />;
+  if (hash.split('?')[0] === '#/team') return <Team />;
   return <App />;
 }
 

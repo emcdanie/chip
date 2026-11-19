@@ -13,7 +13,7 @@
 // (Figma draws one in the field), so Send sits beside it. Icon gap: Figma's
 // chat-bubble and shield-check (Iconoir) are not in BELLA's registry yet;
 // InfoCircle and CheckCircle stand in until they are added.
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
 import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
@@ -57,7 +57,12 @@ export function useTeamData() {
         const thread = (bar.events ?? [])
           .filter((e) => e.kind === 'report' && e.text && new Date(e.t).toDateString() === today)
           .slice(-6)
-          .map((e) => ({ id: String(e.t), side: 'received', who: lanes.find((l) => l.id === e.lane)?.name ?? e.lane, text: firstLine(e.text) }));
+          .map((e) => {
+            const lane = lanes.find((l) => l.id === e.lane);
+            return { id: String(e.t), lane: e.lane, who: lane?.name ?? e.lane, text: firstLine(e.text), waiting: lane?.status === 'waiting on you' };
+          })
+          // only an agent's latest message carries "Waiting on you"
+          .map((m, i, all) => ({ ...m, waiting: m.waiting && !all.slice(i + 1).some((n) => n.lane === m.lane) }));
         const quiet = lanes
           .filter((l) => l.status === 'working' && l.updated && Date.now() - l.updated > QUIET_DAYS * DAY)
           .map((l) => ({ name: l.name, role: l.role, days: Math.floor((Date.now() - l.updated) / DAY), at: l.updated }))
@@ -83,11 +88,13 @@ export function useTeamData() {
 /**
  * data: from useTeamData() (or a story's fixture).
  * draft: optional { ask, text }: an agent's draft reply, shown as Figma's draft state.
+ * sent / reply: optional, for reviewing Figma's sent state (teamFixture.js):
+ * replies already sent this visit, and the agent's answer after them.
  */
-export default function TeamContent({ data, draft = null }) {
+export default function TeamContent({ data, draft = null, sent: sentBefore = [], reply = null }) {
   const [replyTo, setReplyTo] = useState(draft?.ask ?? null);
   const [text, setText] = useState(draft?.text ?? '');
-  const [sent, setSent] = useState([]); // { ask, text } you sent this visit
+  const [sent, setSent] = useState(sentBefore); // { ask, text } you sent this visit
   const [failed, setFailed] = useState(false);
 
   if (data.state === 'loading') return <EmptyState size="lane" title="Getting the team" />;
@@ -173,13 +180,21 @@ export default function TeamContent({ data, draft = null }) {
             {data.thread.length || sent.length ? (
               <Flow gap={16} aria-label="Team chat, today">
                 {data.thread.map((m) => (
-                  <ChatBubble key={m.id} side="received">{`${m.who} · ${m.text}`}</ChatBubble>
+                  <Fragment key={m.id}>
+                    {m.waiting && !sent.some((x) => x.ask?.agent === m.who) ? (
+                      <Flow direction="row" gap={8}>
+                        <Tag variant="outline" tone="attention">Waiting on you</Tag>
+                      </Flow>
+                    ) : null}
+                    <ChatBubble side="received">{`${m.who} · ${m.text}`}</ChatBubble>
+                  </Fragment>
                 ))}
                 {sent.map((s, i) => (
                   <ChatBubble key={`sent-${i}`} side="sent">
                     {s.text}
                   </ChatBubble>
                 ))}
+                {reply && sent.length ? <ChatBubble side="received">{`${reply.who} · ${reply.text}`}</ChatBubble> : null}
               </Flow>
             ) : (
               <EmptyState size="lane" mark="🤫" title="Quiet today" line="No one has reported yet. Say something to get them going." />
