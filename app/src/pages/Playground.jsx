@@ -6,19 +6,10 @@
 // under CHIP, after History; that is a question on Elleta's board (own tab,
 // inside Components, or the rail). Built as the project tab meanwhile.
 import { useCallback, useState } from 'react';
+import { projectTabs } from '../templates/projectViews.js';
 import Screen from '../templates/Screen.jsx';
 import PlaygroundContent from './PlaygroundContent.jsx';
 
-// The project's views, in the IA map's order. Views not yet rebuilt open the
-// old app's page.
-const TABS = [
-  { id: 'work', label: 'Work', href: '#/' },
-  { id: 'health', label: 'Health', href: '#/health' },
-  { id: 'components', label: 'Components', href: '#/atlas' },
-  { id: 'foundations', label: 'Foundations', href: '#/foundations' },
-  { id: 'history', label: 'History', href: '#/docs' },
-  { id: 'playground', label: 'Playground', href: '#/playground' },
-];
 
 function asked() {
   const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
@@ -32,15 +23,11 @@ export default function Playground() {
     setProject(p);
     setRoute(null);
   }, []);
-  const go = (id) => {
-    const t = TABS.find((x) => x.id === id);
-    if (t && id !== 'playground') window.location.hash = t.href;
-  };
   return (
     <Screen
       place="projects"
       header={{ title: 'CHIP' }}
-      tabs={{ items: TABS.map(({ id, label }) => ({ id, label })), value: 'playground', onChange: go, label: 'CHIP views', idBase: 'chip-views' }}
+      tabs={projectTabs('playground')}
     >
       <PlaygroundContent project={project} onProject={pickProject} route={route} onRoute={setRoute} />
     </Screen>
