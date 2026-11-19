@@ -28,7 +28,10 @@ import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
 
 const KINDS = ['Decision', 'Fix', 'Visual', 'Contract', 'Tokens', 'Tooling', 'Docs'];
-const ICON = { Decision: 'ShieldCheck', Fix: 'Check', Visual: 'Eye', Contract: 'Code', Tokens: 'Sparks', Tooling: 'Settings', Docs: 'Book' };
+// one icon per kind, as Figma's Activity draws them: Tooling a gear, Visual an eye; Docs (a page) and
+// Tokens (a palette) stand in with Book and Sparks until BELLA has those glyphs (gap). Figma draws no
+// icon for Fix, Contract or Decision: never the done tick, which reads as a status.
+const ICON = { Decision: 'ShieldCheck', Fix: 'RefreshDouble', Visual: 'Eye', Contract: 'Code', Tokens: 'Sparks', Tooling: 'Settings', Docs: 'Book' };
 const STATUSES = ['Decided', 'Merged', 'Shipped', 'On a branch', 'Undone'];
 const SINCE = [
   ['7d', 'Last 7 days'],

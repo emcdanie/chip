@@ -105,7 +105,13 @@ export default function ConnectorsContent() {
                       <IconWell icon={r.icon} tone="neutral" />
                       <StateTag state={r.n.state} />
                     </Flow>
-                    <TextStack overline={r.name} title={r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested'} subtitle={r.sub && r.n.state === 'ok' ? r.sub : first(r.n.detail)} />
+                    {/* short meta (":11434") in the meta face; a sentence in the reading face */}
+                    <TextStack
+                      overline={r.name}
+                      title={r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested'}
+                      subtitle={r.sub && r.n.state === 'ok' ? r.sub : undefined}
+                      body={r.sub && r.n.state === 'ok' ? undefined : first(r.n.detail)}
+                    />
                     <Flow direction="row" justify="end">
                       {r.id === 'git' ? (
                         <Button variant="secondary" size="sm" href="#/history">
