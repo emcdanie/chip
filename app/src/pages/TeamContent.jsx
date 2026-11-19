@@ -96,6 +96,10 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
   const [text, setText] = useState(draft?.text ?? '');
   const [sent, setSent] = useState(sentBefore); // { ask, text } you sent this visit
   const [failed, setFailed] = useState(false);
+  // the draft state: the reply field takes focus, so it reads as "your turn" at a glance
+  useEffect(() => {
+    if (draft) document.getElementById('team-reply')?.focus();
+  }, [draft]);
 
   if (data.state === 'loading') return <EmptyState size="lane" title="Getting the team" />;
   if (data.state === 'error')
@@ -179,28 +183,28 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
             <SectionHead icon="InfoCircle" iconTone="info" title="Team chat" description="Today, with every agent" />
             {data.thread.length || sent.length ? (
               <Flow gap={16} aria-label="Team chat, today">
-                {data.thread.map((m) => (
+                {data.thread.map((m, i) => (
                   <Fragment key={m.id}>
                     {m.waiting && !sent.some((x) => x.ask?.agent === m.who) ? (
                       <Flow direction="row" gap={8}>
                         <Tag variant="outline" tone="attention">Waiting on you</Tag>
                       </Flow>
                     ) : null}
-                    <ChatBubble side="received">{`${m.who} · ${m.text}`}</ChatBubble>
+                    <ChatBubble side="received" tail={data.thread[i + 1]?.who !== m.who || i === data.thread.length - 1}>{`${m.who} · ${m.text}`}</ChatBubble>
                   </Fragment>
                 ))}
                 {sent.map((s, i) => (
-                  <ChatBubble key={`sent-${i}`} side="sent">
+                  <ChatBubble key={`sent-${i}`} side="sent" tail={i === sent.length - 1}>
                     {s.text}
                   </ChatBubble>
                 ))}
-                {reply && sent.length ? <ChatBubble side="received">{`${reply.who} · ${reply.text}`}</ChatBubble> : null}
+                {reply && sent.length ? <ChatBubble side="received" tail>{`${reply.who} · ${reply.text}`}</ChatBubble> : null}
               </Flow>
             ) : (
               <EmptyState size="lane" mark="🤫" title="Quiet today" line="No one has reported yet. Say something to get them going." />
             )}
             {isDraft ? <Tag variant="outline" tone="info">The agent’s draft, in your words · edit before sending</Tag> : null}
-            <Input label={replyTo ? `Reply to ${replyTo.agent}` : 'Reply'} value={text} placeholder="Reply to all, or @ one agent" onChange={setText} />
+            <Input id="team-reply" label={replyTo ? `Reply to ${replyTo.agent}` : 'Reply'} value={text} placeholder="Reply to all, or @ one agent" onChange={setText} />
             <Flow direction="row" gap={8} justify="end">
               <Button variant="primary" size="sm" disabled={!text.trim()} onClick={send}>
                 Send
@@ -213,11 +217,11 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
 
       <Card>
         <Flow gap={16}>
-          <SectionHead icon="CheckCircle" iconTone="info" title="Trust by kind of fix" number={1} words="always asks" description="The more a kind is trusted, the fewer you approve one by one." />
+          <SectionHead icon="CheckCircle" iconTone="info" title="Trust by kind of fix" number={1} words="kind always asks" description="The more a kind is trusted, the fewer you approve one by one." />
           <Flow as="ul" gap={8} aria-label="Kinds of fix">
             <ListRow layout="inline" title="Push and merge" description="Never moves up. Rule: earned trust, 11 Nov" tag={<Tag variant="outline" tone="attention">Always asks</Tag>} />
           </Flow>
-          <EmptyState size="lane" mark="🧮" title="No fixes counted yet" line="Hex → token and px → type token start counting after the backfill." />
+          <EmptyState size="lane" mark="📊" title="No fixes counted yet" line="Hex → token and px → type token start counting after the backfill." />
         </Flow>
       </Card>
     </>
