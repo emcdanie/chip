@@ -927,6 +927,20 @@ const CH = 36; // chip height
 const GAP = 48; // chip pitch
 const OUT = 64; // chip distance from the specimen
 const PAD = 16;
+/** A leader as her 19 Nov mock draws it: out of the chip along its side, one
+ * rounded bend, into the dot (guideline 17). Straight only when already in line. */
+function leaderPath(side, ex, ey, ax, ay) {
+  const flat = side === 'L' || side === 'R'; // leaves the chip sideways; T and B leave it up or down
+  const d1 = flat ? ax - ex : ay - ey;
+  const d2 = flat ? ay - ey : ax - ex;
+  if (Math.abs(d2) < 2 || Math.abs(d1) < 2) return `M${ex} ${ey}L${ax} ${ay}`;
+  const r = Math.min(12, Math.abs(d1), Math.abs(d2));
+  const s1 = Math.sign(d1), s2 = Math.sign(d2);
+  return flat
+    ? `M${ex} ${ey}H${ax - s1 * r}Q${ax} ${ey} ${ax} ${ey + s2 * r}V${ay}`
+    : `M${ex} ${ey}V${ay - s1 * r}Q${ex} ${ay} ${ex + s2 * r} ${ay}H${ax}`;
+}
+
 /** Where each chip goes and where its leader lands: beside the specimen, or above and below when it is too wide. */
 function placePins(geo, widths) {
   if (!geo) return [];
@@ -949,7 +963,11 @@ function placePins(geo, widths) {
         const x = side === 'L' ? Math.max(PAD, Math.min(box.x - OUT - bw, cw * 0.08)) : Math.min(cw - PAD - bw, Math.max(box.x + box.w + OUT, cw * 0.92 - bw));
         const e = p.edge;
         const inset = Math.min(3, e.h / 2);
-        out.push({ p, side, x, y: y - CH / 2, bw, ex: side === 'L' ? x + bw : x, ey: y, ax: side === 'L' ? Math.min(e.x, box.x) : Math.max(e.x + e.w, box.x + box.w), ay: clamp(y, box.y + inset, box.y + box.h - inset) });
+        // a chip level with the part meets its side; one above or below meets its top or bottom, after one bend
+        const level = y >= box.y + inset && y <= box.y + box.h - inset;
+        const ax = level ? (side === 'L' ? Math.min(e.x, box.x) : Math.max(e.x + e.w, box.x + box.w)) : clamp(e.x + e.w / 2, box.x + 8, box.x + box.w - 8);
+        const ay = level ? y : y < box.y ? Math.min(e.y, box.y) : Math.max(e.y + e.h, box.y + box.h);
+        out.push({ p, side, x, y: y - CH / 2, bw, ex: side === 'L' ? x + bw : x, ey: y, ax, ay });
       });
     }
     return out;
@@ -1411,13 +1429,16 @@ function A11yFacts({ c, cfg, label }) {
 }
 
 /* ---------- Behind it: where the words still live, one row each ---------- */
+// paths and links may break after a "/", never inside a name like Button.tsx
+const atSlashes = (t) => (typeof t === 'string' ? t.split('/').flatMap((part, i, all) => (i < all.length - 1 ? [part, '/', <wbr key={i} />] : [part])) : t);
+
 function Row({ name, sum, hint, children }) {
   const [open, setOpen] = useState(false);
   return (
     <details onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary>
         <b>{name}</b>
-        <span>{sum}</span>
+        <span>{atSlashes(sum)}</span>
         <em>{hint}</em>
       </summary>
       {open ? <div className="dm-bd">{children}</div> : null}
@@ -2059,11 +2080,11 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
             {geo && !all ? (
               <>
                 <svg className="dm-ov" aria-hidden="true" width={geo.w} height={geo.h}>
-                  {pins.map(({ p, ex, ey, ax, ay }) => {
+                  {pins.map(({ p, side, ex, ey, ax, ay }) => {
                     const latent = !visible(p);
                     return (
                       <g key={p.key} className={on(p.key) ? 'on' : undefined} data-latent={latent || undefined}>
-                        <line x1={ex} y1={ey} x2={ax} y2={ay} />
+                        <path className="dm-lead" d={leaderPath(side, ex, ey, ax, ay)} />
                         <circle cx={ax} cy={ay} r={on(p.key) ? 5 : 4} />
                         {on(p.key) ? <rect className="dm-zone" x={p.zone.x} y={p.zone.y} width={Math.max(1, p.zone.w)} height={Math.max(1, p.zone.h)} rx={3} /> : null}
                       </g>
