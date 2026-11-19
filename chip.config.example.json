@@ -5,7 +5,7 @@
   "bar": {
     "$comment": "The Bar watcher. cadInbox: the ctrl_alt_design repo's inbox dir. bellaInbox: BELLA's inbox dir. Paths expand ~.",
     "cadInbox": "~/DEV/ctrl-alt-design/docs/reference/inbox",
-    "bellaInbox": "~/DEV/bella/docs/reference/inbox"
+    "bellaInbox": "~/DEV/bella-chip-theme/docs/reference/inbox"
   },
   "servers": [
     {
@@ -144,7 +144,7 @@
       "name": "BELLA",
       "short": "BELLA",
       "description": "The design system.",
-      "repo": "~/DEV/bella",
+      "repo": "~/DEV/bella-chip-theme",
       "defaultBranch": "main",
       "pages": {
         "kind": "storybook"

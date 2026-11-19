@@ -6,6 +6,7 @@ import path from 'node:path';
 import { homedir } from 'node:os';
 import { ROOT, DATA_DIR, INBOX_DIR } from './config.mjs';
 import { spawnSync, execFileSync } from 'node:child_process';
+import { bellaDir } from '../../scripts/lib/bella-dir.mjs';
 
 // ---------- config ----------
 function readLocalConfig() {
@@ -15,7 +16,7 @@ const localCfg = readLocalConfig();
 const barCfg = localCfg.bar ?? {};
 const expand = (p) => (typeof p === 'string' ? p.replace(/^~\//, `${homedir()}/`) : p);
 const CAD = expand(barCfg.cadInbox) || path.join(homedir(), 'DEV', 'ctrl-alt-design', 'docs', 'reference', 'inbox');
-const BELLA = expand(barCfg.bellaInbox) || path.join(homedir(), 'DEV', 'bella', 'docs', 'reference', 'inbox');
+const BELLA = expand(barCfg.bellaInbox) || path.join(bellaDir(), 'docs', 'reference', 'inbox');
 const CHIP_INBOX = INBOX_DIR;
 const BELLA_ROOT = path.resolve(BELLA, '../../..');
 

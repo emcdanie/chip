@@ -18,17 +18,35 @@ const EXEMPT = {};
 
 const NATIVE = { button: 'Button', table: 'DataTable', input: 'Input', select: 'Select', dialog: 'Drawer' };
 const KIT = { StatusPill: 'StatusPill', DataTable: 'DataTable', Card: 'Card', PageHeader: 'PageHeader', Segmented: 'SegmentedControl', Sheet: 'Drawer', Drawer: 'Drawer', Toggle: 'Button with ariaExpanded' };
+
+// CSS files allowed in app/src (19 Nov 2026, frozen at what exists): pages
+// compose BELLA parts and the template, so a new page brings no CSS file.
+// A file can leave this list, never join it without Elleta's yes.
+const CSS_ALLOW = new Set([
+  'app/src/Connectors.css', 'app/src/DoNext.css', 'app/src/Foundations.css', 'app/src/History.css',
+  'app/src/Playground.css', 'app/src/Projects.css', 'app/src/app.css', 'app/src/atlas.css',
+  'app/src/shell.css', 'app/src/kit/kit.css', 'app/src/kit/tokens.css',
+]);
 const FIX = {
   'styled <a>': 'Use BELLA Link instead.',
   'css overrides --component-*': 'Set the token in BELLA’s chip theme, not in CHIP.',
   'css raw colour': 'Use a BELLA colour token (var(--color-semantic-*)) instead.',
   'css raw size': 'Use a BELLA spacing or size token (var(--spacing-*)) instead.',
+  'css part selector': 'Never restyle a BELLA part from outside ([data-bella-component] or [class*=] selectors). Report the part gap.',
+  'css defines custom property': 'Custom properties live in BELLA tokens only. Use the BELLA token, or ask for one.',
+  'css font-family literal': 'Use a BELLA typography font-family token.',
+  'inline style colour': 'Use a BELLA colour token, through a part.',
+  'inline style raw size': 'Use a BELLA spacing or size token.',
+  'inline font-family literal': 'Use a BELLA typography token, through a part.',
+  'inline radius or shadow literal': 'Corners and shadows come from BELLA parts and tokens.',
+  'kit defines a BELLA duplicate': 'BELLA has this part; use it and delete the kit copy.',
 };
 const fixFor = (c) => {
   if (FIX[c]) return FIX[c];
   const native = c.match(/^<(\w+)>$/);
   if (native) return `Use BELLA ${NATIVE[native[1]]} instead.`;
-  return `Use BELLA ${KIT[c.replace(/^kit /, '')]} instead.`;
+  const kit = KIT[c.replace(/^kit /, '')];
+  return kit ? `Use BELLA ${kit} instead.` : 'Use BELLA instead.';
 };
 
 function files(dir, out = []) {
@@ -73,6 +91,20 @@ function scanJs(raw) {
       const name = part.trim().split(/\s+as\s+/)[0];
       if (KIT[name]) hits.push([`kit ${name}`, m.index]);
     }
+  // inline styles: a page carries no colour, size, font, corner or shadow of its own
+  for (const m of s.matchAll(/style=\{\{([\s\S]*?)\}\}/g)) {
+    const body = m[1];
+    if (COLOUR.test(body)) hits.push(['inline style colour', m.index]);
+    // a length typed in: a unit literal, or a box property given a bare non-zero number (React reads it as px)
+    if (/(?<![\w#.-])\d*\.?\d+(?:px|rem|em|vh|vw)\b/.test(body) ||
+        /\b(?:(?:min|max)?(?:[Ww]idth|[Hh]eight|InlineSize|BlockSize)|inlineSize|blockSize|padding\w*|margin\w*|gap|rowGap|columnGap|top|left|right|bottom|inset\w*|fontSize)\s*:\s*[1-9]/.test(body))
+      hits.push(['inline style raw size', m.index]);
+    if (/fontFamily\s*:\s*['"`]/.test(body)) hits.push(['inline font-family literal', m.index]);
+    if (/(?:borderRadius|boxShadow)\s*:\s*(?!['"`]var\()['"`\d]/.test(body)) hits.push(['inline radius or shadow literal', m.index]);
+  }
+  // the kit's own copies of parts BELLA has (frozen: may only go away)
+  for (const m of s.matchAll(/export\s+(?:default\s+)?function\s+(StatusPill|DataTable|Card|PageHeader|Segmented|Sheet|Drawer)\b/g))
+    hits.push(['kit defines a BELLA duplicate', m.index]);
   return hits;
 }
 const COLOUR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\(/;
@@ -83,9 +115,16 @@ function scanCss(raw) {
   for (const m of s.matchAll(/([-\w]+)\s*:\s*([^;{}]+)(?=[;}])/g)) {
     const [, prop, value] = m;
     if (prop.startsWith('--component-')) hits.push(['css overrides --component-*', m.index]);
+    else if (prop.startsWith('--')) hits.push(['css defines custom property', m.index]);
+    // a family written out (not a BELLA font-family token): font-family not a
+    // var/inherit, or a font shorthand that does not end in the family token
+    if ((prop === 'font-family' && !/^\s*(?:var\(|inherit\b|unset\b)/.test(value)) ||
+        (prop === 'font' && !/^\s*inherit\s*$/.test(value) && !/var\(--[\w-]*font-family[\w-]*\)\s*$/.test(value)))
+      hits.push(['css font-family literal', m.index]);
     if (COLOUR.test(value)) hits.push(['css raw colour', m.index]);
     if (SIZE.test(value.replace(/^\s*0(px|rem|em)?\s*$/, ''))) hits.push(['css raw size', m.index]);
   }
+  for (const m of s.matchAll(/\[(?:data-bella-component|class\*=)[^\]]*\]/g)) hits.push(['css part selector', m.index]);
   return hits;
 }
 
@@ -104,6 +143,16 @@ function count() {
 }
 const sorted = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => (a < b ? -1 : 1)));
 const save = (files) => writeFileSync(BASELINE, `${JSON.stringify({ about: 'Off-system constructs per file in app/src. scripts/on-system-guard.mjs fails when a count goes up.', files: sorted(files) }, null, 1)}\n`);
+
+// Templates own their grid (coordinator, 19 Nov 2026: "one template CSS file
+// for its grid only"): CSS under app/src/templates/ is allowed, and the counts
+// below hold it to token values (no raw colour, size or font, no part selector).
+const TEMPLATES = 'app/src/templates/';
+const strayCss = files(SRC).map((f) => relative(ROOT, f)).filter((f) => f.endsWith('.css') && !CSS_ALLOW.has(f) && !f.startsWith(TEMPLATES));
+if (strayCss.length) {
+  console.error(`on-system-guard: new CSS file(s) in app/src. Pages compose BELLA parts and the template; no CSS file per page.\n  ${strayCss.join('\n  ')}`);
+  process.exit(1);
+}
 
 const now = count();
 const update = process.env.UPDATE_ON_SYSTEM_BASELINE === '1';
