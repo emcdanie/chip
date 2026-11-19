@@ -36,9 +36,12 @@ function useToBottom(on) {
       setTop((was) => (was === t ? was : t));
     };
     measure();
-    // what sits above it (the Brief, a notice) can arrive after the board
+    // what sits above it (the Brief, a notice, the header's fonts) can arrive
+    // after the board and push it down without changing the board's own frame,
+    // so watch the whole page, not the board (20 Nov audit: it measured before
+    // the Brief settled and ran 24 past the window at every size)
     const ro = new ResizeObserver(measure);
-    if (ref.current?.parentElement) ro.observe(ref.current.parentElement);
+    ro.observe(document.body);
     window.addEventListener('resize', measure);
     return () => {
       ro.disconnect();
