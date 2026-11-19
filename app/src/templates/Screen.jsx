@@ -65,6 +65,7 @@ export default function Screen({ place, header, tabs, children }) {
   const { projects, needs } = useShellData();
   const current = projects?.find((p) => p.id === 'chip') ?? projects?.[0];
   const panelOut = useNarrow(1024);
+  const phone = useNarrow();
   const [projectsOpen, setProjectsOpen] = useState(false);
   const panel = (
     <ProjectPanel
@@ -115,7 +116,8 @@ export default function Screen({ place, header, tabs, children }) {
         <div className="chip-screen__panel">{panel}</div>
       )}
       <div className="chip-screen__main">
-        <TopBar search={<SearchField />} />
+        {/* On a phone the ⌘ K legend steps out so the field keeps room for its words. */}
+        <TopBar search={<SearchField showShortcut={!phone} />} />
         <div className="chip-screen__page">
           <div className="chip-screen__head">
             <PageHeader {...header} />

@@ -82,7 +82,7 @@ function FixCard({ state }) {
           ))}
         </Flow>
         {state === 'your-call' ? (
-          <Flow direction="row" gap={8} justify="end">
+          <Flow direction="row" gap={8} justify="end" wrap>
             <Button variant="secondary" size="sm">
               Undo
             </Button>
