@@ -21,6 +21,7 @@ import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Columns from '@bella/components/Columns/Columns';
 import Flow from '../templates/Flow.jsx';
+import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -39,20 +40,10 @@ const PATHS = [
 ];
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0];
 
+/* The system map, kept between visits (useCached); `load` reads it again. */
 function useMap() {
-  const [map, setMap] = useState(null);
-  const load = useCallback(
-    () =>
-      fetch('/map')
-        .then((r) => (r.ok ? r.json() : Promise.reject()))
-        .then(setMap)
-        .catch(() => setMap({ error: true, nodes: [] })),
-    [],
-  );
-  useEffect(() => {
-    load();
-  }, [load]);
-  return [map, load];
+  const { data, error, reload } = useCached(['/map']);
+  return [error ? { error: true, nodes: [] } : data ? data[0] : null, reload];
 }
 
 function StateTag({ state }) {

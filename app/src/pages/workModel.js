@@ -1,7 +1,8 @@
 // Work's board, from CHIP's own data: what needs her (/needs) and the agent
 // runs CHIP started (/runs). Lanes as Figma (Work · content 608:207182):
 // Needs you, Agent, Gate, Ready, and Merged today under Ready.
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import useCached from '../templates/useCached.js';
 
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const today = (t) => new Date(t).toDateString() === new Date().toDateString();
@@ -10,7 +11,10 @@ const today = (t) => new Date(t).toDateString() === new Date().toDateString();
 function needCard(n) {
   const name = n.kind === 'Gate' || n.kind === 'Check' ? String(n.what ?? n.title).split(':')[0] : n.title;
   const failed = /fail/i.test(n.status);
-  return { id: n.id, title: name, line: n.detail, status: n.status, tone: failed ? 'danger' : 'attention', failed, at: n.at, action: n.action?.label };
+  // The line is short meta in the subtext face: what kind and how risky.
+  // The long detail is the same paragraph on every gate item, so it stays in
+  // the review, never repeated on the board (19 Nov audit).
+  return { id: n.id, title: name, line: [n.kind, n.risk ? `${n.risk} risk` : null].filter(Boolean).join(' · ') || undefined, status: n.status, tone: failed ? 'danger' : 'attention', failed, at: n.at, action: n.action?.label };
 }
 
 /* An agent run as a card, by where it is. */
@@ -36,19 +40,13 @@ export function workModel({ needs = [], runs = [] }) {
   return { lanes, merged, total, brief, finished: merged.map((r) => ({ id: r.id, text: `${hhmm(r.endedAt ?? r.startedAt)} · ${r.title}` })) };
 }
 
-/** Reads CHIP's data; `reload` reads it again (Check again). */
+/** Reads CHIP's data (kept between pages); `reload` reads it again (Check again). */
 export function useWork() {
-  const [state, setState] = useState({ model: null, error: null, at: null });
-  const load = useCallback(() => {
-    const json = (u) => fetch(u).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${u} answered ${r.status}`))));
-    Promise.all([json('/needs'), json('/runs')])
-      .then(([n, r]) => setState({ model: workModel({ needs: n.items ?? [], runs: r.runs ?? [] }), error: null, at: Date.now() }))
-      .catch((e) => setState((s) => ({ ...s, error: e.message })));
-  }, []);
+  const { data, error, at, reload } = useCached(['/needs', '/runs']);
   useEffect(() => {
-    load();
-    window.addEventListener('chip:changed', load);
-    return () => window.removeEventListener('chip:changed', load);
-  }, [load]);
-  return { ...state, reload: load, checked: state.at ? hhmm(state.at) : null };
+    window.addEventListener('chip:changed', reload);
+    return () => window.removeEventListener('chip:changed', reload);
+  }, [reload]);
+  const model = useMemo(() => (data ? workModel({ needs: data[0].items ?? [], runs: data[1].runs ?? [] }) : null), [data]);
+  return { model, error, reload, checked: at ? hhmm(at) : null };
 }

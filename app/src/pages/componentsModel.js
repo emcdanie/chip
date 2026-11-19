@@ -1,7 +1,8 @@
 // Components, from CHIP's own data: BELLA's components (/data/bella.json,
 // with each part's anatomy from its contract) and the gaps per check (/gaps).
 // The six checks are Health's (healthModel.js), so both pages count alike.
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import useCached from '../templates/useCached.js';
 import { CHECKS } from './healthModel.js';
 
 /* Figma's per-part words for each check. */
@@ -28,18 +29,9 @@ export function componentsModel({ components = [], gaps = {}, commit }) {
   return { parts, version: commit ? `BELLA ${commit}` : null, ready: parts.filter((p) => p.ready).length };
 }
 
+/** Reads CHIP's data (kept between pages, shared with Health). */
 export function useComponents() {
-  const [model, setModel] = useState(null);
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    let live = true;
-    const json = (u) => fetch(u).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${u} answered ${r.status}`))));
-    Promise.all([json('/data/bella.json'), json('/gaps')])
-      .then(([b, g]) => live && setModel(componentsModel({ components: b.components, gaps: g.gaps, commit: b.source?.commit })))
-      .catch((e) => live && setError(e.message));
-    return () => {
-      live = false;
-    };
-  }, []);
+  const { data, error } = useCached(['/data/bella.json', '/gaps']);
+  const model = useMemo(() => (data ? componentsModel({ components: data[0].components, gaps: data[1].gaps, commit: data[0].source?.commit }) : null), [data]);
   return { model, error };
 }

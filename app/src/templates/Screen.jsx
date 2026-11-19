@@ -7,7 +7,8 @@
 // Built only from published BELLA parts. The grid is the one template CSS
 // file (Screen.css), token values only. Data is CHIP's own where it has it
 // (/projects, /needs); anything CHIP does not measure shows no number.
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import useCached from './useCached.js';
 import IconRail from '@bella/components/IconRail/IconRail';
 import NavItem from '@bella/components/NavItem/NavItem';
 import ProjectPanel from '@bella/components/ProjectPanel/ProjectPanel';
@@ -25,33 +26,25 @@ import './Screen.css';
 /* The rail's places, in Figma's order. Pages not yet rebuilt open the old
  * app, which stays beside the new routes until Elleta has seen that list. */
 const PLACES = [
-  { id: 'home', label: 'Home', icon: 'Home', href: '#/' },
-  { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/' },
+  // Home has no page of its own yet (Figma Home waits on Elleta's pick), so it
+  // opens Work, the first project view; Settings has none either and opens
+  // Projects, where each repo's setup lives (19 Nov audit: the rail opened
+  // the old Overview).
+  { id: 'home', label: 'Home', icon: 'Home', href: '#/work' },
+  { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/work' },
   { id: 'not-again', label: 'Not again', icon: 'Book', href: '#/not-again' },
   { id: 'team', label: 'Team', icon: 'Group', href: '#/team' },
-  { id: 'map', label: 'System map', icon: 'Map', href: '#/' },
+  { id: 'map', label: 'System map', icon: 'Map', href: '#/connectors' },
 ];
 
-/* CHIP's own data for the panel. Status lanes CHIP does not count yet show
- * their name only: never an invented number. */
+/* CHIP's own data for the panel, kept between pages (useCached) so the
+ * Projects group never blanks while a page loads. Status lanes CHIP does not
+ * count yet show their name only: never an invented number. */
 function useShellData() {
-  const [projects, setProjects] = useState(null);
-  const [needs, setNeeds] = useState(null);
-  useEffect(() => {
-    let live = true;
-    fetch('/projects')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => live && setProjects(d?.projects ?? []))
-      .catch(() => live && setProjects([]));
-    fetch('/needs')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => live && setNeeds(Array.isArray(d) ? d.length : Array.isArray(d?.items) ? d.items.length : null))
-      .catch(() => live && setNeeds(null));
-    return () => {
-      live = false;
-    };
-  }, []);
-  return { projects, needs };
+  const { data } = useCached(['/projects', '/needs']);
+  if (!data) return { projects: null, needs: null };
+  const [p, n] = data;
+  return { projects: p?.projects ?? [], needs: Array.isArray(n) ? n.length : Array.isArray(n?.items) ? n.items.length : null };
 }
 
 /**
@@ -95,7 +88,7 @@ export default function Screen({ place, header, tabs, children }) {
   return (
     <div className="chip-screen">
       <div className="chip-screen__rail">
-        <IconRail end={<NavItem iconOnly label="Settings" icon="Settings" href="#/" />}>
+        <IconRail end={<NavItem iconOnly label="Settings" icon="Settings" href="#/projects" />}>
           {PLACES.map((p) =>
             p.id === 'projects' && panelOut ? (
               <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} onClick={() => setProjectsOpen(true)} current={projectsOpen} />

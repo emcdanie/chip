@@ -25,7 +25,14 @@ import Drawer from '@bella/components/Drawer/Drawer';
 import Eyebrow from '@bella/components/Eyebrow/Eyebrow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Flow from '../templates/Flow.jsx';
+import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
+
+/* A commit's why in plain words: git trailers (Co-Authored-By, Signed-off-by,
+   the tool's "Generated with" line) are bookkeeping, not reasons, and never
+   name a model on the page (19 Nov audit). */
+const TRAILER = /^\s*([\w-]+-by:|.*Generated with \[|🤖)/i;
+const plainWhy = (why) => (why ?? '').split('\n').filter((l) => !TRAILER.test(l)).join('\n').trim();
 
 const KINDS = ['Decision', 'Fix', 'Visual', 'Contract', 'Tokens', 'Tooling', 'Docs'];
 const ICON = { Decision: 'ShieldCheck', Fix: 'Check', Visual: 'Eye', Contract: 'Code', Tokens: 'Sparks', Tooling: 'Settings', Docs: 'Book' };
@@ -42,38 +49,17 @@ const time = (d) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', m
 const STATUS_TONE = { Merged: 'success', Shipped: 'success', Decided: 'info', 'On a branch': 'attention', Undone: 'neutral' };
 const lines = (stat) => [...String(stat ?? '').matchAll(/(\d+) (?:insertion|deletion)/g)].reduce((n, m) => n + Number(m[1]), 0);
 
+/* History's data, kept between visits (useCached): no loading flash when you come back. */
 function useHistory(params) {
-  const [data, setData] = useState(null);
   const qs = new URLSearchParams(params).toString();
-  useEffect(() => {
-    let live = true;
-    setData(null);
-    fetch(`/history?${qs}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => live && setData(d))
-      .catch(() => live && setData({ error: true, records: [], total: 0, counts: { types: {} } }));
-    return () => {
-      live = false;
-    };
-  }, [qs]);
-  return data;
+  const { data, error } = useCached([`/history?${qs}`]);
+  if (error) return { error: true, records: [], total: 0, counts: { types: {} } };
+  return data ? data[0] : null;
 }
 
 function useRecord(id) {
-  const [rec, setRec] = useState(null);
-  useEffect(() => {
-    if (!id) return;
-    let live = true;
-    setRec(null);
-    fetch(`/history/record?id=${encodeURIComponent(id)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => live && setRec(d))
-      .catch(() => live && setRec(null));
-    return () => {
-      live = false;
-    };
-  }, [id]);
-  return rec;
+  const { data } = useCached(id ? [`/history/record?id=${encodeURIComponent(id)}`] : []);
+  return id && data ? data[0] : null;
 }
 
 function Activity({ records, total, open, onOpen }) {
@@ -143,14 +129,14 @@ function Record({ id }) {
           </Flow>
           <TextStack title={rec.title} />
         </Flow>
-        {rec.why ? (
+        {plainWhy(rec.why) ? (
           <Notification
             tone="info"
             showIcon={false}
             title="Why"
             message={
               <Flow gap={4} as="span">
-                {rec.why.split(/\n(?=-\s)|\n{2,}/).map((l) => l.replace(/^-\s*/, '').replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean).map((l) => (
+                {plainWhy(rec.why).split(/\n(?=-\s)|\n{2,}/).map((l) => l.replace(/^-\s*/, '').replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean).map((l) => (
                   <span key={l}>{l}</span>
                 ))}
               </Flow>

@@ -2,7 +2,8 @@
 // (/data/bella.json), the gaps per check (/gaps) and BELLA's gate history.
 // Nothing here is invented: a card CHIP has no data for gets `null` and the
 // page shows the Empty state.
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import useCached from '../templates/useCached.js';
 
 /* The six component checks, in Figma's order (Health · content 601:111049),
    with Figma's words for "all pass", "some fail" and the action. */
@@ -47,19 +48,10 @@ export function healthModel({ components = [], gaps = {}, history = [] }) {
   };
 }
 
-/** Reads CHIP's data; `model` is null until it arrives. */
+/** Reads CHIP's data (kept between pages); `model` is null only on the very first visit. */
 export function useHealth() {
-  const [model, setModel] = useState(null);
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    let live = true;
-    const json = (u) => fetch(u).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${u} answered ${r.status}`))));
-    Promise.all([json('/data/bella.json'), json('/gaps')])
-      .then(([bella, g]) => live && setModel(healthModel({ components: bella.components, gaps: g.gaps, history: bella.history })))
-      .catch((e) => live && setError(e.message));
-    return () => {
-      live = false;
-    };
-  }, []);
-  return { model, error };
+  const { data, error, at, reload } = useCached(['/data/bella.json', '/gaps']);
+  const model = useMemo(() => (data ? healthModel({ components: data[0].components, gaps: data[1].gaps, history: data[0].history }) : null), [data]);
+  const checked = at ? new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
+  return { model, error, reload, checked };
 }

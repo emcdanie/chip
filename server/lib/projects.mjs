@@ -103,11 +103,14 @@ function hashPages(repo, file = 'app/src/App.jsx') {
   const at = src.search(/const (PAGES|WORKSPACES) = \[/);
   if (at < 0) return [];
   const list = src.slice(at, src.indexOf('];', at));
-  const pages = [...list.matchAll(/\{\s*id:\s*'([\w-]+)',\s*label:\s*'([^']+)'/g)].map(([, id, label]) => ({ route: `#/${id}`, label, file }));
-  // pages on the new CHIP / Screen template (app/src/main.jsx NEW_PAGES)
+  const old = [...list.matchAll(/\{\s*id:\s*'([\w-]+)',\s*label:\s*'([^']+)'/g)].map(([, id, label]) => ({ route: `#/${id}`, label, file }));
+  // pages on the new CHIP / Screen template (app/src/main.jsx NEW_PAGES) come
+  // first; an old page is listed only while no new page has its route or its
+  // name (19 Nov audit: the Page menu said "Overview" for the new Health).
   const main = join(repo, 'app/src/main.jsx');
   const m = existsSync(main) ? readFileSync(main, 'utf8').match(/const NEW_PAGES = \[([\s\S]*?)\];/) : null;
-  if (m) for (const [, id, label] of m[1].matchAll(/\{\s*id:\s*'([\w-]+)',\s*label:\s*'([^']+)'/g)) pages.push({ route: `#/${id}`, label, file: 'app/src/main.jsx' });
+  const pages = m ? [...m[1].matchAll(/\{\s*id:\s*'([\w-]+)',\s*label:\s*'([^']+)'/g)].map(([, id, label]) => ({ route: `#/${id}`, label, file: 'app/src/main.jsx' })) : [];
+  for (const o of old) if (!pages.some((p) => p.route === o.route || p.label === o.label || (o.label === 'Overview' && p.label === 'Health'))) pages.push(o);
   return pages;
 }
 

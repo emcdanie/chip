@@ -16,6 +16,7 @@ import CheckRow from '@bella/components/CheckRow/CheckRow';
 import ListRow from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
+import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import { TARGET } from './healthModel.js';
@@ -65,13 +66,20 @@ function GateCard({ gate, run }) {
   );
 }
 
-export default function HealthContent({ model, run }) {
+export default function HealthContent({ model, run, checked, onCheck }) {
   const narrow = useNarrow();
-  if (!model) return null;
+  if (!model) return <EmptyState size="lane" mark="⏳" title="Reading BELLA" line="Counting every part and its checks." />;
   const { health, contrast, rows, fixes, fixCount, n } = model;
   const pairs = [rows.slice(0, 2), rows.slice(2, 4), rows.slice(4, 6)];
   return (
     <>
+      {/* Control bar, as on Work: the last check and Check again, one group on the left. */}
+      <Flow direction="row" gap={8} align="center">
+        {checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
+        <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon onClick={onCheck}>
+          Check again
+        </Button>
+      </Flow>
       <GateBanner run={run} />
       <Flow span={4} gap={24} fill>
         {health ? (

@@ -28,11 +28,13 @@ const EMPTY_STATS = [
 ];
 
 /* The card's own action, by state, as Figma places it: on the head line
-   (Run on 9, Stop, Send back) or in a footer at the bottom right (your call). */
+   (Run on 9, Stop, Send back) or in a footer at the bottom right (your call).
+   All secondary: the page's one primary is "New fix" in the PageHeader
+   (19 Nov audit, one primary per view). */
 const HEAD_ACTION = {
-  suggested: { label: 'Run on 9', variant: 'primary' },
+  suggested: { label: 'Run on 9', variant: 'secondary' },
   running: { label: 'Stop', variant: 'secondary' },
-  'gate-fails': { label: 'Send back', variant: 'primary' },
+  'gate-fails': { label: 'Send back', variant: 'secondary' },
 };
 
 function Banner({ state }) {
@@ -86,7 +88,7 @@ function FixCard({ state }) {
             <Button variant="secondary" size="sm">
               Undo
             </Button>
-            <Button variant="primary" size="sm">
+            <Button variant="secondary" size="sm">
               Accept
             </Button>
           </Flow>
