@@ -16,6 +16,8 @@ import { bellaPairs } from '../../scripts/lib/bella-pairs.mjs';
 function pairsLine() {
   try {
     const r = bellaPairs(BELLA);
+    // a failing run prints no count, only how many fail ("contrast pairs: 1 failing")
+    if (!r.checked) return r.summary?.match(/(\d+) failing/) ? `The pairs check fails: ${r.summary.match(/(\d+) failing/)[1]} failing across 4 themes.` : 'The pairs check didn’t report a count.';
     return `${r.checked} pairs checked across 4 themes${r.ok ? ', all clear the bar' : ''}.`;
   } catch {
     return 'Not run yet.';
