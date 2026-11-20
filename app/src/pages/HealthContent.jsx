@@ -17,9 +17,11 @@ import ListRow from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
+import Tag from '@bella/components/Tag/Tag';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useState } from 'react';
 import Flow from '../templates/Flow.jsx';
+import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 import { TARGET } from './healthModel.js';
 
@@ -41,6 +43,59 @@ function NoData({ title, icon, tone, mark, empty, line }) {
       <Flow gap={8}>
         <SectionHead size="card" icon={icon} iconTone={tone} title={title} titleLevel={3} />
         <EmptyState size="lane" mark={mark} title={empty} line={line} />
+      </Flow>
+    </Card>
+  );
+}
+
+/* Figma's Drift from BELLA card (601:109235): how many parts differ from Figma,
+   the worst as chips, when it was compared and the action. Real data from
+   /figma-baseline; with no baseline the same layout says so in one line
+   (audit 10: Figma's layout, an honest empty line, no stray icon). */
+const SHOW = 3;
+function DriftCard() {
+  const { data, reload } = useCached(['/figma-baseline']);
+  const [busy, setBusy] = useState(false);
+  const base = data?.[0] ?? null;
+  const rows = (base?.rows ?? []).filter((r) => r.found);
+  const differ = rows.filter((r) => r.failing.length).sort((a, b) => (a.score ?? 0) - (b.score ?? 0));
+  const running = busy || !!base?.running;
+  const compare = () => {
+    setBusy(true);
+    fetch('/figma-baseline/run', { method: 'POST', headers: { 'content-type': 'application/json' } })
+      .catch(() => {})
+      .finally(() => {
+        setBusy(false);
+        reload();
+      });
+  };
+  const footer = base?.at ? `Compared ${new Date(base.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Not run';
+  return (
+    <Card
+      footerText={footer}
+      footerAction={
+        <Button variant="secondary" size="sm" onClick={compare} disabled={running}>
+          {running ? 'Comparing…' : base?.at ? 'Compare again' : 'Compare now'}
+        </Button>
+      }
+    >
+      <Flow gap={12}>
+        <SectionHead size="card" icon="Activity" iconTone="info" title="Drift from BELLA" titleLevel={3} />
+        {!base?.at ? (
+          <TextStack body="Not compared yet: there is no Figma baseline to measure against." />
+        ) : (
+          <>
+            <TextStack title={rows.length ? `${differ.length} of ${rows.length} parts differ` : 'Figma had none of the parts'} />
+            {differ.length ? (
+              <Flow direction="row" gap={8} wrap>
+                {differ.slice(0, SHOW).map((r) => (
+                  <Tag key={r.id} variant="flat">{r.score != null ? `${r.name} ${r.score}%` : r.name}</Tag>
+                ))}
+                {differ.length > SHOW ? <Tag variant="flat">{`+${differ.length - SHOW}`}</Tag> : null}
+              </Flow>
+            ) : null}
+          </>
+        )}
       </Flow>
     </Card>
   );
@@ -109,7 +164,7 @@ export default function HealthContent({ model, run, checked, onCheck, view: star
       </Flow>
       <Flow span={4} gap={24} fill>
         <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => setView('gate') : undefined} />
-        <NoData title="Drift from BELLA" icon="Activity" tone="info" mark="🧭" empty="Nothing compared yet" line="Take a Figma baseline and I'll spot what drifted." />
+        <DriftCard />
       </Flow>
       <Flow span={4} gap={24} fill>
         {contrast ? (

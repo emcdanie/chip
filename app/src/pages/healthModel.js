@@ -48,7 +48,6 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
     health: n ? { pct: Math.round((passed / total) * 100), passed, total, failing: rows.filter((r) => r.missing.length) } : null,
     gate: last ? { ok: parts.filter(Boolean).length, of: parts.length, when: day(last.committedAt), allPass: last.gate.ok } : null,
     contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,
-    drift: null, // CHIP has no Figma baseline yet (/figma-baseline answers at: null)
     gateDays: gateDays(runs),
     lowest: lowestPair(pairs),
     fixes: rows.filter((r) => r.missing.length).map((r) => ({ id: r.id, title: `${r.missing.length} ${r.some}`, names: names(r.missing), who: WHO[r.id] ?? null, action: r.action, href: r.href })),
