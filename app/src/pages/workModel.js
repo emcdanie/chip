@@ -63,3 +63,19 @@ export function useWork() {
   const model = useMemo(() => (data ? workModel({ needs: data[0].items ?? [], runs: data[1].runs ?? [] }) : null), [data]);
   return { model, error, reload, checked: at ? hhmm(at) : null };
 }
+
+/* The sidebar's filters (her rule "branches filter the board"; the Status rows
+   filter by lane): #/work?branch=<name> keeps the cards on that branch,
+   #/work?lane=<id> keeps that lane. Read from the address, so a sidebar row is a link. */
+export function filterFromHash(hash = window.location.hash) {
+  const q = new URLSearchParams(hash.split('?')[1] ?? '');
+  return { branch: q.get('branch'), lane: q.get('lane') };
+}
+export const LANE_NAMES = { needs: 'Needs you', agent: 'Agent', gate: 'Gate', ready: 'Ready' };
+export function filtered(model, { branch, lane }) {
+  if (!model || (!branch && !lane)) return model;
+  const lanes = model.lanes
+    .filter((l) => !lane || l.id === lane)
+    .map((l) => (branch ? { ...l, cards: l.cards.filter((c) => c.branch === branch) } : l));
+  return { ...model, lanes, total: lanes.reduce((n, l) => n + l.cards.length, 0) };
+}

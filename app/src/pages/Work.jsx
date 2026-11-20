@@ -6,7 +6,7 @@ import { useState } from 'react';
 import Screen from '../templates/Screen.jsx';
 import { projectTabs } from '../templates/projectViews.js';
 import WorkContent from './WorkContent.jsx';
-import { useWork } from './workModel.js';
+import { filtered, filterFromHash, useWork } from './workModel.js';
 
 /** model and view: for stories; the page reads CHIP's data when no model is given. */
 export default function Work({ model: given, view: startView = 'board' }) {
@@ -20,7 +20,7 @@ export default function Work({ model: given, view: startView = 'board' }) {
       header={{ title: 'CHIP' }}
       tabs={projectTabs('work')}
     >
-      <WorkContent model={given ?? live.model} view={view} onView={setView} checked={given ? '10:29' : live.checked} onCheck={live.reload} />
+      <WorkContent model={given ?? filtered(live.model, filterFromHash())} filter={given ? {} : filterFromHash()} view={view} onView={setView} checked={given ? '10:29' : live.checked} onCheck={live.reload} />
     </Screen>
   );
 }

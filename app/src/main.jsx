@@ -59,7 +59,7 @@ function Root() {
   if (hash.split('?')[0] === '#/connectors') return <Connectors />;
   if (hash === '#/system-map') return <SystemMap />;
   if (hash === '#/foundations') return <Foundations />;
-  if (hash === '#/work') return <Work />;
+  if (hash.split('?')[0] === '#/work') return <Work />;
   if (hash.split('?')[0] === '#/components' || hash.startsWith('#/components/')) return <Components />;
   return <App />;
 }

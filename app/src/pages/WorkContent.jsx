@@ -32,6 +32,7 @@ import Button from '@bella/components/Button/Button';
 import { useState } from 'react';
 import Flow from '../templates/Flow.jsx';
 import WorkDrawer from './WorkDrawer.jsx';
+import { LANE_NAMES } from './workModel.js';
 import useNarrow from '../templates/useNarrow.js';
 
 export const VIEWS = [
@@ -138,7 +139,7 @@ function useMove() {
   return { dragging, setDragging, menu, setMenu, starting, send, notice, setNotice };
 }
 
-export default function WorkContent({ model, view = 'board', onView, checked, onCheck, loading }) {
+export default function WorkContent({ model, filter = {}, view = 'board', onView, checked, onCheck, loading }) {
   const phone = useNarrow();
   const [briefShut, setBriefShut] = useState(false);
   // what a card, row or the brief opened: the drawer in this shell, never the old app
@@ -159,7 +160,13 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
       {/* the switch keeps the right end at every width: the left group wraps, never the bar (audit 10 at 1024 and 1100); below 800 it stacks, the switch on its own row at the right */}
       <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'} grow={phone ? undefined : 'first'}>
         <Flow direction="row" gap={16} wrap align="center">
-          <TextStack title={`All branches · ${model ? model.total : '…'} tasks`} />
+          {/* what the board shows: all branches, or the sidebar's branch or status, with the way back */}
+          <TextStack title={`${filter.branch ?? (filter.lane ? LANE_NAMES[filter.lane] : 'All branches')} · ${model ? model.total : '…'} ${model?.total === 1 ? 'task' : 'tasks'}`} />
+          {filter.branch || filter.lane ? (
+            <Button variant="tertiary" size="sm" href="#/work">
+              Show all
+            </Button>
+          ) : null}
           <Flow direction="row" gap={8} align="center">
             {checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
             <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon onClick={onCheck}>

@@ -39,7 +39,7 @@ if (typeof history !== 'undefined' && 'scrollRestoration' in history) history.sc
 export function openAtTop() {
   window.scrollTo(0, 0);
 }
-import { workModel } from '../pages/workModel.js';
+import { filterFromHash, workModel } from '../pages/workModel.js';
 import { useTheme } from '../theme.js';
 import './Screen.css';
 
@@ -68,6 +68,25 @@ function useShellData() {
   const [p, n, r] = data;
   const { lanes } = workModel({ needs: n?.items ?? [], runs: r?.runs ?? [] });
   return { projects: p?.projects ?? [], lanes: Object.fromEntries(lanes.map((l) => [l.id, l.cards.length])) };
+}
+
+const STATUS_ROWS = [
+  { id: 'needs', label: 'Needs you', tone: 'attention' },
+  { id: 'agent', label: 'Agent', tone: 'info' },
+  { id: 'gate', label: 'Gate', tone: 'neutral' },
+  { id: 'ready', label: 'Ready', tone: 'success' },
+];
+
+/* A project folder and, while open, its branches. A branch row filters Work's
+   board to that branch (her rule "branches filter the board"). */
+function ProjectTree({ p, current, open, onToggle, branch }) {
+  const branches = useBranches(open ? p.id : null);
+  return (
+    <Fragment>
+      <TreeItem kind="folder" label={p.name} open={open} current={current} onClick={onToggle} />
+      {open ? branches.map((b, i) => <TreeItem key={b.name} kind="branch" label={b.name} status={b.status} lineBelow={i < branches.length - 1} href={`#/work?branch=${encodeURIComponent(b.name)}`} current={branch === b.name} />) : null}
+    </Fragment>
+  );
 }
 
 /* The open project's branches for the tree under it (Figma's project panel):
@@ -152,13 +171,24 @@ export default function Screen({ place, header, tabs, children }) {
   const { projects, lanes } = useShellData();
   const needs = lanes?.needs ?? null;
   const current = projects?.find((p) => p.id === 'chip') ?? projects?.[0];
-  const branches = useBranches(current?.id);
   const panelOut = useNarrow(1024);
   const phone = useNarrow();
   // below 400 the field would read "Sea": a search button that opens the field across the bar
   const tiny = useNarrow(400);
   const [searching, setSearching] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
+  // folders open and close; the open project starts open, the others closed
+  const [opened, setOpened] = useState(() => new Set());
+  const [shut, setShut] = useState(() => new Set());
+  const toggle = (p, isCurrent) => {
+    const flip = (set) => {
+      const next = new Set(set);
+      next.has(p.id) ? next.delete(p.id) : next.add(p.id);
+      return next;
+    };
+    isCurrent ? setShut(flip) : setOpened(flip);
+  };
+  const filter = filterFromHash();
   const panel = (
     <ProjectPanel
       switcher={<ClientSwitcher name="BELLA" caption="Design system" />}
@@ -166,20 +196,17 @@ export default function Screen({ place, header, tabs, children }) {
         projects == null ? null : (
           <>
             {projects.map((p) => (
-              <Fragment key={p.id}>
-                <TreeItem kind="folder" label={p.name} open={p === current} current={p === current} />
-                {p === current ? branches.map((b, i) => <TreeItem key={b.name} kind="branch" label={b.name} status={b.status} lineBelow={i < branches.length - 1} />) : null}
-              </Fragment>
+              <ProjectTree key={p.id} p={p} current={p === current} open={p === current ? !shut.has(p.id) : opened.has(p.id)} onToggle={() => toggle(p, p === current)} branch={filter.branch} />
             ))}
           </>
         )
       }
       status={
         <>
-          <TreeItem kind="status" label="Needs you" tone="attention" count={lanes?.needs} showCount={lanes != null} />
-          <TreeItem kind="status" label="Agent" tone="info" count={lanes?.agent} showCount={lanes != null} />
-          <TreeItem kind="status" label="Gate" tone="neutral" count={lanes?.gate} showCount={lanes != null} />
-          <TreeItem kind="status" label="Ready" tone="success" count={lanes?.ready} showCount={lanes != null} />
+          {/* each Status row filters Work's board to its lane (user test 21 Nov, item 4) */}
+          {STATUS_ROWS.map((r) => (
+            <TreeItem key={r.id} kind="status" label={r.label} tone={r.tone} count={lanes?.[r.id]} showCount={lanes != null} href={`#/work?lane=${r.id}`} current={filter.lane === r.id} />
+          ))}
         </>
       }
     />
