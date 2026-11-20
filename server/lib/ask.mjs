@@ -50,6 +50,8 @@ Tone: spare, declarative. No filler, no preamble, no praise, no emoji, no traili
 
 Answer ONLY from the sources in the message (each starts with "[n] <title>"). Rules:
 - Cite every claim with its source number in brackets, e.g. [1] or [2][3]. Each number is one source. Never write source titles in the answer.
+- Cite only the source that states that claim. If no source states it, leave the claim out. Do not reuse [1] for claims that come from other sources.
+- Never contradict a source or yourself: the verdict and every bullet must agree with each other and with the sources they cite. If the sources disagree, say which says what.
 - If a pronoun (he, she, they, it, this) cannot be resolved from earlier turns or from the page the user is looking at, do not guess: ask who or what is meant, in one sentence, and stop.
 - If the sources do not answer the question, say plainly: "Nothing in my sources covers that." Then stop, or add one line marked "General knowledge, not your sources:".
 - Never invent data: no numbers, percentages, ticket IDs, dates, people or platform status that are not in the sources.
@@ -57,7 +59,7 @@ Answer ONLY from the sources in the message (each starts with "[n] <title>"). Ru
 - Some CHIP docs describe the April 2026 hackathon demo (47 components, iOS/Android parity, Jira tickets). That scenario is synthetic. Never report its numbers as real; if it is the only match, say it is demo data.
 - Jira, Figma, Zeroheight and live Storybook are not connected. Say so if asked about them.
 
-Format (answers are scanned, not read): the first line is the verdict, one sentence, with its key phrase in **bold**. Then at most 3 "- " bullets with the detail, each starting with a short bold label and a colon ("- **Contrast passes:** 373 pairs"), a real number where the sources give one. No headings, no other bold. Under 90 words.`;
+Format (answers are scanned, not read): the first line is the verdict, one sentence, with its key phrase in **bold**. Then at most 3 "- " bullets with the detail, each starting with a short bold label and a colon ("- **Contrast passes:** 373 pairs"), a real number where the sources give one. No headings, no other bold. Under 90 words. Last line: "Next: " then two short follow-up questions the same sources can answer, separated by " | ".`;
 
 // the SYSTEM prompt's fallback line, cut where it starts (a record's answer never carries it)
 export const withoutFallback = (t) => String(t).split(/\n?\s*General knowledge, not your sources:/i)[0].trim();
@@ -203,7 +205,13 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
     const priv = usedPrivate || (place === 'local' && quotesPack(reply));
     sessions.set(id, [...stored, { role: 'user', content: message, place, private: priv }, { role: 'assistant', content: reply, place, private: priv }].slice(-HISTORY_TURNS));
   };
-  return { id, top, heldBack, keptLocal, messages, turns, sources: [...nums.values()], remember };
+  // each source's full text as the model saw it, for checking what the answer cites
+  const texts = new Map();
+  for (const c of chunks) {
+    const n = nums.get(keyOf(c)).n;
+    texts.set(n, `${texts.get(n) ?? ''} ${c.title} ${c.text}`);
+  }
+  return { id, top, heldBack, keptLocal, messages, turns, sources: [...nums.values()], texts, remember };
 }
 
 export async function ask(message, sessionId, page) {
@@ -213,6 +221,48 @@ export async function ask(message, sessionId, page) {
   const reply = await chat(messages);
   remember(reply);
   return { reply, sessionId: id, sources };
+}
+
+// An answer true to its sources (audit 21 Nov: three bullets all cited [1], which said none of
+// them). Each line's pins are checked against the sources' own text: a pin stays where that
+// source holds the line's numbers (or, with none, shares its words); otherwise the line is
+// pinned to the source that does; a bullet whose numbers no source holds is dropped. The
+// verdict keeps its words and loses only pins that don't hold.
+const WORD = /[a-z][a-z0-9:./-]{3,}/g;
+const STOP = new Set(['that', 'this', 'with', 'from', 'have', 'they', 'their', 'there', 'which', 'would', 'could', 'should', 'about', 'into', 'than', 'then', 'them', 'also', 'more', 'most', 'some', 'each', 'every', 'only', 'other', 'were', 'what', 'when', 'where', 'will', 'your', 'bella', 'chip']);
+export function checkCitations(reply, texts) {
+  if (!texts?.size) return reply;
+  const lower = new Map([...texts].map(([n, t]) => [n, t.toLowerCase()]));
+  const holds = (n, nums, words) => {
+    const t = lower.get(n);
+    if (!t) return 0;
+    if (nums.length) return nums.every((x) => t.includes(x)) ? 2 : 0;
+    return words.filter((w) => t.includes(w)).length >= Math.min(2, words.length) ? 1 : 0;
+  };
+  return String(reply)
+    .split('\n')
+    .map((line) => {
+      const cited = [...line.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1]));
+      if (!cited.length || /^\s*Next:/i.test(line)) return line;
+      const bare = line.replace(/\[\d+\]/g, '').replace(/\*\*/g, '');
+      const nums = bare.match(/\d[\d.,]*\d|\d/g)?.filter((x) => !/^[0-3]$/.test(x)) ?? [];
+      const words = [...new Set((bare.toLowerCase().match(WORD) ?? []).filter((w) => !STOP.has(w)))];
+      const good = [...new Set(cited.filter((n) => holds(n, nums, words)))];
+      const bullet = /^\s*[-*•]\s/.test(line);
+      let keep = good;
+      if (!keep.length) {
+        const best = [...lower.keys()].map((n) => [n, holds(n, nums, words)]).filter(([, h]) => h).sort((a, b) => b[1] - a[1])[0];
+        keep = best ? [best[0]] : [];
+      }
+      if (!keep.length && bullet && nums.length) return null; // a number no source holds: never shown
+      const pins = keep.map((n) => `[${n}]`).join('');
+      // the pins go where the model put its first one
+      const at = line.search(/\s*\[\d+\]/);
+      const without = line.replace(/\s*\[\d+\]/g, '');
+      return pins ? `${without.slice(0, at)} ${pins}${without.slice(at)}`.replace(/\s+$/, '') : without;
+    })
+    .filter((l) => l != null)
+    .join('\n');
 }
 
 // Streaming: { type: 'provider' } (who answers), { type: 'private' } when
@@ -230,7 +280,7 @@ export async function* askStream(message, sessionId, page, opts = {}) {
     yield { type: 'weak', closest: prep.closest, top: prep.top, sessionId: prep.id };
     return;
   }
-  let { id, turns, sources, remember } = prep;
+  let { id, turns, sources, texts, remember } = prep;
   yield { type: 'sources', sources, sessionId: id, top: prep.top };
   const stats = {}; // { prompt, output } tokens, filled by the provider
   const run = async function* (p, m) {
@@ -249,7 +299,7 @@ export async function* askStream(message, sessionId, page, opts = {}) {
     // a local answer may read every source again, private ones included
     const again = await prepare(message, id, page, { record: opts.record });
     if (!again.weak) {
-      ({ turns, sources, remember } = again);
+      ({ turns, sources, texts, remember } = again);
       yield { type: 'sources', sources, sessionId: id, top: again.top };
     }
     gen = run(provider, model);
@@ -269,5 +319,8 @@ export async function* askStream(message, sessionId, page, opts = {}) {
   // asked about one record, the answer is that record's only: a "General knowledge" line goes,
   // and with it anything after it (audit 21 Nov: "General knowledge, not your sources: The commit doesn't say.")
   if (opts.record) reply = withoutFallback(reply);
-  yield { type: 'done', reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
+  // the "Next:" line is the follow-up questions, never part of the answer: it goes out on its own
+  const next = (reply.match(/^\s*Next:\s*(.+)$/im)?.[1] ?? '').split('|').map((q) => q.replace(/\*\*/g, '').trim()).filter((q) => q.length > 3 && q.length < 80).slice(0, 2);
+  reply = checkCitations(reply.replace(/^\s*Next:.*$/gim, ''), texts);
+  yield { type: 'done', next, reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }

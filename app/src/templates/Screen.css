@@ -240,6 +240,13 @@
 
 /* Toasts (Toasts.jsx): bottom right, above the page, 24 from the edges, stacked 8 apart */
 .chip-toasts {
+  /* a manual popover (Toasts.jsx): the browser's popover box reset, our place kept */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  inset: auto;
   position: fixed;
   inset-inline-end: var(--layout-gutter);
   inset-block-end: var(--layout-gutter);

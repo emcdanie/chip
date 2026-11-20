@@ -13,72 +13,22 @@
 // question mid-run (runs are headless), so no permission bubbles are drawn.
 import { useEffect, useRef, useState } from 'react';
 import ChatThread, { ChatThreadDelivered, ChatThreadTimestamp } from '@bella/components/ChatThread/ChatThread';
-import ChatBubble, { ReactionBar } from '@bella/components/ChatBubble/ChatBubble';
+import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
+import AvatarStack from '@bella/components/AvatarStack/AvatarStack';
 import TypingDots from '@bella/components/TypingDots/TypingDots';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
-import { Ticks, Words, shapeReply } from './useAsk.jsx';
+import { BELLA_DISC, NotAnswered, Reply, Ticks, Words, sendToAgent, shapeReply } from './useAsk.jsx';
+
+// Team draws its replies with the same bubble
+export { Reply };
 
 const hhmm = (t = new Date()) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const SEND = /^\s*(please\s+)?send (it|this) to the agent\b/i;
 // a run's steps as the agent's words: where it is, then what it did
 const RUN_WORDS = { starting: 'Starting', running: 'Working', gate: 'Checking through BELLA’s gate', passed: 'Done. The gate passed.', failed: 'Stopped', login: 'I need Claude Code signed in on this Mac' };
-
-/* What the agent gets: the question, the answer it rests on, and its sources. Nothing to type. */
-function briefOf(turn) {
-  const { verdict, bullets } = turn.answer.verdict ? { verdict: turn.answer.verdict, bullets: turn.answer.bullets ?? [] } : shapeReply(turn.answer.reply ?? '');
-  const clean = (t) => String(t).replace(/\*\*|\[\d+\]/g, '').trim();
-  return [
-    `Do this in BELLA: ${clean(verdict)}`,
-    ...bullets.map((b) => `- ${clean(b)}`),
-    turn.answer.sources?.length ? `Sources: ${turn.answer.sources.map((s) => s.title).join('; ')}` : null,
-    `Asked in CHIP: ${turn.answer.q}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
-/**
- * A reply in any CHIP chat (Terminal, Team): the received bubble, its sender's name over
- * the first of a run, and the smiley that opens the coloured reaction bar; the badge stays
- * on the bubble. extra: more actions after the smiley (a chip such as "Send it to the agent").
- */
-export function Reply({ who, tail = true, extra, children }) {
-  const [react, setReact] = useState(false);
-  const [reaction, setReaction] = useState(null);
-  return (
-    <Flow gap={8}>
-      <ChatBubble
-        side="received"
-        tail={tail}
-        senderName={who}
-        reactions={reaction ? [reaction] : undefined}
-        actions={
-          <Flow direction="row" gap={8} wrap align="center">
-            <Button variant="tertiary" size="sm" iconOnly icon="EmojiTalkingHappy" ariaLabel={reaction ? `Your reaction: ${reaction}. Change it` : 'React'} ariaExpanded={react} onClick={() => setReact((r) => !r)} />
-            {extra}
-          </Flow>
-        }
-      >
-        {children}
-      </ChatBubble>
-      {react ? (
-        <Flow direction="row">
-          <ReactionBar
-            label={`React to ${who ?? 'this reply'}`}
-            selected={reaction ? [reaction] : []}
-            onReact={(r) => {
-              setReaction((was) => (was === r ? null : r));
-              setReact(false);
-            }}
-          />
-        </Flow>
-      ) : null}
-    </Flow>
-  );
-}
 
 /* One agent run, as the agent's bubbles: its steps so far, then its outcome; polled while it works. */
 function AgentRun({ id, onOpen }) {
@@ -118,7 +68,7 @@ function AgentRun({ id, onOpen }) {
           <TextStack subtitle={run.step ?? RUN_WORDS[run.status]} />
         </Flow>
       ) : (
-        <ChatBubble side="received" tail actions={<ActionChip onClick={() => onOpen({ kind: 'run', id })}>Open the run</ActionChip>}>
+        <ChatBubble side="received" tail disc="var(--color-background-subtle)" actions={<ActionChip onClick={() => onOpen({ kind: 'run', id })}>Open the run</ActionChip>}>
           {outcome}
         </ChatBubble>
       )}
@@ -145,27 +95,11 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
         </Flow>
       ) : null}
       {a?.status === 'answer' ? (
-        <Reply who="BELLA" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
+        <Reply who="BELLA" disc={BELLA_DISC} extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
           <Words text={[shaped.verdict, ...shaped.bullets].join(' ')} />
         </Reply>
       ) : null}
-      {a?.status === 'weak' || a?.status === 'error' || a?.status === 'stopped' ? (
-        <ChatBubble
-          side="received"
-          tail
-          senderName="BELLA"
-          actions={
-            onRetry ? (
-              <Flow direction="row" gap={8} wrap>
-                {a.status === 'weak' ? <ActionChip onClick={() => onRetry('claude')}>Ask Claude</ActionChip> : null}
-                <ActionChip onClick={() => onRetry()}>Try again</ActionChip>
-              </Flow>
-            ) : undefined
-          }
-        >
-          {a.status === 'weak' ? 'No source in BELLA says that.' : a.status === 'stopped' ? 'Stopped. Your message is kept.' : `${a.error} Your message is kept.`}
-        </ChatBubble>
-      ) : null}
+      {a?.status === 'weak' || a?.status === 'error' || a?.status === 'stopped' ? <NotAnswered a={a} onRetry={onRetry} /> : null}
     </Flow>
   );
 }
@@ -174,7 +108,7 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
  * asker: a useAsk({ thread: true }) of its own. onOpen(item): what a run opens (WorkDrawer).
  * Returns the thread and `say(text)` for the composer through the ref handed in as `sayRef`.
  */
-export default function TermChat({ asker, provider, onOpen, sayRef, onNotice }) {
+export default function TermChat({ asker, provider, where, onOpen, sayRef, onNotice }) {
   // each turn: her words, when, and the run she sent it to; BELLA's answer comes from asker
   const [turns, setTurns] = useState([]);
   const end = useRef(null);
@@ -183,10 +117,8 @@ export default function TermChat({ asker, provider, onOpen, sayRef, onNotice }) 
     const at = hhmm();
     setTurns((t) => [...t, { text: 'Send it to the agent.', at, agentFor: turn.i }]);
     try {
-      const r = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief: briefOf(turn), title: String(turn.answer.q).slice(0, 90), from: 'Work panel' }) });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error ?? String(r.status));
-      setTurns((t) => t.map((x) => (x.agentFor === turn.i && !x.run ? { ...x, run: d.id } : x)));
+      const id = await sendToAgent(turn.answer);
+      setTurns((t) => t.map((x) => (x.agentFor === turn.i && !x.run ? { ...x, run: id } : x)));
       onNotice?.({ tone: 'success', text: 'Sent to the agent. Its card is in the Agent lane.' });
     } catch (e) {
       setTurns((t) => t.map((x) => (x.agentFor === turn.i && !x.run ? { ...x, runError: `I couldn’t start: ${e.message}` } : x)));
@@ -205,6 +137,12 @@ export default function TermChat({ asker, provider, onOpen, sayRef, onNotice }) 
   let k = -1;
   const rows = turns.map((t) => (t.agentFor == null ? { ...t, i: ++k, answer: answers[k] } : { ...t, answer: null }));
   return (
+    <Flow gap={16}>
+      {/* her mock's header: who is in this chat, then where it works and on which model */}
+      <Flow gap={8} align="center">
+        <AvatarStack members={[{ name: 'BELLA' }, { name: 'Agent' }]} size="sm" />
+        <TextStack title="BELLA and the agent" subtitle={where} />
+      </Flow>
     <ChatThread label="BELLA and the agent">
       {rows.length ? <ChatThreadTimestamp boldWord="Today">{rows[0].at}</ChatThreadTimestamp> : null}
       {rows.map((t, n) =>
@@ -218,11 +156,12 @@ export default function TermChat({ asker, provider, onOpen, sayRef, onNotice }) 
               </ChatBubble>
               {n === rows.length - 1 ? <ChatThreadDelivered>{`${t.at} · read`}</ChatThreadDelivered> : null}
             </Flow>
-            {t.run ? <AgentRun id={t.run} onOpen={onOpen} /> : t.runError ? <ChatBubble side="received" senderName="Agent">{t.runError}</ChatBubble> : <TypingDots name="the agent" />}
+            {t.run ? <AgentRun id={t.run} onOpen={onOpen} /> : t.runError ? <ChatBubble side="received" senderName="Agent" disc="var(--color-background-subtle)">{t.runError}</ChatBubble> : <TypingDots name="the agent" />}
           </Flow>
         ),
       )}
       <span ref={end} />
     </ChatThread>
+    </Flow>
   );
 }

@@ -32,7 +32,7 @@ import Flow from './Flow.jsx';
 import Toasts from './Toasts.jsx';
 import useCached from './useCached.js';
 import useNarrow from './useNarrow.js';
-import useAsk, { AskAnswer } from './useAsk.jsx';
+import useAsk, { AskAnswer, sendToAgent } from './useAsk.jsx';
 import { workModel } from '../pages/workModel.js';
 import WorkDrawer from '../pages/WorkDrawer.jsx';
 import ChatThread from '@bella/components/ChatThread/ChatThread';
@@ -179,14 +179,25 @@ export default function WorkDock() {
     who.clear();
     setNotice({ tone: 'info', text: 'Chat cleared', undo: () => who.restore(kept) });
   };
-  const chatBar = (who) =>
-    who.answer ? (
-      <Flow direction="row" justify="end">
-        <Button variant="tertiary" size="sm" onClick={() => newChat(who)}>
-          New chat
-        </Button>
-      </Flow>
-    ) : null;
+  // Fix on an answer hands it to the agent (the model menu waits on its part, round 7)
+  const [fixing, setFixing] = useState(false);
+  const fix = async (answer) => {
+    setFixing(true);
+    try {
+      await sendToAgent(answer);
+      setNotice({ tone: 'success', text: 'Sent to the agent. Its card is in the Agent lane.' });
+      reload();
+    } catch (e) {
+      setNotice({ tone: 'danger', text: `Not sent: ${e.message}` });
+    } finally {
+      setFixing(false);
+    }
+  };
+  const ask = (q) => asker.ask(q, window.location.hash || '#/work', undefined, undefined, providerOf(model));
+  // where the terminal works and on which model, as her mock's header line
+  const models = useCached(['/models']).data?.[0]?.models ?? [];
+  const local = models.find((m) => m.place === 'local' && m.isDefault)?.label;
+  const where = model === 'claude' ? `BELLA · ${models.find((m) => m.id === 'claude')?.label ?? 'Claude'}, in the cloud` : local ? `BELLA · ${local} on this Mac` : 'BELLA · the local model on this Mac';
 
   const tabs = [
     { id: 'needs', label: 'Needs you', count: needs?.length },
@@ -194,12 +205,24 @@ export default function WorkDock() {
     { id: 'term', label: 'Terminal' },
     { id: 'ask', label: 'Ask BELLA' },
   ];
-  const status = {
+  const statusWords = {
     needs: needs ? (needs.length ? `Needs you · ${needs.length} ${needs.length === 1 ? 'thing' : 'things'}, failures first` : 'Needs you · nothing') : 'Needs you · reading',
     sessions: sessions ? `Sessions · ${sessions.length}, newest first` : 'Sessions · reading',
     term: 'Terminal · BELLA and the agent',
     ask: 'Ask BELLA · from CHIP’s data first',
   }[tab];
+  // New chat sits in the head, on the status line (the Drawer has no head action yet: parts-motion's amend)
+  const chatOf = tab === 'ask' ? asker : tab === 'term' ? termAsker : null;
+  const status = chatOf?.answer ? (
+    <Flow as="span" direction="row" justify="between" align="center" gap={8} wrap>
+      {statusWords}
+      <Button variant="tertiary" size="sm" onClick={() => newChat(chatOf)}>
+        New chat
+      </Button>
+    </Flow>
+  ) : (
+    statusWords
+  );
 
   const composer = (
     <Flow direction="row" gap={8} align="end" wrap grow="last">
@@ -238,28 +261,22 @@ export default function WorkDock() {
     term: (
       <Flow gap={16}>
         <Flow direction="row" justify="end" align="center" gap={8} wrap>
-          {termAsker.answer ? (
-            <Button variant="tertiary" size="sm" onClick={() => newChat(termAsker)}>
-              New chat
-            </Button>
-          ) : null}
           <Button variant="secondary" size="sm" onClick={newShell}>
             New shell
           </Button>
         </Flow>
         {termAsker.answer ? null : <EmptyState size="lane" mark="👋" title="Message BELLA" line="Ask anything, then say “send it to the agent” and it gets on with it." />}
-        <TermChat asker={termAsker} provider={providerOf(model)} onOpen={setItem} sayRef={say} onNotice={setNotice} />
+        <TermChat asker={termAsker} provider={providerOf(model)} where={where} onOpen={setItem} sayRef={say} onNotice={setNotice} />
       </Flow>
     ),
     ask: asker.answer ? (
       <Flow gap={16}>
-        {chatBar(asker)}
         <ChatThread label="Ask BELLA">
           <Flow gap={24}>
             {asker.past.map((a, i) => (
               <AskAnswer key={`${a.q}-${i}`} answer={a} />
             ))}
-            <AskAnswer answer={asker.answer} onRetry={(p) => asker.retry(p ?? providerOf(model))} onStop={asker.stop} />
+            <AskAnswer answer={asker.answer} onRetry={(p) => asker.retry(p ?? providerOf(model))} onStop={asker.stop} onFollow={ask} onFix={() => !fixing && fix(asker.answer)} fixLabel="Fix" fixBusy={fixing} />
           </Flow>
         </ChatThread>
       </Flow>
@@ -270,7 +287,7 @@ export default function WorkDock() {
         title="Ask about BELLA, in plain words"
         line="Go on, ask away. I’ll show you where I got it, so you know I’m not making it up."
         actions={
-          <Button variant="primary" onClick={() => asker.ask(EXAMPLE, window.location.hash || '#/work', undefined, undefined, providerOf(model))}>
+          <Button variant="primary" onClick={() => ask(EXAMPLE)}>
             Try an example
           </Button>
         }
@@ -278,6 +295,13 @@ export default function WorkDock() {
     ),
   }[tab];
 
+  const toast = notice ? (
+    <Toasts>
+      <Toast tone={notice.tone} onClose={() => setNotice(null)} action={notice.undo ? { label: 'Undo', onClick: () => (notice.undo(), setNotice(null)) } : undefined}>
+        {notice.text ?? `${notice.title}. ${notice.message}`}
+      </Toast>
+    </Toasts>
+  ) : null;
   return (
     <>
       <Drawer open={open} onClose={() => setOpen(false)} side="right" size="lg" label="Work" status={status} footer={composer}>
@@ -285,15 +309,11 @@ export default function WorkDock() {
           <Tabs tabs={tabs} value={tab} onChange={setTab} label="Work panel" idBase="work-dock" />
           <div {...tabPanelProps('work-dock', tab, true)}>{body}</div>
         </Flow>
+        {/* inside the panel while it is open: a modal panel makes the page around it inert, so Undo works only from in here */}
+        {toast}
       </Drawer>
       <WorkDrawer item={item} onClose={() => setItem(null)} onNotice={(n) => setNotice(n)} onChanged={reload} />
-      {notice ? (
-        <Toasts>
-          <Toast tone={notice.tone} onClose={() => setNotice(null)} action={notice.undo ? { label: 'Undo', onClick: () => (notice.undo(), setNotice(null)) } : undefined}>
-            {notice.text ?? `${notice.title}. ${notice.message}`}
-          </Toast>
-        </Toasts>
-      ) : null}
+      {open ? null : toast}
     </>
   );
 }

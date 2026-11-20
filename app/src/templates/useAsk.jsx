@@ -24,7 +24,6 @@ import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
 import { ChatThreadDelivered, ThinkingList, ThinkingTick } from '@bella/components/ChatThread/ChatThread';
 import { ReactionBar } from '@bella/components/ChatBubble/ChatBubble';
 import TypingDots from '@bella/components/TypingDots/TypingDots';
-import Notification from '@bella/components/Notification/Notification';
 import Step from '@bella/components/Step/Step';
 import Pin from '@bella/components/Pin/Pin';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
@@ -156,6 +155,7 @@ export default function useAsk({ thread = false } = {}) {
             const all = (ev.sources ?? sources).slice(0, 4);
             set({
               status: 'answer',
+              next: ev.next ?? [],
               reply: record ? noFallback(ev.reply || reply) : ev.reply || reply,
               sources: all,
               model: ev.model ?? null,
@@ -222,10 +222,17 @@ function Citation({ sources, at, onMove, onClose }) {
   const findings = s.findings ?? (s.passage ? [{ text: String(s.passage).split(/(?<=[.!?])\s/)[0] }] : []);
   // focus moves into the source as it opens (so Tab reads it next), and Esc closes it from anywhere
   useEffect(() => box.current?.focus(), []);
+  // Esc closes the source only: caught first (window, capture) and stopped, so a Drawer the
+  // thread sits in (the Work panel) never closes with it; focus goes back to the pin
   useEffect(() => {
-    const esc = (e) => e.key === 'Escape' && onClose();
-    document.addEventListener('keydown', esc);
-    return () => document.removeEventListener('keydown', esc);
+    const esc = (e) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      onClose();
+    };
+    window.addEventListener('keydown', esc, true);
+    return () => window.removeEventListener('keydown', esc, true);
   }, [onClose]);
   const when = s.when ? `${day(s.when)} ${new Date(s.when).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : null;
   return (
@@ -275,9 +282,111 @@ export function Ticks({ steps, label = 'What BELLA is doing' }) {
   );
 }
 
+/**
+ * A reply in any CHIP chat (Ask, Terminal, Team): the received bubble, its sender's name over
+ * the first of a run, a disc for who is talking, and the smiley that opens the coloured reaction
+ * bar; the badge stays on the bubble. extra: more actions after the smiley.
+ * Gap: the bubble's disc is a colour only; BELLA's "B" (her mock) waits on the part.
+ */
+export function Reply({ who, disc, tail = true, extra, children }) {
+  const [react, setReact] = useState(false);
+  const [reaction, setReaction] = useState(null);
+  return (
+    <Flow gap={8}>
+      <ChatBubble
+        side="received"
+        tail={tail}
+        senderName={who}
+        disc={disc}
+        reactions={reaction ? [reaction] : undefined}
+        actions={
+          <Flow direction="row" gap={8} wrap align="center">
+            <Button variant="tertiary" size="sm" iconOnly icon="EmojiTalkingHappy" ariaLabel={reaction ? `Your reaction: ${reaction}. Change it` : 'React'} ariaExpanded={react} onClick={() => setReact((r) => !r)} />
+            {extra}
+          </Flow>
+        }
+      >
+        {children}
+      </ChatBubble>
+      {react ? (
+        <Flow direction="row">
+          <ReactionBar
+            label={`React to ${who ?? 'this reply'}`}
+            selected={reaction ? [reaction] : []}
+            onReact={(r) => {
+              setReaction((was) => (was === r ? null : r));
+              setReact(false);
+            }}
+          />
+        </Flow>
+      ) : null}
+    </Flow>
+  );
+}
+// BELLA's disc in every chat: the brand's light blue, as her mock's "B"
+export const BELLA_DISC = 'var(--color-background-brand-subtle)';
+
+/**
+ * Not answered, one way in every chat (audit 21 Nov): BELLA says so in her bubble, with the
+ * next step as chips: the bigger model (the model menu's other choice, never "Ask Claude"),
+ * and Try again; a weak answer lists the closest sources under it.
+ */
+export function NotAnswered({ a, onRetry }) {
+  const words = a.status === 'weak' ? 'No source in BELLA says that.' : a.status === 'stopped' ? 'Stopped. Your question is kept.' : `${a.error ?? 'It stopped before it answered.'} Your question is kept.`;
+  const bigger = onRetry && a.model !== 'claude' && !/claude/i.test(a.model ?? '');
+  return (
+    <Flow gap={12}>
+      <Reply
+        who="BELLA"
+        disc={BELLA_DISC}
+        extra={
+          onRetry ? (
+            <>
+              {bigger ? <ActionChip onClick={() => onRetry('claude')}>Try the bigger model</ActionChip> : null}
+              <ActionChip onClick={() => onRetry()}>Try again</ActionChip>
+            </>
+          ) : null
+        }
+      >
+        {words}
+      </Reply>
+      {a.status === 'weak' && a.closest?.length ? (
+        <Flow gap={8}>
+          <TextStack title="Closest" subtitle="match · 1.00 is exact" />
+          <Flow as="ul" gap={4} aria-label="Closest sources">
+            {a.closest.map((s, i) => (
+              <ListRow key={i} layout="inline" title={s.title} value={Number(s.score ?? 0).toFixed(2)} />
+            ))}
+          </Flow>
+        </Flow>
+      ) : null}
+    </Flow>
+  );
+}
+
+/* What the agent gets: the question, the answer it rests on, and its sources. Nothing to type. */
+export function briefOf(answer) {
+  const { verdict, bullets } = answer.verdict ? { verdict: answer.verdict, bullets: answer.bullets ?? [] } : shapeReply(answer.reply ?? '');
+  const clean = (t) => String(t).replace(/\*\*|\[\d+\]/g, '').trim();
+  return [`Do this in BELLA: ${clean(verdict)}`, ...bullets.map((b) => `- ${clean(b)}`), answer.sources?.length ? `Sources: ${answer.sources.map((s) => s.title).join('; ')}` : null, `Asked in CHIP: ${answer.q}`]
+    .filter(Boolean)
+    .join('\n');
+}
+/** Fix: hands an answer to an agent run (POST /runs); resolves to the run's id, or throws with the reason. */
+export async function sendToAgent(answer, from = 'Work panel') {
+  const r = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief: briefOf(answer), title: String(answer.q).slice(0, 90), from }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error ?? String(r.status));
+  return d.id;
+}
+
 /* A model's reply in the answer's shape: the verdict (first sentence, one short bold phrase) and up to 3 bullets. */
 export function shapeReply(reply) {
+  // the prompt's last line, "Next: question | question": the follow-ups, never part of the answer
+  const nextLine = String(reply).match(/^\s*Next:\s*(.+)$/im);
+  const next = nextLine ? nextLine[1].split('|').map((q) => q.replace(/\*\*/g, '').trim()).filter((q) => q.length > 3 && q.length < 80).slice(0, 2) : [];
   const lines = String(reply)
+    .replace(/^\s*Next:.*$/gim, '')
     .replace(/([.!?\]])\s+[-•]\s+(?=[A-Z*])/g, '$1\n- ')
     .split('\n')
     .map((l) => l.trim())
@@ -288,9 +397,12 @@ export function shapeReply(reply) {
   const bold = first.match(/\*\*([^*]+)\*\*/);
   const plainFirst = first.replace(/\*\*/g, '');
   const key = bold && bold[1].length <= 40 && bold[1].length <= plainFirst.length * 0.4;
+  // no bold from the model: the verdict's lead (to its first "to", "by", comma or colon) is the key phrase
+  const lead = plainFirst.match(/^(.{3,40}?)(?=\s(?:to|by|for|in)\s|[,:])/)?.[1];
   return {
-    verdict: key ? plainFirst.replace(bold[1], `**${bold[1]}**`) : plainFirst,
+    verdict: key ? plainFirst.replace(bold[1], `**${bold[1]}**`) : lead ? `**${lead}**${plainFirst.slice(lead.length)}` : plainFirst,
     bullets,
+    next,
   };
 }
 
@@ -298,7 +410,7 @@ export function shapeReply(reply) {
  * The thread for one question, in the mock's states. answer: from useAsk. onRetry(provider?), onStop,
  * onFollow(question), onFix: optional; followUps: questions to offer under an answer; composer: the field.
  */
-export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel = 'Fix', followUps = [], composer }) {
+export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel = 'Fix', fixBusy = false, followUps = [], composer }) {
   // the open source (an index into answer.sources) and the pin that opened it, for focus on close
   const [cite, setCite] = useState(null);
   // copy says so on the button and in a toast (her rule: feedback on the control plus a toast)
@@ -331,7 +443,9 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
   };
   if (!answer) return composer ?? null;
   const a = answer;
-  const shaped = a.verdict ? { verdict: a.verdict, bullets: a.bullets ?? [] } : shapeReply(a.reply ?? '');
+  const shaped = a.verdict ? { verdict: a.verdict, bullets: a.bullets ?? [], next: [] } : shapeReply(a.reply ?? '');
+  // the page's own follow-ups first (from CHIP's data), else the two the model offered
+  const follow = followUps.length ? followUps : a.next?.length ? a.next : shaped.next ?? [];
   // the model cited nothing: its sources show as pins on the verdict, so an answer always says where it came from
   const cited = /\[\d+\]/.test(`${shaped.verdict} ${shaped.bullets.join(' ')}`);
   const stale = (a.sources ?? []).filter((s) => s.stale).length;
@@ -408,8 +522,8 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
             <Button variant="tertiary" size="sm" iconOnly icon="EmojiTalkingHappy" ariaLabel={reaction ? `Your reaction: ${reaction}. Change it` : 'React'} ariaExpanded={reacting} onClick={() => setReacting((r) => !r)} />
           </Flow>
           {onFix ? (
-            <Button variant="primary" size="sm" onClick={onFix}>
-              {fixLabel}
+            <Button variant="primary" size="sm" busy={fixBusy} onClick={onFix}>
+              {fixBusy ? 'Starting…' : fixLabel}
             </Button>
           ) : null}
         </Flow>
@@ -468,43 +582,11 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
         </Flow>
       ) : null}
 
-      {a.status === 'weak' ? (
-        <Flow gap={16}>
-          <Notification tone="attention" title="No source says that" message="Nothing in BELLA's docs is close enough to answer it." action={onRetry ? { label: 'Ask Claude', onClick: () => onRetry('claude') } : undefined} />
-          {a.closest?.length ? (
-            <Flow gap={8}>
-              <TextStack title="Closest" subtitle="match · 1.00 is exact" />
-              <Flow as="ul" gap={4} aria-label="Closest sources">
-                {a.closest.map((s, i) => (
-                  <ListRow key={i} layout="inline" title={s.title} value={Number(s.score ?? 0).toFixed(2)} />
-                ))}
-              </Flow>
-            </Flow>
-          ) : null}
-        </Flow>
-      ) : null}
+      {a.status === 'weak' || a.status === 'error' || a.status === 'stopped' ? <NotAnswered a={a} onRetry={onRetry} /> : null}
 
-      {a.status === 'error' || a.status === 'stopped' ? (
-        <Flow gap={8}>
-          <Notification
-            tone="danger"
-            title={a.status === 'stopped' ? 'Stopped' : `${a.model ?? 'The local model'} didn’t answer`}
-            message={`${a.status === 'error' ? `${a.error} ` : ''}Your question is kept.`}
-            action={onRetry ? { label: 'Try again', onClick: () => onRetry() } : undefined}
-          />
-          {onRetry ? (
-            <Flow direction="row">
-              <Button variant="secondary" size="sm" onClick={() => onRetry('claude')}>
-                Ask Claude instead
-              </Button>
-            </Flow>
-          ) : null}
-        </Flow>
-      ) : null}
-
-      {(a.status === 'answer' || a.status === 'weak') && followUps.length && onFollow ? (
+      {(a.status === 'answer' || a.status === 'weak') && follow.length && onFollow ? (
         <Flow direction="row" gap={8} wrap aria-label="Ask next">
-          {followUps.map((f) => (
+          {follow.map((f) => (
             <ActionChip key={f} onClick={() => onFollow(f)}>
               {f}
             </ActionChip>
