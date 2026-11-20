@@ -54,13 +54,16 @@ const ROLES = [
   { name: 'Status', job: 'only for state', items: [['success', '--color-content-utility-success'], ['attention', '--color-background-utility-warning-mark', 'fill'], ['error', '--color-content-utility-error'], ['warning', '--color-content-utility-warning'], ['info', '--color-content-utility-info']] },
   { name: 'Highlight', job: 'annotation, focus and the logo', items: [['wash', '--color-background-utility-warning', 'fill'], ['focus', '--color-border-focus'], ['pin', '--color-background-accent-1'], ['target', '--color-border-brand'], ['logo blue', '--color-background-accent-3'], ['logo red', '--color-background-accent-4']] },
 ];
-// Figma's type ramp: the TypeSpecimen size and the token that sets it
+// Figma's type ramp: the TypeSpecimen size, the words set in it and the token that sets it. Every step
+// the specimen can draw, named by what sets in it in CHIP (body and labels 16, headings 18, titles 20).
 const RAMP = [
   ['display-page', 'page', '--typography-font-size-display-page'],
   ['display-section', 'section', '--typography-font-size-display-section'],
   ['subsection', 'subsection', '--typography-font-size-28'],
   ['xl', 'xl', '--typography-font-size-22'],
-  ['base', 'base', '--typography-font-size-20'],
+  ['base', 'title', '--typography-font-size-20'],
+  ['sm', 'heading', '--typography-font-size-18'],
+  ['tag', 'body', '--typography-font-size-16'],
 ];
 const TIERS = [
   ['definitions', 'Definitions', 'The plain scale: every colour, size and step'],
@@ -178,16 +181,41 @@ function Roles({ roles, empty }) {
   );
 }
 
+/* What the app's own CSS asks for: every var(--…) it references, read from the loaded stylesheets,
+   with the value it resolves to here. Foundations states only this (audit 3, item 9: "form" and a
+   five-size ramp described things the app doesn't do). */
+function useInUse(prefix) {
+  const [used, setUsed] = useState(null);
+  useEffect(() => {
+    const names = new Set();
+    for (const sheet of document.styleSheets) {
+      let rules;
+      try {
+        rules = sheet.cssRules;
+      } catch {
+        continue;
+      }
+      for (const r of rules) for (const m of r.cssText.matchAll(/var\((--[a-z0-9-]+)/g)) if (m[1].startsWith(prefix)) names.add(m[1]);
+    }
+    const root = getComputedStyle(document.documentElement);
+    setUsed([...names].map((n) => ({ name: n, value: root.getPropertyValue(n).trim() })));
+  }, [prefix]);
+  return used;
+}
+
 function TypeRamp() {
   const [sizes, setSizes] = useState({});
   useEffect(() => {
     const root = getComputedStyle(document.documentElement);
     setSizes(Object.fromEntries(RAMP.map(([, , v]) => [v, root.getPropertyValue(v).trim()])));
   }, []);
+  // the distinct sizes the app's CSS sets, whatever token names them
+  const used = useInUse('--typography-');
+  const inUse = used ? new Set(used.filter((u) => /font-size/.test(u.name) && u.value).map((u) => u.value)).size : null;
   return (
     <Card>
       <Flow gap={16}>
-        <SectionHead size="card" icon="Page" iconTone="info" title="Type ramp" description={`${RAMP.length} sizes in use`} showDescription />
+        <SectionHead size="card" icon="Page" iconTone="info" title="Type ramp" description={inUse ? `${RAMP.length} of the ${inUse} sizes in use` : 'Reading the sizes in use'} showDescription />
         <Flow gap={8}>
           {RAMP.map(([size, name, v]) => (
             <TypeSpecimen key={size} size={size} name={name} sizeLabel={sizes[v] || '—'} />
@@ -470,7 +498,18 @@ function RolesTable({ rows, total }) {
 }
 
 /* Shape and space (Figma 808:82396): every corner token and every spacing step. */
+// small to large, as the names read ("md, lg")
+const SIZE_WORDS = ['none', 'sm', 'md', 'lg', 'lg-focus', 'form', 'card'];
 function ShapeAndSpace({ radius }) {
+  // each corner's names: the Chip names the app's CSS really uses at that size, else the size alone
+  const used = useInUse('--border-radius-');
+  const useOf = (step) => {
+    if (!used) return undefined;
+    const px = step === 'round' ? '999px' : `${step}px`;
+    const names = used.filter((u) => u.value === px && !/^--border-radius-(\d+|round)$/.test(u.name)).map((u) => u.name.replace('--border-radius-', ''))
+      .sort((a, b) => SIZE_WORDS.indexOf(a) - SIZE_WORDS.indexOf(b));
+    return names.length ? `${names.join(', ')} · ${px}` : px;
+  };
   return (
     <Card>
       <Flow gap={16}>
@@ -480,7 +519,7 @@ function ShapeAndSpace({ radius }) {
         <Flow as="ul" direction="row" gap={24} wrap aria-label="Corner tokens">
           {radius.map((r) => (
             <li key={r.token}>
-              <RadiusTile radius={r.name} />
+              <RadiusTile radius={r.name} use={useOf(r.name)} />
             </li>
           ))}
         </Flow>
@@ -490,7 +529,7 @@ function ShapeAndSpace({ radius }) {
             <SpacingStep key={s} step={s} />
           ))}
         </Flow>
-        <TextStack body="Read from the Foundations variables: border radius (Chip light) and spacing." />
+        <TextStack body="Read from the Foundations variables: border radius (Chip light) and spacing. Each corner names what CHIP's CSS uses at that size." />
       </Flow>
     </Card>
   );
