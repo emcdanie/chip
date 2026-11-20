@@ -27,6 +27,7 @@ import Flow from './Flow.jsx';
 import Search from './Search.jsx';
 import { useHealth } from '../pages/healthModel.js';
 import useNarrow from './useNarrow.js';
+import WorkDock, { openWork } from './WorkDock.jsx';
 
 // A page opens at its top with nothing scrolled or focused, unless a link
 // names a section (Elleta, 20 Nov 2026: "the pages open to weird places").
@@ -285,8 +286,8 @@ export default function Screen({ place, header, tabs, children }) {
             ) : (
             <Flow direction="row" gap={12} align="center">
               {phone ? <Button variant="tertiary" iconOnly icon="SidebarExpand" ariaLabel="Menu" ariaExpanded={projectsOpen} onClick={() => setProjectsOpen(true)} /> : null}
-              {/* the bell opens what needs you, on Work */}
-              <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you` : 'What needs you'} href="#/work" />
+              {/* the bell opens what needs you, in the Work panel (Figma Flow 12, screen 1); ⌘J opens it too */}
+              <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you` : 'What needs you'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
               <Avatar name="Elleta McDaniel" size="sm" />
             </Flow>
             )
@@ -307,6 +308,7 @@ export default function Screen({ place, header, tabs, children }) {
           </main>
         </div>
       </div>
+      <WorkDock />
     </div>
   );
 }
