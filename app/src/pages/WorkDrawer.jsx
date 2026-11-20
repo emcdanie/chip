@@ -18,17 +18,31 @@ import Button from '@bella/components/Button/Button';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import TextStack from '@bella/components/TextStack/TextStack';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Flow from '../templates/Flow.jsx';
 import { TermScreen } from '../Terminal.jsx';
 
 const POST = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' };
-const hhmm = (t) => (t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null);
-// an agent's report reads as words: no markdown marks, no code ticks, the first lines only
-const plainNotes = (t) => {
-  const words = String(t).replace(/\*\*|`/g, '').replace(/^\s*-\s*/gm, '').replace(/\s+/g, ' ').trim();
-  return words.length > 320 ? `${words.slice(0, 320).replace(/\s\S*$/, '')}…` : words;
+// when it ran, with its day: "today 10:26", "20 Nov, 19:04"
+const when = (t) => {
+  if (!t) return null;
+  const d = new Date(t);
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return d.toDateString() === new Date().toDateString() ? `today ${time}` : `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${time}`;
 };
-const firstLine = (t) => plainNotes(t ?? '').split(/(?<=\.)\s/)[0];
+// an agent's report reads as words: no markdown marks or code ticks, every sentence kept
+const plainNotes = (t) => String(t ?? '').replace(/\*\*|`/g, '').replace(/^\s*-\s*/gm, '').replace(/\s+/g, ' ').trim();
+const firstLine = (t) => plainNotes(t).split(/(?<=\.)\s/)[0];
+/* Why the gate stopped a run, from its own log: how many test suites failed, in which files,
+   and whether the agent touched them. Plain words, never the log. */
+function gateReason(d) {
+  const log = String(d.gate?.log ?? '');
+  const files = [...new Set([...log.matchAll(/at (src\/[\w./-]+\.(?:tsx?|jsx?))/g)].map((m) => m[1]))];
+  const n = Number(log.match(/Test Suites:\s*(\d+) failed/)?.[1] ?? 0);
+  const what = n ? `${n} story ${n === 1 ? 'test' : 'tests'} ${/timeout/i.test(log) ? 'timed out' : 'failed'}` : 'a gate check failed';
+  const touched = files.some((f) => (d.files ?? []).some((c) => String(c).endsWith(f)));
+  return `BELLA’s gate stopped the commit: ${what}${files.length ? ` in ${files.join(', ')}` : ''}.${files.length && !touched ? ' The agent didn’t change that file.' : ''} Nothing was kept.`;
+}
 const said = async (r) => {
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || 'CHIP did not answer');
@@ -58,13 +72,15 @@ function useItem(item, tick) {
 function shapeOf(item, d) {
   if (item.kind === 'run') {
     const waiting = d.status === 'passed';
+    const failed = d.status === 'failed' || d.status === 'login';
     return {
       title: d.title,
-      status: ['Agent', d.from ? `from ${d.from}` : null, d.startedAt ? `ran ${hhmm(d.startedAt)}` : null].filter(Boolean).join(' · '),
-      // the outcome in one plain line; the agent's own notes, first lines only, without markdown
-      outcome: d.status === 'failed' ? `${(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}. Nothing was kept.` : d.status === 'kept' ? 'Accepted.' : d.status === 'passed' ? firstLine(d.summary) || 'The gate passed.' : d.step || 'Working.',
-      gate: d.gate?.summary ?? null,
+      status: ['Agent', d.from ? `from ${d.from}` : null, d.startedAt ? `ran ${when(d.startedAt)}` : null].filter(Boolean).join(' · '),
+      // the outcome in one plain line: a gate stop names its tests and file; the agent's notes fold, whole
+      outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d) : `${String(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}. Nothing was kept.`) : d.status === 'kept' ? 'Accepted: the branch is kept.' : d.status === 'passed' ? firstLine(d.summary) || 'The gate passed.' : d.step || 'Working.',
+      gate: d.gate?.passed ? `Gate passed · ${d.sha ? '1 commit' : 'no commit'}` : null,
       notes: d.summary ? plainNotes(d.summary) : null,
+      again: failed && d.brief ? { brief: d.brief, title: d.title, from: d.from } : null,
       diff: d.diff ?? null,
       branch: d.branch,
       can: waiting ? 'decide' : null,
@@ -74,7 +90,10 @@ function shapeOf(item, d) {
   const decide = d.state === 'accepted' && !d.kept;
   return {
     title: d.title ?? d.check,
-    status: ['From CHIP’s checks', d.ranAt ? `ran ${hhmm(d.ranAt)}` : null].filter(Boolean).join(' · '),
+    status: ['From CHIP’s checks', d.ranAt ? `ran ${when(d.ranAt)}` : null].filter(Boolean).join(' · '),
+    // CHIP never merges: the primary keeps the branch for a maintainer to merge (audit, 21 Nov)
+    merge: decide,
+    gate: d.state === 'accepted' ? `Gate passed · ${d.sha ? '1 commit' : 'no commit'}` : null,
     outcome: decide ? `The fix is on its own branch, ${d.branch}, and the gate passed.` : d.state === 'accepting' ? 'Making the fix on its own branch. About 3 minutes.' : d.failure ?? d.summary ?? null,
     why: d.why ?? null,
     change: d.change?.sentence ?? null,
@@ -112,14 +131,34 @@ function FixDrawer({ item, onClose, onNotice, onChanged }) {
       setBusy(null);
     }
   };
+  // a failed run goes again with its own brief: a new run, its card in the Agent lane
+  const again = async (a) => {
+    setBusy('again');
+    try {
+      await said(await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(a) }));
+      onNotice({ tone: 'success', title: 'Started again', message: `${a.title}: the agent works on a new branch; its card is in the Agent lane.` });
+      onChanged();
+      onClose();
+    } catch (e) {
+      onNotice({ tone: 'danger', title: 'Not started', message: `${e.message}.` });
+    } finally {
+      setBusy(null);
+    }
+  };
   const footer =
     s.can === 'decide' ? (
       <Flow direction="row" justify="end" gap={8}>
         <Button variant="secondary" disabled={!!busy} onClick={() => act('undo', { title: 'Undone', message: `The branch ${s.branch} is gone; nothing else changed.` })}>
           {busy === 'undo' ? 'Undoing…' : 'Undo'}
         </Button>
-        <Button variant="primary" disabled={!!busy} onClick={() => act('keep', { title: 'Accepted', message: `${s.branch} is kept. Merging it is a maintainer’s step.` })}>
-          {busy === 'keep' ? 'Accepting…' : 'Accept'}
+        <Button variant="primary" disabled={!!busy} onClick={() => act('keep', { title: s.merge ? 'Kept for merging' : 'Accepted', message: `${s.branch} is kept. Merging it is a maintainer’s step in git.` })}>
+          {busy === 'keep' ? (s.merge ? 'Keeping…' : 'Accepting…') : s.merge ? 'Keep branch' : 'Accept'}
+        </Button>
+      </Flow>
+    ) : s.again ? (
+      <Flow direction="row" justify="end" gap={8}>
+        <Button variant="primary" disabled={!!busy} onClick={() => again(s.again)}>
+          {busy === 'again' ? 'Starting…' : 'Run again'}
         </Button>
       </Flow>
     ) : s.can === 'run' ? (
@@ -138,7 +177,12 @@ function FixBody({ s }) {
       {s.outcome ? <TextStack title={s.outcome} subtitle={s.gate ?? undefined} /> : null}
       {s.kept ? <TextStack body={`Kept on ${s.branch}. Merging and pushing stay with a maintainer.`} /> : null}
       {s.why ? <TextStack title="Why" body={s.why} /> : null}
-      {s.notes ? <TextStack title="The agent’s notes" body={s.notes} /> : null}
+      {s.merge ? <TextStack body="CHIP doesn’t merge. Keep branch marks it ready for a maintainer to merge in git; Undo deletes it." /> : null}
+      {s.notes ? (
+        <Disclosure flush title="The agent’s notes">
+          <TextStack body={s.notes} />
+        </Disclosure>
+      ) : null}
       {s.change ? <TextStack title="The change" body={s.change} subtitle={s.files?.length ? s.files.join(' · ') : undefined} /> : null}
       {s.diff ? <CodeBlock code={s.diff} language="diff" title={s.branch ?? 'The change'} copy /> : null}
       {s.can === 'run' && s.thisWill ? <TextStack subtitle={`Run the fix will ${s.thisWill}`} /> : null}

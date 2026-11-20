@@ -39,7 +39,7 @@ if (typeof history !== 'undefined' && 'scrollRestoration' in history) history.sc
 export function openAtTop() {
   window.scrollTo(0, 0);
 }
-import { filterFromHash, workModel } from '../pages/workModel.js';
+import { filterFromHash, filtered, workModel } from '../pages/workModel.js';
 import { useTheme } from '../theme.js';
 import './Screen.css';
 
@@ -66,7 +66,9 @@ function useShellData() {
   const { data } = useCached(['/projects', '/needs', '/runs']);
   if (!data) return { projects: null, lanes: null };
   const [p, n, r] = data;
-  const { lanes } = workModel({ needs: n?.items ?? [], runs: r?.runs ?? [] });
+  // the Status counts are the board's own, branch filter included, so the two never disagree
+  const { branch } = filterFromHash();
+  const { lanes } = filtered(workModel({ needs: n?.items ?? [], runs: r?.runs ?? [] }), { branch });
   return { projects: p?.projects ?? [], lanes: Object.fromEntries(lanes.map((l) => [l.id, l.cards.length])) };
 }
 

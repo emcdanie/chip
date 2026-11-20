@@ -46,11 +46,17 @@ export function workModel({ needs = [], runs = [] }) {
     { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success', who: 'a reviewer' })) },
   ];
   const total = lanes.reduce((s, l) => s + l.cards.length, 0);
-  const top = needsYou[0];
-  const brief = needsYou.length
-    ? { message: `${needsYou.length} ${needsYou.length === 1 ? 'thing needs' : 'things need'} you; the top one is ${top.title}${top.failed ? ', which failed' : ''}.${lanes[1].cards.length ? ` ${lanes[1].cards.length} agent ${lanes[1].cards.length === 1 ? 'run is' : 'runs are'} working.` : ''}`, action: top.action, open: top.open }
-    : null;
-  return { lanes, total, brief };
+  return { lanes, total, brief: briefOf(lanes) };
+}
+
+/* The Brief counts the Needs you lane as the board shows it (failed runs included), so its
+   number is the lane's number, filtered or not (audit 21 Nov: "2 things need you" over a lane of 3). */
+function briefOf(lanes) {
+  const needs = lanes.find((l) => l.id === 'needs')?.cards ?? [];
+  const agent = lanes.find((l) => l.id === 'agent')?.cards.length ?? 0;
+  const top = needs[0];
+  if (!top) return null;
+  return { message: `${needs.length} ${needs.length === 1 ? 'thing needs' : 'things need'} you; the top one is ${top.title}${top.failed || top.tone === 'danger' ? ', which failed' : ''}.${agent ? ` ${agent} agent ${agent === 1 ? 'run is' : 'runs are'} working.` : ''}`, action: top.action, open: top.open };
 }
 
 /** Reads CHIP's data (kept between pages); `reload` reads it again (Check again). */
@@ -77,5 +83,5 @@ export function filtered(model, { branch, lane }) {
   const lanes = model.lanes
     .filter((l) => !lane || l.id === lane)
     .map((l) => (branch ? { ...l, cards: l.cards.filter((c) => c.branch === branch) } : l));
-  return { ...model, lanes, total: lanes.reduce((n, l) => n + l.cards.length, 0) };
+  return { ...model, lanes, total: lanes.reduce((n, l) => n + l.cards.length, 0), brief: branch ? briefOf(lanes) : model.brief };
 }
