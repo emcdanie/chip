@@ -240,8 +240,9 @@ export default function ConnectorsContent() {
         footer={setup ? <Flow direction="row" justify="end">{testButton(setup, 'Test it')}</Flow> : null}
       >
         {setup ? (
-          <Flow gap={16}>
-            <TextStack title={nameOf(setup)} body={plainWords(setup.detail)} />
+          // the drawer's title already names it, so the body opens with what to do; groups 24 apart (rule 10)
+          <Flow gap={24}>
+            <TextStack body={plainWords(setup.detail)} />
             {setup.dependents?.length ? <TextStack overline="Unlocks" body={setup.dependents.join(', ')} /> : null}
           </Flow>
         ) : null}
