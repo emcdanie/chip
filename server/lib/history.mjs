@@ -49,7 +49,8 @@ function gitRecords(dir, repo, ref) {
       sha: sha.trim(),
       date,
       who,
-      title: subject.replace(/^\w+(\([^)]*\))?!?:\s*/, '').replace(/^./, (c) => c.toUpperCase()),
+      // the conventional prefix goes, its scope stays as words, so two "Built to the published Figma" records say which page ("Health: built to …")
+      title: subject.replace(/^\w+(?:\(([^)]*)\))?!?:\s*/, (_, scope) => (scope ? `${scope.replace(/[-_]/g, ' ')}: ` : '')).replace(/^./, (c) => c.toUpperCase()),
       subject,
       why: body.trim().split('\n\n')[0] || null,
       type: typeOf(subject, files),

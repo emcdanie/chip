@@ -15,6 +15,7 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Step from '@bella/components/Step/Step';
 import Tag from '@bella/components/Tag/Tag';
 import TextStack from '@bella/components/TextStack/TextStack';
+import Heading from '@bella/components/Heading/Heading';
 import Notification from '@bella/components/Notification/Notification';
 import Stat from '@bella/components/Stat/Stat';
 import Input from '@bella/components/Input/Input';
@@ -54,8 +55,13 @@ const roleOf = (who) => (!who ? null : /claude|agent|bot/i.test(who) ? 'the agen
 // Plain words on screen (her rule): no Figma node ids, file paths, app routes or model names.
 const plain = (t) =>
   String(t ?? '')
-    // the node id goes, its bracket stays whole ("(Health content 601:111049)" reads "(Health content)"); an emptied bracket goes below
+    // a bracket that holds a Figma node id goes whole ("(612:60963, table 800:79888)"), never half (audit 9)
+    .replace(/\s*\([^()]*\b\d{2,4}:\d{2,7}\b[^()]*\)/g, '')
     .replace(/\s*\b\d{2,4}:\d{2,7}\b/g, '')
+    // a person's byline in brackets goes; a name left in the words reads as the role (Many users, not one)
+    .replace(/\s*\(\s*Elleta\b[^()]*\)/g, '')
+    .replace(/\bElleta['’]s\b/g, "the maintainer's")
+    .replace(/\bElleta\b/g, 'the maintainer')
     .replace(/#\/[\w-]+-old\b/g, 'its old address')
     .replace(/#\/([\w-]+)/g, (_, r) => `the ${r.replace(/-/g, ' ')} page`)
     .replace(/(?:[\w.-]+\/)+[\w.-]+\.\w+|\b[\w-]+\.(?:jsx?|tsx?|css|html|json|mjs|md|ya?ml)\b/g, '')
@@ -65,6 +71,9 @@ const plain = (t) =>
     .replace(/\bbella-parts\b/g, "BELLA's parts")
     .replace(/\s+([,.;:)])/g, '$1')
     .replace(/\(\s*\)|,\s*(?=[,.;])/g, '')
+    // a removed name or path leaves no comma at a bracket's edge ("(the stories,)" reads "(the stories)")
+    .replace(/,\s*\)/g, ')')
+    .replace(/\(\s*,\s*/g, '(')
     .replace(/\s{2,}/g, ' ')
     .trim();
 /* A touched file in plain words: what it is, not its path ("Team page", "Button part"). */
@@ -73,6 +82,8 @@ const fileWords = (f) => {
   const base = parts.pop().replace(/\.(stories)?\.?(jsx?|tsx?|mjs|css|md|json|ya?ml|html)$/, '');
   const name = base.replace(/Content$/, '').replace(/\.stories$/, '');
   if (/\.stories\./.test(f)) return `${name} stories`;
+  // a page's model is its data, not a page ("workModel page" read as a page, audit 9)
+  if (parts.includes('pages') && /Model$/.test(name)) return `${name.replace(/Model$/, '')} data`;
   if (parts.includes('pages')) return `${name} page`;
   if (parts.includes('templates')) return `${name} template`;
   if (parts.includes('components')) return `${name} part`;
@@ -167,7 +178,8 @@ function Record({ id }) {
             <Tag tone={STATUS_TONE[rec.status] ?? 'neutral'}>{rec.status}</Tag>
             <TextStack subtitle={[day(rec.date), time(rec.date), roleOf(rec.who), rec.repo.toUpperCase() === 'CHIP' ? 'CHIP' : rec.repo === 'bella' ? 'BELLA' : rec.repo].filter(Boolean).join(' · ')} />
           </Flow>
-          <TextStack title={plain(rec.title)} />
+          {/* Figma: the record's title at the subsection size, the biggest thing in the record */}
+          <Heading tier="subsection" as="h2">{plain(rec.title)}</Heading>
         </Flow>
         {plainWhy(rec.why) ? (
           <Notification

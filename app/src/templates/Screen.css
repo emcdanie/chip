@@ -189,14 +189,15 @@
 
 @container chip-content (width < 1000px) {
   .chip-screen__content > .chip-span-4 { grid-column: span 6; }
+  /* History's list and record share the row in halves, so the list's titles never break mid-word (1100: "Component s") */
+  .chip-screen__content > .chip-span-5,
+  .chip-screen__content > .chip-span-7 { grid-column: span 6; }
   /* the third of three third-width groups takes the row and lays its cards side by side */
   .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; flex-direction: row; }
   .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) > * { flex: 1 1 0; min-inline-size: 0; }
 }
 
 @container chip-content (width < 800px) {
-  .chip-screen__content > .chip-span-7,
-  .chip-screen__content > .chip-span-5,
   .chip-screen__content > .chip-span-8:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; }
   /* a main card and its side column share the row in halves, so the side column's rows keep their words and › on one line (21 Nov: Components' Checks was 213 wide at 800) */
   .chip-screen__content > .chip-span-8:has(+ .chip-span-4),
@@ -209,6 +210,9 @@
   .chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: 1 / -1; }
   .chip-screen__content > .chip-span-6,
   .chip-screen__content > .chip-span-4 { grid-column: 1 / -1; }
+  /* History's list and record (5 / 7) stay side by side down to a phone, so the record you pick opens beside it at 1100 (audit 9) */
+  .chip-screen__content > .chip-span-7,
+  .chip-screen__content > .chip-span-5 { grid-column: 1 / -1; }
   /* as specific as the row rule above, or it loses and a phone gets two 160 wide cards side by side (21 Nov: Health scrolled 18 sideways at 375) */
   .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { flex-direction: column; }
 }
