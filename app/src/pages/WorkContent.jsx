@@ -233,8 +233,6 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
           {model.brief && !briefShut ? (
             <Notification
               tone="info"
-              icon="Brain"
-              showIcon
               title="Brief · from CHIP’s checks"
               message={model.brief.message}
               action={model.brief.action && model.brief.open ? { label: model.brief.action, onClick: () => move.open(model.brief.open) } : undefined}
