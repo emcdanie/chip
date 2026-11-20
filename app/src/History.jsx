@@ -698,7 +698,7 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
         <div className="hquick">
           <Chips label="Quick filters" items={quick} value={quickOn} onChange={onQuick} />
           <Button onClick={() => setDrawer(true)}>
-            Filters{nOn ? <span className="n">{nOn}</span> : null}
+            {nOn ? `Filters · ${nOn}` : 'Filters'}
           </Button>
         </div>
         {data?.error ? <p className="k-note">History could not be read. Is the CHIP server running?</p> : null}

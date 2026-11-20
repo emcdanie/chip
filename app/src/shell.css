@@ -174,12 +174,8 @@ html.wp-dragging .xterm { pointer-events: none; }
 /* Sessions: a tree, the coordinator at the top and what it started under it */
 .stree, .sgroup > ul, .skids > ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-8); min-width: 0; }
 .skids > ul { margin-left: var(--s-16); padding-left: var(--s-12); border-left: 1px solid var(--line); }
-/* the suggested questions are sentences: plain list rows, not pills that wrap */
+/* the suggested questions are sentences: List item rows (one List item for every row), not pills that wrap */
 .obi-suggest { display: grid; gap: 0; }
-.obi-suggest [data-bella-component='action-chip'] { --component-action-chip-font-size: var(--fs-14); width: 100%; border: 0; border-top: 1px solid var(--line); border-radius: var(--r); text-align: left; }
-.obi-suggest [data-bella-component='action-chip']:hover:not(:disabled) { background: var(--sel); }
-/* a label, not a button: Looking at … and a tool's name are 2px tags */
-.obi { --component-tag-default-border-radius: var(--r); }
 .obi-empty p { font-size: var(--fs-16); }
 .skids > ul:empty { display: none; }
 .skids > ul { gap: 0; }

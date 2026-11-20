@@ -49,7 +49,6 @@
   "app/src/History.css": {
    "css defines custom property": 2,
    "css font-family literal": 1,
-   "css part selector": 1,
    "css raw size": 39
   },
   "app/src/History.jsx": {
@@ -75,8 +74,7 @@
    "kit Sheet": 1
   },
   "app/src/Playground.css": {
-   "css part selector": 1,
-   "css raw size": 30
+   "css raw size": 29
   },
   "app/src/Playground.jsx": {
    "<input>": 1,
@@ -121,7 +119,7 @@
    "kit StatusPill": 1
   },
   "app/src/app.css": {
-   "css part selector": 7,
+   "css part selector": 5,
    "css raw size": 20
   },
   "app/src/atlas.css": {
@@ -140,7 +138,6 @@
   },
   "app/src/kit/kit.css": {
    "css font-family literal": 19,
-   "css part selector": 2,
    "css raw size": 47
   },
   "app/src/kit/tokens.css": {
@@ -152,9 +149,8 @@
   },
   "app/src/shell.css": {
    "css defines custom property": 11,
-   "css overrides --component-*": 24,
-   "css part selector": 2,
-   "css raw size": 103
+   "css overrides --component-*": 22,
+   "css raw size": 102
   }
  }
 }

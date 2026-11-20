@@ -11,6 +11,7 @@ import Tag from '@bella/components/Tag/Tag';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import DataTable from '@bella/components/DataTable/DataTable';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
+import ListRow from '@bella/components/ListRow/ListRow';
 import Combobox from '@bella/components/Combobox/Combobox';
 import { answerFromData, clarify, componentsIn, tokensIn, suggestionsFor, routeFor, soundsUnsure, tidyCitations, isMiss, toolRouteFor, summarizeTool, usageLines } from './answers.js';
 import Select from '@bella/components/Select/Select';
@@ -931,9 +932,7 @@ export function ObiThread({ bella, page, obi, onOpenAtlas, onSandbox, notify, mo
             {suggestions.length ? (
               <div className="obi-suggest" aria-label="Suggested questions">
                 {suggestions.map((sg) => (
-                  <ActionChip key={sg} onClick={() => obi.send(sg)} disabled={obi.busy}>
-                    {sg}
-                  </ActionChip>
+                  <ListRow key={sg} as="div" title={sg} onClick={obi.busy ? undefined : () => obi.send(sg)} />
                 ))}
               </div>
             ) : null}

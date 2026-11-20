@@ -5,7 +5,6 @@
 
 .pg-page { container: pg / inline-size; display: grid; gap: var(--s-24); grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .pg-actions { display: flex; flex-wrap: wrap; gap: var(--s-12); align-items: end; }
-.pg-actions [data-bella-component='select'] { min-width: 180px; }
 .pg-error { margin: 0; padding: var(--s-12) var(--s-16); border: 1px solid var(--fail); border-radius: var(--r); background: color-mix(in srgb, var(--fail) 8%, var(--card)); color: var(--ink); }
 
 .pg-work { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: var(--s-24); align-items: start; min-width: 0; }

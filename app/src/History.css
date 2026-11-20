@@ -27,7 +27,6 @@
 .hquick > :last-child { margin-left: auto; } /* Filters, at the end; Breaking only sits beside the type chips */
 .hquick > .k-chip { margin: 0; }
 .hquick .k-chip .n { margin-left: var(--s-4); }
-.hquick [data-bella-component='button'] .n { margin-left: var(--s-8); font-weight: 400; font-variant-numeric: tabular-nums; }
 .hecho { margin-top: calc(-1 * var(--s-8)) !important; color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
 
 /* did you mean, related searches */

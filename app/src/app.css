@@ -1233,19 +1233,6 @@
   gap: var(--spacing-4);
 }
 
-/* left-aligned like the slider rows: label above, the select full width, the token under */
-.sandbox-colour [data-bella-component='select'] {
-  display: grid;
-  justify-items: stretch;
-  justify-content: stretch;
-  inline-size: 100%;
-}
-
-.sandbox-colour [data-bella-component='select'] > span,
-.sandbox-colour select {
-  inline-size: 100%;
-}
-
 .stage-top {
   display: flex;
   flex-wrap: wrap;
