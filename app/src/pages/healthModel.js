@@ -84,7 +84,7 @@ function lowestPair(res) {
   const w = text.reduce((a, b) => (b.worst < a.worst ? b : a));
   const below = text.filter((p) => !p.ok).length;
   // a failing run prints no count ("contrast pairs: 1 failing"), so the words come from its own summary
-  return { ratio: w.worst, label: w.label, bar: 7, below, checked: res.checked, failing: res.checked ? null : res.summary?.match(/(\d+) failing/)?.[1] ?? null };
+  return { ratio: w.worst, label: w.label, bar: 7, below, checked: res.checked, declared: res.declared ?? null, failing: res.checked ? null : res.summary?.match(/(\d+) failing/)?.[1] ?? null };
 }
 
 /* BELLA's gate as CHIP last ran it: how many of its checks pass, when, and which did not, by name. */
