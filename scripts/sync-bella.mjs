@@ -320,15 +320,17 @@ function gateAt(sha, files) {
   if (!has('scripts/contrast-pairs.mjs') && !has('scripts/contract-parity.mjs')) return null;
   const dir = mkdtempSync(join(tmpdir(), 'chip-history-'));
   try {
-    const paths = ['tokens', 'scripts', 'src/components'].filter((d) => files.some((f) => f.startsWith(d + '/')));
-    const tar = spawnSync('git', ['-C', BELLA, 'archive', sha, ...paths], { maxBuffer: 1 << 28 });
+    // the whole commit: the scripts read more than tokens and components (src/patterns, the
+    // stories, package.json), and a scratch copy without them crashed every run, so every old
+    // gate read "failed" while the same commit passed in BELLA (audit 9, 21 Nov)
+    const tar = spawnSync('git', ['-C', BELLA, 'archive', sha], { maxBuffer: 1 << 30 });
     spawnSync('tar', ['-x', '-C', dir], { input: tar.stdout });
     const run = (script) =>
       has(`scripts/${script}`) ? spawnSync(process.execPath, [`scripts/${script}`], { cwd: dir, encoding: 'utf8' }).status === 0 : null;
     const contrast = run('contrast-pairs.mjs');
     const parity = run('contract-parity.mjs');
     const known = [contrast, parity].filter((x) => x !== null);
-    return { contrastPairs: contrast, contractParity: parity, ok: known.every(Boolean) };
+    return { contrastPairs: contrast, contractParity: parity, ok: known.every(Boolean), from: 'tree' };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -337,7 +339,8 @@ function gateAt(sha, files) {
 const shas = git('log', '--first-parent', `-${HISTORY_MAX}`, '--format=%h %cI', '--', 'src/components', 'tokens/contracts.json')
   .split('\n').filter(Boolean).map((l) => l.split(' '));
 const history = shas.reverse().map(([sha, at]) => {
-  if (previous[sha]) return previous[sha];
+  // reuse a point only when its gate ran on the whole commit (older points ran on a partial copy)
+  if (previous[sha] && (previous[sha].gate == null || previous[sha].gate.from === 'tree')) return previous[sha];
   const files = git('ls-tree', '-r', '--name-only', sha).split('\n');
   const comps = [...new Set(files.map((f) => f.match(/^src\/components\/([^/]+)\/\1\.tsx$/)?.[1]).filter(Boolean))];
   const stories = comps.filter((c) => files.includes(`src/components/${c}/${c}.stories.tsx`)).length;

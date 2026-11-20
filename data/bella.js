@@ -2,15 +2,15 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "59be384",
-    "committedAt": "2026-11-19T19:29:59+01:00",
+    "commit": "41446ef",
+    "committedAt": "2026-11-20T01:06:35+01:00",
     "version": "0.3.0"
   },
   "counts": {
-    "components": 74,
-    "withStory": 72,
-    "withDocs": 72,
-    "withContract": 74,
+    "components": 83,
+    "withStory": 81,
+    "withDocs": 80,
+    "withContract": 81,
     "semanticTokenGroups": {
       "light": [
         "border",
@@ -26,16 +26,16 @@ window.BELLA = {
       ]
     },
     "cssVars": {
-      "light": 400,
+      "light": 403,
       "darkOverrides": 0
     }
   },
   "gates": {
     "contrastPairs": {
       "ok": true,
-      "checked": 409,
-      "pairs": 100,
-      "summary": "contrast pairs: 409 checked across 4 themes (text 7:1, marks 3:1), OK; inset rule: 20 exempt, every consumer classified"
+      "checked": 425,
+      "pairs": 104,
+      "summary": "contrast pairs: 425 checked across 4 themes (text 7:1, marks 3:1), OK; inset rule: 19 exempt, every consumer classified"
     },
     "contractParity": {
       "ok": true,
@@ -77,6 +77,10 @@ window.BELLA = {
         "typing-dots",
         "chat-thread",
         "pin",
+        "pin-label",
+        "size-tag",
+        "part-row",
+        "anatomy-highlight",
         "leader",
         "list-row",
         "section-nav",
@@ -110,10 +114,13 @@ window.BELLA = {
         "stage",
         "system-health",
         "swatch",
+        "variant-tile",
         "tour-step",
         "type-specimen",
         "spacing-step",
-        "app-tile"
+        "app-tile",
+        "toast",
+        "connector-tile"
       ],
       "exemptContracts": [
         "nav-link",
@@ -144,9 +151,9 @@ window.BELLA = {
     {
       "id": "a11y",
       "name": "A11y",
-      "score": 64,
+      "score": 63,
       "assessment": "measured",
-      "basis": "47/74 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
+      "basis": "52/83 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -172,23 +179,23 @@ window.BELLA = {
     {
       "id": "governance",
       "name": "Governance",
-      "score": 100,
+      "score": 98,
       "assessment": "measured",
-      "basis": "74/74 components: Tier 3 contract checked by contract-parity and passing"
+      "basis": "81/83 components: Tier 3 contract checked by contract-parity and passing"
     },
     {
       "id": "docs",
       "name": "Docs",
-      "score": 96,
+      "score": 95,
       "assessment": "measured",
-      "basis": "71/74 components: Storybook story and a docs description in the manifest"
+      "basis": "79/83 components: Storybook story and a docs description in the manifest"
     },
     {
       "id": "machine-readable",
       "name": "Machine-readable",
-      "score": 100,
+      "score": 98,
       "assessment": "measured",
-      "basis": "74/74 components: DSDS component entry and react-docgen props in the manifest"
+      "basis": "81/83 components: DSDS component entry and react-docgen props in the manifest"
     },
     {
       "id": "agent-access",
@@ -200,159 +207,16 @@ window.BELLA = {
   ],
   "history": [
     {
-      "commit": "75859ce",
-      "committedAt": "2026-11-14T09:22:09+01:00",
-      "components": 44,
-      "storyCoverage": 95,
-      "contractCoverage": 0,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "3075f8e",
-      "committedAt": "2026-11-18T20:28:56+01:00",
-      "components": 44,
-      "storyCoverage": 95,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "8e0fe05",
-      "committedAt": "2026-11-18T21:33:25+01:00",
-      "components": 43,
-      "storyCoverage": 95,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "f3432bf",
-      "committedAt": "2026-11-19T11:58:24+01:00",
-      "components": 61,
-      "storyCoverage": 97,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "78e8d09",
-      "committedAt": "2026-11-19T12:04:50+01:00",
-      "components": 61,
-      "storyCoverage": 97,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "18e8280",
-      "committedAt": "2026-11-19T12:26:04+01:00",
-      "components": 61,
-      "storyCoverage": 97,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "3c49055",
-      "committedAt": "2026-11-19T12:36:26+01:00",
-      "components": 61,
-      "storyCoverage": 97,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "ed3ae56",
-      "committedAt": "2026-11-19T12:57:07+01:00",
-      "components": 62,
-      "storyCoverage": 97,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "f8d51b2",
-      "committedAt": "2026-11-19T13:03:12+01:00",
-      "components": 62,
-      "storyCoverage": 97,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "d63e3a3",
-      "committedAt": "2026-11-19T13:26:54+01:00",
-      "components": 62,
-      "storyCoverage": 97,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "b5359d9",
-      "committedAt": "2026-11-19T13:44:22+01:00",
-      "components": 68,
-      "storyCoverage": 97,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
-      "commit": "ea4b231",
-      "committedAt": "2026-11-19T14:11:38+01:00",
-      "components": 68,
-      "storyCoverage": 97,
-      "contractCoverage": 100,
-      "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
-      }
-    },
-    {
       "commit": "05eefd0",
       "committedAt": "2026-11-19T14:19:41+01:00",
       "components": 68,
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -362,9 +226,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -374,9 +239,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -386,9 +252,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -398,9 +265,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 99,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -410,9 +278,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 99,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -422,9 +291,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 99,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -434,9 +304,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 99,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -446,9 +317,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 99,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -458,9 +330,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 99,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -470,9 +343,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 93,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -482,9 +356,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -494,9 +369,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -506,9 +382,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -518,9 +395,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -530,9 +408,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -542,9 +421,10 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     },
     {
@@ -554,9 +434,166 @@ window.BELLA = {
       "storyCoverage": 97,
       "contractCoverage": 100,
       "gate": {
-        "contrastPairs": false,
-        "contractParity": false,
-        "ok": false
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "b69a5de",
+      "committedAt": "2026-11-19T19:36:44+01:00",
+      "components": 74,
+      "storyCoverage": 97,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "0c9f90c",
+      "committedAt": "2026-11-19T19:41:09+01:00",
+      "components": 74,
+      "storyCoverage": 97,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "74fc727",
+      "committedAt": "2026-11-19T19:45:48+01:00",
+      "components": 74,
+      "storyCoverage": 97,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "039aef3",
+      "committedAt": "2026-11-19T19:50:13+01:00",
+      "components": 76,
+      "storyCoverage": 97,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "4ff5bce",
+      "committedAt": "2026-11-19T20:01:08+01:00",
+      "components": 77,
+      "storyCoverage": 97,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "60c3a4c",
+      "committedAt": "2026-11-19T20:17:41+01:00",
+      "components": 77,
+      "storyCoverage": 97,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "39c1eff",
+      "committedAt": "2026-11-19T20:23:59+01:00",
+      "components": 77,
+      "storyCoverage": 97,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "fc64c23",
+      "committedAt": "2026-11-19T20:30:57+01:00",
+      "components": 78,
+      "storyCoverage": 97,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "10fd911",
+      "committedAt": "2026-11-19T20:36:58+01:00",
+      "components": 81,
+      "storyCoverage": 98,
+      "contractCoverage": 100,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "7d3689f",
+      "committedAt": "2026-11-19T22:58:59+01:00",
+      "components": 83,
+      "storyCoverage": 96,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "fcf8841",
+      "committedAt": "2026-11-19T23:28:41+01:00",
+      "components": 83,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "41446ef",
+      "committedAt": "2026-11-20T01:06:35+01:00",
+      "components": 83,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
       }
     }
   ],
@@ -835,6 +872,16 @@ window.BELLA = {
       "light": "#ffffff",
       "dark": "#1d203000",
       "warm": "#ffffff"
+    },
+    "--color-background-wash-grey-strong": {
+      "light": "#c3c7d2",
+      "dark": "#ffffff1a",
+      "warm": "#c3c7d2"
+    },
+    "--color-background-wash-yellow-strong": {
+      "light": "#f1d68a",
+      "dark": "#c49a1638",
+      "warm": "#f1d68a"
     },
     "--color-background-brand-active": {
       "light": "#75bdeb",
@@ -1121,8 +1168,8 @@ window.BELLA = {
     "--border-radius-8": [
       "ActionChip",
       "Button",
-      "ChatBubble",
       "Combobox",
+      "DataTable",
       "Menu",
       "NavItem",
       "NavList",
@@ -1139,16 +1186,19 @@ window.BELLA = {
     ],
     "--border-width-1": [
       "ActionChip",
+      "AnatomyHighlight",
       "AppTile",
       "Button",
       "ChatBubble",
       "CodeBlock",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Disclosure",
       "Drawer",
       "IconRail",
       "Kbd",
+      "Leader",
       "Link",
       "ListRow",
       "Menu",
@@ -1156,25 +1206,27 @@ window.BELLA = {
       "PageOutline",
       "Progress",
       "ProjectPanel",
+      "SizeTag",
       "Stage",
       "Stat",
       "StatusDot",
       "StatusSquare",
       "Step",
       "Swatch",
+      "TableCell",
       "Tabs",
       "Tag",
       "TaskCard",
       "Tooltip",
       "TopBar",
-      "TourStep"
+      "TourStep",
+      "VariantTile"
     ],
     "--color-background-subtle": [
       "ActionChip",
       "Avatar",
       "AvatarStack",
       "Button",
-      "ChatBubble",
       "Input",
       "Kbd",
       "ListRow",
@@ -1199,6 +1251,7 @@ window.BELLA = {
       "ClientSwitcher",
       "CodeBlock",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Disclosure",
       "Drawer",
@@ -1209,6 +1262,7 @@ window.BELLA = {
       "Heading",
       "Input",
       "Kbd",
+      "Leader",
       "Link",
       "ListRow",
       "MapLine",
@@ -1218,7 +1272,9 @@ window.BELLA = {
       "Notification",
       "PageHeader",
       "PageOutline",
+      "PartRow",
       "Pin",
+      "PinLabel",
       "Progress",
       "ProjectPanel",
       "ResourceCard",
@@ -1240,16 +1296,19 @@ window.BELLA = {
       "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tabs",
       "Tag",
       "TaskCard",
       "TextStack",
+      "Toast",
       "Tooltip",
       "TourStep",
       "Trailing",
       "TreeItem",
       "TypeSpecimen",
-      "TypingDots"
+      "TypingDots",
+      "VariantTile"
     ],
     "--color-neutral-white-alpha-10": [
       "ActionChip",
@@ -1257,7 +1316,6 @@ window.BELLA = {
       "AvatarStack",
       "BoardLane",
       "Button",
-      "ChatBubble",
       "CodeBlock",
       "Input",
       "Kbd",
@@ -1269,6 +1327,7 @@ window.BELLA = {
       "Stage",
       "Stat",
       "StatusPill",
+      "Step",
       "Tag",
       "TypingDots"
     ],
@@ -1287,6 +1346,7 @@ window.BELLA = {
       "ProjectPanel",
       "StatusPill",
       "Swatch",
+      "TableCell",
       "Tabs",
       "TopBar",
       "TourStep",
@@ -1307,6 +1367,7 @@ window.BELLA = {
       "ProjectPanel",
       "StatusPill",
       "Swatch",
+      "TableCell",
       "Tabs",
       "TopBar",
       "TourStep",
@@ -1323,9 +1384,11 @@ window.BELLA = {
       "ClientSwitcher",
       "CodeBlock",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Disclosure",
       "Drawer",
+      "EmptyState",
       "FilterChip",
       "IconRail",
       "Input",
@@ -1338,6 +1401,7 @@ window.BELLA = {
       "Notification",
       "PageHeader",
       "PageOutline",
+      "PartRow",
       "Progress",
       "ProjectPanel",
       "ResourceCard",
@@ -1356,6 +1420,7 @@ window.BELLA = {
       "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tabs",
       "Tag",
       "TaskCard",
@@ -1365,7 +1430,8 @@ window.BELLA = {
       "Trailing",
       "TreeItem",
       "TypeSpecimen",
-      "TypingDots"
+      "TypingDots",
+      "VariantTile"
     ],
     "--color-border-focus": [
       "ActionChip",
@@ -1397,7 +1463,8 @@ window.BELLA = {
       "SystemHealth",
       "Tabs",
       "TaskCard",
-      "TreeItem"
+      "TreeItem",
+      "VariantTile"
     ],
     "--color-brand-blue-600": [
       "ActionChip",
@@ -1431,7 +1498,8 @@ window.BELLA = {
       "SystemHealth",
       "Tabs",
       "TaskCard",
-      "TreeItem"
+      "TreeItem",
+      "VariantTile"
     ],
     "--color-brand-blue-300": [
       "ActionChip",
@@ -1465,7 +1533,8 @@ window.BELLA = {
       "SystemHealth",
       "Tabs",
       "TaskCard",
-      "TreeItem"
+      "TreeItem",
+      "VariantTile"
     ],
     "--color-border-ink": [
       "ActionChip",
@@ -1475,6 +1544,8 @@ window.BELLA = {
       "Combobox",
       "FilterChip",
       "Input",
+      "Leader",
+      "PinLabel",
       "Slider",
       "SpacingStep",
       "Tabs"
@@ -1493,6 +1564,7 @@ window.BELLA = {
       "ClientSwitcher",
       "CodeBlock",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Disclosure",
       "Drawer",
@@ -1502,6 +1574,7 @@ window.BELLA = {
       "GroupHead",
       "Heading",
       "Input",
+      "Leader",
       "Link",
       "ListRow",
       "MapLine",
@@ -1511,7 +1584,9 @@ window.BELLA = {
       "Notification",
       "PageHeader",
       "PageOutline",
+      "PartRow",
       "Pin",
+      "PinLabel",
       "Progress",
       "ProjectPanel",
       "ResourceCard",
@@ -1531,14 +1606,17 @@ window.BELLA = {
       "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tabs",
       "Tag",
       "TaskCard",
       "TextStack",
+      "Toast",
       "Tooltip",
       "TourStep",
       "TreeItem",
-      "TypeSpecimen"
+      "TypeSpecimen",
+      "VariantTile"
     ],
     "--color-border-strong": [
       "ActionChip",
@@ -1549,6 +1627,8 @@ window.BELLA = {
       "Combobox",
       "FilterChip",
       "Input",
+      "Leader",
+      "ListRow",
       "MapLine",
       "PageOutline",
       "Progress",
@@ -1557,7 +1637,8 @@ window.BELLA = {
       "Stat",
       "SystemHealth",
       "Tag",
-      "TaskCard"
+      "TaskCard",
+      "VariantTile"
     ],
     "--color-neutral-600": [
       "ActionChip",
@@ -1568,6 +1649,8 @@ window.BELLA = {
       "Combobox",
       "FilterChip",
       "Input",
+      "Leader",
+      "ListRow",
       "MapLine",
       "PageOutline",
       "Progress",
@@ -1576,7 +1659,8 @@ window.BELLA = {
       "Stat",
       "SystemHealth",
       "Tag",
-      "TaskCard"
+      "TaskCard",
+      "VariantTile"
     ],
     "--color-neutral-300": [
       "ActionChip",
@@ -1587,6 +1671,8 @@ window.BELLA = {
       "Combobox",
       "FilterChip",
       "Input",
+      "Leader",
+      "ListRow",
       "MapLine",
       "PageOutline",
       "Progress",
@@ -1595,12 +1681,14 @@ window.BELLA = {
       "Stat",
       "SystemHealth",
       "Tag",
-      "TaskCard"
+      "TaskCard",
+      "VariantTile"
     ],
     "--color-border-subtle": [
       "ActionChip",
       "Avatar",
       "Card",
+      "ConnectorTile",
       "FilterChip",
       "Kbd",
       "ListRow",
@@ -1608,7 +1696,8 @@ window.BELLA = {
       "ResourceCard",
       "Stage",
       "TaskCard",
-      "Tooltip"
+      "Tooltip",
+      "VariantTile"
     ],
     "--color-content-default": [
       "ActionChip",
@@ -1616,10 +1705,10 @@ window.BELLA = {
       "BoardLane",
       "BrandWordmark",
       "Button",
-      "ChatBubble",
       "CheckRow",
       "ClientSwitcher",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Disclosure",
       "Drawer",
@@ -1636,7 +1725,9 @@ window.BELLA = {
       "Notification",
       "PageHeader",
       "PageOutline",
+      "PartRow",
       "Pin",
+      "PinLabel",
       "Progress",
       "ProjectPanel",
       "ResourceCard",
@@ -1653,14 +1744,17 @@ window.BELLA = {
       "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tabs",
       "Tag",
       "TaskCard",
       "TextStack",
+      "Toast",
       "Tooltip",
       "TourStep",
       "TreeItem",
-      "TypeSpecimen"
+      "TypeSpecimen",
+      "VariantTile"
     ],
     "--color-content-subtle": [
       "ActionChip",
@@ -1671,9 +1765,11 @@ window.BELLA = {
       "ChatThread",
       "ClientSwitcher",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Disclosure",
       "Drawer",
+      "EmptyState",
       "Input",
       "Kbd",
       "ListRow",
@@ -1684,6 +1780,7 @@ window.BELLA = {
       "Notification",
       "PageHeader",
       "PageOutline",
+      "PartRow",
       "Progress",
       "ResourceCard",
       "SearchField",
@@ -1701,6 +1798,7 @@ window.BELLA = {
       "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tabs",
       "Tag",
       "TaskCard",
@@ -1708,7 +1806,8 @@ window.BELLA = {
       "Trailing",
       "TreeItem",
       "TypeSpecimen",
-      "TypingDots"
+      "TypingDots",
+      "VariantTile"
     ],
     "--focus-ring-offset": [
       "ActionChip",
@@ -1735,7 +1834,8 @@ window.BELLA = {
       "SystemHealth",
       "Tabs",
       "TaskCard",
-      "TreeItem"
+      "TreeItem",
+      "VariantTile"
     ],
     "--size-4": [
       "ActionChip",
@@ -1763,7 +1863,8 @@ window.BELLA = {
       "SystemHealth",
       "Tabs",
       "TaskCard",
-      "TreeItem"
+      "TreeItem",
+      "VariantTile"
     ],
     "--focus-ring-width": [
       "ActionChip",
@@ -1795,7 +1896,8 @@ window.BELLA = {
       "SystemHealth",
       "Tabs",
       "TaskCard",
-      "TreeItem"
+      "TreeItem",
+      "VariantTile"
     ],
     "--border-width-4": [
       "ActionChip",
@@ -1828,7 +1930,8 @@ window.BELLA = {
       "SystemHealth",
       "Tabs",
       "TaskCard",
-      "TreeItem"
+      "TreeItem",
+      "VariantTile"
     ],
     "--motion-duration-150": [
       "ActionChip",
@@ -1863,6 +1966,7 @@ window.BELLA = {
     ],
     "--spacing-12": [
       "ActionChip",
+      "AnatomyHighlight",
       "BrandWordmark",
       "Button",
       "Card",
@@ -1885,7 +1989,9 @@ window.BELLA = {
       "NavList",
       "Notification",
       "PageOutline",
+      "PartRow",
       "Pin",
+      "PinLabel",
       "Progress",
       "ProjectPanel",
       "ResourceCard",
@@ -1903,6 +2009,7 @@ window.BELLA = {
       "SystemHealth",
       "Tag",
       "TaskCard",
+      "Toast",
       "Tooltip",
       "TopBar",
       "TourStep",
@@ -1914,6 +2021,7 @@ window.BELLA = {
       "ActionChip",
       "BoardLane",
       "Card",
+      "ChatBubble",
       "CodeBlock",
       "Combobox",
       "DataTable",
@@ -1935,8 +2043,10 @@ window.BELLA = {
       "SegmentedControl",
       "SpacingStep",
       "Stage",
+      "TableCell",
       "Tabs",
       "TaskCard",
+      "Toast",
       "TopBar",
       "TourStep",
       "TreeItem"
@@ -1951,6 +2061,7 @@ window.BELLA = {
       "DataTable",
       "Disclosure",
       "FilterChip",
+      "Input",
       "ListRow",
       "Menu",
       "NavItem",
@@ -1967,6 +2078,7 @@ window.BELLA = {
       "StatCard",
       "Step",
       "SystemHealth",
+      "TableCell",
       "Tabs",
       "TaskCard",
       "Trailing",
@@ -1985,7 +2097,7 @@ window.BELLA = {
       "ClientSwitcher",
       "CodeBlock",
       "Combobox",
-      "DataTable",
+      "ConnectorTile",
       "Disclosure",
       "Drawer",
       "EmptyState",
@@ -2000,6 +2112,7 @@ window.BELLA = {
       "PageHeader",
       "PageOutline",
       "Pin",
+      "PinLabel",
       "Progress",
       "ResourceCard",
       "Section",
@@ -2012,15 +2125,19 @@ window.BELLA = {
       "StatCard",
       "StatusDot",
       "StatusPill",
+      "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tabs",
       "Tag",
       "TaskCard",
+      "Toast",
       "Tooltip",
       "TourStep",
       "TreeItem",
-      "TypingDots"
+      "TypingDots",
+      "VariantTile"
     ],
     "--typography-body-default-font-family": [
       "ActionChip",
@@ -2031,6 +2148,7 @@ window.BELLA = {
       "CheckRow",
       "ClientSwitcher",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Disclosure",
       "Drawer",
@@ -2046,6 +2164,8 @@ window.BELLA = {
       "Notification",
       "PageHeader",
       "PageOutline",
+      "PartRow",
+      "PinLabel",
       "ProjectPanel",
       "ResourceCard",
       "SearchField",
@@ -2063,14 +2183,17 @@ window.BELLA = {
       "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tabs",
       "Tag",
       "TaskCard",
       "TextStack",
+      "Toast",
       "Tooltip",
       "TourStep",
       "TreeItem",
-      "TypeSpecimen"
+      "TypeSpecimen",
+      "VariantTile"
     ],
     "--typography-font-family-lexend": [
       "ActionChip",
@@ -2081,6 +2204,7 @@ window.BELLA = {
       "CheckRow",
       "ClientSwitcher",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Disclosure",
       "Drawer",
@@ -2097,6 +2221,8 @@ window.BELLA = {
       "Notification",
       "PageHeader",
       "PageOutline",
+      "PartRow",
+      "PinLabel",
       "ProjectPanel",
       "ResourceCard",
       "SearchField",
@@ -2114,14 +2240,17 @@ window.BELLA = {
       "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tabs",
       "Tag",
       "TaskCard",
       "TextStack",
+      "Toast",
       "Tooltip",
       "TourStep",
       "TreeItem",
-      "TypeSpecimen"
+      "TypeSpecimen",
+      "VariantTile"
     ],
     "--typography-body-default-font-size": [
       "ActionChip",
@@ -2129,7 +2258,6 @@ window.BELLA = {
       "ChatBubble",
       "ClientSwitcher",
       "Combobox",
-      "DataTable",
       "Disclosure",
       "Input",
       "ListRow",
@@ -2144,6 +2272,7 @@ window.BELLA = {
     ],
     "--typography-font-size-16": [
       "ActionChip",
+      "AnatomyHighlight",
       "Avatar",
       "AvatarStack",
       "BoardLane",
@@ -2155,6 +2284,7 @@ window.BELLA = {
       "ClientSwitcher",
       "CodeBlock",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Disclosure",
       "Drawer",
@@ -2171,7 +2301,9 @@ window.BELLA = {
       "Notification",
       "PageHeader",
       "PageOutline",
+      "PartRow",
       "Pin",
+      "PinLabel",
       "Progress",
       "ProjectPanel",
       "ResourceCard",
@@ -2180,6 +2312,8 @@ window.BELLA = {
       "SectionHead",
       "SectionHeader",
       "SectionNav",
+      "SegmentedControl",
+      "SizeTag",
       "Slider",
       "SpacingStep",
       "Stage",
@@ -2189,20 +2323,27 @@ window.BELLA = {
       "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
+      "Tabs",
       "Tag",
       "TaskCard",
       "TextStack",
+      "Toast",
       "Tooltip",
       "TourStep",
       "TreeItem",
-      "TypeSpecimen"
+      "TypeSpecimen",
+      "VariantTile"
     ],
     "--typography-font-weight-600": [
       "ActionChip",
+      "AnatomyHighlight",
       "BoardLane",
       "Button",
       "ChatThread",
       "CheckRow",
+      "ConnectorTile",
+      "DataTable",
       "Drawer",
       "EmptyState",
       "GroupHead",
@@ -2211,6 +2352,7 @@ window.BELLA = {
       "Notification",
       "PageHeader",
       "PageOutline",
+      "PartRow",
       "Pin",
       "Progress",
       "ProjectPanel",
@@ -2222,12 +2364,14 @@ window.BELLA = {
       "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tabs",
       "Tag",
       "TaskCard",
       "TextStack",
       "Tooltip",
-      "TreeItem"
+      "TreeItem",
+      "VariantTile"
     ],
     "--typography-letter-spacing-0": [
       "ActionChip",
@@ -2254,22 +2398,240 @@ window.BELLA = {
       "ChatBubble",
       "ClientSwitcher",
       "Combobox",
+      "DataTable",
+      "EmptyState",
       "Input",
       "Kbd",
       "ListRow",
       "NavList",
       "PageHeader",
+      "PartRow",
       "ResourceCard",
       "Section",
       "SectionHead",
       "SectionHeader",
       "Stat",
       "StatCard",
+      "TableCell",
       "Tabs",
       "Tag",
       "TextStack",
       "Tooltip",
       "TourStep"
+    ],
+    "--border-radius-round": [
+      "AnatomyHighlight",
+      "Avatar",
+      "AvatarStack",
+      "Button",
+      "ChatBubble",
+      "EmptyState",
+      "FilterChip",
+      "IconWell",
+      "ListRow",
+      "Pin",
+      "PinLabel",
+      "Progress",
+      "ResourceCard",
+      "Slider",
+      "Stat",
+      "StatusDot",
+      "StatusPill",
+      "Step",
+      "SystemHealth",
+      "Tag",
+      "TypingDots",
+      "VariantTile"
+    ],
+    "--border-width-2": [
+      "AnatomyHighlight",
+      "Avatar",
+      "AvatarStack",
+      "BoardLane",
+      "Button",
+      "Card",
+      "Leader",
+      "Link",
+      "MapLine",
+      "NavItem",
+      "PageOutline",
+      "Pin",
+      "PinLabel",
+      "SectionNav",
+      "Slider",
+      "Stage",
+      "Stat",
+      "Step",
+      "Tabs",
+      "Toast",
+      "TreeItem",
+      "VariantTile"
+    ],
+    "--color-background-accent-2": [
+      "AnatomyHighlight",
+      "BrandWordmark",
+      "Leader",
+      "Pin",
+      "SizeTag"
+    ],
+    "--color-utility-yellow-300": [
+      "AnatomyHighlight",
+      "BrandWordmark",
+      "Leader",
+      "Pin",
+      "Progress",
+      "SizeTag",
+      "StatusDot",
+      "StatusSquare",
+      "Tag"
+    ],
+    "--color-content-on-accent-1": [
+      "AnatomyHighlight",
+      "AppTile",
+      "ChatBubble",
+      "Combobox",
+      "Pin",
+      "SizeTag",
+      "StatusPill",
+      "Tag"
+    ],
+    "--color-brand-stone-900": [
+      "AnatomyHighlight",
+      "AppTile",
+      "ChatBubble",
+      "Combobox",
+      "Menu",
+      "Pin",
+      "SizeTag",
+      "StatusPill",
+      "Tag"
+    ],
+    "--spacing-4": [
+      "AnatomyHighlight",
+      "ChatBubble",
+      "ChatThread",
+      "Combobox",
+      "ConnectorTile",
+      "DataTable",
+      "Disclosure",
+      "FilterChip",
+      "Kbd",
+      "Link",
+      "ListRow",
+      "Menu",
+      "NavList",
+      "Notification",
+      "PageHeader",
+      "PageOutline",
+      "Pin",
+      "PinLabel",
+      "ProjectPanel",
+      "ResourceCard",
+      "SectionHead",
+      "SectionNav",
+      "SegmentedControl",
+      "SizeTag",
+      "Slider",
+      "SpacingStep",
+      "Stat",
+      "StatCard",
+      "StatusPill",
+      "Step",
+      "Swatch",
+      "SystemHealth",
+      "TableCell",
+      "Tabs",
+      "Tag",
+      "TaskCard",
+      "TextStack",
+      "Toast",
+      "Tooltip",
+      "TreeItem",
+      "TypeSpecimen",
+      "TypingDots",
+      "VariantTile"
+    ],
+    "--typography-line-height-px-24": [
+      "AnatomyHighlight",
+      "BoardLane",
+      "Card",
+      "ChatThread",
+      "CheckRow",
+      "ClientSwitcher",
+      "ConnectorTile",
+      "Drawer",
+      "EmptyState",
+      "GroupHead",
+      "ListRow",
+      "Menu",
+      "NavItem",
+      "Notification",
+      "PartRow",
+      "PinLabel",
+      "Progress",
+      "ProjectPanel",
+      "SearchField",
+      "SectionHead",
+      "SpacingStep",
+      "Stage",
+      "StatCard",
+      "StatusDot",
+      "Step",
+      "Swatch",
+      "SystemHealth",
+      "TaskCard",
+      "Toast",
+      "TreeItem",
+      "TypeSpecimen",
+      "VariantTile"
+    ],
+    "--typography-subtext-font-family": [
+      "AnatomyHighlight",
+      "Card",
+      "ChatThread",
+      "CheckRow",
+      "ConnectorTile",
+      "ListRow",
+      "PageHeader",
+      "PinLabel",
+      "Progress",
+      "SectionHead",
+      "Stage",
+      "Stat",
+      "Step",
+      "Swatch",
+      "TextStack"
+    ],
+    "--typography-font-family-geist-mono": [
+      "AnatomyHighlight",
+      "AvatarStack",
+      "Card",
+      "ChatBubble",
+      "ChatThread",
+      "CheckRow",
+      "CodeBlock",
+      "ConnectorTile",
+      "Kbd",
+      "ListRow",
+      "NavItem",
+      "PageHeader",
+      "Pin",
+      "PinLabel",
+      "Progress",
+      "SectionHead",
+      "SizeTag",
+      "Slider",
+      "Stage",
+      "Stat",
+      "StatCard",
+      "Step",
+      "Swatch",
+      "SystemHealth",
+      "TableCell",
+      "Tag",
+      "TextStack",
+      "TreeItem",
+      "TypeSpecimen"
     ],
     "--border-radius-12": [
       "AppTile",
@@ -2279,7 +2641,8 @@ window.BELLA = {
       "Menu",
       "PageHeader",
       "SegmentedControl",
-      "Step"
+      "Step",
+      "VariantTile"
     ],
     "--color-background-brand-subtle": [
       "AppTile",
@@ -2292,6 +2655,7 @@ window.BELLA = {
       "StatCard",
       "Step",
       "SystemHealth",
+      "TableRow",
       "Tabs",
       "TreeItem"
     ],
@@ -2308,6 +2672,7 @@ window.BELLA = {
       "StatCard",
       "Step",
       "SystemHealth",
+      "TableRow",
       "Tabs",
       "TreeItem"
     ],
@@ -2326,6 +2691,7 @@ window.BELLA = {
       "StatusPill",
       "Step",
       "SystemHealth",
+      "TableRow",
       "Tabs",
       "Tag",
       "TreeItem"
@@ -2355,6 +2721,7 @@ window.BELLA = {
       "ChatBubble",
       "ClientSwitcher",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Drawer",
       "EmptyState",
@@ -2363,18 +2730,23 @@ window.BELLA = {
       "Menu",
       "PageOutline",
       "Pin",
+      "PinLabel",
       "ResourceCard",
+      "SegmentedControl",
       "Select",
       "Slider",
       "Stage",
       "StatCard",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tag",
       "TaskCard",
+      "Toast",
       "Tooltip",
       "TopBar",
-      "TourStep"
+      "TourStep",
+      "VariantTile"
     ],
     "--color-neutral-white": [
       "AppTile",
@@ -2384,6 +2756,7 @@ window.BELLA = {
       "ChatBubble",
       "ClientSwitcher",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Drawer",
       "EmptyState",
@@ -2392,18 +2765,23 @@ window.BELLA = {
       "Menu",
       "PageOutline",
       "Pin",
+      "PinLabel",
       "ResourceCard",
+      "SegmentedControl",
       "Select",
       "Slider",
       "Stage",
       "StatCard",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tag",
       "TaskCard",
+      "Toast",
       "Tooltip",
       "TopBar",
-      "TourStep"
+      "TourStep",
+      "VariantTile"
     ],
     "--color-neutral-800": [
       "AppTile",
@@ -2416,6 +2794,7 @@ window.BELLA = {
       "ClientSwitcher",
       "CodeBlock",
       "Combobox",
+      "ConnectorTile",
       "DataTable",
       "Drawer",
       "EmptyState",
@@ -2429,7 +2808,9 @@ window.BELLA = {
       "Menu",
       "PageOutline",
       "Pin",
+      "PinLabel",
       "ResourceCard",
+      "SearchField",
       "SectionHeader",
       "SegmentedControl",
       "Select",
@@ -2438,36 +2819,24 @@ window.BELLA = {
       "StatCard",
       "StatusDot",
       "StatusPill",
+      "Step",
       "Swatch",
       "SystemHealth",
+      "TableCell",
       "Tag",
       "TaskCard",
       "TextStack",
+      "Toast",
       "Tooltip",
       "TopBar",
-      "TourStep"
+      "TourStep",
+      "VariantTile"
     ],
     "--color-content-knockout": [
       "AppTile",
       "StatusSquare",
+      "Step",
       "Tooltip"
-    ],
-    "--color-content-on-accent-1": [
-      "AppTile",
-      "Combobox",
-      "DataTable",
-      "Pin",
-      "StatusPill",
-      "Tag"
-    ],
-    "--color-brand-stone-900": [
-      "AppTile",
-      "Combobox",
-      "DataTable",
-      "Menu",
-      "Pin",
-      "StatusPill",
-      "Tag"
     ],
     "--size-24": [
       "AppTile",
@@ -2475,18 +2844,24 @@ window.BELLA = {
       "MapLine",
       "StatusDot",
       "StatusSquare",
+      "TableCell",
       "TaskCard",
       "Trailing"
     ],
     "--spacing-32": [
       "AppTile",
       "Avatar",
+      "BoardLane",
       "ChatBubble",
       "DataTable",
+      "EmptyState",
       "Pin",
+      "PinLabel",
       "Progress",
       "Select",
       "SpacingStep",
+      "Stage",
+      "Step",
       "Tag",
       "TopBar"
     ],
@@ -2513,44 +2888,6 @@ window.BELLA = {
     "--tile-ink": [
       "AppTile"
     ],
-    "--border-radius-round": [
-      "Avatar",
-      "AvatarStack",
-      "Button",
-      "ChatBubble",
-      "EmptyState",
-      "FilterChip",
-      "IconWell",
-      "Pin",
-      "Progress",
-      "ResourceCard",
-      "Slider",
-      "Stat",
-      "StatusDot",
-      "StatusPill",
-      "SystemHealth",
-      "Tag",
-      "TypingDots"
-    ],
-    "--border-width-2": [
-      "Avatar",
-      "AvatarStack",
-      "BoardLane",
-      "Button",
-      "Card",
-      "Leader",
-      "Link",
-      "MapLine",
-      "NavItem",
-      "PageOutline",
-      "Pin",
-      "SectionNav",
-      "Slider",
-      "Stage",
-      "Stat",
-      "Tabs",
-      "TreeItem"
-    ],
     "--color-background-default": [
       "Avatar",
       "ChatBubble",
@@ -2575,6 +2912,7 @@ window.BELLA = {
       "ListRow",
       "PageOutline",
       "ResourceCard",
+      "SearchField",
       "SectionHeader",
       "SegmentedControl",
       "Select",
@@ -2587,6 +2925,7 @@ window.BELLA = {
     "--spacing-40": [
       "Avatar",
       "AvatarStack",
+      "BoardLane",
       "BrandWordmark",
       "SpacingStep",
       "TourStep"
@@ -2600,6 +2939,8 @@ window.BELLA = {
       "ResourceCard",
       "SpacingStep",
       "Stat",
+      "SystemHealth",
+      "Toast",
       "TourStep"
     ],
     "--typography-font-size-22": [
@@ -2615,14 +2956,14 @@ window.BELLA = {
       "ClientSwitcher",
       "Input",
       "Pin",
-      "ResourceCard"
+      "ResourceCard",
+      "SizeTag"
     ],
     "--typography-label-default-font-size": [
       "Avatar",
       "AvatarStack",
       "Button",
       "ChatBubble",
-      "ChatThread",
       "CodeBlock",
       "FilterChip",
       "Input",
@@ -2646,36 +2987,11 @@ window.BELLA = {
       "Slider",
       "Stat",
       "StatCard",
+      "Step",
       "SystemHealth",
+      "TableCell",
       "Tag",
       "TreeItem"
-    ],
-    "--typography-font-family-geist-mono": [
-      "AvatarStack",
-      "Card",
-      "ChatBubble",
-      "ChatThread",
-      "CheckRow",
-      "CodeBlock",
-      "DataTable",
-      "Kbd",
-      "ListRow",
-      "NavItem",
-      "PageHeader",
-      "Pin",
-      "Progress",
-      "SectionHead",
-      "Slider",
-      "Stage",
-      "Stat",
-      "StatCard",
-      "Step",
-      "Swatch",
-      "SystemHealth",
-      "Tag",
-      "TextStack",
-      "TreeItem",
-      "TypeSpecimen"
     ],
     "--border-radius-16": [
       "BoardLane",
@@ -2688,23 +3004,28 @@ window.BELLA = {
     "--border-radius-card": [
       "BoardLane",
       "Card",
-      "Drawer",
-      "Notification",
-      "Stage",
-      "StatCard",
-      "SystemHealth",
-      "TaskCard"
-    ],
-    "--border-radius-20": [
-      "BoardLane",
-      "Card",
       "ChatBubble",
+      "ConnectorTile",
       "Drawer",
       "Notification",
       "Stage",
       "StatCard",
       "SystemHealth",
       "TaskCard",
+      "Toast"
+    ],
+    "--border-radius-20": [
+      "BoardLane",
+      "Card",
+      "ChatBubble",
+      "ConnectorTile",
+      "Drawer",
+      "Notification",
+      "Stage",
+      "StatCard",
+      "SystemHealth",
+      "TaskCard",
+      "Toast",
       "TypingDots"
     ],
     "--color-background-lane": [
@@ -2715,57 +3036,11 @@ window.BELLA = {
       "CodeBlock",
       "Menu"
     ],
-    "--color-background-utility-warning": [
-      "BoardLane",
-      "IconWell",
-      "Notification",
-      "StatusDot",
-      "Tag"
-    ],
-    "--color-utility-yellow-100": [
-      "BoardLane",
-      "IconWell",
-      "Notification",
-      "StatusDot",
-      "Tag"
-    ],
-    "--color-brand-ochre-alpha-15": [
-      "BoardLane",
-      "IconWell",
-      "Notification",
-      "StatusDot",
-      "Tag"
-    ],
     "--color-border-brand": [
       "BoardLane",
       "FilterChip",
       "Progress",
       "SystemHealth"
-    ],
-    "--color-border-utility-warning": [
-      "BoardLane",
-      "Notification",
-      "Progress",
-      "StatusDot",
-      "StatusSquare",
-      "Tag"
-    ],
-    "--color-utility-yellow-500": [
-      "BoardLane",
-      "Notification",
-      "Progress",
-      "StatusDot",
-      "StatusSquare",
-      "Tag"
-    ],
-    "--color-brand-ochre-300": [
-      "BoardLane",
-      "Notification",
-      "Progress",
-      "StatusDot",
-      "StatusPill",
-      "StatusSquare",
-      "Tag"
     ],
     "--color-content-brand": [
       "BoardLane"
@@ -2775,14 +3050,14 @@ window.BELLA = {
       "CodeBlock"
     ],
     "--color-content-lane-subtle": [
-      "BoardLane",
-      "EmptyState"
+      "BoardLane"
     ],
     "--spacing-24": [
       "BoardLane",
       "Card",
       "ChatBubble",
       "Columns",
+      "ConnectorTile",
       "Drawer",
       "EmptyState",
       "Kbd",
@@ -2797,23 +3072,24 @@ window.BELLA = {
       "Stage",
       "Stat",
       "StatCard",
-      "SystemHealth"
+      "Step",
+      "SystemHealth",
+      "Tabs",
+      "VariantTile"
     ],
     "--typography-font-size-18": [
       "BoardLane",
       "ChatBubble",
       "Combobox",
-      "DataTable",
       "Disclosure",
       "Drawer",
       "FilterChip",
       "Input",
-      "SegmentedControl",
+      "PartRow",
       "Select",
       "Slider",
       "Stat",
       "StatCard",
-      "Tabs",
       "TypeSpecimen"
     ],
     "--typography-font-weight-400": [
@@ -2839,16 +3115,19 @@ window.BELLA = {
       "StatusPill",
       "Step",
       "SystemHealth",
+      "TableCell",
       "Tag",
       "TaskCard",
       "TextStack",
       "TreeItem",
-      "TypeSpecimen"
+      "TypeSpecimen",
+      "VariantTile"
     ],
     "--typography-line-height-130": [
       "BoardLane",
       "ChatBubble",
       "CheckRow",
+      "ConnectorTile",
       "Disclosure",
       "Drawer",
       "Eyebrow",
@@ -2857,72 +3136,37 @@ window.BELLA = {
       "Tooltip",
       "TypeSpecimen"
     ],
-    "--typography-line-height-px-24": [
-      "BoardLane",
-      "Card",
-      "CheckRow",
-      "ClientSwitcher",
-      "Drawer",
-      "EmptyState",
-      "GroupHead",
-      "Menu",
-      "NavItem",
-      "Notification",
-      "Progress",
-      "ProjectPanel",
-      "SearchField",
-      "SectionHead",
-      "SpacingStep",
-      "Stage",
-      "StatCard",
-      "StatusDot",
-      "Step",
-      "Swatch",
-      "SystemHealth",
-      "TaskCard",
-      "TreeItem",
-      "TypeSpecimen"
-    ],
-    "--color-background-accent-2": [
-      "BrandWordmark",
-      "Leader",
-      "Pin"
-    ],
-    "--color-utility-yellow-300": [
-      "BrandWordmark",
-      "Leader",
-      "Pin",
-      "Progress",
-      "StatusDot",
-      "StatusSquare",
-      "Tag"
-    ],
     "--color-background-accent-3": [
       "BrandWordmark",
       "Leader",
-      "Pin"
+      "Pin",
+      "SizeTag"
     ],
     "--color-brand-blue-500": [
       "BrandWordmark",
       "Leader",
-      "Pin"
+      "Pin",
+      "SizeTag"
     ],
     "--color-background-accent-4": [
       "BrandWordmark",
       "Leader",
-      "Pin"
+      "Pin",
+      "SizeTag"
     ],
     "--color-utility-red-500": [
       "BrandWordmark",
       "Input",
       "Leader",
-      "Notification",
+      "ListRow",
       "Pin",
       "Progress",
+      "SizeTag",
       "StatusDot",
       "StatusPill",
       "StatusSquare",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--button-color-background-active": [
       "Button"
@@ -2953,7 +3197,8 @@ window.BELLA = {
       "Button"
     ],
     "--color-background-brand": [
-      "Button"
+      "Button",
+      "VariantTile"
     ],
     "--color-background-brand-active": [
       "Button"
@@ -2996,12 +3241,14 @@ window.BELLA = {
     ],
     "--size-32": [
       "Button",
+      "EmptyState",
       "Icon",
       "Trailing"
     ],
     "--spacing-20": [
       "Button",
       "ChatThread",
+      "EmptyState",
       "ResourceCard",
       "SectionHeader",
       "SpacingStep",
@@ -3013,7 +3260,8 @@ window.BELLA = {
       "Button"
     ],
     "--typography-line-height-px-22": [
-      "Button"
+      "Button",
+      "SizeTag"
     ],
     "--layout-card-padding": [
       "Card"
@@ -3024,6 +3272,7 @@ window.BELLA = {
     "--shadow-card-ink": [
       "Card",
       "ClientSwitcher",
+      "ConnectorTile",
       "EmptyState",
       "StatCard",
       "SystemHealth",
@@ -3032,6 +3281,7 @@ window.BELLA = {
     "--shadow-card-ink-dark": [
       "Card",
       "ClientSwitcher",
+      "ConnectorTile",
       "EmptyState",
       "StatCard",
       "SystemHealth",
@@ -3039,21 +3289,6 @@ window.BELLA = {
     ],
     "--shadow-hover": [
       "Card"
-    ],
-    "--typography-subtext-font-family": [
-      "Card",
-      "ChatThread",
-      "CheckRow",
-      "DataTable",
-      "ListRow",
-      "PageHeader",
-      "Progress",
-      "SectionHead",
-      "Stage",
-      "Stat",
-      "Step",
-      "Swatch",
-      "TextStack"
     ],
     "--border-radius-4": [
       "ChatBubble",
@@ -3064,10 +3299,36 @@ window.BELLA = {
       "ListRow",
       "PageOutline",
       "SectionNav",
+      "SizeTag",
       "SpacingStep",
       "StatusSquare",
+      "TableCell",
       "Tag",
       "Tooltip"
+    ],
+    "--color-background-accent-1": [
+      "ChatBubble",
+      "Combobox",
+      "Pin",
+      "SizeTag",
+      "StatusPill",
+      "TableCell",
+      "Tag"
+    ],
+    "--color-brand-pink-300": [
+      "ChatBubble",
+      "Combobox",
+      "Leader",
+      "MapLine",
+      "Pin",
+      "SizeTag",
+      "StatusPill",
+      "TableCell",
+      "Tag"
+    ],
+    "--color-background-default-hover": [
+      "ChatBubble",
+      "VariantTile"
     ],
     "--motion-duration-400": [
       "ChatBubble"
@@ -3080,64 +3341,34 @@ window.BELLA = {
     ],
     "--shadow-ui-ink": [
       "ChatBubble",
+      "Pin",
       "Tooltip"
     ],
     "--shadow-ui-ink-dark": [
       "ChatBubble",
+      "Pin",
       "Tooltip"
     ],
-    "--spacing-4": [
+    "--size-20": [
       "ChatBubble",
-      "ChatThread",
-      "Combobox",
-      "DataTable",
-      "Disclosure",
-      "FilterChip",
-      "Kbd",
-      "Link",
-      "ListRow",
-      "Menu",
-      "NavList",
-      "Notification",
-      "PageHeader",
-      "PageOutline",
-      "ProjectPanel",
-      "ResourceCard",
-      "SectionHead",
-      "SectionNav",
-      "SegmentedControl",
-      "Slider",
-      "SpacingStep",
+      "CheckRow",
+      "Icon",
+      "Select",
       "Stat",
-      "StatCard",
-      "StatusPill",
-      "Step",
-      "Swatch",
-      "SystemHealth",
-      "Tabs",
-      "Tag",
+      "TableCell",
       "TaskCard",
-      "TextStack",
-      "Tooltip",
-      "TreeItem",
-      "TypeSpecimen",
-      "TypingDots"
+      "VariantTile"
     ],
     "--typography-font-size-display-hero": [
       "ChatBubble",
       "Heading"
     ],
-    "--size-20": [
-      "CheckRow",
-      "Icon",
-      "Select",
-      "Stat",
-      "TaskCard"
-    ],
     "--typography-font-size-20": [
       "CheckRow",
       "ClientSwitcher",
+      "ConnectorTile",
       "EmptyState",
+      "ListRow",
       "SectionHead",
       "TypeSpecimen"
     ],
@@ -3171,7 +3402,9 @@ window.BELLA = {
       "IconWell",
       "Notification",
       "StatusDot",
-      "Tag"
+      "Step",
+      "Tag",
+      "Toast"
     ],
     "--color-utility-green-800": [
       "CodeBlock"
@@ -3206,7 +3439,8 @@ window.BELLA = {
       "CodeBlock"
     ],
     "--color-utility-yellow-200": [
-      "CodeBlock"
+      "CodeBlock",
+      "Step"
     ],
     "--color-content-syntax-comment": [
       "CodeBlock"
@@ -3216,7 +3450,8 @@ window.BELLA = {
     ],
     "--color-brand-navy-200": [
       "CodeBlock",
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--color-content-syntax-foreground": [
       "CodeBlock"
@@ -3226,14 +3461,15 @@ window.BELLA = {
     ],
     "--color-utility-blue-300": [
       "CodeBlock",
-      "Notification",
+      "ListRow",
       "Pin",
       "Progress",
       "StatusDot",
       "StatusPill",
       "StatusSquare",
       "Step",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--color-content-syntax-keyword": [
       "CodeBlock"
@@ -3243,7 +3479,8 @@ window.BELLA = {
     ],
     "--color-brand-pink-200": [
       "CodeBlock",
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--color-content-syntax-line-number": [
       "CodeBlock"
@@ -3253,7 +3490,8 @@ window.BELLA = {
     ],
     "--color-brand-ochre-200": [
       "CodeBlock",
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--color-content-syntax-punct": [
       "CodeBlock"
@@ -3263,6 +3501,7 @@ window.BELLA = {
       "IconWell",
       "StatusDot",
       "StatusPill",
+      "Step",
       "Tag"
     ],
     "--color-content-syntax-string": [
@@ -3273,19 +3512,23 @@ window.BELLA = {
       "IconWell",
       "Notification",
       "StatusDot",
+      "Step",
       "SystemHealth",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--color-utility-green-300": [
       "CodeBlock",
-      "Notification",
+      "ListRow",
       "Pin",
       "Progress",
       "StatusDot",
       "StatusPill",
       "StatusSquare",
       "SystemHealth",
-      "Tag"
+      "Tag",
+      "Toast",
+      "VariantTile"
     ],
     "--color-content-syntax-tag": [
       "CodeBlock"
@@ -3296,7 +3539,8 @@ window.BELLA = {
       "Menu",
       "Notification",
       "StatusDot",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--color-utility-red-200": [
       "CodeBlock",
@@ -3304,38 +3548,24 @@ window.BELLA = {
       "Menu",
       "Notification",
       "StatusDot",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--layout-gutter": [
       "Columns",
       "SidebarLayout"
-    ],
-    "--color-background-accent-1": [
-      "Combobox",
-      "DataTable",
-      "Pin",
-      "StatusPill",
-      "Tag"
-    ],
-    "--color-brand-pink-300": [
-      "Combobox",
-      "DataTable",
-      "Leader",
-      "MapLine",
-      "Pin",
-      "StatusPill",
-      "Tag"
     ],
     "--shadow-lg": [
       "Combobox",
       "TaskCard"
     ],
     "--typography-font-weight-500": [
-      "DataTable",
       "Disclosure",
       "FilterChip",
       "Heading",
       "Input",
+      "ListRow",
+      "PinLabel",
       "ResourceCard",
       "Section",
       "SegmentedControl",
@@ -3344,18 +3574,22 @@ window.BELLA = {
       "Tabs"
     ],
     "--color-background-transparent": [
-      "Drawer"
+      "Drawer",
+      "Toast"
     ],
     "--color-neutral-alpha-30": [
-      "Drawer"
+      "Drawer",
+      "Toast"
     ],
     "--color-neutral-alpha-60": [
-      "Drawer"
+      "Drawer",
+      "Toast"
     ],
     "--shadow-soft": [
       "Drawer",
       "Menu",
       "PageOutline",
+      "PinLabel",
       "SegmentedControl",
       "TourStep"
     ],
@@ -3366,7 +3600,8 @@ window.BELLA = {
       "EmptyState"
     ],
     "--color-background-wash-blue-strong": [
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--color-brand-blue-200": [
       "EmptyState",
@@ -3374,11 +3609,13 @@ window.BELLA = {
       "NavItem",
       "SegmentedControl",
       "Step",
+      "TableRow",
       "Tabs",
       "TreeItem"
     ],
     "--color-brand-blue-alpha-22": [
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--color-background-wash-fade": [
       "EmptyState"
@@ -3396,10 +3633,12 @@ window.BELLA = {
       "EmptyState"
     ],
     "--color-background-wash-navy-strong": [
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--color-brand-navy-alpha-22": [
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--color-background-wash-ochre": [
       "EmptyState"
@@ -3411,10 +3650,12 @@ window.BELLA = {
       "EmptyState"
     ],
     "--color-background-wash-ochre-strong": [
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--color-brand-ochre-alpha-22": [
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--color-background-wash-pink": [
       "EmptyState"
@@ -3426,14 +3667,22 @@ window.BELLA = {
       "EmptyState"
     ],
     "--color-background-wash-pink-strong": [
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--color-brand-pink-alpha-22": [
-      "EmptyState"
+      "EmptyState",
+      "Step"
     ],
     "--size-36": [
       "EmptyState",
-      "IconWell"
+      "IconWell",
+      "Step"
+    ],
+    "--typography-font-size-24": [
+      "EmptyState",
+      "Heading",
+      "SystemHealth"
     ],
     "--typography-font-size-32": [
       "EmptyState"
@@ -3441,9 +3690,11 @@ window.BELLA = {
     "--typography-line-height-px-40": [
       "EmptyState"
     ],
-    "--typography-font-size-24": [
-      "Heading",
-      "SystemHealth"
+    "--wash": [
+      "EmptyState"
+    ],
+    "--wash-strong": [
+      "EmptyState"
     ],
     "--typography-font-size-display-page": [
       "Heading",
@@ -3480,6 +3731,7 @@ window.BELLA = {
       "Input",
       "MapLine",
       "SegmentedControl",
+      "TableCell",
       "Tooltip"
     ],
     "--layout-rail-width": [
@@ -3505,21 +3757,44 @@ window.BELLA = {
       "IconWell",
       "StatusDot",
       "StatusPill",
+      "Step",
       "Tag"
     ],
     "--color-brand-wash-grey": [
       "IconWell",
       "StatusDot",
       "StatusPill",
+      "Step",
       "Tag"
     ],
     "--color-background-utility-success": [
       "IconWell",
       "Notification",
       "StatusDot",
+      "Step",
       "Tag"
     ],
     "--color-utility-green-alpha-20": [
+      "IconWell",
+      "Notification",
+      "StatusDot",
+      "Step",
+      "Tag"
+    ],
+    "--color-background-utility-warning": [
+      "IconWell",
+      "Notification",
+      "StatusDot",
+      "Tag"
+    ],
+    "--color-utility-yellow-100": [
+      "IconWell",
+      "Notification",
+      "StatusDot",
+      "Tag",
+      "Toast"
+    ],
+    "--color-brand-ochre-alpha-15": [
       "IconWell",
       "Notification",
       "StatusDot",
@@ -3530,51 +3805,60 @@ window.BELLA = {
       "Notification",
       "StatusDot",
       "Step",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--color-utility-blue-700": [
       "IconWell",
       "Notification",
       "StatusDot",
       "Step",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--color-utility-blue-200": [
       "IconWell",
       "Notification",
       "StatusDot",
       "Step",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--color-content-utility-neutral": [
       "IconWell",
       "StatusDot",
       "StatusPill",
+      "Step",
       "Tag"
     ],
     "--color-brand-wash-grey-ink": [
       "IconWell",
       "StatusDot",
       "StatusPill",
+      "Step",
       "Tag"
     ],
     "--color-content-utility-success": [
       "IconWell",
       "Notification",
       "StatusDot",
-      "Tag"
+      "Step",
+      "Tag",
+      "Toast"
     ],
     "--color-content-utility-warning": [
       "IconWell",
       "Notification",
       "StatusDot",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--color-utility-yellow-700": [
       "IconWell",
       "Notification",
       "StatusDot",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--border-radius-form": [
       "Input",
@@ -3582,29 +3866,33 @@ window.BELLA = {
     ],
     "--color-border-utility-error": [
       "Input",
-      "Notification",
-      "Progress",
-      "StatusDot",
-      "StatusPill",
-      "StatusSquare",
-      "Tag"
-    ],
-    "--color-utility-red-300": [
-      "Input",
-      "Notification",
+      "ListRow",
       "Pin",
       "Progress",
       "StatusDot",
       "StatusPill",
       "StatusSquare",
-      "Tag"
+      "Tag",
+      "Toast"
+    ],
+    "--color-utility-red-300": [
+      "Input",
+      "ListRow",
+      "Pin",
+      "Progress",
+      "StatusDot",
+      "StatusPill",
+      "StatusSquare",
+      "Tag",
+      "Toast"
     ],
     "--color-content-utility-error": [
       "Input",
       "Menu",
       "Notification",
       "StatusDot",
-      "Tag"
+      "Tag",
+      "Toast"
     ],
     "--size-60": [
       "Input"
@@ -3612,8 +3900,10 @@ window.BELLA = {
     "--border-radius-sm": [
       "Kbd",
       "ListRow",
+      "SizeTag",
       "SpacingStep",
       "StatusSquare",
+      "TableCell",
       "Tag",
       "Tooltip"
     ],
@@ -3622,11 +3912,13 @@ window.BELLA = {
     ],
     "--color-border-accent-1": [
       "Leader",
-      "MapLine"
+      "MapLine",
+      "Pin"
     ],
     "--color-brand-pink-500": [
       "Leader",
-      "MapLine"
+      "MapLine",
+      "Pin"
     ],
     "--leader-pop": [
       "Leader"
@@ -3639,6 +3931,7 @@ window.BELLA = {
       "NavItem",
       "SegmentedControl",
       "Step",
+      "TableRow",
       "Tabs",
       "TreeItem"
     ],
@@ -3647,8 +3940,95 @@ window.BELLA = {
       "NavItem",
       "SegmentedControl",
       "Step",
+      "TableRow",
       "Tabs",
       "TreeItem"
+    ],
+    "--color-border-utility-info": [
+      "ListRow",
+      "Pin",
+      "Progress",
+      "StatusDot",
+      "StatusPill",
+      "StatusSquare",
+      "Step",
+      "Tag",
+      "Toast"
+    ],
+    "--color-utility-blue-500": [
+      "ListRow",
+      "Pin",
+      "Progress",
+      "StatusDot",
+      "StatusPill",
+      "StatusSquare",
+      "Step",
+      "Tag",
+      "Toast"
+    ],
+    "--color-border-utility-neutral": [
+      "ListRow",
+      "StatusDot",
+      "Tag"
+    ],
+    "--color-brand-stone-500": [
+      "ListRow",
+      "StatusDot",
+      "Tag"
+    ],
+    "--color-neutral-400": [
+      "ListRow",
+      "StatusDot",
+      "Tag"
+    ],
+    "--color-border-utility-success": [
+      "ListRow",
+      "Pin",
+      "Progress",
+      "StatusDot",
+      "StatusPill",
+      "StatusSquare",
+      "Tag",
+      "Toast"
+    ],
+    "--color-utility-green-600": [
+      "ListRow",
+      "Pin",
+      "Progress",
+      "StatusDot",
+      "StatusPill",
+      "StatusSquare",
+      "SystemHealth",
+      "Tag",
+      "Toast"
+    ],
+    "--color-border-utility-warning": [
+      "ListRow",
+      "Pin",
+      "Progress",
+      "StatusDot",
+      "StatusSquare",
+      "Tag",
+      "Toast"
+    ],
+    "--color-utility-yellow-500": [
+      "ListRow",
+      "Pin",
+      "Progress",
+      "StatusDot",
+      "StatusSquare",
+      "Tag",
+      "Toast"
+    ],
+    "--color-brand-ochre-300": [
+      "ListRow",
+      "Pin",
+      "Progress",
+      "StatusDot",
+      "StatusPill",
+      "StatusSquare",
+      "Tag",
+      "Toast"
     ],
     "--typography-title-default-font-family": [
       "ListRow",
@@ -3680,44 +4060,6 @@ window.BELLA = {
       "NavItem",
       "TreeItem"
     ],
-    "--color-border-utility-info": [
-      "Notification",
-      "Progress",
-      "StatusDot",
-      "StatusPill",
-      "StatusSquare",
-      "Step",
-      "Tag"
-    ],
-    "--color-utility-blue-500": [
-      "Notification",
-      "Progress",
-      "StatusDot",
-      "StatusPill",
-      "StatusSquare",
-      "Step",
-      "Tag"
-    ],
-    "--color-border-utility-success": [
-      "Notification",
-      "Progress",
-      "StatusDot",
-      "StatusPill",
-      "StatusSquare",
-      "Tag"
-    ],
-    "--color-utility-green-600": [
-      "Notification",
-      "Progress",
-      "StatusDot",
-      "StatusPill",
-      "StatusSquare",
-      "SystemHealth",
-      "Tag"
-    ],
-    "--notification-edge": [
-      "Notification"
-    ],
     "--notification-ink": [
       "Notification"
     ],
@@ -3736,11 +4078,16 @@ window.BELLA = {
       "Pin"
     ],
     "--color-background-utility-success-knockout": [
-      "Pin"
+      "Pin",
+      "VariantTile"
     ],
     "--color-content-utility-on-status": [
       "Pin",
-      "StatusPill"
+      "StatusPill",
+      "VariantTile"
+    ],
+    "--pin-dot": [
+      "Pin"
     ],
     "--pin-fill": [
       "Pin"
@@ -3750,6 +4097,10 @@ window.BELLA = {
     ],
     "--pin-pop": [
       "Pin"
+    ],
+    "--size-28": [
+      "Pin",
+      "ProjectPanel"
     ],
     "--color-background-utility-warning-mark": [
       "Progress",
@@ -3767,9 +4118,6 @@ window.BELLA = {
       "Progress"
     ],
     "--layout-panel-heading-padding-top": [
-      "ProjectPanel"
-    ],
-    "--size-28": [
       "ProjectPanel"
     ],
     "--layout-panel-width": [
@@ -3811,20 +4159,17 @@ window.BELLA = {
       "StatCard",
       "SystemHealth"
     ],
-    "--color-border-utility-neutral": [
-      "StatusDot",
-      "Tag"
-    ],
-    "--color-brand-stone-500": [
-      "StatusDot",
-      "Tag"
-    ],
-    "--color-neutral-400": [
-      "StatusDot",
-      "Tag"
-    ],
     "--color-background-utility-warning-knockout": [
       "StatusPill"
+    ],
+    "--color-background-wash-grey-strong": [
+      "Step"
+    ],
+    "--color-background-wash-yellow-strong": [
+      "Step"
+    ],
+    "--color-utility-yellow-alpha-22": [
+      "Step"
     ],
     "--a": [
       "SystemHealth"
@@ -3855,6 +4200,12 @@ window.BELLA = {
     ],
     "--w": [
       "SystemHealth"
+    ],
+    "--toast-edge": [
+      "Toast"
+    ],
+    "--toast-ink": [
+      "Toast"
     ],
     "--typography-font-size-28": [
       "TypeSpecimen"
@@ -3957,7 +4308,92 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 33,
+          "pairs": 36,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "anatomy-highlight",
+      "name": "AnatomyHighlight",
+      "category": "Annotation",
+      "description": "Marks one piece of a part on a doc page (Figma BellaComponents Anatomy\nhighlight 1309:233, read 20 Nov 2026; her 18 Nov \"so you can see what the\npieces are .. and it hightlights\"): a 2px outline round the piece, outside\nso it never covers it, and a tag naming the piece on the outline's edge.\nNo numbers. The page places it absolute over the specimen.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "label",
+        "shape",
+        "showTag",
+        "style",
+        "tag"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Doc-page anatomy, placed absolute over the specimen and sized to the piece",
+        "AnatomyTag alone in the margin, level with its piece, when the edge would cover the part"
+      ],
+      "dont": [
+        "Do not number the pieces: it replaces numbered Pins and Leaders on doc-page anatomy",
+        "Do not use it for flow locator dots: those stay Pins"
+      ],
+      "restNote": null,
+      "a11y": "The tag is text, content/on-accent-1 on accent-2 (AAA). The outline is decoration over the piece; with Show tag off the name stays for screen readers. No pointer events.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.anatomy-highlight.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-anatomyhighlight--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 11,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-round",
+          "--border-width-1",
+          "--border-width-2",
+          "--color-background-accent-2",
+          "--color-content-on-accent-1",
+          "--spacing-12",
+          "--spacing-4",
+          "--typography-font-size-16",
+          "--typography-font-weight-600",
+          "--typography-line-height-px-24",
+          "--typography-subtext-font-family"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 2,
           "failing": []
         },
         "contract": {
@@ -4052,7 +4488,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 48,
+          "pairs": 51,
           "failing": []
         },
         "contract": {
@@ -4149,7 +4585,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 36,
+          "pairs": 37,
           "failing": []
         },
         "contract": {
@@ -4236,7 +4672,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 48,
+          "pairs": 50,
           "failing": []
         },
         "contract": {
@@ -4269,7 +4705,6 @@ window.BELLA = {
         "lane",
         "name",
         "order",
-        "statusTone",
         "style"
       ],
       "variants": [],
@@ -4288,7 +4723,7 @@ window.BELLA = {
         "Never a blue lane"
       ],
       "restNote": null,
-      "a11y": "A region named by its heading (Name), holding a list of cards. The count reads 'N cards'. Text 7:1: name content-default 10.50:1 and order content-lane-subtle 7.21:1 lowest on the needs-you wash; on the lane grey checked by the gate. Needs-you edge border-utility-warning 3.56:1 on the page. Drop label content-brand 7.52:1 on the lane (Chip light).",
+      "a11y": "A region named by its heading (Name), holding a list of cards. The count reads 'N cards'. Text 7:1: name content-default 10.50:1 and order content-lane-subtle 7.21:1 on the lane grey, checked by the gate. Drop label content-brand 7.52:1 on the lane (Chip light).",
       "minTarget": null,
       "sandbox": {
         "minHeight": null,
@@ -4304,7 +4739,6 @@ window.BELLA = {
       "anatomySource": "tokens/contracts.json → component.board-lane.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-boardlane--docs",
       "composedFrom": [
-        "StatusDot",
         "Tag"
       ],
       "tokens": {
@@ -4316,15 +4750,15 @@ window.BELLA = {
           "--border-radius-card",
           "--border-width-2",
           "--color-background-lane",
-          "--color-background-utility-warning",
           "--color-border-brand",
           "--color-border-strong",
-          "--color-border-utility-warning",
           "--color-content-brand",
           "--color-content-default",
           "--color-content-lane-subtle",
           "--spacing-16",
           "--spacing-24",
+          "--spacing-32",
+          "--spacing-40",
           "--spacing-8",
           "--typography-body-default-font-family",
           "--typography-font-size-16",
@@ -4335,12 +4769,12 @@ window.BELLA = {
           "--typography-line-height-px-24"
         ]
       },
-      "compositionDepth": 2,
+      "compositionDepth": 1,
       "composesInto": [],
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 34,
+          "pairs": 33,
           "failing": []
         },
         "contract": {
@@ -4432,7 +4866,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 12,
+          "pairs": 15,
           "failing": []
         },
         "contract": {
@@ -4686,12 +5120,14 @@ window.BELLA = {
         "Drawer",
         "Input",
         "Swatch",
+        "Tabs",
+        "Toast",
         "TourStep"
       ],
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 62,
+          "pairs": 65,
           "failing": []
         },
         "contract": {
@@ -4940,7 +5376,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 39,
+          "pairs": 41,
           "failing": []
         },
         "contract": {
@@ -5008,27 +5444,29 @@ window.BELLA = {
         "StatusPill"
       ],
       "tokens": {
-        "count": 29,
+        "count": 31,
         "component": 0,
         "semantic": 0,
         "list": [
-          "--border-radius-20",
           "--border-radius-4",
-          "--border-radius-8",
+          "--border-radius-card",
           "--border-radius-round",
           "--border-width-1",
+          "--color-background-accent-1",
           "--color-background-default",
-          "--color-background-subtle",
+          "--color-background-default-hover",
           "--color-background-surface",
           "--color-border-strong",
           "--color-content-body",
-          "--color-content-default",
+          "--color-content-on-accent-1",
           "--color-content-subtle",
           "--motion-duration-400",
           "--motion-duration-450",
           "--motion-easing-pop",
           "--shadow-ui-ink",
+          "--size-20",
           "--spacing-12",
+          "--spacing-16",
           "--spacing-24",
           "--spacing-32",
           "--spacing-4",
@@ -5048,7 +5486,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 72,
+          "pairs": 66,
           "failing": []
         },
         "contract": {
@@ -5106,7 +5544,7 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-chatthread--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 11,
+        "count": 12,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -5118,8 +5556,9 @@ window.BELLA = {
           "--spacing-20",
           "--spacing-4",
           "--spacing-8",
+          "--typography-font-size-16",
           "--typography-font-weight-600",
-          "--typography-label-default-font-size",
+          "--typography-line-height-px-24",
           "--typography-subtext-font-family"
         ]
       },
@@ -5226,7 +5665,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 12,
+          "pairs": 15,
           "failing": []
         },
         "contract": {
@@ -5322,7 +5761,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 47,
+          "pairs": 50,
           "failing": []
         },
         "contract": {
@@ -5670,7 +6109,97 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 53,
+          "pairs": 56,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "connector-tile",
+      "name": "ConnectorTile",
+      "category": "Data",
+      "description": "One connected service on CHIP Connectors: its app tile and live status, its\nname, what it says now, and the one action it offers (Figma BellaComponents\nConnector tile 1330:51190, read 20 Nov 2026). Tiles in a grid share a height.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": false,
+      "props": [
+        "action",
+        "appTile",
+        "className",
+        "detail",
+        "name",
+        "status",
+        "statusTone",
+        "style",
+        "value"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [],
+      "dont": [],
+      "restNote": null,
+      "a11y": null,
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.connector-tile.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-connectortile--docs",
+      "composedFrom": [
+        "StatusDot"
+      ],
+      "tokens": {
+        "count": 17,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-card",
+          "--border-width-1",
+          "--color-background-surface",
+          "--color-border-subtle",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--shadow-card-ink",
+          "--spacing-24",
+          "--spacing-4",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-font-size-20",
+          "--typography-font-weight-600",
+          "--typography-line-height-130",
+          "--typography-line-height-px-24",
+          "--typography-subtext-font-family"
+        ]
+      },
+      "compositionDepth": 2,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 46,
           "failing": []
         },
         "contract": {
@@ -5687,7 +6216,7 @@ window.BELLA = {
       "id": "data-table",
       "name": "DataTable",
       "category": "Data",
-      "description": "Rows of facts in columns. Sortable headers are buttons with aria-sort,\nthe header sticks, and an optional single selection fills the chosen row\npink without dimming any other row.",
+      "description": "Rows of facts in columns, built from Table row and Table cell (Figma 20\nNov). Sortable headers are buttons with aria-sort, the header sticks, and\nan optional single selection marks the chosen row light blue with bold ink\ntext, without dimming any other row.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -5743,22 +6272,22 @@ window.BELLA = {
       "anatomySource": "tokens/contracts.json → component.data-table.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-datatable--docs",
       "composedFrom": [
-        "Icon"
+        "TableCell",
+        "TableRow"
       ],
       "tokens": {
-        "count": 25,
+        "count": 22,
         "component": 0,
         "semantic": 0,
         "list": [
           "--border-radius-12",
           "--border-radius-4",
+          "--border-radius-8",
           "--border-width-1",
-          "--color-background-accent-1",
           "--color-background-surface",
           "--color-border-default",
           "--color-border-focus",
           "--color-content-default",
-          "--color-content-on-accent-1",
           "--color-content-subtle",
           "--focus-ring-offset",
           "--focus-ring-width",
@@ -5767,22 +6296,20 @@ window.BELLA = {
           "--spacing-32",
           "--spacing-4",
           "--spacing-44",
-          "--spacing-8",
           "--spacing-80",
           "--typography-body-default-font-family",
-          "--typography-body-default-font-size",
-          "--typography-font-size-18",
-          "--typography-font-weight-500",
+          "--typography-font-size-16",
+          "--typography-font-weight-600",
           "--typography-letter-spacing-0",
-          "--typography-subtext-font-family"
+          "--typography-line-height-150"
         ]
       },
-      "compositionDepth": 1,
+      "compositionDepth": 2,
       "composesInto": [],
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 48,
+          "pairs": 49,
           "failing": []
         },
         "contract": {
@@ -5884,7 +6411,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 19,
+          "pairs": 22,
           "failing": []
         },
         "contract": {
@@ -5985,7 +6512,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 43,
+          "pairs": 46,
           "failing": []
         },
         "contract": {
@@ -6002,7 +6529,7 @@ window.BELLA = {
       "id": "empty-state",
       "name": "EmptyState",
       "category": "Layout",
-      "description": "Says a space is empty, kindly, and what fills it (BellaComponents\n\"Empty state\" 1014:2670, read 19 Nov 2026). Centred column: the mark, the\ntitle, the line and the actions, 12 apart. Not interactive itself.",
+      "description": "Says a space is empty, kindly, and what fills it (BellaComponents\n\"Empty state\" 1014:2670, 20 Nov publish). lane: a centred column; page:\nleft edge, mark and text on top, actions pinned to the bottom. Not\ninteractive itself.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -6047,7 +6574,7 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-emptystate--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 28,
+        "count": 35,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -6063,22 +6590,29 @@ window.BELLA = {
           "--color-background-wash-pink",
           "--color-background-wash-pink-strong",
           "--color-content-default",
-          "--color-content-lane-subtle",
+          "--color-content-subtle",
           "--shadow-card-ink",
+          "--size-32",
           "--size-36",
           "--spacing-12",
           "--spacing-16",
+          "--spacing-20",
           "--spacing-24",
+          "--spacing-32",
           "--spacing-48",
           "--spacing-8",
           "--typography-body-default-font-family",
           "--typography-font-size-16",
           "--typography-font-size-20",
+          "--typography-font-size-24",
           "--typography-font-size-32",
           "--typography-font-weight-400",
           "--typography-font-weight-600",
+          "--typography-line-height-150",
           "--typography-line-height-px-24",
-          "--typography-line-height-px-40"
+          "--typography-line-height-px-40",
+          "--wash",
+          "--wash-strong"
         ]
       },
       "compositionDepth": 0,
@@ -6086,7 +6620,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 43,
+          "pairs": 46,
           "failing": []
         },
         "contract": {
@@ -6172,7 +6706,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 15,
+          "pairs": 19,
           "failing": []
         },
         "contract": {
@@ -6400,7 +6934,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 31,
+          "pairs": 35,
           "failing": []
         },
         "contract": {
@@ -6481,7 +7015,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 12,
+          "pairs": 15,
           "failing": []
         },
         "contract": {
@@ -6577,7 +7111,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 15,
+          "pairs": 19,
           "failing": []
         },
         "contract": {
@@ -6658,7 +7192,6 @@ window.BELLA = {
         "AppTile",
         "Button",
         "CodeBlock",
-        "DataTable",
         "Disclosure",
         "IconWell",
         "Input",
@@ -6677,10 +7210,13 @@ window.BELLA = {
         "StatusSquare",
         "Step",
         "SystemHealth",
+        "TableCell",
         "Tabs",
         "TaskCard",
+        "Toast",
         "Trailing",
-        "TreeItem"
+        "TreeItem",
+        "VariantTile"
       ],
       "health": {
         "contrast": {
@@ -6762,7 +7298,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 34,
+          "pairs": 36,
           "failing": []
         },
         "contract": {
@@ -7057,7 +7593,7 @@ window.BELLA = {
         "Icon"
       ],
       "tokens": {
-        "count": 26,
+        "count": 27,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -7078,6 +7614,7 @@ window.BELLA = {
           "--size-60",
           "--spacing-12",
           "--spacing-16",
+          "--spacing-44",
           "--spacing-8",
           "--typography-body-default-font-family",
           "--typography-body-default-font-size",
@@ -7094,7 +7631,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 60,
+          "pairs": 64,
           "failing": []
         },
         "contract": {
@@ -7209,6 +7746,8 @@ window.BELLA = {
         "end",
         "from",
         "label",
+        "lineStyle",
+        "selected",
         "style",
         "to",
         "variant"
@@ -7217,10 +7756,12 @@ window.BELLA = {
         "yellow",
         "pink",
         "blue",
-        "red"
+        "red",
+        "neutral"
       ],
       "states": [
-        "default"
+        "default",
+        "selected"
       ],
       "shapes": [],
       "rendersAs": null,
@@ -7250,24 +7791,29 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-leader--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 6,
+        "count": 9,
         "component": 0,
         "semantic": 0,
         "list": [
+          "--border-width-1",
           "--border-width-2",
           "--color-background-accent-2",
           "--color-background-accent-3",
           "--color-background-accent-4",
           "--color-border-accent-1",
+          "--color-border-ink",
+          "--color-border-strong",
           "--leader-pop"
         ]
       },
       "compositionDepth": 0,
-      "composesInto": [],
+      "composesInto": [
+        "Stage"
+      ],
       "health": {
         "contrast": {
-          "status": "not-covered",
-          "pairs": 0,
+          "status": "pass",
+          "pairs": 7,
           "failing": []
         },
         "contract": {
@@ -7483,8 +8029,10 @@ window.BELLA = {
         "overline",
         "pin",
         "progress",
+        "rightTag",
         "selected",
         "status",
+        "statusBar",
         "statusDot",
         "style",
         "subValue",
@@ -7494,7 +8042,8 @@ window.BELLA = {
         "title",
         "titleAs",
         "trailing",
-        "value"
+        "value",
+        "valueLabel"
       ],
       "variants": [],
       "states": [
@@ -7532,10 +8081,11 @@ window.BELLA = {
         "Trailing"
       ],
       "tokens": {
-        "count": 28,
+        "count": 38,
         "component": 0,
         "semantic": 0,
         "list": [
+          "--border-radius-round",
           "--border-radius-sm",
           "--border-width-1",
           "--color-background-brand-subtle",
@@ -7543,7 +8093,13 @@ window.BELLA = {
           "--color-background-subtle",
           "--color-border-default",
           "--color-border-focus",
+          "--color-border-strong",
           "--color-border-subtle",
+          "--color-border-utility-error",
+          "--color-border-utility-info",
+          "--color-border-utility-neutral",
+          "--color-border-utility-success",
+          "--color-border-utility-warning",
           "--color-content-body",
           "--color-content-default",
           "--color-content-subtle",
@@ -7557,10 +8113,13 @@ window.BELLA = {
           "--typography-body-default-font-family",
           "--typography-body-default-font-size",
           "--typography-font-size-16",
+          "--typography-font-size-20",
           "--typography-font-size-22",
           "--typography-font-weight-400",
+          "--typography-font-weight-500",
           "--typography-font-weight-600",
           "--typography-line-height-150",
+          "--typography-line-height-px-24",
           "--typography-number-font-family",
           "--typography-subtext-font-family",
           "--typography-title-default-font-family"
@@ -7573,7 +8132,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 32,
+          "pairs": 45,
           "failing": []
         },
         "contract": {
@@ -7757,7 +8316,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 47,
+          "pairs": 50,
           "failing": []
         },
         "contract": {
@@ -7859,7 +8418,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 21,
+          "pairs": 24,
           "failing": []
         },
         "contract": {
@@ -7962,7 +8521,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 20,
+          "pairs": 23,
           "failing": []
         },
         "contract": {
@@ -8026,7 +8585,7 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-notification--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 27,
+        "count": 22,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -8035,17 +8594,12 @@ window.BELLA = {
           "--color-background-utility-info",
           "--color-background-utility-success",
           "--color-background-utility-warning",
-          "--color-border-utility-error",
-          "--color-border-utility-info",
-          "--color-border-utility-success",
-          "--color-border-utility-warning",
           "--color-content-default",
           "--color-content-subtle",
           "--color-content-utility-error",
           "--color-content-utility-info",
           "--color-content-utility-success",
           "--color-content-utility-warning",
-          "--notification-edge",
           "--notification-ink",
           "--spacing-12",
           "--spacing-16",
@@ -8064,7 +8618,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 33,
+          "pairs": 31,
           "failing": []
         },
         "contract": {
@@ -8169,7 +8723,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 25,
+          "pairs": 28,
           "failing": []
         },
         "contract": {
@@ -8265,7 +8819,91 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 51,
+          "pairs": 55,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "part-row",
+      "name": "PartRow",
+      "category": "Annotation",
+      "description": "One numbered part in an anatomy list: pin, part name, what it does, and\nits tokens (Figma BellaComponents Part row 841:124467, read 20 Nov 2026).\nA caption beside a render whose parts carry the same numbered Pins, not a control.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "description",
+        "detail",
+        "number",
+        "style",
+        "title",
+        "tone"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Beside a component render whose parts carry the same numbered Pins"
+      ],
+      "dont": [
+        "Do not use it for navigation or actions: it is a caption, not a control"
+      ],
+      "restNote": null,
+      "a11y": "Plain text: title content/default, lines content/subtle (7:1+). The pin's number is text.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.part-row.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-partrow--docs",
+      "composedFrom": [
+        "Pin"
+      ],
+      "tokens": {
+        "count": 9,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--color-content-default",
+          "--color-content-subtle",
+          "--spacing-12",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-font-size-18",
+          "--typography-font-weight-600",
+          "--typography-line-height-150",
+          "--typography-line-height-px-24"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 18,
           "failing": []
         },
         "contract": {
@@ -8388,7 +9026,8 @@ window.BELLA = {
       "dont": [
         "Do not use colour alone: a pin always has a number",
         "Do not use a pop colour for a status: StatusPill carries status",
-        "Do not make a label-less pin clickable without ariaLabel"
+        "Do not make a label-less pin clickable without ariaLabel",
+        "Do not leave a number-less dot pin unexplained: name it in ariaLabel or a chip beside it"
       ],
       "restNote": null,
       "a11y": "Verified 2026-11-07: number and label are text-primary on surface-card, AAA in every theme. The pop ring is decoration (pink 2.40:1, yellow 1.85:1 on white). With onClick it is a button with a 44px box and BELLA's focus ring.",
@@ -8408,7 +9047,7 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-pin--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 28,
+        "count": 37,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -8423,17 +9062,26 @@ window.BELLA = {
           "--color-background-utility-error-knockout",
           "--color-background-utility-info-knockout",
           "--color-background-utility-success-knockout",
+          "--color-border-accent-1",
           "--color-border-focus",
+          "--color-border-utility-error",
+          "--color-border-utility-info",
+          "--color-border-utility-success",
+          "--color-border-utility-warning",
           "--color-content-default",
           "--color-content-on-accent-1",
           "--color-content-utility-on-status",
           "--focus-ring-offset",
           "--focus-ring-width",
+          "--pin-dot",
           "--pin-fill",
           "--pin-ink",
           "--pin-pop",
+          "--shadow-ui-ink",
+          "--size-28",
           "--spacing-12",
           "--spacing-32",
+          "--spacing-4",
           "--spacing-44",
           "--spacing-8",
           "--typography-font-weight-600",
@@ -8444,13 +9092,113 @@ window.BELLA = {
       },
       "compositionDepth": 0,
       "composesInto": [
+        "PartRow",
+        "PinLabel",
         "Stage",
         "TourStep"
       ],
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 50,
+          "pairs": 54,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "pin-label",
+      "name": "PinLabel",
+      "category": "Annotation",
+      "description": "The label at the end of a Leader (Figma BellaComponents Pin label 629:1116,\nread 20 Nov 2026): the Pin's number and the token or part name, or, as the\nstage chip (kind=\"part\"), a status and the part name.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "children",
+        "className",
+        "kind",
+        "number",
+        "selected",
+        "showPin",
+        "status",
+        "style",
+        "tone"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "selected"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Naming a numbered part on the stage, tied to its pin by a solid Leader",
+        "Listing a token or part beside its pin"
+      ],
+      "dont": [
+        "Do not use it as a button: it is a label",
+        "Do not show status by colour alone: pass shows a check mark"
+      ],
+      "restNote": null,
+      "a11y": "Text is text-primary on surface, AAA in every theme. The status dot carries a check mark for pass, so colour is never alone. Selected adds a 2px ink ring.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.pin-label.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-pinlabel--docs",
+      "composedFrom": [
+        "Pin",
+        "StatusDot"
+      ],
+      "tokens": {
+        "count": 15,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-round",
+          "--border-width-2",
+          "--color-background-surface",
+          "--color-border-ink",
+          "--color-content-default",
+          "--shadow-soft",
+          "--spacing-12",
+          "--spacing-32",
+          "--spacing-4",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-font-weight-500",
+          "--typography-line-height-px-24",
+          "--typography-subtext-font-family"
+        ]
+      },
+      "compositionDepth": 2,
+      "composesInto": [
+        "Stage"
+      ],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 46,
           "failing": []
         },
         "contract": {
@@ -8556,7 +9304,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 28,
+          "pairs": 31,
           "failing": []
         },
         "contract": {
@@ -8639,7 +9387,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 31,
+          "pairs": 34,
           "failing": []
         },
         "contract": {
@@ -8751,7 +9499,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 48,
+          "pairs": 52,
           "failing": []
         },
         "contract": {
@@ -8889,13 +9637,14 @@ window.BELLA = {
         "Kbd"
       ],
       "tokens": {
-        "count": 15,
+        "count": 16,
         "component": 0,
         "semantic": 0,
         "list": [
           "--border-radius-md",
           "--color-background-highlight",
           "--color-border-focus",
+          "--color-content-body",
           "--color-content-default",
           "--color-content-subtle",
           "--focus-ring-offset",
@@ -8915,7 +9664,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 20,
+          "pairs": 27,
           "failing": []
         },
         "contract": {
@@ -9007,7 +9756,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 15,
+          "pairs": 18,
           "failing": []
         },
         "contract": {
@@ -9102,7 +9851,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 15,
+          "pairs": 18,
           "failing": []
         },
         "contract": {
@@ -9192,7 +9941,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 3,
+          "pairs": 4,
           "failing": []
         },
         "contract": {
@@ -9278,7 +10027,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 19,
+          "pairs": 22,
           "failing": []
         },
         "contract": {
@@ -9344,7 +10093,7 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-actions-segmentedcontrol--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 22,
+        "count": 23,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -9353,6 +10102,7 @@ window.BELLA = {
           "--color-background-brand-subtle",
           "--color-background-brand-subtle-hover",
           "--color-background-subtle",
+          "--color-background-surface",
           "--color-border-focus",
           "--color-content-body",
           "--color-content-default",
@@ -9366,7 +10116,7 @@ window.BELLA = {
           "--spacing-44",
           "--spacing-8",
           "--typography-body-default-font-family",
-          "--typography-font-size-18",
+          "--typography-font-size-16",
           "--typography-font-weight-500",
           "--typography-font-weight-600",
           "--typography-letter-spacing-0"
@@ -9379,7 +10129,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 30,
+          "pairs": 61,
           "failing": []
         },
         "contract": {
@@ -9475,7 +10225,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 51,
+          "pairs": 55,
           "failing": []
         },
         "contract": {
@@ -9558,6 +10308,89 @@ window.BELLA = {
         "contrast": {
           "status": "pass",
           "pairs": 4,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "size-tag",
+      "name": "SizeTag",
+      "category": "Annotation",
+      "description": "A measured size beside a bracket, in the colour of its annotation (Figma\nBellaComponents Size tag 634:1152, read 20 Nov 2026). A filled rectangle\nwith small corners, never a pill.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "children",
+        "className",
+        "style",
+        "tone"
+      ],
+      "variants": [],
+      "states": [
+        "default"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "On doc stages, beside a bracket"
+      ],
+      "dont": [
+        "Do not make it a pill: that is a Tag",
+        "Do not use it for a status"
+      ],
+      "restNote": null,
+      "a11y": "Text: content/on-accent-1 on the pop fills, AA or better in every theme (the pops are light). Plain text, no role.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.size-tag.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-sizetag--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 12,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-sm",
+          "--border-width-1",
+          "--color-background-accent-1",
+          "--color-background-accent-2",
+          "--color-background-accent-3",
+          "--color-background-accent-4",
+          "--color-content-on-accent-1",
+          "--spacing-4",
+          "--typography-font-family-geist-mono",
+          "--typography-font-size-16",
+          "--typography-font-weight-700",
+          "--typography-line-height-px-22"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 2,
           "failing": []
         },
         "contract": {
@@ -9667,7 +10500,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 51,
+          "pairs": 54,
           "failing": []
         },
         "contract": {
@@ -9764,7 +10597,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 18,
+          "pairs": 21,
           "failing": []
         },
         "contract": {
@@ -9781,9 +10614,9 @@ window.BELLA = {
       "id": "stage",
       "name": "Stage",
       "category": "Layout",
-      "description": "A stage for specimens: a tinted surface with an optional dot grid and a\ncontent slot. Doc stages and diagrams. With frameWidth it also holds a\npage at its design width, scaled to fit or at 100%, for the Playground.",
+      "description": "A stage for specimens: a tinted surface with an optional dot grid and a content slot.",
       "hasStory": true,
-      "hasDocs": true,
+      "hasDocs": false,
       "inDsds": true,
       "hasContract": true,
       "hasA11yNotes": true,
@@ -9799,6 +10632,7 @@ window.BELLA = {
         "onPick",
         "onZoomChange",
         "picking",
+        "scale",
         "style",
         "zoom"
       ],
@@ -9834,11 +10668,13 @@ window.BELLA = {
       "anatomySource": "tokens/contracts.json → component.stage.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-stage--docs",
       "composedFrom": [
+        "Leader",
         "Pin",
+        "PinLabel",
         "SegmentedControl"
       ],
       "tokens": {
-        "count": 18,
+        "count": 19,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -9854,6 +10690,7 @@ window.BELLA = {
           "--spacing-12",
           "--spacing-16",
           "--spacing-24",
+          "--spacing-32",
           "--spacing-44",
           "--spacing-8",
           "--typography-font-size-16",
@@ -9862,12 +10699,12 @@ window.BELLA = {
           "--typography-subtext-font-family"
         ]
       },
-      "compositionDepth": 1,
+      "compositionDepth": 3,
       "composesInto": [],
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 57,
+          "pairs": 59,
           "failing": []
         },
         "contract": {
@@ -10058,7 +10895,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 28,
+          "pairs": 31,
           "failing": []
         },
         "contract": {
@@ -10170,7 +11007,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 49,
+          "pairs": 53,
           "failing": []
         },
         "contract": {
@@ -10267,7 +11104,8 @@ window.BELLA = {
       },
       "compositionDepth": 1,
       "composesInto": [
-        "BoardLane",
+        "ConnectorTile",
+        "PinLabel",
         "SystemHealth",
         "Tabs",
         "TaskCard",
@@ -10386,7 +11224,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 29,
+          "pairs": 30,
           "failing": []
         },
         "contract": {
@@ -10467,7 +11305,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 6,
+          "pairs": 7,
           "failing": []
         },
         "contract": {
@@ -10494,7 +11332,9 @@ window.BELLA = {
         "className",
         "detail",
         "icon",
+        "kind",
         "layout",
+        "number",
         "onSelect",
         "selected",
         "showConnector",
@@ -10537,30 +11377,48 @@ window.BELLA = {
         "MapLine"
       ],
       "tokens": {
-        "count": 21,
+        "count": 39,
         "component": 0,
         "semantic": 0,
         "list": [
           "--border-radius-12",
+          "--border-radius-round",
           "--border-width-1",
+          "--border-width-2",
           "--color-background-brand-subtle",
           "--color-background-brand-subtle-hover",
           "--color-background-utility-info",
+          "--color-background-utility-neutral",
+          "--color-background-utility-success",
+          "--color-background-wash-blue-strong",
+          "--color-background-wash-grey-strong",
+          "--color-background-wash-navy-strong",
+          "--color-background-wash-ochre-strong",
+          "--color-background-wash-pink-strong",
+          "--color-background-wash-yellow-strong",
           "--color-border-focus",
           "--color-border-utility-info",
           "--color-content-default",
+          "--color-content-knockout",
           "--color-content-subtle",
           "--color-content-utility-info",
+          "--color-content-utility-neutral",
+          "--color-content-utility-success",
           "--focus-ring-offset",
           "--focus-ring-width",
+          "--size-36",
           "--spacing-12",
+          "--spacing-24",
+          "--spacing-32",
           "--spacing-4",
           "--spacing-44",
+          "--spacing-8",
           "--typography-body-default-font-family",
           "--typography-font-size-16",
           "--typography-font-weight-400",
           "--typography-font-weight-600",
           "--typography-line-height-px-24",
+          "--typography-number-font-family",
           "--typography-subtext-font-family"
         ]
       },
@@ -10569,7 +11427,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 25,
+          "pairs": 34,
           "failing": []
         },
         "contract": {
@@ -10659,7 +11517,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 43,
+          "pairs": 46,
           "failing": []
         },
         "contract": {
@@ -10724,7 +11582,7 @@ window.BELLA = {
         "StatusDot"
       ],
       "tokens": {
-        "count": 39,
+        "count": 40,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -10756,6 +11614,7 @@ window.BELLA = {
           "--spacing-4",
           "--spacing-44",
           "--spacing-8",
+          "--spacing-80",
           "--typography-body-default-font-family",
           "--typography-font-size-16",
           "--typography-font-size-24",
@@ -10774,11 +11633,172 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 55,
+          "pairs": 59,
           "failing": []
         },
         "contract": {
           "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "table-cell",
+      "name": "TableCell",
+      "category": null,
+      "description": "One cell of a table (Figma Table cell 1510:348599, 20 Nov): one row holds\none cell per column. 44 min tall, 8 above and below, 16 at the sides, one\nbottom edge. As Carbon TableCell, Primer Table.Cell, Polaris IndexTable.Cell.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": false,
+      "hasContract": false,
+      "hasA11yNotes": false,
+      "props": [
+        "align",
+        "children",
+        "className",
+        "kind",
+        "rowHeader",
+        "selected",
+        "sort",
+        "swatch",
+        "swatchTheme"
+      ],
+      "variants": [],
+      "states": [],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [],
+      "dont": [],
+      "restNote": null,
+      "a11y": null,
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.table-cell.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-tablecell--docs",
+      "composedFrom": [
+        "Icon"
+      ],
+      "tokens": {
+        "count": 20,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-sm",
+          "--border-width-1",
+          "--color-background-accent-1",
+          "--color-background-surface",
+          "--color-border-default",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--size-16",
+          "--size-20",
+          "--size-24",
+          "--spacing-16",
+          "--spacing-4",
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-font-weight-400",
+          "--typography-font-weight-600",
+          "--typography-line-height-150",
+          "--typography-number-font-family"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [
+        "DataTable"
+      ],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 47,
+          "failing": []
+        },
+        "contract": {
+          "status": "no-contract",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "table-row",
+      "name": "TableRow",
+      "category": null,
+      "description": "One row of a table (Figma Table row 1510:348603, 20 Nov): a Cells slot,\none Table cell per column. No edge of its own: each cell carries the\nbottom edge. As Carbon TableRow, Primer Table.Row, Polaris IndexTable.Row.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": false,
+      "hasContract": false,
+      "hasA11yNotes": false,
+      "props": [
+        "children",
+        "className",
+        "hover",
+        "selected"
+      ],
+      "variants": [],
+      "states": [],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [],
+      "dont": [],
+      "restNote": null,
+      "a11y": null,
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.table-row.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-tablerow--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 2,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--color-background-brand-subtle",
+          "--color-background-brand-subtle-hover"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [
+        "DataTable"
+      ],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 2,
+          "failing": []
+        },
+        "contract": {
+          "status": "no-contract",
           "issues": []
         },
         "visual": {
@@ -10929,12 +11949,13 @@ window.BELLA = {
       "anatomySource": "tokens/contracts.json → component.tabs.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-actions-tabs--docs",
       "composedFrom": [
+        "Button",
         "Icon",
         "StatusDot",
         "Tag"
       ],
       "tokens": {
-        "count": 25,
+        "count": 26,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -10953,12 +11974,13 @@ window.BELLA = {
           "--motion-duration-150",
           "--motion-easing-standard",
           "--spacing-16",
+          "--spacing-24",
           "--spacing-4",
           "--spacing-44",
           "--spacing-48",
           "--spacing-8",
           "--typography-body-default-font-family",
-          "--typography-font-size-18",
+          "--typography-font-size-16",
           "--typography-font-weight-500",
           "--typography-font-weight-600",
           "--typography-letter-spacing-0",
@@ -10970,7 +11992,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 24,
+          "pairs": 27,
           "failing": []
         },
         "contract": {
@@ -11006,7 +12028,8 @@ window.BELLA = {
         "accent",
         "outline",
         "flat",
-        "index"
+        "index",
+        "line"
       ],
       "states": [
         "default"
@@ -11097,7 +12120,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 55,
+          "pairs": 58,
           "failing": []
         },
         "contract": {
@@ -11212,7 +12235,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 49,
+          "pairs": 52,
           "failing": []
         },
         "contract": {
@@ -11294,7 +12317,105 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 15,
+          "pairs": 19,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "toast",
+      "name": "Toast",
+      "category": "Layout",
+      "description": "A short message after an action that comes and goes (Figma BellaComponents\nToast 956:56, read 20 Nov 2026; her rules: \"every action gets feedback on the\ncontrol itself, plus a toast\", \"Toast comes and goes; Notification stays\").\nA polite live region: the message is announced without moving focus.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": false,
+      "props": [
+        "action",
+        "children",
+        "className",
+        "duration",
+        "onClose",
+        "style",
+        "tone"
+      ],
+      "variants": [],
+      "states": [
+        "info",
+        "success",
+        "attention",
+        "danger"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [],
+      "dont": [],
+      "restNote": null,
+      "a11y": null,
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.toast.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-toast--docs",
+      "composedFrom": [
+        "Button",
+        "Icon"
+      ],
+      "tokens": {
+        "count": 23,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-card",
+          "--border-width-2",
+          "--color-background-surface",
+          "--color-background-transparent",
+          "--color-border-utility-error",
+          "--color-border-utility-info",
+          "--color-border-utility-success",
+          "--color-border-utility-warning",
+          "--color-content-default",
+          "--color-content-utility-error",
+          "--color-content-utility-info",
+          "--color-content-utility-success",
+          "--color-content-utility-warning",
+          "--spacing-12",
+          "--spacing-16",
+          "--spacing-4",
+          "--spacing-8",
+          "--spacing-80",
+          "--toast-edge",
+          "--toast-ink",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-line-height-px-24"
+        ]
+      },
+      "compositionDepth": 2,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 49,
           "failing": []
         },
         "contract": {
@@ -11390,7 +12511,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 44,
+          "pairs": 48,
           "failing": []
         },
         "contract": {
@@ -11464,7 +12585,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 34,
+          "pairs": 36,
           "failing": []
         },
         "contract": {
@@ -11554,7 +12675,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 43,
+          "pairs": 46,
           "failing": []
         },
         "contract": {
@@ -11743,7 +12864,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 21,
+          "pairs": 24,
           "failing": []
         },
         "contract": {
@@ -11833,7 +12954,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 15,
+          "pairs": 18,
           "failing": []
         },
         "contract": {
@@ -11910,6 +13031,111 @@ window.BELLA = {
         "contrast": {
           "status": "pass",
           "pairs": 14,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "variant-tile",
+      "name": "VariantTile",
+      "category": "Data",
+      "description": "A variant thumbnail (Figma VariantTile, read 20 Nov 2026 from her CHIP\nComponents design): a mini preview with its label under. A row of them is\nthe \"states\" strip under the stage (Default, Hover, Pressed, Focus, Disabled).",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "checked",
+        "children",
+        "className",
+        "label",
+        "onClick",
+        "selected",
+        "style"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "selected",
+        "hover",
+        "focus"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "The states strip under the stage on CHIP Components",
+        "Picking a variant from thumbnails"
+      ],
+      "dont": [
+        "Do not put live controls in the preview: it is a picture (inert)",
+        "Do not use it for navigation: it picks a state in place"
+      ],
+      "restNote": null,
+      "a11y": "With onClick the tile is one button named by its label, aria-pressed for selected, BELLA's focus ring. The preview is inert and hidden from the accessibility tree. The check badge is an image named Done. Labels are content-subtle (7:1) or content-default on surface and default-hover.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.variant-tile.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-varianttile--docs",
+      "composedFrom": [
+        "Icon"
+      ],
+      "tokens": {
+        "count": 25,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-12",
+          "--border-radius-round",
+          "--border-width-1",
+          "--border-width-2",
+          "--color-background-brand",
+          "--color-background-default-hover",
+          "--color-background-surface",
+          "--color-background-utility-success-knockout",
+          "--color-border-focus",
+          "--color-border-strong",
+          "--color-border-subtle",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--color-content-utility-on-status",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--size-20",
+          "--spacing-24",
+          "--spacing-4",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-font-weight-400",
+          "--typography-font-weight-600",
+          "--typography-line-height-px-24"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 58,
           "failing": []
         },
         "contract": {
