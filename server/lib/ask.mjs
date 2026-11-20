@@ -265,27 +265,36 @@ export function checkCitations(reply, texts) {
     .join('\n');
 }
 
-// For each cited source, the sentence of its own text that backs what the answer says it says
-// (audit 21 Nov: the opened source led with its heading, not the line behind the claim).
+// For each claim, the sentence of its source's own text that backs it (audit 21 Nov: the
+// opened source led with its heading, then with one line per source for every bullet): each
+// source gets backsFor, one { claim, line } per line of the answer that cites it, and backs,
+// its first. Never a sentence the source doesn't hold.
+function bestSentence(text, claim) {
+  const low = claim.replace(/\[\d+\]|\*\*/g, '').toLowerCase();
+  const want = [...new Set((low.match(WORD) ?? []).filter((w) => !STOP.has(w)))];
+  const nums = low.match(/\d[\d.,]*\d|\d/g)?.filter((x) => !/^[0-3]$/.test(x)) ?? [];
+  if (!want.length && !nums.length) return null;
+  const best = String(text)
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((t) => t.replace(/^[#>*\-\s|]+/, '').trim())
+    .filter((t) => t.length > 12 && t.length < 240)
+    .map((t) => {
+      const l = t.toLowerCase();
+      return [t, want.filter((w) => l.includes(w)).length + 2 * nums.filter((x) => l.includes(x)).length];
+    })
+    .sort((a, b) => b[1] - a[1])[0];
+  return best && best[1] > 0 ? best[0] : null;
+}
 export function backingLines(reply, texts) {
   const out = new Map();
   if (!texts?.size) return out;
-  const lines = String(reply).split('\n');
+  const lines = String(reply).split('\n').filter((l) => /\[\d+\]/.test(l));
   for (const [n, text] of texts) {
-    const claims = lines.filter((l) => l.includes(`[${n}]`)).join(' ').replace(/\[\d+\]|\*\*/g, '').toLowerCase();
-    const want = [...new Set((claims.match(WORD) ?? []).filter((w) => !STOP.has(w)))];
-    const nums = claims.match(/\d[\d.,]*\d|\d/g)?.filter((x) => !/^[0-3]$/.test(x)) ?? [];
-    if (!want.length && !nums.length) continue;
-    const best = String(text)
-      .split(/(?<=[.!?])\s+|\n+/)
-      .map((t) => t.replace(/^[#>*\-\s|]+/, '').trim())
-      .filter((t) => t.length > 12 && t.length < 240)
-      .map((t) => {
-        const low = t.toLowerCase();
-        return [t, want.filter((w) => low.includes(w)).length + 2 * nums.filter((x) => low.includes(x)).length];
-      })
-      .sort((a, b) => b[1] - a[1])[0];
-    if (best && best[1] > 0) out.set(n, best[0]);
+    const backsFor = lines
+      .filter((l) => l.includes(`[${n}]`))
+      .map((l) => ({ claim: l.replace(/^\s*[-*•]\s+/, '').replace(/\*\*/g, '').trim(), line: bestSentence(text, l) }))
+      .filter((b) => b.line);
+    if (backsFor.length) out.set(n, { backs: backsFor[0].line, backsFor });
   }
   return out;
 }
@@ -348,6 +357,6 @@ export async function* askStream(message, sessionId, page, opts = {}) {
   const next = (reply.match(/^\s*Next:\s*(.+)$/im)?.[1] ?? '').split('|').map((q) => q.replace(/\*\*/g, '').trim()).filter((q) => q.length > 3 && q.length < 80).slice(0, 2);
   reply = checkCitations(reply.replace(/^\s*Next:.*$/gim, ''), texts);
   const backs = backingLines(reply, texts);
-  sources = sources.map((x) => (backs.has(x.n) ? { ...x, backs: backs.get(x.n) } : x));
+  sources = sources.map((x) => (backs.has(x.n) ? { ...x, ...backs.get(x.n) } : x));
   yield { type: 'done', next, reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }

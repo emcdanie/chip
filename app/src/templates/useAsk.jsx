@@ -202,7 +202,7 @@ export function Words({ text, onPin }) {
     .replace(/\s*((?:\s*\[\d+\])+)\s*([.,;:])/g, '$2 $1')
     .split(/(\*\*[^*]+\*\*|\[\d+\])/)
     .filter(Boolean);
-  const pin = (bit, i) => <Pin key={i} number={bit.slice(1, -1)} variant="red" pinStyle="solid" ariaLabel={`Open source ${bit.slice(1, -1)}`} onClick={onPin ? (e) => onPin(Number(bit.slice(1, -1)), e.currentTarget) : undefined} />;
+  const pin = (bit, i) => <Pin key={i} number={bit.slice(1, -1)} variant="red" pinStyle="solid" ariaLabel={`Open source ${bit.slice(1, -1)}`} onClick={onPin ? (e) => onPin(Number(bit.slice(1, -1)), e.currentTarget, text) : undefined} />;
   const word = (bit, i) => (/^\*\*/.test(bit) ? <strong key={i}>{bit.slice(2, -2)}</strong> : bit);
   const out = [];
   for (let i = 0; i < bits.length; i++) {
@@ -236,14 +236,52 @@ export function Words({ text, onPin }) {
   return out;
 }
 
+/**
+ * An answer's words, one shape in every chat (audit 21 Nov: "One chat: same answer shape"):
+ * the verdict line, then its bullets, each with its bold label and pins. extra: pins after the
+ * verdict (the answer's sources when the model cited none).
+ */
+export function AnswerLines({ shaped, onPin, extra }) {
+  return (
+    <Flow gap={8}>
+      <TextStack
+        body={
+          <>
+            <Words text={shaped.verdict} onPin={onPin} />
+            {extra}
+          </>
+        }
+      />
+      {shaped.bullets.length ? (
+        <Flow as="ul" gap={4} bullets aria-label="What it rests on">
+          {shaped.bullets.map((b) => (
+            <li key={b}>
+              <TextStack body={<Words text={b} onPin={onPin} />} />
+            </li>
+          ))}
+        </Flow>
+      ) : null}
+    </Flow>
+  );
+}
+
+// a claim, as words only: to match the line it came from on the server
+const plainClaim = (t) => String(t ?? '').replace(/\*\*|\[\d+\]/g, ' ').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
 /* A source opened in place (her mock's Citation open): its pin and title, "n of N · date", previous
    and next, ✕; the findings first, each with its status mark; the exact line folded; where to open it.
    ✕ or Esc closes it and puts focus back on the pin that opened it. */
-function Citation({ sources, at, onMove, onClose }) {
+function Citation({ sources, at, claim, onMove, onClose }) {
   const s = sources[at];
   const box = useRef(null);
   // the line that backs the claim first (the server picks it from the source's own text), never the source's heading
-  const findings = s.findings ?? (s.backs ? [{ text: s.backs }] : s.passage ? [{ text: String(s.passage).split(/(?<=[.!?])\s/)[0] }] : []);
+  // per claim: the pin she opened names its line, and the server matched that line to a sentence of this source
+  const mine = plainClaim(claim);
+  const forClaim = mine ? (s.backsFor ?? []).find((b) => { const c = plainClaim(b.claim); return c && (mine.includes(c) || c.includes(mine)); })?.line : null;
+  const lead = forClaim ?? s.backs;
+  const findings = s.findings ?? (lead ? [{ text: lead }] : s.passage ? [{ text: String(s.passage).split(/(?<=[.!?])\s/)[0] }] : []);
+  // the title without its file path in brackets (it broke alone at 320); the path is under Exact line
+  const title = String(s.title).replace(/\s*\([^()]*[/.][^()]*\)\s*$/, '') || s.title;
   // focus moves into the source as it opens (so Tab reads it next), and Esc closes it from anywhere
   useEffect(() => box.current?.focus(), []);
   // Esc closes the source only: caught first (window, capture) and stopped, so a Drawer the
@@ -265,7 +303,7 @@ function Citation({ sources, at, onMove, onClose }) {
         <Flow direction="row" grow="first" justify="end" wrap align="start" gap={8}>
           <Flow direction="row" gap={8} align="start">
             <Pin number={String(s.n ?? at + 1)} variant="red" pinStyle="solid" ariaLabel={`Source ${s.n ?? at + 1}`} />
-            <TextStack title={s.title} subtitle={[`${at + 1} of ${sources.length}`, when].filter(Boolean).join(' · ').replace(/ (?!·)(?<!· )/g, '\u00a0')} />
+            <TextStack title={title} subtitle={[`${at + 1} of ${sources.length}`, when].filter(Boolean).join(' · ').replace(/ (?!·)(?<!· )/g, '\u00a0')} />
           </Flow>
           {/* 12 apart: each 32 button keeps its full 44 target (32 + 12), none takes a neighbour's strip */}
           <Flow direction="row" gap={12}>
@@ -286,7 +324,7 @@ function Citation({ sources, at, onMove, onClose }) {
         ) : null}
         {(s.exact ?? s.passage) ? (
           <Disclosure title="Exact line">
-            <TextStack body={s.exact ?? s.passage} />
+            <TextStack subtitle={s.path ?? s.url} body={s.exact ?? s.passage} />
           </Disclosure>
         ) : null}
         {s.open ? <ListRow layout="inline" title={s.open.label} trailing href={s.open.href} /> : null}
@@ -455,10 +493,12 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
   });
   useEffect(() => setCite(null), [answer?.q, answer?.status]);
   useEffect(() => (setReaction(null), setReacting(false)), [answer?.q]);
-  const openPin = (n, el) => {
+  const [claim, setClaim] = useState(null);
+  const openPin = (n, el, line) => {
     const i = (answer?.sources ?? []).findIndex((x, k) => (x.n ?? k + 1) === n);
     if (i < 0) return;
     opener.current = el;
+    setClaim(line ?? null);
     setCite(i);
   };
   const closeCite = () => {
@@ -487,31 +527,19 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
   // more), under the answer's overview at middle widths and on phones (her rule, 19 Nov: "beside
   // the panel when wide, under the answer at middle widths, a half-height sheet on phones";
   // the phone sheet waits on a bottom-sheet Drawer, so a phone has it under the answer too)
-  const citation = open ? <Citation sources={a.sources} at={cite} onMove={setCite} onClose={closeCite} /> : null;
+  const citation = open ? <Citation sources={a.sources} at={cite} claim={claim} onMove={setCite} onClose={closeCite} /> : null;
   const answerBody =
     a.status === 'answer' ? (
       <Flow gap={16}>
-        <Flow gap={8}>
-          <TextStack
-            body={
-              <>
-                <Words text={shaped.verdict} onPin={openPin} />
-                {!cited && a.sources?.length
-                  ? a.sources.slice(0, 3).map((s, i) => <Pin key={i} number={String(s.n ?? i + 1)} variant="red" pinStyle="solid" ariaLabel={`Open source ${s.n ?? i + 1}: ${s.title}`} onClick={(e) => openPin(s.n ?? i + 1, e.currentTarget)} />)
-                  : null}
-              </>
-            }
-          />
-          {shaped.bullets.length ? (
-            <Flow as="ul" gap={4} bullets aria-label="What it rests on">
-              {shaped.bullets.map((b) => (
-                <li key={b}>
-                  <TextStack body={<Words text={b} onPin={openPin} />} />
-                </li>
-              ))}
-            </Flow>
-          ) : null}
-        </Flow>
+        <AnswerLines
+          shaped={shaped}
+          onPin={openPin}
+          extra={
+            !cited && a.sources?.length
+              ? a.sources.slice(0, 3).map((s, i) => <Pin key={i} number={String(s.n ?? i + 1)} variant="red" pinStyle="solid" ariaLabel={`Open source ${s.n ?? i + 1}: ${s.title}`} onClick={(e) => openPin(s.n ?? i + 1, e.currentTarget)} />)
+              : null
+          }
+        />
         {wide ? null : citation}
         <Flow gap={8}>
           {a.sources?.length ? (

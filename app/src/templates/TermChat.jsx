@@ -20,7 +20,7 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
-import { NotAnswered, Reply, Ticks, Words, sendToAgent, shapeReply } from './useAsk.jsx';
+import { AnswerLines, NotAnswered, Reply, Ticks, sendToAgent, shapeReply } from './useAsk.jsx';
 
 // Team draws its replies with the same bubble
 export { Reply };
@@ -96,7 +96,7 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
       ) : null}
       {a?.status === 'answer' ? (
         <Reply who="BELLA" disc="B" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
-          <Words text={[shaped.verdict, ...shaped.bullets].join(' ')} />
+          <AnswerLines shaped={shaped} />
         </Reply>
       ) : null}
       {a?.status === 'weak' || a?.status === 'error' || a?.status === 'stopped' ? <NotAnswered a={a} onRetry={onRetry} /> : null}
