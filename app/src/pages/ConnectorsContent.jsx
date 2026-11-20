@@ -63,7 +63,7 @@ const PATHS = [
   { id: 'figma-console', name: 'figma-console', icon: 'Code' },
   { id: 'figma-rest', name: 'figma-rest', icon: 'Key' },
 ];
-const NAMES = { figma: 'Figma desktop MCP', 'figma-console': 'figma-console', 'figma-rest': 'figma-rest', notion: 'Notion' };
+const NAMES = { 'figma-key': 'Figma key', figma: 'Figma desktop MCP', 'figma-console': 'figma-console', 'figma-rest': 'figma-rest', notion: 'Notion' };
 const nameOf = (n) => NAMES[n?.id] ?? n?.name;
 // the server's words, in the page's own names for the paths
 const plainWords = (t) => String(t ?? '').replace(/\bthe Figma REST API\b/gi, 'figma-rest').replace(/\bFigma REST( API)?\b/g, 'figma-rest').replace(/\bREST API\b/g, 'figma-rest').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
@@ -72,6 +72,7 @@ const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0];
 const SAYS = {
   figma: { ok: 'Answers', other: 'Not configured' },
   'figma-console': { ok: 'Answers', other: 'Not configured' },
+  'figma-key': { why: 'Turns on the Figma check' },
   'figma-rest': { ok: 'Answers', other: 'Needs a token', why: 'Reads Figma with no app open' },
   notion: { ok: 'Answers', other: 'Needs a token', why: 'Reads shared pages' },
 };
@@ -186,7 +187,8 @@ export default function ConnectorsContent() {
             <Columns count={3}>
               {needs.map((n) => (
                   // Figma: name, one line, the action in the card footer at the bottom right; no icon
-                  <Card key={n.id} footerAction={<Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>}>
+                  // Figma: the key card's Add key is the one primary button; the rest Set up
+                  <Card key={n.id} footerAction={n.id === 'figma-key' ? <Button variant="primary" size="sm" onClick={() => setSetup(n)}>Add key</Button> : <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>}>
                     <TextStack title={nameOf(n)} body={why(n)} />
                   </Card>
               ))}
