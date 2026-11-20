@@ -5,8 +5,8 @@
 //
 // The two stats are real: counted from CHIP's run log (/runs) since Monday,
 // on BELLA's StatCard as Figma draws them; with no run this week they are
-// the Empty state (Elleta, 19 Nov). The fix card and the library are still
-// Figma's example (notAgainFixture.js) until CHIP records saved fixes.
+// the Empty state (Elleta, 19 Nov). The library's run counts read the same
+// log. The fix card and the library's fixes are still Figma's example (notAgainFixture.js) until CHIP records saved fixes.
 //
 // Gaps: StatCard has no empty slot; actions that run the agent (Run, Send
 // back) wait for a Menu part for the model menu (Auto, local first).
@@ -168,13 +168,27 @@ function Stats() {
   );
 }
 
+/* A saved fix's line: its trigger, then how often it ran and was kept, from
+   the same run log as the stats (a run carries the fix's name as its title). */
+function useLibraryLines() {
+  const { data } = useCached(['/runs']);
+  const runs = data?.[0]?.runs ?? [];
+  return library.map((f) => {
+    const mine = runs.filter((r) => r.title === f.name);
+    const kept = mine.filter((r) => r.status === 'kept').length;
+    const count = mine.length ? `${mine.length} ${mine.length === 1 ? 'run' : 'runs'} · ${kept} kept` : 'Not run yet';
+    return { name: f.name, when: `When: ${f.trigger} · ${count}` };
+  });
+}
+
 function Library() {
+  const lines = useLibraryLines();
   return (
     <Card>
       <Flow gap={24}>
         <SectionHead icon="Book" iconTone="info" title="Library" description="Fixes saved as steps" number={library.length} words="fixes" />
         <Flow as="ul" gap={8} aria-label="Saved fixes">
-          {library.map((f) => (
+          {lines.map((f) => (
             <ListRow
               key={f.name}
               layout="stacked"

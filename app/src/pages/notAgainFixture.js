@@ -4,8 +4,8 @@
 // kept 612:73238, gate fails 612:73471, library 612:73704), word for word,
 // except where Elleta's 19 Nov rules changed the words: the page is "Not
 // again" and CHIP never names a model ("the agent"). Replace with the real
-// list when CHIP records its fixes. The two stats (runs this week, kept) are
-// not here: NotAgainContent counts them from CHIP's run log (/runs).
+// list when CHIP records its fixes. Run counts (the stats and each library
+// line) are not here: NotAgainContent counts them from CHIP's run log (/runs).
 export const explainer = {
   title: 'What is Not again?',
   // Figma's worked example (b9): what happened, what was saved, what you do next time
@@ -60,14 +60,16 @@ export const states = {
   },
 };
 
-/* Library: every saved fix and the check that starts it, as Figma words it. */
+/* Library: every saved fix and the check that starts it, as Figma words it.
+   Run counts are not here: the page counts them from CHIP's run log (/runs),
+   the same source as the stats. */
 export const library = [
-  { name: 'Add contrast pair', when: 'When: Contrast check · 2 runs · 1 kept' },
-  { name: 'Draw in Figma', when: 'When: Figma check · Not run yet' },
-  { name: 'Fill behaviour lines', when: 'When: Contract check · Not run yet' },
-  { name: 'Polish pass', when: 'When: Page changed · Not run yet' },
-  { name: 'Interface critique', when: 'When: Before done · Not run yet' },
-  { name: 'Accessibility audit', when: 'When: a11y field empty · Not run yet' },
-  { name: 'Pixel check in Figma', when: 'When: Figma write · Not run yet' },
-  { name: 'Lock then verify', when: 'When: Build starts · Not run yet' },
+  { name: 'Add contrast pair', trigger: 'Contrast check' },
+  { name: 'Draw in Figma', trigger: 'Figma check' },
+  { name: 'Fill behaviour lines', trigger: 'Contract check' },
+  { name: 'Polish pass', trigger: 'Page changed' },
+  { name: 'Interface critique', trigger: 'Before done' },
+  { name: 'Accessibility audit', trigger: 'a11y field empty' },
+  { name: 'Pixel check in Figma', trigger: 'Figma write' },
+  { name: 'Lock then verify', trigger: 'Build starts' },
 ];
