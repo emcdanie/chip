@@ -247,7 +247,21 @@
 .chip-screen__search { position: relative; inline-size: 100%; }
 .chip-screen__search-results {
   position: absolute;
-  inset-block-start: calc(100% + var(--spacing-8));
-  inset-inline: 0;
+  /* the list scrolls inside the window, never past its foot; the 12 of padding keeps the
+     Card's shadow inside the scroll box (never clip a shadow), the offsets keep the Card where it was */
+  inset-block-start: calc(100% + var(--spacing-8) - var(--spacing-12));
+  inset-inline: calc(-1 * var(--spacing-12));
+  padding: var(--spacing-12);
   z-index: 50;
+  max-block-size: calc(100dvh - var(--h-control) - var(--spacing-12) * 3);
+  overflow-y: auto;
+}
+/* a phone: the field shares the bar with its close button, so the list spans the bar's
+   width under it (audit 21 Nov: 196 wide at 320, names broke mid-word) */
+@media (width < 400px) {
+  .chip-screen__search-results {
+    position: fixed;
+    inset-block-start: calc(var(--h-control) + var(--spacing-12) * 2 + var(--spacing-8) - var(--spacing-12));
+    inset-inline: calc(var(--layout-gutter) - var(--spacing-12));
+  }
 }

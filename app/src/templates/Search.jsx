@@ -11,7 +11,7 @@
 // Gap: BELLA has no popover or listbox for SearchField (Combobox has one, but
 // without the search mark and the ⌘K legend). The list is a Card of ListRows,
 // placed under the field by the template (Screen.css), until BELLA has one.
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import SearchField from '@bella/components/SearchField/SearchField';
 import Card from '@bella/components/Card/Card';
 import ListRow from '@bella/components/ListRow/ListRow';
@@ -76,28 +76,48 @@ export default function Search({ showShortcut, autoFocus }) {
       const n = results.length || 1;
       setSel((s) => (e.key === 'ArrowDown' ? (s + 1) % n : (s - 1 + n) % n));
     } else if (e.key === 'Escape') {
+      // the list closes and focus stays in (or returns to) the field
       setOpen(false);
+      box.current?.querySelector('input')?.focus();
     } else if (e.key === 'Enter') {
       e.preventDefault();
       go(results[sel]);
     }
   };
   const showing = open && q.trim();
+  const optionId = (i) => `${listId}-o${i}`;
+  // SearchField draws the input; the combobox pattern lives on it (role, expanded, the list it
+  // controls, the option arrows point at), set here until BELLA's Combobox is the search part
+  const box = useRef(null);
+  useEffect(() => {
+    const input = box.current?.querySelector('input');
+    if (!input) return;
+    const expanded = !!(showing && results.length);
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', String(expanded));
+    input.setAttribute('aria-controls', listId);
+    if (expanded) input.setAttribute('aria-activedescendant', optionId(sel));
+    else input.removeAttribute('aria-activedescendant');
+  });
   return (
-    <div className="chip-screen__search" onKeyDown={onKeyDown} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpen(false)}>
+    <div className="chip-screen__search" ref={box} onKeyDown={onKeyDown} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setOpen(false)}>
       <SearchField showShortcut={showShortcut} placeholder="Search parts and pages" value={q} onChange={(v) => (setQ(v), setOpen(true))} />
       {showing ? (
-        <div className="chip-screen__search-results" id={listId}>
+        <div className="chip-screen__search-results">
           <Card>
             {error ? (
               <TextStack body="Search can’t read BELLA’s parts just now. Try again in a moment." />
             ) : shown !== q && !results.length ? (
               <TextStack body="Looking…" />
             ) : results.length ? (
-              <Flow as="ul" gap={4} aria-label={`${results.length} ${results.length === 1 ? 'result' : 'results'} for ${shown}`}>
+              <Flow as="ul" gap={4} id={listId} role="listbox" aria-label={`${results.length} ${results.length === 1 ? 'result' : 'results'} for ${shown}`}>
                 {results.map((r, i) => (
-                  // a button row: focus moves into the list, so the field's blur keeps it open
-                  <ListRow key={r.key} layout="stacked" title={r.title} description={r.where} trailing selected={i === sel} onClick={() => go(r)} />
+                  // an option, not a button: focus stays in the field (arrows, Return, Esc work there);
+                  // mouse down picks it before the field's blur closes the list
+                  <li key={r.key} id={optionId(i)} role="option" aria-selected={i === sel} onMouseDown={(e) => (e.preventDefault(), go(r))} onMouseEnter={() => setSel(i)}>
+                    <ListRow as="div" layout="stacked" title={r.title} description={r.where} trailing selected={i === sel} />
+                  </li>
                 ))}
               </Flow>
             ) : (
