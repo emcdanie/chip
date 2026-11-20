@@ -45,17 +45,18 @@ const fromServer = (s) => (!s ? 'unknown' : s.disabled ? 'off' : s.status === 'c
 // a Figma path is optional while another one reads: closed reads as off, never as failing
 const optional = (s) => (fromServer(s) === 'bad' ? 'off' : fromServer(s));
 
-// one gate, one reading (audit 10): the gate on BELLA's newest commit with a result, from
-// bella.json's history, the source Health's Gate card reads (app/src/pages/healthModel.js)
-function gateOf(history = []) {
-  const last = history.filter((h) => h.gate).sort((a, b) => b.committedAt.localeCompare(a.committedAt))[0];
-  if (!last) return { state: 'unknown', detail: 'Not run yet.' };
-  const parts = [last.gate.contrastPairs, last.gate.contractParity].filter((x) => x != null);
-  const ok = parts.filter(Boolean).length;
-  const when = new Date(last.committedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+// one gate, one reading (audit 10, user test audit 21 Nov): BELLA's gate as CHIP last ran it
+// (/checks: its five checks by name), the source Health's Gate card and Connectors read too
+export function gateOf(g) {
+  if (!g?.members?.length) return { state: 'unknown', detail: 'Not run yet.' };
+  const { passed, total } = g.counts;
+  const when = g.ranAt ? new Date(g.ranAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
+  const notRun = g.members.filter((m) => m.status === 'not-run').map((m) => m.name);
+  const failing = g.members.filter((m) => m.status === 'failed' || m.status === 'waiting').map((m) => m.name);
+  const rest = [failing.length ? `Failing: ${failing.join('; ')}.` : '', notRun.length ? `Not run yet: ${notRun.join('; ')}.` : ''].filter(Boolean).join(' ');
   return {
-    state: last.gate.ok ? 'ok' : 'bad',
-    detail: `${ok} of ${parts.length} pass on the last commit, ${when}. ${ok === parts.length ? 'All pass, every commit.' : `${parts.length - ok} failing.`}`,
+    state: failing.length ? 'bad' : notRun.length ? 'warn' : 'ok',
+    detail: `${passed} of ${total} gate checks pass${when ? `, last run ${when}` : ''}. ${rest || 'All pass.'}`,
   };
 }
 
@@ -63,7 +64,7 @@ function gateOf(history = []) {
 export async function systemMap() {
   const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
   const { checks } = listChecks({ waiting: waitingChecks() });
-  const lastGate = gateOf(bella.history);
+  const lastGate = gateOf(listChecks({ waiting: waitingChecks() }).gate);
   const ck = Object.fromEntries(checks.map((c) => [c.id, c]));
   // a read only: a test runs at start, on Refresh and on a Test button, never on a page load
   const list = host.servers();
@@ -97,7 +98,7 @@ export async function systemMap() {
     // a part with no story needs someone, as Health counts it (audit 11), whether or not the visual run has happened
     node({ id: 'stories', group: 'Checks', name: 'Stories & tests', state: n.withStory < n.components ? 'bad' : fromCheck(ck.visual), detail: `${n.withStory} of ${n.components} components have a story. ${ck.visual?.summary ?? 'Not run yet.'}`, source: 'npm run audit:visual · data/checks/visual.json', deps: ['components'], action: { type: 'run', check: 'visual', label: 'Run the stories' } }),
     node({ id: 'agents', group: 'Checks', name: 'AGENTS.md', state: fromCheck(ck['agents-md']), detail: ck['agents-md']?.summary ?? 'Not run yet.', source: `AGENTS.md · ${lastChange(['AGENTS.md']) ?? ''}`, deps: ['components'] }),
-    node({ id: 'gate', group: 'Checks', name: 'Gate', measured: true, state: lastGate.state, detail: lastGate.detail, source: 'npm run gate · the pre-commit hook · data/bella.json history', deps: ['contrast', 'contracts', 'agents', 'tokens', 'stories'] }),
+    node({ id: 'gate', group: 'Checks', name: 'Gate', measured: true, state: lastGate.state, detail: lastGate.detail, source: 'npm run gate · the pre-commit hook · CHIP\'s last run of it (/checks)', deps: ['contrast', 'contracts', 'agents', 'tokens', 'stories'] }),
     node({ id: 'bench', group: 'Checks', name: 'Bench', state: ck['bench-static']?.status === 'not-run' ? 'unknown' : ck['bench-static']?.score >= 70 ? 'ok' : 'warn', detail: ck['bench-static']?.summary ?? 'Not run yet.', source: '~/DEV/tools/odsb · data/checks/bench-static.json', deps: ['components', 'agents'], action: { type: 'run', check: 'bench-static', label: 'Run the bench now' } }),
     node({ id: 'compare', group: 'Checks', name: 'Compare with Figma', state: 'unknown', detail: `Reads each component set through ${readPath === 'figma' ? 'the desktop MCP (REST has no token)' : 'the Figma REST API'}.`, source: 'Components · Compare tab · Connectors › Figma baseline', deps: [readPath, 'components'] }),
     // Review and ship

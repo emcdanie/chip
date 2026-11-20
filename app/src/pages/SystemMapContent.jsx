@@ -33,7 +33,7 @@ const STEPS = [
 ];
 const FIGMA_PATHS = ['figma', 'figma-console', 'figma-rest'];
 // a node's state in Figma's words and tone
-const SAYS = { ok: ['Healthy', 'success'], bad: ['Needs you', 'attention'], blocked: ['Not known', 'default'], unknown: ['Not known', 'default'] };
+const SAYS = { ok: ['Healthy', 'success'], warn: ['Not all run', 'attention'], bad: ['Needs you', 'attention'], blocked: ['Not known', 'default'], unknown: ['Not known', 'default'] };
 const DOT = { ok: 'success', bad: 'attention', blocked: 'neutral', unknown: 'neutral' };
 
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0].replace(/\.$/, '');
@@ -47,7 +47,7 @@ const SHORT = {
     const left = Number(m[2]) - Number(m[1]);
     return left ? `${left} have no story` : 'All have a story';
   },
-  gate: (d) => (/not run/i.test(d) ? 'Not run yet' : d.match(/(\d+) of (\d+)/) ? `${d.match(/(\d+) of (\d+)/)[0]} checks pass` : null),
+  gate: (d) => (d.match(/(\d+) of (\d+)/) ? `${d.match(/(\d+) of (\d+)/)[0]} gate checks pass` : 'Not run yet'),
   bench: (d) => (d.match(/Composite ([\d.]+)/) ? `Score ${d.match(/Composite ([\d.]+)/)[1]}` : null),
   review: () => 'Accept or Undo',
   ci: (d) => (/nothing unpushed/i.test(d) ? 'All pushed' : null),

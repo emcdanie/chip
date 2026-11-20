@@ -50,10 +50,10 @@ function headline(r) {
   }
   return r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested';
 }
-// "2 of 2 pass on the last commit, 20 Nov." → "2 of 2 pass · 20 Nov"
+// "4 of 5 gate checks pass, last run 19 Nov." → "4 of 5 pass · 19 Nov"
 const gateWords = (g) => {
-  const m = String(g?.detail ?? '').match(/(\d+ of \d+ pass)[^,]*,\s*([^.]+)/);
-  return m ? `${m[1]} · ${m[2]}` : null;
+  const m = String(g?.detail ?? '').match(/(\d+ of \d+) gate checks pass(?:, last run ([^.]+))?/);
+  return m ? `${m[1]} pass${m[2] ? ` · ${m[2]}` : ''}` : null;
 };
 function meta(r, gate) {
   const d = String(r.n.detail ?? '');

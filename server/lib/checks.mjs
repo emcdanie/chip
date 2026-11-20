@@ -339,6 +339,9 @@ export function listChecks({ waiting = [], fixable = [] } = {}) {
   // the one count of the gate, for the nav, the banner and the Checks card
   const tally = (s) => gateChecks.filter((c) => c.status === s).length;
   gate.counts = { total: gateChecks.length, passed: tally('passed'), failed: tally('failed'), notRun: tally('not-run') };
+  // the gate's own checks by name, and when they last ran: one source for Health, System map and Connectors
+  gate.members = gateChecks.map((c) => ({ id: c.id, name: c.name, status: c.status }));
+  gate.ranAt = gateChecks.map((c) => c.ranAt).filter(Boolean).sort().pop() ?? null;
   gate.word = { running: 'Running', 'not-run': 'Not run yet', waiting: 'Waiting on you', passed: 'Passed', failed: 'Failed' }[gate.status];
   const failing = gateChecks.filter((c) => c.status === 'failed' || c.status === 'waiting');
   gate.summary = failing.length ? `Blocked by ${failing.map((c) => c.name.toLowerCase()).join(', ')}: no commit lands in BELLA until ${failing.length === 1 ? 'it passes' : 'they pass'}.` : gate.status === 'passed' ? 'Every gate check passed on the last run.' : 'Some gate checks have not run yet.';

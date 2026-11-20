@@ -23,7 +23,7 @@ const names = (list) => (list.length > 3 ? `${list.slice(0, 2).join(', ')} +${li
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 /** components: BELLA's list; gaps: /gaps .gaps ({ story: { Name: … } }); history: BELLA's commits. */
-export function healthModel({ components = [], gaps = {}, history = [], pairs = null }) {
+export function healthModel({ components = [], gaps = {}, history = [], pairs = null, checks = null }) {
   const n = components.length;
   // a fix opens the first part that needs it on Components (#/components/<id>)
   const idOf = (name) => components.find((c) => c.name === name)?.id ?? name;
@@ -35,14 +35,13 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
   const total = n * CHECKS.length;
   const passed = rows.reduce((s, r) => s + r.pass, 0);
   const runs = history.filter((h) => h.gate).sort((a, b) => b.committedAt.localeCompare(a.committedAt));
-  const last = runs[0];
-  const parts = last ? [last.gate.contrastPairs, last.gate.contractParity].filter((x) => x != null) : [];
   const contrast = rows.find((r) => r.id === 'contrast');
   return {
     n,
     rows,
     health: n ? { pct: Math.round((passed / total) * 100), passed, total, failing: rows.filter((r) => r.missing.length) } : null,
-    gate: last ? { ok: parts.filter(Boolean).length, of: parts.length, when: day(last.committedAt), allPass: last.gate.ok } : null,
+    // the gate as CHIP last ran it (/checks): its checks by name, the one source System map and Connectors read
+    gate: gateFrom(checks?.gate),
     contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,
     gateDays: gateDays(runs),
     lowest: lowestPair(pairs),
@@ -80,10 +79,17 @@ function lowestPair(res) {
   return { ratio: w.worst, label: w.label, bar: 7, below, checked: res.checked };
 }
 
+/* BELLA's gate as CHIP last ran it: how many of its checks pass, when, and which did not, by name. */
+function gateFrom(g) {
+  if (!g?.members?.length) return null;
+  const not = (s) => g.members.filter((m) => s.includes(m.status)).map((m) => m.name);
+  return { ok: g.counts.passed, of: g.counts.total, when: g.ranAt ? day(g.ranAt) : null, failing: not(['failed', 'waiting']), notRun: not(['not-run']) };
+}
+
 /** Reads CHIP's data (kept between pages); `model` is null only on the very first visit. */
 export function useHealth() {
-  const { data, error, at, reload } = useCached(['/data/bella.json', '/gaps', '/contrast-pairs']);
-  const model = useMemo(() => (data ? healthModel({ components: data[0].components, gaps: data[1].gaps, history: data[0].history, pairs: data[2] }) : null), [data]);
+  const { data, error, at, reload } = useCached(['/data/bella.json', '/gaps', '/contrast-pairs', '/checks']);
+  const model = useMemo(() => (data ? healthModel({ components: data[0].components, gaps: data[1].gaps, history: data[0].history, pairs: data[2], checks: data[3] }) : null), [data]);
   const checked = at ? new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
   return { model, error, reload, checked };
 }
