@@ -50,7 +50,7 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
     contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,
     gateDays: gateDays(runs),
     lowest: lowestPair(pairs),
-    fixes: rows.filter((r) => r.missing.length).map((r) => ({ id: r.id, title: `${r.missing.length} ${r.some}`, names: names(r.missing), who: WHO[r.id] ?? null, action: r.action, href: r.href })),
+    fixes: rows.filter((r) => r.missing.length).map((r) => ({ id: r.id, title: `${r.missing.length} ${r.some}`, names: names(r.missing), who: WHO[r.id] ?? null, action: r.action, href: r.href, row: r })),
     fixCount: rows.reduce((s, r) => s + r.missing.length, 0),
   };
 }
@@ -91,4 +91,22 @@ export function useHealth() {
   const model = useMemo(() => (data ? healthModel({ components: data[0].components, gaps: data[1].gaps, history: data[0].history, pairs: data[2] }) : null), [data]);
   const checked = at ? new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
   return { model, error, reload, checked };
+}
+
+/* Hand a check's gaps to the agent (user test 21 Nov, item 2; rule: "Fix opens
+   a ready plan; the job shows on Work"): BELLA's own brief for each part that
+   misses the check (/gaps), as one run (POST /runs). The run's card shows in
+   Work's Agent lane; a reviewer Accepts or Undoes it there. */
+export async function handOff(row) {
+  const r = await fetch('/gaps');
+  const gaps = (await r.json().catch(() => ({}))).gaps?.[row.id] ?? {};
+  const lines = row.missing.map((name) => gaps[name]?.brief).filter(Boolean);
+  if (!lines.length) throw new Error('CHIP has no brief for these yet, so there is nothing to hand over');
+  const brief = [`Close BELLA's ${row.title} gap for ${lines.length} ${lines.length === 1 ? 'part' : 'parts'}. For each:`, ...lines.map((l) => `- ${l}`), 'Change only what each line names. Ask before changing a token.'].join('\n');
+  const res = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief, title: `${row.action}: ${names(row.missing)}`, from: 'Health' }) });
+  const run = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(run.error || 'CHIP did not answer');
+  if (run.status === 'login' || run.status === 'failed') throw new Error(run.error || 'The agent could not start');
+  window.dispatchEvent(new Event('chip:changed'));
+  return run;
 }

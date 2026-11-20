@@ -153,6 +153,9 @@ async function go(run) {
     run.error = e.message;
     logAction({ kind: 'run-failed', title: run.title, branch: run.branch, error: e.message });
   } finally {
+    // the end state goes to disk too, or a restart reads a finished run as cut off
+    // ("CHIP restarted while this run was going") and a passed one can't be accepted
+    save(run);
     try {
       if (lstatSync(join(dir, 'node_modules')).isSymbolicLink()) unlinkSync(join(dir, 'node_modules'));
     } catch {}

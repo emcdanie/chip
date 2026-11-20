@@ -23,7 +23,9 @@ import { useState } from 'react';
 import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
-import { TARGET } from './healthModel.js';
+import { TARGET, handOff } from './healthModel.js';
+import Toast from '@bella/components/Toast/Toast';
+import Toasts from '../templates/Toasts.jsx';
 
 export const GATE_RUNS = ['none', 'running', 'passed', 'failed'];
 
@@ -135,6 +137,21 @@ const CHECK_VIEWS = [
 export default function HealthContent({ model, run, checked, onCheck, view: startView = 'coverage' }) {
   const narrow = useNarrow();
   const [view, setView] = useState(startView);
+  // handing a check's gaps to the agent: the button says Sending…, then a toast
+  const [sending, setSending] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const send = async (row) => {
+    setSending(row.id);
+    try {
+      await handOff(row);
+      setNotice({ tone: 'success', text: `Sent to the agent: ${row.action}. It works on its own branch; its card is on Work, where a reviewer Accepts or Undoes it.` });
+    } catch (e) {
+      setNotice({ tone: 'danger', text: `Not sent: ${e.message}.` });
+    } finally {
+      setSending(null);
+    }
+  };
+  const verb = (row) => (sending === row.id ? 'Sending…' : row.action);
   if (!model) return <EmptyState size="lane" mark="⏳" title="Reading BELLA" line="Counting every part and its checks." />;
   const { health, contrast, rows, fixes, fixCount, n } = model;
   return (
@@ -147,6 +164,13 @@ export default function HealthContent({ model, run, checked, onCheck, view: star
         </Button>
       </Flow>
       <GateBanner run={run} />
+      {notice ? (
+        <Toasts>
+          <Toast tone={notice.tone} onClose={() => setNotice(null)}>
+            {notice.text}
+          </Toast>
+        </Toasts>
+      ) : null}
       <Flow span={4} gap={24} fill>
         {health ? (
           <SystemHealth
@@ -237,8 +261,8 @@ export default function HealthContent({ model, run, checked, onCheck, view: star
                         value={r.value}
                         fill={r.fill}
                         target={TARGET}
-                        actionLabel={r.missing.length && r.action ? r.action : undefined}
-                        onAction={r.href ? () => (window.location.hash = r.href) : undefined}
+                        actionLabel={r.missing.length && r.action ? verb(r) : undefined}
+                        onAction={r.missing.length && !sending ? () => send(r) : undefined}
                       />
                     ))}
                     {/* a lone last row keeps its half, as the rows above */}
@@ -260,7 +284,7 @@ export default function HealthContent({ model, run, checked, onCheck, view: star
                 <Flow as="ul" gap={16} aria-label="Fixes">
                   {fixes.map((f) => (
                     // ListRow moves the button under the names on a narrow row (parts-dev b69a5de)
-                    <ListRow key={f.id} layout="stacked" title={f.title} description={f.who ? `${f.names} · ${f.who}` : f.names} actionButton={<Button variant="secondary" size="sm" href={f.href}>{f.action}</Button>} />
+                    <ListRow key={f.id} layout="stacked" title={f.title} description={f.who ? `${f.names} · ${f.who}` : f.names} actionButton={<Button variant="secondary" size="sm" disabled={!!sending} onClick={() => send(f.row)}>{verb(f.row)}</Button>} />
                   ))}
                 </Flow>
               ) : (
@@ -277,8 +301,8 @@ export default function HealthContent({ model, run, checked, onCheck, view: star
                               title={f.title}
                               description={f.who ? `${f.names} · ${f.who}` : f.names}
                               actionButton={
-                                <Button variant="secondary" size="sm" href={f.href}>
-                                  {f.action}
+                                <Button variant="secondary" size="sm" disabled={!!sending} onClick={() => send(f.row)}>
+                                  {verb(f.row)}
                                 </Button>
                               }
                             />

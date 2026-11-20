@@ -23,6 +23,12 @@ import { TermScreen } from '../Terminal.jsx';
 
 const POST = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' };
 const hhmm = (t) => (t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null);
+// an agent's report reads as words: no markdown marks, no code ticks, the first lines only
+const plainNotes = (t) => {
+  const words = String(t).replace(/\*\*|`/g, '').replace(/^\s*-\s*/gm, '').replace(/\s+/g, ' ').trim();
+  return words.length > 320 ? `${words.slice(0, 320).replace(/\s\S*$/, '')}…` : words;
+};
+const firstLine = (t) => plainNotes(t ?? '').split(/(?<=\.)\s/)[0];
 const said = async (r) => {
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || 'CHIP did not answer');
@@ -55,9 +61,10 @@ function shapeOf(item, d) {
     return {
       title: d.title,
       status: ['Agent', d.from ? `from ${d.from}` : null, d.startedAt ? `ran ${hhmm(d.startedAt)}` : null].filter(Boolean).join(' · '),
-      outcome: d.summary || (d.status === 'failed' ? 'The run stopped before it finished.' : d.step || 'Working.'),
+      // the outcome in one plain line; the agent's own notes, first lines only, without markdown
+      outcome: d.status === 'failed' ? `${(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}. Nothing was kept.` : d.status === 'kept' ? 'Accepted.' : d.status === 'passed' ? firstLine(d.summary) || 'The gate passed.' : d.step || 'Working.',
       gate: d.gate?.summary ?? null,
-      why: d.error ?? null,
+      notes: d.summary ? plainNotes(d.summary) : null,
       diff: d.diff ?? null,
       branch: d.branch,
       can: waiting ? 'decide' : null,
@@ -131,6 +138,7 @@ function FixBody({ s }) {
       {s.outcome ? <TextStack title={s.outcome} subtitle={s.gate ?? undefined} /> : null}
       {s.kept ? <TextStack body={`Kept on ${s.branch}. Merging and pushing stay with a maintainer.`} /> : null}
       {s.why ? <TextStack title="Why" body={s.why} /> : null}
+      {s.notes ? <TextStack title="The agent’s notes" body={s.notes} /> : null}
       {s.change ? <TextStack title="The change" body={s.change} subtitle={s.files?.length ? s.files.join(' · ') : undefined} /> : null}
       {s.diff ? <CodeBlock code={s.diff} language="diff" title={s.branch ?? 'The change'} copy /> : null}
       {s.can === 'run' && s.thisWill ? <TextStack subtitle={`Run the fix will ${s.thisWill}`} /> : null}
