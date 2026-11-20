@@ -187,7 +187,7 @@ function tableArgs(v) {
       ? [
           { key: 'name', label: 'Component', sortable },
           { key: 'contract', label: 'Contract', sortable },
-          { key: 'checks', label: 'Checks pass', numeric: true, sortable },
+          { key: 'checks', label: 'Checks', numeric: true, sortable },
         ]
       : [
           { key: 'name', label: 'Name', sortable },

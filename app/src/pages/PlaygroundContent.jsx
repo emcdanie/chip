@@ -14,7 +14,7 @@
 // pink Pins on the page, and while marking a click asks the page what sits
 // there (chip:pick, answered by the proxy's probe). Frame, zoom and Mark up:
 // her card y22, "A · Yes" (19 Nov).
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useId, useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
@@ -87,7 +87,6 @@ function shortName(text) {
 // the frame's design height: one laptop screen; the page scrolls inside it
 const FRAME_HEIGHT = 900;
 // Figma opens on a part (Show · Parts › DataTable)
-const FIRST_PART = 'DataTable';
 const PARTS = Object.keys(SPECIMENS).sort();
 
 /**
@@ -164,10 +163,24 @@ function StageSlot({ src, proxy, sections, title, width, notes, picking, onPicke
   );
 }
 
+// "Pick a part" moves to the Show select and opens its list where the browser can
+function pickShow(id) {
+  const el = document.getElementById(id)?.querySelector('select');
+  el?.focus();
+  try {
+    el?.showPicker?.();
+  } catch {
+    // some browsers open a select's list only on a direct click; focus is enough there
+  }
+}
+
 export default function PlaygroundContent({ project, onProject, route, onRoute }) {
   const narrow = useNarrow();
-  // what is on the canvas: a part (Figma's default) or a page; a link with a route opens the page
-  const [part, setPart] = useState(() => (route ? null : FIRST_PART));
+  // what is on the canvas: nothing yet (Figma Screen 1 "Nothing picked yet", audit 10), a part or a page;
+  // a link with a route opens the page
+  const [part, setPart] = useState(null);
+  const [none, setNone] = useState(() => !route);
+  const showId = useId();
   const { projects, pages, map, down, again } = usePlayData(project, route);
   // a phone opens at phone width (Figma "375 wide"), so the part is readable, not 15%
   // open at the widest preset that shows near full size: a 1440 frame at her ~1100 window shrank to 45%
@@ -188,14 +201,17 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
 
   // a page view opens the project's first page unless one was asked for
   useEffect(() => {
-    if (!part && pages?.length && !pages.some((p) => p.route === route)) onRoute(pages[0].route);
-  }, [part, pages, route, onRoute]);
-  const showValue = part ? `part:${part}` : `page:${route ?? ''}`;
+    if (!none && !part && pages?.length && !pages.some((p) => p.route === route)) onRoute(pages[0].route);
+  }, [none, part, pages, route, onRoute]);
+  const showValue = none ? '' : part ? `part:${part}` : `page:${route ?? ''}`;
   const showOptions = [
+    ...(none ? [{ value: '', label: 'Pick a part or a page' }] : []),
     ...PARTS.map((n) => ({ value: `part:${n}`, label: `Parts › ${n}` })),
     ...(pages ?? []).map((p) => ({ value: `page:${p.route}`, label: `Pages › ${p.label}` })),
   ];
   const onShow = (v) => {
+    if (!v) return;
+    setNone(false);
     if (v.startsWith('part:')) {
       setPart(v.slice(5));
       setMarking(false);
@@ -273,14 +289,16 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
       <Flow direction={narrow ? 'column' : 'row'} gap={16} wrap={!narrow} justify={narrow ? 'start' : 'between'} align={narrow ? undefined : 'center'}>
         <Flow direction="row" gap={12} wrap>
           {/* Figma: one Show select; a page also names its project */}
-          {!part && projects?.length ? <Select label="Project" value={project} onChange={onProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
-          <Select label="Show" value={showValue} onChange={onShow} options={showOptions} />
+          {!part && !none && projects?.length ? <Select label="Project" value={project} onChange={onProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
+          <Flow id={showId}>
+            <Select label="Show" value={showValue} onChange={onShow} options={showOptions} />
+          </Flow>
         </Flow>
         <Flow direction="row" gap={12} wrap>
           {/* below 800px the four widths don't fit in one row: the same choice as a Select */}
           {narrow ? <Select label="Width" value={width} onChange={setWidth} options={WIDTHS} /> : <SegmentedControl label="Width" options={WIDTHS} value={width} onChange={setWidth} />}
-          {part ? (
-            <Button variant="secondary" ariaHaspopup="dialog" ariaExpanded={controls} onClick={() => setControls(true)}>
+          {part || none ? (
+            <Button variant="secondary" ariaHaspopup="dialog" ariaExpanded={controls} disabled={none} onClick={() => setControls(true)}>
               Controls
             </Button>
           ) : (
@@ -298,7 +316,21 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
 
       {part ? <PartSlot name={part} width={width} values={{ ...partValues, onSelected: (k) => setValue('selected', k) }} /> : null}
 
-      {!part && map && !running ? (
+      {/* Figma Screen 1: the stage with the eyes Empty state until something is picked */}
+      {none ? (
+        <Stage label="Nothing picked yet">
+          <EmptyState
+            size="lane"
+            wash="ochre"
+            mark="👀"
+            title="Pick a part to try"
+            line="Pick one in Show and give it a wee spin."
+            actions={<Button onClick={() => pickShow(showId)}>Pick a part</Button>}
+          />
+        </Stage>
+      ) : null}
+
+      {!part && !none && map && !running ? (
         <Notification
           tone="attention"
           title={`${map.name ?? 'This project'} isn’t running`}
@@ -307,7 +339,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
         />
       ) : null}
 
-      {part ? null : src ? (
+      {part || none ? null : src ? (
         <StageSlot
           src={src}
           proxy={map.proxy}
