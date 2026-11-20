@@ -56,6 +56,9 @@ export function gateOf(g) {
   if (!g?.members?.length) return { state: 'unknown', detail: 'Not run yet.' };
   const { passed, total } = g.counts;
   const when = g.ranAt ? new Date(g.ranAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
+  // while CHIP re-runs checks their status is "running": say so, never "0 of 5 pass … All pass"
+  const running = g.members.filter((m) => m.status === 'running').length;
+  if (running) return { state: 'unknown', detail: `Checking now: ${running} of ${g.counts.total} gate checks running${when ? `; last full run ${when}` : ''}.` };
   const notRun = g.members.filter((m) => m.status === 'not-run').map((m) => m.name);
   const failing = g.members.filter((m) => m.status === 'failed' || m.status === 'waiting').map((m) => m.name);
   const rest = [failing.length ? `Failing: ${failing.join('; ')}.` : '', notRun.length ? `Not run yet: ${notRun.join('; ')}.` : ''].filter(Boolean).join(' ');

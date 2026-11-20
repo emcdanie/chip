@@ -11,14 +11,25 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, statSync, 
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createConnection } from 'node:net';
-import { DATA_DIR } from './config.mjs';
+import { DATA_DIR, PORT } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
 import { bellaPairs } from '../../scripts/lib/bella-pairs.mjs';
 
-export const BASE = process.env.BELLA_PROPOSAL_BASE || 'feat/chip-components';
+// The branch the checks run on: BELLA_PROPOSAL_BASE when set, else the branch the BELLA CHIP reads is on
+// (BELLA_DIR=bella-parts → chip/parts-dev), so Health's gate is the BELLA its pages show; never a fixed
+// October branch (parts-motion found :3160 and :3181 flipping one copy between 8e8d4d2 and parts-dev, 21 Nov).
+const bellaBranch = () => {
+  try {
+    return execFileSync('git', ['-C', BELLA, 'branch', '--show-current'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null;
+  } catch {
+    return null;
+  }
+};
+export const BASE = process.env.BELLA_PROPOSAL_BASE || bellaBranch() || 'feat/chip-components';
 export const CHECKS_DIR = join(DATA_DIR, 'checks');
 const ODSB = process.env.ODSB_DIR || join(homedir(), 'DEV', 'tools', 'odsb');
-const CHECKOUT = join(tmpdir(), 'chip-checks', 'bella');
+// one copy per CHIP server: two servers sharing one copy check each other's checkouts out mid-run
+const CHECKOUT = join(tmpdir(), 'chip-checks', `bella-${PORT}`);
 
 const git = (args, cwd = BELLA) => execFileSync('git', ['-C', cwd, '--no-optional-locks', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 

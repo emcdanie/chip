@@ -48,7 +48,7 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
     // parts with at least one gap: the same count Components shows as Needs work
     health: n ? { pct: Math.round((passed / total) * 100), passed, total, failing: rows.filter((r) => r.missing.length), needsWork: new Set(rows.flatMap((r) => r.missing)).size } : null,
     // the gate as CHIP last ran it (/checks): its checks by name, the one source System map and Connectors read
-    gate: gateFrom(checks?.gate),
+    gate: gateFrom(checks?.gate, checks),
     contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,
     gateDays: gateDays(runs),
     lowest: lowestPair(pairs),
@@ -88,10 +88,11 @@ function lowestPair(res) {
 }
 
 /* BELLA's gate as CHIP last ran it: how many of its checks pass, when, and which did not, by name. */
-function gateFrom(g) {
+// which BELLA the gate ran on, said on screen (coordinator, 21 Nov: a run on October's branch looked like today's)
+function gateFrom(g, checks) {
   if (!g?.members?.length) return null;
   const not = (s) => g.members.filter((m) => s.includes(m.status)).map((m) => m.name);
-  return { ok: g.counts.passed, of: g.counts.total, when: g.ranAt ? day(g.ranAt) : null, failing: not(['failed', 'waiting']), notRun: not(['not-run']) };
+  return { ok: g.counts.passed, of: g.counts.total, when: g.ranAt ? day(g.ranAt) : null, failing: not(['failed', 'waiting']), notRun: not(['not-run']), on: checks?.base ? `${checks.base}${checks.head ? ` @ ${checks.head}` : ''}` : null };
 }
 
 /** Reads CHIP's data (kept between pages); `model` is null only on the very first visit. */
