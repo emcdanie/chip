@@ -47,7 +47,9 @@ const ROLES = [
   { name: 'Text', job: 'words, strongest to quietest', items: [['default', '--color-content-default'], ['body', '--color-content-body'], ['subtle', '--color-content-subtle']] },
   { name: 'Border', job: 'edges and dividers', items: [['default', '--color-border-default'], ['strong', '--color-border-strong'], ['ink', '--color-border-ink']] },
   { name: 'Action', job: 'only what you can press', items: [['action', '--color-background-brand', 'fill'], ['on action', '--color-content-brand-knockout'], ['selected', '--color-background-brand-subtle-hover', 'fill']] },
-  { name: 'Status', job: 'only for state', items: [['success', '--color-border-utility-success'], ['attention', '--color-background-utility-warning-mark'], ['danger', '--color-border-utility-error'], ['warning', '--color-border-utility-warning'], ['info', '--color-border-utility-info']] },
+  // status words use the text roles (an error message is content-utility-error, 8.8:1, never the 4:1 mark;
+  // user test 21 Nov, item 7), named as their tokens so Cards and Table answer "error" the same way
+  { name: 'Status', job: 'only for state', items: [['success', '--color-content-utility-success'], ['attention', '--color-background-utility-warning-mark', 'fill'], ['error', '--color-content-utility-error'], ['warning', '--color-content-utility-warning'], ['info', '--color-content-utility-info']] },
   { name: 'Highlight', job: 'annotation, focus and the logo', items: [['wash', '--color-background-utility-warning', 'fill'], ['focus', '--color-border-focus'], ['pin', '--color-background-accent-1'], ['target', '--color-border-brand'], ['logo blue', '--color-background-accent-3'], ['logo red', '--color-background-accent-4']] },
 ];
 // Figma's type ramp: the TypeSpecimen size and the token that sets it
