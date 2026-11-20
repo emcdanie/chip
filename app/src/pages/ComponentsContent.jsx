@@ -9,8 +9,8 @@
 // History | Ask BELLA and a compact Checks card. BELLA parts and Flow only.
 //
 // Part gaps (asked of parts-dev, never styled around): no zoom in / fit / zoom
-// out or Light / Dark overlay; pins and chips can't be clicked (the Anatomy tab
-// picks, and the stage line says so until Stage takes a click: audit 10); the selected leader's ink look isn't passed through Stage; Step has
+// out or Light / Dark overlay; the selected leader's ink look isn't passed through Stage;
+// pins and chips pick their part (Stage onSelect, parts-dev ebac13a), and hover lights them; Step has
 // no kind colours; Button has no preview state yet (hover / pressed / focus
 // are BELLA's own rules copied onto attributes). No Try it switch: Elleta
 // removed it from the stage, 20 Nov 2026 ("Remove it").
@@ -265,6 +265,8 @@ function PartCard({ a, touch, value, onFix }) {
 
 function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
   const tiny = useNarrow(420);
+  // a pin or chip under the pointer or keyboard lights its match (Stage, parts-dev ebac13a)
+  const [lit, setLit] = useState(null);
   // the part's card stands beside the stage from the stage card's 560 up (her working width 1100 included);
   // narrower, it goes under the stage and the chips stay, above and below the part
   const wrapId = useId();
@@ -334,7 +336,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
   const card = a ? <PartCard a={a} touch={touch} value={showsValue ? null : valueOf(a)} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
   const stage = (
     <Flow id={stageId}>
-      <Stage label={`${part.name} on the stage`} markers={markers} scale={scale}>
+      <Stage label={`${part.name} on the stage`} markers={markers} scale={scale} onSelect={onPick} activeId={lit} onActiveChange={setLit}>
         <Flow id={liveId} align="center">
           <Flow id={shownId} align="center">
             <LivePart part={part} variant={variant} label={label} state={shown} />
@@ -346,7 +348,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
   return (
     <Card>
       <Flow gap={16}>
-        <TextStack title="On the stage" body={`${scale === 2 ? 'Shown at 2×. ' : ''}${anatomy.length ? 'Each numbered pin is a part. The card says if it passes or is a finding; pick another part on the Anatomy tab.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`}`} />
+        <TextStack title="On the stage" body={`${scale === 2 ? 'Shown at 2×. ' : ''}${anatomy.length ? 'Pick a numbered pin: its card names the part and says if it passes or is a finding.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`}`} />
         {PLAY[part.name] ? (
           <Flow direction="row" gap={16} wrap align="center">
             <Input label="Label" value={label} onChange={setLabel} placeholder={PLAY[part.name].children} />
