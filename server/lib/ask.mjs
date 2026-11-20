@@ -405,7 +405,10 @@ export function dataAnswer(message) {
     return null;
   }
   const when = d.source?.committedAt ?? null;
-  const source = (findings, passage) => ({ n: 1, title: 'BELLA data (data/bella.json)', path: 'data/bella.json', when, passage, findings, score: 1 });
+  const source = (findings, passage, backsFor) => ({ n: 1, title: 'BELLA data (data/bella.json)', path: 'data/bella.json', when, passage, findings, score: 1, ...(backsFor ? { backsFor } : {}) });
+  // a data answer's claim and the data line it rests on, for the pin on that claim (audit 21 Nov:
+  // "A11y: 61%" and "Contrast" opened the parts list, not their own lines)
+  const claimOf = (line) => line.replace(/^\s*[-*•]\s+/, '').replace(/\*\*/g, '').trim();
   // a station's score: what it is, and how to raise it (her mock: "Add a11y notes to ScaledFrame and SectionHeader")
   if (/\bscore\b/i.test(q) && /\b(raise|improve|increase|boost|fix|lift|why|what|how)\b/i.test(q)) {
     const id = STATIONS.find(([, re]) => re.test(q))?.[0];
@@ -417,13 +420,11 @@ export function dataAnswer(message) {
         const cp = d.gates?.contrastPairs;
         const contrast = cp ? String(cp.summary ?? '').replace(/^contrast pairs:\s*/i, '').split(';')[0] : null;
         const findings = [...without.slice(0, 8).map((n) => ({ text: `**${n}** has no a11y notes`, ok: false })), ...(without.length > 8 ? [{ text: `${without.length - 8} more without a11y notes`, ok: false }] : []), { text: `**${parts.length - without.length} others** have a11y notes`, ok: true }, ...(cp ? [{ text: `Contrast pairs: ${contrast}`, ok: cp.ok !== false }] : [])];
-        const reply = [
-          without.length ? `**Add a11y notes** to the ${without.length} parts without them [1].` : `**Every part has a11y notes** [1].`,
-          `- **A11y:** ${st.score}%${/^(\d+)\/(\d+)/.test(st.basis) ? `, ${st.basis.match(/^(\d+)\/(\d+)/)[1]} of ${st.basis.match(/^(\d+)\/(\d+)/)[2]} parts have a11y notes and no failing contrast pair` : ''} [1].`,
-          without.length ? `- **Without notes:** ${list(without)} [1].` : null,
-          cp ? `- **Contrast:** ${contrast} [1].` : null,
-        ].filter(Boolean).join('\n');
-        return { reply, sources: [source(findings, `A11y station: ${st.score}% (${st.assessment}). ${st.basis}.`)], next: ['Which parts lack a11y notes?', 'Which gates fail?'] };
+        const a11yLine = `- **A11y:** ${st.score}%${/^(\d+)\/(\d+)/.test(st.basis) ? `, ${st.basis.match(/^(\d+)\/(\d+)/)[1]} of ${st.basis.match(/^(\d+)\/(\d+)/)[2]} parts have a11y notes and no failing contrast pair` : ''} [1].`;
+        const contrastLine = cp ? `- **Contrast:** ${contrast} [1].` : null;
+        const reply = [without.length ? `**Add a11y notes** to the ${without.length} parts without them [1].` : `**Every part has a11y notes** [1].`, a11yLine, without.length ? `- **Without notes:** ${list(without)} [1].` : null, contrastLine].filter(Boolean).join('\n');
+        const backsFor = [{ claim: claimOf(a11yLine), line: `A11y station: ${st.score}% (${st.assessment}). ${st.basis}.`, ok: st.score >= 90 }, ...(cp ? [{ claim: claimOf(contrastLine), line: `Contrast pairs: ${String(cp.summary ?? '').replace(/^contrast pairs:\s*/i, '')}`, ok: cp.ok !== false }] : [])];
+        return { reply, sources: [source(findings, `A11y station: ${st.score}% (${st.assessment}). ${st.basis}.`, backsFor)], next: ['Which parts lack a11y notes?', 'Which gates fail?'] };
       }
       const reply = st.score == null
         ? `**${st.name} has no score**: it is ${st.assessment} [1].\n- **Why:** ${st.basis} [1].`
@@ -455,8 +456,10 @@ export function dataAnswer(message) {
     ? `**${shown.length} of ${parts.length} parts** ${wantHave ? 'have' : 'lack'} ${check.noun} [1].`
     : `**No part** ${wantHave ? 'has' : 'lacks'} ${check.noun} [1].`;
   const bullets = shown.length ? [`- **${wantHave ? 'With' : 'Without'}:** ${list(shown)} [1].`, `- **${wantHave ? 'Without' : 'With'}:** ${wantHave ? lacking.length : having.length} parts [1].`] : [];
+  // the count bullet opens its own count; the list and the verdict open the parts, one mark each
+  const countLine = bullets[1] ? [{ claim: claimOf(bullets[1]), line: `${wantHave ? lacking.length : having.length} of ${parts.length} parts ${wantHave ? 'have no' : 'have'} ${wantHave ? check.noun.replace(/^an? /, '') : check.noun}.`, ok: !wantHave }] : undefined;
   const others = CHECKS.filter((c) => c !== check).slice(0, 2).map((c) => `Which parts lack ${c.noun}?`);
-  return { reply: [verdict, ...bullets].join('\n'), sources: [source(findings, `${parts.length} parts in BELLA ${d.source?.version ?? ''} (${d.source?.commit ?? ''}). ${check.key}: ${having.length} true, ${lacking.length} false.`)], next: others };
+  return { reply: [verdict, ...bullets].join('\n'), sources: [source(findings, `${parts.length} parts in BELLA ${d.source?.version ?? ''} (${d.source?.commit ?? ''}). ${check.key}: ${having.length} true, ${lacking.length} false.`, countLine)], next: others };
 }
 
 export async function* askStream(message, sessionId, page, opts = {}) {
@@ -522,7 +525,20 @@ export async function* askStream(message, sessionId, page, opts = {}) {
     .split('|')
     .map((q) => q.replace(/\*\*/g, '').trim())
     .filter((q) => q.length > 3 && q.length < 80 && (q.toLowerCase().match(WORD) ?? []).some((w) => asked.has(w)))
-    .slice(0, 2);
+    // only a follow-up CHIP's data answers (audit 21 Nov: "the maximum allowed contrast ratio" has no answer)
+    .filter((q) => dataAnswer(q));
+  // none left: the data router's own questions on what was asked
+  const TOPICS = [
+    [/\b(a11y|accessib\w*)\b/i, 'Which parts lack a11y notes?'],
+    [/\bcontrast\b/i, 'Which gates fail?'],
+    [/\bstor(y|ies)\b/i, 'Which parts lack a story?'],
+    [/\bdocs?\b/i, 'Which parts lack a doc page?'],
+    [/\bcontracts?\b/i, 'Which parts lack a contract?'],
+    [/\b(spec|dsds)\b/i, 'Which parts lack a spec entry?'],
+    [/\b(score|station|readiness)\b/i, 'How could BELLA raise its A11y score?'],
+  ];
+  for (const [re, q] of TOPICS) if (next.length < 2 && re.test(`${message} ${reply}`) && !next.includes(q) && q.toLowerCase() !== String(message).trim().toLowerCase()) next.push(q);
+  next.splice(2);
   const checked = checkClaims(reply.replace(/^\s*(?:[-*•]\s*)?\**Next\**:.*$/gim, ''), texts);
   reply = checked.reply;
   reply = verdictFirst(reply);

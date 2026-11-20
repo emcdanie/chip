@@ -205,6 +205,8 @@ export default function useAsk({ thread = false } = {}) {
 export function Words({ text, onPin }) {
   const bits = String(text)
     .replace(/`/g, '')
+    // one stop around the pins, never "pass. ① ." (which became "pass.."): the one after them goes
+    .replace(/([.!?])(\s*(?:\[\d+\]\s*)+)[.!?]/g, '$1$2')
     // a pin before the full stop would leave the stop on its own ("pairs ① ."): the stop goes first
     .replace(/\s*((?:\s*\[\d+\])+)\s*([.,;:])/g, '$2 $1')
     .split(/(\*\*[^*]+\*\*|\[\d+\])/)
@@ -284,9 +286,9 @@ function Citation({ sources, at, claim, onMove, onClose }) {
   // the line that backs the claim first (the server picks it from the source's own text), never the source's heading
   // per claim: the pin she opened names its line, and the server matched that line to a sentence of this source
   const mine = plainClaim(claim);
-  const forClaim = mine ? (s.backsFor ?? []).find((b) => { const c = plainClaim(b.claim); return c && (mine.includes(c) || c.includes(mine)); })?.line : null;
-  const lead = forClaim ?? s.backs;
-  const findings = s.findings ?? (lead ? [{ text: lead }] : s.passage ? [{ text: String(s.passage).split(/(?<=[.!?])\s/)[0] }] : []);
+  const match = mine ? (s.backsFor ?? []).find((b) => { const c = plainClaim(b.claim); return c && (mine.includes(c) || c.includes(mine)); }) : null;
+  // the claim's own line first (with its mark when the data gives one); else the source's findings, else its first line
+  const findings = match ? [{ text: match.line, ok: match.ok }] : s.findings ?? (s.backs ? [{ text: s.backs }] : s.passage ? [{ text: String(s.passage).split(/(?<=[.!?])\s/)[0] }] : []);
   // the title without its file path in brackets (it broke alone at 320); the path is under Exact line
   const title = String(s.title).replace(/\s*\([^()]*[/.][^()]*\)\s*$/, '') || s.title;
   // focus moves into the source as it opens (so Tab reads it next), and Esc closes it from anywhere
