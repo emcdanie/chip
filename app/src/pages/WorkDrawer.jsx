@@ -266,7 +266,7 @@ function shapeOf(item, d) {
   };
 }
 
-function FixDrawer({ item, onClose, onNotice, onChanged }) {
+function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
   const [tick, setTick] = useState(0);
   const [busy, setBusy] = useState(null);
   const { data, error } = useItem(item, tick);
@@ -284,6 +284,8 @@ function FixDrawer({ item, onClose, onNotice, onChanged }) {
       const base = item.kind === 'run' ? `/runs/${encodeURIComponent(item.id)}` : `/review/${encodeURIComponent(item.check)}`;
       await said(await fetch(`${base}/${verb}`, POST));
       onNotice({ tone: 'success', title: done.title, message: done.message });
+      // Accept: the drawer closes and the card leaves the board (motion item 6)
+      if (verb === 'keep' && onAccepted) return onAccepted();
       onChanged();
       setTick((t) => t + 1);
     } catch (e) {
@@ -363,8 +365,8 @@ function TermDrawer({ item, onClose }) {
 }
 
 /** item: { kind: 'review', check } | { kind: 'run', id } | { kind: 'terminal', repo, command, title }; null = closed. */
-export default function WorkDrawer({ item, onClose, onNotice, onChanged }) {
+export default function WorkDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
   if (!item) return null;
   if (item.kind === 'terminal') return <TermDrawer key={`${item.repo}-${item.command}`} item={item} onClose={onClose} />;
-  return <FixDrawer key={item.id ?? item.check} item={item} onClose={onClose} onNotice={onNotice} onChanged={onChanged} />;
+  return <FixDrawer key={item.id ?? item.check} item={item} onClose={onClose} onNotice={onNotice} onChanged={onChanged} onAccepted={onAccepted} />;
 }
