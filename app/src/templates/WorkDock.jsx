@@ -8,8 +8,10 @@
 //     failures first; a row opens what the board's card opens (WorkDrawer).
 //   Sessions: CHIP itself, the agent runs CHIP started (/runs), then the relay
 //     lanes from their reports (/bar/state).
-//   Terminal: real shells; New shell opens one in CHIP's folder.
-//   Ask BELLA: the one Ask thread (useAsk), from CHIP's data first.
+//   Terminal: the chat with BELLA and the agent (TermChat), the same ChatThread
+//     as Ask BELLA (her 20 Nov "one chat"); New shell opens a real shell in its
+//     own drawer, the plain fallback.
+//   Ask BELLA: the Ask thread (useAsk), from CHIP's data first, turn by turn.
 // The composer sits at the foot on every tab: the model (Auto, local first),
 // the field, and Talk (the browser's own speech, never sending by itself).
 // Gaps (named for the library, not drawn here): Drawer has no tabs slot under
@@ -25,16 +27,16 @@ import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
 import Select from '@bella/components/Select/Select';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
-import TextStack from '@bella/components/TextStack/TextStack';
 import Toast from '@bella/components/Toast/Toast';
 import Flow from './Flow.jsx';
 import Toasts from './Toasts.jsx';
 import useCached from './useCached.js';
 import useNarrow from './useNarrow.js';
-import useAsk, { AskAnswer } from './useAsk.jsx';
+import useAsk, { AskAnswer, sendToAgent } from './useAsk.jsx';
 import { workModel } from '../pages/workModel.js';
 import WorkDrawer from '../pages/WorkDrawer.jsx';
-import { TermScreen } from '../Terminal.jsx';
+import ChatThread from '@bella/components/ChatThread/ChatThread';
+import TermChat from './TermChat.jsx';
 
 const TAB_IDS = ['needs', 'sessions', 'term', 'ask'];
 const KEY = 'chip-dock';
@@ -105,8 +107,12 @@ export default function WorkDock() {
   const [notice, setNotice] = useState(null);
   const [model, setModel] = useState('auto');
   const [draft, setDraft] = useState('');
-  const [shells, setShells] = useState([]);
-  const asker = useAsk();
+  // one chat (her 20 Nov "i just want one please"): Ask BELLA and the Terminal are the same
+  // ChatThread, each with its own turns
+  const asker = useAsk({ thread: true });
+  const termAsker = useAsk({ thread: true });
+  const [termTurns, setTermTurns] = useState([]);
+  const say = useRef(null);
   const talk = useTalk(setDraft);
   const phone = useNarrow();
   // under 400 the field's hint is shorter, so it shows whole beside Talk (its label says what it asks)
@@ -157,42 +163,75 @@ export default function WorkDock() {
     ];
   }, [data]);
 
-  const newShell = () => {
-    const id = `dock-${Date.now()}`;
-    setShells((s) => [...s, { id, repo: 'chip', kind: 'shell', status: 'connecting' }]);
-    setNotice({ tone: 'success', text: 'New shell opened in CHIP’s folder' });
-  };
+  // a real shell, the plain fallback, in its own drawer (WorkDrawer's terminal), never in the chat
+  const newShell = () => setItem({ kind: 'terminal', repo: 'chip', command: '', title: 'a new shell' });
+  // the composer talks to the tab it is on: the Terminal's chat, or Ask BELLA from any other tab
   const send = () => {
     const q = draft.trim();
     if (!q) return;
     setDraft('');
+    if (tab === 'term') return say.current?.(q);
     setTab('ask');
     asker.ask(q, window.location.hash || '#/work', undefined, undefined, providerOf(model));
   };
-  const newChat = () => {
-    const kept = asker.answer;
-    asker.clear();
-    setNotice({ tone: 'info', text: 'Chat cleared', undo: kept ? () => asker.setLocal(kept) : null });
+  // New chat clears this tab's chat, with Undo in the toast (her 19 Nov: no confirm)
+  const newChat = (who) => {
+    const kept = { past: who.past, answer: who.answer };
+    const keptTurns = who === termAsker ? termTurns : null;
+    who.clear();
+    if (keptTurns) setTermTurns([]);
+    setNotice({ tone: 'info', text: 'Chat cleared', undo: () => (who.restore(kept), keptTurns && setTermTurns(keptTurns)) });
   };
+  // Fix on an answer hands it to the agent (the model menu waits on its part, round 7)
+  const [fixing, setFixing] = useState(false);
+  const fix = async (answer) => {
+    setFixing(true);
+    try {
+      await sendToAgent(answer);
+      setNotice({ tone: 'success', text: 'Sent to the agent. Its card is in the Agent lane.' });
+      reload();
+    } catch (e) {
+      setNotice({ tone: 'danger', text: `Not sent: ${e.message}` });
+    } finally {
+      setFixing(false);
+    }
+  };
+  const ask = (q) => asker.ask(q, window.location.hash || '#/work', undefined, undefined, providerOf(model));
+  // where the terminal works and on which model, as her mock's header line
+  const models = useCached(['/models']).data?.[0]?.models ?? [];
+  const local = models.find((m) => m.place === 'local' && m.isDefault)?.label;
+  const where = model === 'claude' ? `BELLA · ${models.find((m) => m.id === 'claude')?.label ?? 'Claude'}, in the cloud` : local ? `BELLA · ${local} on this Mac` : 'BELLA · the local model on this Mac';
 
   const tabs = [
     { id: 'needs', label: 'Needs you', count: needs?.length },
     { id: 'sessions', label: 'Sessions', count: sessions?.length },
-    { id: 'term', label: 'Terminal', count: shells.length || undefined },
+    { id: 'term', label: 'Terminal' },
     { id: 'ask', label: 'Ask BELLA' },
   ];
-  const status = {
+  const statusWords = {
     needs: needs ? (needs.length ? `Needs you · ${needs.length} ${needs.length === 1 ? 'thing' : 'things'}, failures first` : 'Needs you · nothing') : 'Needs you · reading',
     sessions: sessions ? `Sessions · ${sessions.length}, newest first` : 'Sessions · reading',
-    term: `Terminal · ${shells.length} ${shells.length === 1 ? 'shell' : 'shells'} open`,
+    term: 'Terminal · BELLA and the agent',
     ask: 'Ask BELLA · from CHIP’s data first',
   }[tab];
+  // New chat sits in the head, on the status line (the Drawer has no head action yet: parts-motion's amend)
+  const chatOf = tab === 'ask' ? asker : tab === 'term' ? termAsker : null;
+  const status = chatOf?.answer ? (
+    <Flow as="span" direction="row" justify="between" align="center" gap={8} wrap>
+      {statusWords}
+      <Button variant="tertiary" size="sm" onClick={() => newChat(chatOf)}>
+        New chat
+      </Button>
+    </Flow>
+  ) : (
+    statusWords
+  );
 
   const composer = (
     <Flow direction="row" gap={8} align="end" wrap grow="last">
       <Select label="Model" value={model} onChange={setModel} options={MODELS} />
       <Flow direction="row" gap={8} align="end" grow="first">
-        <Input label="Ask about BELLA" placeholder={tiny ? 'Your question' : 'Ask about BELLA'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" />
+        <Input label={tab === 'term' ? 'Message BELLA' : 'Ask about BELLA'} placeholder={tiny ? 'Your question' : tab === 'term' ? 'Message BELLA' : 'Ask about BELLA'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" />
         {talk.can ? (
           <Button variant="secondary" ariaExpanded={talk.on} onClick={talk.toggle}>
             {talk.on ? 'Listening' : 'Talk'}
@@ -224,25 +263,25 @@ export default function WorkDock() {
       ),
     term: (
       <Flow gap={16}>
-        <Flow direction="row" justify="between" align="center" gap={8} wrap>
-          <TextStack subtitle={shells.length ? 'Each shell runs in CHIP’s folder.' : 'No shell open yet.'} />
+        <Flow direction="row" justify="end" align="center" gap={8} wrap>
           <Button variant="secondary" size="sm" onClick={newShell}>
             New shell
           </Button>
         </Flow>
-        {shells.map((t) => (
-          <TermScreen key={t.id} t={t} active onStatus={() => {}} onActivity={() => {}} register={() => {}} />
-        ))}
+        {termAsker.answer ? null : <EmptyState size="lane" mark="👋" title="Message BELLA" line="Ask anything, then say “send it to the agent” and it gets on with it." />}
+        <TermChat asker={termAsker} turns={termTurns} setTurns={setTermTurns} provider={providerOf(model)} where={where} onOpen={setItem} sayRef={say} onNotice={setNotice} />
       </Flow>
     ),
     ask: asker.answer ? (
       <Flow gap={16}>
-        <Flow direction="row" justify="end">
-          <Button variant="tertiary" size="sm" onClick={newChat}>
-            New chat
-          </Button>
-        </Flow>
-        <AskAnswer answer={asker.answer} onRetry={(p) => asker.retry(p ?? providerOf(model))} onStop={asker.stop} />
+        <ChatThread label="Ask BELLA">
+          <Flow gap={24}>
+            {asker.past.map((a, i) => (
+              <AskAnswer key={`${a.q}-${i}`} answer={a} />
+            ))}
+            <AskAnswer answer={asker.answer} onRetry={(p) => asker.retry(p ?? providerOf(model))} onStop={asker.stop} onFollow={ask} onFix={() => !fixing && fix(asker.answer)} fixLabel="Fix" fixBusy={fixing} />
+          </Flow>
+        </ChatThread>
       </Flow>
     ) : (
       <EmptyState
@@ -251,7 +290,7 @@ export default function WorkDock() {
         title="Ask about BELLA, in plain words"
         line="Go on, ask away. I’ll show you where I got it, so you know I’m not making it up."
         actions={
-          <Button variant="primary" onClick={() => asker.ask(EXAMPLE, window.location.hash || '#/work', undefined, undefined, providerOf(model))}>
+          <Button variant="primary" onClick={() => ask(EXAMPLE)}>
             Try an example
           </Button>
         }
@@ -259,6 +298,13 @@ export default function WorkDock() {
     ),
   }[tab];
 
+  const toast = notice ? (
+    <Toasts>
+      <Toast tone={notice.tone} onClose={() => setNotice(null)} action={notice.undo ? { label: 'Undo', onClick: () => (notice.undo(), setNotice(null)) } : undefined}>
+        {notice.text ?? `${notice.title}. ${notice.message}`}
+      </Toast>
+    </Toasts>
+  ) : null;
   return (
     <>
       <Drawer open={open} onClose={() => setOpen(false)} side="right" size="lg" label="Work" status={status} footer={composer}>
@@ -266,15 +312,11 @@ export default function WorkDock() {
           <Tabs tabs={tabs} value={tab} onChange={setTab} label="Work panel" idBase="work-dock" />
           <div {...tabPanelProps('work-dock', tab, true)}>{body}</div>
         </Flow>
+        {/* inside the panel while it is open: a modal panel makes the page around it inert, so Undo works only from in here */}
+        {toast}
       </Drawer>
       <WorkDrawer item={item} onClose={() => setItem(null)} onNotice={(n) => setNotice(n)} onChanged={reload} />
-      {notice ? (
-        <Toasts>
-          <Toast tone={notice.tone} onClose={() => setNotice(null)} action={notice.undo ? { label: 'Undo', onClick: () => (notice.undo(), setNotice(null)) } : undefined}>
-            {notice.text ?? `${notice.title}. ${notice.message}`}
-          </Toast>
-        </Toasts>
-      ) : null}
+      {open ? null : toast}
     </>
   );
 }
