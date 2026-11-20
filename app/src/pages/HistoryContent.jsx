@@ -23,7 +23,9 @@ import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
+import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import Flow from '../templates/Flow.jsx';
+import { parseDiff } from './WorkDrawer.jsx';
 import useCached from '../templates/useCached.js';
 import useAsk, { AskAnswer } from '../templates/useAsk.jsx';
 import useNarrow from '../templates/useNarrow.js';
@@ -89,7 +91,11 @@ const plain = (t) =>
 /* A touched file in plain words: what it is, not its path ("Team page", "Button part"). */
 const fileWords = (f) => {
   const parts = String(f).split('/');
-  const base = parts.pop().replace(/\.(stories)?\.?(jsx?|tsx?|mjs|css|md|json|ya?ml|html)$/, '');
+  // a story's screenshot names its part: "components-actions-list-row--small-chip-dark.png" is ListRow's
+  const shot = parts[parts.length - 1].match(/^components-[a-z]+-(.+?)--.*\.png$/);
+  if (shot) return `${shot[1].replace(/(^|-)(\w)/g, (_, __, c) => c.toUpperCase())} screenshots`;
+  // a part's CSS module is the part ("Input.module part" was a second, broken row)
+  const base = parts.pop().replace(/\.(stories|module)?\.?(jsx?|tsx?|mjs|css|md|json|ya?ml|html)$/, '');
   const name = base.replace(/Content$/, '').replace(/\.stories$/, '');
   if (/\.stories\./.test(f)) return `${name} stories`;
   // a page's model is its data, not a page ("workModel page" read as a page, audit 9)
@@ -105,12 +111,13 @@ const fileWords = (f) => {
   if (/\.md$/.test(f)) return `${name} notes`;
   return name;
 };
-/* Where a touched thing opens in CHIP: a part on Components, a page that CHIP has; else nowhere (no ›). */
+/* Where a touched thing opens in CHIP: a part (its file, stories or screenshots) on Components, a page
+   that CHIP has; anything else opens its own change in place (every row opens: ↗ everywhere, audit 3 item 4). */
 const PAGES = ['not-again', 'work', 'components', 'health', 'history', 'connectors', 'system-map', 'foundations', 'team', 'playground'];
 const targetOf = (what) => {
-  const m = String(what).match(/^(.+) (part|page)$/);
+  const m = String(what).match(/^(.+) (part|page|stories|screenshots)$/);
   if (!m) return null;
-  if (m[2] === 'part') return `#/components/${m[1].toLowerCase()}`;
+  if (m[2] !== 'page') return `#/components/${m[1].toLowerCase()}`;
   const id = m[1].replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
   return PAGES.includes(id) ? `#/${id}` : null;
 };
@@ -182,7 +189,12 @@ function Activity({ records, total, open, onOpen }) {
 }
 
 /* Files in plain words, one row per thing: a page's two files are one page (they showed twice). */
-const touched = (files) => [...files.reduce((m, f) => m.set(fileWords(f), (m.get(fileWords(f)) ?? 0) + 1), new Map())];
+// a screenshot only knows its part in lower case ("listrow"): the part's own folder in the same record spells it
+const touched = (files) => {
+  const names = new Map(files.map((f) => String(f).match(/components\/(\w+)\//)?.[1]).filter(Boolean).map((n) => [n.toLowerCase(), n]));
+  const words = (f) => fileWords(f).replace(/^(\w+)(?= screenshots$)/, (n) => names.get(n.toLowerCase()) ?? n);
+  return [...files.reduce((m, f) => m.set(words(f), (m.get(words(f)) ?? 0) + 1), new Map())];
+};
 
 const firstSentence = (t) => String(t).split(/(?<=[.!?])\s/)[0];
 
@@ -190,8 +202,10 @@ function Record({ id }) {
   const rec = useRecord(id);
   const [q, setQ] = useState('');
   const { answer, ask: send, clear, retry, stop } = useAsk();
+  // the touched row whose change is open in place
+  const [shown, setShown] = useState(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => clear(), [id]);
+  useEffect(() => (clear(), setShown(null)), [id]);
   if (!rec) return <Card><EmptyState size="lane" title="Opening the record" line="Reading it from git. Two ticks." /></Card>;
   const files = Array.isArray(rec.files) ? rec.files : [];
   // the record's own words go as a source, so the answer can come from the commit itself
@@ -257,12 +271,21 @@ function Record({ id }) {
                   statusBar={STATUS_TONE[rec.status] ?? 'neutral'}
                   title={what}
                   description={`${n === 1 ? '1 file' : `${n} files`} · ${String(rec.status).toLowerCase()}`}
-                  trailing={to ? true : undefined}
+                  trailing
+                  selected={shown === what}
                   href={to ?? undefined}
+                  onClick={to ? undefined : () => setShown(shown === what ? null : what)}
                 />
               );
             })}
           </Flow>
+          {shown ? (
+            <Flow gap={8} aria-live="polite">
+              {parseDiff(rec.diff).filter((d) => touched([d.path])[0]?.[0] === shown || fileWords(d.path) === shown).map((d) => (
+                <CodeBlock key={d.path} code={d.body || 'No line changes: a binary or renamed file.'} language="diff" title={d.path} copy />
+              ))}
+            </Flow>
+          ) : null}
         </Flow>
         <Flow gap={8}>
           <Input label="Ask about this change" value={q} onChange={setQ} onSend={ask} sendLabel="Ask" />

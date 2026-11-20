@@ -60,7 +60,7 @@ const said = async (r) => {
 
 /* A unified diff, file by file: its path, new / deleted / changed, lines added and removed, and the
    hunks only (the git headers become the file row, so the code starts at the change). */
-function parseDiff(diff) {
+export function parseDiff(diff) {
   return String(diff ?? '')
     .split(/^(?=diff --git )/m)
     .filter((f) => f.startsWith('diff --git'))
