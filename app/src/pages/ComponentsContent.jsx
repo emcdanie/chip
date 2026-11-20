@@ -108,19 +108,71 @@ function StateThumb({ part, variant, label, state, selected, onPick }) {
   );
 }
 
-/* Where each anatomy part's pin sits on the live part, by what the part is,
-   in pixels from the stage's centre (Stage markers). */
+/* Where each anatomy part's leader lands on the live part, in stage pixels
+   from the centre: always on the part's drawn edge, on its straight runs
+   (the middle of an edge or the middle third of the top and bottom), never a
+   corner a pill rounds off and never over its text (stage-pin-check). Two
+   parts of one kind step along the edge. */
 function pinAt(kind, i, box) {
   const { cx, cy, w, h } = box;
+  const top = cy - h / 2;
+  const bottom = cy + h / 2;
   const at = {
-    fill: [cx + w / 2, cy - h / 2],
-    content: [cx, cy - h / 4],
-    box: [cx, cy + h / 2],
+    fill: [cx + w / 4, top],
+    content: [cx - w / 4, top],
+    box: [cx, bottom],
     border: [cx - w / 2, cy],
-    ring: [cx - w / 2, cy + h / 2],
-    shadow: [cx + w / 2, cy + h / 2],
-  }[kind] ?? [cx - w / 2, cy - h / 2];
-  return { x: Math.round(at[0]), y: Math.round(at[1] + (kind in { fill: 1, content: 1, box: 1, border: 1, ring: 1, shadow: 1 } ? 0 : i * 8)) };
+    ring: [cx - w / 4, bottom],
+    shadow: [cx + w / 4, bottom],
+  }[kind] ?? [cx + w / 2, cy];
+  const step = kind in { fill: 1, content: 1, box: 1, border: 1, ring: 1, shadow: 1 } ? 0 : i * 8;
+  return { x: Math.round(at[0]), y: Math.round(at[1] + step) };
+}
+
+/* A chip's width before it renders: Geist Mono 16 (9.6 a character) plus the pin and padding. */
+const chipWidth = (text) => Math.round(String(text).length * 9.6 + 56);
+
+/* Where the chips go (stage pixels from the centre), as her frame: a column left
+   of the part, each chip level with its pin and 48 apart, numbered top to
+   bottom. Where the stage is too narrow for that column, the chips stand in
+   rows above the part (for pins on its top half) and below it (the rest), each
+   wholly to one side of its pin so its leader runs one bend to the edge. */
+function chipLayout(pins, texts, box) {
+  const half = box.sw / 2 - 8;
+  const widths = texts.map(chipWidth);
+  const columnX = box.cx - box.w / 2 - 48;
+  if (columnX - Math.max(...widths) >= -half) {
+    const top = box.cy - box.h / 2;
+    const want = pins.map((p) => (p.y < box.cy ? Math.min(p.y, top - 8) : p.y));
+    const order = want.map((y, i) => i).sort((i, j) => want[i] - want[j]);
+    const ys = [];
+    order.forEach((i, k) => (ys[i] = k === 0 ? want[i] : Math.max(want[i], ys[order[k - 1]] + 48)));
+    const shift = Math.max(0, Math.round((Math.max(...ys) + Math.min(...ys)) / 2 - box.cy));
+    return { order, chips: pins.map((p, i) => ({ chipX: Math.round(columnX), chipY: Math.round(ys[i] - shift) })) };
+  }
+  // a group's chips all run one way, so no leader crosses a nearer chip: running left, the
+  // leftmost pin's chip sits nearest the part; running right, the rightmost's
+  const rows = (ids, dir) => {
+    const leftOk = ids.every((i) => pins[i].x - 16 - widths[i] >= -half);
+    const rightOk = ids.every((i) => pins[i].x + 16 + widths[i] <= half);
+    const runLeft = leftOk || !rightOk;
+    const edge = dir < 0 ? box.cy - box.h / 2 : box.cy + box.h / 2;
+    return ids
+      .sort((i, j) => (runLeft ? pins[i].x - pins[j].x : pins[j].x - pins[i].x))
+      .map((i, k) => {
+        // a chip with no room on the group's side turns to the other side of its pin, so it is never cut off
+        const fitsLeft = pins[i].x - 16 - widths[i] >= -half;
+        const fitsRight = pins[i].x + 16 + widths[i] <= half;
+        const left = runLeft ? fitsLeft || !fitsRight : !fitsRight && fitsLeft;
+        return [i, { chipX: Math.round(left ? pins[i].x - 16 : pins[i].x + 16), chipY: Math.round(edge + dir * (40 + k * 48)) }];
+      });
+  };
+  const ids = pins.map((p, i) => i);
+  const up = rows(ids.filter((i) => pins[i].y < box.cy), -1);
+  const down = rows(ids.filter((i) => pins[i].y >= box.cy), 1);
+  const placed = Object.fromEntries([...up, ...down]);
+  const order = [...up.map(([i]) => i).reverse(), ...down.map(([i]) => i)];
+  return { order, chips: pins.map((p, i) => placed[i]) };
 }
 
 /* An element's width, kept current. */
@@ -148,7 +200,7 @@ function useBox(stageWrapId, partId, deps) {
       if (!content || !live) return;
       const c = content.getBoundingClientRect();
       const p = live.getBoundingClientRect();
-      const next = { cx: Math.round(p.left + p.width / 2 - (c.left + c.width / 2)), cy: Math.round(p.top + p.height / 2 - (c.top + c.height / 2)), w: Math.round(p.width), h: Math.round(p.height), room: Math.round(p.left - c.left) };
+      const next = { cx: Math.round(p.left + p.width / 2 - (c.left + c.width / 2)), cy: Math.round(p.top + p.height / 2 - (c.top + c.height / 2)), w: Math.round(p.width), h: Math.round(p.height), sw: Math.round(c.width) };
       setBox((was) => (was && Object.keys(next).every((k) => was[k] === next[k]) ? was : next));
     };
     measure();
@@ -162,16 +214,27 @@ function useBox(stageWrapId, partId, deps) {
 
 /* The picked anatomy part: name, pass or finding, its sentence, BELLA's measured
    contrast for its token against the bar, the token, and Fix for a finding. */
-function PartCard({ a, touch, onFix }) {
+function PartCard({ a, touch, value, onFix }) {
   const c = a.contrast;
+  // one fact a line: its name and its value on one left edge, 8 apart (Figma's card rows, not list rows)
+  const fact = (name, v) => (
+    <Flow direction="row" gap={12} justify="between" wrap>
+      <TextStack title={name} />
+      <TextStack subtitle={v} />
+    </Flow>
+  );
   return (
     <Card footerAction={a.status === 'finding' ? <Button variant="primary" size="sm" onClick={onFix}>Fix</Button> : undefined}>
       <Flow gap={12}>
-        <Flow direction="row" gap={12} justify="between" grow="first" align="start">
-          <TextStack title={a.title} body={a.detail} />
-          <Tag tone={a.status === 'finding' ? 'attention' : 'success'} showDot>
-            {a.status === 'finding' ? 'Finding' : 'Passes'}
-          </Tag>
+        {/* the verdict under the name, so the sentence keeps the card's full width */}
+        <Flow gap={8}>
+          <TextStack title={a.title} />
+          <Flow direction="row">
+            <Tag tone={a.status === 'finding' ? 'attention' : 'success'} showDot>
+              {a.status === 'finding' ? 'Finding' : 'Passes'}
+            </Tag>
+          </Flow>
+          <TextStack body={a.detail} />
         </Flow>
         {c ? (
           <Flow gap={8}>
@@ -180,25 +243,31 @@ function PartCard({ a, touch, onFix }) {
             <Progress label={`Contrast ${ratio(c.ratio)}, target ${c.bar}:1`} showLabel={false} showTarget tone={c.ok ? 'success' : 'attention'} fill={Math.min(100, Math.round((c.ratio / 21) * 100))} target={Math.round((c.bar / 21) * 100)} />
           </Flow>
         ) : null}
-        <Flow gap={4}>
-          {c ? <ListRow as="div" layout="inline" title="Target" value={`${c.bar}:1`} /> : null}
-          {/* the touch target against 44 (20 Nov: Accessibility shows it), measured on the live part */}
-          {touch ? <ListRow as="div" layout="inline" title="Touch" value={`${touch.w} × ${touch.h} · ${touch.w >= 44 && touch.h >= 44 ? 'passes' : 'under 44'}`} /> : null}
-          {a.token ? <ListRow as="div" layout="stacked" title="Token" value={a.token} /> : null}
+        <Flow gap={8}>
+          {c ? fact('Target', `${c.bar}:1`) : null}
+          {/* the touch target against 44 (20 Nov: Accessibility shows it), measured on the live part, for every part */}
+          {touch ? fact('Touch', `${touch.w} × ${touch.h} · ${touch.w >= 44 && touch.h >= 44 ? 'passes' : 'under 44'}`) : null}
+          {value ? fact('Value', value) : null}
+          {a.token ? (
+            <Flow gap={4}>
+              <TextStack title="Token" />
+              <TextStack subtitle={a.token} />
+            </Flow>
+          ) : null}
         </Flow>
       </Flow>
     </Card>
   );
 }
 
-function OnTheStage({ part, detail, picked, onPick, onAsk }) {
-  const narrow = useNarrow();
+function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
   const tiny = useNarrow(420);
-  // the part's card stands beside the part inside the stage (as the frame) when the stage is wide enough for
-  // the chips, the 2x part and the card; narrower, it goes under the stage so the chips keep their room
+  // the part's card stands beside the stage from the stage card's 560 up (her working width 1100 included);
+  // narrower, it goes under the stage and the chips stay, above and below the part
+  const wrapId = useId();
+  const wrapW = useWidth(wrapId);
+  const beside = wrapW >= 560;
   const stageId = useId();
-  const stageW = useWidth(stageId);
-  const beside = stageW >= 900;
   const liveId = useId();
   const shownId = useId();
   // the state the stage shows, picked from the tiles under it
@@ -216,69 +285,71 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
   useEffect(() => installForcedStates(), []);
   const anatomy = detail?.anatomy ?? [];
   const a = anatomy.find((x) => x.key === picked) ?? anatomy[0] ?? null;
-  const box = useBox(stageId, liveId, [part.id, variant, label, narrow, beside, anatomy.length, a?.key]);
+  // small controls stand at 2x (Stage's own scale), as her frame; a part too wide for that stays at 1x
+  const [wide, setWide] = useState(false);
+  const scale = PLAY[part.name] && !wide ? 2 : 1;
+  const box = useBox(stageId, liveId, [part.id, variant, label, beside, scale, anatomy.length, a?.key, wrapW]);
+  useLayoutEffect(() => {
+    if (box && scale === 2 && box.w > box.sw - 64) setWide(true);
+  }, [box, scale]);
+  useEffect(() => setWide(false), [part.id]);
   // the live part's touch target, unscaled: its own box or its hit area (a small part's 44 area is a pseudo-element), whichever is larger
   const [touch, setTouch] = useState(null);
   useLayoutEffect(() => {
     const el = document.getElementById(shownId)?.querySelector('button, a, input, [role]');
-    if (!el) return setTouch(null);
     const px = (v) => (/px$/.test(v) ? parseFloat(v) : 0);
-    const hit = ['::before', '::after'].map((p) => getComputedStyle(el, p)).filter((c) => c.position === 'absolute');
-    const w = Math.round(Math.max(el.offsetWidth, ...hit.map((c) => px(c.width))));
-    const h = Math.round(Math.max(el.offsetHeight, ...hit.map((c) => px(c.height))));
-    setTouch((t) => (t && t.w === w && t.h === h ? t : { w, h }));
+    const next = el
+      ? (() => {
+          const hit = ['::before', '::after'].map((p) => getComputedStyle(el, p)).filter((c) => c.position === 'absolute');
+          return { w: Math.round(Math.max(el.offsetWidth, ...hit.map((c) => px(c.width)))), h: Math.round(Math.max(el.offsetHeight, ...hit.map((c) => px(c.height)))) };
+        })()
+      : null;
+    setTouch((t) => (t?.w === next?.w && t?.h === next?.h ? t : next));
   }, [box, shownId]);
+  useEffect(() => onTouch?.(touch), [touch, onTouch]);
   const markers = useMemo(() => {
     if (!box || !anatomy.length) return [];
-    // chips in a column left of the part, each level with its pin (as the frame), at least 36 apart; on a phone, the pins alone
-    const chips = !narrow && box.room > 160;
     const pins = anatomy.map((x, i) => pinAt(x.kind, i, box));
-    // where each chip wants to sit: above the part for the top pins, level for the side ones, below for the bottom ones (as the frame)
-    const top = box.cy - box.h / 2;
-    const bottom = box.cy + box.h / 2;
-    const want = anatomy.map((x, i) => ({ fill: top - 40, content: top - 4, border: box.cy, ring: box.cy + box.h / 4 + 12, box: bottom + 24, shadow: bottom + 60 })[x.kind] ?? pins[i].y);
-    const order = want.map((y, i) => i).sort((i, j) => want[i] - want[j]);
-    const chipY = [];
-    order.forEach((i, k) => {
-      chipY[i] = Math.round(k === 0 ? want[i] : Math.max(want[i], chipY[order[k - 1]] + 36));
-    });
-    // centre the column on the part when spreading pushed it down
-    const shift = Math.round((Math.max(...chipY) + Math.min(...chipY)) / 2 - box.cy) > 0 ? Math.round(((Math.max(...chipY) + Math.min(...chipY)) / 2 - box.cy)) : 0;
+    // "part · value" where the stage has room for it; a narrow stage keeps the name and the card shows the value
+    const full = anatomy.map((x) => (valueOf(x) ? `${x.title} · ${valueOf(x)}` : x.title));
+    const roomy = box.sw >= 560;
+    const texts = roomy ? full : anatomy.map((x) => x.title);
+    const { order, chips } = chipLayout(pins, texts, box);
     return anatomy.map((x, i) => ({
       id: x.key,
-      ...pins[i],
-      // her light red numbered pin, and the chip as Figma: "part · value" (Plate · its hex)
-      // numbered top to bottom down the chip column, as Figma (1 Plate, 2 Label, …)
+      // Stage multiplies the point by its scale; the chips are in stage pixels
+      x: Math.round(pins[i].x / scale),
+      y: Math.round(pins[i].y / scale),
+      // her light red numbered pin, numbered in reading order down the chips
       label: order.indexOf(i) + 1,
-      part: valueOf(x) ? `${x.title} · ${valueOf(x)}` : x.title,
-      status: x.status,
-      ...(chips ? { chipX: box.cx - box.w / 2 - 48, chipY: chipY[i] - shift } : {}),
-      // her frame (690:492657, parts-dev 60c3a4c): one dashed pink leader, to the part in focus; its chip has the ink edge
-      leader: chips && x.key === a?.key,
+      part: texts[i],
+      ...chips[i],
       selected: x.key === a?.key,
     }));
-  }, [box, anatomy, narrow, a?.key]);
-  // small controls stand at 2x, as the frame and BELLA's own Stage Anatomy story show them (a scale wrapper)
-  const twoX = !!PLAY[part.name];
-  const live = (
-    <Flow id={liveId} align="center">
-      <Flow id={shownId} align="center" style={twoX ? { scale: '2' } : undefined}>
-        <LivePart part={part} variant={variant} label={label} state={shown} />
-      </Flow>
+  }, [box, anatomy, a?.key, scale]);
+  const showsValue = (box?.sw ?? 0) >= 560;
+  const card = a ? <PartCard a={a} touch={touch} value={showsValue ? null : valueOf(a)} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
+  const stage = (
+    <Flow id={stageId}>
+      <Stage label={`${part.name} on the stage`} markers={markers} scale={scale}>
+        <Flow id={liveId} align="center">
+          <Flow id={shownId} align="center">
+            <LivePart part={part} variant={variant} label={label} state={shown} />
+          </Flow>
+        </Flow>
+      </Stage>
     </Flow>
   );
-  // the part stands right of centre, so the chip column keeps room for its longest chip (Focus ring and its hex), as Figma 690:490822 places it; stopgap until Stage lays out the chips itself
-  const shifted = markers.some((m) => m.chipX != null) ? <Flow style={{ paddingInlineStart: 'calc(var(--spacing-40) * 5)' }}>{live}</Flow> : live;
-  const card = a ? <PartCard a={a} touch={twoX ? touch : null} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
   return (
     <Card>
       <Flow gap={16}>
-        <TextStack title="On the stage" body={`${twoX ? 'Shown at 2×. ' : ''}${anatomy.length ? 'Pick a numbered pin: its card names the part and says if it passes or is a finding.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`}`} />
+        <TextStack title="On the stage" body={`${scale === 2 ? 'Shown at 2×. ' : ''}${anatomy.length ? 'Pick a numbered pin: its card names the part and says if it passes or is a finding.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`}`} />
         {PLAY[part.name] ? (
           <Flow direction="row" gap={16} wrap align="center">
             <Input label="Label" value={label} onChange={setLabel} placeholder={PLAY[part.name].children} />
             {variants.length > 1 ? (
-              tiny ? (
+              // a segmented switch for up to three variants; more (StatusPill's six) never fit a row, so a Select
+              tiny || variants.length > 3 ? (
                 <Select label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: cap(v) }))} />
               ) : (
                 <SegmentedControl label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: cap(v) }))} />
@@ -286,20 +357,11 @@ function OnTheStage({ part, detail, picked, onPick, onAsk }) {
             ) : null}
           </Flow>
         ) : null}
-        <Flow id={stageId}>
-          {/* Stopgap until Stage takes a height (asked of parts-dev): the Anatomy story's 400 for a 2x part, else tall enough for the chip column */}
-          <Stage label={`${part.name} on the stage`} markers={markers} style={twoX ? { minBlockSize: 'calc(var(--spacing-80) * 5)' } : markers.some((m) => m.chipX != null) ? { minBlockSize: `calc(var(--spacing-40) * ${anatomy.length + 1})` } : undefined}>
-            {!beside || !card ? shifted : (
-              // the stage centres its content, so the row asks for the stage's full width (stopgap until Stage lays out a part beside a card)
-              <Flow direction="row" gap={24} align="center" grow="first" style={{ alignSelf: 'stretch' }}>
-                {shifted}
-                {/* the frame's finding card is 280 wide (7 x 40); stopgap until Card takes a width */}
-                <Flow style={{ inlineSize: 'calc(var(--spacing-40) * 7)' }}>{card}</Flow>
-              </Flow>
-            )}
-          </Stage>
+        {/* the stage, and the part's card beside it (her pick C) wherever the row has room */}
+        <Flow id={wrapId} direction={beside && card ? 'row' : 'column'} gap={24} grow={beside && card ? 'first' : undefined} align={beside && card ? 'start' : undefined}>
+          {stage}
+          {card ? beside ? <Flow aside>{card}</Flow> : card : null}
         </Flow>
-        {beside ? null : card}
         {part.states.length && PLAY[part.name] ? (
           // the tiles are the flex items (no list wrapper) so they share the row, as the frame's five tiles do
           <Flow direction="row" gap={8} wrap={tiny} fill={tiny} equal={!tiny} role="group" aria-label={`Show ${part.name} on the stage in a state`}>
@@ -388,19 +450,34 @@ function AskCard({ part, detail, onAsk, answer }) {
   );
 }
 
-function ChecksCard({ part, detail, checked }) {
-  const linkFor = (k) => (k.id === 'story' && part.storyUrl ? part.storyUrl : k.id === 'contrast' ? '#/foundations' : null);
+/* The checks with the touch target in: A11y fails when the live part's target is under 44 (her rule). Figma reads "Keys, labels, 44 targets"; "44 targets" fits the Checks column at 1100 (a list row's value never wraps). */
+function checksWithTouch(part, touch) {
+  const small = touch && (touch.w < 44 || touch.h < 44);
+  return part.checks.map((k) => {
+    if (k.id !== 'a11y') return k;
+    if (small) return { ...k, ok: false, words: `${touch.w} × ${touch.h} target` };
+    return k.ok ? { ...k, words: touch ? '44 targets' : k.words } : k;
+  });
+}
+
+function ChecksCard({ part, detail, checked, touch }) {
+  // Figma: every row opens (›) but Contrast, which reads the weakest pair in place; the part's
+  // story in Storybook, the rest in its record (the Atlas page) until the new pages land
+  const linkFor = (k) => (k.id === 'contrast' ? null : k.id === 'story' && part.storyUrl ? part.storyUrl : `#/atlas/${part.id}`);
+  const weakest = detail.anatomy.filter((x) => x.contrast).sort((x, y) => x.contrast.ratio - y.contrast.ratio)[0];
+  const checks = checksWithTouch(part, touch);
   // Figma's seven rows: the six checks, then Figma set, which counts (5 of 7 while CHIP can't reach Figma)
-  const total = part.checks.length + 1;
-  const pass = part.pass + (detail.figmaBlind ? 0 : 1);
+  const total = checks.length + 1;
+  const pass = checks.filter((k) => k.ok).length + (detail.figmaBlind ? 0 : 1);
   return (
     <Card>
       <Flow gap={8}>
         <SectionHead title="Checks" description={checked ? `Run ${checked} on main` : undefined} number={pass} words={`of ${total} pass`} />
         <Flow gap={4} as="ul" aria-label={`${part.name}'s checks`}>
-          {part.checks.map((k) => {
-            const href = k.ok ? linkFor(k) : null;
-            return <ListRow key={k.id} layout="inline" title={k.title} value={k.words} trailing={href ? true : undefined} href={href ?? undefined} statusDot={k.ok ? undefined : <StatusDot tone="attention" showLabel={false} label="Fails" />} />;
+          {checks.map((k) => {
+            const href = linkFor(k);
+            const words = k.id === 'contrast' && k.ok && weakest ? `${weakest.title} ${ratio(weakest.contrast.ratio)}` : k.words;
+            return <ListRow key={k.id} layout="inline" title={k.title} value={words} trailing={href ? true : undefined} href={href ?? undefined} statusDot={k.ok ? undefined : <StatusDot tone="attention" showLabel={false} label="Fails" />} />;
           })}
           <ListRow
             layout="inline"
@@ -420,6 +497,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const tiny = useNarrow(420);
   const [view, setView] = useState('overview');
   const [picked, setPicked] = useState(null);
+  // the live part's touch target, measured on the stage; it feeds the A11y check and the findings count
+  const [touch, setTouch] = useState(null);
   const [answer, setAnswer] = useState(null);
   const shown = model ? model.parts.filter((p) => (filter === 'ready' ? p.ready : filter === 'needs' ? !p.ready : true)) : [];
   const part = shown.find((p) => p.id === partId) ?? shown[0] ?? null;
@@ -461,7 +540,10 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
             <Flow direction="row" gap={12} wrap align="center">
               <Heading tier="section" as="h2">{part.name}</Heading>
               <StatusDot tone="success" label={live} />
-              {detail?.findings ? <Tag tone="attention" showDot>{`${detail.findings} ${detail.findings === 1 ? 'finding' : 'findings'}`}</Tag> : null}
+              {(() => {
+                const n = (detail?.findings ?? 0) + (part.checks.find((k) => k.id === 'a11y')?.ok && touch && (touch.w < 44 || touch.h < 44) ? 1 : 0);
+                return n ? <Tag tone="attention" showDot>{`${n} ${n === 1 ? 'finding' : 'findings'}`}</Tag> : null;
+              })()}
             </Flow>
             {tiny && detail?.updated ? <TextStack subtitle={`Updated ${detail.updated}`} /> : null}
             {part.lede ? <TextStack body={part.lede} /> : null}
@@ -484,7 +566,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                   <Button variant="tertiary" size="sm" icon="RefreshDouble" iconOnly ariaLabel="Check again" onClick={onCheckAgain} />
                 </Flow>
               </Flow>
-              <OnTheStage part={part} detail={detail} picked={picked} onPick={setPicked} onAsk={(t) => { ask(t); }} />
+              <OnTheStage part={part} detail={detail} picked={picked} onPick={setPicked} onAsk={(t) => { ask(t); }} onTouch={setTouch} />
               {view === 'anatomy' ? (
                 detail.anatomy.length ? (
                   <Card>
@@ -505,7 +587,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                   </Flow>
                   <Flow span={4} gap={24} grow="last">
                     <AskCard part={part} detail={detail} onAsk={ask} answer={answer} />
-                    <ChecksCard part={part} detail={detail} checked={model.checked} />
+                    <ChecksCard part={part} detail={detail} checked={model.checked} touch={touch} />
                   </Flow>
                 </>
               )}

@@ -71,12 +71,28 @@ export function pairFor(token, pairs) {
 }
 
 /** history: /bella-history/:id; pairs: /contrast-pairs; map: /map. */
+/* Product copy names a role, never a person (Many users, not one, 20 Nov):
+   a "(Name, 17 Nov)" byline in a commit subject goes, and a name left in the
+   words reads as the role. Figma node ids are bookkeeping and go too. */
+const NAMES = /\bElleta\b/g;
+function noNames(t) {
+  return String(t ?? '')
+    .replace(/\s*\([A-Z][a-z]+(?: [A-Z][a-z]+)?,\s*\d{1,2} [A-Z][a-z]{2}(?: \d{4})?[^)]*\)/g, '')
+    .replace(/\s*\(?read \d{1,2} [A-Z][a-z]{2}(?: \d{4})?\)?/g, '')
+    .replace(/\s*\b\d{2,4}:\d{2,7}\b/g, '')
+    .replace(NAMES, 'the maintainer')
+    .replace(/\(\s*\)/g, '')
+    .replace(/\s+([,.;:)])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 /* Figma's Why line under a record: the commit body's first plain sentence,
-   without the "Name, date: \"quote\"" attribution (copy speaks to the role). */
+   after its "Name, date: \"quote\"" opening; none when the body has none. */
 function whyOf(body) {
-  const t = String(body ?? '').replace(/\s+/g, ' ').trim().replace(/^[A-Z][\w ]*, \d{1,2} \w{3} \d{4}:?\s*(\([^)]*\)\s*)?("[^"]*"[.,]?\s*)?/, '');
-  const one = firstSentence(t);
-  return one && !/\bElleta\b/.test(one) && one.length <= 160 ? one : null;
+  const t = String(body ?? '').replace(/\s+/g, ' ').trim().replace(/^[A-Z][\w ]*, \d{1,2} \w{3}(?: \d{4})?:?\s*(\([^)]*\)\s*)?("[^"]*"[.,]?\s*)?(?:,?\s*after [^.]*\.\s*)?/, '');
+  const one = noNames(firstSentence(t));
+  return one.length > 3 ? one : null;
 }
 
 export function detailModel(part, { history, pairs, map }) {
@@ -84,7 +100,7 @@ export function detailModel(part, { history, pairs, map }) {
     const contrast = pairFor(a.token, pairs?.pairs);
     return { ...a, contrast, status: contrast && !contrast.ok ? 'finding' : 'pass' };
   });
-  const entries = (history?.entries ?? []).map((e) => ({ id: e.sha, title: cap(e.subject.replace(/^\w+(\([^)]*\))?!?:\s*/, '')), why: whyOf(e.detail), date: e.date, type: (e.types ?? [])[0] ?? null }));
+  const entries = (history?.entries ?? []).map((e) => ({ id: e.sha, title: cap(noNames(e.subject.replace(/^\w+(\([^)]*\))?!?:\s*/, ''))), why: whyOf(e.detail), date: e.date, type: (e.types ?? [])[0] ?? null }));
   const figma = (map?.nodes ?? []).find((n) => n.id === 'figma-rest') ?? null;
   return {
     anatomy,

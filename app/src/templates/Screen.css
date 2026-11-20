@@ -154,6 +154,8 @@
 .chip-flow--fill > * { flex: 1 1 auto; }
 /* the container's full width, even inside one that centres its child (Stage) */
 .chip-flow--stretch { inline-size: 100%; }
+/* a side column of a set width beside a growing first child (the part card beside the stage) */
+.chip-flow--aside { flex: 0 0 calc(var(--spacing-40) * 6); min-inline-size: 0; }
 /* equal shares a row; a stacked (column) Flow keeps each child its own height, or rows collapse and overlap on a phone */
 .chip-flow--row.chip-flow--equal > * { flex: 1 1 0; min-inline-size: 0; }
 .chip-flow--grow-first > :first-child,
@@ -196,6 +198,9 @@
   .chip-screen__content > .chip-span-7,
   .chip-screen__content > .chip-span-5,
   .chip-screen__content > .chip-span-8:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; }
+  /* a main card and its side column share the row in halves, so the side column's rows keep their words and › on one line (21 Nov: Components' Checks was 213 wide at 800) */
+  .chip-screen__content > .chip-span-8:has(+ .chip-span-4),
+  .chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: span 6; }
 }
 
 @container chip-content (width < 640px) {
