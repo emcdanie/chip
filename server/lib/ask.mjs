@@ -447,15 +447,29 @@ export function dataAnswer(message) {
     return { reply, sources: [source([{ text: `**Contrast pairs:** ${contrastWords(cp)}`, ok: cp.ok !== false }, ...(exempt ? [{ text: `${exempt} exempt by the inset rule` }] : [])], String(cp.summary ?? ''))], next: ['Which gates fail?', 'How could BELLA raise its A11y score?'] };
   }
   if (!/\b(which|what|how many|list|count)\b/i.test(q)) return null;
-  // which gates fail
+  // which gates fail: CHIP's own checks, the one source Health's Gate card reads (audit 21 Nov:
+  // Ask said "All 3 gates" from data/bella.json while Health said 5 of 5)
   if (/\bgates?\b/i.test(q) && /\b(fail|failing|failed|red|broken)\b/i.test(q)) {
-    const gates = Object.entries(d.gates ?? {});
-    const bad = gates.filter(([, g]) => g && g.ok === false);
-    const findings = gates.map(([name, g]) => ({ text: `${name}: ${name === 'contrastPairs' && g ? contrastWords(g) : String(g?.summary ?? (g?.ok ? 'OK' : 'fails')).split(';')[0]}`, ok: g?.ok !== false }));
+    let g;
+    try {
+      ({ gate: g } = listChecks({ waiting: waitingChecks() }));
+    } catch {
+      return null;
+    }
+    const members = g?.members ?? [];
+    if (!members.length) return null;
+    const WORD = { passed: 'passed', failed: 'failed', waiting: 'waiting on you', 'not-run': 'not run yet', running: 'running' };
+    const bad = members.filter((m) => m.status === 'failed' || m.status === 'waiting');
+    const notRun = members.filter((m) => m.status === 'not-run');
+    const findings = members.map((m) => ({ text: `${m.name}: ${WORD[m.status] ?? m.status}`, ok: m.status === 'passed' }));
+    const of = members.length;
     const reply = bad.length
-      ? `**${bad.length} of ${gates.length} gates** fail [1].\n- **Failing:** ${list(bad.map(([n]) => n))} [1].`
-      : `**All ${gates.length} gates** pass [1].\n- **Gates:** ${list(gates.map(([n]) => n))} [1].`;
-    return { reply, sources: [source(findings, findings.map((f) => f.text).join(' · '))], next: ['Which parts lack a11y notes?', 'How many parts lack a story?'] };
+      ? `**${bad.length} of ${of}** gate checks fail [1].\n- **Failing:** ${list(bad.map((m) => m.name))} [1].`
+      : notRun.length
+        ? `**${g.counts.passed} of ${of}** gate checks pass; ${notRun.length} not run yet [1].\n- **Not run yet:** ${list(notRun.map((m) => m.name))} [1].`
+        : `**All ${of}** gate checks pass [1].\n- **Checks:** ${list(members.map((m) => m.name))} [1].`;
+    const src = { n: 1, title: 'CHIP checks (the gate)', path: 'Health · Gate card', when: g.ranAt ?? when, passage: findings.map((f) => f.text).join(' · '), findings, score: 1 };
+    return { reply, sources: [src], next: ['Which parts lack a11y notes?', 'How many parts lack a story?'] };
   }
   if (!PARTS.test(q)) return null;
   const check = CHECKS.find((c) => c.words.test(q));

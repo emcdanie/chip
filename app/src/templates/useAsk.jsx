@@ -555,6 +555,9 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
   // the model cited nothing: its sources show as pins on the verdict, so an answer always says where it came from
   const cited = /\[\d+\]/.test(`${shaped.verdict} ${shaped.bullets.join(' ')}`);
   const skipped = (a.path ?? []).filter((s) => s.skipped).length;
+  // nothing to fix: every source is CHIP's data and every line of it passes (audit 21 Nov: Fix under "All 5 gate checks pass")
+  const srcs = a.sources ?? [];
+  const allPass = srcs.length > 0 && srcs.every((s) => s.findings?.length && s.findings.every((f) => f.ok !== false));
   const copy = async () => {
     try {
       await navigator.clipboard.writeText([shaped.verdict, ...shaped.bullets].join('\n').replace(/\*\*|\[\d+\]/g, ''));
@@ -598,7 +601,7 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
             {onRetry ? <Button variant="tertiary" size="sm" iconOnly icon="RefreshDouble" ariaLabel="Ask again" onClick={() => onRetry()} /> : null}
             <Button variant="tertiary" size="sm" iconOnly icon="EmojiTalkingHappy" ariaLabel={reaction ? `Your reaction: ${reaction}. Change it` : 'React'} ariaExpanded={reacting} onClick={() => setReacting((r) => !r)} />
           </Flow>
-          {onFix ? (
+          {onFix && !allPass ? (
             <Button variant="primary" size="sm" busy={fixBusy} onClick={onFix}>
               {fixBusy ? 'Starting…' : fixLabel}
             </Button>
