@@ -32,8 +32,9 @@ const PAGES = [
   { id: 'connectors', label: 'Connectors', where: 'Page · Settings' },
 ];
 const MAX = 8;
-// a long part name may wrap where its words meet (Anatomy|Highlight), never mid-word
-const breakable = (name) => name.replace(/([a-z])([A-Z])/g, '$1\u200b$2');
+// a long part name may wrap where its words meet (Anatomy|Highlight), never mid-word: a <wbr>, which
+// a screen reader skips (a zero-width space can change how it reads the name; audit 21 Nov r2)
+const breakable = (name) => name.split(/(?<=[a-z])(?=[A-Z])/).flatMap((w, i) => (i ? [<wbr key={i} />, w] : [w]));
 
 /* Pages and parts whose name starts with the words, then names that hold them, then a part's description. */
 function find(q, parts) {
