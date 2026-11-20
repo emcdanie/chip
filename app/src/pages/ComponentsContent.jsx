@@ -518,7 +518,7 @@ function HistoryCard({ part, detail, all }) {
         <SectionHead
           title="History"
           {...(!all && detail.history.length > HISTORY_SHOWN
-            ? { action: <Button variant="tertiary" size="sm" icon="NavArrowRight" href="#/history">{`See all ${detail.history.length}`}</Button> }
+            ? { action: <Button variant="tertiary" size="sm" icon="ArrowUpRight" href="#/history">{`See all ${detail.history.length}`}</Button> }
             : { number: list.length, words: 'merged' })}
         />
         {list.length ? (
