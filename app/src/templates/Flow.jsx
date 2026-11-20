@@ -46,9 +46,21 @@ function useToBottom(on) {
     // the Brief settled and ran 24 past the window at every size)
     const ro = new ResizeObserver(measure);
     ro.observe(document.body);
+    // something above it can also leave without the page changing size (the shell fills the window):
+    // closing the Brief moved the board up 106 and left a band under the lanes (Elleta, 21 Nov: "i dont
+    // like the gap at teh bottom of the browser"), so watch what is added or removed, once a frame
+    let frame = 0;
+    const later = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+    const mo = new MutationObserver(later);
+    mo.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('resize', measure);
     return () => {
       ro.disconnect();
+      mo.disconnect();
+      cancelAnimationFrame(frame);
       window.removeEventListener('resize', measure);
     };
   }, [on]);
