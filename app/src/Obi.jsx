@@ -17,6 +17,8 @@ import Select from '@bella/components/Select/Select';
 import { baseOf } from './Sandbox.jsx';
 import { Sheet, SheetPart } from './kit/index.jsx';
 
+const closestWords = (n) => (n ? `The closest ${['', 'one', 'two', 'three'][n] ?? n}:` : 'Nothing came close.');
+
 // arg: the command takes text; picking it from the list fills "/cmd " to type on
 const COMMANDS = [
   { cmd: 'note', arg: '<text>', note: 'save a note to Docs' },
@@ -257,7 +259,8 @@ function AskTurn({ t, bella, page, claudeOk, budget, onOpenAtlas, onSandbox, onS
         ) : null}
         {miss ? (
           <>
-            <p>I couldn't find this in {t.heldBack ? 'the sources that may go to the cloud' : 'your sources'}. The closest three:</p>
+            {/* the count says what is listed: two near pages read "The closest two", not three */}
+            <p>I couldn't find this in {t.heldBack ? 'the sources that may go to the cloud' : 'your sources'}. {closestWords((t.path === 'weak' ? t.closest : t.sources)?.length ?? 0)}</p>
             <Closest sources={t.path === 'weak' ? t.closest : t.sources} />
           </>
         ) : t.path === 'data' ? (

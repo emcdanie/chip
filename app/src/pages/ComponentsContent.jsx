@@ -37,6 +37,7 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
+import useAsk, { AskAnswer } from '../templates/useAsk.jsx';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
 import { clip, usePartDetail } from './componentsModel.js';
@@ -450,7 +451,7 @@ function AskCard({ part, detail, onAsk, answer }) {
       <Flow gap={12}>
         <TextStack title="Ask BELLA" body={`Ask about ${part.name}: ${knows}.`} />
         <Input label={`Ask about ${part.name}`} placeholder="Type a question" value={q} onChange={setQ} onSend={send} sendLabel="Ask" />
-        {answer ? <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title={answer.pending ? 'Asking…' : 'BELLA'} message={answer.reply} /> : null}
+        <AskAnswer answer={answer} who="BELLA" />
       </Flow>
     </Card>
   );
@@ -508,7 +509,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const [picked, setPicked] = useState(null);
   // the live part's touch target, measured on the stage; it feeds the A11y check and the findings count
   const [touch, setTouch] = useState(null);
-  const [answer, setAnswer] = useState(null);
+  const asker = useAsk();
+  const answer = asker.answer;
   const shown = model ? model.parts.filter((p) => (filter === 'ready' ? p.ready : filter === 'needs' ? !p.ready : true)) : [];
   // a pasted link matches in any case (#/components/Button); with none, open on Button, as Figma does
   const want = String(partId ?? '').toLowerCase();
@@ -517,7 +519,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   useEffect(() => {
     // a new part opens on its first finding, else its first anatomy part
     setPicked(detail?.anatomy.find((x) => x.status === 'finding')?.key ?? detail?.anatomy[0]?.key ?? null);
-    setAnswer(null);
+    asker.clear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [part?.id, detail]);
   if (!model) return <EmptyState size="lane" mark="⏳" title="Reading BELLA" line="Fetching every part and its checks." />;
   const n = model.parts.length;
@@ -526,13 +529,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     { value: 'needs', label: `Needs work ${n - model.ready}` },
     { value: 'ready', label: `Ready ${model.ready}` },
   ];
-  const ask = (text) => {
-    setAnswer({ pending: true, reply: text });
-    fetch('/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `About BELLA's ${part.name}: ${text}`, page: 'components', auto: true }) })
-      .then((r) => r.json())
-      .then((d) => setAnswer({ reply: d.reply ?? d.error ?? 'No answer.', error: !d.reply }))
-      .catch((e) => setAnswer({ reply: e.message, error: true }));
-  };
+  const ask = (text) => asker.ask(`About BELLA's ${part.name}: ${text}`, 'components');
   // on the smallest phones the date goes on its own line (StatusDot's label doesn't wrap)
   const live = `Live in ${model.version ?? 'BELLA'}${detail?.updated && !tiny ? ` · updated ${detail.updated}` : ''}`;
   return (

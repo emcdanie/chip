@@ -25,6 +25,7 @@ import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
+import useAsk, { AskAnswer } from '../templates/useAsk.jsx';
 import useNarrow from '../templates/useNarrow.js';
 
 /* A commit's why in plain words: git trailers (Co-Authored-By, Signed-off-by,
@@ -162,19 +163,14 @@ const touched = (files) => [...files.reduce((m, f) => m.set(fileWords(f), (m.get
 function Record({ id }) {
   const rec = useRecord(id);
   const [q, setQ] = useState('');
-  const [answer, setAnswer] = useState(null);
-  useEffect(() => setAnswer(null), [id]);
+  const { answer, ask: send, clear } = useAsk();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => clear(), [id]);
   if (!rec) return <Card><EmptyState size="lane" title="Opening the record" line="Reading it from git. Two ticks." /></Card>;
   const files = Array.isArray(rec.files) ? rec.files : [];
   const comps = Array.isArray(rec.components) ? rec.components : [];
-  const ask = () => {
-    if (!q.trim()) return;
-    setAnswer({ reply: 'Asking the agent…' });
-    fetch('/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `About ${rec.repo} ${rec.sha} ("${rec.title}"): ${q.trim()}`, page: 'history', auto: true }) })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => setAnswer({ reply: d.reply ?? 'The agent found nothing close enough to answer from.' }))
-      .catch(() => setAnswer({ reply: 'The agent did not answer. Try again in a moment.', error: true }));
-  };
+  // the record's own words go as a source, so the answer can come from the commit itself
+  const ask = () => q.trim() && send(`About ${rec.repo} commit ${rec.sha} ("${rec.title}"): ${q.trim()}`, 'history', { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: `${rec.title}\n\n${plainWhy(rec.why)}` });
   return (
     <Card>
       <Flow gap={24}>
@@ -223,7 +219,7 @@ function Record({ id }) {
         </Flow>
         <Flow gap={8}>
           <Input label="Ask about this change" value={q} onChange={setQ} onSend={ask} sendLabel="Ask" />
-          {answer ? <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title="The agent" message={answer.reply} /> : null}
+          <AskAnswer answer={answer} who="The agent" />
         </Flow>
       </Flow>
     </Card>

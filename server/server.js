@@ -80,7 +80,10 @@ app.post('/ask', async (req, res) => {
     res.setHeader('cache-control', 'no-cache');
     try {
       const t0 = Date.now();
-      for await (const ev of askStream(message.trim(), sessionId, page, { provider: providerId, includePrivate })) {
+      // record: what the page is asking about, used as a source ({ id, title, text }, capped)
+      const r = req.body?.record;
+      const record = r && typeof r.text === 'string' ? { id: String(r.id ?? '').slice(0, 80), title: String(r.title ?? 'This record').slice(0, 200), text: r.text.slice(0, 4000) } : null;
+      for await (const ev of askStream(message.trim(), sessionId, page, { provider: providerId, includePrivate, record })) {
         res.write(JSON.stringify(ev) + '\n');
         // route: where the answer was made; why: the router's reason
         if (ev.type === 'done') logUsage({ type: 'ask', route: ev.place === 'cloud' ? 'cloud' : 'local', provider: ev.provider, model: ev.model, prompt: ev.tokens.prompt, output: ev.tokens.output, ms: Date.now() - t0, asked: providerId ?? 'local', why: route, auto, page });

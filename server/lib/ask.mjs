@@ -145,7 +145,7 @@ function checksChunk() {
   return { title: 'CHIP checks · live', path: 'data/checks', text: lines.join('\n'), score: 1 };
 }
 
-async function prepare(message, sessionId, page, { cloud = false, includePrivate = false } = {}) {
+async function prepare(message, sessionId, page, { cloud = false, includePrivate = false, record = null } = {}) {
   const id = sessionId || randomUUID();
   // a cloud model sees a locally answered turn only when that answer used no
   // private source (Notion, Cowork, docs); otherwise the pair stays local and
@@ -170,6 +170,8 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
     perPage.set(keyOf(c), n);
     return n <= MAX_PER_PAGE;
   }).slice(0, TOP_K);
+  // a page can hand over the thing being asked about (History: the commit's own words) as source 1
+  if (record) found = [{ title: record.title, path: `record:${record.id}`, text: record.text, score: 1 }, ...found].slice(0, TOP_K);
   if (ABOUT_CHECKS.test(message)) {
     try {
       found = [checksChunk(), ...found].slice(0, TOP_K);
@@ -212,10 +214,10 @@ export async function ask(message, sessionId, page) {
 // { type: 'token' } pieces and { type: 'done' }. A weak best match yields one
 // { type: 'weak', closest } and no model call. If Claude cannot answer, a
 // { type: 'fallback', reason } precedes the local model's answer.
-// opts: { provider: 'local:<model>' | 'claude', includePrivate }
+// opts: { provider: 'local:<model>' | 'claude', includePrivate, record: { id, title, text } }
 export async function* askStream(message, sessionId, page, opts = {}) {
   let { provider, model } = resolve(opts.provider);
-  const prep = await prepare(message, sessionId, page, { cloud: provider.place === 'cloud', includePrivate: opts.includePrivate });
+  const prep = await prepare(message, sessionId, page, { cloud: provider.place === 'cloud', includePrivate: opts.includePrivate, record: opts.record });
   if (prep.heldBack) yield { type: 'private', heldBack: prep.heldBack };
   if (prep.keptLocal) yield { type: 'kept', count: prep.keptLocal };
   if (prep.weak) {
@@ -239,7 +241,7 @@ export async function* askStream(message, sessionId, page, opts = {}) {
     provider = providers.local;
     model = undefined;
     // a local answer may read every source again, private ones included
-    const again = await prepare(message, id, page);
+    const again = await prepare(message, id, page, { record: opts.record });
     if (!again.weak) {
       ({ turns, sources, remember } = again);
       yield { type: 'sources', sources, sessionId: id, top: again.top };
