@@ -26,7 +26,9 @@ export function bellaDir({ quiet = false } = {}) {
   }
   let branch = '';
   try {
-    branch = execFileSync('git', ['-C', dir, 'branch', '--show-current'], { encoding: 'utf8' }).trim();
+    // a git hook sets GIT_DIR (absolute in a worktree), which would read CHIP's own branch, not BELLA's
+    const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GIT_(DIR|WORK_TREE|INDEX_FILE|COMMON_DIR|PREFIX)$/.test(k)));
+    branch = execFileSync('git', ['-C', dir, 'branch', '--show-current'], { encoding: 'utf8', env }).trim();
   } catch {
     throw new Error(`CHIP: BELLA at ${dir} is not a git checkout, so its branch cannot be checked.`);
   }

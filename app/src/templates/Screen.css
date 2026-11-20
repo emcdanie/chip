@@ -152,6 +152,9 @@
 }
 
 .chip-flow--column { flex-direction: column; }
+/* a list that shows its bullets (an answer's bullets): the marker hangs in the indent */
+.chip-flow--bullets { list-style: disc; padding-inline-start: var(--spacing-24); }
+.chip-flow--bullets > li { display: list-item; }
 .chip-flow--row { flex-direction: row; }
 .chip-flow--wrap { flex-wrap: wrap; }
 .chip-flow--fill > * { flex: 1 1 auto; }
@@ -167,6 +170,7 @@
 .chip-flow--end { justify-content: flex-end; }
 .chip-flow--center-items { align-items: center; }
 .chip-flow--start-items { align-items: flex-start; }
+.chip-flow--end-items { align-items: flex-end; }
 .chip-flow--gap-4 { gap: var(--spacing-4); }
 .chip-flow--gap-8 { gap: var(--spacing-8); }
 .chip-flow--gap-12 { gap: var(--spacing-12); }

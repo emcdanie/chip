@@ -12,8 +12,13 @@
 //
 // A page can hand in an answer it already knows from CHIP's data (setLocal):
 // then no model is asked, and How I got here says so.
+// A pin opens its source in place: beside the answer where the thread is 800 or
+// wider, under the answer's overview below that (her 19 Nov rule).
 // Gaps (named for the library): no marker part for the key phrase (bold for
-// now), no reaction part.
+// now), no reaction bar (round 6), no bottom-sheet Drawer for the phone source
+// (it opens under the answer), and the finding marks wait on IconWell
+// tone=danger small (StatusDot for now). Folded rows keep Disclosure's hairline,
+// as Figma Flow 12 draws them.
 import { useEffect, useRef, useState } from 'react';
 import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
 import { ChatThreadDelivered } from '@bella/components/ChatThread/ChatThread';
@@ -29,6 +34,9 @@ import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
 import Card from '@bella/components/Card/Card';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
+import Icon from '@bella/components/Icon/Icon';
+import Toast from '@bella/components/Toast/Toast';
+import Toasts from './Toasts.jsx';
 
 // the server prompt's "General knowledge" fallback, cut where it starts (a record's answer never carries it)
 const noFallback = (t) =>
@@ -179,6 +187,8 @@ export default function useAsk() {
 export function Words({ text, onPin }) {
   return String(text)
     .replace(/`/g, '')
+    // a pin before the full stop would leave the stop on its own ("pairs ① ."): the stop goes first
+    .replace(/\s*((?:\s*\[\d+\])+)\s*([.,;:])/g, '$2 $1')
     .split(/(\*\*[^*]+\*\*|\[\d+\])/)
     .filter(Boolean)
     .map((bit, i) =>
@@ -242,6 +252,22 @@ function Citation({ sources, at, onMove, onClose }) {
   );
 }
 
+/* What BELLA is doing, as her sheet's tick list (20 Nov "one chat": the thinking state is the tick
+   list, not the Step part): a tick for each step done, a dot for the one in hand, its detail beside it. */
+function Ticks({ steps, label }) {
+  return (
+    <Flow as="ol" gap={4} aria-label={label}>
+      {steps.map((s) => (
+        <Flow as="li" key={s.title} direction="row" gap={8} align="center">
+          {s.state === 'done' ? <Icon name="Check" size="sm" label="Done" /> : <StatusDot tone="neutral" showLabel={false} label="Now" />}
+          <TextStack body={s.title} />
+          {s.detail ? <TextStack subtitle={s.detail} /> : null}
+        </Flow>
+      ))}
+    </Flow>
+  );
+}
+
 /* A model's reply in the answer's shape: the verdict (first sentence, one short bold phrase) and up to 3 bullets. */
 function shapeReply(reply) {
   const lines = String(reply)
@@ -268,6 +294,8 @@ function shapeReply(reply) {
 export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel = 'Fix', followUps = [], composer }) {
   // the open source (an index into answer.sources) and the pin that opened it, for focus on close
   const [cite, setCite] = useState(null);
+  // copy says so on the button and in a toast (her rule: feedback on the control plus a toast)
+  const [copied, setCopied] = useState(false);
   const opener = useRef(null);
   // beside the answer when the answer's own column has room for two at her mock's widths (800 or more), above it otherwise
   const [wide, setWide] = useState(false);
@@ -297,8 +325,20 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
   const cited = /\[\d+\]/.test(`${shaped.verdict} ${shaped.bullets.join(' ')}`);
   const stale = (a.sources ?? []).filter((s) => s.stale).length;
   const skipped = (a.path ?? []).filter((s) => s.skipped).length;
-  const copy = () => navigator.clipboard?.writeText([shaped.verdict, ...shaped.bullets].join('\n').replace(/\*\*|\[\d+\]/g, ''));
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText([shaped.verdict, ...shaped.bullets].join('\n').replace(/\*\*|\[\d+\]/g, ''));
+      setCopied('done');
+    } catch {
+      setCopied('failed');
+    }
+  };
   const open = cite != null && !!a.sources?.[cite];
+  // the source opens in place: beside the answer where the thread has room for both (800 or
+  // more), under the answer's overview at middle widths and on phones (her rule, 19 Nov: "beside
+  // the panel when wide, under the answer at middle widths, a half-height sheet on phones";
+  // the phone sheet waits on a bottom-sheet Drawer, so a phone has it under the answer too)
+  const citation = open ? <Citation sources={a.sources} at={cite} onMove={setCite} onClose={closeCite} /> : null;
   const answerBody =
     a.status === 'answer' ? (
       <Flow gap={16}>
@@ -314,7 +354,7 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
             }
           />
           {shaped.bullets.length ? (
-            <Flow as="ul" gap={4} aria-label="What it rests on">
+            <Flow as="ul" gap={4} bullets aria-label="What it rests on">
               {shaped.bullets.map((b) => (
                 <li key={b}>
                   <TextStack body={<Words text={b} onPin={openPin} />} />
@@ -323,6 +363,7 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
             </Flow>
           ) : null}
         </Flow>
+        {wide ? null : citation}
         <Flow gap={8}>
           {a.sources?.length ? (
             <Disclosure title={`${a.sources.length} ${a.sources.length === 1 ? 'source' : 'sources'}`} summary={stale ? `${stale} out of date` : undefined}>
@@ -351,7 +392,7 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
         </Flow>
         <Flow direction="row" justify="between" align="center" wrap gap={8}>
           <Flow direction="row" gap={4}>
-            <Button variant="tertiary" size="sm" iconOnly icon="Copy" ariaLabel="Copy the answer" onClick={copy} />
+            <Button variant="tertiary" size="sm" iconOnly icon={copied === 'done' ? 'Check' : 'Copy'} ariaLabel={copied === 'done' ? 'Copied' : 'Copy the answer'} onClick={copy} />
             {onRetry ? <Button variant="tertiary" size="sm" iconOnly icon="RefreshDouble" ariaLabel="Ask again" onClick={() => onRetry()} /> : null}
           </Flow>
           {onFix ? (
@@ -360,6 +401,13 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
             </Button>
           ) : null}
         </Flow>
+        {copied ? (
+          <Toasts>
+            <Toast tone={copied === 'done' ? 'success' : 'danger'} onClose={() => setCopied(false)}>
+              {copied === 'done' ? 'Answer copied' : 'Couldn’t copy. The browser said no.'}
+            </Toast>
+          </Toasts>
+        ) : null}
       </Flow>
     ) : null;
   const note = a.status === 'thinking' ? 'sent' : a.status === 'error' || a.status === 'stopped' ? 'not answered' : null;
@@ -385,21 +433,16 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
               </Button>
             ) : null}
           </Flow>
-          <Flow as="ol" gap={4} aria-label="What BELLA is doing">
-            {(a.steps ?? []).map((s, i) => (
-              <Step key={s.title} title={s.title} detail={s.detail} state={s.state} showConnector={i < a.steps.length - 1} />
-            ))}
-          </Flow>
+          <Ticks steps={a.steps ?? []} label="What BELLA is doing" />
           {a.reply ? <TextStack body={<Words text={shapeReply(a.reply).verdict} />} /> : null}
         </Flow>
       ) : null}
 
       {a.status === 'answer' ? (
-        // the source opens in place: beside the answer with room (her mock), above it on a phone.
-        // One tree either way, so the answer (and the pin that opened it) stays mounted.
+        // one tree either way, so the answer (and the pin that opened it) stays mounted
         <Flow ref={frame} direction={wide && open ? 'row' : 'column'} equal={wide && open} align={wide && open ? 'start' : undefined} gap={16}>
-          {open ? <Citation sources={a.sources} at={cite} onMove={setCite} onClose={closeCite} /> : null}
           {answerBody}
+          {wide ? citation : null}
         </Flow>
       ) : null}
 
