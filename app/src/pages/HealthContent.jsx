@@ -243,7 +243,9 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
           ) : view === 'gate' && !model.gateDays.length ? (
             <EmptyState size="lane" mark="🚦" title="No gate runs yet" line="Run the gate once and I'll keep the tally." />
           ) : (
-            <Flow gap={16}>
+            // 24 between check rows, more than anything inside a row, so each row reads as its own group
+            // (READ FIRST [10]: "24 between groups"; audit 3, item 12). The row's own layout is BELLA's Check row.
+            <Flow gap={24}>
               {(view === 'gate'
                 ? model.gateDays.map((d) => ({ id: d.id, missing: d.passed < d.runs ? [1] : [], title: d.title, line: d.line, value: `${d.passed}/${d.runs}`, fill: Math.round((d.passed / d.runs) * 100) }))
                 : rows.map((r) => ({ ...r, value: `${r.pass}/${n}` }))
