@@ -23,7 +23,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import ListRow from '@bella/components/ListRow/ListRow';
-import Tag from '@bella/components/Tag/Tag';
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
 import Select from '@bella/components/Select/Select';
@@ -129,7 +128,6 @@ export default function WorkDock() {
     requestAnimationFrame(() => newest.current?.scrollIntoView?.({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }));
   }, [asker.answer?.q, asker.past.length]);
   const talk = useTalk(setDraft);
-  const phone = useNarrow();
   // under 400 the field's hint is shorter, so it shows whole beside Speak (its label says what it asks)
   const tiny = useNarrow(400);
 
@@ -169,12 +167,12 @@ export default function WorkDock() {
     const runs = [...(data[1]?.runs ?? [])].sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
     const lanes = (data[2]?.lanes ?? []).filter((l) => l.status !== 'no report');
     return [
-      { id: 'chip', title: 'CHIP', line: 'Idle · this page', tone: 'info' },
       ...runs.map((r) => {
         const [word, tone] = RUN[r.status] ?? ['Finished', 'neutral'];
         return { id: r.id, title: r.title ?? 'Fix', line: [word, r.startedAt ? `ran ${hhmm(r.startedAt)}` : null].filter(Boolean).join(' · '), tone, open: { kind: 'run', id: r.id } };
       }),
-      ...lanes.map((l) => ({ id: `lane-${l.id}`, title: l.name, ...laneRow(l) })),
+      // an agent's session opens on Team, where its asks and replies are
+      ...lanes.map((l) => ({ id: `lane-${l.id}`, title: l.name, ...laneRow(l), href: '#/team' })),
     ];
   }, [data]);
 
@@ -275,8 +273,10 @@ export default function WorkDock() {
       needs == null ? null : needs.length ? (
         <Flow as="ul" gap={4} aria-label="Needs you">
           {needs.map((c) => (
-            // on a phone the Tag sits under the line (ListRow's middle), so the › keeps the row's right end
-            <ListRow key={c.id} layout="stacked" statusBar={c.tone} title={c.title} description={c.line} {...{ [phone ? 'tag' : 'rightTag']: <Tag variant="line" tone={c.tone === 'danger' ? 'danger' : 'attention'}>{c.status}</Tag> }} trailing={!!c.open} onClick={c.open ? () => setItem(c.open) : undefined} />
+            // a List item: the status bar and the status word in its line, no Tag beside a title that
+            // already names it (READ FIRST: "List items show status with a short rounded status bar";
+            // her 21 Nov: "its a bit repetitive with the tag and the title"); every row opens, ↗
+            <ListRow key={c.id} layout="stacked" statusBar={c.tone} title={c.title} description={[c.status, c.line].filter(Boolean).join(' · ')} trailing={!!c.open} onClick={c.open ? () => setItem(c.open) : undefined} />
           ))}
         </Flow>
       ) : (
@@ -286,7 +286,7 @@ export default function WorkDock() {
       sessions == null ? null : (
         <Flow as="ul" gap={4} aria-label="Sessions">
           {sessions.map((s) => (
-            <ListRow key={s.id} layout="stacked" statusBar={s.tone} title={s.title} description={s.line} trailing={!!s.open} onClick={s.open ? () => setItem(s.open) : undefined} />
+            <ListRow key={s.id} layout="stacked" statusBar={s.tone} title={s.title} description={s.line} trailing={!!(s.open || s.href)} href={s.href} onClick={s.open ? () => setItem(s.open) : undefined} />
           ))}
         </Flow>
       ),
