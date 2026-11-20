@@ -336,7 +336,11 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
     // the pins stay on the part, numbered in reading order, and the line under the stage names them
     if (box.sw < CHIPS_FROM) {
       const order = pins.map((p, i) => i).sort((i, j) => pins[i].y - pins[j].y || pins[i].x - pins[j].x);
-      return anatomy.map((x, i) => ({ id: x.key, x: Math.round(pins[i].x / scale), y: Math.round(pins[i].y / scale), label: order.indexOf(i) + 1, name: x.title, selected: x.key === a?.key }));
+      // in number order, so Tab goes 1, 2, 3…; the part's name (no chip position, so no chip is drawn)
+      // names the pin for a screen reader: "Open Label" (audit 21 Nov r3)
+      return anatomy
+        .map((x, i) => ({ id: x.key, x: Math.round(pins[i].x / scale), y: Math.round(pins[i].y / scale), label: order.indexOf(i) + 1, part: x.title, selected: x.key === a?.key }))
+        .sort((p, q) => p.label - q.label);
     }
     const { order, chips } = chipLayout(pins, texts, box);
     return anatomy.map((x, i) => ({
@@ -352,7 +356,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
     }));
   }, [box, anatomy, a?.key, scale]);
   const showsValue = (box?.sw ?? 0) >= 560;
-  const legend = markers.length && markers[0].part == null ? [...markers].sort((p, q) => p.label - q.label).map((m) => `${m.label} ${m.name}`.replace(/ /g, '\u00a0')).join(' · ') : null; // an entry never breaks inside
+  const legend = markers.length && markers[0].chipX == null ? [...markers].sort((p, q) => p.label - q.label).map((m) => `${m.label} ${m.part}`.replace(/ /g, '\u00a0')).join(' · ') : null; // an entry never breaks inside
   const card = a ? <PartCard a={a} touch={touch} value={showsValue ? null : valueOf(a)} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
   const stage = (
     <Flow id={stageId}>
