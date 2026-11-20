@@ -92,7 +92,9 @@ export async function systemMap() {
     // Source
     node({ id: 'tokens', group: 'Source', name: 'Tokens', state: fromCheck(ck['tokens-built']), detail: `${n.cssVars.light} CSS variables, four themes. ${ck['tokens-built']?.summary ?? 'Not checked yet.'}`, source: `tokens/*.json · ${lastChange(['tokens']) ?? ''}` }),
     // a part with no contract needs someone, as Health counts it (one reading: audit 21 Nov)
-    node({ id: 'contracts', group: 'Source', name: 'Contracts', state: n.withContract < n.components ? 'bad' : fromCheck(ck.contract), detail: `${n.withContract} of ${n.components} components have one. ${ck.contract?.summary ?? ''}`, source: `tokens/contracts.json · ${lastChange(['tokens/contracts.json']) ?? ''}`, deps: ['tokens'] }),
+    // a part with no contract needs someone, as Health counts it; that gap is the node's own, so it
+    // never blanks what reads Contracts (audit 21 Nov r2: AGENTS.md and Bench lost their measured readings)
+    node({ id: 'contracts', group: 'Source', name: 'Contracts', ownGap: n.withContract < n.components, state: n.withContract < n.components ? 'bad' : fromCheck(ck.contract), detail: `${n.withContract} of ${n.components} components have one. ${ck.contract?.summary ?? ''}`, source: `tokens/contracts.json · ${lastChange(['tokens/contracts.json']) ?? ''}`, deps: ['tokens'] }),
     node({ id: 'components', group: 'Source', name: 'Components', state: 'ok', detail: `${n.components} components in src/components.`, source: `src/components · ${lastChange(['src/components']) ?? ''}`, deps: ['tokens', 'contracts'] }),
     // Checks
     node({ id: 'contrast', group: 'Checks', name: 'Contrast pairs', state: fromCheck(ck.contrast), detail: ck.contrast?.failures?.[0] ?? pairsLine(), source: 'scripts/contrast-pairs.mjs (BELLA’s own pairs, as Health reads them)', deps: ['tokens'], action: { type: 'review', check: 'contrast', label: 'Open the review card' } }),
@@ -120,7 +122,7 @@ export async function systemMap() {
       seen.add(d);
       const dep = byId[d];
       if (!dep) continue;
-      if (dep.state === 'bad') return dep;
+      if (dep.state === 'bad' && !dep.ownGap) return dep;
       const up = blockedBy(dep, seen);
       if (up) return up;
     }
