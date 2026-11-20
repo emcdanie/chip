@@ -37,6 +37,7 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
+import useCached from '../templates/useCached.js';
 import useAsk, { AskAnswer } from '../templates/useAsk.jsx';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
@@ -471,7 +472,10 @@ function ChecksCard({ part, detail, checked, touch }) {
   // Story and Docs open the part's Storybook docs page in a new tab, never in place. Contract,
   // spec and A11y opened the old app; Figma draws no new-app view for them yet, so they read
   // their result in place until one is drawn (user test 21 Nov, item 1)
-  const linkFor = (k) => ((k.id === 'story' || k.id === 'docs') && part.storyUrl ? part.storyUrl : null);
+  // Story opens the part's first story (BELLA's Storybook index, /stories); Docs its docs page
+  const { data: sb } = useCached(['/stories']);
+  const firstStory = part.storyUrl ? sb?.[0]?.first?.[part.storyUrl.match(/\/docs\/(.+)--docs/)?.[1]] : null;
+  const linkFor = (k) => (k.id === 'story' && firstStory ? part.storyUrl.replace(/\/docs\/.+$/, `/story/${firstStory}`) : k.id === 'docs' && part.storyUrl ? part.storyUrl : null);
   const weakest = detail.anatomy.filter((x) => x.contrast).sort((x, y) => x.contrast.ratio - y.contrast.ratio)[0];
   const checks = checksWithTouch(part, touch);
   // Figma's seven rows: the six checks, then Figma set, which counts (5 of 7 while CHIP can't reach Figma)

@@ -10,7 +10,9 @@ import useCached from '../templates/useCached.js';
 import { CHECKS } from './healthModel.js';
 
 /* Figma 690:492657's link words per check row ("Contrast · See pairs ›"). */
-const LINK_WORDS = { story: 'Open stories', docs: 'Open docs', contract: 'Open contract', dsds: 'Open spec', contrast: 'See pairs', a11y: 'Open notes' };
+// a passing check's words: open-words only where the row opens something (Story, Docs in
+// Storybook); the rest state the result in place (audit, 21 Nov: "Open contract" opened nothing)
+const LINK_WORDS = { story: 'Open story', docs: 'Open docs', contract: 'Matches the code', dsds: 'In the spec', contrast: 'Pairs declared', a11y: 'Notes written' };
 const MISSING_WORDS = { story: 'No story', docs: 'No doc page', contract: "Doesn't match", dsds: 'Not in the spec', contrast: 'No pair', a11y: 'No checks' };
 const ORDER = ['story', 'docs', 'contract', 'dsds', 'contrast', 'a11y'];
 /* The contract's state names in Figma's words. */

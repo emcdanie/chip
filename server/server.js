@@ -14,7 +14,7 @@ import { homedir } from 'node:os';
 import { listAll } from './providers/index.mjs';
 import * as host from './host/registry.js';
 import { logUsage, claudeToday, usageWeek } from './lib/usage.mjs';
-import { CHIP_CLAUDE_DAILY } from './lib/config.mjs';
+import { CHIP_CLAUDE_DAILY, BELLA_DIR } from './lib/config.mjs';
 import * as bellaWork from './lib/bella-work.mjs';
 import { barState, barStream, barImg } from './lib/bar.mjs';
 import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
@@ -568,6 +568,22 @@ app.get('/contrast-pairs', (_req, res) => {
     res.json(declaredPairs());
   } catch (e) {
     errorOut(res, e, 500);
+  }
+});
+// GET /stories: each part's first story in BELLA's built Storybook (its id prefix -> the
+// story's id), so Components' Story row opens a story and its Docs row the docs page. Read only.
+app.get('/stories', (_req, res) => {
+  try {
+    const entries = JSON.parse(readFileSync(join(BELLA_DIR, 'storybook-static/index.json'), 'utf8')).entries ?? {};
+    const first = {};
+    for (const e of Object.values(entries)) {
+      if (e.type !== 'story') continue;
+      const part = e.id.split('--')[0];
+      if (!first[part]) first[part] = e.id;
+    }
+    res.json({ first });
+  } catch {
+    res.json({ first: {} });
   }
 });
 // Do next: per component, what each Overview gap needs and the suggested fix
