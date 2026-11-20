@@ -6,7 +6,7 @@
 // state (Elleta, 19 Nov). The Library holds the fixes CHIP can run.
 // Built from BELLA parts and the template's Flow only; no page CSS.
 //
-// Gaps: StatCard has no empty slot; the model menu (Auto, local first) waits
+// Gaps: the model menu (Auto, local first) waits
 // for a Menu part, so a run goes to CHIP's default.
 import { useEffect, useRef, useState } from 'react';
 import Notification from '@bella/components/Notification/Notification';
@@ -29,10 +29,6 @@ import { handOff } from './healthModel.js';
 export const STATES = ['suggested', 'running', 'your-call', 'kept', 'gate-fails', 'library'];
 
 /* Stats CHIP does not count yet: Elleta's words (19 Nov 2026), Belfast mode. */
-const EMPTY_STATS = [
-  { title: 'Runs this week', icon: 'ShieldCheck', tone: 'info', mark: '🔁', empty: 'Nothing counted yet', line: "Not a single run this week. Start one and I'll keep score." },
-  { title: 'Kept', icon: 'ShieldCheck', tone: 'success', mark: '✅', empty: 'Nothing kept yet', line: 'Accept a fix and it lands here.' },
-];
 
 /** States whose card holds the committing action: New task is white there (her y28 B). */
 export const COMMITS = new Set(['suggested', 'gate-fails', 'your-call']);
@@ -189,26 +185,25 @@ const lastRun = (at) => {
 
 function Stats() {
   const w = useWeek();
-  /* No run this week: the stat card shows the Empty state, not a number.
-     StatCard has no empty slot (library gap), so the card body holds its
-     head and the Empty state. Neutral, no wash (one page, one colour). */
+  /* No run this week: the same Stat cards at zero, an empty bar and the footer
+     saying why (StatCard chart="empty", her 21 Nov pick A). */
   if (w.total === 0)
-    return EMPTY_STATS.map((e) => (
-      <Flow key={e.title} span={6} fill>
-        <Card>
-          <Flow gap={8}>
-            <SectionHead size="card" icon={e.icon} iconTone={e.tone} title={e.title} titleLevel={3} />
-            <EmptyState size="lane" mark={e.mark} title={e.empty} line={e.line} />
-          </Flow>
-        </Card>
-      </Flow>
-    ));
+    return (
+      <>
+        <Flow span={6} fill>
+          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Runs this week" value={0} context="Fixes run since Monday" caption="Nothing run yet this week" href="#/history" />
+        </Flow>
+        <Flow span={6} fill>
+          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Kept" value={0} context="Accept a fix and it lands here" caption="Undone runs stay in History" href="#/history" />
+        </Flow>
+      </>
+    );
   // Figma names the one thing besides undone: running, else stopped, else waiting
   const besides = w.running ? `${w.running} running` : w.stopped ? `${w.stopped} stopped` : `${w.waiting} waiting on a maintainer`;
   return (
     <>
       <Flow span={6} fill>
-        <StatCard icon="ShieldCheck" tone="info" title="Runs this week" value={w.total} context="Fixes run since Monday" caption={lastRun(w.last)} href="#/history" />
+        <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={w.total} context="Fixes run since Monday" caption={lastRun(w.last)} href="#/history" />
       </Flow>
       <Flow span={6} fill>
         <StatCard
@@ -217,7 +212,7 @@ function Stats() {
           title="Kept"
           value={w.kept}
           unit={`of ${w.total}`}
-          meter={w.kept ? { fill: Math.round((w.kept / w.total) * 100), valueText: `${w.kept} of ${w.total}` } : undefined}
+          meter={{ fill: Math.round((w.kept / w.total) * 100), valueText: `${w.kept} of ${w.total}` }}
           context={`${w.undone} undone · ${besides}`}
           caption="Undone runs stay in History"
           href="#/history"

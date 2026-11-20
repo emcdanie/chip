@@ -280,14 +280,14 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
   const written = notes.filter((n) => n.note.trim()).length;
 
   if (down)
-    return <Notification tone="danger" title="The CHIP server is not answering" message="Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
+    return <Notification tone="danger" title="The CHIP server" message="It isn't answering. Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
 
   if (!part && pages && !pages.length)
     return <EmptyState size="page" mark="🤷" title="No pages to open here" line="This project has no pages CHIP can load yet. Pick another one." />;
 
   return (
     <>
-      {sent === 'sent' ? <Notification tone="success" title="Notes sent" message="They are on the progress board for the team." onClose={() => setSent(null)} /> : null}
+      {sent === 'sent' ? <Notification tone="success" title="Your notes" message="Sent: they are on the progress board for the team." onClose={() => setSent(null)} /> : null}
 
       {/* Control bar: what you look at on the left, switches on the right */}
       <Flow direction={narrow ? 'column' : 'row'} gap={16} wrap={!narrow} justify={narrow ? 'start' : 'between'} align={narrow ? undefined : 'center'}>
@@ -412,7 +412,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
           </Button>
         </Flow>
         </Flow>
-        {sent === 'failed' ? <Notification tone="danger" title="Could not send" message={`The progress board does not answer at ${BOARD}. Your notes are still here.`} /> : null}
+        {sent === 'failed' ? <Notification tone="danger" title="The progress board" message={`It doesn't answer at ${BOARD}, so your notes weren't sent. They are still here.`} /> : null}
       </Drawer>
     </>
   );

@@ -95,11 +95,8 @@ function NodeCard({ node, open, onOpen }) {
   return (
     <Card onClick={() => onOpen(node.id)} ariaLabel={`${node.name}: ${word}${open ? ', open below' : ''}`}>
       <Flow gap={8}>
-        <Flow direction="row" justify="between" gap={8}>
-          <TextStack title={node.name} />
-          {/* a number in Geist Mono (TextStack's subtext face), as every number (audit 21 Nov) */}
-          {count ? <TextStack subtitle={String(count)} /> : null}
-        </Flow>
+        {/* the count at the title row's right end, in the number face (TextStack Count, 21 Nov publish) */}
+        <TextStack title={node.name} count={count || undefined} />
         {/* Figma's node line is in the reading face */}
         <TextStack body={metaOf(node)} />
         <Flow direction="row">

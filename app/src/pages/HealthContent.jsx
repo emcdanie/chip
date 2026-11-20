@@ -16,7 +16,6 @@ import CheckRow from '@bella/components/CheckRow/CheckRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
-import Tag from '@bella/components/Tag/Tag';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
 import Flow from '../templates/Flow.jsx';
@@ -32,29 +31,22 @@ export const GATE_RUNS = ['none', 'running', 'passed', 'failed'];
 function GateBanner({ run }) {
   if (!run || run.state === 'none') return null;
   if (run.state === 'running')
-    return <Notification tone="info" title={`Running the gate · ${run.done} of ${run.of} checks`} message={`Now running ${run.now}. You can keep working.`} />;
-  if (run.state === 'passed') return <Notification tone="success" title="Gate passed" message={`${run.of} of ${run.of} checks · just now`} />;
-  return <Notification tone="danger" title={`Gate failed: ${run.failed}`} message={run.why} />;
+    return <Notification tone="info" title="The gate" message={`Running: ${run.done} of ${run.of} checks done, now ${run.now}. You can keep working.`} />;
+  if (run.state === 'passed') return <Notification tone="success" title="The gate" message={`Passed: ${run.of} of ${run.of} checks, just now.`} />;
+  return <Notification tone="danger" title="The gate" message={`Failed on ${run.failed}: ${run.why}`} />;
 }
 
-/* A card CHIP has no data for: its head and the Empty state (StatCard has no empty slot). */
-function NoData({ title, icon, tone, mark, empty, line }) {
-  return (
-    <Card>
-      <Flow gap={8}>
-        <SectionHead size="card" icon={icon} iconTone={tone} title={title} titleLevel={3} />
-        <EmptyState size="lane" mark={mark} title={empty} line={line} />
-      </Flow>
-    </Card>
-  );
+/* A card CHIP has no data for: the same Stat card at zero, an empty bar, and the
+   footer saying why (StatCard chart="empty", her 21 Nov pick A). */
+function NoData({ title, icon, of, context, caption, button }) {
+  return <StatCard title={title} icon={icon} tone="neutral" chart="empty" value={0} unit={of != null ? `of ${of}` : undefined} context={context} caption={caption} button={button} />;
 }
 
-/* Figma's Drift from BELLA card (601:109235): how many parts differ from Figma,
-   the worst as chips, when it was compared and the action. Real data from
-   /figma-baseline; with no baseline the same layout says so in one line
-   (audit 10: Figma's layout, an honest empty line, no stray icon). */
+/* Drift from BELLA as a Stat card (21 Nov publish): how many parts differ from
+   Figma, the worst named, when it was compared and the action. Real data from
+   /figma-baseline; with no baseline, the empty card (0 of the parts, her A). */
 const SHOW = 3;
-function DriftCard() {
+function DriftCard({ parts }) {
   const { data, reload } = useCached(['/figma-baseline']);
   const [busy, setBusy] = useState(false);
   const base = data?.[0] ?? null;
@@ -70,40 +62,31 @@ function DriftCard() {
         reload();
       });
   };
-  const footer = base?.at ? `Compared ${new Date(base.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Not run';
+  const button = (
+    <Button variant="secondary" size="sm" onClick={compare} disabled={running}>
+      {running ? 'Comparing…' : 'Compare'}
+    </Button>
+  );
+  // no baseline, or Figma had none of the parts: nothing measured, the empty card
+  if (!base?.at || !rows.length) return <NoData title="Drift from BELLA" icon="Activity" of={parts} context="Parts that differ from Figma" caption={base?.at ? 'Figma had none of them' : 'Not compared yet'} button={button} />;
+  const worst = differ.slice(0, SHOW).map((r) => (r.score != null ? `${r.name} ${r.score}%` : r.name));
   return (
-    <Card
-      footerText={footer}
-      footerAction={
-        <Button variant="secondary" size="sm" onClick={compare} disabled={running}>
-          {running ? 'Comparing…' : base?.at ? 'Compare again' : 'Compare now'}
-        </Button>
-      }
-    >
-      <Flow gap={12}>
-        <SectionHead size="card" icon="Activity" iconTone="info" title="Drift from BELLA" titleLevel={3} />
-        {!base?.at ? (
-          <TextStack body="Not compared yet: there is no Figma baseline to measure against." />
-        ) : (
-          <>
-            <TextStack title={rows.length ? `${differ.length} of ${rows.length} parts differ` : 'Figma had none of the parts'} />
-            {differ.length ? (
-              <Flow direction="row" gap={8} wrap>
-                {differ.slice(0, SHOW).map((r) => (
-                  <Tag key={r.id} variant="flat">{r.score != null ? `${r.name} ${r.score}%` : r.name}</Tag>
-                ))}
-                {differ.length > SHOW ? <Tag variant="flat">{`+${differ.length - SHOW}`}</Tag> : null}
-              </Flow>
-            ) : null}
-          </>
-        )}
-      </Flow>
-    </Card>
+    <StatCard
+      title="Drift from BELLA"
+      icon="Activity"
+      tone={differ.length ? 'warning' : 'success'}
+      chart="none"
+      value={differ.length}
+      unit={`of ${rows.length}`}
+      context={differ.length ? `Most: ${worst.join(', ')}${differ.length > SHOW ? ` +${differ.length - SHOW}` : ''}` : 'No part differs from Figma'}
+      caption={`Compared ${new Date(base.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
+      button={button}
+    />
   );
 }
 
 function GateCard({ gate, run, onOpen }) {
-  if (!gate) return <NoData title="Gate" icon="ShieldCheck" tone="success" mark="🚦" empty="No gate runs yet" line="Run the gate once and I'll keep the tally." />;
+  if (!gate) return <NoData title="Gate" icon="ShieldCheck" context="Gate checks that pass" caption="No gate runs yet" />;
   if (run?.state === 'running')
     return <StatCard title="Gate" icon="ShieldCheck" tone="info" value={run.done} unit={`of ${run.of} so far`} chart="segments" meter={{ segments: run.of, done: run.done }} context={`Running ${run.now}`} caption="Started just now" />;
   const failed = run?.state === 'failed';
@@ -193,12 +176,12 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             failing={health.needsWork ? [{ name: 'Parts that need work', count: health.needsWork, ofTotal: `of ${n} parts`, href: '#/components?filter=needs' }] : []}
           />
         ) : (
-          <NoData title="System health" icon="Activity" tone="info" mark="🩺" empty="No components yet" line="Point me at BELLA and I'll take its pulse." />
+          <NoData title="System health" icon="Activity" context="Component checks that pass" caption="No components yet: point CHIP at BELLA" />
         )}
       </Flow>
       <Flow span={4} gap={24} fill>
         <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => setView('gate') : undefined} />
-        <DriftCard />
+        <DriftCard parts={n} />
       </Flow>
       <Flow span={4} gap={24} fill>
         {contrast ? (
@@ -229,7 +212,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             href="#/foundations"
           />
         ) : (
-          <NoData title="Lowest contrast" icon="HalfMoon" tone="success" mark="🔍" empty="No pairs measured yet" line="Declare a pair and I'll find the weakest one." />
+          <NoData title="Lowest contrast" icon="HalfMoon" context="The weakest text pair" caption="No pairs measured yet" />
         )}
       </Flow>
       <Card>

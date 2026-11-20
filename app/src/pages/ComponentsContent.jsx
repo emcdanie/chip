@@ -822,7 +822,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
               <StatusDot tone="success" label={live} />
               {(() => {
                 const n = (detail?.findings ?? 0) + (part.checks.find((k) => k.id === 'a11y')?.ok && touch && (touch.w < 44 || touch.h < 44) ? 1 : 0);
-                return n ? <Tag tone="attention" showDot>{`${n} ${n === 1 ? 'finding' : 'findings'}`}</Tag> : null;
+                return n ? <Tag tone="attention" showDot count={n}>{n === 1 ? 'finding' : 'findings'}</Tag> : null;
               })()}
             </Flow>
             {tiny && detail?.updated ? <TextStack subtitle={`Updated ${detail.updated}`} /> : null}

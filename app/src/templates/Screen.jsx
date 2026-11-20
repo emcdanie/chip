@@ -142,7 +142,7 @@ export function NewTask({ variant = 'primary' }) {
       >
         <Flow gap={16}>
           <Input label="What needs doing?" multiline value={text} onChange={setText} placeholder="One sentence is enough" />
-          {said === 'failed' ? <Notification tone="danger" title="Not sent" message={`The progress board doesn't answer at ${BOARD}. Your task is still in the box.`} /> : null}
+          {said === 'failed' ? <Notification tone="danger" title="The progress board" message={`It doesn't answer at ${BOARD}, so your task wasn't sent. It's still in the box.`} /> : null}
         </Flow>
       </Drawer>
     </>
@@ -234,9 +234,8 @@ export default function Screen({ place, header, tabs, children }) {
   const panel = <ProjectPanel switcher={client} projects={projectRows} status={statusRows} />;
   /* In a drawer, ProjectPanel flush (parts-dev ebd21b2): no grey box, edge or padding of its own, and
      "Projects" said once, by the drawer's title (Elleta, 21 Nov: "this is broken.."). */
-  // the phone's drawer is titled Menu, so "Projects" shows there under the switcher (gap: ProjectPanel
-  // flush hides its heading always; asked parts-dev for a visible-heading option)
-  const drawerPanel = <ProjectPanel flush switcher={phone ? <Flow gap={24}>{client}<TextStack title="Projects" /></Flow> : client} projects={projectRows} status={statusRows} />;
+  // the phone's drawer is titled Menu, so ProjectPanel says "Projects" itself there (showHeading, 21 Nov publish)
+  const drawerPanel = <ProjectPanel flush showHeading={phone} switcher={client} projects={projectRows} status={statusRows} />;
   return (
     <div className="chip-screen">
       {/* Below 800 the rail steps out too: the top bar's Menu opens the places

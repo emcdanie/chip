@@ -34,7 +34,6 @@ export const BOARD = 'http://localhost:3123';
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const DAY = 86400000;
 
-const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const dateOf = (t) => {
   if (!t) return '';
   const d = new Date(t);
@@ -109,7 +108,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
 
   if (data.state === 'loading') return <EmptyState size="lane" title="Getting the team" />;
   if (data.state === 'error')
-    return <Notification tone="danger" title="The team can't be read" message="The Bar isn't answering. Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
+    return <Notification tone="danger" title="The team" message="The Bar isn't answering, so CHIP can't read it. Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
 
   const answered = new Set(sent.map((s) => s.ask?.id));
   const open = data.asks.filter((a) => !answered.has(a.id));
@@ -162,17 +161,17 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
 
       <Flow as="ul" direction="row" gap={8} wrap aria-label="The team at a glance">
         <li>
-          <Tag variant="outline" tone="count">{plural(data.agents, 'agent')}</Tag>
+          <Tag variant="outline" count={data.agents}>{data.agents === 1 ? 'agent' : 'agents'}</Tag>
         </li>
         <li>
           {/* the sidebar's and the board's Agent count, the same number */}
-          <Tag variant="outline" tone="info">{`${data.working} working`}</Tag>
+          <Tag variant="outline" tone="info" count={data.working}>working</Tag>
         </li>
         <li>
-          <Tag variant="outline" tone="attention">{`${asks.length} ${asks.length === 1 ? 'ask' : 'asks'} for you`}</Tag>
+          <Tag variant="outline" tone="attention" count={asks.length}>{`${asks.length === 1 ? 'ask' : 'asks'} for you`}</Tag>
         </li>
         <li>
-          <Tag variant="outline" tone="count">{plural(data.prs, 'open PR')}</Tag>
+          <Tag variant="outline" count={data.prs}>{data.prs === 1 ? 'open PR' : 'open PRs'}</Tag>
         </li>
       </Flow>
 
@@ -244,7 +243,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
             {isDraft ? <Tag variant="outline" tone="info">The agent’s draft, in your words · edit before sending</Tag> : null}
             {/* Figma: the send button sits in the field, as History's Ask */}
             <Input id="team-reply" label={replyTo ? `Reply to ${replyTo.agent}` : 'Reply'} value={text} placeholder="Reply, or @ an agent" onChange={setText} onSend={() => text.trim() && send()} sendLabel="Send" />
-            {failed ? <Notification tone="danger" title="Not sent" message={`The progress board doesn't answer at ${BOARD}. Your reply is still in the box.`} /> : null}
+            {failed ? <Notification tone="danger" title="The progress board" message={`It doesn't answer at ${BOARD}, so your reply wasn't sent. It's still in the box.`} /> : null}
           </Flow>
         </Card>
       </Flow>
