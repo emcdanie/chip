@@ -165,7 +165,9 @@ function Activity({ records, total, open, onOpen }) {
                 <Step
                   title={plain(r.title)}
                   time={time(r.date)}
-                  tag={<Tag tone={STATUS_TONE[r.status] ?? 'neutral'}>{r.status}</Tag>}
+                  // a Tag only where nothing else says it (audit 4, item 4): Merged is what Activity
+                  // is made of, so only the other statuses get one; the open record keeps its own
+                  tag={r.status !== 'Merged' ? <Tag tone={STATUS_TONE[r.status] ?? 'neutral'}>{r.status}</Tag> : undefined}
                   kind={STEP_KIND[r.type]}
                   icon={STEP_KIND[r.type] ? undefined : 'Clock'}
                   state="done"

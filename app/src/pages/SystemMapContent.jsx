@@ -34,6 +34,8 @@ const STEPS = [
 const FIGMA_PATHS = ['figma', 'figma-console', 'figma-rest'];
 // a node's state in Figma's words and tone
 const SAYS = { ok: ['Healthy', 'success'], warn: ['Not all run', 'attention'], bad: ['Needs you', 'attention'], blocked: ['Not known', 'default'], unknown: ['Not known', 'default'] };
+// Status dot has no 'default' tone: the not-known word is neutral
+const dotTone = (t) => (t === 'default' ? 'neutral' : t);
 const DOT = { ok: 'success', bad: 'attention', blocked: 'neutral', unknown: 'neutral' };
 
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0].replace(/\.$/, '');
@@ -99,11 +101,8 @@ function NodeCard({ node, open, onOpen }) {
         <TextStack title={node.name} count={count || undefined} />
         {/* Figma's node line is in the reading face */}
         <TextStack body={metaOf(node)} />
-        <Flow direction="row">
-          <Tag variant="line" tone={tone} showDot>
-            {word}
-          </Tag>
-        </Flow>
+        {/* a part's own status is a Status dot plus one word, no Tag (READ FIRST; audit 4, item 4) */}
+        <StatusDot tone={dotTone(tone)} label={word} />
       </Flow>
     </Card>
   );
@@ -139,11 +138,7 @@ function Detail({ node, byId }) {
       <Flow gap={16}>
         <Flow gap={8}>
           <TextStack title={node.name} body={plain(node.detail)} />
-          <Flow direction="row">
-            <Tag variant="line" tone={tone} showDot>
-              {word}
-            </Tag>
-          </Flow>
+          <StatusDot tone={dotTone(tone)} label={word} />
         </Flow>
         {/* Figma's wires, as words until the connector part lands: a failing one shows red */}
         {waits.length ? (
