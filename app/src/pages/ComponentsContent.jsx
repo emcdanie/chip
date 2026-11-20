@@ -451,7 +451,7 @@ function AskCard({ part, detail, onAsk, answer }) {
       <Flow gap={12}>
         <TextStack title="Ask BELLA" body={`Ask about ${part.name}: ${knows}.`} />
         <Input label={`Ask about ${part.name}`} placeholder="Type a question" value={q} onChange={setQ} onSend={send} sendLabel="Ask" />
-        <AskAnswer answer={answer} who="BELLA" />
+        <AskAnswer answer={answer} />
       </Flow>
     </Card>
   );

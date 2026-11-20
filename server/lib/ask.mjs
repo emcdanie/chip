@@ -57,7 +57,7 @@ Answer ONLY from the sources in the message (each starts with "[n] <title>"). Ru
 - Some CHIP docs describe the April 2026 hackathon demo (47 components, iOS/Android parity, Jira tickets). That scenario is synthetic. Never report its numbers as real; if it is the only match, say it is demo data.
 - Jira, Figma, Zeroheight and live Storybook are not connected. Say so if asked about them.
 
-Format: markdown, under 200 words unless the question needs more. Bold sparingly, "- " bullets.`;
+Format (answers are scanned, not read): the first line is the verdict, one sentence, with its key phrase in **bold**. Then at most 3 "- " bullets with the detail. No headings, no other bold. Under 90 words.`;
 
 const sessions = new Map(); // sessionId -> [{ role, content }]
 
@@ -155,7 +155,9 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const history = stored.filter(keep).map(({ role, content }) => ({ role, content }));
   const keptLocal = cloud ? stored.filter((m) => m.role === 'assistant' && !keep(m)).length : 0;
   const withPage = pointsAt(message, page);
-  let found = await retrieve(message, TOP_K * 3, page, withPage); // extra room for the per-page cap and the cloud filters
+  // asked about one record (History): that record is the only source, so the answer comes from
+  // the commit's own words and files, never a guess from other docs
+  let found = record ? [] : await retrieve(message, TOP_K * 3, page, withPage); // extra room for the per-page cap and the cloud filters
   let heldBack = 0;
   if (cloud) found = found.filter((c) => !isLocalOnly(c));
   if (cloud && !includePrivate) {
@@ -184,7 +186,7 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const chunks = fitBudget(found);
   const nums = numbered(chunks);
   const context = chunks.map((c) => `[${nums.get(keyOf(c)).n}] ${c.title}\n${c.text}`).join('\n\n---\n\n');
-  const where = withPage ? `The user is looking at: ${page}.\n\n` : '';
+  const where = (withPage ? `The user is looking at: ${page}.\n\n` : '') + (record ? 'Source [1] is the commit the user is looking at: its title, its own description and its files. Explain it in plain words from source [1] only; "explain" or "I don\'t understand" means say what the commit did and why, more simply. Only if source [1] has nothing on the question, say "The commit doesn\'t say." and stop.\n\n' : '');
   const turns = [...history, { role: 'user', content: `Sources:\n\n${context}\n\n===\n\n${where}Question: ${message}` }];
   const messages = [{ role: 'system', content: withPack(SYSTEM) }, ...turns]; // non-streamed path is local only
   // history keeps the bare question, not the sources, where it was answered

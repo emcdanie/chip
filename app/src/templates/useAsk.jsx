@@ -7,6 +7,8 @@
 import { useRef, useState } from 'react';
 import Notification from '@bella/components/Notification/Notification';
 import Step from '@bella/components/Step/Step';
+import Pin from '@bella/components/Pin/Pin';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Flow from './Flow.jsx';
 
 /* The server's error, in words a reader can act on. */
@@ -63,8 +65,50 @@ export default function useAsk() {
   return { answer, ask, clear: () => (turn.current++, setAnswer(null)) };
 }
 
-/** The tick list while it works, then the answer. `who` titles the answer. */
-export function AskAnswer({ answer, who }) {
+/* An answer's words as she reads them: **key phrase** bold, [n] as her pink pin, no code ticks. */
+function Words({ text }) {
+  return String(text)
+    .replace(/`/g, '')
+    .split(/(\*\*[^*]+\*\*|\[\d+\])/)
+    .filter(Boolean)
+    .map((bit, i) =>
+      /^\*\*/.test(bit) ? (
+        <strong key={i}>{bit.slice(2, -2)}</strong>
+      ) : /^\[\d+\]$/.test(bit) ? (
+        <Pin key={i} number={bit.slice(1, -1)} variant="pink" ariaLabel={`Source ${bit.slice(1, -1)}`} />
+      ) : (
+        bit
+      ),
+    );
+}
+
+/* Verdict first, detail folded (her rule: a verdict line with the bold key phrase, at most 3 bullets, detail closed until asked). */
+function Answer({ reply }) {
+  const lines = String(reply).split('\n').map((l) => l.trim()).filter(Boolean);
+  const bullets = lines.filter((l) => /^[-*•]\s/.test(l)).slice(0, 3).map((l) => l.replace(/^[-*•]\s+/, ''));
+  const verdict = lines.filter((l) => !/^[-*•]\s/.test(l)).join(' ');
+  return (
+    <Flow gap={8}>
+      <span>
+        <Words text={verdict} />
+      </span>
+      {bullets.length ? (
+        <Disclosure flush title="Detail">
+          <Flow as="ul" gap={4}>
+            {bullets.map((b) => (
+              <li key={b}>
+                <Words text={b} />
+              </li>
+            ))}
+          </Flow>
+        </Disclosure>
+      ) : null}
+    </Flow>
+  );
+}
+
+/** The tick list while it works, then the answer: no label on an answer, "No answer" on an error. */
+export function AskAnswer({ answer }) {
   if (!answer) return null;
   return (
     <Flow gap={8} aria-live="polite">
@@ -77,7 +121,9 @@ export function AskAnswer({ answer, who }) {
           ))}
         </Flow>
       ) : null}
-      {answer.reply ? <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title={answer.error ? 'No answer' : who} message={answer.reply} /> : null}
+      {answer.reply ? (
+        <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title={answer.error ? 'No answer' : undefined} message={answer.error ? answer.reply : <Answer reply={answer.reply} />} />
+      ) : null}
     </Flow>
   );
 }

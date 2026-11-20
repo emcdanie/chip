@@ -6,7 +6,7 @@
 //
 // Gaps (library board): the "What it touched" tree (Map line pieces placed
 // by position) has no part yet, so the files show as a list of cards; the
-// Count in Figma is Stat without its chart. Ask uses Input's own Send button.
+// Ask uses Input's own Send button.
 // Actions that run the agent (Ask) wait for the Menu part for the model menu
 // (Auto, local first).
 import { useEffect, useMemo, useState } from 'react';
@@ -17,7 +17,7 @@ import Tag from '@bella/components/Tag/Tag';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Heading from '@bella/components/Heading/Heading';
 import Notification from '@bella/components/Notification/Notification';
-import Stat from '@bella/components/Stat/Stat';
+import ListRow from '@bella/components/ListRow/ListRow';
 import Input from '@bella/components/Input/Input';
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
@@ -66,7 +66,7 @@ const plain = (t) =>
     .replace(/\bElleta['’]s\b/g, "the maintainer's")
     .replace(/\bElleta\b/g, 'the maintainer')
     .replace(/#\/[\w-]+-old\b/g, 'its old address')
-    .replace(/#\/([\w-]+)/g, (_, r) => `the ${r.replace(/-/g, ' ')} page`)
+    .replace(/#\/([\w-]+)(?:\?[\w=&%.-]*)?/g, (_, r) => `the ${r.replace(/-/g, ' ')} page`)
     .replace(/(?:[\w.-]+\/)+[\w.-]+\.\w+|\b[\w-]+\.(?:jsx?|tsx?|css|html|json|mjs|md|ya?ml)\b/g, '')
     .replace(/\bClaude Code\b|\bClaude\b/g, 'the agent')
     // a commit reference in brackets ("(bella-parts f134741)") is bookkeeping, not words
@@ -98,6 +98,15 @@ const fileWords = (f) => {
   if (/\.css$/.test(f)) return `${name} styles`;
   if (/\.md$/.test(f)) return `${name} notes`;
   return name;
+};
+/* Where a touched thing opens in CHIP: a part on Components, a page that CHIP has; else nowhere (no ›). */
+const PAGES = ['not-again', 'work', 'components', 'health', 'history', 'connectors', 'system-map', 'foundations', 'team', 'playground'];
+const targetOf = (what) => {
+  const m = String(what).match(/^(.+) (part|page)$/);
+  if (!m) return null;
+  if (m[2] === 'part') return `#/components/${m[1].toLowerCase()}`;
+  const id = m[1].replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+  return PAGES.includes(id) ? `#/${id}` : null;
 };
 const count = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
 const lines = (stat) => [...String(stat ?? '').matchAll(/(\d+) (?:insertion|deletion)/g)].reduce((n, m) => n + Number(m[1]), 0);
@@ -170,7 +179,7 @@ function Record({ id }) {
   const files = Array.isArray(rec.files) ? rec.files : [];
   const comps = Array.isArray(rec.components) ? rec.components : [];
   // the record's own words go as a source, so the answer can come from the commit itself
-  const ask = () => q.trim() && send(`About ${rec.repo} commit ${rec.sha} ("${rec.title}"): ${q.trim()}`, 'history', { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: `${rec.title}\n\n${plainWhy(rec.why)}` });
+  const ask = () => q.trim() && send(`About ${rec.repo} commit ${rec.sha} ("${rec.title}"): ${q.trim()}`, 'history', { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: `${rec.title}\n\n${plainWhy(rec.why)}\n\nFiles: ${files.join(', ') || 'none listed'}` });
   return (
     <Card>
       <Flow gap={24}>
@@ -181,6 +190,10 @@ function Record({ id }) {
           </Flow>
           {/* Figma: the record's title at the subsection size, the biggest thing in the record */}
           <Heading tier="subsection" as="h2">{plain(rec.title)}</Heading>
+          {/* the counts, once, under the title (her note, 21 Nov: "should these not be at the top").
+              Gap: no BELLA part sets numbers in Geist Mono and words in Lexend on one line, so the
+              line is TextStack's meta line for now */}
+          <TextStack subtitle={[count(comps.length, 'part'), count(files.length, 'file'), `${count(lines(rec.stat), 'line')} changed`].join(' · ')} />
         </Flow>
         {plainWhy(rec.why) ? (
           <Notification
@@ -197,29 +210,29 @@ function Record({ id }) {
           />
         ) : null}
         <Flow gap={8}>
-          <SectionHead title="What changed" titleLevel={3} />
-          <TextStack body={rec.stat ? `${count(files.length, 'file')}, ${count(lines(rec.stat), 'line')}.` : 'No before picture: this commit has no saved screenshot.'} />
-        </Flow>
-        <Flow gap={8}>
-          <SectionHead title="What it touched" titleLevel={3} words={count(files.length, 'file')} />
-          <Flow gap={12} as="ul" aria-label="Files this record touched">
-            {touched(files).map(([what, n]) => (
-              <li key={what}>
-                <Card>
-                  <TextStack title={what} subtitle={`${n === 1 ? 'file' : `${n} files`} · ${String(rec.status).toLowerCase()}`} />
-                </Card>
-              </li>
-            ))}
+          <SectionHead title="What it touched" titleLevel={3} />
+          {/* flat rows on the page, one List item each, no card per row (her note, 21 Nov) */}
+          <Flow gap={8} as="ul" aria-label="What this record touched">
+            {touched(files).map(([what, n]) => {
+              const to = targetOf(what);
+              return (
+                <ListRow
+                  key={what}
+                  layout="stacked"
+                  divider
+                  statusBar={STATUS_TONE[rec.status] ?? 'neutral'}
+                  title={what}
+                  description={`${n === 1 ? '1 file' : `${n} files`} · ${String(rec.status).toLowerCase()}`}
+                  trailing={to ? true : undefined}
+                  href={to ?? undefined}
+                />
+              );
+            })}
           </Flow>
-        </Flow>
-        <Flow direction="row" wrap fill gap={12}>
-          <Stat label="parts changed" value={comps.length} />
-          <Stat label="files changed" value={files.length} />
-          <Stat label="lines changed" value={lines(rec.stat)} />
         </Flow>
         <Flow gap={8}>
           <Input label="Ask about this change" value={q} onChange={setQ} onSend={ask} sendLabel="Ask" />
-          <AskAnswer answer={answer} who="The agent" />
+          <AskAnswer answer={answer} />
         </Flow>
       </Flow>
     </Card>
