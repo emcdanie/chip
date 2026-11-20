@@ -267,7 +267,8 @@ function Citation({ sources, at, onMove, onClose }) {
             <Pin number={String(s.n ?? at + 1)} variant="red" pinStyle="solid" ariaLabel={`Source ${s.n ?? at + 1}`} />
             <TextStack title={s.title} subtitle={[`${at + 1} of ${sources.length}`, when].filter(Boolean).join(' · ').replace(/ (?!·)(?<!· )/g, '\u00a0')} />
           </Flow>
-          <Flow direction="row" gap={4}>
+          {/* 12 apart: each 32 button keeps its full 44 target (32 + 12), none takes a neighbour's strip */}
+          <Flow direction="row" gap={12}>
             <Button variant="tertiary" size="sm" iconOnly icon="NavArrowLeft" ariaLabel="Previous source" disabled={at === 0} onClick={() => onMove(at - 1)} />
             <Button variant="tertiary" size="sm" iconOnly icon="NavArrowRight" ariaLabel="Next source" disabled={at === sources.length - 1} onClick={() => onMove(at + 1)} />
             <Button variant="tertiary" size="sm" iconOnly icon="Xmark" ariaLabel="Close the source" onClick={onClose} />
@@ -539,7 +540,7 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
           ) : null}
         </Flow>
         <Flow direction="row" justify="between" align="center" wrap gap={8}>
-          <Flow direction="row" gap={4}>
+          <Flow direction="row" gap={12}>
             <Button variant="tertiary" size="sm" iconOnly icon={copied === 'done' ? 'Check' : 'Copy'} ariaLabel={copied === 'done' ? 'Copied' : 'Copy the answer'} onClick={copy} />
             {onRetry ? <Button variant="tertiary" size="sm" iconOnly icon="RefreshDouble" ariaLabel="Ask again" onClick={() => onRetry()} /> : null}
             <Button variant="tertiary" size="sm" iconOnly icon="EmojiTalkingHappy" ariaLabel={reaction ? `Your reaction: ${reaction}. Change it` : 'React'} ariaExpanded={reacting} onClick={() => setReacting((r) => !r)} />
