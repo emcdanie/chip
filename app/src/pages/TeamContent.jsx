@@ -172,7 +172,8 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
         </li>
       </Flow>
 
-      <Flow span={6} fill>
+      {/* a list card hugs its rows (rule 15): its header stays at the top */}
+      <Flow span={6}>
         <Card>
           <Flow gap={16}>
             <SectionHead icon="Group" iconTone="warning" title="Waiting on you" number={asks.length} words={asks.length === 1 ? 'ask' : 'asks'} description="Every ask lands here. Reply to one, or to all" />
@@ -198,7 +199,8 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
         </Card>
       </Flow>
 
-      <Flow span={6} fill>
+      {/* a list card hugs its rows (rule 15): its header stays at the top */}
+      <Flow span={6}>
         <Card>
           <Flow gap={16}>
             <SectionHead icon="ChatBubbleEmpty" iconTone="info" title="Team chat" description="Today, with every agent" />

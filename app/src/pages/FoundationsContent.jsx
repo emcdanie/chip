@@ -602,10 +602,11 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
       {/* Figma's Foundations sections (decided 18 Nov): who uses what after the roles */}
       <WhoUsesWhat bella={data[1]} />
       {/* the scales row: type ramp and tokenized fill it (Figma 21 Nov: the 7-step Spacing card gives way to the full scale below) */}
-      <Flow span={6} fill>
+      {/* list cards hug their rows (rule 15), so Card's centring (0bc08b6) never pushes a header down */}
+      <Flow span={6}>
         <TypeRamp />
       </Flow>
-      <Flow span={6} fill>
+      <Flow span={6}>
         <Tokenized rows={f.tokenized.rows} />
       </Flow>
       <ShapeAndSpace radius={f.radius} />
