@@ -91,8 +91,22 @@ function noNames(t) {
    after its "Name, date: \"quote\"" opening; none when the body has none. */
 function whyOf(body) {
   const t = String(body ?? '').replace(/\s+/g, ' ').trim().replace(/^[A-Z][\w ]*, \d{1,2} \w{3}(?: \d{4})?:?\s*(\([^)]*\)\s*)?("[^"]*"[.,]?\s*)?(?:,?\s*after [^.]*\.\s*)?/, '');
-  const one = noNames(firstSentence(t));
+  const one = short(noNames(firstSentence(t)));
   return one.length > 3 ? one : null;
+}
+
+// Figma: two lines under each record (audit 10, "less, so the important thing
+// shows"). Lists in brackets go, then a long line ends at a word; History has the rest.
+const WHY_MAX = 110;
+function short(text) {
+  let t = text.replace(/^[-–]\s*/, '');
+  for (let prev; prev !== t; ) { prev = t; t = t.replace(/\s*\([^()]*\)/g, ''); }
+  // an unclosed bracket in the commit text: drop it up to its comma or colon, and any stray closer
+  t = t.replace(/\s*\([^()]*?[,:]+\s*/g, ': ').replace(/[()]/g, '');
+  t = t.replace(/\s+([,.;:])/g, '$1').replace(/\s+/g, ' ').trim();
+  const out = t.length <= WHY_MAX ? t : `${t.slice(0, WHY_MAX + 1).slice(0, t.slice(0, WHY_MAX + 1).lastIndexOf(' ')).replace(/[,;:]$/, '')}…`;
+  // a path (Components/<Type>/<Name>) may break after a slash, never mid-word in a narrow card
+  return out.replace(/\//g, '/\u200b');
 }
 
 export function detailModel(part, { history, pairs, map }) {

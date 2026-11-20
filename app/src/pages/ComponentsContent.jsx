@@ -10,7 +10,7 @@
 //
 // Part gaps (asked of parts-dev, never styled around): no zoom in / fit / zoom
 // out or Light / Dark overlay; pins and chips can't be clicked (the Anatomy tab
-// picks); the selected leader's ink look isn't passed through Stage; Step has
+// picks, and the stage line says so until Stage takes a click: audit 10); the selected leader's ink look isn't passed through Stage; Step has
 // no kind colours; Button has no preview state yet (hover / pressed / focus
 // are BELLA's own rules copied onto attributes). No Try it switch: Elleta
 // removed it from the stage, 20 Nov 2026 ("Remove it").
@@ -344,7 +344,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
   return (
     <Card>
       <Flow gap={16}>
-        <TextStack title="On the stage" body={`${scale === 2 ? 'Shown at 2×. ' : ''}${anatomy.length ? 'Pick a numbered pin: its card names the part and says if it passes or is a finding.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`}`} />
+        <TextStack title="On the stage" body={`${scale === 2 ? 'Shown at 2×. ' : ''}${anatomy.length ? 'Each numbered pin is a part. The card says if it passes or is a finding; pick another part on the Anatomy tab.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`}`} />
         {PLAY[part.name] ? (
           <Flow direction="row" gap={16} wrap align="center">
             <Input label="Label" value={label} onChange={setLabel} placeholder={PLAY[part.name].children} />
