@@ -9,15 +9,16 @@
 // Ask uses Input's own Send button.
 // Actions that run the agent (Ask) wait for the Menu part for the model menu
 // (Auto, local first).
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
-import Step from '@bella/components/Step/Step';
+import Step, { StepDay } from '@bella/components/Step/Step';
 import Tag from '@bella/components/Tag/Tag';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Heading from '@bella/components/Heading/Heading';
 import Notification from '@bella/components/Notification/Notification';
 import ListRow from '@bella/components/ListRow/ListRow';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Input from '@bella/components/Input/Input';
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
@@ -150,9 +151,10 @@ function Activity({ records, total, open, onOpen }) {
             const d = day(r.date);
             const head = d !== last ? d : null;
             last = d;
+            // Step is its own <li>; a day break is BELLA's StepDay, never an <li> around a Step (audit 21 Nov)
             return (
-              <li key={r.id}>
-                {head ? <TextStack subtitle={head} /> : null}
+              <Fragment key={r.id}>
+                {head ? <StepDay>{head}</StepDay> : null}
                 <Step
                   title={plain(r.title)}
                   time={time(r.date)}
@@ -163,7 +165,7 @@ function Activity({ records, total, open, onOpen }) {
                   selected={r.id === open}
                   onSelect={() => onOpen(r.id)}
                 />
-              </li>
+              </Fragment>
             );
           })}
         </Flow>
@@ -182,10 +184,40 @@ function Activity({ records, total, open, onOpen }) {
 /* Files in plain words, one row per thing: a page's two files are one page (they showed twice). */
 const touched = (files) => [...files.reduce((m, f) => m.set(fileWords(f), (m.get(fileWords(f)) ?? 0) + 1), new Map())];
 
+/* The Why in one plain sentence, asked of the local model once per record (from the commit
+   only) and kept for the visit; null while it writes, or when it can't. */
+const PLAIN = new Map();
+function usePlainWhy(rec) {
+  const [line, setLine] = useState(() => (rec ? PLAIN.get(rec.id) ?? null : null));
+  useEffect(() => {
+    if (!rec || !plainWhy(rec.why)) return undefined;
+    if (PLAIN.has(rec.id)) return setLine(PLAIN.get(rec.id));
+    setLine(null);
+    let live = true;
+    const record = { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: `${rec.title}\n\n${plainWhy(rec.why)}` };
+    fetch('/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'In one plain sentence, for a designer or developer who wasn’t there: what did this change do, and why? No file, token or code names.', page: 'history', auto: true, stream: true, record }) })
+      .then((r) => r.text())
+      .then((t) => {
+        const done = t.split('\n').filter(Boolean).map((l) => JSON.parse(l)).find((e) => e.type === 'done');
+        const first = String(done?.reply ?? '').replace(/\*\*/g, '').replace(/\s*\[\d+\]/g, '').split(/(?<=[.!?])\s/)[0].trim();
+        const ok = first && !/doesn.t say/i.test(first) ? first : null;
+        if (ok) PLAIN.set(rec.id, ok);
+        if (live) setLine(ok ?? firstSentence(plain(plainWhy(rec.why))));
+      })
+      .catch(() => live && setLine(firstSentence(plain(plainWhy(rec.why)))));
+    return () => {
+      live = false;
+    };
+  }, [rec?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  return line;
+}
+const firstSentence = (t) => String(t).split(/(?<=[.!?])\s/)[0];
+
 function Record({ id }) {
   const rec = useRecord(id);
   const [q, setQ] = useState('');
   const { answer, ask: send, clear } = useAsk();
+  const summary = usePlainWhy(rec);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => clear(), [id]);
   if (!rec) return <Card><EmptyState size="lane" title="Opening the record" line="Reading it from git. Two ticks." /></Card>;
@@ -210,15 +242,22 @@ function Record({ id }) {
           <TextStack subtitle={countLine(files, rec.stat)} />
         </Flow>
         {plainWhy(rec.why) ? (
+          // one plain sentence for someone who wasn't there, written from the commit itself; the
+          // commit's own words fold under Exact words (audit 21 Nov: raw text read as jargon)
           <Notification
             tone="info"
             showIcon={false}
             title="Why"
             message={
               <Flow gap={4} as="span">
-                {plainWhy(rec.why).split(/\n(?=-\s)|\n{2,}/).map((l) => l.replace(/^-\s*/, '').replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean).map((l) => (
-                  <span key={l}>{plain(l)}</span>
-                ))}
+                <span>{summary ?? 'Putting it in plain words…'}</span>
+                <Disclosure flush title="Exact words">
+                  <Flow gap={4} as="span">
+                    {plainWhy(rec.why).split(/\n(?=-\s)|\n{2,}/).map((l) => l.replace(/^-\s*/, '').replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean).map((l) => (
+                      <span key={l}>{plain(l)}</span>
+                    ))}
+                  </Flow>
+                </Disclosure>
               </Flow>
             }
           />
