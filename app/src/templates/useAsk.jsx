@@ -310,8 +310,8 @@ export function Ticks({ steps, label = 'What BELLA is doing' }) {
  * A reply in any CHIP chat (Ask, Terminal, Team): the received bubble, its sender's name over
  * the first of a run, a disc for who is talking, and the smiley that opens the coloured reaction
  * bar; the badge stays on the bubble. extra: more actions after the smiley.
- * Gap: the bubble's disc is a colour only, so no disc is drawn: BELLA's "B" (her mock) waits on
- * the part taking an initial or an Avatar (an empty circle said nothing, audit 21 Nov).
+ * disc: one or two letters ("B" for BELLA, her mock), drawn as the bubble's initial disc on the
+ * last bubble of a run (ChatBubble c1ae6fc).
  */
 export function Reply({ who, disc, tail = true, extra, children }) {
   const [react, setReact] = useState(false);
@@ -322,7 +322,7 @@ export function Reply({ who, disc, tail = true, extra, children }) {
         side="received"
         tail={tail}
         senderName={who}
-        disc={disc}
+        disc={tail ? disc : undefined}
         reactions={reaction ? [reaction] : undefined}
         actions={
           <Flow direction="row" gap={8} wrap align="center">
@@ -361,6 +361,7 @@ export function NotAnswered({ a, onRetry }) {
     <Flow gap={12}>
       <Reply
         who="BELLA"
+        disc="B"
         extra={
           onRetry ? (
             <>

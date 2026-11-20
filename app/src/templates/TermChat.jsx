@@ -68,7 +68,7 @@ function AgentRun({ id, onOpen }) {
           <TextStack subtitle={run.step ?? RUN_WORDS[run.status]} />
         </Flow>
       ) : (
-        <ChatBubble side="received" tail actions={<ActionChip onClick={() => onOpen({ kind: 'run', id })}>Open the run</ActionChip>}>
+        <ChatBubble side="received" tail disc="A" actions={<ActionChip onClick={() => onOpen({ kind: 'run', id })}>Open the run</ActionChip>}>
           {outcome}
         </ChatBubble>
       )}
@@ -95,7 +95,7 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
         </Flow>
       ) : null}
       {a?.status === 'answer' ? (
-        <Reply who="BELLA" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
+        <Reply who="BELLA" disc="B" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
           <Words text={[shaped.verdict, ...shaped.bullets].join(' ')} />
         </Reply>
       ) : null}

@@ -221,7 +221,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
                           <Tag variant="outline" tone="attention">Waiting on you</Tag>
                         </Flow>
                       ) : null}
-                      <Reply who={data.thread[i - 1]?.who === m.who ? undefined : m.who} tail={data.thread[i + 1]?.who !== m.who || i === data.thread.length - 1}>
+                      <Reply who={data.thread[i - 1]?.who === m.who ? undefined : m.who} disc={String(m.who ?? '?').slice(0, 1).toUpperCase()} tail={data.thread[i + 1]?.who !== m.who || i === data.thread.length - 1}>
                         {m.text}
                       </Reply>
                     </Fragment>
@@ -234,7 +234,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
                       {i === sent.length - 1 ? <ChatThreadDelivered>{[s.at ? hhmm(s.at) : null, 'sent to the board'].filter(Boolean).join(' · ')}</ChatThreadDelivered> : null}
                     </Fragment>
                   ))}
-                  {reply && sent.length ? <Reply who={reply.who}>{reply.text}</Reply> : null}
+                  {reply && sent.length ? <Reply who={reply.who} disc={String(reply.who ?? '?').slice(0, 1).toUpperCase()}>{reply.text}</Reply> : null}
                 </Flow>
               </ChatThread>
             ) : (
