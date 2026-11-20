@@ -398,6 +398,41 @@ function ShapeAndSpace({ radius }) {
   );
 }
 
+/* A duration's job in a word or two, from its token description ("Hover lift on interactive cards (ms)" → "hover lift"); none for a bare value. */
+const jobOf = (d) => (/^Value:/.test(d ?? '') ? null : String(d ?? '').replace(/\s*\(ms\)\.?$/, '').split(/ on | of /)[0].replace(/\.$/, '').toLowerCase() || null);
+
+/* Motion (Figma 810:82446): how long things take, to scale, and how they ease. */
+function Motion({ motion }) {
+  const narrow = useNarrow(1100);
+  const longest = Math.max(...motion.durations.map((d) => d.ms));
+  return (
+    <Card>
+      <Flow gap={16}>
+        <SectionHead icon="Clock" iconTone="warning" title="Motion" description="How long things take and how they ease" />
+        <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
+          <Flow gap={12}>
+            <TextStack title="Duration" />
+            {motion.durations.map((d) => (
+              <Flow key={d.token} gap={4}>
+                <Progress label={`motion/duration/${d.name}`} value={`${d.ms}ms`} fill={(100 * d.ms) / longest} />
+                {jobOf(d.description) ? <TextStack body={jobOf(d.description)} /> : null}
+              </Flow>
+            ))}
+          </Flow>
+          <Flow gap={12}>
+            <TextStack title="Easing" />
+            {/* the curve picture waits on an Easing curve part (library gap), and Figma's ink duration bars on a neutral Progress tone; each easing as its token and its curve */}
+            {motion.easings.map((e) => (
+              <TextStack key={e.token} subtitle={`motion/easing/${e.name}`} body={e.value} />
+            ))}
+          </Flow>
+        </Flow>
+        <TextStack body={`Read from the Foundations variables: motion duration and easing. Bars are to scale, ${longest}ms full.`} />
+      </Flow>
+    </Card>
+  );
+}
+
 /* Who uses what (Figma 807:82398): every colour role a part's CSS reads, most used first, with the parts that read it. */
 function WhoUsesWhat({ bella }) {
   const usage = bella.tokenUsage ?? {};
@@ -473,6 +508,7 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
         <Tokenized rows={f.tokenized.rows} />
       </Flow>
       <ShapeAndSpace radius={f.radius} />
+      {f.motion ? <Motion motion={f.motion} /> : null}
       {f.tiers ? <Tiers tiers={f.tiers} /> : null}
       <Problems rows={f.tokenized.rows} />
     </>
