@@ -76,6 +76,8 @@ const plain = (t) =>
     // a removed name or path leaves no comma at a bracket's edge ("(the stories,)" reads "(the stories)")
     .replace(/,\s*\)/g, ')')
     .replace(/\(\s*,\s*/g, '(')
+    // a removed path at a bracket's start leaves no space after it ("(data/x.json radius" reads "(radius")
+    .replace(/\(\s+/g, '(')
     .replace(/\s{2,}/g, ' ')
     .trim();
 /* A touched file in plain words: what it is, not its path ("Team page", "Button part"). */
@@ -321,8 +323,10 @@ export default function HistoryContent() {
         onClose={() => setFilters(false)}
         label="Filters"
         footer={
-          <Flow direction="row" justify="end" gap={8}>
-            <Button variant="secondary" onClick={() => (setStatus([]), setSince(''), setBreaking(false))}>
+          // Clear is a text button (tertiary, small: 44 hit area kept), as filter sheets in the big
+          // libraries do, so "Show N records" keeps its one line in the 320 drawer; on a phone the row wraps instead
+          <Flow direction="row" justify="end" align="center" gap={8} wrap>
+            <Button variant="tertiary" size="sm" onClick={() => (setStatus([]), setSince(''), setBreaking(false))}>
               Clear
             </Button>
             <Button variant="primary" onClick={() => setFilters(false)}>
