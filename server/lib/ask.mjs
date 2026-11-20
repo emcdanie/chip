@@ -174,7 +174,8 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   }).slice(0, TOP_K);
   // a page can hand over the thing being asked about (History: the commit's own words) as source 1
   if (record) found = [{ title: record.title, path: `record:${record.id}`, text: record.text, score: 1 }, ...found].slice(0, TOP_K);
-  if (ABOUT_CHECKS.test(message)) {
+  // a record is the only source: the live checks summary never takes its [1] (audit 21 Nov)
+  if (!record && ABOUT_CHECKS.test(message)) {
     try {
       found = [checksChunk(), ...found].slice(0, TOP_K);
     } catch {}
@@ -186,7 +187,7 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const chunks = fitBudget(found);
   const nums = numbered(chunks);
   const context = chunks.map((c) => `[${nums.get(keyOf(c)).n}] ${c.title}\n${c.text}`).join('\n\n---\n\n');
-  const where = (withPage ? `The user is looking at: ${page}.\n\n` : '') + (record ? 'Source [1] is the commit the user is looking at: its title, its own description and its files. Explain it in plain words from source [1] only; "explain" or "I don\'t understand" means say what the commit did and why, more simply. Only if source [1] has nothing on the question, say "The commit doesn\'t say." and stop.\n\n' : '');
+  const where = (withPage ? `The user is looking at: ${page}.\n\n` : '') + (record ? 'Source [1] is the commit the user is looking at: its title, its own description and its files. Explain it in plain words from source [1] only, and put [1] after each claim. "Explain" or "I don\'t understand" means: say what changed and why in simpler words than the commit, for someone who wasn\'t there; don\'t repeat its title. Only if source [1] has nothing on the question, say "The commit doesn\'t say." and stop.\n\n' : '');
   const turns = [...history, { role: 'user', content: `Sources:\n\n${context}\n\n===\n\n${where}Question: ${message}` }];
   const messages = [{ role: 'system', content: withPack(SYSTEM) }, ...turns]; // non-streamed path is local only
   // history keeps the bare question, not the sources, where it was answered

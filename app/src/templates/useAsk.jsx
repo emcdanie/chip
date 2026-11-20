@@ -19,8 +19,9 @@ function plainError(message = '') {
   return "The answer didn't come back. Try again in a moment.";
 }
 
-const ticks = (read, write) => [
-  { title: "Reading BELLA's docs", state: read },
+// what it reads: BELLA's docs, or only the change being asked about (History)
+const ticks = (read, write, reading) => [
+  { title: reading, state: read },
   { title: 'Writing the answer', state: write },
 ];
 
@@ -30,9 +31,11 @@ export default function useAsk() {
   const turn = useRef(0);
   const ask = async (message, page, record) => {
     const mine = ++turn.current;
+    const reading = record ? 'Reading this change' : "Reading BELLA's docs";
+    const tk = (r, w) => ticks(r, w, reading);
     const set = (a) => mine === turn.current && setAnswer(a);
     let reply = '';
-    set({ steps: ticks('current', 'pending'), reply: '' });
+    set({ steps: tk('current', 'pending'), reply: '' });
     try {
       const r = await fetch('/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, page, auto: true, stream: true, record }) });
       if (!r.ok || !r.body) throw new Error(String(r.status));
@@ -47,14 +50,14 @@ export default function useAsk() {
         buf = lines.pop();
         for (const line of lines.filter(Boolean)) {
           const ev = JSON.parse(line);
-          if (ev.type === 'sources' || ev.type === 'provider') set({ steps: ticks('done', 'current'), reply });
+          if (ev.type === 'sources' || ev.type === 'provider') set({ steps: tk('done', 'current'), reply });
           else if (ev.type === 'token') {
             reply += ev.text;
-            set({ steps: ticks('done', 'current'), reply });
-          } else if (ev.type === 'done') set({ steps: ticks('done', 'done'), reply: ev.reply || reply, done: true });
+            set({ steps: tk('done', 'current'), reply });
+          } else if (ev.type === 'done') set({ steps: tk('done', 'done'), reply: ev.reply || reply, done: true });
           else if (ev.type === 'weak') {
             const near = (ev.closest ?? []).map((s) => s.title).filter(Boolean);
-            set({ steps: ticks('done', 'done'), reply: `Nothing in BELLA's docs is close enough to answer that.${near.length ? ` Nearest: ${near.join('; ')}.` : ''} Try asking it another way.`, done: true });
+            set({ steps: tk('done', 'done'), reply: `Nothing in BELLA's docs is close enough to answer that.${near.length ? ` Nearest: ${near.join('; ')}.` : ''} Try asking it another way.`, done: true });
           } else if (ev.type === 'error') throw new Error(ev.error);
         }
       }
@@ -85,8 +88,14 @@ function Words({ text }) {
 /* Verdict first, detail folded (her rule: a verdict line with the bold key phrase, at most 3 bullets, detail closed until asked). */
 function Answer({ reply }) {
   const lines = String(reply).split('\n').map((l) => l.trim()).filter(Boolean);
-  const bullets = lines.filter((l) => /^[-*•]\s/.test(l)).slice(0, 3).map((l) => l.replace(/^[-*•]\s+/, ''));
-  const verdict = lines.filter((l) => !/^[-*•]\s/.test(l)).join(' ');
+  // the verdict is the first sentence only; any other sentence joins the detail, ahead of the bullets
+  const prose = lines.filter((l) => !/^[-*•]\s/.test(l)).join(' ');
+  const [first = '', ...more] = prose.split(/(?<=[.!?](?:\s*\[\d+\])*)\s+(?=[A-Z])/);
+  const bullets = [...more, ...lines.filter((l) => /^[-*•]\s/.test(l)).map((l) => l.replace(/^[-*•]\s+/, ''))].slice(0, 3);
+  // one key phrase in bold, never the whole line: the first bold span, and none when it covers most of the sentence
+  const bold = first.match(/\*\*([^*]+)\*\*/);
+  const plainFirst = first.replace(/\*\*/g, '');
+  const verdict = bold && bold[1].length < plainFirst.length * 0.6 ? plainFirst.replace(bold[1], `**${bold[1]}**`) : plainFirst;
   return (
     <Flow gap={8}>
       <span>

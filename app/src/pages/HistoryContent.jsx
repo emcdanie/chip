@@ -72,6 +72,10 @@ const plain = (t) =>
     // a commit reference in brackets ("(bella-parts f134741)") is bookkeeping, not words
     .replace(/\s*\([^()]*\b[0-9a-f]{7,40}\b[^()]*\)/g, '')
     .replace(/\bbella-parts\b/g, "BELLA's parts")
+    // server words a designer or developer who wasn't there can read (audit 21 Nov: "/search", "got a 400")
+    .replace(/\b(?:got|returned|gave) an? \d{3}\b/g, 'was refused')
+    .replace(/\ban? (?:4|5)\d\d\b(?!\s*(?:px|ms|%))/g, 'an error')
+    .replace(/(?<![\w.])\/(?:search|runs|checks|gaps|ask|map|stories|review|host\/test|needs)\b/g, 'CHIP’s server')
     .replace(/\s+([,.;:)])/g, '$1')
     .replace(/\(\s*\)|,\s*(?=[,.;])/g, '')
     // a removed name or path leaves no comma at a bracket's edge ("(the stories,)" reads "(the stories)")
@@ -89,7 +93,8 @@ const fileWords = (f) => {
   if (/\.stories\./.test(f)) return `${name} stories`;
   // a page's model is its data, not a page ("workModel page" read as a page, audit 9)
   if (parts.includes('pages') && /Model$/.test(name)) return `${name.replace(/Model$/, '')} data`;
-  if (parts.includes('pages')) return `${name} page`;
+  // a page's own file is the page; a helper beside it (WorkDrawer) reads as words, not a page
+  if (parts.includes('pages')) return PAGES.includes(name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()) ? `${name} page` : name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^(\w)(.*)$/, (_, a, b) => a + b.toLowerCase());
   if (parts.includes('templates')) return `${name} template`;
   if (parts.includes('components')) return `${name} part`;
   if (parts[0] === 'server') return 'CHIP server';
@@ -107,6 +112,14 @@ const targetOf = (what) => {
   if (m[2] === 'part') return `#/components/${m[1].toLowerCase()}`;
   const id = m[1].replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
   return PAGES.includes(id) ? `#/${id}` : null;
+};
+/* The counts under the title, from the same rows "What it touched" lists: its parts and pages
+   (none named when there are none), then files and lines (audit 21 Nov: "3 parts" over no part rows). */
+const countLine = (files, stat) => {
+  const rows = touched(files).map(([w]) => w);
+  const parts = rows.filter((w) => / part$/.test(w)).length;
+  const pages = rows.filter((w) => / page$/.test(w)).length;
+  return [parts ? count(parts, 'part') : null, pages ? count(pages, 'page') : null, count(files.length, 'file'), `${count(lines(stat), 'line')} changed`].filter(Boolean).join(' · ');
 };
 const count = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
 const lines = (stat) => [...String(stat ?? '').matchAll(/(\d+) (?:insertion|deletion)/g)].reduce((n, m) => n + Number(m[1]), 0);
@@ -177,9 +190,10 @@ function Record({ id }) {
   useEffect(() => clear(), [id]);
   if (!rec) return <Card><EmptyState size="lane" title="Opening the record" line="Reading it from git. Two ticks." /></Card>;
   const files = Array.isArray(rec.files) ? rec.files : [];
-  const comps = Array.isArray(rec.components) ? rec.components : [];
   // the record's own words go as a source, so the answer can come from the commit itself
-  const ask = () => q.trim() && send(`About ${rec.repo} commit ${rec.sha} ("${rec.title}"): ${q.trim()}`, 'history', { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: `${rec.title}\n\n${plainWhy(rec.why)}\n\nFiles: ${files.join(', ') || 'none listed'}` });
+  // "explain" or "I don't understand" asks one clear question the model can answer from the commit
+  const plainAsk = (t) => (/\b(explain|understand|what does (this|it) mean|simpler)\b/i.test(t) ? 'In simple words, for someone who wasn’t there: what did this change do, and why?' : t);
+  const ask = () => q.trim() && send(`About ${rec.repo} commit ${rec.sha} ("${rec.title}"): ${plainAsk(q.trim())}`, 'history', { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: `${rec.title}\n\n${plainWhy(rec.why)}\n\nFiles: ${files.join(', ') || 'none listed'}` });
   return (
     <Card>
       <Flow gap={24}>
@@ -193,7 +207,7 @@ function Record({ id }) {
           {/* the counts, once, under the title (her note, 21 Nov: "should these not be at the top").
               Gap: no BELLA part sets numbers in Geist Mono and words in Lexend on one line, so the
               line is TextStack's meta line for now */}
-          <TextStack subtitle={[count(comps.length, 'part'), count(files.length, 'file'), `${count(lines(rec.stat), 'line')} changed`].join(' · ')} />
+          <TextStack subtitle={countLine(files, rec.stat)} />
         </Flow>
         {plainWhy(rec.why) ? (
           <Notification
