@@ -40,7 +40,7 @@ const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0].replace(/\.$/, '');
 // Figma's node line is short meta ("9 have no pair", "Static score 85.3"), read from the node's own detail
 const SHORT = {
   // 429 checks of 105 pairs (each pair in 4 themes): say both, as the data means (final audit, 21 Nov)
-  contrast: (d) => (d.match(/(\d+) checks · (\d+) pairs/) ? `${d.match(/(\d+) checks · (\d+) pairs/)[1]} checks · ${d.match(/(\d+) checks · (\d+) pairs/)[2]} pairs` : d.match(/fails: (\d+) failing/) ? `${d.match(/fails: (\d+) failing/)[1]} failing` : null),
+  contrast: (d) => (d.match(/(\d+) checks across (\d+) pairs/) ? `${d.match(/(\d+) checks across (\d+) pairs/)[1]} checks across ${d.match(/(\d+) checks across (\d+) pairs/)[2]} pairs` : d.match(/fails: (\d+) failing/) ? `${d.match(/fails: (\d+) failing/)[1]} failing` : null),
   contracts: (d) => (d.match(/(\d+) of (\d+)/) ? `${d.match(/(\d+) of (\d+)/)[1]} of ${d.match(/(\d+) of (\d+)/)[2]} match` : null),
   stories: (d) => {
     const m = d.match(/(\d+) of (\d+)/);

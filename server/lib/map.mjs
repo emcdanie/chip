@@ -21,7 +21,7 @@ function pairsReading() {
     // a failing run prints no count, only how many fail ("contrast pairs: 1 failing")
     if (failing) return { state: 'bad', line: `The pairs check fails: ${failing} failing across 4 themes.` };
     if (!r.checked) return { state: 'unknown', line: 'The pairs check didn’t report a count.' };
-    return { state: r.ok ? 'ok' : 'bad', line: `${r.checked} checks · ${r.pairs.length} pairs in 4 themes${r.ok ? ', all clear the bar' : ''}.` };
+    return { state: r.ok ? 'ok' : 'bad', line: `${r.checked} checks across ${r.pairs.length} pairs in 4 themes${r.ok ? ', all clear the bar' : ''}.` };
   } catch {
     return { state: 'unknown', line: 'Not run yet.' };
   }
