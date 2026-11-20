@@ -66,7 +66,10 @@ function measure() {
   const clipBox = (a) => {
     const r = a.getBoundingClientRect();
     const s = getComputedStyle(a);
-    return { l: r.left + parseFloat(s.borderLeftWidth), t: r.top + parseFloat(s.borderTopWidth), r: r.left + parseFloat(s.borderLeftWidth) + a.clientWidth, b: r.top + parseFloat(s.borderTopWidth) + a.clientHeight };
+    // overflow: clip paints up to overflow-clip-margin past the padding box (Stage, 82b6301)
+    const m = s.overflowX === 'clip' && s.overflowY === 'clip' ? parseFloat(s.overflowClipMargin) || 0 : 0;
+    const l = r.left + parseFloat(s.borderLeftWidth), t = r.top + parseFloat(s.borderTopWidth);
+    return { l: l - m, t: t - m, r: l + a.clientWidth + m, b: t + a.clientHeight + m };
   };
   const ancestorsClipping = (el) => {
     const out = [];
