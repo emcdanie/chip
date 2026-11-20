@@ -22,6 +22,7 @@ import Menu, { MenuItem } from '@bella/components/Menu/Menu';
 import Toast from '@bella/components/Toast/Toast';
 import Toasts from '../templates/Toasts.jsx';
 import TaskCard from '@bella/components/TaskCard/TaskCard';
+import Tag from '@bella/components/Tag/Tag';
 import ListRow from '@bella/components/ListRow/ListRow';
 import DataTable from '@bella/components/DataTable/DataTable';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -42,10 +43,13 @@ export const VIEWS = [
 ];
 
 /* Figma's Table state (800:81240): every task as a row, sortable, on the page ground. */
+/* Lane as a Tag in the lane's tone (her 21 Nov, question 7 A) and Status as its Tag (21 Nov: tables
+   show the status Tag); sorting stays on the words. Neutral is Tag's default tone. */
+const tagTone = (t) => (t === 'neutral' ? 'default' : t);
 const TABLE_COLUMNS = [
   { key: 'title', label: 'Task', sortable: true },
-  { key: 'lane', label: 'Lane', sortable: true },
-  { key: 'status', label: 'Status', sortable: true },
+  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag tone={tagTone(LANE_TONE[r.laneId])}>{r.lane}</Tag> },
+  { key: 'status', label: 'Status', sortable: true, render: (r) => (r.status ? <Tag tone={tagTone(r.tone)}>{r.status}</Tag> : null) },
   { key: 'branch', label: 'Branch', sortable: true, render: (r) => r.branch ?? 'No branch' },
   { key: 'who', label: 'Who acts', sortable: true },
 ];
@@ -248,7 +252,7 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
           <WorkDrawer item={opened} onClose={() => setOpen(null)} onNotice={move.setNotice} onChanged={() => window.dispatchEvent(new Event('chip:changed'))} onAccepted={accepted} />
           {view === 'table' ? (
             model.total ? (
-              <DataTable caption="Every task on the board" columns={TABLE_COLUMNS} rows={model.lanes.flatMap((l) => l.cards.map((c) => ({ ...c, lane: l.name })))} rowKey="id" />
+              <DataTable caption="Every task on the board" columns={TABLE_COLUMNS} rows={model.lanes.flatMap((l) => l.cards.map((c) => ({ ...c, lane: l.name, laneId: l.id })))} rowKey="id" />
             ) : (
               <EmptyState size="lane" mark="🏖️" title="A clear day" line="Nothing on the board. Go on, take the afternoon." />
             )
