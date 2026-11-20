@@ -55,7 +55,8 @@ const time = (d) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', m
 const STATUS_TONE = { Merged: 'success', Shipped: 'success', Decided: 'info', 'On a branch': 'attention', Undone: 'neutral' };
 /* Who made a record, as Figma says it: the role, never a person or a handle
    (Many users, not one, 20 Nov); the agent stays the agent. */
-const roleOf = (who) => (!who ? null : /claude|agent|bot/i.test(who) ? 'the agent' : /in CHIP/i.test(who) ? 'a maintainer, in CHIP' : 'a maintainer');
+// the role alone, no "a" or "the" (Elleta, 21 Nov)
+const roleOf = (who) => (!who ? null : /claude|agent|bot/i.test(who) ? 'agent' : /in CHIP/i.test(who) ? 'maintainer, in CHIP' : 'maintainer');
 // Plain words on screen (her rule): no Figma node ids, file paths, app routes or model names.
 const plain = (t) =>
   String(t ?? '')

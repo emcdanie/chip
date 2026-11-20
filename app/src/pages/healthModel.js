@@ -20,7 +20,8 @@ export const TARGET = 90;
 
 /* Who takes each fix, as Figma's Needs you cards said it (601:109235: pairs a maintainer,
    keyboard lines a developer); the code checks are a developer's. Docs names no role in Figma. */
-const WHO = { contrast: 'a maintainer', a11y: 'a developer', story: 'a developer', contract: 'a developer', dsds: 'a developer' };
+// the role alone, no "a" (Elleta, 21 Nov)
+const WHO = { contrast: 'maintainer', a11y: 'developer', story: 'developer', contract: 'developer', dsds: 'developer' };
 
 
 const names = (list) => (list.length > 3 ? `${list.slice(0, 2).join(', ')} +${list.length - 2}` : list.join(', '));

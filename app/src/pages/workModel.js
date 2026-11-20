@@ -7,7 +7,8 @@ import useCached from '../templates/useCached.js';
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 /* The Table's "Who acts" (Figma 800:81240), by the kind of item: the role, never a person. */
-const WHO_ACTS = { Git: 'a maintainer', Fix: 'a reviewer', Gate: 'a developer', Check: 'a developer' };
+// the role alone, no "a" (Elleta, 21 Nov: "can you removethe (a) from these seems like its not important")
+const WHO_ACTS = { Git: 'maintainer', Fix: 'reviewer', Gate: 'developer', Check: 'developer' };
 /* The branch an item names ("Merge chip/fix-llms-txt?", "BELLA's feat/chip-components is behind"); null when it names none. */
 const branchIn = (t) => String(t).match(/\b(?:feat|fix|chip|chore|main|release)\/[\w.-]*\w/)?.[0] ?? null;
 
@@ -25,7 +26,7 @@ function needCard(n) {
   // the review, never repeated on the board (19 Nov audit).
   // an agent can take a failed check (b21, rule A); pull, merge and push stay hers ("Push and merge: never moves up, always asks")
   const fixable = failed && (n.kind === 'Gate' || n.kind === 'Check') && n.action?.type === 'review';
-  return { id: n.id, title: name, branch: branchIn(`${n.title} ${n.what ?? ''}`), who: WHO_ACTS[n.kind] ?? 'a maintainer', line: [n.kind, n.risk ? `${n.risk} risk` : null].filter(Boolean).join(' · ') || undefined, status: n.status, tone: failed ? 'danger' : 'attention', failed, at: n.at, action: n.action?.label, fixable, check: n.action?.check, open: openOf(n) };
+  return { id: n.id, title: name, branch: branchIn(`${n.title} ${n.what ?? ''}`), who: WHO_ACTS[n.kind] ?? 'maintainer', line: [n.kind, n.risk ? `${n.risk} risk` : null].filter(Boolean).join(' · ') || undefined, status: n.status, tone: failed ? 'danger' : 'attention', failed, at: n.at, action: n.action?.label, fixable, check: n.action?.check, open: openOf(n) };
 }
 
 /* An agent run as a card, by where it is. */
@@ -42,10 +43,10 @@ export function workModel({ needs = [], runs = [] }) {
   const needsYou = needs.map(needCard).filter((c) => !(c.fixable && working.has(c.title))).sort((a, b) => Number(b.failed) - Number(a.failed) || (a.at ?? 0) - (b.at ?? 0));
   const by = (...s) => runs.filter((r) => s.includes(r.status));
   const lanes = [
-    { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r), status: 'Failed', tone: 'danger', who: 'a developer' })), ...needsYou] },
-    { id: 'agent', name: 'Agent', cards: by('starting', 'running').map((r) => ({ ...runCard(r), status: 'Working', tone: 'info', who: 'the agent' })) },
-    { id: 'gate', name: 'Gate', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info', who: 'the gate' })) },
-    { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success', who: 'a reviewer' })) },
+    { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r), status: 'Failed', tone: 'danger', who: 'developer' })), ...needsYou] },
+    { id: 'agent', name: 'Agent', cards: by('starting', 'running').map((r) => ({ ...runCard(r), status: 'Working', tone: 'info', who: 'agent' })) },
+    { id: 'gate', name: 'Gate', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info', who: 'gate' })) },
+    { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success', who: 'reviewer' })) },
   ];
   const total = lanes.reduce((s, l) => s + l.cards.length, 0);
   return { lanes, total, brief: briefOf(lanes) };

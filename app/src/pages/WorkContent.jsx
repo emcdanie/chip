@@ -51,7 +51,8 @@ const TABLE_COLUMNS = [
   { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag variant="line" tone={tagTone(LANE_TONE[r.laneId])}>{r.lane}</Tag> },
   { key: 'status', label: 'Status', sortable: true, render: (r) => (r.status ? <Tag variant="line" tone={tagTone(r.tone)}>{r.status}</Tag> : null) },
   { key: 'branch', label: 'Branch', sortable: true, render: (r) => r.branch ?? 'No branch' },
-  { key: 'who', label: 'Who acts', sortable: true },
+  // the role alone; capitalised here because it starts its cell (Elleta, 21 Nov)
+  { key: 'who', label: 'Who acts', sortable: true, render: (r) => (r.who ? r.who[0].toUpperCase() + r.who.slice(1) : null) },
 ];
 
 /* Lanes with nothing in them: Belfast-mode lines (her 19 Nov empty states). */
