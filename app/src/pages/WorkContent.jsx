@@ -76,7 +76,7 @@ function Lane({ lane: given, index, move }) {
     // it opens while a card is dragged, and after the drop (or a cancel) it closes up before it goes (parts-dev dc158de)
     ...(agent && (move.dragging || move.closing) ? [<BoardLaneDropSpace key="drop" label="Drop here to start" open={!!move.dragging} onClosed={() => move.setClosing(false)} />] : []),
     ...(agent ? move.starting.filter((c) => !lane.cards.some((t) => t.title === c.title)).map((c) => <TaskCard key={`start-${c.id}`} title={c.title} line="Sent from Needs you" status="Starting" statusTone="info" />) : []),
-    ...lane.cards.flatMap((c) => {
+    ...[...lane.cards, ...Object.values(move.leaving).filter((x) => x.lane === lane.id && !lane.cards.some((c) => c.id === x.card.id)).map((x) => x.card)].flatMap((c) => {
       const needs = lane.id === 'needs';
       const card = (
         <TaskCard
@@ -85,7 +85,11 @@ function Lane({ lane: given, index, move }) {
           line={c.line}
           status={c.status}
           statusTone={c.tone}
-          onOpen={c.open ? () => move.open(c.open) : undefined}
+          onOpen={c.open ? () => move.open(c.open, { card: c, lane: lane.id }) : undefined}
+          // motion items 4 and 6: a card new to Needs you (or back from Undo) pops in; an accepted one leaves
+          entering={needs && move.isNew(c.id)}
+          leaving={!!move.leaving[c.id]}
+          onLeft={move.leaving[c.id] ? () => move.left(c.id) : undefined}
           dragging={move.dragging === c.id}
           draggable={needs && c.fixable ? true : undefined}
           onDragStart={needs && c.fixable ? (ev) => (ev.dataTransfer.setData('text/plain', c.id), (ev.dataTransfer.effectAllowed = 'move'), move.setDragging(c.id)) : undefined}
@@ -151,7 +155,29 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
   const [briefShut, setBriefShut] = useState(false);
   // what a card, row or the brief opened: the drawer in this shell, never the old app
   const [opened, setOpen] = useState(null);
-  const move = { ...useMove(), open: setOpen };
+  // the card the drawer was opened from, so Accept can send that card off the board
+  const from = useRef(null);
+  // cards leaving after Accept, kept on screen (even once the board drops them) until they've slid out
+  const [leaving, setLeaving] = useState({});
+  // Needs you's cards as first shown: only cards that arrive after that pop in, never on first load
+  const seen = useRef(null);
+  const arrived = useRef(new Set());
+  const needsIds = model?.lanes.find((l) => l.id === 'needs')?.cards.map((c) => c.id) ?? null;
+  if (needsIds && !seen.current) seen.current = new Set(needsIds);
+  else if (needsIds) needsIds.forEach((id) => !seen.current.has(id) && (seen.current.add(id), arrived.current.add(id)));
+  const move = {
+    ...useMove(),
+    open: (o, card) => ((from.current = card ?? null), setOpen(o)),
+    isNew: (id) => arrived.current.has(id),
+    leaving,
+    left: (id) => (setLeaving(({ [id]: _, ...rest }) => rest), window.dispatchEvent(new Event('chip:changed'))),
+  };
+  const accepted = () => {
+    const f = from.current;
+    setOpen(null);
+    if (f) setLeaving((l) => ({ ...l, [f.card.id]: f }));
+    else window.dispatchEvent(new Event('chip:changed'));
+  };
   // Check again ends with a toast that says what it found (feedback on the control plus a toast)
   const wasLoading = useRef(false);
   useEffect(() => {
@@ -206,7 +232,7 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
               icon="Brain"
               title="Brief · from CHIP’s checks"
               message={model.brief.message}
-              action={model.brief.action && model.brief.open ? { label: model.brief.action, onClick: () => setOpen(model.brief.open) } : undefined}
+              action={model.brief.action && model.brief.open ? { label: model.brief.action, onClick: () => move.open(model.brief.open) } : undefined}
               onClose={() => setBriefShut(true)}
               closeLabel="Hide the brief"
             />
@@ -219,7 +245,7 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
               </Toast>
             </Toasts>
           ) : null}
-          <WorkDrawer item={opened} onClose={() => setOpen(null)} onNotice={move.setNotice} onChanged={() => window.dispatchEvent(new Event('chip:changed'))} />
+          <WorkDrawer item={opened} onClose={() => setOpen(null)} onNotice={move.setNotice} onChanged={() => window.dispatchEvent(new Event('chip:changed'))} onAccepted={accepted} />
           {view === 'table' ? (
             model.total ? (
               <DataTable caption="Every task on the board" columns={TABLE_COLUMNS} rows={model.lanes.flatMap((l) => l.cards.map((c) => ({ ...c, lane: l.name })))} rowKey="id" />
@@ -244,9 +270,9 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
                           overline={l.name}
                           title={c.title}
                           description={c.line}
-                          actionButton={c.action && c.open ? <Button variant="tertiary" size="sm" onClick={() => setOpen(c.open)}>{c.action}</Button> : undefined}
+                          actionButton={c.action && c.open ? <Button variant="tertiary" size="sm" onClick={() => move.open(c.open)}>{c.action}</Button> : undefined}
                           trailing={!c.action && c.open ? true : undefined}
-                          onClick={!c.action && c.open ? () => setOpen(c.open) : undefined}
+                          onClick={!c.action && c.open ? () => move.open(c.open) : undefined}
                         />
                       )),
                     )}
