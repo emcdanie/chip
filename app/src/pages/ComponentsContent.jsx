@@ -39,7 +39,7 @@ import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
-import { usePartDetail } from './componentsModel.js';
+import { clip, usePartDetail } from './componentsModel.js';
 
 export const FILTERS = ['all', 'needs', 'ready'];
 const VIEWS = [
@@ -376,6 +376,11 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
   );
 }
 
+/* The overview's History card sits beside Ask and Checks, 336 wide at her
+   ~1100 window: its Why lines are cut shorter so each stays about two lines
+   (audit 10: up to 5); the History tab, full width, keeps the whole line. */
+const WHY_SHORT = 44;
+
 function HistoryCard({ part, detail, all }) {
   const list = all ? detail.history : detail.history.slice(0, HISTORY_SHOWN);
   let last = null;
@@ -394,7 +399,7 @@ function HistoryCard({ part, detail, all }) {
                 <li key={r.id}>
                   {head ? <TextStack subtitle={head} /> : null}
                   {/* Figma: the record's title and its Why line; green Merged tags went in the 20 Nov polish (one thing stands out) */}
-                  <Step title={r.title} detail={r.why ?? undefined} kind={STEP_KIND[r.type]} icon={STEP_KIND[r.type] ? undefined : 'Clock'} state="done" />
+                  <Step title={r.title} detail={(all ? r.why : clip(r.why, WHY_SHORT)) ?? undefined} kind={STEP_KIND[r.type]} icon={STEP_KIND[r.type] ? undefined : 'Clock'} state="done" />
                 </li>
               );
             })}
@@ -494,8 +499,11 @@ function ChecksCard({ part, detail, checked, touch }) {
 
 export default function ComponentsContent({ model, filter = 'all', onFilter, partId, onPart, onCheckAgain }) {
   const narrow = useNarrow();
-  // The three-way filter needs about 240px; on the smallest phones it is a Select.
+  // On the smallest phones the date drops to its own line.
   const tiny = useNarrow(420);
+  // The three-way filter beside Part needs about 715 of bar; below a 1140
+  // window (her ~1100 working width) it is a Select, so it stays on the right.
+  const tight = useNarrow(1140);
   const [view, setView] = useState('overview');
   const [picked, setPicked] = useState(null);
   // the live part's touch target, measured on the stage; it feeds the A11y check and the findings count
@@ -530,7 +538,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
       {/* Control bar: what you look at on the left, the filter on the right. */}
       <Flow direction="row" gap={16} wrap justify="between" align="center">
         {shown.length ? <Select label="Part" value={part.id} onChange={onPart} options={shown.map((p) => ({ value: p.id, label: `${p.category} › ${p.name}` }))} /> : null}
-        {tiny ? <Select label="Show" value={filter} onChange={onFilter} options={options} /> : <SegmentedControl options={options} value={filter} onChange={onFilter} label="Filter parts" />}
+        {tight ? <Select label="Show" value={filter} onChange={onFilter} options={options} /> : <SegmentedControl options={options} value={filter} onChange={onFilter} label="Filter parts" />}
       </Flow>
       {!part ? (
         <EmptyState size="lane" mark="🤷" title="Nothing matches" line="No part fits that filter. Try All." />

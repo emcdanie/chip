@@ -98,13 +98,18 @@ function whyOf(body) {
 // Figma: two lines under each record (audit 10, "less, so the important thing
 // shows"). Lists in brackets go, then a long line ends at a word; History has the rest.
 const WHY_MAX = 110;
+/** A Why line cut at a word to `max` characters, with an ellipsis. */
+export function clip(text, max) {
+  if (!text || text.length <= max) return text;
+  return `${text.slice(0, max + 1).slice(0, text.slice(0, max + 1).lastIndexOf(' ')).replace(/[,;:.]$/, '')}…`;
+}
 function short(text) {
   let t = text.replace(/^[-–]\s*/, '');
   for (let prev; prev !== t; ) { prev = t; t = t.replace(/\s*\([^()]*\)/g, ''); }
   // an unclosed bracket in the commit text: drop it up to its comma or colon, and any stray closer
   t = t.replace(/\s*\([^()]*?[,:]+\s*/g, ': ').replace(/[()]/g, '');
   t = t.replace(/\s+([,.;:])/g, '$1').replace(/\s+/g, ' ').trim();
-  const out = t.length <= WHY_MAX ? t : `${t.slice(0, WHY_MAX + 1).slice(0, t.slice(0, WHY_MAX + 1).lastIndexOf(' ')).replace(/[,;:]$/, '')}…`;
+  const out = clip(t, WHY_MAX);
   // a path (Components/<Type>/<Name>) may break after a slash, never mid-word in a narrow card
   return out.replace(/\//g, '/\u200b');
 }
