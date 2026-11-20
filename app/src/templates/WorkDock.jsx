@@ -109,6 +109,8 @@ export default function WorkDock() {
   const asker = useAsk();
   const talk = useTalk(setDraft);
   const phone = useNarrow();
+  // under 400 the field's hint is shorter, so it shows whole beside Talk (its label says what it asks)
+  const tiny = useNarrow(400);
 
   useEffect(() => {
     try {
@@ -190,7 +192,7 @@ export default function WorkDock() {
     <Flow direction="row" gap={8} align="end" wrap grow="last">
       <Select label="Model" value={model} onChange={setModel} options={MODELS} />
       <Flow direction="row" gap={8} align="end" grow="first">
-        <Input label="Ask about BELLA" placeholder="Ask about BELLA" value={draft} onChange={setDraft} onSend={send} sendLabel="Send" />
+        <Input label="Ask about BELLA" placeholder={tiny ? 'Your question' : 'Ask about BELLA'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" />
         {talk.can ? (
           <Button variant="secondary" ariaExpanded={talk.on} onClick={talk.toggle}>
             {talk.on ? 'Listening' : 'Talk'}
