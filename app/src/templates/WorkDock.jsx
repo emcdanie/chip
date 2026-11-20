@@ -174,8 +174,8 @@ export default function WorkDock() {
   // a real shell, the plain fallback, in its own drawer (WorkDrawer's terminal), never in the chat
   const newShell = () => setItem({ kind: 'terminal', repo: 'chip', command: '', title: 'a new shell' });
   // the composer talks to the tab it is on: the Terminal's chat, or Ask BELLA from any other tab
-  const send = () => {
-    const q = draft.trim();
+  const send = (text) => {
+    const q = String(text ?? draft).trim();
     if (!q) return;
     setDraft('');
     if (tab === 'term') return say.current?.(q);
@@ -230,11 +230,18 @@ export default function WorkDock() {
     </Button>
   ) : undefined;
 
+  // the likely next question, grey in the empty field; Enter sends it, typing replaces it (CLAUDE.md
+  // "Suggest the next question"; her 👍 on Input suggestion, 21 Nov). Only questions CHIP's data
+  // router answers: an answer's follow-ups (the server keeps only those), else Figma's example.
+  const chat = tab === 'term' ? termAsker : asker;
+  const asked = new Set([chat.answer?.q, ...(chat.past ?? []).map((t) => t.q)].filter(Boolean));
+  const suggestion = (chat.answer?.next ?? []).find((q) => !asked.has(q)) ?? (asked.has(EXAMPLE) ? undefined : EXAMPLE);
+
   const composer = (
     <Flow direction="row" gap={8} align="end" wrap grow="last">
       <Select label="Model" value={model} onChange={setModel} options={MODELS} />
       <Flow direction="row" gap={8} align="end" grow="first">
-        <Input label={tab === 'term' ? 'Message BELLA' : 'Ask about BELLA'} placeholder={tiny ? 'Your question' : tab === 'term' ? 'Message BELLA' : 'Ask about BELLA'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" />
+        <Input label={tab === 'term' ? 'Message BELLA' : 'Ask about BELLA'} placeholder={tiny ? 'Your question' : tab === 'term' ? 'Message BELLA' : 'Ask about BELLA'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" suggestion={suggestion} />
         {talk.can ? (
           <Button variant="secondary" ariaExpanded={talk.on} onClick={talk.toggle}>
             {talk.on ? 'Listening' : 'Talk'}
