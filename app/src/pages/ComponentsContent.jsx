@@ -453,15 +453,15 @@ function questions(part, detail) {
 }
 
 /* The frame's "Ask BELLA · questions" row (786:879378): under the notice, full width, wraps. */
-/* The question chips. The one asked says Asking… while BELLA works (ActionChip has no busy
-   state yet: a gap named for the library); the answer shows under the row, where it was asked. */
+/* The question chips. The one asked is busy while BELLA works (ActionChip busy, parts-dev 82f702b);
+   the others wait. The answer shows under the row, where it was asked. */
 function AskRow({ part, detail, onAsk, asking }) {
   return (
     <Flow direction="row" gap={8} wrap align="center">
       <TextStack title="Ask BELLA" />
       {questions(part, detail).map((t) => (
-        <ActionChip key={t} disabled={!!asking} onClick={() => onAsk(t)}>
-          {asking === t ? 'Asking…' : t}
+        <ActionChip key={t} busy={asking === t} disabled={!!asking && asking !== t} onClick={() => onAsk(t)}>
+          {t}
         </ActionChip>
       ))}
     </Flow>

@@ -543,8 +543,8 @@ function WhoUsesWhat({ bella }) {
   const unused = roles.length - rows.length;
   const columns = [
     { key: 'role', label: 'Role', sortable: true, render: (r) => <TextStack subtitle={r.role} /> },
-    // the count in Geist Mono (TextStack's subtext face); DataTable's numeric cells are Lexend (a part gap, asked)
-    { key: 'used', label: 'Used by', numeric: true, sortable: true, render: (r) => <TextStack subtitle={String(r.used)} /> },
+    // numeric: DataTable sets it in the number face (parts-dev 4372bee)
+    { key: 'used', label: 'Used by', numeric: true, sortable: true },
     { key: 'parts', label: 'Components', sortable: true },
   ];
   return (
