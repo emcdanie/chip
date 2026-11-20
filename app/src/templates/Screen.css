@@ -98,9 +98,10 @@
   position: absolute;
   inset-block: 0;
   display: flex;
-  /* at the lanes' foot, where they are empty, never over a card's › or a lane's title (audit 21 Nov) */
+  /* inside the lanes' 40 of bottom padding (BoardLane), so never over a card's › or a lane's title,
+     even in the tallest lane (audit 21 Nov: 16 up, a 32 arrow reached 8 into the last card) */
   align-items: flex-end;
-  padding-block-end: var(--spacing-16);
+  padding-block-end: var(--spacing-4);
   inline-size: var(--spacing-48);
   pointer-events: none;
 }
@@ -257,15 +258,17 @@
   inset-inline: calc(-1 * var(--spacing-12));
   padding: var(--spacing-12);
   z-index: 50;
-  max-block-size: calc(100dvh - var(--h-control) - var(--spacing-12) * 3);
+  /* runs to the window's foot, so no page text shows under its cut edge while it scrolls */
+  max-block-size: calc(100dvh - var(--h-control) - var(--spacing-8));
   overflow-y: auto;
 }
-/* a phone: the field shares the bar with its close button, so the list spans the bar's
-   width under it (audit 21 Nov: 196 wide at 320, names broke mid-word) */
-@media (width < 400px) {
+/* a phone (below 800, the app's phone width): the field shares the bar with its buttons, so the list
+   spans the bar's width under it (audit 21 Nov: 196 wide at 320, 182 at 414; names broke mid-word) */
+@media (width < 800px) {
   .chip-screen__search-results {
     position: fixed;
     inset-block-start: calc(var(--h-control) + var(--spacing-12) * 2 + var(--spacing-8) - var(--spacing-12));
     inset-inline: calc(var(--layout-gutter) - var(--spacing-12));
+    max-block-size: calc(100dvh - var(--h-control) - var(--spacing-12) - var(--spacing-8));
   }
 }
