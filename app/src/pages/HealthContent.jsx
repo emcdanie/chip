@@ -18,7 +18,7 @@ import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Tag from '@bella/components/Tag/Tag';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
@@ -152,6 +152,13 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
     }
   };
   const verb = (row) => (sending === row.id ? 'Sending…' : row.action);
+  // Check again ends with a toast that says what it found (feedback on the control plus a toast)
+  const wasLoading = useRef(false);
+  useEffect(() => {
+    if (wasLoading.current && !loading && model?.health) setNotice({ tone: 'success', text: `Checked ${checked ?? ''}: ${model.health.pct}% healthy, ${model.health.needsWork} ${model.health.needsWork === 1 ? 'part needs' : 'parts need'} work.` });
+    wasLoading.current = !!loading;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
   if (!model) return <EmptyState size="lane" mark="⏳" title="Reading BELLA" line="Counting every part and its checks." />;
   const { health, contrast, rows, n } = model;
   return (

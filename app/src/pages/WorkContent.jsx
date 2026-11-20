@@ -29,7 +29,7 @@ import TextStack from '@bella/components/TextStack/TextStack';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Flow from '../templates/Flow.jsx';
 import WorkDrawer from './WorkDrawer.jsx';
 import { LANE_NAMES } from './workModel.js';
@@ -152,6 +152,16 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
   // what a card, row or the brief opened: the drawer in this shell, never the old app
   const [opened, setOpen] = useState(null);
   const move = { ...useMove(), open: setOpen };
+  // Check again ends with a toast that says what it found (feedback on the control plus a toast)
+  const wasLoading = useRef(false);
+  useEffect(() => {
+    if (wasLoading.current && !loading && model) {
+      const n = model.lanes.find((l) => l.id === 'needs')?.cards.length ?? 0;
+      move.setNotice({ tone: 'success', title: `Checked ${checked ?? ''}`.trim(), message: n ? `${n} ${n === 1 ? 'thing needs' : 'things need'} you.` : 'Nothing needs you.' });
+    }
+    wasLoading.current = !!loading;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
   // a drop anywhere on the Agent lane sends the dragged card
   const onDrop = (ev) => {
     const lane = ev.target.closest?.('[data-bella-component="board-lane"]');
