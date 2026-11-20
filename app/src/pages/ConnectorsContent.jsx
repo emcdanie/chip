@@ -207,7 +207,6 @@ export default function ConnectorsContent() {
           {compare ? (
             <Notification
               tone={compare.state === 'ok' ? 'success' : 'info'}
-              icon="InfoCircle"
               title="Compare with Figma"
               message={compare.state === 'ok' ? 'Figma matches the code.' : `Can't compare yet. ${compare.blockedBy ? `Waits on ${nameOf(compare.blockedBy)}. ` : ''}${plainWords(first(compare.detail))}`}
             />

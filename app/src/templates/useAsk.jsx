@@ -16,8 +16,8 @@
 // wider, under the answer's overview below that (her 19 Nov rule).
 // Gaps (named for the library): no marker part for the key phrase (bold for
 // now), no reaction bar (round 6), no bottom-sheet Drawer for the phone source
-// (it opens under the answer), and the finding marks wait on IconWell
-// tone=danger small (StatusDot for now). Folded rows keep Disclosure's hairline,
+// (it opens under the answer). Finding marks are IconWell sm (error ✕, success ✓; parts 7e637ee).
+// Folded rows keep Disclosure's hairline,
 // as Figma Flow 12 draws them.
 import { useEffect, useRef, useState } from 'react';
 import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
@@ -33,6 +33,7 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
 import Card from '@bella/components/Card/Card';
+import IconWell from '@bella/components/IconWell/IconWell';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Icon from '@bella/components/Icon/Icon';
 import Toast from '@bella/components/Toast/Toast';
@@ -235,7 +236,7 @@ function Citation({ sources, at, onMove, onClose }) {
           <Flow as="ul" gap={8} aria-label="What it says">
             {findings.map((f) => (
               <Flow as="li" key={f.text} direction="row" gap={8} align="center">
-                {f.ok == null ? null : <StatusDot tone={f.ok ? 'success' : 'danger'} showLabel={false} label={f.ok ? 'Passes' : 'Fails'} />}
+                {f.ok == null ? null : <IconWell size="sm" tone={f.ok ? 'success' : 'error'} icon={f.ok ? 'Check' : 'Xmark'} label={f.ok ? 'Passes' : 'Fails'} />}
                 <TextStack body={<Words text={f.text} />} />
               </Flow>
             ))}

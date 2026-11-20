@@ -32,7 +32,7 @@ export const GATE_RUNS = ['none', 'running', 'passed', 'failed'];
 function GateBanner({ run }) {
   if (!run || run.state === 'none') return null;
   if (run.state === 'running')
-    return <Notification tone="info" icon="RefreshDouble" title={`Running the gate · ${run.done} of ${run.of} checks`} message={`Now running ${run.now}. You can keep working.`} />;
+    return <Notification tone="info" title={`Running the gate · ${run.done} of ${run.of} checks`} message={`Now running ${run.now}. You can keep working.`} />;
   if (run.state === 'passed') return <Notification tone="success" title="Gate passed" message={`${run.of} of ${run.of} checks · just now`} />;
   return <Notification tone="danger" title={`Gate failed: ${run.failed}`} message={run.why} />;
 }

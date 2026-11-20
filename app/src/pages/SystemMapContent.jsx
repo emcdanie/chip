@@ -102,7 +102,7 @@ function NodeCard({ node, open, onOpen }) {
         {/* Figma's node line is in the reading face */}
         <TextStack body={metaOf(node)} />
         <Flow direction="row">
-          <Tag tone={tone} showDot>
+          <Tag variant="line" tone={tone} showDot>
             {word}
           </Tag>
         </Flow>
@@ -142,7 +142,7 @@ function Detail({ node, byId }) {
         <Flow gap={8}>
           <TextStack title={node.name} body={plain(node.detail)} />
           <Flow direction="row">
-            <Tag tone={tone} showDot>
+            <Tag variant="line" tone={tone} showDot>
               {word}
             </Tag>
           </Flow>
