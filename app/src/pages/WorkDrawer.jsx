@@ -110,7 +110,7 @@ function FixDrawer({ item, onClose, onNotice, onChanged }) {
   const [busy, setBusy] = useState(null);
   const { data, error } = useItem(item, tick);
   const shell = (label, status, body, footer) => (
-    <Drawer open onClose={onClose} side="right" label={label} status={status} footer={footer}>
+    <Drawer open onClose={onClose} side="right" size="lg" label={label} status={status} footer={footer}>
       {body}
     </Drawer>
   );
@@ -194,7 +194,7 @@ function TermDrawer({ item, onClose }) {
   const [status, setStatus] = useState('connecting');
   const t = { id: `drawer-${item.repo}`, repo: item.repo, kind: 'shell', typed: item.command };
   return (
-    <Drawer open onClose={onClose} side="right" label="Terminal" status={`${item.repo} · ${item.title ?? 'a shell'}`}>
+    <Drawer open onClose={onClose} side="right" size="lg" label="Terminal" status={`${item.repo} · ${item.title ?? 'a shell'}`}>
       <Flow gap={8}>
         <TextStack subtitle={status === 'open' ? `${item.command} is typed, not run. Press Return in the terminal to run it.` : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…'} />
         <TermScreen t={t} active onStatus={setStatus} onActivity={() => {}} register={() => {}} />
