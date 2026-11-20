@@ -5,18 +5,26 @@
 // Per page, width (320, 768, 1024, 1100, 1440), theme (Chip light, dark) and
 // Work drawer (closed, open) it measures:
 //   shadow  an element's box-shadow is cut by a clipping ancestor's edge while
-//           the element sits inside it, and is still 1% ink or more at the cut
+//           the element sits inside it, and is still 1% ink or more at the cut,
+//           after any mask-image fade on the way up (ink × the mask's alpha at
+//           the cut line: a cut inside a faded band to transparent is not seen)
 //   content text, an icon or a control is cut by a clipping ancestor that
 //           does not scroll (overflow hidden or clip)
 //   corner  a filled child pokes past its rounded parent's corner (the child
 //           touches the corner, has a smaller radius and nothing clips it)
-//   ring    a control's real focus ring (focused, its outline read) would be
-//           cut by a clipping or scrolling ancestor's edge
+//   ring    a control's real focus ring would be cut by a clipping or scrolling
+//           ancestor's edge, judged where focus puts it: the control is focused
+//           for real, scrolls into view as a keyboard user would see it (the
+//           ancestors' scroll-padding included), then the scroll is put back
 // Each hit names the element, the clipping ancestor and the overhang in px, and
 // gets a 100% picture of the ancestor with the element outlined.
 //
+// Every run starts with a self-test on built-in fixtures (two real clips that
+// must stay hits, three that must not): a rule that hides a real clip stops
+// the sweep. --self-test runs only that.
+//
 // Usage: node scripts/clip-sweep.mjs [--app http://localhost:3160] [--out dir]
-//        [--pages work,health] [--widths 1100] [--themes light]
+//        [--pages work,health] [--widths 1100] [--themes light] [--self-test]
 // Needs a CHIP server and Playwright in BELLA_DIR (as checkpoint.mjs).
 import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -101,14 +109,41 @@ function measure() {
       return { alpha, x, y, blur, spread };
     }).filter((l) => l.alpha > 0);
   };
-  const shadowCut = (ls, r, b, c) => {
+  // a mask-image linear-gradient's alpha at a point: 1 where nothing masks it
+  const splitTop = (str) => { const out = []; let d = 0, cur = ''; for (const ch of str) { if (ch === '(') d++; if (ch === ')') d--; if (ch === ',' && !d) { out.push(cur.trim()); cur = ''; } else cur += ch; } if (cur.trim()) out.push(cur.trim()); return out; };
+  const colourAlpha = (c) => { if (/^transparent/.test(c)) return 0; const m = c.match(/rgba?\(([^)]*)\)/); if (!m) return 1; const v = m[1].split(/[\s,\/]+/).filter(Boolean); return v.length > 3 ? parseFloat(v[3]) : 1; };
+  const maskAlpha = (m, x, y) => {
+    const st = getComputedStyle(m);
+    const mi = st.maskImage && st.maskImage !== 'none' ? st.maskImage : st.webkitMaskImage;
+    const g = mi && mi.match(/^linear-gradient\((.*)\)$/);
+    if (!g) return 1;
+    const args = splitTop(g[1]);
+    let dir = 'to bottom';
+    if (/^to /.test(args[0])) dir = args.shift();
+    const mr = m.getBoundingClientRect();
+    const [len, pos] = dir === 'to top' ? [mr.height, mr.bottom - y] : dir === 'to left' ? [mr.width, mr.right - x] : dir === 'to right' ? [mr.width, x - mr.left] : [mr.height, y - mr.top];
+    const stops = args.map((a) => { const at = a.match(/(-?[\d.]+)(px|%)\s*$/); return { a: colourAlpha(a), at: at ? (at[2] === '%' ? (len * parseFloat(at[1])) / 100 : parseFloat(at[1])) : null }; });
+    if (stops[0].at == null) stops[0].at = 0;
+    if (stops[stops.length - 1].at == null) stops[stops.length - 1].at = len;
+    for (let i = 1; i < stops.length; i++) if (stops[i].at == null) { let j = i; while (stops[j].at == null) j++; stops[i].at = stops[i - 1].at + (stops[j].at - stops[i - 1].at) / (j - i + 1); }
+    for (let i = 1; i < stops.length; i++) stops[i].at = Math.max(stops[i].at, stops[i - 1].at);
+    if (pos <= stops[0].at) return stops[0].a;
+    for (let i = 1; i < stops.length; i++) if (pos <= stops[i].at) { const w = stops[i].at - stops[i - 1].at; return w ? stops[i - 1].a + ((stops[i].a - stops[i - 1].a) * (pos - stops[i - 1].at)) / w : stops[i].a; }
+    return stops[stops.length - 1].a;
+  };
+  // the masks between an element and its clipping ancestor, multiplied, at a point
+  const masksAt = (el, a, x, y) => { let k = 1; for (let m = el; m && m !== a.parentElement; m = m.parentElement) k *= maskAlpha(m, x, y); return k; };
+  const shadowCut = (ls, r, b, c, el, a) => {
     // gap from the box edge to the clip line, and the layer's push toward that side
     const sides = { l: [r.left - b.l, (l) => -l.x], r: [b.r - r.right, (l) => l.x], t: [r.top - b.t, (l) => -l.y], b: [b.b - r.bottom, (l) => l.y] };
     const out = [];
     for (const [k, [gap, push]] of Object.entries(sides)) {
       if ((k === 'l' || k === 'r') && !c.x) continue;
       if ((k === 't' || k === 'b') && !c.y) continue;
-      const ink = ls.reduce((sum, l) => sum + l.alpha * tail(gap - push(l) - l.spread, l.blur), 0);
+      // the cut line's middle, beside the box, with what any mask leaves of it
+      const cx = k === 'l' ? b.l + 0.5 : k === 'r' ? b.r - 0.5 : (Math.max(r.left, b.l) + Math.min(r.right, b.r)) / 2;
+      const cy = k === 't' ? b.t + 0.5 : k === 'b' ? b.b - 0.5 : (Math.max(r.top, b.t) + Math.min(r.bottom, b.b)) / 2;
+      const ink = ls.reduce((sum, l) => sum + l.alpha * tail(gap - push(l) - l.spread, l.blur), 0) * masksAt(el, a, cx, cy);
       if (ink >= 0.01) out.push(`${k}${Math.round(gap)} ${(ink * 100).toFixed(1)}%`);
     }
     return out.length ? out.join(', ') : null;
@@ -126,7 +161,7 @@ function measure() {
     if (ls.length) for (const { a, x, y } of anc) {
       const b = clipBox(a);
       if (!inside(r, b)) break; // scrolled out or itself cut: content check covers it
-      const o = shadowCut(ls, r, b, { x, y });
+      const o = shadowCut(ls, r, b, { x, y }, el, a);
       if (o) { hits.push({ kind: 'shadow', el: path(el), by: name(a), over: `gap and ink at the cut: ${o}`, box: [r.left, r.top, r.width, r.height], clip: [b.l, b.t, b.r - b.l, b.b - b.t] }); break; }
     }
     // content cut by a clip that does not scroll
@@ -138,23 +173,30 @@ function measure() {
       const o = apart ? null : over({ l: r.left, r: r.right, t: r.top, b: r.bottom }, b, { x, y });
       if (o && !a.matches('[class*=srOnly], .sr-only, [class*=visually]') && !el.closest('[class*=srOnly], .sr-only')) { hits.push({ kind: 'content', el: path(el), by: name(a), over: o, box: [r.left, r.top, r.width, r.height], clip: [b.l, b.t, b.r - b.l, b.b - b.t] }); break; }
     }
-    // focus ring: focus it, read the ring it really draws (outline outside its box, or a
-    // box-shadow ring), and test that against each clipping ancestor
+    // focus ring: focus it for real so it scrolls into view as a keyboard user sees it
+    // (the ancestors' scroll-padding included), read the ring it draws (outline outside
+    // its box, or a box-shadow ring), test that against each clipping ancestor, then put
+    // every scroll back
     if (el.matches('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])') && !el.disabled) {
-      const cands = anc.filter(({ a }) => inside(r, clipBox(a)));
-      const near = cands.some(({ a, x, y }) => over({ l: r.left - RING, r: r.right + RING, t: r.top - RING, b: r.bottom + RING }, clipBox(a), { x, y }));
+      const near = anc.filter(({ a }) => inside(r, clipBox(a))).some(({ a, x, y }) => over({ l: r.left - RING, r: r.right + RING, t: r.top - RING, b: r.bottom + RING }, clipBox(a), { x, y }));
       if (near) {
-        el.focus({ preventScroll: true, focusVisible: true });
+        const scrollers = [...anc.map(({ a }) => a), document.scrollingElement];
+        const kept = scrollers.map((a) => [a, a.scrollLeft, a.scrollTop, a.style.scrollBehavior]);
+        for (const a of scrollers) a.style.scrollBehavior = 'auto';
+        el.focus({ focusVisible: true });
+        const fr = el.getBoundingClientRect();
         const fs = getComputedStyle(el);
         const ring = fs.outlineStyle === 'none' ? 0 : Math.max(0, parseFloat(fs.outlineWidth) + parseFloat(fs.outlineOffset));
         const sh = Math.max(0, ...layers(el).map((l) => l.spread));
-        el.blur();
         const R = Math.max(ring, sh);
-        for (const { a, x, y } of cands) {
+        for (const { a, x, y } of anc) {
           const b = clipBox(a);
-          const o = R ? over({ l: r.left - R, r: r.right + R, t: r.top - R, b: r.bottom + R }, b, { x, y }) : null;
-          if (o) { hits.push({ kind: 'ring', el: path(el), by: name(a), over: `${o} (ring ${R})`, box: [r.left - R, r.top - R, r.width + 2 * R, r.height + 2 * R], clip: [b.l, b.t, b.r - b.l, b.b - b.t] }); break; }
+          if (!inside(fr, b)) break; // focus could not bring it into view: the content check covers a cut box
+          const o = R ? over({ l: fr.left - R, r: fr.right + R, t: fr.top - R, b: fr.bottom + R }, b, { x, y }) : null;
+          if (o) { hits.push({ kind: 'ring', el: path(el), by: name(a), over: `${o} (ring ${R}, focused and scrolled into view)`, box: [fr.left - R, fr.top - R, fr.width + 2 * R, fr.height + 2 * R], clip: [b.l, b.t, b.r - b.l, b.b - b.t] }); break; }
         }
+        el.blur();
+        for (const [a, l, t, sb] of kept) { a.scrollLeft = l; a.scrollTop = t; a.style.scrollBehavior = sb; }
       }
     }
     // corner: a filled child poking past this element's rounded corner
@@ -189,6 +231,45 @@ function measure() {
 
 const browser = await chromium.launch();
 mkdirSync(OUT, { recursive: true });
+
+// Self-test: real clips must stay hits, faded or scrolled-clear ones must not.
+const FIXTURE = `<!doctype html><style>
+body{margin:0;font:16px/1.5 sans-serif}
+.f{position:absolute;top:24px;width:220px}
+.card{height:60px;margin:32px 16px 0;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+button{display:block;margin:0 16px;height:44px;outline:none}
+button:focus-visible{outline:4px solid #2b8fd0;outline-offset:4px}
+.shadow{height:100px;overflow:hidden}
+.ring{height:120px;overflow:auto}
+.spacer{height:70px}.after{height:200px}
+</style>
+<div class="f f1-shadow-cut shadow" style="left:0"><div class="card"></div></div>
+<div class="f f2-shadow-faded shadow" style="left:260px;mask-image:linear-gradient(to top,transparent,#000 24px)"><div class="card"></div></div>
+<div class="f f3-ring-cut" style="left:520px;height:44px;overflow:hidden"><button>Cut</button></div>
+<div class="f f4-ring-room ring" style="left:780px;scroll-padding-block:16px"><div class="spacer"></div><button>Room</button><div class="after"></div></div>
+<div class="f f5-ring-no-room ring" style="left:1040px"><div class="spacer"></div><button>No room</button><div class="after"></div></div>`;
+const EXPECT = { 'f1-shadow-cut': 'shadow', 'f2-shadow-faded': null, 'f3-ring-cut': 'ring', 'f4-ring-room': null, 'f5-ring-no-room': 'ring' };
+{
+  const p = await browser.newPage({ viewport: { width: 1300, height: 400 } });
+  await p.setContent(FIXTURE);
+  await p.keyboard.press('Tab'); // so focus() draws :focus-visible rings
+  const hits = await p.evaluate(measure);
+  await p.screenshot({ path: join(OUT, 'self-test-fixtures.png') });
+  await p.close();
+  const bad = Object.entries(EXPECT).filter(([f, kind]) => {
+    const got = hits.filter((h) => h.by.includes(f) && (h.kind === 'shadow' || h.kind === 'ring')).map((h) => h.kind);
+    return kind ? !got.includes(kind) : got.length > 0;
+  });
+  console.log(`clip-sweep self-test: ${Object.keys(EXPECT).length - bad.length} of ${Object.keys(EXPECT).length} fixtures as expected${bad.length ? `; WRONG: ${bad.map(([f]) => f).join(', ')}` : ''}`);
+  if (bad.length) {
+    await browser.close();
+    process.exit(2);
+  }
+  if (process.argv.includes('--self-test')) {
+    await browser.close();
+    process.exit(0);
+  }
+}
 const found = new Map(); // one entry per page + kind + element + ancestor
 for (const page of PAGES) {
   for (const theme of THEMES) {
