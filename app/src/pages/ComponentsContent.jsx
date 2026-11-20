@@ -627,7 +627,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                 ) : null
               ) : (
                 <>
-                  <Flow span={8} fill>
+                  {/* a list card hugs its rows (rule 15): it sits at the top, never stretched and centred (Card 0bc08b6) */}
+                  <Flow span={8}>
                     <HistoryCard part={part} detail={detail} />
                   </Flow>
                   <Flow span={4} gap={24} grow="last">
