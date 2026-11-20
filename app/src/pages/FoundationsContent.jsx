@@ -1,7 +1,7 @@
 // Foundations · content: the code twin of the Figma slot fill (CHIP Dashboard
 // 612:61970, state default 612:60963). Roles (each colour's one job), the
 // type ramp, the spacing steps, how much of the parts' CSS reads a token,
-// the three token tiers, and the token problems. Real data only: the colours
+// the three token tiers (read live from BELLA's CSS), and the token problems. Real data only: the colours
 // are BELLA's live values in the page's theme, read from its CSS, their ratios
 // measured against the surface; the rest is data/foundations.json (sync-foundations,
 // from BELLA's token files and its parts' CSS). BELLA parts and Flow only.
@@ -31,12 +31,15 @@ import Progress from '@bella/components/Progress/Progress';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Button from '@bella/components/Button/Button';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
-import Input from '@bella/components/Input/Input';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import DataTable from '@bella/components/DataTable/DataTable';
 import Link from '@bella/components/Link/Link';
+import SearchField from '@bella/components/SearchField/SearchField';
 import Flow from '../templates/Flow.jsx';
+import Toasts from '../templates/Toasts.jsx';
+import Toast from '@bella/components/Toast/Toast';
+import Tag from '@bella/components/Tag/Tag';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 
@@ -210,24 +213,106 @@ function Tokenized({ rows }) {
   );
 }
 
-function Tiers({ tiers }) {
-  const narrow = useNarrow();
-  const total = TIERS.reduce((n, [k]) => n + (tiers[k] ?? 0), 0);
+/* BELLA's colour tokens in the page's theme, read from its own CSS (CSSOM keeps var() as
+   written), sorted into Figma's three tiers: definitions (ramps), theme (background,
+   content, border roles) and component (a part's own token pointing at a role). */
+const THEME_ROLE = /^--color-(background|content|border)-/;
+function useTokenTiers() {
+  const [state, setState] = useState(null);
+  useEffect(() => {
+    const read = () => {
+      const theme = document.documentElement.getAttribute('data-theme') || 'chip-light';
+      const val = new Map();
+      for (const sheet of [...document.styleSheets]) {
+        let rules;
+        try {
+          rules = sheet.cssRules;
+        } catch {
+          continue;
+        }
+        for (const r of [...rules]) {
+          // ':root, [data-theme=bella-light]' holds the ramps; the theme's own block overrides it after
+          const sels = (r.selectorText ?? '').split(',').map((x) => x.trim().replace(/"/g, ''));
+          if (!sels.includes(':root') && !sels.includes(`[data-theme=${theme}]`)) continue;
+          for (const name of [...r.style]) if (name.startsWith('--')) val.set(name, r.style.getPropertyValue(name).trim());
+        }
+      }
+      const ref = (v) => v?.match(/^var\((--[\w-]+)\)$/)?.[1] ?? null;
+      const tierOf = (n) => (THEME_ROLE.test(n) ? 'theme' : n.startsWith('--color-') ? 'definitions' : ref(val.get(n)) && THEME_ROLE.test(ref(val.get(n))) ? 'component' : null);
+      const tokens = [...val.keys()].filter((n) => tierOf(n)).map((n) => ({ name: n, tier: tierOf(n), to: ref(val.get(n)) }));
+      setState({ tokens, byName: new Map(tokens.map((t) => [t.name, t])) });
+    };
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => watch.disconnect();
+  }, []);
+  return state;
+}
+
+/* Figma's row words: the last step as the name, the rest as its group ("color/brand/blue"). */
+function words(t) {
+  const bits = t.name.replace(/^--/, '').split('-');
+  if (t.tier === 'component') {
+    const part = bits.slice(0, 2).join('-');
+    return { title: bits.slice(2).join('-') || part, sub: part };
+  }
+  if (t.tier === 'theme') return { title: bits.slice(2).join('-'), sub: `color/${bits[1]}` };
+  return { title: bits[bits.length - 1], sub: bits.slice(0, -1).join('/') };
+}
+
+const START = '--nav-list-current-background'; // Figma's picked token
+const TIER_ORDER = { definitions: 0, theme: 1, component: 2 };
+
+/* Tiers (Figma 612:62034): three columns of tokens; picking one marks the chain it sits in,
+   from its definition through its theme role to the part that uses it.
+   Gaps (named for the library): ListRow has no colour-dot lead, and no part draws the
+   curved line from row to row across columns, so the chain shows as selected rows. */
+function Tiers() {
+  // three columns only where each keeps "color/background" on one line (a 1200 window); below, they stack
+  const narrow = useNarrow(1200);
+  const data = useTokenTiers();
+  const [picked, setPicked] = useState(START);
+  if (!data) return null;
+  const { tokens, byName } = data;
+  const pick = byName.has(picked) ? picked : tokens.find((t) => t.tier === 'component')?.name;
+  // the chain: up through what it points at, down to the first token that points at it
+  const chain = new Set();
+  for (let t = byName.get(pick); t && !chain.has(t.name); t = t.to ? byName.get(t.to) : null) chain.add(t.name);
+  for (let name = pick; ; ) {
+    const down = tokens.find((t) => t.to === name && !chain.has(t.name));
+    if (!down) break;
+    chain.add(down.name);
+    name = down.name;
+  }
+  const count = (k) => tokens.filter((t) => t.tier === k).length;
+  const total = TIERS.reduce((n, [k]) => n + count(k), 0);
+  // each column: its chain token, then three of the same group
+  const rows = (k) => {
+    const mine = tokens.filter((t) => t.tier === k);
+    const hit = mine.find((t) => chain.has(t.name));
+    const group = hit ? words(hit).sub : null;
+    const others = mine.filter((t) => t !== hit && (!group || words(t).sub === group));
+    return [...(hit ? [hit] : []), ...others, ...mine.filter((t) => t !== hit && !others.includes(t))].slice(0, 4);
+  };
   return (
     <Card>
       <Flow gap={24}>
-        <SectionHead icon="ViewGrid" iconTone="info" title="Tiers" description="Where a token sits: definitions feed the theme, the theme feeds parts" number={total} words="tokens · 3 tiers" />
+        <SectionHead icon="ViewGrid" iconTone="info" title="Tiers" description="Pick a token to see where it comes from and where it goes" number={total} words="colour tokens · 3 tiers" />
         <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
           {TIERS.map(([k, name, job]) => (
-            <Flow key={k} gap={4}>
-              <Flow direction="row" justify="between" gap={8}>
-                <TextStack title={name} />
-                <TextStack title={String(tiers[k])} />
+            <Flow key={k} gap={8}>
+              <SectionHead title={name} titleLevel={3} description={job} number={count(k)} />
+              <Flow as="ul" gap={4} aria-label={`${name} tokens`}>
+                {rows(k).map((t) => (
+                  // a long group may break after a slash, never mid-word (320)
+                  <ListRow key={t.name} layout="stacked" title={words(t).title} description={words(t).sub.replace(/\//g, '/\u200b')} selected={chain.has(t.name)} trailing onClick={() => setPicked(t.name)} />
+                ))}
               </Flow>
-              <TextStack body={job} />
             </Flow>
           ))}
         </Flow>
+        <TextStack subtitle={[...chain].sort((a, b) => TIER_ORDER[byName.get(a).tier] - TIER_ORDER[byName.get(b).tier]).map((n) => n.replace(/^--/, '')).join(' → ')} />
       </Flow>
     </Card>
   );
@@ -235,8 +320,27 @@ function Tiers({ tiers }) {
 
 const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 
+/* Token problems (Figma 612:62034): one List item each, its status bar, the parts, an Open
+   tag, the verb and ›. Send hands the raw values to the agent (a run with each file and line);
+   › opens the first part on Components. */
 function Problems({ rows }) {
   const problems = rows.filter((r) => r.not.length);
+  const [busy, setBusy] = useState(null);
+  const [said, setSaid] = useState(null);
+  const send = async (r) => {
+    setBusy(r.p);
+    try {
+      const brief = [`Replace raw ${r.p.toLowerCase()} values in BELLA's parts with tokens (${r.tokens}). Each line is file:line and the declaration:`, ...r.not.map((n) => `- ${n.file}:${n.line} ${n.decl}`), 'Use an existing token only; ask before adding or changing one.'].join('\n');
+      const res = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief, title: `Tokens for ${r.not.length} ${r.p.toLowerCase()} values`, from: 'Foundations' }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.status === 'failed' || d.status === 'login') throw new Error(d.error || 'CHIP did not answer');
+      setSaid({ tone: 'success', text: `Sent to the agent: ${r.not.length} ${r.p.toLowerCase()} values. Its card is on Work.` });
+    } catch (e) {
+      setSaid({ tone: 'danger', text: `Not sent: ${e.message}.` });
+    } finally {
+      setBusy(null);
+    }
+  };
   return (
     <Card>
       <Flow gap={16}>
@@ -249,13 +353,17 @@ function Problems({ rows }) {
                 <ListRow
                   key={r.p}
                   layout="stacked"
+                  statusBar="attention"
                   title={`${r.not.length} ${r.p.toLowerCase()} ${r.not.length === 1 ? 'value isn’t a token' : 'values aren’t tokens'}`}
-                  meta={parts.length > 4 ? `${parts.slice(0, 4).join(', ')} and ${parts.length - 4} more` : parts.join(', ')}
+                  description={parts.length > 4 ? `${parts.slice(0, 4).join(', ')} and ${parts.length - 4} more` : parts.join(', ')}
+                  tag={<Tag tone="neutral">Open</Tag>}
                   actionButton={
-                    <Button variant="secondary" size="sm" href={`#/components/${kebab(parts[0])}`}>
-                      Open
+                    <Button variant="secondary" size="sm" disabled={!!busy} onClick={() => send(r)}>
+                      {busy === r.p ? 'Sending…' : 'Send'}
                     </Button>
                   }
+                  trailing
+                  href={`#/components/${kebab(parts[0])}`}
                 />
               );
             })}
@@ -263,6 +371,13 @@ function Problems({ rows }) {
         ) : (
           <EmptyState size="lane" mark="✨" title="No token problems" line="Every value in the parts’ CSS reads a token." />
         )}
+        {said ? (
+          <Toasts>
+            <Toast tone={said.tone} onClose={() => setSaid(null)}>
+              {said.text}
+            </Toast>
+          </Toasts>
+        ) : null}
       </Flow>
     </Card>
   );
@@ -463,7 +578,8 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
       {/* the switch keeps the right end at every width: the left group wraps (filter, then chips), never the bar (audit 9 at 1024 and 1100) */}
       <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align="start" grow={phone ? undefined : 'first'}>
         <Flow direction="row" gap={12} wrap align="center">
-          <Input label="Filter colour roles" leadingIcon="Search" placeholder="Filter colour roles…" value={q} onChange={setQ} />
+          {/* Figma: the field with its search mark and placeholder, no label row above it (audit 11) */}
+          <SearchField label="Filter colour roles" placeholder="Filter colour roles…" showShortcut={false} value={q} onChange={setQ} />
           <Flow direction="row" gap={8} wrap align="center" aria-label="Which roles">
             <FilterChip pressed={used === 'all'} onClick={() => setUsed('all')}>{`All ${all.length}`}</FilterChip>
             <FilterChip pressed={used === 'used'} onClick={() => setUsed('used')}>{`Used ${usedN}`}</FilterChip>
@@ -490,7 +606,7 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
       </Flow>
       <ShapeAndSpace radius={f.radius} />
       {f.motion ? <Motion motion={f.motion} /> : null}
-      {f.tiers ? <Tiers tiers={f.tiers} /> : null}
+      <Tiers />
       <Problems rows={f.tokenized.rows} />
     </>
   );
