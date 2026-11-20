@@ -469,18 +469,63 @@ export function shapeReply(reply) {
 }
 
 /**
+ * An answer's sources, one way in every chat (audit 21 Nov: Terminal pins opened nothing): a pin
+ * opens its source in place (Citation), ✕ or Esc puts focus back on the pin, and the sources fold
+ * under the answer. Returns openPin for AnswerLines, the open source and the "N sources" fold.
+ */
+export function useCitations(answer) {
+  const [cite, setCite] = useState(null);
+  const [claim, setClaim] = useState(null);
+  const opener = useRef(null);
+  useEffect(() => setCite(null), [answer?.q, answer?.status]);
+  const sources = answer?.sources ?? [];
+  const openPin = (n, el, line) => {
+    const i = sources.findIndex((x, k) => (x.n ?? k + 1) === n);
+    if (i < 0) return;
+    opener.current = el;
+    setClaim(line ?? null);
+    setCite(i);
+  };
+  const closeCite = () => {
+    setCite(null);
+    requestAnimationFrame(() => opener.current?.focus());
+  };
+  const open = cite != null && !!sources[cite];
+  const stale = sources.filter((x) => x.stale).length;
+  return {
+    openPin,
+    open,
+    citation: open ? <Citation sources={sources} at={cite} claim={claim} onMove={setCite} onClose={closeCite} /> : null,
+    sourcesFold: sources.length ? (
+      <Disclosure title={`${sources.length} ${sources.length === 1 ? 'source' : 'sources'}`} summary={stale ? `${stale} out of date` : undefined}>
+        <Flow as="ul" gap={4} aria-label="Sources">
+          {sources.map((x, i) => (
+            <ListRow
+              key={i}
+              layout="stacked"
+              pin={<Pin number={String(x.n ?? i + 1)} variant="red" pinStyle="solid" ariaLabel={`Source ${x.n ?? i + 1}`} onClick={(e) => openPin(x.n ?? i + 1, e.currentTarget)} />}
+              title={x.title}
+              description={[x.when ? day(x.when) : null, x.stale ? 'out of date' : null].filter(Boolean).join(' · ') || undefined}
+            />
+          ))}
+        </Flow>
+      </Disclosure>
+    ) : null,
+  };
+}
+
+/**
  * The thread for one question, in the mock's states. answer: from useAsk. onRetry(provider?), onStop,
  * onFollow(question), onFix: optional; followUps: questions to offer under an answer; composer: the field.
  */
 export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel = 'Fix', fixBusy = false, followUps = [], composer }) {
-  // the open source (an index into answer.sources) and the pin that opened it, for focus on close
-  const [cite, setCite] = useState(null);
+  // the open source, the pin that opened it and the sources fold: the one way every chat does it
+  const { openPin, open, citation, sourcesFold } = useCitations(answer);
   // copy says so on the button and in a toast (her rule: feedback on the control plus a toast)
   const [copied, setCopied] = useState(false);
   // a reaction, as in the chat (her 18 Nov "like an imessage"): the smiley opens the coloured bar
   const [reacting, setReacting] = useState(false);
   const [reaction, setReaction] = useState(null);
-  const opener = useRef(null);
   // beside the answer when the answer's own column has room for two at her mock's widths (800 or more), above it otherwise
   const [wide, setWide] = useState(false);
   const frame = useRef(null);
@@ -491,20 +536,7 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
     ro.observe(el);
     return () => ro.disconnect();
   });
-  useEffect(() => setCite(null), [answer?.q, answer?.status]);
   useEffect(() => (setReaction(null), setReacting(false)), [answer?.q]);
-  const [claim, setClaim] = useState(null);
-  const openPin = (n, el, line) => {
-    const i = (answer?.sources ?? []).findIndex((x, k) => (x.n ?? k + 1) === n);
-    if (i < 0) return;
-    opener.current = el;
-    setClaim(line ?? null);
-    setCite(i);
-  };
-  const closeCite = () => {
-    setCite(null);
-    requestAnimationFrame(() => opener.current?.focus());
-  };
   if (!answer) return composer ?? null;
   const a = answer;
   const shaped = a.verdict ? { verdict: a.verdict, bullets: a.bullets ?? [], next: [] } : shapeReply(a.reply ?? '');
@@ -512,7 +544,6 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
   const follow = followUps.length ? followUps : a.next?.length ? a.next : shaped.next ?? [];
   // the model cited nothing: its sources show as pins on the verdict, so an answer always says where it came from
   const cited = /\[\d+\]/.test(`${shaped.verdict} ${shaped.bullets.join(' ')}`);
-  const stale = (a.sources ?? []).filter((s) => s.stale).length;
   const skipped = (a.path ?? []).filter((s) => s.skipped).length;
   const copy = async () => {
     try {
@@ -522,12 +553,10 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
       setCopied('failed');
     }
   };
-  const open = cite != null && !!a.sources?.[cite];
   // the source opens in place: beside the answer where the thread has room for both (800 or
   // more), under the answer's overview at middle widths and on phones (her rule, 19 Nov: "beside
   // the panel when wide, under the answer at middle widths, a half-height sheet on phones";
   // the phone sheet waits on a bottom-sheet Drawer, so a phone has it under the answer too)
-  const citation = open ? <Citation sources={a.sources} at={cite} claim={claim} onMove={setCite} onClose={closeCite} /> : null;
   const answerBody =
     a.status === 'answer' ? (
       <Flow gap={16}>
@@ -542,21 +571,7 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
         />
         {wide ? null : citation}
         <Flow gap={8}>
-          {a.sources?.length ? (
-            <Disclosure title={`${a.sources.length} ${a.sources.length === 1 ? 'source' : 'sources'}`} summary={stale ? `${stale} out of date` : undefined}>
-              <Flow as="ul" gap={4} aria-label="Sources">
-                {a.sources.map((s, i) => (
-                  <ListRow
-                    key={i}
-                    layout="stacked"
-                    pin={<Pin number={String(s.n ?? i + 1)} variant="red" pinStyle="solid" ariaLabel={`Source ${s.n ?? i + 1}`} />}
-                    title={s.title}
-                    description={[s.when ? day(s.when) : null, s.stale ? 'out of date' : null].filter(Boolean).join(' · ') || undefined}
-                  />
-                ))}
-              </Flow>
-            </Disclosure>
-          ) : null}
+          {sourcesFold}
           {a.path?.length ? (
             <Disclosure title="How I got here" summary={skipped ? `${skipped} skipped` : undefined}>
               <Flow as="ol" gap={4} aria-label="How I got here">

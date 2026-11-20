@@ -20,7 +20,7 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
-import { AnswerLines, NotAnswered, Reply, Ticks, sendToAgent, shapeReply } from './useAsk.jsx';
+import { AnswerLines, NotAnswered, Reply, Ticks, sendToAgent, shapeReply, useCitations } from './useAsk.jsx';
 
 // Team draws its replies with the same bubble
 export { Reply };
@@ -79,6 +79,8 @@ function AgentRun({ id, onOpen }) {
 /* One turn: her message, then BELLA's reply (or what it's doing), then the agent's run if she sent it on. */
 function Turn({ turn, last, sent, onAgent, onRetry }) {
   const a = turn.answer;
+  // the same sources as Ask: a pin opens its source under the reply, the sources fold under it
+  const { openPin, citation, sourcesFold } = useCitations(a?.status === 'answer' ? a : null);
   const shaped = a && (a.verdict ? { verdict: a.verdict, bullets: a.bullets ?? [] } : shapeReply(a.reply ?? ''));
   return (
     <Flow gap={12}>
@@ -96,9 +98,11 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
       ) : null}
       {a?.status === 'answer' ? (
         <Reply who="BELLA" disc="B" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
-          <AnswerLines shaped={shaped} />
+          <AnswerLines shaped={shaped} onPin={openPin} />
         </Reply>
       ) : null}
+      {a?.status === 'answer' ? citation : null}
+      {a?.status === 'answer' ? sourcesFold : null}
       {a?.status === 'weak' || a?.status === 'error' || a?.status === 'stopped' ? <NotAnswered a={a} onRetry={onRetry} /> : null}
     </Flow>
   );
