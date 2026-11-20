@@ -2,8 +2,8 @@
 // 612:61970, state default 612:60963). Roles (each colour's one job), the
 // type ramp, the spacing steps, how much of the parts' CSS reads a token,
 // the three token tiers, and the token problems. Real data only: the colours
-// are BELLA's live Chip light values read from its CSS, their ratios measured
-// against the surface; the rest is data/foundations.json (sync-foundations,
+// are BELLA's live values in the page's theme, read from its CSS, their ratios
+// measured against the surface; the rest is data/foundations.json (sync-foundations,
 // from BELLA's token files and its parts' CSS). BELLA parts and Flow only.
 //
 // The control bar (Figma 612:60963 / table 800:79888): filter the colour
@@ -82,12 +82,21 @@ const ratio = (a, b) => {
 };
 const hex = ({ r, g, b }) => `#${[r, g, b].map((n) => Math.round(n).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
 
-/** Each role's live colour in Chip light, read through a probe so var() chains resolve. */
+/** Each role's live colour in the page's theme, read through a probe so var() chains
+    resolve; read again when the theme changes, so a swatch's hex and ratio name the
+    colour it shows (audit 11: dark swatches named their light values). */
 function useRoles() {
   const [roles, setRoles] = useState(null);
+  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'chip-light');
+  useEffect(() => {
+    const root = document.documentElement;
+    const watch = new MutationObserver(() => setTheme(root.getAttribute('data-theme') || 'chip-light'));
+    watch.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => watch.disconnect();
+  }, []);
   useEffect(() => {
     const probe = document.createElement('span');
-    probe.setAttribute('data-theme', 'chip-light');
+    probe.setAttribute('data-theme', theme);
     probe.style.position = 'absolute';
     probe.style.visibility = 'hidden';
     document.body.appendChild(probe);
@@ -112,7 +121,7 @@ function useRoles() {
       })),
     );
     probe.remove();
-  }, []);
+  }, [theme]);
   return roles;
 }
 
