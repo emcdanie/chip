@@ -70,8 +70,9 @@ function useToBottom(on) {
 
 /* The board's sideways cue (Elleta, 20 Nov at ~1100: the fourth lane was cut
    with no cue): like Tabs (her "B · chevron button"), a chevron at each end
-   that has more lanes, over a fade, scrolling one lane that way; swipe and
-   trackpad still scroll. */
+   that has more lanes, over a fade, scrolling the lanes in view that way (two
+   at 1100), so the board lands back on the grid's columns (visual study, 22
+   Nov); swipe and trackpad still scroll. */
 function useMore(ref, on) {
   const [more, setMore] = useState({ start: false, end: false });
   useLayoutEffect(() => {
@@ -93,8 +94,13 @@ function useMore(ref, on) {
   }, [ref, on]);
   const step = (dir) => {
     const el = ref.current;
-    const lane = el?.firstElementChild?.getBoundingClientRect().width ?? 240;
-    el?.scrollBy({ left: dir * lane, behavior: 'smooth' });
+    if (!el?.firstElementChild) return;
+    const s = getComputedStyle(el);
+    const gap = parseFloat(s.columnGap) || 0;
+    const lane = el.firstElementChild.getBoundingClientRect().width + gap;
+    const view = el.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight) + gap;
+    const inView = Math.max(1, Math.round(view / lane));
+    el.scrollBy({ left: dir * inView * lane, behavior: 'smooth' });
   };
   return [more, step];
 }

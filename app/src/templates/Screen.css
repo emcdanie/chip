@@ -140,20 +140,36 @@
   position: relative; /* so the parts' screen-reader-only labels stay inside the scroll box */
 }
 
-/* Lanes share the width down to the narrowest that keeps the published lane
-   head (32 sides; number, dot, name and count) on one line, 288 (the panel
-   width and a gutter: BELLA has no lane width token), then the board scrolls
-   sideways with the chevron cue (Elleta, 20 Nov at ~1100). At 240 "Needs you"
-   and "Ready" broke mid-word (21 Nov build). The board selector outranks the
-   lane part's own min-inline-size: 0. */
+/* Lanes span whole columns of the CHIP / Screen grid (visual study, 22 Nov,
+   approved: "ok i approve"): 3 columns each where the content is 1000 or
+   wider (all four in view at 1440), 6 below that (two in view at 1100, the
+   board scrolls by two, 1024 included), 12 under 500 (one lane, the phone). The width is the
+   board's layout, not the lane part's: 100cqi is the chip-content grid's
+   width, and the board's gap is the grid's gutter, so every lane edge sits on
+   a column edge. The board selector outranks the lane part's min-inline-size: 0. */
 .chip-board > .chip-flow--board > * {
-  flex: 1 0 calc(var(--layout-panel-width) + var(--layout-gutter));
-  min-inline-size: calc(var(--layout-panel-width) + var(--layout-gutter));
+  /* 6 columns: half the grid less half a gutter */
+  flex: 0 0 calc((100cqi - 11 * var(--layout-gutter)) / 2 + 5 * var(--layout-gutter));
+  min-inline-size: calc((100cqi - 11 * var(--layout-gutter)) / 2 + 5 * var(--layout-gutter));
   min-block-size: 0;
   max-block-size: 100%;
   /* no scroll of its own: BoardLane's card list scrolls, so the lane head stays put
      and the lane never cuts its cards' shadows (audit 3, way A) */
   position: relative;
+}
+@container chip-content (width >= 1000px) {
+  /* 3 columns */
+  .chip-board > .chip-flow--board > * {
+    flex-basis: calc((100cqi - 11 * var(--layout-gutter)) / 4 + 2 * var(--layout-gutter));
+    min-inline-size: calc((100cqi - 11 * var(--layout-gutter)) / 4 + 2 * var(--layout-gutter));
+  }
+}
+@container chip-content (width < 500px) {
+  /* 12 columns: the whole grid, where 6 would be under 240 (a phone) */
+  .chip-board > .chip-flow--board > * {
+    flex-basis: 100cqi;
+    min-inline-size: 100cqi;
+  }
 }
 .chip-flow {
   display: flex;
