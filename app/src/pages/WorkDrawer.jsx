@@ -255,7 +255,8 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
   const { data, error } = useItem(item, tick);
   const shell = (label, status, body, footer) => (
     <Drawer open onClose={onClose} side="right" size="lg" label={label} status={status} footer={footer}>
-      {body}
+      {/* one left edge with the sheet's title (audit 4, item 5) */}
+      <Flow inset>{body}</Flow>
     </Drawer>
   );
   if (error) return shell('Fix', undefined, <EmptyState size="lane" title="Couldn’t open this one" line="CHIP didn’t answer just now. Close it and try again." />);

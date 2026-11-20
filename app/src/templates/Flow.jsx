@@ -17,7 +17,8 @@ const GAPS = new Set([4, 8, 12, 16, 24]);
  * group at the right end (control bars: what you look at left, filters and
  * switchers right), 'end' pushes everything right; align: 'center' centres
  * a row's items, 'start' keeps each at its own size from the top or left, 'end' lines them up on their foot (a field and its button under a label); span: 12-column cells it takes when it
- * sits in the template's content grid; board: the Work board's frame (see
+ * sits in the template's content grid; inset: 16 at the sides, for content in a Drawer body (BELLA's body is 8 at
+ * the sides and expects its rows' own 16, so plain text lands on the title's 24 edge; audit 4, item 5); board: the Work board's frame (see
  * useToBottom) (12, 8, 7, 6, 5 or 4; 5 and 7 are
  * History's list and record, as Figma); stretch: it takes its container's
  * full width even where the container centres its child (the System map's
@@ -105,10 +106,10 @@ function useMore(ref, on) {
   return [more, step];
 }
 
-export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, stretch = false, aside = false, bullets = false, children, ...rest }) {
+export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, stretch = false, aside = false, bullets = false, inset = false, children, ...rest }) {
   const [boardRef, boardSize] = useToBottom(board);
   if (!GAPS.has(gap)) throw new Error(`Flow: gap ${gap} is not on the spacing scale (4, 8, 12, 16, 24)`);
-  const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', `chip-span-${span}`]
+  const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', `chip-span-${span}`]
     .filter(Boolean)
     .join(' ');
   const [more, step] = useMore(boardRef, board);
