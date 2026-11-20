@@ -12,7 +12,6 @@ import useCached from './useCached.js';
 import IconRail from '@bella/components/IconRail/IconRail';
 import NavItem from '@bella/components/NavItem/NavItem';
 import ProjectPanel from '@bella/components/ProjectPanel/ProjectPanel';
-import ClientSwitcher from '@bella/components/ClientSwitcher/ClientSwitcher';
 import TreeItem from '@bella/components/TreeItem/TreeItem';
 import TopBar from '@bella/components/TopBar/TopBar';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
@@ -206,27 +205,34 @@ export default function Screen({ place, header, tabs, children }) {
     isCurrent ? setShut(flip) : setOpened(flip);
   };
   const filter = filterFromHash();
-  const panel = (
-    <ProjectPanel
-      switcher={<ClientSwitcher name="BELLA" caption="Design system" />}
-      projects={
-        projects == null ? null : (
-          <>
-            {projects.map((p) => (
-              <ProjectTree key={p.id} p={p} current={p === current} open={p === current ? !shut.has(p.id) : opened.has(p.id)} onToggle={() => toggle(p, p === current)} branch={filter.branch} />
-            ))}
-          </>
-        )
-      }
-      status={
-        <>
-          {/* each Status row filters Work's board to its lane (user test 21 Nov, item 4) */}
-          {STATUS_ROWS.map((r) => (
-            <TreeItem key={r.id} kind="status" label={r.label} tone={r.tone} count={lanes?.[r.id]} showCount={lanes != null} href={`#/work?lane=${r.id}`} current={filter.lane === r.id} />
-          ))}
-        </>
-      }
-    />
+  // the top-left as one plain line (her 21 Nov pick "A, one plain line"; Figma CHIP / Screen 601:112027):
+  // the client's name, no tile, no subtitle. No ⌄ yet: there is one client and nothing to switch to.
+  const client = <TextStack title="BELLA" />;
+  const projectRows =
+    projects == null
+      ? null
+      : projects.map((p) => (
+          <ProjectTree key={p.id} p={p} current={p === current} open={p === current ? !shut.has(p.id) : opened.has(p.id)} onToggle={() => toggle(p, p === current)} branch={filter.branch} />
+        ));
+  // each Status row filters Work's board to its lane (user test 21 Nov, item 4)
+  const statusRows = STATUS_ROWS.map((r) => (
+    <TreeItem key={r.id} kind="status" label={r.label} tone={r.tone} count={lanes?.[r.id]} showCount={lanes != null} href={`#/work?lane=${r.id}`} current={filter.lane === r.id} />
+  ));
+  const panel = <ProjectPanel switcher={client} projects={projectRows} status={statusRows} />;
+  /* In a drawer, the panel's content only: the drawer's own white, padding and title, never the
+     panel's grey box, edge and padding inside it, and "Projects" once (Elleta, 21 Nov: "this is broken.."). */
+  const drawerPanel = (title) => (
+    <Flow gap={24}>
+      {client}
+      <Flow as="section" gap={4} aria-label="Projects">
+        {title === 'Projects' ? null : <TextStack title="Projects" />}
+        {projectRows}
+      </Flow>
+      <Flow as="section" gap={4} aria-label="Status">
+        <TextStack title="Status" />
+        {statusRows}
+      </Flow>
+    </Flow>
   );
   return (
     <div className="chip-screen">
@@ -260,10 +266,10 @@ export default function Screen({ place, header, tabs, children }) {
                 ))}
                 <NavItem label="Settings" icon="Settings" href="#/connectors" current={place === 'settings'} />
               </Flow>
-              {panel}
+              {drawerPanel('Menu')}
             </Flow>
           ) : (
-            panel
+            drawerPanel('Projects')
           )}
         </Drawer>
       ) : (
