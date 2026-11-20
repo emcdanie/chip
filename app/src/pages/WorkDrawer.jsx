@@ -18,6 +18,7 @@ import Button from '@bella/components/Button/Button';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import TextStack from '@bella/components/TextStack/TextStack';
+import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow from '@bella/components/ListRow/ListRow';
 import TourStep from '@bella/components/TourStep/TourStep';
@@ -103,7 +104,9 @@ function Change({ diff, proves, branch }) {
   if (!files.length) return null;
   return (
     <Flow gap={8}>
-      <TextStack title="The change" body={proves} />
+      {/* Figma Flow 12 heads each drawer group with a Section head (parts-motion read 791:264033) */}
+      <SectionHead title="What changed" titleLevel={3} />
+      <TextStack body={proves} />
       {branch ? <TextStack subtitle={`Branch ${branch}`} /> : null}
       <Disclosure flush title="Show the change" summary={plural(files.length, 'file')}>
         <Flow gap={16}>
@@ -162,7 +165,8 @@ function Notes({ summary, onAnswer }) {
   return (
     <Flow gap={16}>
       <Flow gap={8}>
-        <TextStack title="What the agent says" body={<Words text={n.verdict} />} />
+        <SectionHead title="Agent notes" titleLevel={3} />
+        <TextStack body={<Words text={n.verdict} />} />
         {n.points.length ? (
           <Flow as="ul" gap={4} aria-label="The agent's main points">
             {n.points.map((p) => (
@@ -344,7 +348,12 @@ function FixBody({ s, onAnswer }) {
       {s.why ? <TextStack title="Why" body={s.why} /> : null}
       {s.merge ? <TextStack body="CHIP doesn’t merge. Keep branch marks it ready for a maintainer to merge in git; Undo deletes it." /> : null}
       {s.notes ? <Notes summary={s.notes} onAnswer={onAnswer} /> : null}
-      {s.change ? <TextStack title="The change" body={s.change} subtitle={s.files?.length ? s.files.join(' · ') : undefined} /> : null}
+      {s.change ? (
+        <Flow gap={8}>
+          <SectionHead title="What changed" titleLevel={3} />
+          <TextStack body={s.change} subtitle={s.files?.length ? s.files.join(' · ') : undefined} />
+        </Flow>
+      ) : null}
       {s.diff ? <Change diff={s.diff} proves={s.proves} branch={s.branch} /> : null}
       {s.can === 'run' && s.thisWill ? <TextStack subtitle={`Run the fix will ${s.thisWill}`} /> : null}
     </Flow>

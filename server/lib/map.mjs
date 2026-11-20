@@ -12,13 +12,18 @@ import { BASE, listChecks } from './checks.mjs';
 import { waitingChecks } from './review.mjs';
 import { bellaPairs } from '../../scripts/lib/bella-pairs.mjs';
 
-// one number, one source: the pairs count comes from BELLA's own list, the reader Health uses (/gaps)
-function pairsLine() {
+// one number, one source: the pairs node's state and line both come from BELLA's own list, the
+// reader Health uses (/contrast-pairs), never CHIP's cached check (coordinator, 21 Nov)
+function pairsReading() {
   try {
     const r = bellaPairs(BELLA);
-    return `${r.checked} pairs checked across 4 themes${r.ok ? ', all clear the bar' : ''}.`;
+    const failing = r.summary?.match(/(\d+) failing/)?.[1];
+    // a failing run prints no count, only how many fail ("contrast pairs: 1 failing")
+    if (failing) return { state: 'bad', line: `The pairs check fails: ${failing} failing across 4 themes.` };
+    if (!r.checked) return { state: 'unknown', line: 'The pairs check didn’t report a count.' };
+    return { state: r.ok ? 'ok' : 'bad', line: `${r.checked} pairs checked across 4 themes${r.ok ? ', all clear the bar' : ''}.` };
   } catch {
-    return 'Not run yet.';
+    return { state: 'unknown', line: 'Not run yet.' };
   }
 }
 import * as host from '../host/registry.js';
@@ -97,7 +102,7 @@ export async function systemMap() {
     node({ id: 'contracts', group: 'Source', name: 'Contracts', ownGap: n.withContract < n.components, state: n.withContract < n.components ? 'bad' : fromCheck(ck.contract), detail: `${n.withContract} of ${n.components} components have one. ${ck.contract?.summary ?? ''}`, source: `tokens/contracts.json · ${lastChange(['tokens/contracts.json']) ?? ''}`, deps: ['tokens'] }),
     node({ id: 'components', group: 'Source', name: 'Components', state: 'ok', detail: `${n.components} components in src/components.`, source: `src/components · ${lastChange(['src/components']) ?? ''}`, deps: ['tokens', 'contracts'] }),
     // Checks
-    node({ id: 'contrast', group: 'Checks', name: 'Contrast pairs', state: fromCheck(ck.contrast), detail: ck.contrast?.failures?.[0] ?? pairsLine(), source: 'scripts/contrast-pairs.mjs (BELLA’s own pairs, as Health reads them)', deps: ['tokens'], action: { type: 'review', check: 'contrast', label: 'Open the review card' } }),
+    node({ id: 'contrast', group: 'Checks', name: 'Contrast pairs', ...((p) => ({ state: p.state, detail: p.line }))(pairsReading()), source: 'scripts/contrast-pairs.mjs (BELLA’s own pairs, as Health reads them)', deps: ['tokens'], action: { type: 'review', check: 'contrast', label: 'Open the review card' } }),
     // a part with no story needs someone, as Health counts it (audit 11), whether or not the visual run has happened
     node({ id: 'stories', group: 'Checks', name: 'Stories & tests', state: n.withStory < n.components ? 'bad' : fromCheck(ck.visual), detail: `${n.withStory} of ${n.components} components have a story. ${ck.visual?.summary ?? 'Not run yet.'}`, source: 'npm run audit:visual · data/checks/visual.json', deps: ['components'], action: { type: 'run', check: 'visual', label: 'Run the stories' } }),
     node({ id: 'agents', group: 'Checks', name: 'AGENTS.md', state: fromCheck(ck['agents-md']), detail: ck['agents-md']?.summary ?? 'Not run yet.', source: `AGENTS.md · ${lastChange(['AGENTS.md']) ?? ''}`, deps: ['components'] }),

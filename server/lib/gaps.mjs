@@ -499,7 +499,7 @@ export function declaredPairs() {
   // BELLA's own list and its own ratios in its four themes (contrast-pairs.mjs --verbose)
   const r = bellaPairs(BELLA);
   const pairs = [...r.pairs, ...r.distinct].filter((p) => p.measured.length).map((p) => ({ ...p, bg: p.bg.split(' over ')[0] }));
-  return { pairs, checked: r.checked, ok: r.ok };
+  return { pairs, checked: r.checked, ok: r.ok, summary: r.summary };
 }
 
 export function gapFixes() {

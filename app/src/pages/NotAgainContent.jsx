@@ -152,7 +152,6 @@ function Banner({ state, data, busy, act }) {
   return (
     <Notification
       tone="info"
-      icon="InfoCircle"
       title="What is Not again?"
       message={n ? `The contrast check fails on ${plural(n, 'part')}. This saved fix adds their pairs. Next time it fails, the agent repeats it and a reviewer only presses Accept.` : 'A saved fix: when a check fails, the agent repeats it and a reviewer only presses Accept.'}
     />

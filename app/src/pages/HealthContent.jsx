@@ -32,7 +32,7 @@ export const GATE_RUNS = ['none', 'running', 'passed', 'failed'];
 function GateBanner({ run }) {
   if (!run || run.state === 'none') return null;
   if (run.state === 'running')
-    return <Notification tone="info" icon="RefreshDouble" title={`Running the gate · ${run.done} of ${run.of} checks`} message={`Now running ${run.now}. You can keep working.`} />;
+    return <Notification tone="info" title={`Running the gate · ${run.done} of ${run.of} checks`} message={`Now running ${run.now}. You can keep working.`} />;
   if (run.state === 'passed') return <Notification tone="success" title="Gate passed" message={`${run.of} of ${run.of} checks · just now`} />;
   return <Notification tone="danger" title={`Gate failed: ${run.failed}`} message={run.why} />;
 }
@@ -225,7 +225,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             chart="bar"
             meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100) }}
             context={model.lowest.below ? `${model.lowest.below} text pairs below ${model.lowest.bar}:1` : 'Every pair clears the target'}
-            caption={`Target ${model.lowest.bar}:1 · ${model.lowest.checked} checked`}
+            caption={`Target ${model.lowest.bar}:1 · ${model.lowest.checked ? `${model.lowest.checked} checked` : model.lowest.failing ? `the pairs check fails (${model.lowest.failing})` : 'not counted'}`}
             href="#/foundations"
           />
         ) : (

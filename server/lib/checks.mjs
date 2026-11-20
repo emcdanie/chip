@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { createConnection } from 'node:net';
 import { DATA_DIR } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
+import { bellaPairs } from '../../scripts/lib/bella-pairs.mjs';
 
 export const BASE = process.env.BELLA_PROPOSAL_BASE || 'feat/chip-components';
 export const CHECKS_DIR = join(DATA_DIR, 'checks');
@@ -304,6 +305,24 @@ export function runCheck(id) {
 }
 
 /** GET /checks: every check with its last result and one status word. */
+/* Contrast: one source, one number (coordinator, 21 Nov). BELLA's own pairs check, run now on the
+   BELLA CHIP reads, the same reading Health's Lowest contrast and the System map show; never the
+   result file a past run left behind. Read again at most once a minute. */
+let pairsAt = 0;
+let pairsNow = null;
+function livePairs() {
+  if (Date.now() - pairsAt > 60_000) {
+    try {
+      const r = bellaPairs(BELLA);
+      pairsNow = { ok: r.ok, summary: r.summary ?? 'The pairs check printed no summary', failures: r.ok ? [] : [r.summary].filter(Boolean), ranAt: new Date().toISOString(), commit: null };
+    } catch (e) {
+      pairsNow = null;
+    }
+    pairsAt = Date.now();
+  }
+  return pairsNow;
+}
+
 export function listChecks({ waiting = [], fixable = [] } = {}) {
   const out = CHECKS.map((c) => {
     if (c.manual) {
@@ -316,7 +335,7 @@ export function listChecks({ waiting = [], fixable = [] } = {}) {
         ranAt: b?.ranAt ?? null, commit: b?.commit ?? null, score: b?.score ?? null, cost: 'About $4 of plan usage, 15 minutes (8 Oct baseline)',
       };
     }
-    const r = readResult(c.id);
+    const r = c.id === 'contrast' ? livePairs() : readResult(c.id);
     const running = jobs.has(c.id);
     const fixReady = waiting.includes(c.id);
     const status = running ? 'running' : !r ? 'not-run' : fixReady ? 'waiting' : r.ok ? 'passed' : 'failed';

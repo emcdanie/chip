@@ -48,8 +48,8 @@ export const VIEWS = [
 const tagTone = (t) => (t === 'neutral' ? 'default' : t);
 const TABLE_COLUMNS = [
   { key: 'title', label: 'Task', sortable: true },
-  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag tone={tagTone(LANE_TONE[r.laneId])}>{r.lane}</Tag> },
-  { key: 'status', label: 'Status', sortable: true, render: (r) => (r.status ? <Tag tone={tagTone(r.tone)}>{r.status}</Tag> : null) },
+  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag variant="line" tone={tagTone(LANE_TONE[r.laneId])}>{r.lane}</Tag> },
+  { key: 'status', label: 'Status', sortable: true, render: (r) => (r.status ? <Tag variant="line" tone={tagTone(r.tone)}>{r.status}</Tag> : null) },
   { key: 'branch', label: 'Branch', sortable: true, render: (r) => r.branch ?? 'No branch' },
   { key: 'who', label: 'Who acts', sortable: true },
 ];
@@ -233,7 +233,6 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
           {model.brief && !briefShut ? (
             <Notification
               tone="info"
-              icon="Brain"
               title="Brief · from CHIP’s checks"
               message={model.brief.message}
               action={model.brief.action && model.brief.open ? { label: model.brief.action, onClick: () => move.open(model.brief.open) } : undefined}
