@@ -21,7 +21,7 @@ export function fetchCached(url, { fresh = false } = {}) {
   return p;
 }
 
-/** urls: the endpoints a view reads. Returns { data: [..] or null, error, at, reload }. */
+/** urls: the endpoints a view reads. Returns { data: [..] or null, error, at, loading, reload }. */
 export default function useCached(urls) {
   const key = urls.join('|');
   const now = () => (urls.every((u) => cache.has(u)) ? urls.map((u) => cache.get(u).data) : null);
@@ -29,10 +29,11 @@ export default function useCached(urls) {
   const load = useCallback((fresh = false) => {
     let live = true;
     // a new address shows its own cached answer (or nothing), never the last one's
-    setState((s) => ({ ...s, data: now() ?? (s.key === key ? s.data : null), key }));
+    // loading: a fresh read (Check again) is on its way, so its button can say busy
+    setState((s) => ({ ...s, data: now() ?? (s.key === key ? s.data : null), key, loading: fresh === true }));
     Promise.all(urls.map((u) => fetchCached(u, { fresh: fresh === true })))
-      .then((data) => live && setState({ data, error: null, at: Date.now(), key }))
-      .catch((e) => live && setState((s) => ({ ...s, error: e.message })));
+      .then((data) => live && setState({ data, error: null, at: Date.now(), key, loading: false }))
+      .catch((e) => live && setState((s) => ({ ...s, error: e.message, loading: false })));
     return () => {
       live = false;
     };

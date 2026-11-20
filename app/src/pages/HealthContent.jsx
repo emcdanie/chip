@@ -134,7 +134,7 @@ const CHECK_VIEWS = [
   { value: 'drift', label: 'Drift' },
 ];
 
-export default function HealthContent({ model, run, checked, onCheck, view: startView = 'coverage' }) {
+export default function HealthContent({ model, run, checked, onCheck, loading, view: startView = 'coverage' }) {
   const narrow = useNarrow();
   const [view, setView] = useState(startView);
   // handing a check's gaps to the agent: the button says Sending…, then a toast
@@ -159,8 +159,9 @@ export default function HealthContent({ model, run, checked, onCheck, view: star
       {/* Control bar, as on Work: the last check and Check again, one group on the left. */}
       <Flow direction="row" gap={8} align="center">
         {checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
-        <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon onClick={onCheck}>
-          Check again
+        {/* busy while the check runs: the icon turns and clicks wait (Button busy, parts-dev 99a021d) */}
+        <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={onCheck}>
+          {loading ? 'Checking…' : 'Check again'}
         </Button>
       </Flow>
       <GateBanner run={run} />

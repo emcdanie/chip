@@ -20,7 +20,7 @@ export default function Work({ model: given, view: startView = 'board' }) {
       header={{ title: 'CHIP' }}
       tabs={projectTabs('work')}
     >
-      <WorkContent model={given ?? filtered(live.model, filterFromHash())} filter={given ? {} : filterFromHash()} view={view} onView={setView} checked={given ? '10:29' : live.checked} onCheck={live.reload} />
+      <WorkContent model={given ?? filtered(live.model, filterFromHash())} filter={given ? {} : filterFromHash()} view={view} onView={setView} checked={given ? '10:29' : live.checked} onCheck={live.reload} loading={!given && live.loading} />
     </Screen>
   );
 }

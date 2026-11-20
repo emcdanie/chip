@@ -147,7 +147,7 @@ export default function ConnectorsContent() {
   const needs = map.nodes.filter((n) => n.state === 'bad' && n.action?.type === 'test');
   const testButton = (n, label = 'Test', name = nameOf(n)) => (
     // Figma's buttons carry words only (20 Nov polish: no leading icons)
-    <Button variant="secondary" size="sm" onClick={() => test(n, name)} disabled={!!busy}>
+    <Button variant="secondary" size="sm" onClick={() => test(n, name)} busy={busy === n.id} disabled={!!busy && busy !== n.id}>
       {busy === n.id ? 'Testing…' : label}
     </Button>
   );

@@ -73,7 +73,8 @@ function Lane({ lane: given, index, move }) {
   const agent = lane.id === 'agent';
   const cards = [
     // the drop space shows only while a card is being dragged, at the top of Agent
-    ...(agent && move.dragging ? [<BoardLaneDropSpace key="drop" label="Drop here to start" />] : []),
+    // it opens while a card is dragged, and after the drop (or a cancel) it closes up before it goes (parts-dev dc158de)
+    ...(agent && (move.dragging || move.closing) ? [<BoardLaneDropSpace key="drop" label="Drop here to start" open={!!move.dragging} onClosed={() => move.setClosing(false)} />] : []),
     ...(agent ? move.starting.filter((c) => !lane.cards.some((t) => t.title === c.title)).map((c) => <TaskCard key={`start-${c.id}`} title={c.title} line="Sent from Needs you" status="Starting" statusTone="info" />) : []),
     ...lane.cards.flatMap((c) => {
       const needs = lane.id === 'needs';
@@ -116,7 +117,13 @@ function Lane({ lane: given, index, move }) {
 
 /** Hands a failed check to an agent run: the check's brief from its review card, then POST /runs. */
 function useMove() {
-  const [dragging, setDragging] = useState(null);
+  const [dragging, setDraggingNow] = useState(null);
+  // the drop space stays a moment after a drag ends, closing up
+  const [closing, setClosing] = useState(false);
+  const setDragging = (id) => {
+    if (!id && dragging) setClosing(true);
+    setDraggingNow(id);
+  };
   const [menu, setMenu] = useState(null);
   const [starting, setStarting] = useState([]);
   const [notice, setNotice] = useState(null);
@@ -136,7 +143,7 @@ function useMove() {
       setNotice({ tone: 'danger', title: `Not sent: ${card.title}`, message: err.message });
     }
   };
-  return { dragging, setDragging, menu, setMenu, starting, send, notice, setNotice };
+  return { dragging, setDragging, closing, setClosing, menu, setMenu, starting, send, notice, setNotice };
 }
 
 export default function WorkContent({ model, filter = {}, view = 'board', onView, checked, onCheck, loading }) {
@@ -169,7 +176,8 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
           ) : null}
           <Flow direction="row" gap={8} align="center">
             {checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
-            <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon onClick={onCheck}>
+            {/* busy while the check runs: the icon turns and clicks wait (Button busy, parts-dev 99a021d) */}
+            <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={onCheck}>
               {loading ? 'Checking…' : 'Check again'}
             </Button>
           </Flow>

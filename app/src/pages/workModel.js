@@ -61,13 +61,13 @@ function briefOf(lanes) {
 
 /** Reads CHIP's data (kept between pages); `reload` reads it again (Check again). */
 export function useWork() {
-  const { data, error, at, reload } = useCached(['/needs', '/runs']);
+  const { data, error, at, loading, reload } = useCached(['/needs', '/runs']);
   useEffect(() => {
     window.addEventListener('chip:changed', reload);
     return () => window.removeEventListener('chip:changed', reload);
   }, [reload]);
   const model = useMemo(() => (data ? workModel({ needs: data[0].items ?? [], runs: data[1].runs ?? [] }) : null), [data]);
-  return { model, error, reload, checked: at ? hhmm(at) : null };
+  return { model, error, loading, reload, checked: at ? hhmm(at) : null };
 }
 
 /* The sidebar's filters (her rule "branches filter the board"; the Status rows
