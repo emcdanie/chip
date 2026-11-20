@@ -8,12 +8,13 @@
 //
 // Gaps: StatCard has no empty slot; the model menu (Auto, local first) waits
 // for a Menu part, so a run goes to CHIP's default.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Step from '@bella/components/Step/Step';
+import Tag from '@bella/components/Tag/Tag';
 import ListRow from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
@@ -21,7 +22,6 @@ import StatCard from '@bella/components/StatCard/StatCard';
 import Toast from '@bella/components/Toast/Toast';
 import Flow from '../templates/Flow.jsx';
 import Toasts from '../templates/Toasts.jsx';
-import useNarrow from '../templates/useNarrow.js';
 import useCached from '../templates/useCached.js';
 import { FIX, LIBRARY, stateOf, stepsOf, useNotAgain } from './notAgainModel.js';
 import { handOff } from './healthModel.js';
@@ -75,7 +75,17 @@ const post = async (url) => {
 const start = (check, parts, name) => handOff({ id: check, title: check, missing: parts, action: name });
 
 function FixCard({ state, data, busy, act }) {
-  const narrow = useNarrow(1400);
+  // a Steps row (her 21 Nov pick, question 4 A) wherever the card has room for four steps side by side
+  // (150 each); stacked below that. Measured on the card, not the window, so 1100 gets the row.
+  const [narrow, setNarrow] = useState(true);
+  const stepsBox = useRef(null);
+  useEffect(() => {
+    const el = stepsBox.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver(([e]) => setNarrow(e.contentRect.width < 600));
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
   const { parts, run } = data;
   const n = parts.length;
   const runUrl = run ? `/runs/${encodeURIComponent(run.id)}` : null;
@@ -105,8 +115,17 @@ function FixCard({ state, data, busy, act }) {
     <Card footerAction={footer}>
       <Flow gap={8}>
         <SectionHead icon="Book" iconTone="info" title={`${LEAD[state]}: ${FIX.name}`} description={n ? `${plural(n, 'component')} ${n === 1 ? 'has' : 'have'} no declared pair` : 'The parts it fixed now have a pair'} />
-        <Flow gap={16}>
-          {n ? <TextStack body={parts.join(', ')} /> : null}
+        <Flow gap={16} ref={stepsBox}>
+          {/* the parts as Tags (her 21 Nov pick, question 4 A), wrapping, never a clipped comma list */}
+          {n ? (
+            <Flow as="ul" direction="row" wrap gap={8} aria-label={`The ${plural(n, 'part')} it fixes`}>
+              {parts.map((p) => (
+                <li key={p}>
+                  <Tag>{p}</Tag>
+                </li>
+              ))}
+            </Flow>
+          ) : null}
           <Flow as="ol" direction={narrow ? 'column' : 'row'} gap={4} aria-label="How the fix runs">
             {steps.map((step, i) => (
               <Step key={step.title} layout={narrow ? 'vertical' : 'horizontal'} state={step.state} title={step.title} detail={step.detail} showConnector={i < steps.length - 1} />

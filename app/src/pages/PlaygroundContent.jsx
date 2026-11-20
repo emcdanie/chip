@@ -328,7 +328,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
             mark="👀"
             title="Pick a part to try"
             line="Pick one in Show and give it a wee spin."
-            actions={<Button variant="primary" onClick={() => pickShow(showId)}>Pick a part</Button>}
+            actions={<Button variant="secondary" onClick={() => pickShow(showId)} /* New task is the view's one primary (21 Nov log: "Show parts") */>Show parts</Button>}
           />
         </Stage>
       ) : null}

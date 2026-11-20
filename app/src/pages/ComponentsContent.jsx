@@ -18,6 +18,7 @@ import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState 
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
+import Pin from '@bella/components/Pin/Pin';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Select from '@bella/components/Select/Select';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
@@ -277,7 +278,7 @@ function PartCard({ a, touch, value, onFix }) {
   );
 }
 
-function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
+function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch, list = false }) {
   const tiny = useNarrow(420);
   // a pin or chip under the pointer or keyboard lights its match (Stage, parts-dev ebac13a)
   const [lit, setLit] = useState(null);
@@ -359,6 +360,33 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
   const showsValue = (box?.sw ?? 0) >= 560;
   const legend = markers.length && markers[0].chipX == null ? [...markers].sort((p, q) => p.label - q.label).map((m) => `${m.label} ${m.part}`.replace(/ /g, '\u00a0')).join(' · ') : null; // an entry never breaks inside
   const card = a ? <PartCard a={a} touch={touch} value={showsValue ? null : valueOf(a)} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
+  /* Anatomy: the parts as a numbered list beside the specimen, in the same card (18 Nov: "the anotations
+     descriptions can be inteh same card"); each row's number is its pin's, and hovering or focusing a row
+     lights its pin, as the pin lights its chip. */
+  const numberOf = (key) => markers.find((m) => m.id === key)?.label;
+  const parts = list && anatomy.length ? (
+    <Flow as="ul" gap={4} aria-label={`Parts of ${part.name}`}>
+      {[...anatomy].sort((x, y) => (numberOf(x.key) ?? 99) - (numberOf(y.key) ?? 99)).map((x) => (
+        <li key={x.key} onPointerEnter={() => setLit(x.key)} onPointerLeave={() => setLit(null)} onFocus={() => setLit(x.key)} onBlur={() => setLit(null)}>
+          <ListRow
+            as="div"
+            layout="stacked"
+            pin={numberOf(x.key) != null ? <Pin number={String(numberOf(x.key))} variant="red" pinStyle="solid" /> : undefined}
+            title={x.title}
+            description={x.status === 'finding' ? `Finding · ${x.detail}` : x.detail}
+            selected={x.key === a?.key}
+            onClick={() => onPick(x.key)}
+          />
+        </li>
+      ))}
+    </Flow>
+  ) : null;
+  const aside = parts ? (
+    <Flow gap={16}>
+      {parts}
+      {card}
+    </Flow>
+  ) : card;
   const stage = (
     <Flow id={stageId}>
       <Stage label={`${part.name} on the stage`} markers={markers} scale={scale} onSelect={onPick} activeId={lit} onActiveChange={setLit}>
@@ -368,7 +396,8 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
           </Flow>
         </Flow>
       </Stage>
-      {legend ? <TextStack subtitle={legend} /> : null}
+      {/* the numbered list names the pins in Anatomy, so the line under the stage would say it twice */}
+      {legend && !list ? <TextStack subtitle={legend} /> : null}
     </Flow>
   );
   return (
@@ -389,9 +418,9 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
           </Flow>
         ) : null}
         {/* the stage, and the part's card beside it (her pick C) wherever the row has room */}
-        <Flow id={wrapId} direction={beside && card ? 'row' : 'column'} gap={24} grow={beside && card ? 'first' : undefined} align={beside && card ? 'start' : undefined}>
+        <Flow id={wrapId} direction={beside && aside ? 'row' : 'column'} gap={24} grow={beside && aside ? 'first' : undefined} align={beside && aside ? 'start' : undefined}>
           {stage}
-          {card ? beside ? <Flow aside>{card}</Flow> : card : null}
+          {aside ? beside ? <Flow aside>{aside}</Flow> : aside : null}
         </Flow>
         {part.states.length && PLAY[part.name] ? (
           // the tiles are the flex items (no list wrapper) so they share the row, as the frame's five tiles do
@@ -751,21 +780,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                   <Button variant="tertiary" size="sm" icon="RefreshDouble" iconOnly ariaLabel="Check again" onClick={onCheckAgain} />
                 </Flow>
               </Flow>
-              <OnTheStage part={part} detail={detail} picked={picked} onPick={setPicked} onAsk={(t) => { ask(t); }} onTouch={setTouch} />
-              {view === 'anatomy' ? (
-                detail.anatomy.length ? (
-                  <Card>
-                    <Flow gap={8}>
-                      <SectionHead title="Anatomy" number={detail.anatomy.length} words="parts" />
-                      <Flow gap={4} as="ul" aria-label={`Parts of ${part.name}`}>
-                        {detail.anatomy.map((x) => (
-                          <ListRow key={x.key} layout="stacked" title={x.title} description={x.detail} value={x.contrast ? ratio(x.contrast.ratio) : undefined} selected={x.key === picked} onClick={() => setPicked(x.key)} statusDot={<StatusDot tone={x.status === 'finding' ? 'attention' : 'success'} showLabel={false} label={x.status === 'finding' ? 'Finding' : 'Passes'} />} />
-                        ))}
-                      </Flow>
-                    </Flow>
-                  </Card>
-                ) : null
-              ) : (
+              <OnTheStage part={part} detail={detail} picked={picked} onPick={setPicked} onAsk={(t) => { ask(t); }} onTouch={setTouch} list={view === 'anatomy'} />
+              {view === 'anatomy' ? null : (
                 <>
                   {/* a list card hugs its rows (rule 15): it sits at the top, never stretched and centred (Card 0bc08b6) */}
                   <Flow span={8}>

@@ -187,7 +187,7 @@ function Notes({ summary, onAnswer }) {
                     Leave it
                   </Button>
                   {onAnswer ? (
-                    <Button variant="primary" size="sm" onClick={() => onAnswer(q)}>
+                    <Button variant="secondary" size="sm" onClick={() => onAnswer(q)} /* the drawer's one primary is its footer action */>
                       Add it
                     </Button>
                   ) : null}

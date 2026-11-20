@@ -30,8 +30,10 @@ function needCard(n) {
 
 /* An agent run as a card, by where it is. */
 function runCard(r) {
-  return { id: r.id, open: { kind: 'run', id: r.id }, title: r.title ?? 'Fix', branch: r.branch ?? null, // Figma slim: the branch and time on the card's line ("main checkout · 10:19"), no separate branch tag
-    line: [r.branch, r.startedAt ? hhmm(r.startedAt) : null].filter(Boolean).join(' · ') || undefined };
+  // the card says what it is in plain words, "Agent run · 12:38" (Elleta's fix list, 21 Nov); the branch
+  // stays on the item (sidebar filter, table, drawer meta line), never as the card's line
+  return { id: r.id, open: { kind: 'run', id: r.id }, title: r.title ?? 'Fix', branch: r.branch ?? null,
+    line: ['Agent run', r.startedAt ? hhmm(r.startedAt) : null].filter(Boolean).join(' · ') };
 }
 
 export function workModel({ needs = [], runs = [] }) {
