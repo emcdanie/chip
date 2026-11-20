@@ -9,7 +9,7 @@
 export const explainer = {
   title: 'What is Not again?',
   // Figma's worked example (b9): what happened, what was saved, what you do next time
-  message: (n) => `The contrast check failed on ${n} parts. This saved fix added their pairs. Next time it fails, the agent repeats it and you only press Accept.`,
+  message: (n) => `The contrast check failed on ${n} parts. This saved fix added their pairs. Next time it fails, the agent repeats it and a reviewer only presses Accept.`,
 };
 
 export const fix = {
