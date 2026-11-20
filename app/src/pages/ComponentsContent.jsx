@@ -449,7 +449,7 @@ function AskCard({ part, detail, onAsk, answer }) {
     <Card>
       <Flow gap={12}>
         <TextStack title="Ask BELLA" body={`Ask about ${part.name}: ${knows}.`} />
-        <Input label={`Ask about ${part.name}`} placeholder={`Ask about ${part.name}`} value={q} onChange={setQ} onSend={send} sendLabel="Ask" />
+        <Input label={`Ask about ${part.name}`} placeholder="Type a question" value={q} onChange={setQ} onSend={send} sendLabel="Ask" />
         {answer ? <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title={answer.pending ? 'Asking…' : 'BELLA'} message={answer.reply} /> : null}
       </Flow>
     </Card>
@@ -510,7 +510,9 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const [touch, setTouch] = useState(null);
   const [answer, setAnswer] = useState(null);
   const shown = model ? model.parts.filter((p) => (filter === 'ready' ? p.ready : filter === 'needs' ? !p.ready : true)) : [];
-  const part = shown.find((p) => p.id === partId) ?? shown[0] ?? null;
+  // a pasted link matches in any case (#/components/Button); with none, open on Button, as Figma does
+  const want = String(partId ?? '').toLowerCase();
+  const part = shown.find((p) => p.id.toLowerCase() === want || p.name.toLowerCase() === want) ?? shown.find((p) => p.name === 'Button') ?? shown[0] ?? null;
   const detail = usePartDetail(part);
   useEffect(() => {
     // a new part opens on its first finding, else its first anatomy part
