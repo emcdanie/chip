@@ -237,16 +237,24 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
           {(() => {
             const days = model.gateDays;
             const runs = days.reduce((t, d) => t + d.runs, 0);
-            const head =
-              view === 'gate' ? { description: `${days.length} days of gate runs`, number: runs, words: `runs · target ${TARGET}%` }
-              : view === 'drift' ? { description: 'Each part against its Figma set', number: n, words: 'components' }
-              : { description: `Seven checks; six measured across ${n} parts`, number: n, words: `components · target ${TARGET}%` };
-            return <SectionHead icon="ShieldCheck" iconTone="info" title="Component checks" {...head} />;
+            // what the view reports, each number once
+            const line =
+              view === 'gate' ? `${days.length} days · ${runs} gate runs · target ${TARGET}%`
+              : view === 'drift' ? `Each part against its Figma set · ${n} parts`
+              : `Seven checks, six measured · ${n} parts · target ${TARGET}%`;
+            // her 21 Nov pick (question 1 A, "the control at teh top right and the feedback under?"): the
+            // switch at the head's right end, and what the view reports in the line under the title
+            return (
+              <SectionHead
+                icon="ShieldCheck"
+                iconTone="info"
+                title="Component checks"
+                showInfo={false}
+                description={line}
+                action={<SegmentedControl options={CHECK_VIEWS} value={view} onChange={setView} label="Component checks view" />}
+              />
+            );
           })()}
-          {/* the view switch at the right, as Figma */}
-          <Flow direction="row" justify="end">
-            <SegmentedControl options={CHECK_VIEWS} value={view} onChange={setView} label="Component checks view" />
-          </Flow>
           {view === 'drift' ? (
             <EmptyState size="lane" mark="🧭" title="Nothing compared yet" line="Take a Figma baseline and I'll spot what drifted." />
           ) : view === 'gate' && !model.gateDays.length ? (
