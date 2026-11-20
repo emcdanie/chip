@@ -97,7 +97,7 @@ export async function systemMap() {
     // a part with no story needs someone, as Health counts it (audit 11), whether or not the visual run has happened
     node({ id: 'stories', group: 'Checks', name: 'Stories & tests', state: n.withStory < n.components ? 'bad' : fromCheck(ck.visual), detail: `${n.withStory} of ${n.components} components have a story. ${ck.visual?.summary ?? 'Not run yet.'}`, source: 'npm run audit:visual · data/checks/visual.json', deps: ['components'], action: { type: 'run', check: 'visual', label: 'Run the stories' } }),
     node({ id: 'agents', group: 'Checks', name: 'AGENTS.md', state: fromCheck(ck['agents-md']), detail: ck['agents-md']?.summary ?? 'Not run yet.', source: `AGENTS.md · ${lastChange(['AGENTS.md']) ?? ''}`, deps: ['components'] }),
-    node({ id: 'gate', group: 'Checks', name: 'Gate', state: lastGate.state, detail: lastGate.detail, source: 'npm run gate · the pre-commit hook · data/bella.json history', deps: ['contrast', 'contracts', 'agents', 'tokens', 'stories'] }),
+    node({ id: 'gate', group: 'Checks', name: 'Gate', measured: true, state: lastGate.state, detail: lastGate.detail, source: 'npm run gate · the pre-commit hook · data/bella.json history', deps: ['contrast', 'contracts', 'agents', 'tokens', 'stories'] }),
     node({ id: 'bench', group: 'Checks', name: 'Bench', state: ck['bench-static']?.status === 'not-run' ? 'unknown' : ck['bench-static']?.score >= 70 ? 'ok' : 'warn', detail: ck['bench-static']?.summary ?? 'Not run yet.', source: '~/DEV/tools/odsb · data/checks/bench-static.json', deps: ['components', 'agents'], action: { type: 'run', check: 'bench-static', label: 'Run the bench now' } }),
     node({ id: 'compare', group: 'Checks', name: 'Compare with Figma', state: 'unknown', detail: `Reads each component set through ${readPath === 'figma' ? 'the desktop MCP (REST has no token)' : 'the Figma REST API'}.`, source: 'Components · Compare tab · Connectors › Figma baseline', deps: [readPath, 'components'] }),
     // Review and ship
@@ -125,7 +125,9 @@ export async function systemMap() {
     return null;
   };
   for (const x of nodes) {
-    const b = x.state !== 'bad' ? blockedBy(x) : null;
+    // a measured reading (the gate, from BELLA's commits) keeps its answer: one gate, one reading
+    // on Health, System map and Connectors (user test 21 Nov, item 3)
+    const b = x.state !== 'bad' && !x.measured ? blockedBy(x) : null;
     if (b) {
       x.blockedBy = { id: b.id, name: b.name };
       x.state = 'blocked';

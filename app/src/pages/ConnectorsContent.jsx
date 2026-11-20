@@ -48,9 +48,16 @@ function headline(r) {
   }
   return r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested';
 }
-function meta(r) {
+// "2 of 2 pass on the last commit, 20 Nov." → "2 of 2 pass · 20 Nov"
+const gateWords = (g) => {
+  const m = String(g?.detail ?? '').match(/(\d+ of \d+ pass)[^,]*,\s*([^.]+)/);
+  return m ? `${m[1]} · ${m[2]}` : null;
+};
+function meta(r, gate) {
   const d = String(r.n.detail ?? '');
-  if (r.id === 'ci') return r.n.state === 'ok' ? 'CI ran' : 'CI hasn’t run';
+  // until GitHub runs CI, the tile says what BELLA's gate said on the last commit: the same
+  // reading as Health and System map (one gate, one answer)
+  if (r.id === 'ci') return r.n.state === 'ok' ? 'CI ran' : gateWords(gate) ? `CI hasn’t run · gate ${gateWords(gate)}` : 'CI hasn’t run';
   if (r.id === 'git') return sha(d);
   if (r.id === 'claude') return r.n.state === 'ok' ? 'OBI uses it' : 'Not installed';
   if (r.id === 'ollama') return d.match(/:(\d{2,5})\b/) ? `:${d.match(/:(\d{2,5})\b/)[1]}` : undefined;
@@ -98,6 +105,7 @@ export default function ConnectorsContent() {
   // Figma's four tiles in one row need about 1200 of window; below that two by two
   const four = !useNarrow(1200);
   const [map, reload] = useMap();
+  const gateNode = map?.nodes?.find((x) => x.id === 'gate');
   const [busy, setBusy] = useState(null);
   const [setup, setSetup] = useState(null);
   const node = (id) => map?.nodes?.find((n) => n.id === id);
@@ -150,7 +158,7 @@ export default function ConnectorsContent() {
                     <Flow gap={4}>
                       <TextStack title={r.name} />
                       <Heading tier="subsection" as="h3">{headline(r)}</Heading>
-                      {meta(r) ? <TextStack subtitle={meta(r)} /> : null}
+                      {meta(r, gateNode) ? <TextStack subtitle={meta(r, gateNode)} /> : null}
                     </Flow>
                   </Flow>
               </Card>
