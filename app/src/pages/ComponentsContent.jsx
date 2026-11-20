@@ -447,10 +447,16 @@ function HistoryCard({ part, detail, all }) {
   const list = all ? detail.history : detail.history.slice(0, HISTORY_SHOWN);
   let last = null;
   return (
-    // See all sits in the card footer at the bottom right, as Figma
-    <Card footerAction={!all && detail.history.length > HISTORY_SHOWN ? <Button variant="tertiary" size="sm" href="#/history">See all in History</Button> : undefined}>
+    // See all sits at the head's top right, where a card's actions are (Elleta, 21 Nov, Health's Needs you:
+    // "move the see allto the top rigght as that is where are the actions are bullk"); it replaces the count meta
+    <Card>
       <Flow gap={8}>
-        <SectionHead title="History" number={list.length} words="merged" />
+        <SectionHead
+          title="History"
+          {...(!all && detail.history.length > HISTORY_SHOWN
+            ? { action: <Button variant="tertiary" size="sm" icon="NavArrowRight" href="#/history">{`See all ${detail.history.length}`}</Button> }
+            : { number: list.length, words: 'merged' })}
+        />
         {list.length ? (
           <Flow gap={4} as="ol" aria-label={`${part.name}'s records, newest first`}>
             {list.map((r) => {
