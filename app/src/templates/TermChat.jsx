@@ -14,7 +14,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ChatThread, { ChatThreadDelivered, ChatThreadTimestamp } from '@bella/components/ChatThread/ChatThread';
 import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
-import AvatarStack from '@bella/components/AvatarStack/AvatarStack';
 import TypingDots from '@bella/components/TypingDots/TypingDots';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
@@ -112,7 +111,7 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
  * asker: a useAsk({ thread: true }) of its own. onOpen(item): what a run opens (WorkDrawer).
  * Returns the thread and `say(text)` for the composer through the ref handed in as `sayRef`.
  */
-export default function TermChat({ asker, turns, setTurns, provider, where, onOpen, sayRef, onNotice }) {
+export default function TermChat({ asker, turns, setTurns, provider, onOpen, sayRef, onNotice }) {
   // turns (her words, when, and the run she sent it to) live with the Work panel, so switching
   // tabs keeps the chat (audit 21 Nov); BELLA's answers come from asker
   const end = useRef(null);
@@ -143,11 +142,7 @@ export default function TermChat({ asker, turns, setTurns, provider, where, onOp
   const rows = turns.map((t) => (t.agentFor == null ? { ...t, i: ++k, answer: answers[k] } : { ...t, answer: null }));
   return (
     <Flow gap={16}>
-      {/* her mock's header: who is in this chat, then where it works and on which model */}
-      <Flow gap={8} align="center">
-        <AvatarStack members={[{ name: 'BELLA' }, { name: 'Agent' }]} size="sm" />
-        <TextStack title="BELLA and the agent" subtitle={where} />
-      </Flow>
+    {/* no head of its own: the Work drawer's status line names the chat and the composer the model (one chat, one head; audit 3) */}
     <ChatThread label="BELLA and the agent">
       {rows.length ? <ChatThreadTimestamp boldWord="Today">{rows[0].at}</ChatThreadTimestamp> : null}
       {rows.map((t, n) =>

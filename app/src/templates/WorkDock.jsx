@@ -212,10 +212,6 @@ export default function WorkDock() {
     }
   };
   const ask = (q) => asker.ask(q, window.location.hash || '#/work', undefined, undefined, providerOf(model));
-  // where the terminal works and on which model, as her mock's header line
-  const models = useCached(['/models']).data?.[0]?.models ?? [];
-  const local = models.find((m) => m.place === 'local' && m.isDefault)?.label;
-  const where = model === 'claude' ? `BELLA · ${models.find((m) => m.id === 'claude')?.label ?? 'Claude'}, in the cloud` : local ? `BELLA · ${local} on this Mac` : 'BELLA · the local model on this Mac';
 
   const tabs = [
     { id: 'needs', label: 'Needs you', count: needs?.length },
@@ -302,7 +298,7 @@ export default function WorkDock() {
           </Button>
         </Flow>
         {termAsker.answer ? null : chatEmpty}
-        <TermChat asker={termAsker} turns={termTurns} setTurns={setTermTurns} provider={providerOf(model)} where={where} onOpen={setItem} sayRef={say} onNotice={setNotice} />
+        <TermChat asker={termAsker} turns={termTurns} setTurns={setTermTurns} provider={providerOf(model)} onOpen={setItem} sayRef={say} onNotice={setNotice} />
       </Flow>
     ),
     ask: asker.answer ? (
