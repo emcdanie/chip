@@ -25,6 +25,8 @@ import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Columns from '@bella/components/Columns/Columns';
 import Flow from '../templates/Flow.jsx';
+import Toasts from '../templates/Toasts.jsx';
+import Toast from '@bella/components/Toast/Toast';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 
@@ -73,7 +75,7 @@ const PATHS = [
 const NAMES = { 'figma-key': 'Figma key', figma: 'Figma desktop MCP', 'figma-console': 'figma-console', 'figma-rest': 'figma-rest', notion: 'Notion' };
 const nameOf = (n) => NAMES[n?.id] ?? n?.name;
 // the server's words, in the page's own names for the paths
-const plainWords = (t) => String(t ?? '').replace(/\bthe Figma REST API\b/gi, 'figma-rest').replace(/\bFigma REST( API)?\b/g, 'figma-rest').replace(/\bREST API\b/g, 'figma-rest').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
+const plainWords = (t) => String(t ?? '').replace(/^No server called "[^"]+" in chip\.config\.local\.json\.?/, 'not set up in CHIP’s settings yet').replace(/\bthe Figma REST API\b/gi, 'figma-rest').replace(/\bFigma REST( API)?\b/g, 'figma-rest').replace(/\bREST API\b/g, 'figma-rest').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0];
 // Figma's own short words for each connector (601:126716): plain, no paths, tokens or hashes
 const SAYS = {
@@ -109,12 +111,30 @@ export default function ConnectorsContent() {
   const [busy, setBusy] = useState(null);
   const [setup, setSetup] = useState(null);
   const node = (id) => map?.nodes?.find((n) => n.id === id);
-  const test = (id) => {
-    setBusy(id);
-    fetch('/host/test', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ server: id }) })
-      .catch(() => null)
-      .then(() => reload())
-      .finally(() => setBusy(null));
+  const [said, setSaid] = useState(null);
+  /* Test: a connector with a server behind it (the Figma paths, Notion) is tested through
+     /host/test; the others (the agent, the local model) are measured again on a fresh map.
+     The button says Testing…, then a toast says what CHIP found, in plain words (user test 8:
+     every Test got a 400 from /host/test with the map's id, and nothing showed). */
+  const test = async (n, name) => {
+    setBusy(n.id);
+    let error = null;
+    try {
+      if (n.action?.server) {
+        const r = await fetch('/host/test', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ server: n.action.server }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) error = d.error || 'CHIP did not answer';
+      }
+      const fresh = await fetch('/map').then((r) => r.json());
+      const now = fresh.nodes?.find((x) => x.id === n.id);
+      const [word] = LIVE[now?.state] ?? LIVE.unknown;
+      setSaid(error || now?.state === 'bad' ? { tone: 'danger', text: `${name}: ${plainWords(first(error ?? now?.detail ?? 'it did not answer'))}` } : { tone: now?.state === 'ok' ? 'success' : 'info', text: `${name}: ${word}. ${plainWords(first(now?.detail ?? ''))}`.trim() });
+    } catch {
+      setSaid({ tone: 'danger', text: `${name}: CHIP didn’t answer. Try again in a moment.` });
+    } finally {
+      reload();
+      setBusy(null);
+    }
   };
 
   if (!map) return <EmptyState size="page" title="Knocking on every door" line="Asking each connector if it's home. Two ticks." />;
@@ -125,15 +145,22 @@ export default function ConnectorsContent() {
   const paths = PATHS.map((p) => ({ ...p, n: node(p.id) })).filter((p) => p.n);
   const compare = node('compare');
   const needs = map.nodes.filter((n) => n.state === 'bad' && n.action?.type === 'test');
-  const testButton = (n, label = 'Test') => (
+  const testButton = (n, label = 'Test', name = nameOf(n)) => (
     // Figma's buttons carry words only (20 Nov polish: no leading icons)
-    <Button variant="secondary" size="sm" onClick={() => test(n.id)} disabled={busy === n.id}>
+    <Button variant="secondary" size="sm" onClick={() => test(n, name)} disabled={!!busy}>
       {busy === n.id ? 'Testing…' : label}
     </Button>
   );
 
   return (
     <>
+      {said ? (
+        <Toasts>
+          <Toast tone={said.tone} onClose={() => setSaid(null)}>
+            {said.text}
+          </Toast>
+        </Toasts>
+      ) : null}
       <Card>
         <Flow gap={16}>
           <SectionHead icon="EvPlug" iconTone="info" title="Reaches" description="Services CHIP talks to now" showDescription number={live} words="answer now" showNumber />
@@ -146,7 +173,7 @@ export default function ConnectorsContent() {
                       Log
                     </Button>
                   ) : r.id === 'ci' ? undefined : (
-                    testButton(r.n)
+                    testButton(r.n, 'Test', r.name)
                   )}
                 >
                   <Flow gap={12}>
