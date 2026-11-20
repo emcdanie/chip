@@ -36,7 +36,7 @@ const REACHES = [
   // Figma's App tiles: GitHub's mark on ink, git's branch on its orange, the agent on Claude's colour, the local model outlined
   { id: 'ci', name: 'GitHub CI', tile: { tone: 'inverse', brand: 'github' }, ok: 'Ran' },
   { id: 'git', name: 'git', tile: { tone: 'git', icon: 'GitBranch' }, ok: 'Up to date' },
-  { id: 'claude', name: 'Agent', tile: { tone: 'claude', icon: 'Brain' }, ok: 'Ready' },
+  { id: 'claude', name: 'Agent', tile: { tone: 'claude', brand: 'claude' }, ok: 'Ready' },
   { id: 'ollama', name: 'Local model', tile: { tone: 'outline', icon: 'Activity' }, ok: 'Ready' },
 ];
 // Figma's tile: a large headline, then one short meta line, both from the node's own detail

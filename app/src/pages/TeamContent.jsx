@@ -162,7 +162,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
 
       <Flow as="ul" direction="row" gap={8} wrap aria-label="The team at a glance">
         <li>
-          <Tag variant="outline">{plural(data.agents, 'agent')}</Tag>
+          <Tag variant="outline" tone="count">{plural(data.agents, 'agent')}</Tag>
         </li>
         <li>
           {/* the sidebar's and the board's Agent count, the same number */}
@@ -172,7 +172,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
           <Tag variant="outline" tone="attention">{`${asks.length} ${asks.length === 1 ? 'ask' : 'asks'} for you`}</Tag>
         </li>
         <li>
-          <Tag variant="outline">{plural(data.prs, 'open PR')}</Tag>
+          <Tag variant="outline" tone="count">{plural(data.prs, 'open PR')}</Tag>
         </li>
       </Flow>
 
