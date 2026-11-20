@@ -18,10 +18,6 @@ export const CHECKS = [
 
 export const TARGET = 90;
 
-/* Who takes each fix, as Figma's Needs you cards say it (601:109235: pairs a
-   maintainer, keyboard lines a developer); the code checks are a developer's.
-   Docs names no role in Figma, so none here. */
-const WHO = { contrast: 'a maintainer', a11y: 'a developer', story: 'a developer', contract: 'a developer', dsds: 'a developer' };
 
 const names = (list) => (list.length > 3 ? `${list.slice(0, 2).join(', ')} +${list.length - 2}` : list.join(', '));
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -50,7 +46,6 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
     contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,
     gateDays: gateDays(runs),
     lowest: lowestPair(pairs),
-    fixes: rows.filter((r) => r.missing.length).map((r) => ({ id: r.id, title: `${r.missing.length} ${r.some}`, names: names(r.missing), who: WHO[r.id] ?? null, action: r.action, href: r.href, row: r })),
     fixCount: rows.reduce((s, r) => s + r.missing.length, 0),
   };
 }

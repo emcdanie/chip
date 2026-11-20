@@ -13,7 +13,6 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import StatCard from '@bella/components/StatCard/StatCard';
 import SystemHealth from '@bella/components/SystemHealth/SystemHealth';
 import CheckRow from '@bella/components/CheckRow/CheckRow';
-import ListRow from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
@@ -153,7 +152,7 @@ export default function HealthContent({ model, run, checked, onCheck, view: star
   };
   const verb = (row) => (sending === row.id ? 'Sending…' : row.action);
   if (!model) return <EmptyState size="lane" mark="⏳" title="Reading BELLA" line="Counting every part and its checks." />;
-  const { health, contrast, rows, fixes, fixCount, n } = model;
+  const { health, contrast, rows, n } = model;
   return (
     <>
       {/* Control bar, as on Work: the last check and Check again, one group on the left. */}
@@ -179,8 +178,8 @@ export default function HealthContent({ model, run, checked, onCheck, view: star
             status={health.pct >= TARGET ? 'Healthy' : 'Below target'}
             target={TARGET}
             passed={`${health.passed} of ${health.total} pass`}
-            why={`Healthy means ${TARGET}% or more pass (the blue tick). ${health.failing.length ? `${health.failing.reduce((s, r) => s + r.missing.length, 0)} checks still fail:` : 'Every check passes.'}`}
-            failing={health.failing.map((r) => ({ name: r.title, count: r.missing.length, ofTotal: `of ${n} parts`, href: '#/components' }))}
+            // the failing checks show once, in Component checks below with their fix (user test 21 Nov, item 6)
+            why={`Healthy means ${TARGET}% or more pass (the blue tick). ${health.failing.length ? `${health.failing.reduce((s, r) => s + r.missing.length, 0)} checks still fail; each is in Component checks below.` : 'Every check passes.'}`}
           />
         ) : (
           <NoData title="System health" icon="Activity" tone="info" mark="🩺" empty="No components yet" line="Point me at BELLA and I'll take its pulse." />
@@ -270,57 +269,6 @@ export default function HealthContent({ model, run, checked, onCheck, view: star
                   </Flow>
                 ))}
             </Flow>
-          )}
-        </Flow>
-      </Card>
-      <Card>
-        <Flow gap={24}>
-          <SectionHead icon="WarningCircle" iconTone="warning" title="Needs you" description="Fixes that need a reviewer" number={fixCount} words="to fix" />
-          {fixes.length ? (
-            <>
-              {/* Wide: a card per fix, as Figma. Narrow: a card inside a card
-                  leaves no room, so the fixes are plain rows. */}
-              {narrow ? (
-                <Flow as="ul" gap={16} aria-label="Fixes">
-                  {fixes.map((f) => (
-                    // ListRow moves the button under the names on a narrow row (parts-dev b69a5de)
-                    <ListRow key={f.id} layout="stacked" title={f.title} description={f.who ? `${f.names} · ${f.who}` : f.names} actionButton={<Button variant="secondary" size="sm" disabled={!!sending} onClick={() => send(f.row)}>{verb(f.row)}</Button>} />
-                  ))}
-                </Flow>
-              ) : (
-                <Flow gap={24}>
-                  {/* two to a row, equal widths, as Figma */}
-                  {fixes.map((f, i) => (i % 2 ? null : [f, fixes[i + 1]])).filter(Boolean).map((two) => (
-                    <Flow key={two[0].id} direction="row" gap={24} equal>
-                      {two.map((f) =>
-                        f ? (
-                          <Card key={f.id}>
-                            <ListRow
-                              as="div"
-                              layout="stacked"
-                              title={f.title}
-                              description={f.who ? `${f.names} · ${f.who}` : f.names}
-                              actionButton={
-                                <Button variant="secondary" size="sm" disabled={!!sending} onClick={() => send(f.row)}>
-                                  {verb(f.row)}
-                                </Button>
-                              }
-                            />
-                          </Card>
-                        ) : (
-                          <div key="empty" aria-hidden="true" />
-                        ),
-                      )}
-                    </Flow>
-                  ))}
-                </Flow>
-              )}
-              <Flow as="ul" gap={4} aria-label="All fixes">
-                <ListRow layout="inline" title={`See all ${fixCount} fixes`} trailing href="#/components?filter=needs" />
-              </Flow>
-            </>
-          ) : (
-            <EmptyState size="lane" mark="🎉" title="Every check passes" line="Not a thing to fix. Away you go and put your feet up." />
           )}
         </Flow>
       </Card>
