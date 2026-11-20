@@ -13,7 +13,7 @@
 //     own drawer, the plain fallback.
 //   Ask BELLA: the Ask thread (useAsk), from CHIP's data first, turn by turn.
 // The composer sits at the foot on every tab: the model (Auto, local first),
-// the field, and Talk (the browser's own speech, never sending by itself).
+// the field, and Speak (the browser’s own speech into the field, never sending by itself).
 // New chat sits in the Drawer head's action slot, before Close (Head 172:528).
 // Gaps (named for the library, not drawn here): Drawer has no tabs slot under
 // its head (the tabs scroll with the body) and it dims the page; the model
@@ -34,7 +34,7 @@ import Toasts from './Toasts.jsx';
 import useCached from './useCached.js';
 import useNarrow from './useNarrow.js';
 import useAsk, { AskAnswer, sendToAgent } from './useAsk.jsx';
-import { workModel } from '../pages/workModel.js';
+import { workModel, laneState, daysQuiet } from '../pages/workModel.js';
 import WorkDrawer from '../pages/WorkDrawer.jsx';
 import ChatThread from '@bella/components/ChatThread/ChatThread';
 import TermChat from './TermChat.jsx';
@@ -65,13 +65,20 @@ const RUN = {
   passed: ['Ready · gate passed', 'success'],
   failed: ['Failed', 'danger'],
   login: ['Needs a sign-in', 'attention'],
+  // every status the runner sets, in words (audit 3: "nochange" showed raw)
+  nochange: ['No change made', 'neutral'],
+  kept: ['Kept', 'success'],
+  undone: ['Undone', 'neutral'],
 };
 /* A relay lane, as a session row: its state for the role that acts, never a person's name for the role. */
 function laneRow(l) {
   const n = l.needs?.length ?? 0;
-  if (l.status === 'waiting on you') return { line: `Waiting on a maintainer${n ? ` · ${n} ${n === 1 ? 'ask' : 'asks'}` : ''}`, tone: 'attention' };
-  if (l.status === 'no report') return { line: 'No report yet', tone: 'neutral' };
-  return { line: `${l.status[0].toUpperCase()}${l.status.slice(1)}${l.role ? ` · ${l.role}` : ''}`, tone: 'info' };
+  const state = laneState(l);
+  if (state === 'waiting on you') return { line: `Waiting on a maintainer${n ? ` · ${n} ${n === 1 ? 'ask' : 'asks'}` : ''}`, tone: 'attention' };
+  if (state === 'no report') return { line: 'No report yet', tone: 'neutral' };
+  // quiet: still marked working but silent past the freshness window, as Team says it
+  if (state === 'quiet') return { line: `Quiet for ${daysQuiet(l)} ${daysQuiet(l) === 1 ? 'day' : 'days'}${l.role ? ` · ${l.role}` : ''}`, tone: 'neutral' };
+  return { line: `${state[0].toUpperCase()}${state.slice(1)}${l.role ? ` · ${l.role}` : ''}`, tone: 'info' };
 }
 
 /* The browser's own speech to text, where it has it; it fills the field and never sends. */
@@ -123,7 +130,7 @@ export default function WorkDock() {
   }, [asker.answer?.q, asker.past.length]);
   const talk = useTalk(setDraft);
   const phone = useNarrow();
-  // under 400 the field's hint is shorter, so it shows whole beside Talk (its label says what it asks)
+  // under 400 the field's hint is shorter, so it shows whole beside Speak (its label says what it asks)
   const tiny = useNarrow(400);
 
   useEffect(() => {
@@ -156,7 +163,7 @@ export default function WorkDock() {
     window.addEventListener('chip:changed', reload);
     return () => window.removeEventListener('chip:changed', reload);
   }, [reload]);
-  const needs = useMemo(() => (data ? workModel({ needs: data[0]?.items ?? [], runs: data[1]?.runs ?? [] }).lanes.find((l) => l.id === 'needs').cards : null), [data]);
+  const needs = useMemo(() => (data ? workModel({ needs: data[0]?.items ?? [], runs: data[1]?.runs ?? [], agents: data[2]?.lanes ?? [] }).lanes.find((l) => l.id === 'needs').cards : null), [data]);
   const sessions = useMemo(() => {
     if (!data) return null;
     const runs = [...(data[1]?.runs ?? [])].sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
@@ -164,7 +171,7 @@ export default function WorkDock() {
     return [
       { id: 'chip', title: 'CHIP', line: 'Idle · this page', tone: 'info' },
       ...runs.map((r) => {
-        const [word, tone] = RUN[r.status] ?? [r.status, 'neutral'];
+        const [word, tone] = RUN[r.status] ?? ['Finished', 'neutral'];
         return { id: r.id, title: r.title ?? 'Fix', line: [word, r.startedAt ? `ran ${hhmm(r.startedAt)}` : null].filter(Boolean).join(' · '), tone, open: { kind: 'run', id: r.id } };
       }),
       ...lanes.map((l) => ({ id: `lane-${l.id}`, title: l.name, ...laneRow(l) })),
@@ -244,13 +251,29 @@ export default function WorkDock() {
         <Input label={tab === 'term' ? 'Message BELLA' : 'Ask about BELLA'} placeholder={tiny ? 'Your question' : tab === 'term' ? 'Message BELLA' : 'Ask about BELLA'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" suggestion={suggestion} />
         {talk.can ? (
           <Button variant="secondary" ariaExpanded={talk.on} onClick={talk.toggle}>
-            {talk.on ? 'Listening' : 'Talk'}
+            {talk.on ? 'Listening' : 'Speak'}
           </Button>
         ) : null}
       </Flow>
     </Flow>
   );
 
+  // one chat, one empty state (audit 3; her "i just want one please"): Terminal and Ask BELLA
+  // open the same way, and the example goes to the tab you are on (send routes it)
+  const chatEmpty = (
+    <EmptyState
+      size="page"
+      mark="💬"
+      title="Ask about BELLA, in plain words"
+      line="Go on, ask away. I’ll show you where I got it, so you know I’m not making it up."
+      actions={
+        // one primary in view: the composer's Send is it, so the example is secondary
+        <Button variant="secondary" onClick={() => send(EXAMPLE)}>
+          Try an example
+        </Button>
+      }
+    />
+  );
   const body = {
     needs:
       needs == null ? null : needs.length ? (
@@ -278,7 +301,7 @@ export default function WorkDock() {
             New shell
           </Button>
         </Flow>
-        {termAsker.answer ? null : <EmptyState size="lane" mark="👋" title="Message BELLA" line="Ask anything, then say “send it to the agent” and it gets on with it." />}
+        {termAsker.answer ? null : chatEmpty}
         <TermChat asker={termAsker} turns={termTurns} setTurns={setTermTurns} provider={providerOf(model)} where={where} onOpen={setItem} sayRef={say} onNotice={setNotice} />
       </Flow>
     ),
@@ -296,18 +319,7 @@ export default function WorkDock() {
         </ChatThread>
       </Flow>
     ) : (
-      <EmptyState
-        size="page"
-        mark="💬"
-        title="Ask about BELLA, in plain words"
-        line="Go on, ask away. I’ll show you where I got it, so you know I’m not making it up."
-        actions={
-          // one primary in view: the composer's Send is it, so the example is secondary
-          <Button variant="secondary" onClick={() => ask(EXAMPLE)}>
-            Try an example
-          </Button>
-        }
-      />
+      chatEmpty
     ),
   }[tab];
 

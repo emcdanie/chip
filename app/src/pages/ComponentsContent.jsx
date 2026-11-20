@@ -832,7 +832,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
           {/* the view's content is its tab's panel (aria-controls lands; audit 21 Nov) */}
           <TabPanels tabs={{ idBase: 'part-view', value: view, items: VIEWS }}>
           {detail?.figmaBlind ? (
-            <Notification tone="attention" title="Figma can’t see it" message="No file key in server/.env." action={{ label: 'Add file key', href: '#/connectors' }} />
+            <Notification tone="attention" message="Figma can’t see it: no file key in CHIP’s settings." action={{ label: 'Add file key', href: '#/connectors' }} />
           ) : null}
           {detail ? <AskRow part={part} detail={detail} onAsk={(t) => ask(t, 'row')} asking={pending && asked?.from === 'row' ? asked.q : null} /> : null}
           {asked?.from === 'row' && answer ? thread : null}

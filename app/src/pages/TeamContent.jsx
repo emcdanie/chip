@@ -28,11 +28,11 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Tag from '@bella/components/Tag/Tag';
 import Flow from '../templates/Flow.jsx';
 import { Reply } from '../templates/TermChat.jsx';
+import { workModel, laneState, daysQuiet, QUIET_DAYS } from './workModel.js';
 
 export const BOARD = 'http://localhost:3123';
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const DAY = 86400000;
-const QUIET_DAYS = 7; // The Bar's own freshness window (server/lib/needs.mjs FRESH_DAYS)
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const dateOf = (t) => {
@@ -53,8 +53,8 @@ export function useTeamData() {
   const [data, setData] = useState({ state: 'loading' });
   useEffect(() => {
     let live = true;
-    Promise.all([fetch('/bar/state').then((r) => (r.ok ? r.json() : Promise.reject())), fetch('/projects').then((r) => (r.ok ? r.json() : { projects: [] }))])
-      .then(([bar, proj]) => {
+    Promise.all([fetch('/bar/state').then((r) => (r.ok ? r.json() : Promise.reject())), fetch('/projects').then((r) => (r.ok ? r.json() : { projects: [] })), fetch('/runs').then((r) => (r.ok ? r.json() : { runs: [] }))])
+      .then(([bar, proj, runs]) => {
         if (!live) return;
         const lanes = bar.lanes ?? [];
         const asks = lanes.flatMap((l) => (l.status === 'waiting on you' ? (l.needs ?? []).map((n, i) => ({ id: `${l.id}-${i}`, agent: l.name, text: n.text, at: l.updated })) : []));
@@ -69,13 +69,14 @@ export function useTeamData() {
           // only an agent's latest message carries "Waiting on you"
           .map((m, i, all) => ({ ...m, waiting: m.waiting && !all.slice(i + 1).some((n) => n.lane === m.lane) }));
         const quiet = lanes
-          .filter((l) => l.status === 'working' && l.updated && Date.now() - l.updated > QUIET_DAYS * DAY)
-          .map((l) => ({ name: l.name, role: l.role, days: Math.floor((Date.now() - l.updated) / DAY), at: l.updated }))
+          .filter((l) => laneState(l) === 'quiet')
+          .map((l) => ({ name: l.name, role: l.role, days: daysQuiet(l), at: l.updated }))
           .sort((a, b) => b.days - a.days)[0];
         setData({
           state: 'ready',
           agents: lanes.length,
-          working: lanes.filter((l) => l.status === 'working').length,
+          // the board's Agent lane, counted the one way (workModel): runs at work and lanes still reporting
+          working: workModel({ runs: runs.runs ?? [], agents: lanes }).lanes.find((l) => l.id === 'agent').cards.length,
           prs: (proj.projects ?? []).reduce((n, p) => n + (typeof p.prs === 'number' ? p.prs : 0), 0),
           asks,
           thread,
@@ -153,8 +154,8 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
       {data.quiet ? (
         <Notification
           tone="attention"
-          title={`${data.quiet.name} has been quiet for ${data.quiet.days} days`}
-          message={`Last report ${dateOf(data.quiet.at)}. No reports since, so the ${data.quiet.role} work may be stuck.`}
+          // a notice is one line: message left, action right (16 Nov, "A"; audit 3)
+          message={`${data.quiet.name} has been quiet for ${data.quiet.days} days, since ${dateOf(data.quiet.at)}.`}
           action={{ label: `Ask ${data.quiet.name}`, onClick: () => setReplyTo({ id: null, agent: data.quiet.name, text: null }) }}
         />
       ) : null}
@@ -164,8 +165,8 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
           <Tag variant="outline">{plural(data.agents, 'agent')}</Tag>
         </li>
         <li>
-          {/* agent sessions, not board cards: the words say so, so they never read against the sidebar's Needs you / Agent */}
-          <Tag variant="outline" tone="info">{`${data.working} ${data.working === 1 ? 'session' : 'sessions'} working`}</Tag>
+          {/* the sidebar's and the board's Agent count, the same number */}
+          <Tag variant="outline" tone="info">{`${data.working} working`}</Tag>
         </li>
         <li>
           <Tag variant="outline" tone="attention">{`${asks.length} ${asks.length === 1 ? 'ask' : 'asks'} for you`}</Tag>
@@ -242,7 +243,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
             )}
             {isDraft ? <Tag variant="outline" tone="info">The agent’s draft, in your words · edit before sending</Tag> : null}
             {/* Figma: the send button sits in the field, as History's Ask */}
-            <Input id="team-reply" label={replyTo ? `Reply to ${replyTo.agent}` : 'Reply'} value={text} placeholder="Reply to all, or @ one agent" onChange={setText} onSend={() => text.trim() && send()} sendLabel="Send" />
+            <Input id="team-reply" label={replyTo ? `Reply to ${replyTo.agent}` : 'Reply'} value={text} placeholder="Reply, or @ an agent" onChange={setText} onSend={() => text.trim() && send()} sendLabel="Send" />
             {failed ? <Notification tone="danger" title="Not sent" message={`The progress board doesn't answer at ${BOARD}. Your reply is still in the box.`} /> : null}
           </Flow>
         </Card>

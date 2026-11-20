@@ -37,14 +37,28 @@ function runCard(r) {
     line: ['Agent run', r.startedAt ? hhmm(r.startedAt) : null].filter(Boolean).join(' · ') };
 }
 
-export function workModel({ needs = [], runs = [] }) {
+/* Who is working, one rule for the board, the sidebar, Team and Sessions (audit 3, 21 Nov:
+   Team said "1 session working" and Sessions "Working · Figma" while the board said Agent 0).
+   A relay lane counts as working only while it reports: one that has said nothing for
+   QUIET_DAYS is quiet, not working (the Bar's own freshness window, server/lib/needs.mjs FRESH_DAYS). */
+const DAY = 86400000;
+export const QUIET_DAYS = 7;
+export function laneState(l, now = Date.now()) {
+  if (l.status !== 'working') return l.status;
+  return l.updated && now - l.updated > QUIET_DAYS * DAY ? 'quiet' : 'working';
+}
+export const daysQuiet = (l, now = Date.now()) => Math.floor((now - l.updated) / DAY);
+/* A relay lane at work, as an Agent card: the agent's name and its role. */
+const laneCard = (l) => ({ id: `lane-${l.id}`, title: l.name, branch: null, line: ['Agent session', l.role].filter(Boolean).join(' · '), status: 'Working', tone: 'info', who: 'agent' });
+
+export function workModel({ needs = [], runs = [], agents = [] }) {
   // a check an agent is already working on leaves Needs you (its run shows in Agent)
   const working = new Set(runs.filter((r) => ['starting', 'running', 'gate'].includes(r.status)).map((r) => r.title));
   const needsYou = needs.map(needCard).filter((c) => !(c.fixable && working.has(c.title))).sort((a, b) => Number(b.failed) - Number(a.failed) || (a.at ?? 0) - (b.at ?? 0));
   const by = (...s) => runs.filter((r) => s.includes(r.status));
   const lanes = [
     { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r), status: 'Failed', tone: 'danger', who: 'developer' })), ...needsYou] },
-    { id: 'agent', name: 'Agent', cards: by('starting', 'running').map((r) => ({ ...runCard(r), status: 'Working', tone: 'info', who: 'agent' })) },
+    { id: 'agent', name: 'Agent', cards: [...by('starting', 'running').map((r) => ({ ...runCard(r), status: 'Working', tone: 'info', who: 'agent' })), ...agents.filter((l) => laneState(l) === 'working').map(laneCard)] },
     { id: 'gate', name: 'Gate', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info', who: 'gate' })) },
     { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success', who: 'reviewer' })) },
   ];
@@ -59,17 +73,17 @@ function briefOf(lanes) {
   const agent = lanes.find((l) => l.id === 'agent')?.cards.length ?? 0;
   const top = needs[0];
   if (!top) return null;
-  return { message: `${needs.length} ${needs.length === 1 ? 'thing needs' : 'things need'} you; the top one is ${top.title}${top.failed || top.tone === 'danger' ? ', which failed' : ''}.${agent ? ` ${agent} agent ${agent === 1 ? 'run is' : 'runs are'} working.` : ''}`, action: top.action, open: top.open };
+  return { message: `${needs.length} ${needs.length === 1 ? 'thing needs' : 'things need'} you; the top one is ${top.title}${top.failed || top.tone === 'danger' ? ', which failed' : ''}.${agent ? ` ${agent} ${agent === 1 ? 'agent is' : 'agents are'} working.` : ''}`, action: top.action, open: top.open };
 }
 
 /** Reads CHIP's data (kept between pages); `reload` reads it again (Check again). */
 export function useWork() {
-  const { data, error, at, loading, reload } = useCached(['/needs', '/runs']);
+  const { data, error, at, loading, reload } = useCached(['/needs', '/runs', '/bar/state']);
   useEffect(() => {
     window.addEventListener('chip:changed', reload);
     return () => window.removeEventListener('chip:changed', reload);
   }, [reload]);
-  const model = useMemo(() => (data ? workModel({ needs: data[0].items ?? [], runs: data[1].runs ?? [] }) : null), [data]);
+  const model = useMemo(() => (data ? workModel({ needs: data[0].items ?? [], runs: data[1].runs ?? [], agents: data[2]?.lanes ?? [] }) : null), [data]);
   return { model, error, loading, reload, checked: at ? hhmm(at) : null };
 }
 

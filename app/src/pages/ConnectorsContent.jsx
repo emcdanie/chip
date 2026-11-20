@@ -23,7 +23,6 @@ import Notification from '@bella/components/Notification/Notification';
 import Button from '@bella/components/Button/Button';
 import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
-import Columns from '@bella/components/Columns/Columns';
 import Flow from '../templates/Flow.jsx';
 import Toasts from '../templates/Toasts.jsx';
 import Toast from '@bella/components/Toast/Toast';
@@ -47,6 +46,8 @@ function headline(r) {
     const n = pushes(r.n.detail);
     if (n === 0) return 'All pushed';
     if (n > 0) return `${n} to push`;
+    // never the status word again (audit 3: "Waiting" twice on one tile)
+    if (r.n.state !== 'ok') return 'Not run yet';
   }
   return r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested';
 }
@@ -59,7 +60,7 @@ function meta(r, gate) {
   const d = String(r.n.detail ?? '');
   // until GitHub runs CI, the tile says what BELLA's gate said on the last commit: the same
   // reading as Health and System map (one gate, one answer)
-  if (r.id === 'ci') return r.n.state === 'ok' ? 'CI ran' : gateWords(gate) ? `CI hasn’t run · gate ${gateWords(gate)}` : 'CI hasn’t run';
+  if (r.id === 'ci') return r.n.state === 'ok' ? 'CI ran' : gateWords(gate) ? `Gate ${gateWords(gate)}` : undefined;
   if (r.id === 'git') return sha(d);
   if (r.id === 'claude') return r.n.state === 'ok' ? 'OBI uses it' : 'Not installed';
   if (r.id === 'ollama') return d.match(/:(\d{2,5})\b/) ? `:${d.match(/:(\d{2,5})\b/)[1]}` : undefined;
@@ -145,7 +146,8 @@ export default function ConnectorsContent() {
   const live = reaches.filter((r) => r.n.state === 'ok').length;
   const paths = PATHS.map((p) => ({ ...p, n: node(p.id) })).filter((p) => p.n);
   const compare = node('compare');
-  const needs = map.nodes.filter((n) => n.state === 'bad' && n.action?.type === 'test');
+  // a Figma path already has its own row and Set up above, so it is never listed twice (audit 3)
+  const needs = map.nodes.filter((n) => n.state === 'bad' && n.action?.type === 'test' && !PATHS.some((p) => p.id === n.id));
   const testButton = (n, label = 'Test', name = nameOf(n)) => (
     // Figma's buttons carry words only (20 Nov polish: no leading icons)
     <Button variant="secondary" size="sm" onClick={() => test(n, name)} busy={busy === n.id} disabled={!!busy && busy !== n.id}>
@@ -219,8 +221,7 @@ export default function ConnectorsContent() {
           {compare ? (
             <Notification
               tone={compare.state === 'ok' ? 'success' : 'info'}
-              title="Compare with Figma"
-              message={compare.state === 'ok' ? 'Figma matches the code.' : `Can't compare yet. ${compare.blockedBy ? `Waits on ${nameOf(compare.blockedBy)}. ` : ''}${plainWords(first(compare.detail))}`}
+              message={compare.state === 'ok' ? 'Compare with Figma: Figma matches the code.' : `Compare with Figma can’t run yet${compare.blockedBy ? `: it waits on ${nameOf(compare.blockedBy)}` : ''}.`}
             />
           ) : null}
         </Flow>
@@ -230,15 +231,18 @@ export default function ConnectorsContent() {
         <Card>
           <Flow gap={16}>
             <SectionHead icon="WarningCircle" iconTone="warning" title="Need setup" description="Connect these to unlock more checks" showDescription number={needs.length} words="to set up" showNumber />
-            <Columns count={3}>
+            {/* one List item for every row, no card inside a card (20 Nov rule) */}
+            <Flow gap={8} as="ul" aria-label="Need setup">
               {needs.map((n) => (
-                  // Figma: name, one line, the action in the card footer at the bottom right; no icon
-                  // Figma: the key card's Add key is the one primary button; the rest Set up
-                  <Card key={n.id} footerAction={n.id === 'figma-key' ? <Button variant="primary" size="sm" onClick={() => setSetup(n)}>Add key</Button> : <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>}>
-                    <TextStack title={nameOf(n)} body={why(n)} />
-                  </Card>
+                // the key's Add key is the one primary button; the rest Set up
+                <ListRow
+                  key={n.id}
+                  title={nameOf(n)}
+                  description={why(n)}
+                  actionButton={n.id === 'figma-key' ? <Button variant="primary" size="sm" onClick={() => setSetup(n)}>Add key</Button> : <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>}
+                />
               ))}
-            </Columns>
+            </Flow>
           </Flow>
         </Card>
       ) : null}

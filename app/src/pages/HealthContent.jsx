@@ -239,7 +239,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             const runs = days.reduce((t, d) => t + d.runs, 0);
             // what the view reports, each number once
             const line =
-              view === 'gate' ? `${days.length} days · ${runs} gate runs · target ${TARGET}%`
+              view === 'gate' ? `${runs} ${runs === 1 ? 'commit' : 'commits'} through the gate · ${days.length} ${days.length === 1 ? 'day' : 'days'} · target ${TARGET}%`
               : view === 'drift' ? `Each part against its Figma set · ${n} parts`
               : `Seven checks, six measured · ${n} parts · target ${TARGET}%`;
             // her 21 Nov pick (question 1 A, "the control at teh top right and the feedback under?"): the
@@ -280,7 +280,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
                         fill={r.fill}
                         target={TARGET}
                         actionLabel={r.missing.length && r.action ? verb(r) : undefined}
-                        onAction={r.missing.length && !sending ? () => send(r) : undefined}
+                        onAction={r.missing.length && r.action && !sending ? () => send(r) : undefined}
                       />
                     ))}
                     {/* a lone last row keeps its half, as the rows above */}

@@ -65,12 +65,12 @@ const PLACES = [
  * Work board's own lanes (workModel), so the panel and the board always agree;
  * 0 is a real count (no runs), shown as Figma shows it. */
 function useShellData() {
-  const { data } = useCached(['/projects', '/needs', '/runs']);
+  const { data } = useCached(['/projects', '/needs', '/runs', '/bar/state']);
   if (!data) return { projects: null, lanes: null };
-  const [p, n, r] = data;
+  const [p, n, r, bar] = data;
   // the Status counts are the board's own, branch filter included, so the two never disagree
   const { branch } = filterFromHash();
-  const { lanes } = filtered(workModel({ needs: n?.items ?? [], runs: r?.runs ?? [] }), { branch });
+  const { lanes } = filtered(workModel({ needs: n?.items ?? [], runs: r?.runs ?? [], agents: bar?.lanes ?? [] }), { branch });
   return { projects: p?.projects ?? [], lanes: Object.fromEntries(lanes.map((l) => [l.id, l.cards.length])) };
 }
 

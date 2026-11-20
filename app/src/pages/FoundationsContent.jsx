@@ -39,7 +39,6 @@ import SearchField from '@bella/components/SearchField/SearchField';
 import Flow from '../templates/Flow.jsx';
 import Toasts from '../templates/Toasts.jsx';
 import Toast from '@bella/components/Toast/Toast';
-import Tag from '@bella/components/Tag/Tag';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 
@@ -359,7 +358,6 @@ function Problems({ rows }) {
                   statusBar="attention"
                   title={`${r.not.length} ${r.p.toLowerCase()} ${r.not.length === 1 ? 'value isn’t a token' : 'values aren’t tokens'}`}
                   description={parts.length > 4 ? `${parts.slice(0, 4).join(', ')} and ${parts.length - 4} more` : parts.join(', ')}
-                  tag={<Tag tone="neutral">Open</Tag>}
                   actionButton={
                     <Button variant="secondary" size="sm" disabled={!!busy} onClick={() => send(r)}>
                       {busy === r.p ? 'Sending…' : 'Send'}

@@ -71,8 +71,11 @@ function gateDays(runs) {
     const passed = list.filter((r) => r.gate.ok).length;
     const contrast = list.filter((r) => r.gate.contrastPairs === false).length;
     const contract = list.filter((r) => r.gate.contractParity === false).length;
-    const worst = contrast >= contract ? (contrast ? `contrast failed ${contrast}` : null) : `contract failed ${contract}`;
-    return { id: k, title: WEEKDAY(list[0].committedAt), runs: list.length, passed, line: passed === list.length ? (list.length === 1 ? 'The one run passed' : `All ${list.length} runs passed`) : `${passed} of ${list.length} ${list.length === 1 ? 'run' : 'runs'} passed${worst ? `: ${worst}` : ''}` };
+    // the check that failed most, in a few words
+    const worst = contrast >= contract ? (contrast ? `${contrast} failed on colour contrast` : null) : `${contract} failed on contracts`;
+    // commits, not "runs": the Gate card counts the latest run's checks (5 of 5); this counts commits that passed (audit 3)
+    const word = (n) => (n === 1 ? 'commit' : 'commits');
+    return { id: k, title: WEEKDAY(list[0].committedAt), runs: list.length, passed, line: passed === list.length ? (list.length === 1 ? 'The one commit passed the gate' : `All ${list.length} commits passed the gate`) : `${passed} of ${list.length} ${word(list.length)} passed the gate${worst ? `; ${worst}` : ''}` };
   });
 }
 
