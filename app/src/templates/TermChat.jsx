@@ -40,6 +40,46 @@ function briefOf(turn) {
     .join('\n');
 }
 
+/**
+ * A reply in any CHIP chat (Terminal, Team): the received bubble, its sender's name over
+ * the first of a run, and the smiley that opens the coloured reaction bar; the badge stays
+ * on the bubble. extra: more actions after the smiley (a chip such as "Send it to the agent").
+ */
+export function Reply({ who, tail = true, extra, children }) {
+  const [react, setReact] = useState(false);
+  const [reaction, setReaction] = useState(null);
+  return (
+    <Flow gap={8}>
+      <ChatBubble
+        side="received"
+        tail={tail}
+        senderName={who}
+        reactions={reaction ? [reaction] : undefined}
+        actions={
+          <Flow direction="row" gap={8} wrap align="center">
+            <Button variant="tertiary" size="sm" iconOnly icon="EmojiTalkingHappy" ariaLabel={reaction ? `Your reaction: ${reaction}. Change it` : 'React'} ariaExpanded={react} onClick={() => setReact((r) => !r)} />
+            {extra}
+          </Flow>
+        }
+      >
+        {children}
+      </ChatBubble>
+      {react ? (
+        <Flow direction="row">
+          <ReactionBar
+            label={`React to ${who ?? 'this reply'}`}
+            selected={reaction ? [reaction] : []}
+            onReact={(r) => {
+              setReaction((was) => (was === r ? null : r));
+              setReact(false);
+            }}
+          />
+        </Flow>
+      ) : null}
+    </Flow>
+  );
+}
+
 /* One agent run, as the agent's bubbles: its steps so far, then its outcome; polled while it works. */
 function AgentRun({ id, onOpen }) {
   const [run, setRun] = useState(null);
@@ -88,8 +128,6 @@ function AgentRun({ id, onOpen }) {
 
 /* One turn: her message, then BELLA's reply (or what it's doing), then the agent's run if she sent it on. */
 function Turn({ turn, last, sent, onAgent, onRetry }) {
-  const [react, setReact] = useState(false);
-  const [reaction, setReaction] = useState(null);
   const a = turn.answer;
   const shaped = a && (a.verdict ? { verdict: a.verdict, bullets: a.bullets ?? [] } : shapeReply(a.reply ?? ''));
   return (
@@ -107,34 +145,9 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
         </Flow>
       ) : null}
       {a?.status === 'answer' ? (
-        <Flow gap={8}>
-          <ChatBubble
-            side="received"
-            tail
-            senderName="BELLA"
-            reactions={reaction ? [reaction] : undefined}
-            actions={
-              <Flow direction="row" gap={8} wrap>
-                <Button variant="tertiary" size="sm" iconOnly icon="EmojiTalkingHappy" ariaLabel={reaction ? `Your reaction: ${reaction}. Change it` : 'React'} ariaExpanded={react} onClick={() => setReact((r) => !r)} />
-                {!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}
-              </Flow>
-            }
-          >
-            <Words text={[shaped.verdict, ...shaped.bullets].join(' ')} />
-          </ChatBubble>
-          {react ? (
-            <Flow direction="row">
-              <ReactionBar
-                label="React to BELLA’s reply"
-                selected={reaction ? [reaction] : []}
-                onReact={(r) => {
-                  setReaction((was) => (was === r ? null : r));
-                  setReact(false);
-                }}
-              />
-            </Flow>
-          ) : null}
-        </Flow>
+        <Reply who="BELLA" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
+          <Words text={[shaped.verdict, ...shaped.bullets].join(' ')} />
+        </Reply>
       ) : null}
       {a?.status === 'weak' || a?.status === 'error' || a?.status === 'stopped' ? (
         <ChatBubble

@@ -18,6 +18,7 @@ import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
+import ChatThread, { ChatThreadDelivered, ChatThreadTimestamp } from '@bella/components/ChatThread/ChatThread';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Input from '@bella/components/Input/Input';
 import ListRow from '@bella/components/ListRow/ListRow';
@@ -26,8 +27,10 @@ import Notification from '@bella/components/Notification/Notification';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Tag from '@bella/components/Tag/Tag';
 import Flow from '../templates/Flow.jsx';
+import { Reply } from '../templates/TermChat.jsx';
 
 export const BOARD = 'http://localhost:3123';
+const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 const DAY = 86400000;
 const QUIET_DAYS = 7; // The Bar's own freshness window (server/lib/needs.mjs FRESH_DAYS)
 
@@ -61,7 +64,7 @@ export function useTeamData() {
           .slice(-6)
           .map((e) => {
             const lane = lanes.find((l) => l.id === e.lane);
-            return { id: String(e.t), lane: e.lane, who: lane?.name ?? e.lane, text: firstLine(e.text), waiting: lane?.status === 'waiting on you' };
+            return { id: String(e.t), at: e.t, lane: e.lane, who: lane?.name ?? e.lane, text: firstLine(e.text), waiting: lane?.status === 'waiting on you' };
           })
           // only an agent's latest message carries "Waiting on you"
           .map((m, i, all) => ({ ...m, waiting: m.waiting && !all.slice(i + 1).some((n) => n.lane === m.lane) }));
@@ -136,7 +139,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
     try {
       const r = await fetch(`${BOARD}/answers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error(String(r.status));
-      setSent((s) => [...s, { ask: replyTo, text: text.trim() }]);
+      setSent((s) => [...s, { ask: replyTo, text: text.trim(), at: Date.now() }]);
       setReplyTo(null);
       setText('');
       setFailed(false);
@@ -205,24 +208,35 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
           <Flow gap={16}>
             <SectionHead icon="ChatBubbleEmpty" iconTone="info" title="Team chat" description="Today, with every agent" />
             {data.thread.length || sent.length ? (
-              <Flow gap={16} aria-label="Team chat, today">
-                {data.thread.map((m, i) => (
-                  <Fragment key={m.id}>
-                    {m.waiting && !sent.some((x) => x.ask?.agent === m.who) ? (
-                      <Flow direction="row" gap={8}>
-                        <Tag variant="outline" tone="attention">Waiting on you</Tag>
-                      </Flow>
-                    ) : null}
-                    <ChatBubble side="received" tail={data.thread[i + 1]?.who !== m.who || i === data.thread.length - 1}>{`${m.who} · ${m.text}`}</ChatBubble>
-                  </Fragment>
-                ))}
-                {sent.map((s, i) => (
-                  <ChatBubble key={`sent-${i}`} side="sent" tail={i === sent.length - 1}>
-                    {s.text}
-                  </ChatBubble>
-                ))}
-                {reply && sent.length ? <ChatBubble side="received" tail>{`${reply.who} · ${reply.text}`}</ChatBubble> : null}
-              </Flow>
+              // one chat (her 21 Nov answer 5 B): the same ChatThread as Ask BELLA and the Terminal.
+              // Each agent's name sits over the first of its run of bubbles, its tail on the last;
+              // replies take reactions; hers are pink on the right with the time under the last.
+              <ChatThread label="Team chat, today">
+                <Flow gap={8}>
+                  {data.thread[0]?.at ? <ChatThreadTimestamp boldWord="Today">{hhmm(data.thread[0].at)}</ChatThreadTimestamp> : null}
+                  {data.thread.map((m, i) => (
+                    <Fragment key={m.id}>
+                      {m.waiting && !sent.some((x) => x.ask?.agent === m.who) ? (
+                        <Flow direction="row" gap={8}>
+                          <Tag variant="outline" tone="attention">Waiting on you</Tag>
+                        </Flow>
+                      ) : null}
+                      <Reply who={data.thread[i - 1]?.who === m.who ? undefined : m.who} tail={data.thread[i + 1]?.who !== m.who || i === data.thread.length - 1}>
+                        {m.text}
+                      </Reply>
+                    </Fragment>
+                  ))}
+                  {sent.map((s, i) => (
+                    <Fragment key={`sent-${i}`}>
+                      <ChatBubble side="sent" tail={i === sent.length - 1}>
+                        {s.text}
+                      </ChatBubble>
+                      {i === sent.length - 1 ? <ChatThreadDelivered>{[s.at ? hhmm(s.at) : null, 'sent to the board'].filter(Boolean).join(' · ')}</ChatThreadDelivered> : null}
+                    </Fragment>
+                  ))}
+                  {reply && sent.length ? <Reply who={reply.who}>{reply.text}</Reply> : null}
+                </Flow>
+              </ChatThread>
             ) : (
               <EmptyState size="lane" mark="🤫" title="Quiet today" line="No one has reported yet. Say something to get them going." />
             )}
