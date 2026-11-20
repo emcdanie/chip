@@ -523,10 +523,36 @@ function dataAnswer(q, part, gapsData, n) {
         `**How many:** ${lacking} of ${n} components lack ${NOUN[check.id]} [2]`,
         g.suggest?.text ? `**Start from:** ${sentence(g.suggest.text)} [3]` : `**The rule:** ${sentence(g.why?.rule)} [3]`,
       ],
+      // each source opens in place (her mock's Citation open): what it says first, with its mark,
+      // the exact line folded, and where to open it; all from /gaps, nothing written for it
       sources: [
-        { n: 1, title: g.where?.[0] ? `${g.where[0].file} · ${g.where[0].field}` : `${part.name}'s files` },
-        { n: 2, title: `The ${check.title} check`, when: ran, stale },
-        { n: 3, title: g.suggest?.model ? `${g.suggest.model.name}'s note, the model to follow` : g.why?.source ?? 'BELLA’s rules' },
+        {
+          n: 1,
+          title: g.where?.[0] ? `${g.where[0].file} · ${g.where[0].field}` : `${part.name}'s files`,
+          when: ran,
+          findings: [{ ok: false, text: `**${part.name}** lacks ${NOUN[check.id]}` }],
+          exact: g.missing,
+        },
+        {
+          n: 2,
+          title: `The ${check.title} check`,
+          when: ran,
+          stale,
+          findings: [
+            ...[part.name, ...Object.keys(gaps[check.id]).filter((x) => x !== part.name).slice(0, 1)].map((x) => ({ ok: false, text: `**${x}** lacks ${NOUN[check.id]}` })),
+            ...(lacking > 2 ? [{ ok: false, text: `**${lacking - 2} others** lack it too` }] : []),
+            { ok: true, text: `**${n - lacking} others** have ${NOUN[check.id]}` },
+          ],
+          exact: g.why?.rule,
+          open: { label: 'Open in Health', href: '#/health' },
+        },
+        {
+          n: 3,
+          title: g.suggest?.model ? `${g.suggest.model.name}'s note, the model to follow` : g.why?.source ?? 'BELLA’s rules',
+          findings: g.suggest?.model ? [{ ok: true, text: `**${g.suggest.model.name}** has ${NOUN[check.id]}` }] : undefined,
+          exact: g.suggest?.text ?? g.why?.rule,
+          open: g.suggest?.model ? { label: `Open ${g.suggest.model.name} in Components`, href: `#/components/${encodeURIComponent(g.suggest.model.name)}` } : undefined,
+        },
       ],
       path: [
         { title: `Read the ${check.title} check`, detail: ran ? `run ${shortDay(ran)}` : undefined },
@@ -545,7 +571,15 @@ function dataAnswer(q, part, gapsData, n) {
     return {
       verdict: names.length ? `**${names.length} of ${n} parts** lack ${which[1]}. [1]` : `Every part has ${which[1]}. [1]`,
       bullets: names.length ? [`**The parts:** ${names.slice(0, 8).join(', ')}${names.length > 8 ? ` and ${names.length - 8} more` : ''} [1]`] : [],
-      sources: [{ n: 1, title: `The ${part.checks.find((k) => k.id === id)?.title ?? id} check`, when: gapsData.at }],
+      sources: [
+        {
+          n: 1,
+          title: `The ${part.checks.find((k) => k.id === id)?.title ?? id} check`,
+          when: gapsData.at,
+          findings: [...names.slice(0, 2).map((x) => ({ ok: false, text: `**${x}** lacks ${which[1]}` })), { ok: true, text: `**${n - names.length} others** have ${which[1]}` }],
+          open: { label: 'Open in Health', href: '#/health' },
+        },
+      ],
       path: [{ title: 'Read the check’s list', detail: gapsData.at ? `run ${shortDay(gapsData.at)}` : undefined }, { title: 'Asked the model', detail: 'not needed: CHIP’s own data', skipped: true }],
     };
   }
