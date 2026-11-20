@@ -356,6 +356,31 @@ function RolesTable({ rows, total }) {
   );
 }
 
+/* Who uses what (Figma 807:82398): every colour role a part's CSS reads, most used first, with the parts that read it. */
+function WhoUsesWhat({ bella }) {
+  const usage = bella.tokenUsage ?? {};
+  const roles = Object.keys(bella.palette ?? {}).filter((t) => t.startsWith('--color-'));
+  const rows = roles
+    .map((t) => ({ token: t, role: t.replace(/^--color-/, ''), used: (usage[t] ?? []).length, parts: [...(usage[t] ?? [])].sort().join(', ') }))
+    .filter((r) => r.used)
+    .sort((a, b) => b.used - a.used || a.role.localeCompare(b.role));
+  const unused = roles.length - rows.length;
+  const columns = [
+    { key: 'role', label: 'Role', sortable: true, render: (r) => <TextStack subtitle={r.role} /> },
+    { key: 'used', label: 'Used by', numeric: true, sortable: true },
+    { key: 'parts', label: 'Components', sortable: true },
+  ];
+  return (
+    <Card>
+      <Flow gap={16}>
+        <SectionHead icon="Table" iconTone="warning" title="Who uses what" description="Which components use each colour role, most used first" />
+        <DataTable caption="Colour roles and the components that use them" columns={columns} rows={rows} rowKey="token" defaultSort={{ key: 'used', direction: 'descending' }} maxHeight="calc(var(--spacing-80) * 6)" />
+        <TextStack body={`Read from each component's CSS · ${rows.length} roles in use, scroll for the rest; ${unused} ${unused === 1 ? 'role is' : 'roles are'} used by nothing.`} />
+      </Flow>
+    </Card>
+  );
+}
+
 export default function FoundationsContent({ view: startView = 'cards' }) {
   const roles = useRoles();
   const { data, error } = useCached(['/data/foundations.json', '/data/bella.json']);
@@ -396,6 +421,8 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
       ) : (
         <Roles roles={cardRoles} empty={<EmptyState size="lane" mark="🔎" title="No role matches" line="Nothing by that name. Try fewer letters." />} />
       )}
+      {/* Figma's Foundations sections (decided 18 Nov): who uses what after the roles */}
+      <WhoUsesWhat bella={data[1]} />
       <Flow span={4} fill>
         <TypeRamp />
       </Flow>
