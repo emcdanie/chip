@@ -51,7 +51,8 @@ const HISTORY_SHOWN = 4;
 /* The stage's sample label: Figma 690:492657's own ("Send"), short enough for five state tiles in one row. */
 const SAMPLE_LABEL = { Button: 'Send' };
 /* BELLA's change types (bella-history) to History's icons */
-const ICON = { visual: 'Eye', tokens: 'Sparks', API: 'Code', docs: 'Book', fix: 'RefreshDouble' };
+/* A part's record as BELLA Step's kind marker (b2729ec), as History; an API change is code. */
+const STEP_KIND = { visual: 'visual', tokens: 'tokens', API: 'code', docs: 'docs', fix: 'fix', tooling: 'tooling', decision: 'decision' };
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
 const ratio = (r) => `${Number(r).toFixed(2)}:1`;
 /* An anatomy part's value as Figma's chip says it: a hex, "none" for an empty shadow or edge, else a short size. */
@@ -393,7 +394,7 @@ function HistoryCard({ part, detail, all }) {
                 <li key={r.id}>
                   {head ? <TextStack subtitle={head} /> : null}
                   {/* Figma: the record's title and its Why line; green Merged tags went in the 20 Nov polish (one thing stands out) */}
-                  <Step title={r.title} detail={r.why ?? undefined} icon={ICON[r.type] ?? 'Clock'} state="done" />
+                  <Step title={r.title} detail={r.why ?? undefined} kind={STEP_KIND[r.type]} icon={STEP_KIND[r.type] ? undefined : 'Clock'} state="done" />
                 </li>
               );
             })}

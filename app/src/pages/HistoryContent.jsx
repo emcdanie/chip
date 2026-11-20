@@ -37,7 +37,9 @@ const KINDS = ['Decision', 'Fix', 'Visual', 'Contract', 'Tokens', 'Tooling', 'Do
 // one icon per kind, as Figma's Activity draws them: Tooling a gear, Visual an eye; Docs (a page) and
 // Tokens (a palette) stand in with Book and Sparks until BELLA has those glyphs (gap). Figma draws no
 // icon for Fix, Contract or Decision: never the done tick, which reads as a status.
-const ICON = { Decision: 'ShieldCheck', Fix: 'RefreshDouble', Visual: 'Eye', Contract: 'Code', Tokens: 'Sparks', Tooling: 'Settings', Docs: 'Book' };
+/* Each record kind as BELLA Step's kind marker (b2729ec): one deeper wash per kind with an ink glyph, a decision a dark ink
+   circle, green only for Merged (her 19 Nov rule). A contract change is code. */
+const STEP_KIND = { Decision: 'decision', Fix: 'fix', Visual: 'visual', Contract: 'code', Tokens: 'tokens', Tooling: 'tooling', Docs: 'docs' };
 const STATUSES = ['Decided', 'Merged', 'Shipped', 'On a branch', 'Undone'];
 const SINCE = [
   ['7d', 'Last 7 days'],
@@ -130,7 +132,8 @@ function Activity({ records, total, open, onOpen }) {
                   title={plain(r.title)}
                   time={time(r.date)}
                   tag={<Tag tone={STATUS_TONE[r.status] ?? 'neutral'}>{r.status}</Tag>}
-                  icon={ICON[r.type] ?? 'Clock'}
+                  kind={STEP_KIND[r.type]}
+                  icon={STEP_KIND[r.type] ? undefined : 'Clock'}
                   state="done"
                   selected={r.id === open}
                   onSelect={() => onOpen(r.id)}
