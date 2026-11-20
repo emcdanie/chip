@@ -31,6 +31,7 @@ import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import { useState } from 'react';
 import Flow from '../templates/Flow.jsx';
+import useNarrow from '../templates/useNarrow.js';
 
 export const VIEWS = [
   { value: 'board', label: 'Board' },
@@ -137,6 +138,7 @@ function useMove() {
 }
 
 export default function WorkContent({ model, view = 'board', onView, checked, onCheck, loading }) {
+  const phone = useNarrow();
   const [briefShut, setBriefShut] = useState(false);
   const move = useMove();
   // a drop anywhere on the Agent lane sends the dragged card
@@ -151,7 +153,8 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
   return (
     <>
       {/* Control bar: what you look at and the last check on the left, the view switch on the right. */}
-      <Flow direction="row" gap={16} wrap justify="between" align="center">
+      {/* the switch keeps the right end at every width: the left group wraps, never the bar (audit 10 at 1024 and 1100); below 800 it stacks, the switch on its own row at the right */}
+      <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'} grow={phone ? undefined : 'first'}>
         <Flow direction="row" gap={16} wrap align="center">
           <TextStack title={`All branches · ${model ? model.total : '…'} tasks`} />
           <Flow direction="row" gap={8} align="center">
@@ -161,7 +164,9 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
             </Button>
           </Flow>
         </Flow>
-        <SegmentedControl options={VIEWS} value={view} onChange={onView} label="Work view" />
+        <Flow direction="row" justify="end" stretch={phone}>
+          <SegmentedControl options={VIEWS} value={view} onChange={onView} label="Work view" />
+        </Flow>
       </Flow>
       {!model ? (
         <EmptyState size="lane" mark="⏳" title="Reading the board" line="Fetching what needs you and what the agents are up to." />
