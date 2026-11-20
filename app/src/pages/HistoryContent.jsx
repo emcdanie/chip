@@ -15,7 +15,6 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Step, { StepDay } from '@bella/components/Step/Step';
 import Tag from '@bella/components/Tag/Tag';
 import TextStack from '@bella/components/TextStack/TextStack';
-import Heading from '@bella/components/Heading/Heading';
 import Notification from '@bella/components/Notification/Notification';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
@@ -208,7 +207,8 @@ function Record({ id }) {
             <TextStack subtitle={[day(rec.date), time(rec.date), roleOf(rec.who), rec.repo.toUpperCase() === 'CHIP' ? 'CHIP' : rec.repo === 'bella' ? 'BELLA' : rec.repo].filter(Boolean).join(' · ')} />
           </Flow>
           {/* Figma: the record's title at the subsection size, the biggest thing in the record */}
-          <Heading tier="subsection" as="h2">{plain(rec.title)}</Heading>
+          {/* Figma draws the record title as Text stack Title (20 regular); an h2 for the record (TextStack titleAs, parts 111fc0c) */}
+          <TextStack titleAs="h2" title={plain(rec.title)} />
           {/* the counts, once, under the title (her note, 21 Nov: "should these not be at the top").
               Gap: no BELLA part sets numbers in Geist Mono and words in Lexend on one line, so the
               line is TextStack's meta line for now */}
