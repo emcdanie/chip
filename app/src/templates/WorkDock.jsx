@@ -8,10 +8,9 @@
 //     failures first; a row opens what the board's card opens (WorkDrawer).
 //   Sessions: CHIP itself, the agent runs CHIP started (/runs), then the relay
 //     lanes from their reports (/bar/state).
-//   Terminal: the chat with BELLA and the agent (TermChat), the same ChatThread
-//     as Ask BELLA (her 20 Nov "one chat"); New shell opens a real shell in its
-//     own drawer, the plain fallback.
-//   Ask BELLA: the Ask thread (useAsk), from CHIP's data first, turn by turn.
+//   Ask BELLA: the one chat (her 20 Nov "i just want one please"; audit 4):
+//     BELLA from CHIP's data first, and the agent when she sends it on, in one
+//     ChatThread (TermChat); New shell opens a real shell in its own drawer.
 // The composer sits at the foot on every tab: the model (Auto, local first),
 // the field, and Speak (the browser’s own speech into the field, never sending by itself).
 // New chat sits in the Drawer head's action slot, before Close (Head 172:528).
@@ -32,13 +31,12 @@ import Flow from './Flow.jsx';
 import Toasts from './Toasts.jsx';
 import useCached from './useCached.js';
 import useNarrow from './useNarrow.js';
-import useAsk, { AskAnswer, sendToAgent } from './useAsk.jsx';
+import useAsk from './useAsk.jsx';
 import { workModel, laneState, daysQuiet } from '../pages/workModel.js';
 import WorkDrawer from '../pages/WorkDrawer.jsx';
-import ChatThread from '@bella/components/ChatThread/ChatThread';
 import TermChat from './TermChat.jsx';
 
-const TAB_IDS = ['needs', 'sessions', 'term', 'ask'];
+const TAB_IDS = ['needs', 'sessions', 'ask'];
 const KEY = 'chip-dock';
 // Figma's example question (Flow 12, screen 7)
 const EXAMPLE = 'How could BELLA raise its A11y score?';
@@ -105,7 +103,8 @@ export default function WorkDock() {
   const [tab, setTab] = useState(() => {
     try {
       const t = localStorage.getItem(KEY);
-      return TAB_IDS.includes(t) ? t : 'needs';
+      // the old Terminal tab is the one chat now
+      return t === 'term' ? 'ask' : TAB_IDS.includes(t) ? t : 'needs';
     } catch {
       return 'needs';
     }
@@ -114,19 +113,18 @@ export default function WorkDock() {
   const [notice, setNotice] = useState(null);
   const [model, setModel] = useState('auto');
   const [draft, setDraft] = useState('');
-  // one chat (her 20 Nov "i just want one please"): Ask BELLA and the Terminal are the same
-  // ChatThread, each with its own turns
+  // one chat (her 20 Nov "i just want one please"; audit 4, item 1): BELLA and the agent in
+  // one ChatThread, one empty state, one Send
   const asker = useAsk({ thread: true });
-  const termAsker = useAsk({ thread: true });
-  const [termTurns, setTermTurns] = useState([]);
+  const [turns, setTurns] = useState([]);
   const say = useRef(null);
-  // a new question brings its turn to the top of the panel: the thread follows the newest (audit 21 Nov)
-  const newest = useRef(null);
+  // a question sent from another tab waits until the chat is on screen to hear it
+  const [pending, setPending] = useState(null);
   useEffect(() => {
-    if (!asker.answer?.q) return;
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    requestAnimationFrame(() => newest.current?.scrollIntoView?.({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }));
-  }, [asker.answer?.q, asker.past.length]);
+    if (tab !== 'ask' || pending == null || !say.current) return;
+    say.current(pending);
+    setPending(null);
+  }, [tab, pending]);
   const talk = useTalk(setDraft);
   // under 400 the field's hint is shorter, so it shows whole beside Speak (its label says what it asks)
   const tiny = useNarrow(400);
@@ -145,7 +143,7 @@ export default function WorkDock() {
       }
     };
     const on = (e) => {
-      if (e.detail?.tab) setTab(e.detail.tab);
+      if (e.detail?.tab) setTab(e.detail.tab === 'term' ? 'ask' : e.detail.tab);
       setOpen(true);
     };
     window.addEventListener('keydown', key);
@@ -178,55 +176,37 @@ export default function WorkDock() {
 
   // a real shell, the plain fallback, in its own drawer (WorkDrawer's terminal), never in the chat
   const newShell = () => setItem({ kind: 'terminal', repo: 'chip', command: '', title: 'a new shell' });
-  // the composer talks to the tab it is on: the Terminal's chat, or Ask BELLA from any other tab
+  // the composer always talks to the one chat; from another tab it opens the chat first
   const send = (text) => {
     const q = String(text ?? draft).trim();
     if (!q) return;
     setDraft('');
-    if (tab === 'term') return say.current?.(q);
+    if (tab === 'ask' && say.current) return say.current(q);
     setTab('ask');
-    asker.ask(q, window.location.hash || '#/work', undefined, undefined, providerOf(model));
+    setPending(q);
   };
   // New chat clears this tab's chat, with Undo in the toast (her 19 Nov: no confirm)
-  const newChat = (who) => {
-    const kept = { past: who.past, answer: who.answer };
-    const keptTurns = who === termAsker ? termTurns : null;
-    who.clear();
-    if (keptTurns) setTermTurns([]);
-    setNotice({ tone: 'info', text: 'Chat cleared', undo: () => (who.restore(kept), keptTurns && setTermTurns(keptTurns)) });
+  const newChat = () => {
+    const kept = { past: asker.past, answer: asker.answer };
+    const keptTurns = turns;
+    asker.clear();
+    setTurns([]);
+    setNotice({ tone: 'info', text: 'Chat cleared', undo: () => (asker.restore(kept), setTurns(keptTurns)) });
   };
-  // Fix on an answer hands it to the agent (the model menu waits on its part, round 7)
-  const [fixing, setFixing] = useState(false);
-  const fix = async (answer) => {
-    setFixing(true);
-    try {
-      await sendToAgent(answer);
-      setNotice({ tone: 'success', text: 'Sent to the agent. Its card is in the Agent lane.' });
-      reload();
-    } catch (e) {
-      setNotice({ tone: 'danger', text: `Not sent: ${e.message}` });
-    } finally {
-      setFixing(false);
-    }
-  };
-  const ask = (q) => asker.ask(q, window.location.hash || '#/work', undefined, undefined, providerOf(model));
 
   const tabs = [
     { id: 'needs', label: 'Needs you', count: needs?.length },
     { id: 'sessions', label: 'Sessions', count: sessions?.length },
-    { id: 'term', label: 'Terminal' },
     { id: 'ask', label: 'Ask BELLA' },
   ];
   const statusWords = {
     needs: needs ? (needs.length ? `Needs you · ${needs.length} ${needs.length === 1 ? 'thing' : 'things'}, failures first` : 'Needs you · nothing') : 'Needs you · reading',
     sessions: sessions ? `Sessions · ${sessions.length}, newest first` : 'Sessions · reading',
-    term: 'Terminal · BELLA and the agent',
-    ask: 'Ask BELLA · from CHIP’s data first',
+    ask: 'Ask BELLA · CHIP’s data first, then the agent',
   }[tab];
   // New chat: the head's action, before Close, once the chat has an answer
-  const chatOf = tab === 'ask' ? asker : tab === 'term' ? termAsker : null;
-  const action = chatOf?.answer ? (
-    <Button variant="tertiary" size="sm" onClick={() => newChat(chatOf)}>
+  const action = tab === 'ask' && asker.answer ? (
+    <Button variant="tertiary" size="sm" onClick={newChat}>
       New chat
     </Button>
   ) : undefined;
@@ -234,15 +214,14 @@ export default function WorkDock() {
   // the likely next question, grey in the empty field; Enter sends it, typing replaces it (CLAUDE.md
   // "Suggest the next question"; her 👍 on Input suggestion, 21 Nov). Only questions CHIP's data
   // router answers: an answer's follow-ups (the server keeps only those), else Figma's example.
-  const chat = tab === 'term' ? termAsker : asker;
-  const asked = new Set([chat.answer?.q, ...(chat.past ?? []).map((t) => t.q)].filter(Boolean));
-  const suggestion = (chat.answer?.next ?? []).find((q) => !asked.has(q)) ?? (asked.has(EXAMPLE) ? undefined : EXAMPLE);
+  const asked = new Set([asker.answer?.q, ...(asker.past ?? []).map((t) => t.q)].filter(Boolean));
+  const suggestion = (asker.answer?.next ?? []).find((q) => !asked.has(q)) ?? (asked.has(EXAMPLE) ? undefined : EXAMPLE);
 
   const composer = (
     <Flow direction="row" gap={8} align="end" wrap grow="last">
       <Select label="Model" value={model} onChange={setModel} options={MODELS} />
       <Flow direction="row" gap={8} align="end" grow="first">
-        <Input label={tab === 'term' ? 'Message BELLA' : 'Ask about BELLA'} placeholder={tiny ? 'Your question' : tab === 'term' ? 'Message BELLA' : 'Ask about BELLA'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" suggestion={suggestion} />
+        <Input label="Ask about BELLA" placeholder={tiny ? 'Your question' : 'Ask about BELLA'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" suggestion={suggestion} />
         {talk.can ? (
           <Button variant="secondary" ariaExpanded={talk.on} onClick={talk.toggle}>
             {talk.on ? 'Listening' : 'Speak'}
@@ -252,8 +231,7 @@ export default function WorkDock() {
     </Flow>
   );
 
-  // one chat, one empty state (audit 3; her "i just want one please"): Terminal and Ask BELLA
-  // open the same way, and the example goes to the tab you are on (send routes it)
+  // one chat, one empty state (her "i just want one please"); the example goes through Send
   const chatEmpty = (
     <EmptyState
       size="page"
@@ -290,32 +268,16 @@ export default function WorkDock() {
           ))}
         </Flow>
       ),
-    term: (
+    ask: (
       <Flow gap={16}>
         <Flow direction="row" justify="end" align="center" gap={8} wrap>
           <Button variant="secondary" size="sm" onClick={newShell}>
             New shell
           </Button>
         </Flow>
-        {termAsker.answer ? null : chatEmpty}
-        <TermChat asker={termAsker} turns={termTurns} setTurns={setTermTurns} provider={providerOf(model)} onOpen={setItem} sayRef={say} onNotice={setNotice} />
+        {asker.answer ? null : chatEmpty}
+        <TermChat asker={asker} turns={turns} setTurns={setTurns} provider={providerOf(model)} onOpen={setItem} sayRef={say} onNotice={setNotice} />
       </Flow>
-    ),
-    ask: asker.answer ? (
-      <Flow gap={16}>
-        <ChatThread label="Ask BELLA">
-          <Flow gap={24}>
-            {asker.past.map((a, i) => (
-              <AskAnswer key={`${a.q}-${i}`} answer={a} />
-            ))}
-            <Flow ref={newest} gap={16}>
-            <AskAnswer answer={asker.answer} onRetry={(p) => asker.retry(p ?? providerOf(model))} onStop={asker.stop} onFollow={ask} onFix={() => !fixing && fix(asker.answer)} fixLabel="Fix" fixBusy={fixing} />
-            </Flow>
-          </Flow>
-        </ChatThread>
-      </Flow>
-    ) : (
-      chatEmpty
     ),
   }[tab];
 
