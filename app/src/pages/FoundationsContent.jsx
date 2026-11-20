@@ -46,7 +46,7 @@ const ROLES = [
   { name: 'Border', job: 'edges and dividers', items: [['default', '--color-border-default'], ['strong', '--color-border-strong'], ['ink', '--color-border-ink']] },
   { name: 'Action', job: 'only what you can press', items: [['action', '--color-background-brand', 'fill'], ['on action', '--color-content-brand-knockout'], ['selected', '--color-background-brand-subtle-hover', 'fill']] },
   { name: 'Status', job: 'only for state', items: [['success', '--color-border-utility-success'], ['attention', '--color-background-utility-warning-mark'], ['danger', '--color-border-utility-error'], ['warning', '--color-border-utility-warning'], ['info', '--color-border-utility-info']] },
-  { name: 'Highlight', job: 'annotation, focus and the logo', items: [['wash', '--color-background-utility-warning', 'fill'], ['focus', '--color-border-focus'], ['pin', '--color-background-accent-1']] },
+  { name: 'Highlight', job: 'annotation, focus and the logo', items: [['wash', '--color-background-utility-warning', 'fill'], ['focus', '--color-border-focus'], ['pin', '--color-background-accent-1'], ['target', '--color-border-brand'], ['logo blue', '--color-background-accent-3'], ['logo red', '--color-background-accent-4']] },
 ];
 // Figma's type ramp: the TypeSpecimen size and the token that sets it
 const RAMP = [
@@ -104,7 +104,8 @@ function useRoles() {
             if (!c || !surface) return null;
             const solid = over(c, surface);
             const words = c.a < 1 ? `${hex(c)} at ${Math.round(c.a * 100)}%` : hex(c);
-            return { name, token, color: `var(${token})`, hex: words, ratio: kind ?? `${ratio(solid, surface).toFixed(1)}:1` };
+            // a translucent line shows its colour and strength, no ratio (Figma: "its hex at 20%"), so the swatch keeps one line
+            return { name, token, color: `var(${token})`, hex: words, ratio: kind ?? (c.a < 1 ? undefined : `${ratio(solid, surface).toFixed(1)}:1`) };
           })
           .filter(Boolean),
       })),
@@ -115,8 +116,12 @@ function useRoles() {
 }
 
 function Roles({ roles, empty }) {
-  // two groups to a row need about 1040 of content (the panel takes 400 of the window); below that one group per row, so a name never breaks mid-word
-  const narrow = useNarrow(1440);
+  // two groups to a row only where each swatch keeps its hex and ratio on one line (about 160 wide: a 1600 window); below, one group a row,
+  // so swatches in a row share one height (rule 15); three swatches a row, two below 768 and one below 480, so a name never breaks mid-word (audit 9 at 320)
+  const narrow = useNarrow(1600);
+  const two = useNarrow(768);
+  const one = useNarrow(480);
+  const per = one ? 1 : two ? 2 : 3;
   const count = roles.reduce((n, g) => n + g.items.length, 0);
   return (
     <Card>
@@ -131,11 +136,11 @@ function Roles({ roles, empty }) {
                 <Flow key={g.name} gap={12} aria-label={g.name}>
                   {/* a section description is in the reading face (Fonts rule) */}
                   <TextStack title={g.name} body={g.job} />
-                  {/* three to a row in equal columns, as Figma; a short last row keeps the column widths */}
+                  {/* equal columns, as Figma; a short last row keeps the column widths */}
                   <Flow as="ul" gap={8} aria-label={`${g.name} colours`}>
-                    {[0, 3].filter((i) => i < g.items.length).map((i) => (
+                    {g.items.map((x, i) => i).filter((i) => i % per === 0).map((i) => (
                       <Flow key={i} direction="row" gap={8} equal>
-                        {[0, 1, 2].map((k) => {
+                        {Array.from({ length: per }, (_, k) => k).map((k) => {
                           const sw = g.items[i + k];
                           return sw ? (
                             <li key={sw.token}>
@@ -322,9 +327,10 @@ const VIEWS = [
 
 function RolesTable({ rows, total }) {
   const columns = [
-    { key: 'role', label: 'Role', sortable: true },
-    { key: 'light', label: 'Light', sortable: true },
-    { key: 'dark', label: 'Dark', sortable: true },
+    // role names and hex in Geist Mono (TextStack's subtext face), as Figma and the type rule; DataTable takes no cell kind yet
+    { key: 'role', label: 'Role', sortable: true, render: (r) => <TextStack subtitle={r.role} /> },
+    { key: 'light', label: 'Light', sortable: true, render: (r) => <TextStack subtitle={r.light} /> },
+    { key: 'dark', label: 'Dark', sortable: true, render: (r) => <TextStack subtitle={r.dark} /> },
     { key: 'contrast', label: 'Contrast', sortable: true, sortValue: (r) => r.ratio },
     {
       key: 'used',
@@ -355,6 +361,8 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
   const { data, error } = useCached(['/data/foundations.json', '/data/bella.json']);
   const all = useAllRoles(data?.[1] ?? null);
   const [view, setView] = useState(startView);
+  // below 800 the bar stacks: the filter and chips, then the switch on its own row at the right
+  const phone = useNarrow();
   const [q, setQ] = useState('');
   const [used, setUsed] = useState('all');
   if (error) return <EmptyState size="page" title="Foundations isn't answering" line="CHIP couldn't read BELLA's token files. Run the sync and refresh." />;
@@ -369,7 +377,8 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
   return (
     <>
       {/* Control bar on the page ground: what you look at on the left (filter, chips), the view switch on the right */}
-      <Flow direction="row" gap={16} wrap justify="between" align="center">
+      {/* the switch keeps the right end at every width: the left group wraps (filter, then chips), never the bar (audit 9 at 1024 and 1100) */}
+      <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align="start" grow={phone ? undefined : 'first'}>
         <Flow direction="row" gap={12} wrap align="center">
           <Input label="Filter colour roles" leadingIcon="Search" placeholder="Filter colour roles…" value={q} onChange={setQ} />
           <Flow direction="row" gap={8} wrap align="center" aria-label="Which roles">
@@ -378,7 +387,9 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
             <FilterChip pressed={used === 'unused'} onClick={() => setUsed('unused')}>{`Used by nothing ${all.length - usedN}`}</FilterChip>
           </Flow>
         </Flow>
-        <SegmentedControl options={VIEWS} value={view} onChange={setView} label="Show the roles as" />
+        <Flow direction="row" justify="end" stretch={phone}>
+          <SegmentedControl options={VIEWS} value={view} onChange={setView} label="Show the roles as" />
+        </Flow>
       </Flow>
       {view === 'table' ? (
         <RolesTable rows={tableRows} total={all.length} />
