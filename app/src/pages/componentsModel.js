@@ -112,8 +112,8 @@ function short(text) {
   t = t.replace(/\s*\([^()]*?[,:]+\s*/g, ': ').replace(/[()]/g, '');
   t = t.replace(/\s+([,.;:])/g, '$1').replace(/\s+/g, ' ').trim();
   const out = clip(t, WHY_MAX);
-  // a path (Components/<Type>/<Name>) may break after a slash, never mid-word in a narrow card
-  return out.replace(/\//g, '/\u200b');
+  // the page breaks a path (Components/<Type>/<Name>) after its slashes with <wbr> (ComponentsContent)
+  return out;
 }
 
 export function detailModel(part, { history, pairs, map }) {

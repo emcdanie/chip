@@ -263,6 +263,8 @@ function words(t) {
 }
 
 const START = '--nav-list-current-background'; // Figma's picked token
+// a group path may break after its slashes, never mid-word: a <wbr>, which a screen reader skips
+const slashBreaks = (t) => t.split('/').flatMap((w, i) => (i ? ['/', <wbr key={i} />, w] : [w]));
 const TIER_ORDER = { definitions: 0, theme: 1, component: 2 };
 
 /* Tiers (Figma 612:62034): three columns of tokens; picking one marks the chain it sits in,
@@ -307,7 +309,7 @@ function Tiers() {
               <Flow as="ul" gap={4} aria-label={`${name} tokens`}>
                 {rows(k).map((t) => (
                   // a long group may break after a slash, never mid-word (320)
-                  <ListRow key={t.name} layout="stacked" title={words(t).title} description={words(t).sub.replace(/\//g, '/\u200b')} selected={chain.has(t.name)} trailing onClick={() => setPicked(t.name)} />
+                  <ListRow key={t.name} layout="stacked" title={words(t).title} description={slashBreaks(words(t).sub)} selected={chain.has(t.name)} trailing onClick={() => setPicked(t.name)} />
                 ))}
               </Flow>
             </Flow>

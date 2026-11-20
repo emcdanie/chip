@@ -136,6 +136,8 @@ function pinAt(kind, i, box) {
 }
 
 /* A chip's width before it renders: Geist Mono 16 (9.6 a character) plus the pin and padding. */
+// a path may break after its slashes, never mid-word in a narrow card: a <wbr>, which a screen reader skips
+const slashBreaks = (t) => (typeof t === 'string' && t.includes('/') ? t.split('/').flatMap((w, i) => (i ? ['/', <wbr key={i} />, w] : [w])) : t);
 // the stage width (stage pixels) from which the chips and leaders fit without crossing
 const CHIPS_FROM = 300;
 const chipWidth = (text) => Math.round(String(text).length * 9.6 + 56);
@@ -423,7 +425,7 @@ function HistoryCard({ part, detail, all }) {
                 <Fragment key={r.id}>
                   {head ? <StepDay>{head}</StepDay> : null}
                   {/* Figma: the record's title and its Why line; green Merged tags went in the 20 Nov polish (one thing stands out) */}
-                  <Step title={r.title} detail={(all ? r.why : clip(r.why, WHY_SHORT)) ?? undefined} kind={STEP_KIND[r.type]} icon={STEP_KIND[r.type] ? undefined : 'Clock'} state="done" />
+                  <Step title={r.title} detail={slashBreaks((all ? r.why : clip(r.why, WHY_SHORT)) ?? undefined)} kind={STEP_KIND[r.type]} icon={STEP_KIND[r.type] ? undefined : 'Clock'} state="done" />
                 </Fragment>
               );
             })}
