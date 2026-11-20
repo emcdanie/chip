@@ -91,6 +91,11 @@
 .chip-board > .chip-flow--board {
   flex: 1 1 auto;
   block-size: 100%;
+  /* room for the end lanes' card shadows inside the sideways scroll: the page's own padding
+     (32, 16 on a phone), given back by the margin so the lanes stay lined up with the header
+     and tabs and the page never scrolls sideways (audit 3, way A, 21 Nov) */
+  padding-inline: var(--layout-container-pad);
+  margin-inline: calc(var(--layout-container-pad) * -1);
 }
 
 /* the cue at an end with more lanes: a fade from the page ground and a chevron */
@@ -140,7 +145,8 @@
   min-inline-size: calc(var(--layout-panel-width) + var(--layout-gutter));
   min-block-size: 0;
   max-block-size: 100%;
-  overflow-y: auto;
+  /* no scroll of its own: BoardLane's card list scrolls, so the lane head stays put
+     and the lane never cuts its cards' shadows (audit 3, way A) */
   position: relative;
 }
 .chip-flow {
