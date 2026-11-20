@@ -91,15 +91,18 @@ function Words({ text }) {
 
 /* Verdict first, detail folded (her rule: a verdict line with the bold key phrase, at most 3 bullets, detail closed until asked). */
 function Answer({ reply }) {
-  const lines = String(reply).split('\n').map((l) => l.trim()).filter(Boolean);
+  // a bullet the model wrote inline ("… system. - It specifies …") starts its own line
+  const lines = String(reply).replace(/([.!?\]])\s+[-•]\s+(?=[A-Z*])/g, '$1\n- ').split('\n').map((l) => l.trim()).filter(Boolean);
   // the verdict is the first sentence only; any other sentence joins the detail, ahead of the bullets
   const prose = lines.filter((l) => !/^[-*•]\s/.test(l)).join(' ');
   const [first = '', ...more] = prose.split(/(?<=[.!?](?:\s*\[\d+\])*)\s+(?=[A-Z])/);
   const bullets = [...more, ...lines.filter((l) => /^[-*•]\s/.test(l)).map((l) => l.replace(/^[-*•]\s+/, ''))].slice(0, 3);
-  // one key phrase in bold, never the whole line: the first bold span, and none when it covers most of the sentence
+  // one key phrase in bold, never the whole line: the first bold span, if it is short enough to be a phrase
   const bold = first.match(/\*\*([^*]+)\*\*/);
   const plainFirst = first.replace(/\*\*/g, '');
-  const verdict = bold && bold[1].length < plainFirst.length * 0.6 ? plainFirst.replace(bold[1], `**${bold[1]}**`) : plainFirst;
+  // a key phrase is a few words: a bold over 40 characters or 40% of the sentence is a clause, so it goes
+  const key = bold && bold[1].length <= 40 && bold[1].length <= plainFirst.length * 0.4;
+  const verdict = key ? plainFirst.replace(bold[1], `**${bold[1]}**`) : plainFirst;
   return (
     <Flow gap={8}>
       <span>
