@@ -468,7 +468,7 @@ export function shapeReply(reply) {
   const bullets = [...more, ...lines.filter((l) => /^[-*•]\s/.test(l)).map((l) => l.replace(/^[-*•]\s+/, ''))].slice(0, 3);
   const bold = first.match(/\*\*([^*]+)\*\*/);
   const plainFirst = first.replace(/\*\*/g, '');
-  const key = bold && bold[1].length <= 40 && bold[1].length <= plainFirst.length * 0.4;
+  const key = bold && bold[1].length <= 40 && bold[1].length <= plainFirst.length * 0.6;
   // no bold from the model: the verdict's lead (to its first "to", "by", comma or colon) is the key phrase
   const lead = plainFirst.match(/^(.{3,40}?)(?=\s(?:to|by|for|in)\s|[,:])/)?.[1];
   return {

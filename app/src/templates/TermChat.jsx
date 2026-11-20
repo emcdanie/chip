@@ -136,7 +136,8 @@ export default function TermChat({ asker, turns, setTurns, provider, where, onOp
     setTurns((t) => [...t, { text, at: hhmm() }]);
     asker.ask(text, window.location.hash || '#/work', undefined, undefined, provider);
   };
-  useEffect(() => end.current?.scrollIntoView?.({ block: 'nearest' }), [turns.length, asker.answer?.status]);
+  // her new message brings the chat to its foot; an answer arriving never pulls her down if she scrolled up
+  useEffect(() => end.current?.scrollIntoView?.({ block: 'nearest' }), [turns.length]);
   // her questions pair with BELLA's answers in order; "send it to the agent" turns carry their run
   let k = -1;
   const rows = turns.map((t) => (t.agentFor == null ? { ...t, i: ++k, answer: answers[k] } : { ...t, answer: null }));
