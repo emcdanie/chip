@@ -18,6 +18,10 @@ export const CHECKS = [
 
 export const TARGET = 90;
 
+/* Who takes each fix, as Figma's Needs you cards said it (601:109235: pairs a maintainer,
+   keyboard lines a developer); the code checks are a developer's. Docs names no role in Figma. */
+const WHO = { contrast: 'a maintainer', a11y: 'a developer', story: 'a developer', contract: 'a developer', dsds: 'a developer' };
+
 
 const names = (list) => (list.length > 3 ? `${list.slice(0, 2).join(', ')} +${list.length - 2}` : list.join(', '));
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -30,7 +34,8 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
   const rows = CHECKS.map((c) => {
     const missing = Object.keys(gaps[c.id] ?? {});
     const pass = n - missing.length;
-    return { ...c, pass, missing, href: missing.length ? `#/components/${idOf(missing[0])}` : null, fill: n ? Math.round((pass / n) * 100) : 0, line: missing.length ? `${missing.length} ${c.some}: ${names(missing)}` : c.all(n) };
+    // who takes the fix, at the end of the line (nothing made is lost: the Needs you cards said it)
+    return { ...c, pass, missing, href: missing.length ? `#/components/${idOf(missing[0])}` : null, fill: n ? Math.round((pass / n) * 100) : 0, line: missing.length ? `${missing.length} ${c.some}: ${names(missing)}${WHO[c.id] ? ` · ${WHO[c.id]}` : ''}` : c.all(n) };
   });
   const total = n * CHECKS.length;
   const passed = rows.reduce((s, r) => s + r.pass, 0);
@@ -39,7 +44,8 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
   return {
     n,
     rows,
-    health: n ? { pct: Math.round((passed / total) * 100), passed, total, failing: rows.filter((r) => r.missing.length) } : null,
+    // parts with at least one gap: the same count Components shows as Needs work
+    health: n ? { pct: Math.round((passed / total) * 100), passed, total, failing: rows.filter((r) => r.missing.length), needsWork: new Set(rows.flatMap((r) => r.missing)).size } : null,
     // the gate as CHIP last ran it (/checks): its checks by name, the one source System map and Connectors read
     gate: gateFrom(checks?.gate),
     contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,

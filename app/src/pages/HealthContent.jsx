@@ -182,6 +182,8 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             passed={`${health.passed} of ${health.total} pass`}
             // the failing checks show once, in Component checks below with their fix (user test 21 Nov, item 6)
             why={`Healthy means ${TARGET}% or more pass (the blue tick). ${health.failing.length ? `${health.failing.reduce((s, r) => s + r.missing.length, 0)} checks still fail; each is in Component checks below.` : 'Every check passes.'}`}
+            // the way to the parts themselves: Components on Needs work, the same count it shows there
+            failing={health.needsWork ? [{ name: 'Parts that need work', count: health.needsWork, ofTotal: `of ${n} parts`, href: '#/components?filter=needs' }] : []}
           />
         ) : (
           <NoData title="System health" icon="Activity" tone="info" mark="🩺" empty="No components yet" line="Point me at BELLA and I'll take its pulse." />
