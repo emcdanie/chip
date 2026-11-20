@@ -136,6 +136,8 @@ function pinAt(kind, i, box) {
 }
 
 /* A chip's width before it renders: Geist Mono 16 (9.6 a character) plus the pin and padding. */
+// the stage width (stage pixels) from which the chips and leaders fit without crossing
+const CHIPS_FROM = 300;
 const chipWidth = (text) => Math.round(String(text).length * 9.6 + 56);
 
 /* Where the chips go (stage pixels from the centre), as her frame: a column left
@@ -328,6 +330,12 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
     const full = anatomy.map((x) => (valueOf(x) ? `${x.title} · ${valueOf(x)}` : x.title));
     const roomy = box.sw >= 560;
     const texts = roomy ? full : anatomy.map((x) => x.title);
+    // a phone's stage has no room for every chip without a leader crossing one (audit 21 Nov r2):
+    // the pins stay on the part, numbered in reading order, and the line under the stage names them
+    if (box.sw < CHIPS_FROM) {
+      const order = pins.map((p, i) => i).sort((i, j) => pins[i].y - pins[j].y || pins[i].x - pins[j].x);
+      return anatomy.map((x, i) => ({ id: x.key, x: Math.round(pins[i].x / scale), y: Math.round(pins[i].y / scale), label: order.indexOf(i) + 1, name: x.title, selected: x.key === a?.key }));
+    }
     const { order, chips } = chipLayout(pins, texts, box);
     return anatomy.map((x, i) => ({
       id: x.key,
@@ -342,6 +350,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
     }));
   }, [box, anatomy, a?.key, scale]);
   const showsValue = (box?.sw ?? 0) >= 560;
+  const legend = markers.length && markers[0].part == null ? [...markers].sort((p, q) => p.label - q.label).map((m) => `${m.label} ${m.name}`.replace(/ /g, '\u00a0')).join(' · ') : null; // an entry never breaks inside
   const card = a ? <PartCard a={a} touch={touch} value={showsValue ? null : valueOf(a)} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
   const stage = (
     <Flow id={stageId}>
@@ -352,6 +361,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch }) {
           </Flow>
         </Flow>
       </Stage>
+      {legend ? <TextStack subtitle={legend} /> : null}
     </Flow>
   );
   return (
