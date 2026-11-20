@@ -14,10 +14,11 @@
 //   Ask BELLA: the Ask thread (useAsk), from CHIP's data first, turn by turn.
 // The composer sits at the foot on every tab: the model (Auto, local first),
 // the field, and Talk (the browser's own speech, never sending by itself).
+// New chat sits in the Drawer head's action slot, before Close (Head 172:528).
 // Gaps (named for the library, not drawn here): Drawer has no tabs slot under
-// its head (the tabs scroll with the body), no Back, no head action (New
-// chat), and it dims the page; the model menu and the composer in one row
-// wait on Round 6, so Select and Input keep their visible labels.
+// its head (the tabs scroll with the body) and it dims the page; the model
+// menu and the composer in one row wait on Round 6, so Select and Input keep
+// their visible labels.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
@@ -221,18 +222,13 @@ export default function WorkDock() {
     term: 'Terminal · BELLA and the agent',
     ask: 'Ask BELLA · from CHIP’s data first',
   }[tab];
-  // New chat sits in the head, on the status line (the Drawer has no head action yet: parts-motion's amend)
+  // New chat: the head's action, before Close, once the chat has an answer
   const chatOf = tab === 'ask' ? asker : tab === 'term' ? termAsker : null;
-  const status = chatOf?.answer ? (
-    <Flow as="span" direction="row" justify="between" align="center" gap={8} wrap>
-      {statusWords}
-      <Button variant="tertiary" size="sm" onClick={() => newChat(chatOf)}>
-        New chat
-      </Button>
-    </Flow>
-  ) : (
-    statusWords
-  );
+  const action = chatOf?.answer ? (
+    <Button variant="tertiary" size="sm" onClick={() => newChat(chatOf)}>
+      New chat
+    </Button>
+  ) : undefined;
 
   const composer = (
     <Flow direction="row" gap={8} align="end" wrap grow="last">
@@ -317,7 +313,7 @@ export default function WorkDock() {
   ) : null;
   return (
     <>
-      <Drawer open={open} onClose={() => setOpen(false)} side="right" size="lg" label="Work" status={status} footer={composer}>
+      <Drawer open={open} onClose={() => setOpen(false)} side="right" size="lg" label="Work" status={statusWords} action={action} footer={composer}>
         <Flow gap={16}>
           <Tabs tabs={tabs} value={tab} onChange={setTab} label="Work panel" idBase="work-dock" />
           <div {...tabPanelProps('work-dock', tab, true)}>{body}</div>
