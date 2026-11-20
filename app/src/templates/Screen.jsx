@@ -16,7 +16,7 @@ import ClientSwitcher from '@bella/components/ClientSwitcher/ClientSwitcher';
 import TreeItem from '@bella/components/TreeItem/TreeItem';
 import TopBar from '@bella/components/TopBar/TopBar';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
-import Tabs from '@bella/components/Tabs/Tabs';
+import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Button from '@bella/components/Button/Button';
 import Avatar from '@bella/components/Avatar/Avatar';
@@ -143,6 +143,20 @@ export function NewTask({ variant = 'primary' }) {
           {said === 'failed' ? <Notification tone="danger" title="Not sent" message={`The progress board doesn't answer at ${BOARD}. Your task is still in the box.`} /> : null}
         </Flow>
       </Drawer>
+    </>
+  );
+}
+
+/** The selected tab's panel around the content, and an empty hidden panel for each other tab. */
+export function TabPanels({ tabs, children }) {
+  return (
+    <>
+      <div {...tabPanelProps(tabs.idBase, tabs.value, true)} tabIndex={undefined} className="chip-tabpanel">
+        {children}
+      </div>
+      {tabs.items.filter((t) => t.id !== tabs.value).map((t) => (
+        <div key={t.id} {...tabPanelProps(tabs.idBase, t.id, false)} tabIndex={undefined} />
+      ))}
     </>
   );
 }
@@ -281,7 +295,9 @@ export default function Screen({ place, header, tabs, children }) {
             ) : null}
           </div>
           <main className="chip-screen__content" id="main">
-            {children}
+            {/* the content is the selected tab's panel, and each other tab has its (empty, hidden)
+                one, so every tab's aria-controls lands (audit 21 Nov); the panel keeps the page grid */}
+            {tabs ? <TabPanels tabs={tabs}>{children}</TabPanels> : children}
           </main>
         </div>
       </div>

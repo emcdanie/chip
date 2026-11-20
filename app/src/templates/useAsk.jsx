@@ -38,6 +38,7 @@ export default function useAsk() {
     const tk = (r, w) => ticks(r, w, reading);
     const set = (a) => mine === turn.current && setAnswer(a);
     let reply = '';
+    let sources = [];
     set({ steps: tk('current', 'pending'), reply: '' });
     try {
       const r = await fetch('/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, page, auto: true, stream: true, record }) });
@@ -53,12 +54,13 @@ export default function useAsk() {
         buf = lines.pop();
         for (const line of lines.filter(Boolean)) {
           const ev = JSON.parse(line);
+          if (ev.type === 'sources') sources = (ev.sources ?? []).slice(0, 3);
           if (ev.type === 'sources' || ev.type === 'provider') set({ steps: tk('done', 'current'), reply });
           else if (ev.type === 'token') {
             reply += ev.text;
             // with a record, the fallback line never shows, not even while it streams in
             set({ steps: tk('done', 'current'), reply: record ? noFallback(reply) : reply });
-          } else if (ev.type === 'done') set({ steps: tk('done', 'done'), reply: record ? noFallback(ev.reply || reply) : ev.reply || reply, done: true });
+          } else if (ev.type === 'done') set({ steps: tk('done', 'done'), reply: record ? noFallback(ev.reply || reply) : ev.reply || reply, done: true, sources: (ev.sources ?? sources).slice(0, 3) });
           else if (ev.type === 'weak') {
             const near = (ev.closest ?? []).map((s) => s.title).filter(Boolean);
             set({ steps: tk('done', 'done'), reply: `Nothing in BELLA's docs is close enough to answer that.${near.length ? ` Nearest: ${near.join('; ')}.` : ''} Try asking it another way.`, done: true });
@@ -90,7 +92,9 @@ function Words({ text }) {
 }
 
 /* Verdict first, detail folded (her rule: a verdict line with the bold key phrase, at most 3 bullets, detail closed until asked). */
-function Answer({ reply }) {
+function Answer({ reply, sources }) {
+  // the model cited nothing: the sources it was given show as her pins, so an answer always says where it came from
+  const cited = /\[\d+\]/.test(String(reply));
   // a bullet the model wrote inline ("… system. - It specifies …") starts its own line
   const lines = String(reply).replace(/([.!?\]])\s+[-•]\s+(?=[A-Z*])/g, '$1\n- ').split('\n').map((l) => l.trim()).filter(Boolean);
   // the verdict is the first sentence only; any other sentence joins the detail, ahead of the bullets
@@ -107,6 +111,9 @@ function Answer({ reply }) {
     <Flow gap={8}>
       <span>
         <Words text={verdict} />
+        {!cited && sources?.length
+          ? sources.map((src, i) => <Pin key={i} number={String(src.n ?? i + 1)} variant="pink" ariaLabel={`Source ${src.n ?? i + 1}: ${src.title}`} />)
+          : null}
       </span>
       {bullets.length ? (
         <Disclosure flush title="Detail">
@@ -138,7 +145,7 @@ export function AskAnswer({ answer }) {
         </Flow>
       ) : null}
       {answer.reply ? (
-        <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title={answer.error ? 'No answer' : undefined} message={answer.error ? answer.reply : <Answer reply={answer.reply} />} />
+        <Notification tone={answer.error ? 'danger' : 'info'} showIcon={false} title={answer.error ? 'No answer' : undefined} message={answer.error ? answer.reply : <Answer reply={answer.reply} sources={answer.done ? answer.sources : null} />} />
       ) : null}
     </Flow>
   );

@@ -32,6 +32,8 @@ const PAGES = [
   { id: 'connectors', label: 'Connectors', where: 'Page · Settings' },
 ];
 const MAX = 8;
+// a long part name may wrap where its words meet (Anatomy|Highlight), never mid-word
+const breakable = (name) => name.replace(/([a-z])([A-Z])/g, '$1\u200b$2');
 
 /* Pages and parts whose name starts with the words, then names that hold them, then a part's description. */
 function find(q, parts) {
@@ -85,6 +87,10 @@ export default function Search({ showShortcut, autoFocus }) {
     }
   };
   const showing = open && q.trim();
+  // the selected option stays in view as the arrows move it (the list scrolls inside the window)
+  useEffect(() => {
+    if (showing) document.getElementById(`${listId}-o${sel}`)?.scrollIntoView({ block: 'nearest' });
+  }, [sel, showing, listId]);
   const optionId = (i) => `${listId}-o${i}`;
   // SearchField draws the input; the combobox pattern lives on it (role, expanded, the list it
   // controls, the option arrows point at), set here until BELLA's Combobox is the search part
@@ -116,7 +122,7 @@ export default function Search({ showShortcut, autoFocus }) {
                   // an option, not a button: focus stays in the field (arrows, Return, Esc work there);
                   // mouse down picks it before the field's blur closes the list
                   <li key={r.key} id={optionId(i)} role="option" aria-selected={i === sel} onMouseDown={(e) => (e.preventDefault(), go(r))} onMouseEnter={() => setSel(i)}>
-                    <ListRow as="div" layout="stacked" title={r.title} description={r.where} trailing selected={i === sel} />
+                    <ListRow as="div" layout="stacked" title={breakable(r.title)} description={r.where} trailing selected={i === sel} />
                   </li>
                 ))}
               </Flow>

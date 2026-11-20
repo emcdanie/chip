@@ -65,7 +65,7 @@
   background: var(--color-background-default);
 }
 
-.chip-screen__content > * {
+:is(.chip-screen__content, .chip-tabpanel) > * {
   grid-column: 1 / -1;
 }
 
@@ -98,7 +98,9 @@
   position: absolute;
   inset-block: 0;
   display: flex;
-  align-items: center;
+  /* at the lanes' foot, where they are empty, never over a card's › or a lane's title (audit 21 Nov) */
+  align-items: flex-end;
+  padding-block-end: var(--spacing-16);
   inline-size: var(--spacing-48);
   pointer-events: none;
 }
@@ -177,44 +179,46 @@
    Halves (span 6): side by side from 640. History's 5 / 7: side by side from
    800, so its steps keep room. */
 .chip-screen__content { container: chip-content / inline-size; }
+/* a tab's panel (Tabs' aria-controls lands on it) that leaves the page grid as it is */
+.chip-tabpanel { display: contents; }
 
-.chip-screen__content > .chip-span-8 { grid-column: span 8; }
-.chip-screen__content > .chip-span-7 { grid-column: span 7; }
-.chip-screen__content > .chip-span-6 { grid-column: span 6; }
-.chip-screen__content > .chip-span-5 { grid-column: span 5; }
-.chip-screen__content > .chip-span-4 { grid-column: span 4; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-8 { grid-column: span 8; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-7 { grid-column: span 7; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-6 { grid-column: span 6; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-5 { grid-column: span 5; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 { grid-column: span 4; }
 /* a main card with a side column (Components' History | Ask and Checks, Figma 690:491763): 7 / 5 */
-.chip-screen__content > .chip-span-8:has(+ .chip-span-4) { grid-column: span 7; }
-.chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: span 5; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-8:has(+ .chip-span-4) { grid-column: span 7; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-8 + .chip-span-4 { grid-column: span 5; }
 
 @container chip-content (width < 1000px) {
-  .chip-screen__content > .chip-span-4 { grid-column: span 6; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 { grid-column: span 6; }
   /* History's list and record share the row in halves, so the list's titles never break mid-word (1100: "Component s") */
-  .chip-screen__content > .chip-span-5,
-  .chip-screen__content > .chip-span-7 { grid-column: span 6; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-5,
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-7 { grid-column: span 6; }
   /* the third of three third-width groups takes the row and lays its cards side by side */
-  .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; flex-direction: row; }
-  .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) > * { flex: 1 1 0; min-inline-size: 0; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; flex-direction: row; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) > * { flex: 1 1 0; min-inline-size: 0; }
 }
 
 @container chip-content (width < 800px) {
-  .chip-screen__content > .chip-span-8:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; }
   /* a main card and its side column share the row in halves, so the side column's rows keep their words and › on one line (21 Nov: Components' Checks was 213 wide at 800) */
-  .chip-screen__content > .chip-span-8:has(+ .chip-span-4),
-  .chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: span 6; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8:has(+ .chip-span-4),
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8 + .chip-span-4 { grid-column: span 6; }
 }
 
 @container chip-content (width < 640px) {
   /* the main card and its side column stack only on phones (coordinator, 20 Nov: the bento from 1100 up) */
-  .chip-screen__content > .chip-span-8:has(+ .chip-span-4),
-  .chip-screen__content > .chip-span-8 + .chip-span-4 { grid-column: 1 / -1; }
-  .chip-screen__content > .chip-span-6,
-  .chip-screen__content > .chip-span-4 { grid-column: 1 / -1; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8:has(+ .chip-span-4),
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8 + .chip-span-4 { grid-column: 1 / -1; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-6,
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 { grid-column: 1 / -1; }
   /* History's list and record (5 / 7) stay side by side down to a phone, so the record you pick opens beside it at 1100 (audit 9) */
-  .chip-screen__content > .chip-span-7,
-  .chip-screen__content > .chip-span-5 { grid-column: 1 / -1; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-7,
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-5 { grid-column: 1 / -1; }
   /* as specific as the row rule above, or it loses and a phone gets two 160 wide cards side by side (21 Nov: Health scrolled 18 sideways at 375) */
-  .chip-screen__content > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { flex-direction: column; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { flex-direction: column; }
 }
 
 @media (width < 1024px) {

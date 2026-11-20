@@ -71,6 +71,11 @@ export function TermScreen({ t, active, onStatus, onActivity, register }) {
     const send = (m) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(m));
     ws.onopen = () => {
       onStatus('open');
+      // if the prompt's output never settles (or came before we listened), type it anyway
+      setTimeout(() => {
+        if (pending) send({ type: 'input', data: pending });
+        pending = null;
+      }, 1500);
     };
     ws.onclose = () => onStatus('closed');
     // a command from Needs you: typed once the login shell has drawn its
