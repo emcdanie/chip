@@ -12,6 +12,8 @@ import useCached from './useCached.js';
 import IconRail from '@bella/components/IconRail/IconRail';
 import NavItem from '@bella/components/NavItem/NavItem';
 import ProjectPanel from '@bella/components/ProjectPanel/ProjectPanel';
+import ClientSwitcher from '@bella/components/ClientSwitcher/ClientSwitcher';
+import Menu, { MenuItem } from '@bella/components/Menu/Menu';
 import TreeItem from '@bella/components/TreeItem/TreeItem';
 import TopBar from '@bella/components/TopBar/TopBar';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
@@ -193,6 +195,7 @@ export default function Screen({ place, header, tabs, children }) {
   const tiny = useNarrow(400);
   const [searching, setSearching] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
+  const [clientsOpen, setClientsOpen] = useState(false);
   // folders open and close; the open project starts open, the others closed
   const [opened, setOpened] = useState(() => new Set());
   const [shut, setShut] = useState(() => new Set());
@@ -206,8 +209,17 @@ export default function Screen({ place, header, tabs, children }) {
   };
   const filter = filterFromHash();
   // the top-left as one plain line (her 21 Nov pick "A, one plain line"; Figma CHIP / Screen 601:112027):
-  // the client's name, no tile, no subtitle. No ⌄ yet: there is one client and nothing to switch to.
-  const client = <TextStack title="BELLA" />;
+  // ClientSwitcher plain, the name and its ⌄ (parts-dev 4a6ea62). CHIP has one client, so its list says so.
+  const client = (
+    <Flow gap={4}>
+      <ClientSwitcher variant="plain" name="BELLA" expanded={clientsOpen} onClick={() => setClientsOpen((o) => !o)} />
+      {clientsOpen ? (
+        <Menu label="Clients" onClose={() => setClientsOpen(false)}>
+          <MenuItem label="BELLA · the only client CHIP has" icon="Check" onSelect={() => setClientsOpen(false)} />
+        </Menu>
+      ) : null}
+    </Flow>
+  );
   const projectRows =
     projects == null
       ? null
@@ -219,21 +231,11 @@ export default function Screen({ place, header, tabs, children }) {
     <TreeItem key={r.id} kind="status" label={r.label} tone={r.tone} count={lanes?.[r.id]} showCount={lanes != null} href={`#/work?lane=${r.id}`} current={filter.lane === r.id} />
   ));
   const panel = <ProjectPanel switcher={client} projects={projectRows} status={statusRows} />;
-  /* In a drawer, the panel's content only: the drawer's own white, padding and title, never the
-     panel's grey box, edge and padding inside it, and "Projects" once (Elleta, 21 Nov: "this is broken.."). */
-  const drawerPanel = (title) => (
-    <Flow gap={24}>
-      {client}
-      <Flow as="section" gap={4} aria-label="Projects">
-        {title === 'Projects' ? null : <TextStack title="Projects" />}
-        {projectRows}
-      </Flow>
-      <Flow as="section" gap={4} aria-label="Status">
-        <TextStack title="Status" />
-        {statusRows}
-      </Flow>
-    </Flow>
-  );
+  /* In a drawer, ProjectPanel flush (parts-dev ebd21b2): no grey box, edge or padding of its own, and
+     "Projects" said once, by the drawer's title (Elleta, 21 Nov: "this is broken.."). */
+  // the phone's drawer is titled Menu, so "Projects" shows there under the switcher (gap: ProjectPanel
+  // flush hides its heading always; asked parts-dev for a visible-heading option)
+  const drawerPanel = <ProjectPanel flush switcher={phone ? <Flow gap={24}>{client}<TextStack title="Projects" /></Flow> : client} projects={projectRows} status={statusRows} />;
   return (
     <div className="chip-screen">
       {/* Below 800 the rail steps out too: the top bar's Menu opens the places
@@ -266,10 +268,10 @@ export default function Screen({ place, header, tabs, children }) {
                 ))}
                 <NavItem label="Settings" icon="Settings" href="#/connectors" current={place === 'settings'} />
               </Flow>
-              {drawerPanel('Menu')}
+              {drawerPanel}
             </Flow>
           ) : (
-            drawerPanel('Projects')
+            drawerPanel
           )}
         </Drawer>
       ) : (
