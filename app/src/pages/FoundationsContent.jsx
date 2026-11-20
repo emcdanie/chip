@@ -117,9 +117,9 @@ function useRoles() {
 }
 
 function Roles({ roles, empty }) {
-  // two groups to a row only where each swatch keeps its hex and ratio on one line (about 160 wide: a 1600 window); below, one group a row,
+  // two groups to a row from a 1440 window, as Figma draws it (audit 10); below, one group a row,
   // so swatches in a row share one height (rule 15); three swatches a row, two below 768 and one below 480, so a name never breaks mid-word (audit 9 at 320)
-  const narrow = useNarrow(1600);
+  const narrow = useNarrow(1440);
   const two = useNarrow(768);
   const one = useNarrow(480);
   const per = one ? 1 : two ? 2 : 3;
