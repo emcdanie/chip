@@ -185,6 +185,10 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
   // a phone opens at phone width (Figma "375 wide"), so the part is readable, not 15%
   // open at the widest preset that shows near full size: a 1440 frame at her ~1100 window shrank to 45%
   const roomy = !useNarrow(1440);
+  // the four widths as a segment need about 730 of bar beside Show; below a
+  // 1140 window (her ~1100 working width) the bar has 700 or less, so the same
+  // choice is a Select and the bar stays on one row
+  const tight = useNarrow(1140);
   const [width, setWidth] = useState(() => (narrow ? '375' : roomy ? '1440' : '768'));
   const [marking, setMarking] = useState(false);
   const [notes, setNotes] = useState([]);
@@ -279,7 +283,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
     return <Notification tone="danger" title="The CHIP server is not answering" message="Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
 
   if (!part && pages && !pages.length)
-    return <EmptyState size="page" wash="blue" mark="🤷" title="No pages to open here" line="This project has no pages CHIP can load yet. Pick another one." />;
+    return <EmptyState size="page" mark="🤷" title="No pages to open here" line="This project has no pages CHIP can load yet. Pick another one." />;
 
   return (
     <>
@@ -295,8 +299,8 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
           </Flow>
         </Flow>
         <Flow direction="row" gap={12} wrap>
-          {/* below 800px the four widths don't fit in one row: the same choice as a Select */}
-          {narrow ? <Select label="Width" value={width} onChange={setWidth} options={WIDTHS} /> : <SegmentedControl label="Width" options={WIDTHS} value={width} onChange={setWidth} />}
+          {/* below a 1140 window the four widths don't fit beside Show: the same choice as a Select */}
+          {tight ? <Select label="Width" value={width} onChange={setWidth} options={WIDTHS} /> : <SegmentedControl label="Width" options={WIDTHS} value={width} onChange={setWidth} />}
           {part || none ? (
             <Button variant="secondary" ariaHaspopup="dialog" ariaExpanded={controls} disabled={none} onClick={() => setControls(true)}>
               Controls
@@ -321,7 +325,6 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
         <Stage label="Nothing picked yet">
           <EmptyState
             size="lane"
-            wash="ochre"
             mark="👀"
             title="Pick a part to try"
             line="Pick one in Show and give it a wee spin."
