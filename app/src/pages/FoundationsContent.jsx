@@ -152,9 +152,10 @@ function Roles({ roles, empty }) {
                   {/* a section description is in the reading face (Fonts rule) */}
                   <TextStack title={g.name} body={g.job} />
                   {/* equal columns, as Figma; a short last row keeps the column widths */}
-                  <Flow as="ul" gap={8} aria-label={`${g.name} colours`}>
+                  {/* each row is its own list, so every <li> sits in a <ul> (audit 21 Nov) */}
+                  <Flow gap={8} role="group" aria-label={`${g.name} colours`}>
                     {g.items.map((x, i) => i).filter((i) => i % per === 0).map((i) => (
-                      <Flow key={i} direction="row" gap={8} equal>
+                      <Flow key={i} as="ul" direction="row" gap={8} equal>
                         {Array.from({ length: per }, (_, k) => k).map((k) => {
                           const sw = g.items[i + k];
                           return sw ? (
@@ -540,7 +541,8 @@ function WhoUsesWhat({ bella }) {
   const unused = roles.length - rows.length;
   const columns = [
     { key: 'role', label: 'Role', sortable: true, render: (r) => <TextStack subtitle={r.role} /> },
-    { key: 'used', label: 'Used by', numeric: true, sortable: true },
+    // the count in Geist Mono (TextStack's subtext face); DataTable's numeric cells are Lexend (a part gap, asked)
+    { key: 'used', label: 'Used by', numeric: true, sortable: true, render: (r) => <TextStack subtitle={String(r.used)} /> },
     { key: 'parts', label: 'Components', sortable: true },
   ];
   return (
