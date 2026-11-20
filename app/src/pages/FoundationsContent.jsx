@@ -25,6 +25,8 @@ import TextStack from '@bella/components/TextStack/TextStack';
 import Swatch from '@bella/components/Swatch/Swatch';
 import TypeSpecimen from '@bella/components/TypeSpecimen/TypeSpecimen';
 import SpacingStep from '@bella/components/SpacingStep/SpacingStep';
+import RadiusTile from '@bella/components/RadiusTile/RadiusTile';
+import EasingCurve, { DurationBar } from '@bella/components/EasingCurve/EasingCurve';
 import Progress from '@bella/components/Progress/Progress';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Button from '@bella/components/Button/Button';
@@ -340,49 +342,18 @@ function RolesTable({ rows, total }) {
   );
 }
 
-/* The Chip theme's names for each corner (sm, md, form, card…), read from the live theme: a name whose value is a radius step's value. */
-function useRadiusNames(radius) {
-  const [names, setNames] = useState({});
-  useEffect(() => {
-    const semantic = new Set();
-    for (const sheet of document.styleSheets) {
-      let rules;
-      try {
-        rules = sheet.cssRules;
-      } catch {
-        continue;
-      }
-      for (const r of rules ?? []) for (const m of String(r.cssText).matchAll(/--border-radius-([a-z][a-z-]*):/g)) semantic.add(m[1]);
-    }
-    const probe = document.createElement('span');
-    probe.setAttribute('data-theme', 'chip-light');
-    document.body.appendChild(probe);
-    const cs = getComputedStyle(probe);
-    const px = (v) => cs.getPropertyValue(v).trim();
-    const out = {};
-    for (const r of radius) {
-      const value = px(`--border-radius-${r.name}`) || r.value;
-      out[r.name] = [...semantic].filter((n) => n !== r.name && px(`--border-radius-${n}`) === value);
-    }
-    probe.remove();
-    setNames(out);
-  }, [radius]);
-  return names;
-}
-
 /* Shape and space (Figma 808:82396): every corner token and every spacing step. */
 function ShapeAndSpace({ radius }) {
-  const names = useRadiusNames(radius);
   return (
     <Card>
       <Flow gap={16}>
         <SectionHead icon="ViewGrid" iconTone="warning" title="Shape and space" description="Every corner token and every spacing step" />
         <TextStack title="Radius" />
-        {/* the corner tile itself waits on a Radius tile part (library gap); each corner as its token, its Chip names and its size */}
+        {/* each corner token on BELLA's RadiusTile (bd87f14): the tile, its token and Chip's names for it */}
         <Flow as="ul" direction="row" gap={24} wrap aria-label="Corner tokens">
           {radius.map((r) => (
             <li key={r.token}>
-              <TextStack subtitle={`radius/${r.name}`} body={[(names[r.name] ?? []).join(', '), r.value].filter(Boolean).join(' · ')} />
+              <RadiusTile radius={r.name} />
             </li>
           ))}
         </Flow>
@@ -403,7 +374,8 @@ const jobOf = (d) => (/^Value:/.test(d ?? '') ? null : String(d ?? '').replace(/
 
 /* Motion (Figma 810:82446): how long things take, to scale, and how they ease. */
 function Motion({ motion }) {
-  const narrow = useNarrow(1100);
+  // durations beside easings only where a DurationBar keeps about 480 (a 1440 window); narrower, its token runs under its bar, so they stack
+  const narrow = useNarrow(1440);
   const longest = Math.max(...motion.durations.map((d) => d.ms));
   return (
     <Card>
@@ -412,18 +384,16 @@ function Motion({ motion }) {
         <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
           <Flow gap={12}>
             <TextStack title="Duration" />
+            {/* BELLA's DurationBar (bd87f14): the token, its job where the token names one, to scale */}
             {motion.durations.map((d) => (
-              <Flow key={d.token} gap={4}>
-                <Progress label={`motion/duration/${d.name}`} value={`${d.ms}ms`} fill={(100 * d.ms) / longest} />
-                {jobOf(d.description) ? <TextStack body={jobOf(d.description)} /> : null}
-              </Flow>
+              <DurationBar key={d.token} duration={d.ms} use={jobOf(d.description) ?? undefined} />
             ))}
           </Flow>
           <Flow gap={12}>
             <TextStack title="Easing" />
-            {/* the curve picture waits on an Easing curve part (library gap), and Figma's ink duration bars on a neutral Progress tone; each easing as its token and its curve */}
+            {/* BELLA's EasingCurve (bd87f14): the curve, its token and its cubic-bezier */}
             {motion.easings.map((e) => (
-              <TextStack key={e.token} subtitle={`motion/easing/${e.name}`} body={e.value} />
+              <EasingCurve key={e.token} easing={e.name} />
             ))}
           </Flow>
         </Flow>
