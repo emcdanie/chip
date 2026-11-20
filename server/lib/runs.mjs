@@ -113,7 +113,7 @@ async function go(run) {
   try {
     step(run, `Making ${run.branch} from ${BASE}`);
     prepare(dir, { branch: run.branch, withStaged: false });
-    step(run, 'Claude is working on the brief');
+    step(run, 'The agent is working on the brief');
     run.status = 'running';
     const prompt = `${run.brief}\n\n---\nYou are running headless for CHIP. Nobody will answer questions: decide, using AGENTS.md. You are in a fresh worktree of BELLA on the local branch ${run.branch}, made from ${BASE}. Make the change here. Run npm run build if you change tokens, contracts or anything generated. Do not commit, push, merge or switch branches: CHIP commits your change through BELLA's gate afterwards. End with a short summary for Elleta: one line per file changed and why, then anything you could not do.`;
     const r = await claude(run, prompt, dir);
@@ -150,7 +150,7 @@ async function go(run) {
   } catch (e) {
     step(run, null);
     run.status = 'failed';
-    run.error = e.message;
+    run.error = run.stopped ? 'Stopped by a maintainer' : e.message;
     logAction({ kind: 'run-failed', title: run.title, branch: run.branch, error: e.message });
   } finally {
     // the end state goes to disk too, or a restart reads a finished run as cut off
@@ -216,6 +216,7 @@ function claude(run, prompt, cwd) {
 export function stopRun(id) {
   const run = runs.get(id);
   if (!run?.child) throw new Error('Nothing is running');
+  run.stopped = true; // so the end reads as a maintainer's stop, not the process's exit code
   run.child.kill('SIGTERM');
   return public_(run);
 }

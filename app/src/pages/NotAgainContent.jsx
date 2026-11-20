@@ -1,15 +1,14 @@
 // Not again · content: the code twin of the Figma slot fill (CHIP Dashboard
-// 612:73919). One component, Figma's six states as a prop: suggested,
-// running, your-call, kept, gate-fails, library. Built from BELLA parts and
-// the template's Flow only; no page CSS.
+// 612:73919), on CHIP's own data (user test 21 Nov, item 5). The fix card
+// follows the "Add contrast pair" run (/runs) on the parts the contrast check
+// finds (/gaps); its buttons start, stop, accept or undo that run. The stats
+// count CHIP's run log since Monday; with no run this week they are the Empty
+// state (Elleta, 19 Nov). The Library holds the fixes CHIP can run.
+// Built from BELLA parts and the template's Flow only; no page CSS.
 //
-// The two stats are real: counted from CHIP's run log (/runs) since Monday,
-// on BELLA's StatCard as Figma draws them; with no run this week they are
-// the Empty state (Elleta, 19 Nov). The library's run counts read the same
-// log. The fix card and the library's fixes are still Figma's example (notAgainFixture.js) until CHIP records saved fixes.
-//
-// Gaps: StatCard has no empty slot; actions that run the agent (Run, Send
-// back) wait for a Menu part for the model menu (Auto, local first).
+// Gaps: StatCard has no empty slot; the model menu (Auto, local first) waits
+// for a Menu part, so a run goes to CHIP's default.
+import { useState } from 'react';
 import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -19,10 +18,13 @@ import ListRow from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import StatCard from '@bella/components/StatCard/StatCard';
+import Toast from '@bella/components/Toast/Toast';
 import Flow from '../templates/Flow.jsx';
+import Toasts from '../templates/Toasts.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import useCached from '../templates/useCached.js';
-import { explainer, fix, states, library } from './notAgainFixture.js';
+import { FIX, LIBRARY, stateOf, stepsOf, useNotAgain } from './notAgainModel.js';
+import { handOff } from './healthModel.js';
 
 export const STATES = ['suggested', 'running', 'your-call', 'kept', 'gate-fails', 'library'];
 
@@ -32,70 +34,109 @@ const EMPTY_STATS = [
   { title: 'Kept', icon: 'ShieldCheck', tone: 'success', mark: '✅', empty: 'Nothing kept yet', line: 'Accept a fix and it lands here.' },
 ];
 
-/* The card's own action, by state, in the card footer at the bottom right
-   (Figma's audited fix, 19 Nov). One primary per view (her y28 B, "Accept is
-   blue while it waits on you; New fix is white", applied everywhere, Figma
-   f8): an action that commits is the view's blue button and the header's New
-   task goes white; Stop commits nothing, so New task stays blue. */
-const HEAD_ACTION = {
-  suggested: { label: 'Run on 9', variant: 'primary' },
-  running: { label: 'Stop', variant: 'secondary' },
-  'gate-fails': { label: 'Send back', variant: 'primary' },
-};
-/** States whose card holds the committing action: New fix is white there. */
+/** States whose card holds the committing action: New task is white there (her y28 B). */
 export const COMMITS = new Set(['suggested', 'gate-fails', 'your-call']);
 
-function Banner({ state }) {
-  if (state === 'gate-fails') return null;
-  const banner = states[state].banner;
-  if (banner) return <Notification tone="success" title={banner.title} message={banner.message} action={{ label: 'Undo' }} />;
-  return <Notification tone="info" icon="InfoCircle" title={explainer.title} message={explainer.message(fix.components.length)} />;
-}
+const LEAD = { suggested: 'Suggested', running: 'Running', 'your-call': 'Maintainer’s call', kept: 'Kept', 'gate-fails': 'Stopped' };
+const plural = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
 
-function FixCard({ state }) {
-  /* Four steps across only where each column keeps its title on one line
-     (about 220 wide, so a window of 1400 with the rail and panel); below
-     that they stack, Figma's narrow layout (audit 7: ~130 wide at 1100). */
+/* Start, stop, accept or undo a run, with feedback on the button and a toast. */
+function useAct(reload) {
+  const [busy, setBusy] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const act = async (key, fn, done) => {
+    setBusy(key);
+    try {
+      await fn();
+      setNotice({ tone: 'success', text: done });
+      reload?.();
+      window.dispatchEvent(new Event('chip:changed'));
+    } catch (e) {
+      setNotice({ tone: 'danger', text: `That didn’t go through: ${e.message}. Nothing changed.` });
+    } finally {
+      setBusy(null);
+    }
+  };
+  const toast = notice ? (
+    <Toasts>
+      <Toast tone={notice.tone} onClose={() => setNotice(null)}>
+        {notice.text}
+      </Toast>
+    </Toasts>
+  ) : null;
+  return { busy, act, toast };
+}
+const post = async (url) => {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'CHIP did not answer');
+  return d;
+};
+const start = (check, parts, name) => handOff({ id: check, title: check, missing: parts, action: name });
+
+function FixCard({ state, data, busy, act }) {
   const narrow = useNarrow(1400);
-  const s = states[state];
-  const head = HEAD_ACTION[state];
+  const { parts, run } = data;
+  const n = parts.length;
+  const runUrl = run ? `/runs/${encodeURIComponent(run.id)}` : null;
+  const footer =
+    state === 'your-call' ? (
+      <Flow direction="row" gap={8} justify="end" wrap>
+        <Button variant="secondary" disabled={!!busy} onClick={() => act('undo', () => post(`${runUrl}/undo`), `Undone: the branch ${run.branch} is gone.`)}>
+          {busy === 'undo' ? 'Undoing…' : 'Undo'}
+        </Button>
+        <Button variant="primary" disabled={!!busy} onClick={() => act('keep', () => post(`${runUrl}/keep`), `Accepted: ${run.branch} is kept. Merging it is a maintainer’s step.`)}>
+          {busy === 'keep' ? 'Accepting…' : 'Accept'}
+        </Button>
+      </Flow>
+    ) : state === 'running' && run?.status !== 'gate' ? (
+      <Button variant="secondary" size="sm" disabled={!!busy} onClick={() => act('stop', () => post(`${runUrl}/stop`), 'Stopped. Nothing was kept.')}>
+        {busy === 'stop' ? 'Stopping…' : 'Stop'}
+      </Button>
+    ) : (state === 'suggested' || state === 'gate-fails') && n ? (
+      <Button variant="primary" size="sm" disabled={!!busy} onClick={() => act('run', () => start(FIX.check, parts, FIX.name), `Sent to the agent: ${FIX.name} on ${plural(n, 'part')}. It shows here and on Work.`)}>
+        {busy === 'run' ? 'Starting…' : state === 'gate-fails' ? 'Send back' : `Run on ${n}`}
+      </Button>
+    ) : undefined;
+  if (state === 'suggested' && !n) return <EmptyState size="lane" mark="🎉" title="Every part has a pair" line="The contrast check finds nothing for this fix today." />;
+  const steps = stepsOf(state, n, run);
   return (
     // Figma's audited fix: the card's action sits in its footer, bottom right
-    <Card
-      footerAction={
-        state === 'your-call' ? (
-          <Flow direction="row" gap={8} justify="end" wrap>
-            <Button variant="secondary">Undo</Button>
-            <Button variant="primary">Accept</Button>
-          </Flow>
-        ) : head ? (
-          <Button variant={head.variant} size="sm">
-            {head.label}
-          </Button>
-        ) : undefined
-      }
-    >
-      {/* Figma 782:59605: the head, 8, then the content: the parts line, 16, the steps */}
+    <Card footerAction={footer}>
       <Flow gap={8}>
-        <SectionHead icon="Book" iconTone="info" title={`${s.lead}: ${fix.name}`} description={s.description} />
+        <SectionHead icon="Book" iconTone="info" title={`${LEAD[state]}: ${FIX.name}`} description={n ? `${plural(n, 'component')} ${n === 1 ? 'has' : 'have'} no declared pair` : 'The parts it fixed now have a pair'} />
         <Flow gap={16}>
-          {/* the parts as one plain line in the reading face, as Figma's Components text stack */}
-          <TextStack body={fix.components.join(', ')} />
+          {n ? <TextStack body={parts.join(', ')} /> : null}
           <Flow as="ol" direction={narrow ? 'column' : 'row'} gap={4} aria-label="How the fix runs">
-            {s.steps.map((step, i) => (
-              <Step
-                key={step.title}
-                layout={narrow ? 'vertical' : 'horizontal'}
-                state={step.state}
-                title={step.title}
-                detail={step.detail}
-                showConnector={i < s.steps.length - 1}
-              />
+            {steps.map((step, i) => (
+              <Step key={step.title} layout={narrow ? 'vertical' : 'horizontal'} state={step.state} title={step.title} detail={step.detail} showConnector={i < steps.length - 1} />
             ))}
           </Flow>
         </Flow>
       </Flow>
     </Card>
+  );
+}
+
+function Banner({ state, data, busy, act }) {
+  if (state === 'gate-fails' || state === 'running' || state === 'your-call') return null;
+  const n = data.parts.length;
+  if (state === 'kept' && data.run)
+    return (
+      <Notification
+        tone="success"
+        title="Kept"
+        message={`${FIX.name}: ${data.run.branch} is kept. Logged in History.`}
+        action={{ label: busy === 'undo' ? 'Undoing…' : 'Undo', onClick: () => act('undo', () => post(`/runs/${encodeURIComponent(data.run.id)}/undo`), `Undone: the branch ${data.run.branch} is gone.`) }}
+      />
+    );
+  return (
+    <Notification
+      tone="info"
+      icon="InfoCircle"
+      title="What is Not again?"
+      message={n ? `The contrast check fails on ${plural(n, 'part')}. This saved fix adds their pairs. Next time it fails, the agent repeats it and a reviewer only presses Accept.` : 'A saved fix: when a check fails, the agent repeats it and a reviewer only presses Accept.'}
+    />
   );
 }
 
@@ -168,53 +209,66 @@ function Stats() {
   );
 }
 
-/* A saved fix's line: its trigger, then how often it ran and was kept, from
-   the same run log as the stats (a run carries the fix's name as its title). */
-function useLibraryLines() {
-  const { data } = useCached(['/runs']);
-  const runs = data?.[0]?.runs ?? [];
-  return library.map((f) => {
-    const mine = runs.filter((r) => r.title === f.name);
-    const kept = mine.filter((r) => r.status === 'kept').length;
-    const count = mine.length ? `${mine.length} ${mine.length === 1 ? 'run' : 'runs'} · ${kept} kept` : 'Not run yet';
-    return { name: f.name, when: `When: ${f.trigger} · ${count}` };
-  });
-}
-
-function Library() {
-  const lines = useLibraryLines();
+/* Every saved fix CHIP can run: its trigger, how often it ran and was kept
+   (the run log, the stats' source), and Run on the parts its check finds now. */
+function Library({ data, busy, act }) {
   return (
     <Card>
       <Flow gap={24}>
-        <SectionHead icon="Book" iconTone="info" title="Library" description="Fixes saved as steps" number={library.length} words="fixes" />
+        <SectionHead icon="Book" iconTone="info" title="Library" description="Fixes saved as steps" number={LIBRARY.length} words="fixes" />
         <Flow as="ul" gap={8} aria-label="Saved fixes">
-          {lines.map((f) => (
-            <ListRow
-              key={f.name}
-              layout="stacked"
-              title={f.name}
-              description={f.when}
-              actionButton={
-                <Button variant="secondary" ariaLabel={`Run ${f.name}`}>
-                  Run
-                </Button>
-              }
-            />
-          ))}
+          {LIBRARY.map((f) => {
+            const mine = data.mine(f.name);
+            const kept = mine.filter((r) => r.status === 'kept').length;
+            const parts = Object.keys(data.gaps[f.check] ?? {});
+            const ran = mine.length ? `${plural(mine.length, 'run')} · ${kept} kept` : 'Not run yet';
+            return (
+              <ListRow
+                key={f.name}
+                layout="stacked"
+                title={f.name}
+                description={`When: ${f.trigger} · ${ran}${parts.length ? '' : ' · nothing to fix now'}`}
+                actionButton={
+                  parts.length ? (
+                    <Button variant="secondary" ariaLabel={`Run ${f.name} on ${plural(parts.length, 'part')}`} disabled={!!busy} onClick={() => act(f.name, () => start(f.check, parts, f.name), `Sent to the agent: ${f.name} on ${plural(parts.length, 'part')}. Its card is on Work.`)}>
+                      {busy === f.name ? 'Starting…' : 'Run'}
+                    </Button>
+                  ) : undefined
+                }
+              />
+            );
+          })}
         </Flow>
       </Flow>
     </Card>
   );
 }
 
-export default function NotAgainContent({ state = 'suggested' }) {
-  if (state === 'library') return <Library />;
-  if (!states[state]) return null;
+/** state: forces one of Figma's states (stories); the page reads it from the fix's run. */
+export default function NotAgainContent({ state: forced, tab = 'flow' }) {
+  const data = useNotAgain();
+  const { busy, act, toast } = useAct(data.reload);
+  if (!data.parts) return data.error ? <EmptyState size="lane" title="Not again isn’t answering" line="CHIP couldn’t read its checks just now. Refresh and I’ll try again." /> : <EmptyState size="lane" mark="⏳" title="Reading the fix" line="Fetching its parts and runs." />;
+  if (tab === 'library' || forced === 'library')
+    return (
+      <>
+        <Library data={data} busy={busy} act={act} />
+        {toast}
+      </>
+    );
+  const state = forced ?? stateOf(data.run);
   return (
     <>
-      <Banner state={state} />
-      <FixCard state={state} />
+      <Banner state={state} data={data} busy={busy} act={act} />
+      <FixCard state={state} data={data} busy={busy} act={act} />
       <Stats />
+      {toast}
     </>
   );
+}
+
+/** The live state, for the page's header button (New task is white while the card commits). */
+export function useNotAgainState() {
+  const data = useNotAgain();
+  return data.parts ? stateOf(data.run) : 'suggested';
 }

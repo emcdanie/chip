@@ -104,7 +104,8 @@ function useBranches(id) {
 const BOARD = 'http://localhost:3123';
 
 /* New task (Figma's page header action): a sentence, sent to the progress board. */
-function NewTask() {
+/** variant: white (secondary) where the page's card holds the committing action (her y28 B). */
+export function NewTask({ variant = 'primary' }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [said, setSaid] = useState(null); // 'sent' | 'failed'
@@ -121,7 +122,7 @@ function NewTask() {
   }
   return (
     <>
-      <Button variant="primary" size="sm" onClick={() => (setSaid(null), setOpen(true))}>
+      <Button variant={variant} size="sm" onClick={() => (setSaid(null), setOpen(true))}>
         {said === 'sent' ? 'Task sent' : 'New task'}
       </Button>
       <Drawer
