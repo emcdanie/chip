@@ -327,6 +327,70 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch, list = false
     setTouch((t) => (t?.w === next?.w && t?.h === next?.h ? t : next));
   }, [box, shownId]);
   useEffect(() => onTouch?.(touch), [touch, onTouch]);
+  /* Each anatomy part's facts, measured on the live part on the stage in the theme that's showing
+     (final audit, 21 Nov: the contract's written lines said "DM Sans 16, radius 12" while Chip draws
+     Lexend and corner 8). Read from the element and BELLA's tokens; never the contract's text. */
+  const [measured, setMeasured] = useState({});
+  // the theme can change on the page (Chip light / dark): measure again when it does
+  const [themeTick, setThemeTick] = useState(0);
+  useEffect(() => {
+    const mo = new MutationObserver(() => setThemeTick((t) => t + 1));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+    return () => mo.disconnect();
+  }, []);
+  useLayoutEffect(() => {
+    // after the part's own transition (Button eases its background over motion/duration/150), so the
+    // new variant's paint is read, not the frame between
+    const t = setTimeout(measure, 250);
+    return () => clearTimeout(t);
+    function measure() {
+    const root = document.getElementById(shownId)?.firstElementChild;
+    if (!root || !anatomy.length) return;
+    const n = (v) => String(Math.round(parseFloat(v) || 0));
+    const hex = (c) => {
+      const m = String(c).match(/rgba?\(([^)]+)\)/);
+      if (!m) return null;
+      const [r, g, b, al = '1'] = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
+      return al === 0 ? 'none' : `#${[r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+    };
+    const tokenColour = (el, name) => {
+      const probe = document.createElement('span');
+      probe.style.color = `var(${name})`;
+      el.appendChild(probe);
+      const v = hex(getComputedStyle(probe).color);
+      probe.remove();
+      return v;
+    };
+    const out = {};
+    for (const x of anatomy) {
+      const el = !x.target || x.target === ':scope' ? root : root.querySelector(x.target) ?? root;
+      const cs = getComputedStyle(el);
+      // a plate can be painted as a gradient image (Button), so the fill is its token, resolved on the part
+      if (x.kind === 'fill') {
+        // the paint itself: a gradient's colour (Button paints its plate that way) or the background colour;
+        // the contract's token is named only when it is what's painted (Secondary paints another)
+        const layers = (cs.backgroundImage.match(/rgba?\([^)]*\)/g) ?? []).map(hex).filter((h) => h && h !== 'none');
+        const paint = layers[0] ?? hex(cs.backgroundColor) ?? 'none';
+        out[x.key] = x.token && tokenColour(el, x.token) === paint ? `${x.token} · ${paint}` : paint;
+      }
+      else if (x.kind === 'box') out[x.key] = `${n(cs.minHeight) !== '0' ? `${n(cs.minHeight)} min` : `${n(el.offsetHeight)} tall`} · padding ${n(cs.paddingTop)} / ${n(cs.paddingRight)} · corner ${n(cs.borderTopLeftRadius)}`;
+      else if (x.kind === 'content') out[x.key] = `${cs.fontFamily.split(',')[0].replace(/["']/g, '')} ${n(cs.fontSize)} · weight ${cs.fontWeight}`;
+      else if (x.kind === 'ring') {
+        const w = cs.getPropertyValue('--focus-ring-width').trim();
+        const o = cs.getPropertyValue('--focus-ring-offset').trim();
+        out[x.key] = `${w ? `${n(w)} ring, ${n(o)} offset` : 'ring'} · ${tokenColour(el, x.token ?? '--color-border-focus') ?? ''} · keyboard focus only`;
+      } else if (x.kind === 'shadow') {
+        // a shadow of transparent colour, or no length, draws nothing: say none
+        const sh = cs.boxShadow;
+        const empty = sh === 'none' || /rgba\([^)]*,\s*0\)/.test(sh) || /^(\S+\s+)?(0px\s*)+$/.test(sh.replace(/rgba?\([^)]*\)/g, '').trim());
+        out[x.key] = empty ? 'none' : `${x.token ?? 'shadow'}`;
+      }
+      else if (x.token) out[x.key] = `${x.token}${tokenColour(el, x.token) ? ` · ${tokenColour(el, x.token)}` : ''}`;
+    }
+    setMeasured((m) => (JSON.stringify(m) === JSON.stringify(out) ? m : out));
+    }
+  }, [box, shownId, anatomy, variant, label, themeTick]);
+  const said = (x) => measured[x.key] ?? x.token ?? '';
   const markers = useMemo(() => {
     if (!box || !anatomy.length) return [];
     const pins = anatomy.map((x, i) => pinAt(x.kind, i, box));
@@ -359,7 +423,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch, list = false
   }, [box, anatomy, a?.key, scale]);
   const showsValue = (box?.sw ?? 0) >= 560;
   const legend = markers.length && markers[0].chipX == null ? [...markers].sort((p, q) => p.label - q.label).map((m) => `${m.label} ${m.part}`.replace(/ /g, '\u00a0')).join(' · ') : null; // an entry never breaks inside
-  const card = a ? <PartCard a={a} touch={touch} value={showsValue ? null : valueOf(a)} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
+  const card = a ? <PartCard a={{ ...a, detail: said(a) }} touch={touch} value={showsValue ? null : valueOf(a)} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
   /* Anatomy: the parts as a numbered list beside the specimen, in the same card (18 Nov: "the anotations
      descriptions can be inteh same card"); each row's number is its pin's, and hovering or focusing a row
      lights its pin, as the pin lights its chip. */
@@ -373,7 +437,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch, list = false
             layout="stacked"
             pin={numberOf(x.key) != null ? <Pin number={String(numberOf(x.key))} variant="red" pinStyle="solid" /> : undefined}
             title={x.title}
-            description={x.status === 'finding' ? `Finding · ${x.detail}` : x.detail}
+            description={x.status === 'finding' ? `Finding · ${said(x)}` : said(x)}
             selected={x.key === a?.key}
             onClick={() => onPick(x.key)}
           />
@@ -647,6 +711,10 @@ function ChecksCard({ part, detail, checked, touch }) {
   // Figma's seven rows: the six checks, then Figma set, which counts (5 of 7 while CHIP can't reach Figma)
   const total = checks.length + 1;
   const pass = checks.filter((k) => k.ok).length + (detail.figmaBlind ? 0 : 1);
+  // an inline row's value never wraps, so on the smallest phones the value goes under the title
+  // (final audit 21 Nov: "Matches the code" ran 3 past the card at 320)
+  const stacked = useNarrow(400);
+  const row = (value) => (stacked ? { layout: 'stacked', description: value } : { layout: 'inline', value });
   return (
     <Card>
       <Flow gap={8}>
@@ -655,12 +723,11 @@ function ChecksCard({ part, detail, checked, touch }) {
           {checks.map((k) => {
             const href = linkFor(k);
             const words = k.id === 'contrast' && k.ok && weakest ? `${weakest.title} ${ratio(weakest.contrast.ratio)}` : k.words;
-            return <ListRow key={k.id} layout="inline" title={k.title} value={words} trailing={href ? true : undefined} onClick={href ? () => window.open(href, '_blank', 'noopener') : undefined} statusDot={k.ok ? undefined : <StatusDot tone="attention" showLabel={false} label="Fails" />} />;
+            return <ListRow key={k.id} {...row(words)} title={k.title} trailing={href ? true : undefined} onClick={href ? () => window.open(href, '_blank', 'noopener') : undefined} statusDot={k.ok ? undefined : <StatusDot tone="attention" showLabel={false} label="Fails" />} />;
           })}
           <ListRow
-            layout="inline"
+            {...row(detail.figmaBlind ? undefined : 'Reachable')}
             title="Figma set"
-            value={detail.figmaBlind ? undefined : 'Reachable'}
             actionButton={detail.figmaBlind ? <Button variant="secondary" size="sm" href="#/connectors">Add file key</Button> : undefined}
           />
         </Flow>
