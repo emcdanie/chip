@@ -161,10 +161,11 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
           <Tag variant="outline">{plural(data.agents, 'agent')}</Tag>
         </li>
         <li>
-          <Tag variant="outline" tone="info">{`${data.working} working`}</Tag>
+          {/* agent sessions, not board cards: the words say so, so they never read against the sidebar's Needs you / Agent */}
+          <Tag variant="outline" tone="info">{`${data.working} ${data.working === 1 ? 'session' : 'sessions'} working`}</Tag>
         </li>
         <li>
-          <Tag variant="outline" tone="attention">{`${asks.length} waiting on you`}</Tag>
+          <Tag variant="outline" tone="attention">{`${asks.length} ${asks.length === 1 ? 'ask' : 'asks'} for you`}</Tag>
         </li>
         <li>
           <Tag variant="outline">{plural(data.prs, 'open PR')}</Tag>

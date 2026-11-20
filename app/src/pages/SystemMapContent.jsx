@@ -96,7 +96,8 @@ function NodeCard({ node, open, onOpen }) {
       <Flow gap={8}>
         <Flow direction="row" justify="between" gap={8}>
           <TextStack title={node.name} />
-          {count ? <TextStack title={String(count)} /> : null}
+          {/* a number in Geist Mono (TextStack's subtext face), as every number (audit 21 Nov) */}
+          {count ? <TextStack subtitle={String(count)} /> : null}
         </Flow>
         {/* Figma's node line is in the reading face */}
         <TextStack body={metaOf(node)} />
@@ -188,9 +189,11 @@ export default function SystemMapContent() {
   const { byId } = got;
   const steps = STEPS.map((s) => ({ ...s, nodes: s.ids.map((id) => byId[id]).filter(Boolean) }));
   const nodes = steps.flatMap((s) => s.nodes);
+  // the summary counts the tags on screen, word for word (audit 21 Nov: "5 not known" over 4 tags)
   const needs = nodes.filter((n) => n.state === 'bad');
   const healthy = nodes.filter((n) => n.state === 'ok').length;
-  const unknown = nodes.length - needs.length - healthy;
+  const unknown = nodes.filter((n) => (SAYS[n.state] ?? SAYS.unknown)[0] === 'Not known').length;
+  const partly = nodes.filter((n) => n.state === 'warn').length;
   // opens on the first node that needs you, as Figma opens on Compare with Figma
   const open = byId[openId] ?? needs[0] ?? nodes.find((n) => n.state !== 'ok') ?? nodes[0];
   const shown = (s) => (only ? s.nodes.filter((n) => n.state === 'bad') : s.nodes);
@@ -223,7 +226,7 @@ export default function SystemMapContent() {
     <>
       <Card>
         <Flow gap={16}>
-          <SectionHead icon="Map" iconTone="success" title="BELLA pipeline" description={sentence} showDescription number={needs.length} words={`need you · ${healthy} healthy · ${unknown} not known`} showNumber />
+          <SectionHead icon="Map" iconTone="success" title="BELLA pipeline" description={sentence} showDescription number={needs.length} words={`need you · ${healthy} healthy${partly ? ` · ${partly} not all run` : ''} · ${unknown} not known`} showNumber />
           <Flow direction="row" gap={8} wrap>
             <FilterChip pressed={only} onClick={() => setOnly(!only)}>
               {`Needs you ${needs.length}`}
