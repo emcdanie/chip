@@ -20,7 +20,7 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
-import { BELLA_DISC, NotAnswered, Reply, Ticks, Words, sendToAgent, shapeReply } from './useAsk.jsx';
+import { NotAnswered, Reply, Ticks, Words, sendToAgent, shapeReply } from './useAsk.jsx';
 
 // Team draws its replies with the same bubble
 export { Reply };
@@ -68,7 +68,7 @@ function AgentRun({ id, onOpen }) {
           <TextStack subtitle={run.step ?? RUN_WORDS[run.status]} />
         </Flow>
       ) : (
-        <ChatBubble side="received" tail disc="var(--color-background-subtle)" actions={<ActionChip onClick={() => onOpen({ kind: 'run', id })}>Open the run</ActionChip>}>
+        <ChatBubble side="received" tail actions={<ActionChip onClick={() => onOpen({ kind: 'run', id })}>Open the run</ActionChip>}>
           {outcome}
         </ChatBubble>
       )}
@@ -95,7 +95,7 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
         </Flow>
       ) : null}
       {a?.status === 'answer' ? (
-        <Reply who="BELLA" disc={BELLA_DISC} extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
+        <Reply who="BELLA" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
           <Words text={[shaped.verdict, ...shaped.bullets].join(' ')} />
         </Reply>
       ) : null}
@@ -156,7 +156,7 @@ export default function TermChat({ asker, provider, where, onOpen, sayRef, onNot
               </ChatBubble>
               {n === rows.length - 1 ? <ChatThreadDelivered>{`${t.at} · read`}</ChatThreadDelivered> : null}
             </Flow>
-            {t.run ? <AgentRun id={t.run} onOpen={onOpen} /> : t.runError ? <ChatBubble side="received" senderName="Agent" disc="var(--color-background-subtle)">{t.runError}</ChatBubble> : <TypingDots name="the agent" />}
+            {t.run ? <AgentRun id={t.run} onOpen={onOpen} /> : t.runError ? <ChatBubble side="received" senderName="Agent">{t.runError}</ChatBubble> : <TypingDots name="the agent" />}
           </Flow>
         ),
       )}

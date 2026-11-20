@@ -265,6 +265,31 @@ export function checkCitations(reply, texts) {
     .join('\n');
 }
 
+// For each cited source, the sentence of its own text that backs what the answer says it says
+// (audit 21 Nov: the opened source led with its heading, not the line behind the claim).
+export function backingLines(reply, texts) {
+  const out = new Map();
+  if (!texts?.size) return out;
+  const lines = String(reply).split('\n');
+  for (const [n, text] of texts) {
+    const claims = lines.filter((l) => l.includes(`[${n}]`)).join(' ').replace(/\[\d+\]|\*\*/g, '').toLowerCase();
+    const want = [...new Set((claims.match(WORD) ?? []).filter((w) => !STOP.has(w)))];
+    const nums = claims.match(/\d[\d.,]*\d|\d/g)?.filter((x) => !/^[0-3]$/.test(x)) ?? [];
+    if (!want.length && !nums.length) continue;
+    const best = String(text)
+      .split(/(?<=[.!?])\s+|\n+/)
+      .map((t) => t.replace(/^[#>*\-\s|]+/, '').trim())
+      .filter((t) => t.length > 12 && t.length < 240)
+      .map((t) => {
+        const low = t.toLowerCase();
+        return [t, want.filter((w) => low.includes(w)).length + 2 * nums.filter((x) => low.includes(x)).length];
+      })
+      .sort((a, b) => b[1] - a[1])[0];
+    if (best && best[1] > 0) out.set(n, best[0]);
+  }
+  return out;
+}
+
 // Streaming: { type: 'provider' } (who answers), { type: 'private' } when
 // Notion sources were held back from the cloud, { type: 'sources' }, then
 // { type: 'token' } pieces and { type: 'done' }. A weak best match yields one
@@ -322,5 +347,7 @@ export async function* askStream(message, sessionId, page, opts = {}) {
   // the "Next:" line is the follow-up questions, never part of the answer: it goes out on its own
   const next = (reply.match(/^\s*Next:\s*(.+)$/im)?.[1] ?? '').split('|').map((q) => q.replace(/\*\*/g, '').trim()).filter((q) => q.length > 3 && q.length < 80).slice(0, 2);
   reply = checkCitations(reply.replace(/^\s*Next:.*$/gim, ''), texts);
+  const backs = backingLines(reply, texts);
+  sources = sources.map((x) => (backs.has(x.n) ? { ...x, backs: backs.get(x.n) } : x));
   yield { type: 'done', next, reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }

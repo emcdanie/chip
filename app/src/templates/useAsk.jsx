@@ -196,21 +196,44 @@ export default function useAsk({ thread = false } = {}) {
 
 /* An answer's words: **key phrase** bold, [n] as her pink pin, no code ticks. */
 export function Words({ text, onPin }) {
-  return String(text)
+  const bits = String(text)
     .replace(/`/g, '')
     // a pin before the full stop would leave the stop on its own ("pairs ① ."): the stop goes first
     .replace(/\s*((?:\s*\[\d+\])+)\s*([.,;:])/g, '$2 $1')
     .split(/(\*\*[^*]+\*\*|\[\d+\])/)
-    .filter(Boolean)
-    .map((bit, i) =>
-      /^\*\*/.test(bit) ? (
-        <strong key={i}>{bit.slice(2, -2)}</strong>
-      ) : /^\[\d+\]$/.test(bit) ? (
-        <Pin key={i} number={bit.slice(1, -1)} variant="red" pinStyle="solid" ariaLabel={`Open source ${bit.slice(1, -1)}`} onClick={onPin ? (e) => onPin(Number(bit.slice(1, -1)), e.currentTarget) : undefined} />
-      ) : (
-        bit
-      ),
+    .filter(Boolean);
+  const pin = (bit, i) => <Pin key={i} number={bit.slice(1, -1)} variant="red" pinStyle="solid" ariaLabel={`Open source ${bit.slice(1, -1)}`} onClick={onPin ? (e) => onPin(Number(bit.slice(1, -1)), e.currentTarget) : undefined} />;
+  const word = (bit, i) => (/^\*\*/.test(bit) ? <strong key={i}>{bit.slice(2, -2)}</strong> : bit);
+  const out = [];
+  for (let i = 0; i < bits.length; i++) {
+    if (!/^\[\d+\]$/.test(bits[i])) {
+      out.push(word(bits[i], i));
+      continue;
+    }
+    // a pin never starts a line on its own: it holds on to the word before it (and any pins after it)
+    const pins = [];
+    while (i < bits.length && /^\s*$|^\[\d+\]$/.test(bits[i])) {
+      if (/^\[\d+\]$/.test(bits[i])) pins.push(pin(bits[i], i));
+      i++;
+    }
+    i--;
+    const before = out.pop();
+    let lead = null;
+    if (typeof before === 'string') {
+      const m = before.match(/^([\s\S]*?)(\S+\s*)$/);
+      if (m) {
+        if (m[1]) out.push(m[1]);
+        lead = m[2];
+      } else out.push(before);
+    } else if (before != null) lead = before;
+    out.push(
+      <span key={`hold-${i}`} className="chip-hold">
+        {lead}
+        {pins}
+      </span>,
     );
+  }
+  return out;
 }
 
 /* A source opened in place (her mock's Citation open): its pin and title, "n of N · date", previous
@@ -219,7 +242,8 @@ export function Words({ text, onPin }) {
 function Citation({ sources, at, onMove, onClose }) {
   const s = sources[at];
   const box = useRef(null);
-  const findings = s.findings ?? (s.passage ? [{ text: String(s.passage).split(/(?<=[.!?])\s/)[0] }] : []);
+  // the line that backs the claim first (the server picks it from the source's own text), never the source's heading
+  const findings = s.findings ?? (s.backs ? [{ text: s.backs }] : s.passage ? [{ text: String(s.passage).split(/(?<=[.!?])\s/)[0] }] : []);
   // focus moves into the source as it opens (so Tab reads it next), and Esc closes it from anywhere
   useEffect(() => box.current?.focus(), []);
   // Esc closes the source only: caught first (window, capture) and stopped, so a Drawer the
@@ -286,7 +310,8 @@ export function Ticks({ steps, label = 'What BELLA is doing' }) {
  * A reply in any CHIP chat (Ask, Terminal, Team): the received bubble, its sender's name over
  * the first of a run, a disc for who is talking, and the smiley that opens the coloured reaction
  * bar; the badge stays on the bubble. extra: more actions after the smiley.
- * Gap: the bubble's disc is a colour only; BELLA's "B" (her mock) waits on the part.
+ * Gap: the bubble's disc is a colour only, so no disc is drawn: BELLA's "B" (her mock) waits on
+ * the part taking an initial or an Avatar (an empty circle said nothing, audit 21 Nov).
  */
 export function Reply({ who, disc, tail = true, extra, children }) {
   const [react, setReact] = useState(false);
@@ -323,8 +348,6 @@ export function Reply({ who, disc, tail = true, extra, children }) {
     </Flow>
   );
 }
-// BELLA's disc in every chat: the brand's light blue, as her mock's "B"
-export const BELLA_DISC = 'var(--color-background-brand-subtle)';
 
 /**
  * Not answered, one way in every chat (audit 21 Nov): BELLA says so in her bubble, with the
@@ -338,7 +361,6 @@ export function NotAnswered({ a, onRetry }) {
     <Flow gap={12}>
       <Reply
         who="BELLA"
-        disc={BELLA_DISC}
         extra={
           onRetry ? (
             <>

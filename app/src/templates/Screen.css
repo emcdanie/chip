@@ -155,6 +155,8 @@
 /* a list that shows its bullets (an answer's bullets): the marker hangs in the indent */
 .chip-flow--bullets { list-style: disc; padding-inline-start: var(--spacing-24); }
 .chip-flow--bullets > li { display: list-item; }
+/* a word and the pins after it stay on one line (useAsk Words): a pin never starts a line */
+.chip-hold { white-space: nowrap; }
 .chip-flow--row { flex-direction: row; }
 .chip-flow--wrap { flex-wrap: wrap; }
 .chip-flow--fill > * { flex: 1 1 auto; }
