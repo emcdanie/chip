@@ -154,6 +154,11 @@ export default function useAsk({ thread = false } = {}) {
             });
           } else if (ev.type === 'done') {
             const all = (ev.sources ?? sources).slice(0, 4);
+            // nothing held: the one not-answered pattern, never an answer with pins, sources and Fix
+            if (/^\s*Nothing in my sources covers that/i.test(noFallback(ev.reply || reply))) {
+              set({ status: 'weak', closest: all.map((x) => ({ title: x.title, score: x.score })), model: ev.model ?? null });
+              continue;
+            }
             set({
               status: 'answer',
               next: ev.next ?? [],

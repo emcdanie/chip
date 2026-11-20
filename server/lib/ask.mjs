@@ -210,7 +210,7 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const texts = new Map();
   for (const c of chunks) {
     const n = nums.get(keyOf(c)).n;
-    texts.set(n, `${texts.get(n) ?? ''} ${c.title} ${c.text}`);
+    texts.set(n, `${texts.get(n) ?? ''} ${c.text}`); // the source's own words, never its title
   }
   return { id, top, heldBack, keptLocal, messages, turns, sources: [...nums.values()], texts, remember };
 }
@@ -232,7 +232,11 @@ export async function ask(message, sessionId, page) {
 const WORD = /[a-z][a-z0-9:./-]{2,}[a-z0-9]/g; // a word never ends in its punctuation ("selection.")
 const STOP = new Set(['that', 'this', 'with', 'from', 'have', 'they', 'their', 'there', 'which', 'would', 'could', 'should', 'about', 'into', 'than', 'then', 'them', 'also', 'more', 'most', 'some', 'each', 'every', 'only', 'other', 'were', 'what', 'when', 'where', 'will', 'your', 'bella', 'chip']);
 export function checkCitations(reply, texts) {
-  if (!texts?.size) return reply;
+  return checkClaims(reply, texts).reply;
+}
+export function checkClaims(reply, texts) {
+  const backs = new Map(); // n -> [{ claim, line }]: the source's own line each kept claim rests on
+  if (!texts?.size) return { reply, backs };
   // "no failing" is passing: a double negative never reads as a fault (audit 21 Nov: "missing
   // contrast-pairs checks" was pinned to "no failing contrast pair … (contrast-pairs: OK)")
   const polar = (t) => String(t).toLowerCase().replace(/\bno (failing|failed|fails?|errors?|gaps?)\b/g, 'passing');
@@ -264,8 +268,8 @@ export function checkCitations(reply, texts) {
   const held = (n, clause) => {
     const want = content(clause);
     const need = musts(clause);
-    if (!want.length && !need.length) return true; // a bare label or connective
-    return (items.get(n) ?? []).some((line) => {
+    if (!want.length && !need.length) return ''; // a bare label or connective
+    return (items.get(n) ?? []).find((line) => {
       const low = line.toLowerCase();
       if (!need.every((x) => low.includes(x))) return false;
       if (want.length && want.filter((w) => low.includes(w)).length / want.length < 0.6) return false;
@@ -273,7 +277,20 @@ export function checkCitations(reply, texts) {
       if (NEG.test(c) && !NEG.test(l) && POS.test(l)) return false;
       if (!NEG.test(c) && POS.test(c) && NEG.test(l) && !POS.test(l)) return false;
       return true;
-    });
+    }) ?? null;
+  };
+  // what the opened source shows: of the two sentences that held it, the one that holds the claim
+  // (both only when its names, quotes and numbers are split across them), starting at a sentence
+  const shownLine = (unit, claim) => {
+    // a first sentence that starts mid-way (lower case, a chunk cut in two) is never shown
+    const all = unit.split(/(?<=[.!?])\s+/).filter(Boolean);
+    const ss = all.length > 1 && /^[a-z)]/.test(all[0]) ? all.slice(1) : all;
+    if (ss.length < 2) return ss[0] ?? unit;
+    const want = content(claim);
+    const need = musts(claim);
+    const score = (x) => want.filter((w) => x.toLowerCase().includes(w)).length + 2 * need.filter((m) => x.toLowerCase().includes(m)).length;
+    const best = ss.reduce((a, x) => (score(x) > score(a) ? x : a));
+    return need.every((m) => best.toLowerCase().includes(m)) ? best : ss.join(' ');
   };
   // a line's claim as its label and clauses; what a source holds of it, or null
   const keepFor = (n, line) => {
@@ -282,9 +299,19 @@ export function checkCitations(reply, texts) {
     const end = /[.!?]$/.test(body) ? body.slice(-1) : '';
     const clauses = (end ? body.slice(0, -1) : body).split(/;\s+/);
     const label = lead.replace(/^\s*[-*•]\s+/, '').replace(/\*\*|:/g, ' ');
-    const kept = clauses.filter((c) => held(n, `${label} ${c.replace(/\*\*/g, '')}`));
+    const lines = [];
+    const kept = clauses.filter((c) => {
+      const claim = `${label} ${c.replace(/\*\*/g, '')}`;
+      const line = held(n, claim);
+      if (line) lines.push(shownLine(line, claim));
+      return line != null;
+    });
     if (!kept.length) return null;
-    return { lead, text: kept.join('; '), end: end || '.' };
+    // never two full stops: the kept words lose their own end mark, the claim gets one
+    let text = kept.join('; ').replace(/[.!?]+(\**)$/, '$1');
+    // a bold the model left open (or closed twice) never shows its stars
+    if (((lead + text).match(/\*\*/g) ?? []).length % 2) text = text.replace(/\*\*(?=[^*]*$)/, '');
+    return { lead, text, end: end || '.', lines: [...new Set(lines)] };
   };
   let verdictDropped = false;
   const out = [];
@@ -306,49 +333,18 @@ export function checkCitations(reply, texts) {
       if (!bullet) verdictDropped = true;
       continue;
     }
-    out.push(`${got.lead}${got.text} [${got.n}]${got.end}`);
+    const shown = `${got.lead}${got.text} [${got.n}]${got.end}`;
+    out.push(shown);
+    // the line her pin opens is the one that held this claim, nothing else
+    if (got.lines.length) backs.set(got.n, [...(backs.get(got.n) ?? []), { claim: shown.replace(/^\s*[-*•]\s+/, '').replace(/\*\*/g, '').trim(), line: got.lines.join(' … ') }]);
   }
   if (verdictDropped || !out.length || /^\s*[-*•]\s/.test(out[0])) {
     const b = out.findIndex((l) => /^\s*[-*•]\s/.test(l));
-    if (b < 0) return out.length ? out.join('\n') : 'Nothing in my sources covers that.';
+    if (b < 0) return { reply: out.length ? out.join('\n') : 'Nothing in my sources covers that.', backs };
     const first = out[b].replace(/^\s*[-*•]\s+/, '');
-    return [first, ...out.filter((_, k) => k !== b)].join('\n');
+    return { reply: [first, ...out.filter((_, k) => k !== b)].join('\n'), backs };
   }
-  return out.join('\n');
-}
-
-// For each claim, the sentence of its source's own text that backs it (audit 21 Nov: the
-// opened source led with its heading, then with one line per source for every bullet): each
-// source gets backsFor, one { claim, line } per line of the answer that cites it, and backs,
-// its first. Never a sentence the source doesn't hold.
-function bestSentence(text, claim) {
-  const low = claim.replace(/\[\d+\]|\*\*/g, '').toLowerCase();
-  const want = [...new Set((low.match(WORD) ?? []).filter((w) => !STOP.has(w)))];
-  const nums = low.match(/\d[\d.,]*\d|\d/g)?.filter((x) => !/^[0-3]$/.test(x)) ?? [];
-  if (!want.length && !nums.length) return null;
-  const best = String(text)
-    .split(/(?<=[.!?])\s+|\n+/)
-    .map((t) => t.replace(/^[#>*\-\s|]+/, '').trim())
-    .filter((t) => t.length > 12 && t.length < 240)
-    .map((t) => {
-      const l = t.toLowerCase();
-      return [t, want.filter((w) => l.includes(w)).length + 2 * nums.filter((x) => l.includes(x)).length];
-    })
-    .sort((a, b) => b[1] - a[1])[0];
-  return best && best[1] > 0 ? best[0] : null;
-}
-export function backingLines(reply, texts) {
-  const out = new Map();
-  if (!texts?.size) return out;
-  const lines = String(reply).split('\n').filter((l) => /\[\d+\]/.test(l));
-  for (const [n, text] of texts) {
-    const backsFor = lines
-      .filter((l) => l.includes(`[${n}]`))
-      .map((l) => ({ claim: l.replace(/^\s*[-*•]\s+/, '').replace(/\*\*/g, '').trim(), line: bestSentence(text, l) }))
-      .filter((b) => b.line);
-    if (backsFor.length) out.set(n, { backs: backsFor[0].line, backsFor });
-  }
-  return out;
+  return { reply: out.join('\n'), backs };
 }
 
 // A verdict that hedges ("not directly stated") over bullets that state facts: the first bullet's
@@ -386,9 +382,22 @@ const PARTS = /\b(components?|parts?)\b/i;
 const LACK = /\b(lack|lacks|lacking|missing|miss|without|no|don['’]?t have|do not have|doesn['’]?t have|need|needs)\b/i;
 const HAVE = /\b(have|has|with)\b/i;
 const list = (names, max = 6) => (names.length > max ? `${names.slice(0, max).join(', ')} and ${names.length - max} more` : names.join(', '));
+// the readiness stations, by the words a question uses for them
+const STATIONS = [
+  ['a11y', /\b(a11y|accessib\w*)\b/i],
+  ['coverage', /\bcoverage\b/i],
+  ['best-practices', /\bbest practices?\b/i],
+  ['shared-language', /\bshared language\b/i],
+  ['testing', /\btest(ing|s)?\b/i],
+  ['orchestration', /\borchestration\b/i],
+  ['governance', /\bgovernance\b/i],
+  ['machine-readable', /\bmachine.?readable\b/i],
+  ['agent-access', /\bagent access\b/i],
+  ['docs', /\bdocs?\b/i],
+];
 export function dataAnswer(message) {
   const q = String(message ?? '');
-  if (!/\b(which|what|how many|list|count)\b/i.test(q) || !existsSync(BELLA_JSON)) return null;
+  if (!existsSync(BELLA_JSON)) return null;
   let d;
   try {
     d = JSON.parse(readFileSync(BELLA_JSON, 'utf8'));
@@ -397,6 +406,32 @@ export function dataAnswer(message) {
   }
   const when = d.source?.committedAt ?? null;
   const source = (findings, passage) => ({ n: 1, title: 'BELLA data (data/bella.json)', path: 'data/bella.json', when, passage, findings, score: 1 });
+  // a station's score: what it is, and how to raise it (her mock: "Add a11y notes to ScaledFrame and SectionHeader")
+  if (/\bscore\b/i.test(q) && /\b(raise|improve|increase|boost|fix|lift|why|what|how)\b/i.test(q)) {
+    const id = STATIONS.find(([, re]) => re.test(q))?.[0];
+    const st = (d.stations ?? []).find((x) => x.id === id);
+    if (st) {
+      if (id === 'a11y') {
+        const parts = d.components ?? [];
+        const without = parts.filter((c) => !c.hasA11yNotes).map((c) => c.name);
+        const cp = d.gates?.contrastPairs;
+        const contrast = cp ? String(cp.summary ?? '').replace(/^contrast pairs:\s*/i, '').split(';')[0] : null;
+        const findings = [...without.slice(0, 8).map((n) => ({ text: `**${n}** has no a11y notes`, ok: false })), ...(without.length > 8 ? [{ text: `${without.length - 8} more without a11y notes`, ok: false }] : []), { text: `**${parts.length - without.length} others** have a11y notes`, ok: true }, ...(cp ? [{ text: `Contrast pairs: ${contrast}`, ok: cp.ok !== false }] : [])];
+        const reply = [
+          without.length ? `**Add a11y notes** to the ${without.length} parts without them [1].` : `**Every part has a11y notes** [1].`,
+          `- **A11y:** ${st.score}%${/^(\d+)\/(\d+)/.test(st.basis) ? `, ${st.basis.match(/^(\d+)\/(\d+)/)[1]} of ${st.basis.match(/^(\d+)\/(\d+)/)[2]} parts have a11y notes and no failing contrast pair` : ''} [1].`,
+          without.length ? `- **Without notes:** ${list(without)} [1].` : null,
+          cp ? `- **Contrast:** ${contrast} [1].` : null,
+        ].filter(Boolean).join('\n');
+        return { reply, sources: [source(findings, `A11y station: ${st.score}% (${st.assessment}). ${st.basis}.`)], next: ['Which parts lack a11y notes?', 'Which gates fail?'] };
+      }
+      const reply = st.score == null
+        ? `**${st.name} has no score**: it is ${st.assessment} [1].\n- **Why:** ${st.basis} [1].`
+        : `**${st.name} is at ${st.score}%** [1].\n- **Measured:** ${st.basis} [1].`;
+      return { reply, sources: [source([{ text: `**${st.name}**: ${st.score == null ? 'no score' : `${st.score}%`} (${st.assessment})`, ok: st.score != null && st.score >= 90 }, { text: st.basis }], `${st.name}: ${st.basis}.`)], next: ['How could BELLA raise its A11y score?', 'Which gates fail?'] };
+    }
+  }
+  if (!/\b(which|what|how many|list|count)\b/i.test(q)) return null;
   // which gates fail
   if (/\bgates?\b/i.test(q) && /\b(fail|failing|failed|red|broken)\b/i.test(q)) {
     const gates = Object.entries(d.gates ?? {});
@@ -481,10 +516,16 @@ export async function* askStream(message, sessionId, page, opts = {}) {
   // and with it anything after it (audit 21 Nov: "General knowledge, not your sources: The commit doesn't say.")
   reply = withoutFallback(reply); // every answer is its sources' only, never "General knowledge"
   // the "Next:" line is the follow-up questions, never part of the answer: it goes out on its own
-  const next = (reply.match(/^\s*(?:[-*•]\s*)?\**Next\**:\**\s*(.+)$/im)?.[1] ?? '').split('|').map((q) => q.replace(/\*\*/g, '').trim()).filter((q) => q.length > 3 && q.length < 80).slice(0, 2);
-  reply = checkCitations(reply.replace(/^\s*(?:[-*•]\s*)?\**Next\**:.*$/gim, ''), texts);
+  // follow-ups stay on the question's topic: each shares a word with what she asked
+  const asked = new Set((String(message).toLowerCase().match(WORD) ?? []).filter((w) => !STOP.has(w)));
+  const next = (reply.match(/^\s*(?:[-*•]\s*)?\**Next\**:\**\s*(.+)$/im)?.[1] ?? '')
+    .split('|')
+    .map((q) => q.replace(/\*\*/g, '').trim())
+    .filter((q) => q.length > 3 && q.length < 80 && (q.toLowerCase().match(WORD) ?? []).some((w) => asked.has(w)))
+    .slice(0, 2);
+  const checked = checkClaims(reply.replace(/^\s*(?:[-*•]\s*)?\**Next\**:.*$/gim, ''), texts);
+  reply = checked.reply;
   reply = verdictFirst(reply);
-  const backs = backingLines(reply, texts);
-  sources = sources.map((x) => (backs.has(x.n) ? { ...x, ...backs.get(x.n) } : x));
+  sources = sources.map((x) => (checked.backs.has(x.n) ? { ...x, backs: checked.backs.get(x.n)[0].line, backsFor: checked.backs.get(x.n) } : x));
   yield { type: 'done', next, reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }
