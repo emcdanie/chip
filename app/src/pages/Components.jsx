@@ -8,12 +8,14 @@ import { projectTabs } from '../templates/projectViews.js';
 import ComponentsContent from './ComponentsContent.jsx';
 import { useComponents } from './componentsModel.js';
 
-const fromHash = () => window.location.hash.split('/')[2] ?? null;
+const fromHash = () => window.location.hash.split('?')[0].split('/')[2] ?? null;
+// #/components?filter=needs opens on Needs work (Health's "See all N fixes")
+const filterFromHash = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('filter');
 
 /** model, filter, partId: for stories; the page reads CHIP's data when no model is given. */
 export default function Components({ model: given, filter: startFilter = 'all', partId: startPart }) {
   const live = useComponents();
-  const [filter, setFilter] = useState(startFilter);
+  const [filter, setFilter] = useState(() => (given ? startFilter : filterFromHash() ?? startFilter));
   const [partId, setPartId] = useState(() => startPart ?? fromHash());
   const pick = (id) => {
     setPartId(id);

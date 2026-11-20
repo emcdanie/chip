@@ -468,9 +468,10 @@ function checksWithTouch(part, touch) {
 }
 
 function ChecksCard({ part, detail, checked, touch }) {
-  // Figma: every row opens (›) but Contrast, which reads the weakest pair in place; the part's
-  // story in Storybook, the rest in its record (the Atlas page) until the new pages land
-  const linkFor = (k) => (k.id === 'contrast' ? null : k.id === 'story' && part.storyUrl ? part.storyUrl : `#/atlas/${part.id}`);
+  // Story and Docs open the part's Storybook docs page in a new tab, never in place. Contract,
+  // spec and A11y opened the old app; Figma draws no new-app view for them yet, so they read
+  // their result in place until one is drawn (user test 21 Nov, item 1)
+  const linkFor = (k) => ((k.id === 'story' || k.id === 'docs') && part.storyUrl ? part.storyUrl : null);
   const weakest = detail.anatomy.filter((x) => x.contrast).sort((x, y) => x.contrast.ratio - y.contrast.ratio)[0];
   const checks = checksWithTouch(part, touch);
   // Figma's seven rows: the six checks, then Figma set, which counts (5 of 7 while CHIP can't reach Figma)
@@ -484,7 +485,7 @@ function ChecksCard({ part, detail, checked, touch }) {
           {checks.map((k) => {
             const href = linkFor(k);
             const words = k.id === 'contrast' && k.ok && weakest ? `${weakest.title} ${ratio(weakest.contrast.ratio)}` : k.words;
-            return <ListRow key={k.id} layout="inline" title={k.title} value={words} trailing={href ? true : undefined} href={href ?? undefined} statusDot={k.ok ? undefined : <StatusDot tone="attention" showLabel={false} label="Fails" />} />;
+            return <ListRow key={k.id} layout="inline" title={k.title} value={words} trailing={href ? true : undefined} onClick={href ? () => window.open(href, '_blank', 'noopener') : undefined} statusDot={k.ok ? undefined : <StatusDot tone="attention" showLabel={false} label="Fails" />} />;
           })}
           <ListRow
             layout="inline"

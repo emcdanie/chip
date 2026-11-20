@@ -292,7 +292,7 @@ export default function HealthContent({ model, run, checked, onCheck, view: star
                 </Flow>
               )}
               <Flow as="ul" gap={4} aria-label="All fixes">
-                <ListRow layout="inline" title={`See all ${fixCount} fixes`} trailing href="#/health-old" />
+                <ListRow layout="inline" title={`See all ${fixCount} fixes`} trailing href="#/components?filter=needs" />
               </Flow>
             </>
           ) : (

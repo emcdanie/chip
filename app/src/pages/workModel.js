@@ -11,6 +11,11 @@ const WHO_ACTS = { Git: 'a maintainer', Fix: 'a reviewer', Gate: 'a developer', 
 /* The branch an item names ("Merge chip/fix-llms-txt?", "BELLA's feat/chip-components is behind"); null when it names none. */
 const branchIn = (t) => String(t).match(/\b(?:feat|fix|chip|chore|main|release)\/[\w.-]*\w/)?.[0] ?? null;
 
+/* What a card opens in the new shell's drawer (WorkDrawer): a check's fix to
+   review, or a shell with its command typed; null when there is nothing to open. */
+const openOf = (n) =>
+  n.action?.type === 'review' && n.action.check ? { kind: 'review', check: n.action.check } : n.action?.type === 'terminal' ? { kind: 'terminal', repo: n.action.repo, command: n.action.command, title: n.title } : null;
+
 /* A Needs-you item as a card: the check's own name, not the raw error. */
 function needCard(n) {
   const name = n.kind === 'Gate' || n.kind === 'Check' ? String(n.what ?? n.title).split(':')[0] : n.title;
@@ -20,12 +25,12 @@ function needCard(n) {
   // the review, never repeated on the board (19 Nov audit).
   // an agent can take a failed check (b21, rule A); pull, merge and push stay hers ("Push and merge: never moves up, always asks")
   const fixable = failed && (n.kind === 'Gate' || n.kind === 'Check') && n.action?.type === 'review';
-  return { id: n.id, title: name, branch: branchIn(`${n.title} ${n.what ?? ''}`), who: WHO_ACTS[n.kind] ?? 'a maintainer', line: [n.kind, n.risk ? `${n.risk} risk` : null].filter(Boolean).join(' · ') || undefined, status: n.status, tone: failed ? 'danger' : 'attention', failed, at: n.at, action: n.action?.label, fixable, check: n.action?.check };
+  return { id: n.id, title: name, branch: branchIn(`${n.title} ${n.what ?? ''}`), who: WHO_ACTS[n.kind] ?? 'a maintainer', line: [n.kind, n.risk ? `${n.risk} risk` : null].filter(Boolean).join(' · ') || undefined, status: n.status, tone: failed ? 'danger' : 'attention', failed, at: n.at, action: n.action?.label, fixable, check: n.action?.check, open: openOf(n) };
 }
 
 /* An agent run as a card, by where it is. */
 function runCard(r) {
-  return { id: r.id, title: r.title ?? 'Fix', branch: r.branch ?? null, // Figma slim: the branch and time on the card's line ("main checkout · 10:19"), no separate branch tag
+  return { id: r.id, open: { kind: 'run', id: r.id }, title: r.title ?? 'Fix', branch: r.branch ?? null, // Figma slim: the branch and time on the card's line ("main checkout · 10:19"), no separate branch tag
     line: [r.branch, r.startedAt ? hhmm(r.startedAt) : null].filter(Boolean).join(' · ') || undefined };
 }
 
@@ -43,7 +48,7 @@ export function workModel({ needs = [], runs = [] }) {
   const total = lanes.reduce((s, l) => s + l.cards.length, 0);
   const top = needsYou[0];
   const brief = needsYou.length
-    ? { message: `${needsYou.length} ${needsYou.length === 1 ? 'thing needs' : 'things need'} you; the top one is ${top.title}${top.failed ? ', which failed' : ''}.${lanes[1].cards.length ? ` ${lanes[1].cards.length} agent ${lanes[1].cards.length === 1 ? 'run is' : 'runs are'} working.` : ''}`, action: top.action }
+    ? { message: `${needsYou.length} ${needsYou.length === 1 ? 'thing needs' : 'things need'} you; the top one is ${top.title}${top.failed ? ', which failed' : ''}.${lanes[1].cards.length ? ` ${lanes[1].cards.length} agent ${lanes[1].cards.length === 1 ? 'run is' : 'runs are'} working.` : ''}`, action: top.action, open: top.open }
     : null;
   return { lanes, total, brief };
 }

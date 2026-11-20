@@ -43,7 +43,7 @@ export const termName = (t, label) => `${t.kind === 'claude' ? 'claude' : 'zsh'}
 
 // one screen; it registers type(text) with the panel, so the panel's input
 // can put words at the prompt without pressing Return
-function TermScreen({ t, active, onStatus, onActivity, register }) {
+export function TermScreen({ t, active, onStatus, onActivity, register }) {
   const box = useRef(null);
   const live = useRef(null); // { term, fit, ws }
 
@@ -71,14 +71,23 @@ function TermScreen({ t, active, onStatus, onActivity, register }) {
     const send = (m) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(m));
     ws.onopen = () => {
       onStatus('open');
-      // a command from Needs you: typed once the login shell has drawn its
-      // prompt, never followed by Return
-      if (t.typed) setTimeout(() => send({ type: 'input', data: t.typed }), 900);
     };
     ws.onclose = () => onStatus('closed');
+    // a command from Needs you: typed once the login shell has drawn its
+    // prompt (output has gone quiet for 400 ms), never followed by Return.
+    // Typed earlier, zsh echoes it ahead of the prompt and it shows twice.
+    let pending = t.typed || null;
+    let quiet = null;
     ws.onmessage = (e) => {
       term.write(typeof e.data === 'string' ? e.data : '');
       onActivity();
+      if (pending) {
+        clearTimeout(quiet);
+        quiet = setTimeout(() => {
+          if (pending) send({ type: 'input', data: pending });
+          pending = null;
+        }, 400);
+      }
     };
     term.onData((data) => send({ type: 'input', data }));
     term.onResize(({ cols, rows }) => send({ type: 'resize', cols, rows }));

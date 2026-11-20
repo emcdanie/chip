@@ -31,6 +31,7 @@ import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import { useState } from 'react';
 import Flow from '../templates/Flow.jsx';
+import WorkDrawer from './WorkDrawer.jsx';
 import useNarrow from '../templates/useNarrow.js';
 
 export const VIEWS = [
@@ -82,7 +83,7 @@ function Lane({ lane: given, index, move }) {
           line={c.line}
           status={c.status}
           statusTone={c.tone}
-          href="#/health-old"
+          onOpen={c.open ? () => move.open(c.open) : undefined}
           dragging={move.dragging === c.id}
           draggable={needs && c.fixable ? true : undefined}
           onDragStart={needs && c.fixable ? (ev) => (ev.dataTransfer.setData('text/plain', c.id), (ev.dataTransfer.effectAllowed = 'move'), move.setDragging(c.id)) : undefined}
@@ -140,7 +141,9 @@ function useMove() {
 export default function WorkContent({ model, view = 'board', onView, checked, onCheck, loading }) {
   const phone = useNarrow();
   const [briefShut, setBriefShut] = useState(false);
-  const move = useMove();
+  // what a card, row or the brief opened: the drawer in this shell, never the old app
+  const [opened, setOpen] = useState(null);
+  const move = { ...useMove(), open: setOpen };
   // a drop anywhere on the Agent lane sends the dragged card
   const onDrop = (ev) => {
     const lane = ev.target.closest?.('[data-bella-component="board-lane"]');
@@ -178,7 +181,7 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
               icon="Brain"
               title="Brief · from CHIP’s checks"
               message={model.brief.message}
-              action={model.brief.action ? { label: model.brief.action, href: '#/health-old' } : undefined}
+              action={model.brief.action && model.brief.open ? { label: model.brief.action, onClick: () => setOpen(model.brief.open) } : undefined}
               onClose={() => setBriefShut(true)}
               closeLabel="Hide the brief"
             />
@@ -191,6 +194,7 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
               </Toast>
             </Toasts>
           ) : null}
+          <WorkDrawer item={opened} onClose={() => setOpen(null)} onNotice={move.setNotice} onChanged={() => window.dispatchEvent(new Event('chip:changed'))} />
           {view === 'table' ? (
             model.total ? (
               <DataTable caption="Every task on the board" columns={TABLE_COLUMNS} rows={model.lanes.flatMap((l) => l.cards.map((c) => ({ ...c, lane: l.name })))} rowKey="id" />
@@ -215,9 +219,9 @@ export default function WorkContent({ model, view = 'board', onView, checked, on
                           overline={l.name}
                           title={c.title}
                           description={c.line}
-                          actionButton={c.action ? <Button variant="tertiary" size="sm" href="#/health-old">{c.action}</Button> : undefined}
-                          trailing={c.action ? undefined : true}
-                          href={c.action ? undefined : '#/health-old'}
+                          actionButton={c.action && c.open ? <Button variant="tertiary" size="sm" onClick={() => setOpen(c.open)}>{c.action}</Button> : undefined}
+                          trailing={!c.action && c.open ? true : undefined}
+                          onClick={!c.action && c.open ? () => setOpen(c.open) : undefined}
                         />
                       )),
                     )}

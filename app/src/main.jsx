@@ -60,7 +60,7 @@ function Root() {
   if (hash === '#/system-map') return <SystemMap />;
   if (hash === '#/foundations') return <Foundations />;
   if (hash === '#/work') return <Work />;
-  if (hash === '#/components' || hash.startsWith('#/components/')) return <Components />;
+  if (hash.split('?')[0] === '#/components' || hash.startsWith('#/components/')) return <Components />;
   return <App />;
 }
 
