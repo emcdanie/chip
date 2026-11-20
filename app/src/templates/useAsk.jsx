@@ -176,7 +176,7 @@ export default function useAsk() {
 }
 
 /* An answer's words: **key phrase** bold, [n] as her pink pin, no code ticks. */
-function Words({ text, onPin }) {
+export function Words({ text, onPin }) {
   return String(text)
     .replace(/`/g, '')
     .split(/(\*\*[^*]+\*\*|\[\d+\])/)

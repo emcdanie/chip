@@ -19,7 +19,10 @@ import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
+import ListRow from '@bella/components/ListRow/ListRow';
+import TourStep from '@bella/components/TourStep/TourStep';
 import Flow from '../templates/Flow.jsx';
+import { Words } from '../templates/useAsk.jsx';
 import { TermScreen } from '../Terminal.jsx';
 
 const POST = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' };
@@ -48,6 +51,162 @@ const said = async (r) => {
   if (!r.ok) throw new Error(d.error || 'CHIP did not answer');
   return d;
 };
+
+/* A unified diff, file by file: its path, new / deleted / changed, lines added and removed, and the
+   hunks only (the git headers become the file row, so the code starts at the change). */
+function parseDiff(diff) {
+  return String(diff ?? '')
+    .split(/^(?=diff --git )/m)
+    .filter((f) => f.startsWith('diff --git'))
+    .map((f) => {
+      const path = f.match(/^\+\+\+ b\/(.+)$/m)?.[1] ?? f.match(/^--- a\/(.+)$/m)?.[1] ?? f.match(/^diff --git a\/(\S+)/)?.[1];
+      const body = f.slice(f.search(/^@@/m) >= 0 ? f.search(/^@@/m) : f.length).trimEnd();
+      const lines = body.split('\n');
+      const add = lines.filter((l) => l.startsWith('+')).length;
+      const del = lines.filter((l) => l.startsWith('-')).length;
+      const kind = /^new file mode/m.test(f) ? 'new' : /^deleted file mode/m.test(f) ? 'deleted' : 'changed';
+      return { path, kind, add, del, body };
+    });
+}
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const fileLine = (f) => (f.kind === 'new' ? `new · ${plural(f.add, 'line')}` : f.kind === 'deleted' ? `deleted · ${plural(f.del, 'line')}` : `${f.add} added · ${f.del} removed`);
+
+/* "Help me understand" for a diff (her mock, 19 Nov): what each part of the change means, a step at a
+   time, numbered. Only the parts this diff has. */
+function diffSteps(f) {
+  const hunk = f.body.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,(\d+))? @@/m);
+  return [
+    'The line above the code is the file the change is in. Each / is a folder inside the one before.',
+    hunk ? `The line starting @@ says where the change sits: from line ${hunk[2]} of the file${hunk[3] ? `, ${hunk[3]} lines` : ''}.` : null,
+    f.add ? `Lines starting + are added. They have the green band.` : null,
+    f.del ? `Lines starting − are taken out. They have the red band.` : null,
+    'Lines with neither mark are unchanged, there to show where it sits.',
+  ].filter(Boolean);
+}
+
+function Tour({ steps, onClose }) {
+  const [i, setI] = useState(0);
+  const end = i === steps.length - 1;
+  return (
+    <TourStep number={i + 1} count={`${i + 1} of ${steps.length}`} isEnd={end} onBack={i ? () => setI(i - 1) : undefined} onNext={() => (end ? onClose() : setI(i + 1))} onClose={onClose}>
+      {steps[i]}
+    </TourStep>
+  );
+}
+
+/* Code as proof (her 21 Nov: "apply the design from the help me understand and things like we did in
+   the history"): one plain line on what the change shows, then the change folded: a row per file
+   (name, new · 57 lines), each file's code with its added and removed bands, and Help me understand. */
+function Change({ diff, proves, branch }) {
+  const files = parseDiff(diff);
+  const [tour, setTour] = useState(null);
+  if (!files.length) return null;
+  return (
+    <Flow gap={8}>
+      <TextStack title="The change" body={proves} />
+      {branch ? <TextStack subtitle={`Branch ${branch}`} /> : null}
+      <Disclosure flush title="Show the change" summary={plural(files.length, 'file')}>
+        <Flow gap={16}>
+          <Flow as="ul" gap={4} aria-label="Files it changes">
+            {files.map((f) => (
+              <ListRow key={f.path} layout="stacked" title={f.path.split('/').pop()} description={fileLine(f)} />
+            ))}
+          </Flow>
+          {files.map((f) => (
+            <Flow key={f.path} gap={8}>
+              <Flow direction="row">
+                <Button variant="tertiary" size="sm" onClick={() => setTour(tour === f.path ? null : f.path)}>
+                  Help me understand
+                </Button>
+              </Flow>
+              {tour === f.path ? <Tour steps={diffSteps(f)} onClose={() => setTour(null)} /> : null}
+              <CodeBlock code={f.body} language="diff" title={f.path} copy />
+            </Flow>
+          ))}
+        </Flow>
+      </Disclosure>
+    </Flow>
+  );
+}
+
+/* The agent's notes, scanned not read (her 21 Nov: "this is soo much reading jesus"): its first
+   sentence as the verdict, at most three one-line points, a question it buried as a row to answer,
+   and the whole note folded. Everything is the agent's own words, cut, never rewritten. */
+function shapeNotes(t) {
+  const text = String(t ?? '').trim();
+  if (!text) return null;
+  const [lead = '', ...rest] = text.split(/\n\s*\n/);
+  const sentences = lead.replace(/`/g, '').split(/(?<=[.!?])\s+/).filter(Boolean);
+  const verdict = sentences[0] ?? '';
+  const points = sentences.slice(1);
+  const questions = [];
+  for (const block of rest) {
+    for (const line of block.split('\n')) {
+      const m = line.replace(/`/g, '').match(/^\s*-\s*\*\*(.+?)\*\*\s*(.*)$/);
+      if (!m) continue;
+      const label = m[1].replace(/[.:]$/, '');
+      const first = m[2].split(/(?<=[.!?])\s+/)[0];
+      if (/your say|want you|should I|\?\s*$/i.test(m[2])) questions.push({ label, line: first });
+      else points.push(`**${label}:** ${first}`);
+    }
+  }
+  const bold = verdict.length <= 40 ? `**${verdict}**` : verdict.replace(/^((?:\S+\s){0,3}\S+)/, '**$1**');
+  return { verdict: bold, points: points.slice(0, 3), questions, all: text };
+}
+
+function Notes({ summary, onAnswer }) {
+  const n = shapeNotes(summary);
+  const [left, setLeft] = useState([]);
+  if (!n) return null;
+  const open = n.questions.filter((q) => !left.includes(q.label));
+  return (
+    <Flow gap={16}>
+      <Flow gap={8}>
+        <TextStack title="What the agent says" body={<Words text={n.verdict} />} />
+        {n.points.length ? (
+          <Flow as="ul" gap={4} aria-label="The agent's main points">
+            {n.points.map((p) => (
+              <li key={p}>
+                <TextStack body={<Words text={p} />} />
+              </li>
+            ))}
+          </Flow>
+        ) : null}
+      </Flow>
+      {open.length ? (
+        <Flow as="ul" gap={4} aria-label="The agent asks you">
+          {open.map((q) => (
+            <ListRow
+              key={q.label}
+              layout="stacked"
+              title={q.label}
+              description={q.line}
+              action={
+                <Flow direction="row" gap={8}>
+                  <Button variant="secondary" size="sm" onClick={() => setLeft((l) => [...l, q.label])}>
+                    Leave it
+                  </Button>
+                  {onAnswer ? (
+                    <Button variant="primary" size="sm" onClick={() => onAnswer(q)}>
+                      Add it
+                    </Button>
+                  ) : null}
+                </Flow>
+              }
+            />
+          ))}
+        </Flow>
+      ) : null}
+      <Disclosure flush title="All the agent’s notes">
+        <Flow gap={8}>
+          {n.all.split(/\n\s*\n/).map((para) => (
+            <TextStack key={para} body={<Words text={para.replace(/^\s*-\s*/gm, '').replace(/\n/g, ' ')} />} />
+          ))}
+        </Flow>
+      </Disclosure>
+    </Flow>
+  );
+}
 
 /* A fix waiting on a reviewer, from a check (review card) or an agent run. */
 function useItem(item, tick) {
@@ -79,7 +238,9 @@ function shapeOf(item, d) {
       // the outcome in one plain line: a gate stop names its tests and file; the agent's notes fold, whole
       outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d) : `${String(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}. Nothing was kept.`) : d.status === 'kept' ? 'Accepted: the branch is kept.' : d.status === 'passed' ? firstLine(d.summary) || 'The gate passed.' : d.step || 'Working.',
       gate: d.gate?.passed ? `Gate passed · ${d.sha ? '1 commit' : 'no commit'}` : null,
-      notes: d.summary ? plainNotes(d.summary) : null,
+      notes: d.summary ?? null,
+      // what the change shows, in one line: what the agent wrote and what the gate made of it
+      proves: `The agent ${failed ? 'wrote' : 'made'} ${plural(parseDiff(d.diff).length, 'file')}${d.gate ? (d.gate.passed ? '; BELLA’s gate ran on them and passed.' : '; BELLA’s gate didn’t pass them, so none of it is kept.') : '.'}`,
       again: failed && d.brief ? { brief: d.brief, title: d.title, from: d.from } : null,
       diff: d.diff ?? null,
       branch: d.branch,
@@ -168,23 +329,21 @@ function FixDrawer({ item, onClose, onNotice, onChanged }) {
         </Button>
       </Flow>
     ) : null;
-  return shell(s.title, s.status, <FixBody s={s} />, footer ?? undefined);
+  // Add it: a new run on the same brief with the agent's question and her answer added
+  const answer = item.kind === 'run' && data.brief ? (q) => again({ title: `${data.title}: ${q.label}`, from: data.from, brief: `${data.brief}\n\n---\nThe last run asked: ${q.label}. ${q.line}\nElleta's answer: add it.` }) : undefined;
+  return shell(s.title, s.status, <FixBody s={s} onAnswer={answer} />, footer ?? undefined);
 }
 
-function FixBody({ s }) {
+function FixBody({ s, onAnswer }) {
   return (
     <Flow gap={24}>
       {s.outcome ? <TextStack title={s.outcome} subtitle={s.gate ?? undefined} /> : null}
       {s.kept ? <TextStack body={`Kept on ${s.branch}. Merging and pushing stay with a maintainer.`} /> : null}
       {s.why ? <TextStack title="Why" body={s.why} /> : null}
       {s.merge ? <TextStack body="CHIP doesn’t merge. Keep branch marks it ready for a maintainer to merge in git; Undo deletes it." /> : null}
-      {s.notes ? (
-        <Disclosure flush title="The agent’s notes">
-          <TextStack body={s.notes} />
-        </Disclosure>
-      ) : null}
+      {s.notes ? <Notes summary={s.notes} onAnswer={onAnswer} /> : null}
       {s.change ? <TextStack title="The change" body={s.change} subtitle={s.files?.length ? s.files.join(' · ') : undefined} /> : null}
-      {s.diff ? <CodeBlock code={s.diff} language="diff" title={s.branch ?? 'The change'} copy /> : null}
+      {s.diff ? <Change diff={s.diff} proves={s.proves} branch={s.branch} /> : null}
       {s.can === 'run' && s.thisWill ? <TextStack subtitle={`Run the fix will ${s.thisWill}`} /> : null}
     </Flow>
   );
