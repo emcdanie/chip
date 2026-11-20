@@ -56,7 +56,6 @@ const RAMP = [
   ['xl', 'xl', '--typography-font-size-22'],
   ['base', 'base', '--typography-font-size-20'],
 ];
-const STEPS = [1, 2, 3, 4, 6, 8, 'touch'];
 const TIERS = [
   ['definitions', 'Definitions', 'The plain scale: every colour, size and step'],
   ['theme', 'Theme', 'What a value is for: surface, text, action'],
@@ -176,21 +175,6 @@ function TypeRamp() {
         <Flow gap={8}>
           {RAMP.map(([size, name, v]) => (
             <TypeSpecimen key={size} size={size} name={name} sizeLabel={sizes[v] || '—'} />
-          ))}
-        </Flow>
-      </Flow>
-    </Card>
-  );
-}
-
-function Spacing() {
-  return (
-    <Card>
-      <Flow gap={16}>
-        <SectionHead size="card" icon="ViewGrid" iconTone="info" title="Spacing" description="The 4-point steps" showDescription />
-        <Flow gap={8}>
-          {STEPS.map((s) => (
-            <SpacingStep key={s} step={s} />
           ))}
         </Flow>
       </Flow>
@@ -356,6 +340,64 @@ function RolesTable({ rows, total }) {
   );
 }
 
+/* The Chip theme's names for each corner (sm, md, form, card…), read from the live theme: a name whose value is a radius step's value. */
+function useRadiusNames(radius) {
+  const [names, setNames] = useState({});
+  useEffect(() => {
+    const semantic = new Set();
+    for (const sheet of document.styleSheets) {
+      let rules;
+      try {
+        rules = sheet.cssRules;
+      } catch {
+        continue;
+      }
+      for (const r of rules ?? []) for (const m of String(r.cssText).matchAll(/--border-radius-([a-z][a-z-]*):/g)) semantic.add(m[1]);
+    }
+    const probe = document.createElement('span');
+    probe.setAttribute('data-theme', 'chip-light');
+    document.body.appendChild(probe);
+    const cs = getComputedStyle(probe);
+    const px = (v) => cs.getPropertyValue(v).trim();
+    const out = {};
+    for (const r of radius) {
+      const value = px(`--border-radius-${r.name}`) || r.value;
+      out[r.name] = [...semantic].filter((n) => n !== r.name && px(`--border-radius-${n}`) === value);
+    }
+    probe.remove();
+    setNames(out);
+  }, [radius]);
+  return names;
+}
+
+/* Shape and space (Figma 808:82396): every corner token and every spacing step. */
+function ShapeAndSpace({ radius }) {
+  const names = useRadiusNames(radius);
+  return (
+    <Card>
+      <Flow gap={16}>
+        <SectionHead icon="ViewGrid" iconTone="warning" title="Shape and space" description="Every corner token and every spacing step" />
+        <TextStack title="Radius" />
+        {/* the corner tile itself waits on a Radius tile part (library gap); each corner as its token, its Chip names and its size */}
+        <Flow as="ul" direction="row" gap={24} wrap aria-label="Corner tokens">
+          {radius.map((r) => (
+            <li key={r.token}>
+              <TextStack subtitle={`radius/${r.name}`} body={[(names[r.name] ?? []).join(', '), r.value].filter(Boolean).join(' · ')} />
+            </li>
+          ))}
+        </Flow>
+        <TextStack title="Spacing" />
+        <Flow gap={8}>
+          {[1, 2, 3, 4, 5, 6, 8, 10, 'touch', 12, 16, 20].map((s) => (
+            <SpacingStep key={s} step={s} />
+          ))}
+        </Flow>
+        <TextStack body="Read from the Foundations variables: border radius (Chip light) and spacing." />
+      </Flow>
+    </Card>
+  );
+}
+
 /* Who uses what (Figma 807:82398): every colour role a part's CSS reads, most used first, with the parts that read it. */
 function WhoUsesWhat({ bella }) {
   const usage = bella.tokenUsage ?? {};
@@ -423,15 +465,14 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
       )}
       {/* Figma's Foundations sections (decided 18 Nov): who uses what after the roles */}
       <WhoUsesWhat bella={data[1]} />
-      <Flow span={4} fill>
+      {/* the scales row: type ramp and tokenized fill it (Figma 21 Nov: the 7-step Spacing card gives way to the full scale below) */}
+      <Flow span={6} fill>
         <TypeRamp />
       </Flow>
-      <Flow span={4} fill>
-        <Spacing />
-      </Flow>
-      <Flow span={4} fill>
+      <Flow span={6} fill>
         <Tokenized rows={f.tokenized.rows} />
       </Flow>
+      <ShapeAndSpace radius={f.radius} />
       {f.tiers ? <Tiers tiers={f.tiers} /> : null}
       <Problems rows={f.tokenized.rows} />
     </>
