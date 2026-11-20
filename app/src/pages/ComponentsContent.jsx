@@ -14,7 +14,7 @@
 // no kind colours; Button has no preview state yet (hover / pressed / focus
 // are BELLA's own rules copied onto attributes). No Try it switch: Elleta
 // removed it from the stage, 20 Nov 2026 ("Remove it").
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
@@ -31,13 +31,16 @@ import Stage from '@bella/components/Stage/Stage';
 import Stat from '@bella/components/Stat/Stat';
 import Progress from '@bella/components/Progress/Progress';
 import ListRow from '@bella/components/ListRow/ListRow';
-import Step from '@bella/components/Step/Step';
+import Step, { StepDay } from '@bella/components/Step/Step';
 import VariantTile from '@bella/components/VariantTile/VariantTile';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Flow from '../templates/Flow.jsx';
+import { TabPanels } from '../templates/Screen.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import useCached from '../templates/useCached.js';
+import Toasts from '../templates/Toasts.jsx';
+import Toast from '@bella/components/Toast/Toast';
 import useAsk, { AskAnswer } from '../templates/useAsk.jsx';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
@@ -163,11 +166,17 @@ function chipLayout(pins, texts, box) {
     return ids
       .sort((i, j) => (runLeft ? pins[i].x - pins[j].x : pins[j].x - pins[i].x))
       .map((i, k) => {
-        // a chip with no room on the group's side turns to the other side of its pin, so it is never cut off
-        const fitsLeft = pins[i].x - 16 - widths[i] >= -half;
-        const fitsRight = pins[i].x + 16 + widths[i] <= half;
+        // a chip with no room on the group's side turns to the other side of its pin, so it is never cut off;
+        // with room on neither side it keeps its first word (the part card names it in full; audit 21 Nov:
+        // "Focus ring" ran 90 past the stage at 320)
+        let w = widths[i];
+        const short = String(texts[i]).split(/\s/)[0];
+        const fits = (width) => [pins[i].x - 16 - width >= -half, pins[i].x + 16 + width <= half];
+        let [fitsLeft, fitsRight] = fits(w);
+        const shorten = !fitsLeft && !fitsRight && short !== texts[i];
+        if (shorten) [fitsLeft, fitsRight] = fits((w = chipWidth(short)));
         const left = runLeft ? fitsLeft || !fitsRight : !fitsRight && fitsLeft;
-        return [i, { chipX: Math.round(left ? pins[i].x - 16 : pins[i].x + 16), chipY: Math.round(edge + dir * (40 + k * 48)) }];
+        return [i, { chipX: Math.round(left ? pins[i].x - 16 : pins[i].x + 16), chipY: Math.round(edge + dir * (40 + k * 48)), ...(shorten ? { part: short } : {}) }];
       });
   };
   const ids = pins.map((p, i) => i);
@@ -399,12 +408,13 @@ function HistoryCard({ part, detail, all }) {
               const d = new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
               const head = d !== last ? d : null;
               last = d;
+              // Step is its own <li>; a day break is BELLA's StepDay (audit 21 Nov: li inside li)
               return (
-                <li key={r.id}>
-                  {head ? <TextStack subtitle={head} /> : null}
+                <Fragment key={r.id}>
+                  {head ? <StepDay>{head}</StepDay> : null}
                   {/* Figma: the record's title and its Why line; green Merged tags went in the 20 Nov polish (one thing stands out) */}
                   <Step title={r.title} detail={(all ? r.why : clip(r.why, WHY_SHORT)) ?? undefined} kind={STEP_KIND[r.type]} icon={STEP_KIND[r.type] ? undefined : 'Clock'} state="done" />
-                </li>
+                </Fragment>
               );
             })}
           </Flow>
@@ -427,13 +437,15 @@ function questions(part, detail) {
 }
 
 /* The frame's "Ask BELLA · questions" row (786:879378): under the notice, full width, wraps. */
-function AskRow({ part, detail, onAsk }) {
+/* The question chips. The one asked says Asking… while BELLA works (ActionChip has no busy
+   state yet: a gap named for the library); the answer shows under the row, where it was asked. */
+function AskRow({ part, detail, onAsk, asking }) {
   return (
     <Flow direction="row" gap={8} wrap align="center">
       <TextStack title="Ask BELLA" />
       {questions(part, detail).map((t) => (
-        <ActionChip key={t} onClick={() => onAsk(t)}>
-          {t}
+        <ActionChip key={t} disabled={!!asking} onClick={() => onAsk(t)}>
+          {asking === t ? 'Asking…' : t}
         </ActionChip>
       ))}
     </Flow>
@@ -518,6 +530,13 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const [touch, setTouch] = useState(null);
   const asker = useAsk();
   const answer = asker.answer;
+  // where the question was asked (a chip in the row, or the card's field): the answer shows there, in view
+  const [asked, setAsked] = useState(null);
+  const [said, setSaid] = useState(null);
+  useEffect(() => {
+    if (answer?.done && asked) setSaid(answer.error ? { tone: 'danger', text: 'BELLA couldn’t answer that just now.' } : { tone: 'success', text: `BELLA answered: ${asked.q}` });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answer?.done]);
   const shown = model ? model.parts.filter((p) => (filter === 'ready' ? p.ready : filter === 'needs' ? !p.ready : true)) : [];
   // a pasted link matches in any case (#/components/Button); with none, open on Button, as Figma does
   const want = String(partId ?? '').toLowerCase();
@@ -536,7 +555,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     { value: 'needs', label: `Needs work ${n - model.ready}` },
     { value: 'ready', label: `Ready ${model.ready}` },
   ];
-  const ask = (text) => asker.ask(`About BELLA's ${part.name}: ${text}`, 'components');
+  const ask = (text, from = 'card') => (setAsked({ q: text, from }), asker.ask(`About BELLA's ${part.name}: ${text}`, 'components'));
+  const pending = !!answer && !answer.done;
   // on the smallest phones the date goes on its own line (StatusDot's label doesn't wrap)
   const live = `Live in ${model.version ?? 'BELLA'}${detail?.updated && !tiny ? ` · updated ${detail.updated}` : ''}`;
   return (
@@ -564,10 +584,20 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
             {part.lede ? <TextStack body={part.lede} /> : null}
           </Flow>
           <Tabs label={`${part.name} views`} idBase="part-view" value={view} onChange={setView} tabs={VIEWS} />
+          {/* the view's content is its tab's panel (aria-controls lands; audit 21 Nov) */}
+          <TabPanels tabs={{ idBase: 'part-view', value: view, items: VIEWS }}>
           {detail?.figmaBlind ? (
             <Notification tone="attention" title="Figma can’t see it" message="No file key in server/.env." action={{ label: 'Add file key', href: '#/connectors' }} />
           ) : null}
-          {detail ? <AskRow part={part} detail={detail} onAsk={ask} /> : null}
+          {detail ? <AskRow part={part} detail={detail} onAsk={(t) => ask(t, 'row')} asking={pending && asked?.from === 'row' ? asked.q : null} /> : null}
+          {asked?.from === 'row' ? <AskAnswer answer={answer} /> : null}
+          {said ? (
+            <Toasts>
+              <Toast tone={said.tone} onClose={() => setSaid(null)}>
+                {said.text}
+              </Toast>
+            </Toasts>
+          ) : null}
           {!detail ? (
             <EmptyState size="lane" mark="⏳" title={`Reading ${part.name}`} line="Fetching its history and contrast pairs." />
           ) : view === 'history' ? (
@@ -601,13 +631,14 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                     <HistoryCard part={part} detail={detail} />
                   </Flow>
                   <Flow span={4} gap={24} grow="last">
-                    <AskCard part={part} detail={detail} onAsk={ask} answer={answer} />
+                    <AskCard part={part} detail={detail} onAsk={(t) => ask(t, 'card')} answer={asked?.from === 'card' ? answer : null} />
                     <ChecksCard part={part} detail={detail} checked={model.checked} touch={touch} />
                   </Flow>
                 </>
               )}
             </>
           )}
+          </TabPanels>
         </>
       )}
     </>
