@@ -405,7 +405,10 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch, list = false
       <Flow gap={16}>
         <TextStack title="On the stage" body={`${scale === 2 ? 'Shown at 2×. ' : ''}${anatomy.length ? 'Pick a numbered pin: its card names the part and says if it passes or is a finding.' : `${part.name}'s contract doesn't list its parts yet, so there are no pins.`}`} />
         {PLAY[part.name] ? (
-          <Flow direction="row" gap={16} wrap align="center">
+          // the switch sits on the field's line, not centred on the field's label and box together (Elleta,
+          // 21 Nov at 768: "this is not aligned porperly"); Figma puts both labels inline and centres the
+          // switch on the field, which waits on Input's inline label (gap, parts-motion)
+          <Flow direction="row" gap={16} wrap align="end">
             <Input label="Label" value={label} onChange={setLabel} placeholder={PLAY[part.name].children} />
             {variants.length > 1 ? (
               // a segmented switch for up to three variants; more (StatusPill's six) never fit a row, so a Select
