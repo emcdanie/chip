@@ -381,6 +381,12 @@ const CHECKS = [
 const PARTS = /\b(components?|parts?)\b/i;
 const LACK = /\b(lack|lacks|lacking|missing|miss|without|no|don['’]?t have|do not have|doesn['’]?t have|need|needs)\b/i;
 const HAVE = /\b(have|has|with)\b/i;
+// the contrast gate in the words its numbers allow: "429 checks across 105 pairs in 4 themes, OK"
+const contrastWords = (cp) => {
+  const themes = String(cp.summary ?? '').match(/across (\d+) themes/)?.[1];
+  const ok = cp.ok === false ? 'failing' : 'OK';
+  return cp.checked != null && cp.pairs != null ? `${cp.checked} checks across ${cp.pairs} pairs${themes ? ` in ${themes} themes` : ''}, ${ok}` : String(cp.summary ?? '').replace(/^contrast pairs:\s*/i, '').split(';')[0];
+};
 const list = (names, max = 6) => (names.length > max ? `${names.slice(0, max).join(', ')} and ${names.length - max} more` : names.join(', '));
 // the readiness stations, by the words a question uses for them
 const STATIONS = [
@@ -418,12 +424,13 @@ export function dataAnswer(message) {
         const parts = d.components ?? [];
         const without = parts.filter((c) => !c.hasA11yNotes).map((c) => c.name);
         const cp = d.gates?.contrastPairs;
-        const contrast = cp ? String(cp.summary ?? '').replace(/^contrast pairs:\s*/i, '').split(';')[0] : null;
+        // said truly (audit 21 Nov): checks across pairs, never "N pairs pass" (429 checks are 105 pairs in 4 themes)
+        const contrast = cp ? contrastWords(cp) : null;
         const findings = [...without.slice(0, 8).map((n) => ({ text: `**${n}** has no a11y notes`, ok: false })), ...(without.length > 8 ? [{ text: `${without.length - 8} more without a11y notes`, ok: false }] : []), { text: `**${parts.length - without.length} others** have a11y notes`, ok: true }, ...(cp ? [{ text: `Contrast pairs: ${contrast}`, ok: cp.ok !== false }] : [])];
         const a11yLine = `- **A11y:** ${st.score}%${/^(\d+)\/(\d+)/.test(st.basis) ? `, ${st.basis.match(/^(\d+)\/(\d+)/)[1]} of ${st.basis.match(/^(\d+)\/(\d+)/)[2]} parts have a11y notes and no failing contrast pair` : ''} [1].`;
         const contrastLine = cp ? `- **Contrast:** ${contrast} [1].` : null;
         const reply = [without.length ? `**Add a11y notes** to the ${without.length} parts without them [1].` : `**Every part has a11y notes** [1].`, a11yLine, without.length ? `- **Without notes:** ${list(without)} [1].` : null, contrastLine].filter(Boolean).join('\n');
-        const backsFor = [{ claim: claimOf(a11yLine), line: `A11y station: ${st.score}% (${st.assessment}). ${st.basis}.`, ok: st.score >= 90 }, ...(cp ? [{ claim: claimOf(contrastLine), line: `Contrast pairs: ${String(cp.summary ?? '').replace(/^contrast pairs:\s*/i, '')}`, ok: cp.ok !== false }] : [])];
+        const backsFor = [{ claim: claimOf(a11yLine), line: `A11y station: ${st.score}% (${st.assessment}). ${st.basis}.`, ok: st.score >= 90 }, ...(cp ? [{ claim: claimOf(contrastLine), line: `Contrast pairs: ${contrastWords(cp)}${/exempt/i.test(cp.summary ?? '') ? `; ${String(cp.summary).split(';').slice(1).join(';').trim()}` : ''}`, ok: cp.ok !== false }] : [])];
         return { reply, sources: [source(findings, `A11y station: ${st.score}% (${st.assessment}). ${st.basis}.`, backsFor)], next: ['Which parts lack a11y notes?', 'Which gates fail?'] };
       }
       const reply = st.score == null
@@ -432,12 +439,19 @@ export function dataAnswer(message) {
       return { reply, sources: [source([{ text: `**${st.name}**: ${st.score == null ? 'no score' : `${st.score}%`} (${st.assessment})`, ok: st.score != null && st.score >= 90 }, { text: st.basis }], `${st.name}: ${st.basis}.`)], next: ['How could BELLA raise its A11y score?', 'Which gates fail?'] };
     }
   }
+  // the contrast gate: how many, does it pass (the model once said "429 pairs pass"; it is 429 checks across 105 pairs)
+  if (/\bcontrast\b/i.test(q) && /\b(how many|pass|passes|passing|fail|fails|failing|status|ok|checked)\b/i.test(q) && d.gates?.contrastPairs) {
+    const cp = d.gates.contrastPairs;
+    const exempt = String(cp.summary ?? '').match(/(\d+) exempt/)?.[1];
+    const reply = [`**${contrastWords(cp)}** [1].`, exempt ? `- **Exempt:** ${exempt} by the inset rule, every consumer classified [1].` : null].filter(Boolean).join('\n');
+    return { reply, sources: [source([{ text: `**Contrast pairs:** ${contrastWords(cp)}`, ok: cp.ok !== false }, ...(exempt ? [{ text: `${exempt} exempt by the inset rule` }] : [])], String(cp.summary ?? ''))], next: ['Which gates fail?', 'How could BELLA raise its A11y score?'] };
+  }
   if (!/\b(which|what|how many|list|count)\b/i.test(q)) return null;
   // which gates fail
   if (/\bgates?\b/i.test(q) && /\b(fail|failing|failed|red|broken)\b/i.test(q)) {
     const gates = Object.entries(d.gates ?? {});
     const bad = gates.filter(([, g]) => g && g.ok === false);
-    const findings = gates.map(([name, g]) => ({ text: `${name}: ${String(g?.summary ?? (g?.ok ? 'OK' : 'fails')).split(';')[0]}`, ok: g?.ok !== false }));
+    const findings = gates.map(([name, g]) => ({ text: `${name}: ${name === 'contrastPairs' && g ? contrastWords(g) : String(g?.summary ?? (g?.ok ? 'OK' : 'fails')).split(';')[0]}`, ok: g?.ok !== false }));
     const reply = bad.length
       ? `**${bad.length} of ${gates.length} gates** fail [1].\n- **Failing:** ${list(bad.map(([n]) => n))} [1].`
       : `**All ${gates.length} gates** pass [1].\n- **Gates:** ${list(gates.map(([n]) => n))} [1].`;

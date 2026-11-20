@@ -113,6 +113,13 @@ export default function WorkDock() {
   const termAsker = useAsk({ thread: true });
   const [termTurns, setTermTurns] = useState([]);
   const say = useRef(null);
+  // a new question brings its turn to the top of the panel: the thread follows the newest (audit 21 Nov)
+  const newest = useRef(null);
+  useEffect(() => {
+    if (!asker.answer?.q) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(() => newest.current?.scrollIntoView?.({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }));
+  }, [asker.answer?.q, asker.past.length]);
   const talk = useTalk(setDraft);
   const phone = useNarrow();
   // under 400 the field's hint is shorter, so it shows whole beside Talk (its label says what it asks)
@@ -279,7 +286,9 @@ export default function WorkDock() {
             {asker.past.map((a, i) => (
               <AskAnswer key={`${a.q}-${i}`} answer={a} />
             ))}
+            <Flow ref={newest} gap={16}>
             <AskAnswer answer={asker.answer} onRetry={(p) => asker.retry(p ?? providerOf(model))} onStop={asker.stop} onFollow={ask} onFix={() => !fixing && fix(asker.answer)} fixLabel="Fix" fixBusy={fixing} />
+            </Flow>
           </Flow>
         </ChatThread>
       </Flow>
@@ -290,7 +299,8 @@ export default function WorkDock() {
         title="Ask about BELLA, in plain words"
         line="Go on, ask away. I’ll show you where I got it, so you know I’m not making it up."
         actions={
-          <Button variant="primary" onClick={() => ask(EXAMPLE)}>
+          // one primary in view: the composer's Send is it, so the example is secondary
+          <Button variant="secondary" onClick={() => ask(EXAMPLE)}>
             Try an example
           </Button>
         }
