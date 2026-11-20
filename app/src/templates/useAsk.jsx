@@ -37,7 +37,7 @@ import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Toast from '@bella/components/Toast/Toast';
 import Toasts from './Toasts.jsx';
 
-// the server prompt's "General knowledge" fallback, cut where it starts (a record's answer never carries it)
+// a "General knowledge" line, cut where it starts: no answer carries one (it isn't from her sources)
 const noFallback = (t) =>
   String(t)
     .split(/\n?\s*General knowledge, not your sources:/i)[0]
@@ -137,7 +137,7 @@ export default function useAsk({ thread = false } = {}) {
           else if (ev.type === 'token') {
             reply += ev.text;
             set({
-              reply: record ? noFallback(reply) : reply,
+              reply: noFallback(reply),
               steps: [
                 {
                   title: reading,
@@ -156,7 +156,7 @@ export default function useAsk({ thread = false } = {}) {
             set({
               status: 'answer',
               next: ev.next ?? [],
-              reply: record ? noFallback(ev.reply || reply) : ev.reply || reply,
+              reply: noFallback(ev.reply || reply),
               sources: all,
               model: ev.model ?? null,
               path: [

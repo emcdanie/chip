@@ -53,13 +53,14 @@ Answer ONLY from the sources in the message (each starts with "[n] <title>"). Ru
 - Cite only the source that states that claim. If no source states it, leave the claim out. Do not reuse [1] for claims that come from other sources.
 - Never contradict a source or yourself: the verdict and every bullet must agree with each other and with the sources they cite. If the sources disagree, say which says what.
 - If a pronoun (he, she, they, it, this) cannot be resolved from earlier turns or from the page the user is looking at, do not guess: ask who or what is meant, in one sentence, and stop.
-- If the sources do not answer the question, say plainly: "Nothing in my sources covers that." Then stop, or add one line marked "General knowledge, not your sources:".
+- If the sources do not answer the question, say plainly: "Nothing in my sources covers that." Then stop. Never add general knowledge.
 - Never invent data: no numbers, percentages, ticket IDs, dates, people or platform status that are not in the sources.
 - BELLA is web only (React). There is no iOS or Android implementation and no parity data for them. If asked, say there is no data; do not estimate.
 - Some CHIP docs describe the April 2026 hackathon demo (47 components, iOS/Android parity, Jira tickets). That scenario is synthetic. Never report its numbers as real; if it is the only match, say it is demo data.
 - Jira, Figma, Zeroheight and live Storybook are not connected. Say so if asked about them.
 
-Format (answers are scanned, not read): the first line is the verdict, one sentence, with its key phrase in **bold**. Then at most 3 "- " bullets with the detail, each starting with a short bold label and a colon ("- **Contrast passes:** 373 pairs"), a real number where the sources give one. No headings, no other bold. Under 90 words. Last line: "Next: " then two short follow-up questions the same sources can answer, separated by " | ".`;
+Format (answers are scanned, not read): the first line is the verdict, one sentence, with its key phrase in **bold**. Then at most 3 "- " bullets with the detail, each starting with a short bold label and a colon ("- **Label:** the fact"), with the number the source gives, if it gives one.
+- The verdict states the key fact the bullets rest on. Never write "not stated" or "not mentioned" in a verdict whose bullets give facts. No headings, no other bold. Under 90 words. Last line: "Next: " then two short follow-up questions the same sources can answer, separated by " | ".`;
 
 // the SYSTEM prompt's fallback line, cut where it starts (a record's answer never carries it)
 export const withoutFallback = (t) => String(t).split(/\n?\s*General knowledge, not your sources:/i)[0].trim();
@@ -299,6 +300,18 @@ export function backingLines(reply, texts) {
   return out;
 }
 
+// A verdict that hedges ("not directly stated") over bullets that state facts: the first bullet's
+// fact becomes the verdict, its label the key phrase (chip-code, 21 Nov).
+const HEDGE = /\b(not (directly |explicitly )?(stated|mentioned|specified|covered)|(sources|they) (do not|don['’]t) (say|state))\b/i;
+export function verdictFirst(reply) {
+  const lines = String(reply).split('\n');
+  const v = lines.findIndex((l) => l.trim() && !/^\s*[-*•]\s/.test(l));
+  const b = lines.findIndex((l) => /^\s*[-*•]\s/.test(l));
+  if (v < 0 || b < 0 || !HEDGE.test(lines[v])) return reply;
+  const first = lines[b].replace(/^\s*[-*•]\s+/, '');
+  return [first, ...lines.filter((_, i) => i !== v && i !== b)].join('\n');
+}
+
 // Streaming: { type: 'provider' } (who answers), { type: 'private' } when
 // Notion sources were held back from the cloud, { type: 'sources' }, then
 // { type: 'token' } pieces and { type: 'done' }. A weak best match yields one
@@ -352,10 +365,11 @@ export async function* askStream(message, sessionId, page, opts = {}) {
   remember(reply.trim(), provider.place);
   // asked about one record, the answer is that record's only: a "General knowledge" line goes,
   // and with it anything after it (audit 21 Nov: "General knowledge, not your sources: The commit doesn't say.")
-  if (opts.record) reply = withoutFallback(reply);
+  reply = withoutFallback(reply); // every answer is its sources' only, never "General knowledge"
   // the "Next:" line is the follow-up questions, never part of the answer: it goes out on its own
   const next = (reply.match(/^\s*Next:\s*(.+)$/im)?.[1] ?? '').split('|').map((q) => q.replace(/\*\*/g, '').trim()).filter((q) => q.length > 3 && q.length < 80).slice(0, 2);
   reply = checkCitations(reply.replace(/^\s*Next:.*$/gim, ''), texts);
+  reply = verdictFirst(reply);
   const backs = backingLines(reply, texts);
   sources = sources.map((x) => (backs.has(x.n) ? { ...x, ...backs.get(x.n) } : x));
   yield { type: 'done', next, reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
