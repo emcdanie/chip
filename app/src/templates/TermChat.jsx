@@ -112,9 +112,9 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
  * asker: a useAsk({ thread: true }) of its own. onOpen(item): what a run opens (WorkDrawer).
  * Returns the thread and `say(text)` for the composer through the ref handed in as `sayRef`.
  */
-export default function TermChat({ asker, provider, where, onOpen, sayRef, onNotice }) {
-  // each turn: her words, when, and the run she sent it to; BELLA's answer comes from asker
-  const [turns, setTurns] = useState([]);
+export default function TermChat({ asker, turns, setTurns, provider, where, onOpen, sayRef, onNotice }) {
+  // turns (her words, when, and the run she sent it to) live with the Work panel, so switching
+  // tabs keeps the chat (audit 21 Nov); BELLA's answers come from asker
   const end = useRef(null);
   const answers = [...asker.past, asker.answer].filter(Boolean);
   const startRun = async (turn) => {

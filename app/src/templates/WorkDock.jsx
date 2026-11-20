@@ -111,6 +111,7 @@ export default function WorkDock() {
   // ChatThread, each with its own turns
   const asker = useAsk({ thread: true });
   const termAsker = useAsk({ thread: true });
+  const [termTurns, setTermTurns] = useState([]);
   const say = useRef(null);
   const talk = useTalk(setDraft);
   const phone = useNarrow();
@@ -176,8 +177,10 @@ export default function WorkDock() {
   // New chat clears this tab's chat, with Undo in the toast (her 19 Nov: no confirm)
   const newChat = (who) => {
     const kept = { past: who.past, answer: who.answer };
+    const keptTurns = who === termAsker ? termTurns : null;
     who.clear();
-    setNotice({ tone: 'info', text: 'Chat cleared', undo: () => who.restore(kept) });
+    if (keptTurns) setTermTurns([]);
+    setNotice({ tone: 'info', text: 'Chat cleared', undo: () => (who.restore(kept), keptTurns && setTermTurns(keptTurns)) });
   };
   // Fix on an answer hands it to the agent (the model menu waits on its part, round 7)
   const [fixing, setFixing] = useState(false);
@@ -266,7 +269,7 @@ export default function WorkDock() {
           </Button>
         </Flow>
         {termAsker.answer ? null : <EmptyState size="lane" mark="👋" title="Message BELLA" line="Ask anything, then say “send it to the agent” and it gets on with it." />}
-        <TermChat asker={termAsker} provider={providerOf(model)} where={where} onOpen={setItem} sayRef={say} onNotice={setNotice} />
+        <TermChat asker={termAsker} turns={termTurns} setTurns={setTermTurns} provider={providerOf(model)} where={where} onOpen={setItem} sayRef={say} onNotice={setNotice} />
       </Flow>
     ),
     ask: asker.answer ? (

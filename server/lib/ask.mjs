@@ -9,7 +9,7 @@ import { resolve, providers } from '../providers/index.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { listChecks } from './checks.mjs';
 import { reviewCard, waitingChecks } from './review.mjs';
-import { CHIP_CONTEXT_WORDS, CONTEXT_PACK } from './config.mjs';
+import { BELLA_JSON, CHIP_CONTEXT_WORDS, CONTEXT_PACK } from './config.mjs';
 
 // The Cowork context pack opens every local-model prompt (background on
 // BELLA, CHIP and how Elleta works). Read fresh each time: it is small and
@@ -229,41 +229,92 @@ export async function ask(message, sessionId, page) {
 // source holds the line's numbers (or, with none, shares its words); otherwise the line is
 // pinned to the source that does; a bullet whose numbers no source holds is dropped. The
 // verdict keeps its words and loses only pins that don't hold.
-const WORD = /[a-z][a-z0-9:./-]{3,}/g;
+const WORD = /[a-z][a-z0-9:./-]{2,}[a-z0-9]/g; // a word never ends in its punctuation ("selection.")
 const STOP = new Set(['that', 'this', 'with', 'from', 'have', 'they', 'their', 'there', 'which', 'would', 'could', 'should', 'about', 'into', 'than', 'then', 'them', 'also', 'more', 'most', 'some', 'each', 'every', 'only', 'other', 'were', 'what', 'when', 'where', 'will', 'your', 'bella', 'chip']);
 export function checkCitations(reply, texts) {
   if (!texts?.size) return reply;
-  const lower = new Map([...texts].map(([n, t]) => [n, t.toLowerCase()]));
-  const holds = (n, nums, words) => {
-    const t = lower.get(n);
-    if (!t) return 0;
-    if (nums.length) return nums.every((x) => t.includes(x)) ? 2 : 0;
-    return words.filter((w) => t.includes(w)).length >= Math.min(2, words.length) ? 1 : 0;
+  // "no failing" is passing: a double negative never reads as a fault (audit 21 Nov: "missing
+  // contrast-pairs checks" was pinned to "no failing contrast pair … (contrast-pairs: OK)")
+  const polar = (t) => String(t).toLowerCase().replace(/\bno (failing|failed|fails?|errors?|gaps?)\b/g, 'passing');
+  const NEG = /\b(missing|lacks?|lacking|without|no|not|fails?|failed|failing|unchecked|none|never)\b/;
+  const POS = /\b(ok|pass(es|ed|ing)?|true|all)\b/;
+  const content = (t) => [...new Set((String(t).toLowerCase().match(WORD) ?? []).filter((w) => !STOP.has(w)))];
+  // names (PascalCase parts), quoted phrases and numbers a claim states: its line must hold each one
+  const musts = (t) => [
+    ...(t.match(/\b[A-Z][a-z]+[A-Z][A-Za-z]*\b/g) ?? []),
+    ...[...t.matchAll(/["“`]([^"”`]{3,})["”`]/g)].map((m) => m[1]),
+    ...(t.match(/\d[\d.,]*\d|\d/g)?.filter((x) => !/^[0-3]$/.test(x)) ?? []),
+  ].map((x) => x.toLowerCase());
+  // a source's lines: each sentence with the one before it in the same list item or paragraph,
+  // so a claim is checked against what one place in the source says, never the whole page
+  const items = new Map(
+    [...texts].map(([n, t]) => [
+      n,
+      String(t)
+        .split(/\n+|\s+[-*•]\s+(?=\S)/)
+        .flatMap((item) => {
+          const ss = item.trim().split(/(?<=[.!?])\s+/).filter(Boolean);
+          return ss.map((x, i) => (i ? `${ss[i - 1]} ${x}` : x));
+        })
+        .filter((x) => x.length > 8),
+    ]),
+  );
+  // one clause is held by one line of the source: every name, quote and number in it, most of its
+  // words, and never the opposite of what the line says
+  const held = (n, clause) => {
+    const want = content(clause);
+    const need = musts(clause);
+    if (!want.length && !need.length) return true; // a bare label or connective
+    return (items.get(n) ?? []).some((line) => {
+      const low = line.toLowerCase();
+      if (!need.every((x) => low.includes(x))) return false;
+      if (want.length && want.filter((w) => low.includes(w)).length / want.length < 0.6) return false;
+      const c = polar(clause), l = polar(line);
+      if (NEG.test(c) && !NEG.test(l) && POS.test(l)) return false;
+      if (!NEG.test(c) && POS.test(c) && NEG.test(l) && !POS.test(l)) return false;
+      return true;
+    });
   };
-  return String(reply)
-    .split('\n')
-    .map((line) => {
-      const cited = [...line.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1]));
-      if (!cited.length || /^\s*Next:/i.test(line)) return line;
-      const bare = line.replace(/\[\d+\]/g, '').replace(/\*\*/g, '');
-      const nums = bare.match(/\d[\d.,]*\d|\d/g)?.filter((x) => !/^[0-3]$/.test(x)) ?? [];
-      const words = [...new Set((bare.toLowerCase().match(WORD) ?? []).filter((w) => !STOP.has(w)))];
-      const good = [...new Set(cited.filter((n) => holds(n, nums, words)))];
-      const bullet = /^\s*[-*•]\s/.test(line);
-      let keep = good;
-      if (!keep.length) {
-        const best = [...lower.keys()].map((n) => [n, holds(n, nums, words)]).filter(([, h]) => h).sort((a, b) => b[1] - a[1])[0];
-        keep = best ? [best[0]] : [];
+  // a line's claim as its label and clauses; what a source holds of it, or null
+  const keepFor = (n, line) => {
+    const lead = line.match(/^\s*(?:[-*•]\s+)?(?:\*\*[^*]+\*\*:?\s*)?/)[0];
+    const body = line.slice(lead.length).replace(/\s*\[\d+\]/g, '').replace(/\s+$/, '');
+    const end = /[.!?]$/.test(body) ? body.slice(-1) : '';
+    const clauses = (end ? body.slice(0, -1) : body).split(/;\s+/);
+    const label = lead.replace(/^\s*[-*•]\s+/, '').replace(/\*\*|:/g, ' ');
+    const kept = clauses.filter((c) => held(n, `${label} ${c.replace(/\*\*/g, '')}`));
+    if (!kept.length) return null;
+    return { lead, text: kept.join('; '), end: end || '.' };
+  };
+  let verdictDropped = false;
+  const out = [];
+  for (const line of String(reply).split('\n')) {
+    if (!line.trim() || /^\s*(?:[-*•]\s*)?\**Next\**:/i.test(line)) continue;
+    const bullet = /^\s*[-*•]\s/.test(line);
+    const cited = [...new Set([...line.matchAll(/\[(\d+)\]/g)].map((m) => Number(m[1])))];
+    // the sources it cites first, then any other that holds it; one pin, the first that does
+    let got = null;
+    for (const n of [...cited, ...[...texts.keys()].filter((k) => !cited.includes(k))]) {
+      const k = keepFor(n, line);
+      if (k) {
+        got = { n, ...k };
+        break;
       }
-      if (!keep.length && bullet && nums.length) return null; // a number no source holds: never shown
-      const pins = keep.map((n) => `[${n}]`).join('');
-      // the pins go where the model put its first one
-      const at = line.search(/\s*\[\d+\]/);
-      const without = line.replace(/\s*\[\d+\]/g, '');
-      return pins ? `${without.slice(0, at)} ${pins}${without.slice(at)}`.replace(/\s+$/, '') : without;
-    })
-    .filter((l) => l != null)
-    .join('\n');
+    }
+    // a claim no source line holds is never shown: a bullet goes, a verdict gives way to its first held bullet
+    if (!got) {
+      if (!bullet) verdictDropped = true;
+      continue;
+    }
+    out.push(`${got.lead}${got.text} [${got.n}]${got.end}`);
+  }
+  if (verdictDropped || !out.length || /^\s*[-*•]\s/.test(out[0])) {
+    const b = out.findIndex((l) => /^\s*[-*•]\s/.test(l));
+    if (b < 0) return out.length ? out.join('\n') : 'Nothing in my sources covers that.';
+    const first = out[b].replace(/^\s*[-*•]\s+/, '');
+    return [first, ...out.filter((_, k) => k !== b)].join('\n');
+  }
+  return out.join('\n');
 }
 
 // For each claim, the sentence of its source's own text that backs it (audit 21 Nov: the
@@ -318,7 +369,70 @@ export function verdictFirst(reply) {
 // { type: 'weak', closest } and no model call. If Claude cannot answer, a
 // { type: 'fallback', reason } precedes the local model's answer.
 // opts: { provider: 'local:<model>' | 'claude', includePrivate, record: { id, title, text } }
+// Questions CHIP's own data answers are answered from that data, never by a model (audit 21 Nov:
+// "Which components lack a11y notes?" got two parts that have them). One router for every chat
+// surface, since Ask BELLA, the terminal chat and every page ask through here: which parts lack
+// (or have) a story, docs, a spec entry, a contract or a11y notes, how many, and which gates fail.
+// Anything else goes to the model. The answer is in the answer shape, its one source is
+// data/bella.json with a mark per part, and its follow-ups are questions this router answers.
+const CHECKS = [
+  { key: 'hasA11yNotes', words: /\b(a11y|accessibility)( notes?)?\b/i, noun: 'a11y notes' },
+  { key: 'hasStory', words: /\bstor(y|ies)\b/i, noun: 'a story' },
+  { key: 'hasDocs', words: /\bdoc(s|umentation| pages?)?\b/i, noun: 'a doc page' },
+  { key: 'inDsds', words: /\b(spec|dsds)\b/i, noun: 'a spec entry' },
+  { key: 'hasContract', words: /\bcontracts?\b/i, noun: 'a contract' },
+];
+const PARTS = /\b(components?|parts?)\b/i;
+const LACK = /\b(lack|lacks|lacking|missing|miss|without|no|don['’]?t have|do not have|doesn['’]?t have|need|needs)\b/i;
+const HAVE = /\b(have|has|with)\b/i;
+const list = (names, max = 6) => (names.length > max ? `${names.slice(0, max).join(', ')} and ${names.length - max} more` : names.join(', '));
+export function dataAnswer(message) {
+  const q = String(message ?? '');
+  if (!/\b(which|what|how many|list|count)\b/i.test(q) || !existsSync(BELLA_JSON)) return null;
+  let d;
+  try {
+    d = JSON.parse(readFileSync(BELLA_JSON, 'utf8'));
+  } catch {
+    return null;
+  }
+  const when = d.source?.committedAt ?? null;
+  const source = (findings, passage) => ({ n: 1, title: 'BELLA data (data/bella.json)', path: 'data/bella.json', when, passage, findings, score: 1 });
+  // which gates fail
+  if (/\bgates?\b/i.test(q) && /\b(fail|failing|failed|red|broken)\b/i.test(q)) {
+    const gates = Object.entries(d.gates ?? {});
+    const bad = gates.filter(([, g]) => g && g.ok === false);
+    const findings = gates.map(([name, g]) => ({ text: `${name}: ${String(g?.summary ?? (g?.ok ? 'OK' : 'fails')).split(';')[0]}`, ok: g?.ok !== false }));
+    const reply = bad.length
+      ? `**${bad.length} of ${gates.length} gates** fail [1].\n- **Failing:** ${list(bad.map(([n]) => n))} [1].`
+      : `**All ${gates.length} gates** pass [1].\n- **Gates:** ${list(gates.map(([n]) => n))} [1].`;
+    return { reply, sources: [source(findings, findings.map((f) => f.text).join(' · '))], next: ['Which parts lack a11y notes?', 'How many parts lack a story?'] };
+  }
+  if (!PARTS.test(q)) return null;
+  const check = CHECKS.find((c) => c.words.test(q));
+  if (!check) return null;
+  const parts = d.components ?? [];
+  const lacking = parts.filter((c) => !c[check.key]).map((c) => c.name);
+  const having = parts.filter((c) => c[check.key]).map((c) => c.name);
+  const wantHave = !LACK.test(q) && HAVE.test(q);
+  const shown = wantHave ? having : lacking;
+  const findings = [...lacking.slice(0, 8).map((n) => ({ text: `**${n}** has no ${check.noun.replace(/^an? /, '')}`, ok: false })), ...(lacking.length > 8 ? [{ text: `${lacking.length - 8} more without`, ok: false }] : []), { text: `**${having.length} others** have ${check.noun}`, ok: true }];
+  const verdict = shown.length
+    ? `**${shown.length} of ${parts.length} parts** ${wantHave ? 'have' : 'lack'} ${check.noun} [1].`
+    : `**No part** ${wantHave ? 'has' : 'lacks'} ${check.noun} [1].`;
+  const bullets = shown.length ? [`- **${wantHave ? 'With' : 'Without'}:** ${list(shown)} [1].`, `- **${wantHave ? 'Without' : 'With'}:** ${wantHave ? lacking.length : having.length} parts [1].`] : [];
+  const others = CHECKS.filter((c) => c !== check).slice(0, 2).map((c) => `Which parts lack ${c.noun}?`);
+  return { reply: [verdict, ...bullets].join('\n'), sources: [source(findings, `${parts.length} parts in BELLA ${d.source?.version ?? ''} (${d.source?.commit ?? ''}). ${check.key}: ${having.length} true, ${lacking.length} false.`)], next: others };
+}
+
 export async function* askStream(message, sessionId, page, opts = {}) {
+  // CHIP's data first: a question it answers never reaches a model (no record question: that is about one change)
+  const fromData = opts.record ? null : dataAnswer(message);
+  if (fromData) {
+    yield { type: 'sources', sources: fromData.sources, sessionId };
+    yield { type: 'provider', id: 'data', place: 'data', model: 'CHIP’s data' };
+    yield { type: 'done', next: fromData.next, reply: fromData.reply, sessionId, sources: fromData.sources, provider: 'data', place: 'data', model: 'CHIP’s data', tokens: { prompt: 0, output: 0 } };
+    return;
+  }
   let { provider, model } = resolve(opts.provider);
   const prep = await prepare(message, sessionId, page, { cloud: provider.place === 'cloud', includePrivate: opts.includePrivate, record: opts.record });
   if (prep.heldBack) yield { type: 'private', heldBack: prep.heldBack };
@@ -367,8 +481,8 @@ export async function* askStream(message, sessionId, page, opts = {}) {
   // and with it anything after it (audit 21 Nov: "General knowledge, not your sources: The commit doesn't say.")
   reply = withoutFallback(reply); // every answer is its sources' only, never "General knowledge"
   // the "Next:" line is the follow-up questions, never part of the answer: it goes out on its own
-  const next = (reply.match(/^\s*Next:\s*(.+)$/im)?.[1] ?? '').split('|').map((q) => q.replace(/\*\*/g, '').trim()).filter((q) => q.length > 3 && q.length < 80).slice(0, 2);
-  reply = checkCitations(reply.replace(/^\s*Next:.*$/gim, ''), texts);
+  const next = (reply.match(/^\s*(?:[-*•]\s*)?\**Next\**:\**\s*(.+)$/im)?.[1] ?? '').split('|').map((q) => q.replace(/\*\*/g, '').trim()).filter((q) => q.length > 3 && q.length < 80).slice(0, 2);
+  reply = checkCitations(reply.replace(/^\s*(?:[-*•]\s*)?\**Next\**:.*$/gim, ''), texts);
   reply = verdictFirst(reply);
   const backs = backingLines(reply, texts);
   sources = sources.map((x) => (backs.has(x.n) ? { ...x, ...backs.get(x.n) } : x));

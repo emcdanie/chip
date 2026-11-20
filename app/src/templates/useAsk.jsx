@@ -166,7 +166,8 @@ export default function useAsk({ thread = false } = {}) {
                   state: 'done',
                 },
                 {
-                  title: `Written by ${ev.model ?? 'the model'}`,
+                  // an answer from CHIP's data was counted, not written by a model
+                  title: ev.place === 'data' ? 'Counted from CHIP’s data' : `Written by ${ev.model ?? 'the model'}`,
                   detail: `${Math.round((Date.now() - started) / 1000)} s`,
                   state: 'done',
                 },
@@ -445,10 +446,11 @@ export async function sendToAgent(answer, from = 'Work panel') {
 /* A model's reply in the answer's shape: the verdict (first sentence, one short bold phrase) and up to 3 bullets. */
 export function shapeReply(reply) {
   // the prompt's last line, "Next: question | question": the follow-ups, never part of the answer
-  const nextLine = String(reply).match(/^\s*Next:\s*(.+)$/im);
+  // in any dress: "Next:", "**Next:**", "- Next:" (audit 21 Nov: one came through as a bullet)
+  const nextLine = String(reply).match(/^\s*(?:[-*•]\s*)?\**Next\**:\**\s*(.+)$/im);
   const next = nextLine ? nextLine[1].split('|').map((q) => q.replace(/\*\*/g, '').trim()).filter((q) => q.length > 3 && q.length < 80).slice(0, 2) : [];
   const lines = String(reply)
-    .replace(/^\s*Next:.*$/gim, '')
+    .replace(/^\s*(?:[-*•]\s*)?\**Next\**:.*$/gim, '')
     .replace(/([.!?\]])\s+[-•]\s+(?=[A-Z*])/g, '$1\n- ')
     .split('\n')
     .map((l) => l.trim())
