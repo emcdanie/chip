@@ -14,7 +14,7 @@
 // pink Pins on the page, and while marking a click asks the page what sits
 // there (chip:pick, answered by the proxy's probe). Frame, zoom and Mark up:
 // her card y22, "A · Yes" (19 Nov).
-import { useId, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
@@ -163,24 +163,12 @@ function StageSlot({ src, proxy, sections, title, width, notes, picking, onPicke
   );
 }
 
-// "Pick a part" moves to the Show select and opens its list where the browser can
-function pickShow(id) {
-  const el = document.getElementById(id)?.querySelector('select');
-  el?.focus();
-  try {
-    el?.showPicker?.();
-  } catch {
-    // some browsers open a select's list only on a direct click; focus is enough there
-  }
-}
-
 export default function PlaygroundContent({ project, onProject, route, onRoute }) {
   const narrow = useNarrow();
   // what is on the canvas: nothing yet (Figma Screen 1 "Nothing picked yet", audit 10), a part or a page;
   // a link with a route opens the page
   const [part, setPart] = useState(null);
   const [none, setNone] = useState(() => !route);
-  const showId = useId();
   const { projects, pages, map, down, again } = usePlayData(project, route);
   // a phone opens at phone width (Figma "375 wide"), so the part is readable, not 15%
   // open at the widest preset that shows near full size: a 1440 frame at her ~1100 window shrank to 45%
@@ -294,7 +282,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
         <Flow direction="row" gap={12} wrap>
           {/* Figma: one Show select; a page also names its project */}
           {!part && !none && projects?.length ? <Select label="Project" value={project} onChange={onProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
-          <Flow id={showId}>
+          <Flow>
             <Select label="Show" value={showValue} onChange={onShow} options={showOptions} />
           </Flow>
         </Flow>
@@ -327,8 +315,8 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
             size="lane"
             mark="👀"
             title="Pick a part to try"
+            // the Show select above is the one way to pick (audit 4, item 3: "Show parts" opened the same)
             line="Pick one in Show and give it a wee spin."
-            actions={<Button variant="secondary" onClick={() => pickShow(showId)} /* New task is the view's one primary (21 Nov log: "Show parts") */>Show parts</Button>}
           />
         </Stage>
       ) : null}

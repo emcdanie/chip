@@ -725,11 +725,8 @@ function ChecksCard({ part, detail, checked, touch }) {
             const words = k.id === 'contrast' && k.ok && weakest ? `${weakest.title} ${ratio(weakest.contrast.ratio)}` : k.words;
             return <ListRow key={k.id} {...row(words)} title={k.title} trailing={href ? true : undefined} onClick={href ? () => window.open(href, '_blank', 'noopener') : undefined} statusDot={k.ok ? undefined : <StatusDot tone="attention" showLabel={false} label="Fails" />} />;
           })}
-          <ListRow
-            {...row(detail.figmaBlind ? undefined : 'Reachable')}
-            title="Figma set"
-            actionButton={detail.figmaBlind ? <Button variant="secondary" size="sm" href="#/connectors">Add file key</Button> : undefined}
-          />
+          {/* blind, the notice above the tabs is the one way to add the key (audit 4, item 3) */}
+          <ListRow {...row(detail.figmaBlind ? 'No file key' : 'Reachable')} title="Figma set" />
         </Flow>
       </Flow>
     </Card>

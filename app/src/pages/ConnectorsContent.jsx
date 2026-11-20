@@ -147,7 +147,9 @@ export default function ConnectorsContent() {
   const paths = PATHS.map((p) => ({ ...p, n: node(p.id) })).filter((p) => p.n);
   const compare = node('compare');
   // a Figma path already has its own row and Set up above, so it is never listed twice (audit 3)
-  const needs = map.nodes.filter((n) => n.state === 'bad' && n.action?.type === 'test' && !PATHS.some((p) => p.id === n.id));
+  // the file key is figma-rest's other half: its step sits in figma-rest's Set up, one way in (audit 4, item 3)
+  const fileKey = node('figma-key');
+  const needs = map.nodes.filter((n) => n.state === 'bad' && n.action?.type === 'test' && !PATHS.some((p) => p.id === n.id) && !(n.id === 'figma-key' && paths.some((p) => p.id === 'figma-rest')));
   const testButton = (n, label = 'Test', name = nameOf(n)) => (
     // Figma's buttons carry words only (20 Nov polish: no leading icons)
     <Button variant="secondary" size="sm" onClick={() => test(n, name)} busy={busy === n.id} disabled={!!busy && busy !== n.id}>
@@ -234,13 +236,7 @@ export default function ConnectorsContent() {
             {/* one List item for every row, no card inside a card (20 Nov rule) */}
             <Flow gap={8} as="ul" aria-label="Need setup">
               {needs.map((n) => (
-                // the key's Add key is the one primary button; the rest Set up
-                <ListRow
-                  key={n.id}
-                  title={nameOf(n)}
-                  description={why(n)}
-                  actionButton={n.id === 'figma-key' ? <Button variant="primary" size="sm" onClick={() => setSetup(n)}>Add key</Button> : <Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>}
-                />
+                <ListRow key={n.id} title={nameOf(n)} description={why(n)} actionButton={<Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} />
               ))}
             </Flow>
           </Flow>
@@ -258,6 +254,7 @@ export default function ConnectorsContent() {
           // the drawer's title already names it, so the body opens with what to do; groups 24 apart (rule 10)
           <Flow gap={24}>
             <TextStack body={plainWords(setup.detail)} />
+            {setup.id === 'figma-rest' && fileKey?.state === 'bad' ? <TextStack overline="File key" body={plainWords(fileKey.detail)} /> : null}
             {setup.dependents?.length ? <TextStack overline="Unlocks" body={setup.dependents.join(', ')} /> : null}
           </Flow>
         ) : null}
