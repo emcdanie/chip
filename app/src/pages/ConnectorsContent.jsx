@@ -15,10 +15,10 @@ import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
-import Heading from '@bella/components/Heading/Heading';
 import ListRow from '@bella/components/ListRow/ListRow';
 import IconWell from '@bella/components/IconWell/IconWell';
 import AppTile from '@bella/components/AppTile/AppTile';
+import ConnectorTile from '@bella/components/ConnectorTile/ConnectorTile';
 import Notification from '@bella/components/Notification/Notification';
 import Button from '@bella/components/Button/Button';
 import Drawer from '@bella/components/Drawer/Drawer';
@@ -106,6 +106,7 @@ function StateTag({ state }) {
 export default function ConnectorsContent() {
   // Figma's four tiles in one row need about 1200 of window; below that two by two
   const four = !useNarrow(1200);
+  const phone = useNarrow(800);
   const [map, reload] = useMap();
   const gateNode = map?.nodes?.find((x) => x.id === 'gate');
   const [busy, setBusy] = useState(null);
@@ -164,32 +165,43 @@ export default function ConnectorsContent() {
       <Card>
         <Flow gap={16}>
           <SectionHead icon="EvPlug" iconTone="info" title="Reaches" description="Services CHIP talks to now" showDescription number={live} words="answer now" showNumber />
-          {(four ? (tiles) => <Flow direction="row" gap={24} equal fill>{tiles}</Flow> : (tiles) => <Columns count={2}>{tiles}</Columns>)(
-            reaches.map((r) => (
-                <Card
+          {/* four in a row with room; else two by two (a pair per row, as Health's check rows), one per row on a phone */}
+          {(four
+            ? (tiles) => <Flow direction="row" gap={24} equal fill>{tiles}</Flow>
+            : (tiles) => (
+                <Flow gap={24}>
+                  {tiles.map((t, i) => (i % 2 ? null : tiles.slice(i, i + 2))).filter(Boolean).map((pair) => (
+                    <Flow key={pair[0].key} direction={phone ? 'column' : 'row'} gap={24} equal fill>
+                      {pair}
+                    </Flow>
+                  ))}
+                </Flow>
+              ))(
+            reaches.map((r) => {
+              // BELLA's Connector tile (Figma 1330:51190): app tile and live status, the service's name, its
+              // state large, one short meta line, its one action; the page no longer builds it from a Card
+              const [word, tone] = LIVE[r.n.state] ?? LIVE.unknown;
+              return (
+                <ConnectorTile
                   key={r.id}
-                  footerAction={r.id === 'git' ? (
-                    <Button variant="secondary" size="sm" href="#/history">
-                      Log
-                    </Button>
-                  ) : r.id === 'ci' ? undefined : (
-                    testButton(r.n, 'Test', r.name)
-                  )}
-                >
-                  <Flow gap={12}>
-                    <Flow direction="row" justify="between" align="center" gap={8} wrap>
-                      <AppTile {...r.tile} />
-                      <StateTag state={r.n.state} />
-                    </Flow>
-                    {/* Figma's tile: the service, its state large, one short meta line */}
-                    <Flow gap={4}>
-                      <TextStack title={r.name} />
-                      <Heading tier="subsection" as="h3">{headline(r)}</Heading>
-                      {meta(r, gateNode) ? <TextStack subtitle={meta(r, gateNode)} /> : null}
-                    </Flow>
-                  </Flow>
-              </Card>
-            )),
+                  appTile={<AppTile {...r.tile} />}
+                  status={word}
+                  statusTone={tone}
+                  name={r.name}
+                  value={headline(r)}
+                  detail={meta(r, gateNode) || undefined}
+                  action={
+                    r.id === 'git' ? (
+                      <Button variant="secondary" size="sm" href="#/history">
+                        Log
+                      </Button>
+                    ) : r.id === 'ci' ? undefined : (
+                      testButton(r.n, 'Test', r.name)
+                    )
+                  }
+                />
+              );
+            }),
           )}
         </Flow>
       </Card>
