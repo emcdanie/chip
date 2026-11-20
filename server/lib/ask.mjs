@@ -57,7 +57,7 @@ Answer ONLY from the sources in the message (each starts with "[n] <title>"). Ru
 - Some CHIP docs describe the April 2026 hackathon demo (47 components, iOS/Android parity, Jira tickets). That scenario is synthetic. Never report its numbers as real; if it is the only match, say it is demo data.
 - Jira, Figma, Zeroheight and live Storybook are not connected. Say so if asked about them.
 
-Format (answers are scanned, not read): the first line is the verdict, one sentence, with its key phrase in **bold**. Then at most 3 "- " bullets with the detail, each starting with a short bold label and a colon ("- **Contrast passes:** 373 pairs"), a real number where the sources give one. No headings, no other bold. Under 90 words.`;
+Format (answers are scanned, not read): the first line is the verdict, one sentence, with its key phrase in **bold**. Then at most 3 "- " bullets with the detail, each starting with a short bold label and a colon ("- **Label:** the detail"), with numbers only as the sources give them, never from this example. No headings, no other bold. Under 90 words.`;
 
 // the SYSTEM prompt's fallback line, cut where it starts (a record's answer never carries it)
 export const withoutFallback = (t) => String(t).split(/\n?\s*General knowledge, not your sources:/i)[0].trim();
