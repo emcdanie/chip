@@ -59,7 +59,7 @@ export function workModel({ needs = [], runs = [], agents = [] }) {
   const lanes = [
     { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r), status: 'Failed', tone: 'danger', who: 'developer' })), ...needsYou] },
     { id: 'agent', name: 'Agent', cards: [...by('starting', 'running').map((r) => ({ ...runCard(r), status: 'Working', tone: 'info', who: 'agent' })), ...agents.filter((l) => laneState(l) === 'working').map(laneCard)] },
-    { id: 'gate', name: 'Gate', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info', who: 'gate' })) },
+    { id: 'gate', name: 'At the gate', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info', who: 'gate' })) },
     { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success', who: 'reviewer' })) },
   ];
   const total = lanes.reduce((s, l) => s + l.cards.length, 0);
@@ -94,7 +94,7 @@ export function filterFromHash(hash = window.location.hash) {
   const q = new URLSearchParams(hash.split('?')[1] ?? '');
   return { branch: q.get('branch'), lane: q.get('lane') };
 }
-export const LANE_NAMES = { needs: 'Needs you', agent: 'Agent', gate: 'Gate', ready: 'Ready' };
+export const LANE_NAMES = { needs: 'Needs you', agent: 'Agent', gate: 'At the gate', ready: 'Ready' };
 export function filtered(model, { branch, lane }) {
   if (!model || (!branch && !lane)) return model;
   const lanes = model.lanes

@@ -86,15 +86,17 @@ function DriftCard({ parts }) {
 }
 
 function GateCard({ gate, run, onOpen }) {
-  if (!gate) return <NoData title="Gate" icon="ShieldCheck" context="Gate checks that pass" caption="No gate runs yet" />;
+  if (!gate) return <NoData title="Checks" icon="ShieldCheck" context="Gate checks that pass" caption="No gate runs yet" />;
   if (run?.state === 'running')
-    return <StatCard title="Gate" icon="ShieldCheck" tone="info" value={run.done} unit={`of ${run.of} so far`} chart="segments" meter={{ segments: run.of, done: run.done }} context={`Running ${run.now}`} caption="Started just now" />;
+    return <StatCard title="Checks" icon="ShieldCheck" tone="info" value={run.done} unit={`of ${run.of} so far`} chart="segments" meter={{ segments: run.of, done: run.done }} context={`Running ${run.now}`} caption="Started just now" />;
   const failed = run?.state === 'failed';
   const ok = failed ? run.of - 1 : run?.state === 'passed' ? run.of : gate.ok;
   const of = run && run.state !== 'none' ? run.of : gate.of;
   return (
+    // "Gate" means one thing per word (audit 4, item 2): this card counts the gate's checks,
+    // the Gate runs view counts commits, the board's lane counts tasks at the gate
     <StatCard
-      title="Gate"
+      title="Checks"
       icon="ShieldCheck"
       tone={ok === of ? 'success' : 'warning'}
       value={ok}
@@ -113,7 +115,7 @@ function GateCard({ gate, run, onOpen }) {
 /* Figma's views of the Component checks card: coverage per check, the gate per day, drift from Figma. */
 const CHECK_VIEWS = [
   { value: 'coverage', label: 'Coverage' },
-  { value: 'gate', label: 'Gate' },
+  { value: 'gate', label: 'Gate runs' },
   { value: 'drift', label: 'Drift' },
 ];
 

@@ -77,7 +77,7 @@ function useShellData() {
 const STATUS_ROWS = [
   { id: 'needs', label: 'Needs you', tone: 'attention' },
   { id: 'agent', label: 'Agent', tone: 'info' },
-  { id: 'gate', label: 'Gate', tone: 'neutral' },
+  { id: 'gate', label: 'At the gate', tone: 'neutral' },
   { id: 'ready', label: 'Ready', tone: 'success' },
 ];
 
