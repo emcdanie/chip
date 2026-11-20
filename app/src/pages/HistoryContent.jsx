@@ -189,7 +189,7 @@ const firstSentence = (t) => String(t).split(/(?<=[.!?])\s/)[0];
 function Record({ id }) {
   const rec = useRecord(id);
   const [q, setQ] = useState('');
-  const { answer, ask: send, clear } = useAsk();
+  const { answer, ask: send, clear, retry, stop } = useAsk();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => clear(), [id]);
   if (!rec) return <Card><EmptyState size="lane" title="Opening the record" line="Reading it from git. Two ticks." /></Card>;
@@ -197,7 +197,7 @@ function Record({ id }) {
   // the record's own words go as a source, so the answer can come from the commit itself
   // "explain" or "I don't understand" asks one clear question the model can answer from the commit
   const plainAsk = (t) => (/\b(explain|understand|what does (this|it) mean|simpler)\b/i.test(t) ? 'In simple words, for someone who wasn’t there: what did this change do, and why?' : t);
-  const ask = () => q.trim() && send(`About ${rec.repo} commit ${rec.sha} ("${rec.title}"): ${plainAsk(q.trim())}`, 'history', { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: `${rec.title}\n\n${plainWhy(rec.why)}\n\nFiles: ${files.join(', ') || 'none listed'}` });
+  const ask = () => q.trim() && send(`About ${rec.repo} commit ${rec.sha} ("${rec.title}"): ${plainAsk(q.trim())}`, 'history', { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: `${rec.title}\n\n${plainWhy(rec.why)}\n\nFiles: ${files.join(', ') || 'none listed'}` }, q.trim());
   return (
     <Card>
       <Flow gap={24}>
@@ -265,7 +265,7 @@ function Record({ id }) {
         </Flow>
         <Flow gap={8}>
           <Input label="Ask about this change" value={q} onChange={setQ} onSend={ask} sendLabel="Ask" />
-          <AskAnswer answer={answer} />
+          <AskAnswer answer={answer} onRetry={retry} onStop={stop} />
         </Flow>
       </Flow>
     </Card>

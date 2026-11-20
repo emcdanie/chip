@@ -42,6 +42,7 @@ import useCached from '../templates/useCached.js';
 import Toasts from '../templates/Toasts.jsx';
 import Toast from '@bella/components/Toast/Toast';
 import useAsk, { AskAnswer } from '../templates/useAsk.jsx';
+import { handOff } from './healthModel.js';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
 import { clip, usePartDetail } from './componentsModel.js';
@@ -469,7 +470,7 @@ function AskRow({ part, detail, onAsk, asking }) {
 }
 
 /* Card · Ask BELLA: its title, what it knows, and the field; the questions sit in the row at the top. */
-function AskCard({ part, detail, onAsk, answer }) {
+function AskCard({ part, detail, onAsk, thread }) {
   const [q, setQ] = useState('');
   const send = () => {
     if (!q.trim()) return;
@@ -481,11 +482,74 @@ function AskCard({ part, detail, onAsk, answer }) {
     <Card>
       <Flow gap={12}>
         <TextStack title="Ask BELLA" body={`Ask about ${part.name}: ${knows}.`} />
-        <Input label={`Ask about ${part.name}`} placeholder="Type a question" value={q} onChange={setQ} onSend={send} sendLabel="Ask" />
-        <AskAnswer answer={answer} />
+        {/* asked here: the thread, its composer at the foot (her mock); else the field */}
+        {thread ?? <Input label={`Ask about ${part.name}`} placeholder="Type a question" value={q} onChange={setQ} onSend={send} sendLabel="Ask" />}
       </Flow>
     </Card>
   );
+}
+
+/* The composer under a thread: one field for the next question. */
+function FollowUp({ part, onAsk }) {
+  const [q, setQ] = useState('');
+  const send = () => q.trim() && (onAsk(q.trim()), setQ(''));
+  return <Input label="Ask a follow-up" placeholder={`Ask about ${part.name}`} value={q} onChange={setQ} onSend={send} sendLabel="Ask" />;
+}
+
+/* What a check's fix does, in her verbs, and what the check counts. */
+const VERB = { story: 'Add a story', docs: 'Add a doc page', contract: 'Match the contract to the code', dsds: 'Add a spec entry', contrast: 'Declare a contrast pair', a11y: 'Add an a11y note' };
+const NOUN = { story: 'a story', docs: 'a doc page', contract: 'a matching contract', dsds: 'a spec entry', contrast: 'a contrast pair', a11y: 'a11y notes' };
+const sentence = (t) => String(t ?? '').split(/(?<=[.!?])\s/)[0];
+const shortDay = (t) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null);
+
+/* A question CHIP can answer from its own check data (the model isn't asked): why a check fails
+   for this part, or which parts lack what a check counts (Elleta, 21 Nov: "its supposed to help me"). */
+function dataAnswer(q, part, gapsData, n) {
+  const gaps = gapsData?.gaps;
+  if (!gaps) return null;
+  const why = q.match(/^Why does (.+) fail\?$/);
+  const which = q.match(/^Which parts lack (.+)\?$/);
+  if (why) {
+    const check = part.checks.find((k) => k.title === why[1]);
+    const g = check && gaps[check.id]?.[part.name];
+    if (!g) return null;
+    const lacking = Object.keys(gaps[check.id]).length;
+    const ran = gapsData.at;
+    const stale = ran && Date.now() - new Date(ran).getTime() > 7 * 864e5;
+    return {
+      verdict: `**${VERB[check.id]}** to ${part.name}. [1]`,
+      bullets: [
+        `**What's missing:** ${sentence(g.missing)} [1]`,
+        `**How many:** ${lacking} of ${n} components lack ${NOUN[check.id]} [2]`,
+        g.suggest?.text ? `**Start from:** ${sentence(g.suggest.text)} [3]` : `**The rule:** ${sentence(g.why?.rule)} [3]`,
+      ],
+      sources: [
+        { n: 1, title: g.where?.[0] ? `${g.where[0].file} · ${g.where[0].field}` : `${part.name}'s files` },
+        { n: 2, title: `The ${check.title} check`, when: ran, stale },
+        { n: 3, title: g.suggest?.model ? `${g.suggest.model.name}'s note, the model to follow` : g.why?.source ?? 'BELLA’s rules' },
+      ],
+      path: [
+        { title: `Read the ${check.title} check`, detail: ran ? `run ${shortDay(ran)}` : undefined },
+        { title: `Found ${part.name} in its list`, detail: `${lacking} ${lacking === 1 ? 'part' : 'parts'} in all` },
+        { title: 'Read the rule', detail: g.why?.source },
+        { title: 'Asked the model', detail: 'not needed: every line is CHIP’s own data', skipped: true },
+      ],
+      fix: { id: check.id, title: check.title },
+      followUps: [`Which parts lack ${NOUN[check.id]}?`, `What goes in ${NOUN[check.id]}?`],
+    };
+  }
+  if (which) {
+    const id = Object.keys(NOUN).find((k) => NOUN[k] === which[1]);
+    const names = id ? Object.keys(gaps[id] ?? {}) : null;
+    if (!names) return null;
+    return {
+      verdict: names.length ? `**${names.length} of ${n} parts** lack ${which[1]}. [1]` : `Every part has ${which[1]}. [1]`,
+      bullets: names.length ? [`**The parts:** ${names.slice(0, 8).join(', ')}${names.length > 8 ? ` and ${names.length - 8} more` : ''} [1]`] : [],
+      sources: [{ n: 1, title: `The ${part.checks.find((k) => k.id === id)?.title ?? id} check`, when: gapsData.at }],
+      path: [{ title: 'Read the check’s list', detail: gapsData.at ? `run ${shortDay(gapsData.at)}` : undefined }, { title: 'Asked the model', detail: 'not needed: CHIP’s own data', skipped: true }],
+    };
+  }
+  return null;
 }
 
 /* The checks with the touch target in: A11y fails when the live part's target is under 44 (her rule). Figma reads "Keys, labels, 44 targets"; "44 targets" fits the Checks column at 1100 (a list row's value never wraps). */
@@ -550,9 +614,12 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const [asked, setAsked] = useState(null);
   const [said, setSaid] = useState(null);
   useEffect(() => {
-    if (answer?.done && asked) setSaid(answer.error ? { tone: 'danger', text: 'BELLA couldn’t answer that just now.' } : { tone: 'success', text: `BELLA answered: ${asked.q}` });
+    const st = answer?.status;
+    if (st && st !== 'thinking' && asked) setSaid(st === 'error' || st === 'stopped' ? { tone: 'danger', text: 'BELLA couldn’t answer that just now.' } : { tone: 'success', text: `BELLA answered: ${asked.q}` });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answer?.done]);
+  }, [answer?.status]);
+  // the gaps CHIP measured, by check and part: a check question is answered from them, not guessed
+  const { data: gapsData } = useCached(['/gaps']);
   const shown = model ? model.parts.filter((p) => (filter === 'ready' ? p.ready : filter === 'needs' ? !p.ready : true)) : [];
   // a pasted link matches in any case (#/components/Button); with none, open on Button, as Figma does
   const want = String(partId ?? '').toLowerCase();
@@ -571,8 +638,31 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     { value: 'needs', label: `Needs work ${n - model.ready}` },
     { value: 'ready', label: `Ready ${model.ready}` },
   ];
-  const ask = (text, from = 'card') => (setAsked({ q: text, from }), asker.ask(`About BELLA's ${part.name}: ${text}`, 'components'));
-  const pending = !!answer && !answer.done;
+  const ask = (text, from = asked?.from ?? 'card') => {
+    setAsked({ q: text, from });
+    const local = dataAnswer(text, part, gapsData?.[0], n);
+    if (local) return asker.setLocal({ q: text, ...local });
+    return asker.ask(`About BELLA's ${part.name}: ${text}`, 'components', undefined, text);
+  };
+  const pending = answer?.status === 'thinking';
+  const fixCheck = answer?.fix;
+  const fix = fixCheck
+    ? () =>
+        handOff({ id: fixCheck.id, title: fixCheck.title, missing: [part.name], action: VERB[fixCheck.id] })
+          .then(() => setSaid({ tone: 'success', text: `Sent to the agent: ${VERB[fixCheck.id]} to ${part.name}. Its card is on Work.` }))
+          .catch((e) => setSaid({ tone: 'danger', text: `Not sent: ${e.message}.` }))
+    : undefined;
+  const thread = (
+    <AskAnswer
+      answer={answer}
+      onRetry={answer?.fix ? undefined : (provider) => asker.retry(provider)}
+      onStop={asker.stop}
+      onFollow={(f) => ask(f)}
+      onFix={fix}
+      followUps={answer?.followUps ?? []}
+      composer={<FollowUp part={part} onAsk={(t) => ask(t)} />}
+    />
+  );
   // on the smallest phones the date goes on its own line (StatusDot's label doesn't wrap)
   const live = `Live in ${model.version ?? 'BELLA'}${detail?.updated && !tiny ? ` · updated ${detail.updated}` : ''}`;
   return (
@@ -606,7 +696,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
             <Notification tone="attention" title="Figma can’t see it" message="No file key in server/.env." action={{ label: 'Add file key', href: '#/connectors' }} />
           ) : null}
           {detail ? <AskRow part={part} detail={detail} onAsk={(t) => ask(t, 'row')} asking={pending && asked?.from === 'row' ? asked.q : null} /> : null}
-          {asked?.from === 'row' ? <AskAnswer answer={answer} /> : null}
+          {asked?.from === 'row' && answer ? thread : null}
           {said ? (
             <Toasts>
               <Toast tone={said.tone} onClose={() => setSaid(null)}>
@@ -648,7 +738,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                     <HistoryCard part={part} detail={detail} />
                   </Flow>
                   <Flow span={4} gap={24} grow="last">
-                    <AskCard part={part} detail={detail} onAsk={(t) => ask(t, 'card')} answer={asked?.from === 'card' ? answer : null} />
+                    <AskCard part={part} detail={detail} onAsk={(t) => ask(t, 'card')} thread={asked?.from === 'card' && answer ? thread : null} />
                     <ChecksCard part={part} detail={detail} checked={model.checked} touch={touch} />
                   </Flow>
                 </>
