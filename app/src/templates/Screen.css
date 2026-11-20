@@ -241,3 +241,13 @@
   inline-size: calc(var(--size-60) * 6);
   max-inline-size: calc(100% - 2 * var(--layout-gutter)); /* a fixed box's % is the window */
 }
+
+/* The top bar's search results (Search.jsx): under the field, its width, above the page.
+   BELLA has no popover for SearchField yet (named gap); the Card is BELLA's. */
+.chip-screen__search { position: relative; inline-size: 100%; }
+.chip-screen__search-results {
+  position: absolute;
+  inset-block-start: calc(100% + var(--spacing-8));
+  inset-inline: 0;
+  z-index: 50;
+}

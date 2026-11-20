@@ -15,7 +15,6 @@ import ProjectPanel from '@bella/components/ProjectPanel/ProjectPanel';
 import ClientSwitcher from '@bella/components/ClientSwitcher/ClientSwitcher';
 import TreeItem from '@bella/components/TreeItem/TreeItem';
 import TopBar from '@bella/components/TopBar/TopBar';
-import SearchField from '@bella/components/SearchField/SearchField';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
 import Tabs from '@bella/components/Tabs/Tabs';
 import Drawer from '@bella/components/Drawer/Drawer';
@@ -26,6 +25,7 @@ import TextStack from '@bella/components/TextStack/TextStack';
 import Input from '@bella/components/Input/Input';
 import Notification from '@bella/components/Notification/Notification';
 import Flow from './Flow.jsx';
+import Search from './Search.jsx';
 import { useHealth } from '../pages/healthModel.js';
 import useNarrow from './useNarrow.js';
 
@@ -255,7 +255,7 @@ export default function Screen({ place, header, tabs, children }) {
       <div className="chip-screen__main">
         {/* On a phone the ⌘ K legend steps out so the field keeps room for its words. */}
         <TopBar
-          search={tiny && !searching ? <Button variant="tertiary" iconOnly icon="Search" ariaLabel="Search" onClick={() => (setSearching(true), requestAnimationFrame(() => document.querySelector('.chip-screen__main [role="search"] input, .chip-screen__main input[type="search"]')?.focus()))} /> : <SearchField showShortcut={!phone} />}
+          search={tiny && !searching ? <Button variant="tertiary" iconOnly icon="Search" ariaLabel="Search" onClick={() => setSearching(true)} /> : <Search showShortcut={!phone} autoFocus={tiny && searching} />}
           right={
             tiny && searching ? (
               <Button variant="tertiary" iconOnly icon="Xmark" ariaLabel="Close search" onClick={() => setSearching(false)} />
