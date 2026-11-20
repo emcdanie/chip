@@ -21,7 +21,8 @@
 // as Figma Flow 12 draws them.
 import { useEffect, useRef, useState } from 'react';
 import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
-import { ChatThreadDelivered } from '@bella/components/ChatThread/ChatThread';
+import { ChatThreadDelivered, ThinkingList, ThinkingTick } from '@bella/components/ChatThread/ChatThread';
+import { ReactionBar } from '@bella/components/ChatBubble/ChatBubble';
 import TypingDots from '@bella/components/TypingDots/TypingDots';
 import Notification from '@bella/components/Notification/Notification';
 import Step from '@bella/components/Step/Step';
@@ -34,7 +35,6 @@ import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
 import Card from '@bella/components/Card/Card';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
-import Icon from '@bella/components/Icon/Icon';
 import Toast from '@bella/components/Toast/Toast';
 import Toasts from './Toasts.jsx';
 
@@ -60,9 +60,15 @@ function plainError(message = '') {
   return 'It stopped before it answered.';
 }
 
-/** ask(message, page, record?, question?) streams an answer; setLocal(answer) shows one CHIP already knows. */
-export default function useAsk() {
+/**
+ * ask(message, page, record?, question?) streams an answer; setLocal(answer) shows one CHIP already knows.
+ * thread: keep the earlier turns (past) when a new question starts, for a chat (the Work panel).
+ */
+export default function useAsk({ thread = false } = {}) {
   const [answer, setAnswer] = useState(null);
+  const [past, setPast] = useState([]);
+  const current = useRef(null);
+  current.current = answer;
   const turn = useRef(0);
   const stopper = useRef(null);
   const last = useRef(null);
@@ -73,6 +79,8 @@ export default function useAsk() {
     const q = question ?? message;
     const at = hhmm();
     const reading = record ? 'Reading this change' : "Reading BELLA's docs";
+    // the turn before goes up the thread, unless it is still working (then the new one replaces it)
+    if (thread && current.current && current.current.status !== 'thinking') setPast((p) => [...p, current.current]);
     const started = Date.now();
     setAnswer({
       q,
@@ -179,7 +187,10 @@ export default function useAsk() {
     retry: (provider) => last.current && ask(last.current.message, last.current.page, last.current.record, last.current.question, provider),
     stop: () => stopper.current?.abort(),
     setLocal: (a) => (turn.current++, setAnswer({ at: hhmm(), status: 'answer', ...a })),
-    clear: () => (turn.current++, setAnswer(null)),
+    clear: () => (turn.current++, setAnswer(null), setPast([])),
+    past,
+    // put a cleared chat back (New chat's Undo)
+    restore: (kept) => (turn.current++, setPast(kept.past ?? []), setAnswer(kept.answer ?? null)),
   };
 }
 
@@ -252,24 +263,20 @@ function Citation({ sources, at, onMove, onClose }) {
   );
 }
 
-/* What BELLA is doing, as her sheet's tick list (20 Nov "one chat": the thinking state is the tick
-   list, not the Step part): a tick for each step done, a dot for the one in hand, its detail beside it. */
-function Ticks({ steps, label }) {
+/* What BELLA is doing, as her sheet's tick list (20 Nov "one chat"): the ChatThread part's
+   ThinkingList, a tick per step done and a dot for the one in hand. Every chat uses this one. */
+export function Ticks({ steps, label = 'What BELLA is doing' }) {
   return (
-    <Flow as="ol" gap={4} aria-label={label}>
+    <ThinkingList label={label}>
       {steps.map((s) => (
-        <Flow as="li" key={s.title} direction="row" gap={8} align="center">
-          {s.state === 'done' ? <Icon name="Check" size="sm" label="Done" /> : <StatusDot tone="neutral" showLabel={false} label="Now" />}
-          <TextStack body={s.title} />
-          {s.detail ? <TextStack subtitle={s.detail} /> : null}
-        </Flow>
+        <ThinkingTick key={s.title} state={s.state === 'done' ? 'done' : 'working'} label={s.title} meta={s.detail} />
       ))}
-    </Flow>
+    </ThinkingList>
   );
 }
 
 /* A model's reply in the answer's shape: the verdict (first sentence, one short bold phrase) and up to 3 bullets. */
-function shapeReply(reply) {
+export function shapeReply(reply) {
   const lines = String(reply)
     .replace(/([.!?\]])\s+[-•]\s+(?=[A-Z*])/g, '$1\n- ')
     .split('\n')
@@ -296,6 +303,9 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
   const [cite, setCite] = useState(null);
   // copy says so on the button and in a toast (her rule: feedback on the control plus a toast)
   const [copied, setCopied] = useState(false);
+  // a reaction, as in the chat (her 18 Nov "like an imessage"): the smiley opens the coloured bar
+  const [reacting, setReacting] = useState(false);
+  const [reaction, setReaction] = useState(null);
   const opener = useRef(null);
   // beside the answer when the answer's own column has room for two at her mock's widths (800 or more), above it otherwise
   const [wide, setWide] = useState(false);
@@ -308,6 +318,7 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
     return () => ro.disconnect();
   });
   useEffect(() => setCite(null), [answer?.q, answer?.status]);
+  useEffect(() => (setReaction(null), setReacting(false)), [answer?.q]);
   const openPin = (n, el) => {
     const i = (answer?.sources ?? []).findIndex((x, k) => (x.n ?? k + 1) === n);
     if (i < 0) return;
@@ -394,6 +405,7 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
           <Flow direction="row" gap={4}>
             <Button variant="tertiary" size="sm" iconOnly icon={copied === 'done' ? 'Check' : 'Copy'} ariaLabel={copied === 'done' ? 'Copied' : 'Copy the answer'} onClick={copy} />
             {onRetry ? <Button variant="tertiary" size="sm" iconOnly icon="RefreshDouble" ariaLabel="Ask again" onClick={() => onRetry()} /> : null}
+            <Button variant="tertiary" size="sm" iconOnly icon="EmojiTalkingHappy" ariaLabel={reaction ? `Your reaction: ${reaction}. Change it` : 'React'} ariaExpanded={reacting} onClick={() => setReacting((r) => !r)} />
           </Flow>
           {onFix ? (
             <Button variant="primary" size="sm" onClick={onFix}>
@@ -401,6 +413,16 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
             </Button>
           ) : null}
         </Flow>
+        {reacting || reaction ? (
+          <Flow direction="row">
+            <ReactionBar
+              label="React to BELLA’s answer"
+              selected={reaction ? [reaction] : []}
+              // the bar stays, so the picked one keeps its colour wash in view; the smiley folds it
+              onReact={(r) => setReaction((was) => (was === r ? null : r))}
+            />
+          </Flow>
+        ) : null}
         {copied ? (
           <Toasts>
             <Toast tone={copied === 'done' ? 'success' : 'danger'} onClose={() => setCopied(false)}>
@@ -433,7 +455,7 @@ export function AskAnswer({ answer, onRetry, onStop, onFollow, onFix, fixLabel =
               </Button>
             ) : null}
           </Flow>
-          <Ticks steps={a.steps ?? []} label="What BELLA is doing" />
+          <Ticks steps={a.steps ?? []} />
           {a.reply ? <TextStack body={<Words text={shapeReply(a.reply).verdict} />} /> : null}
         </Flow>
       ) : null}

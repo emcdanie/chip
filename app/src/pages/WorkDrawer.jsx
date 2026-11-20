@@ -357,7 +357,7 @@ function TermDrawer({ item, onClose }) {
   return (
     <Drawer open onClose={onClose} side="right" size="lg" label="Terminal" status={`${item.repo} · ${item.title ?? 'a shell'}`}>
       <Flow gap={8}>
-        <TextStack subtitle={status === 'open' ? `${item.command} is typed, not run. Press Return in the terminal to run it.` : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…'} />
+        <TextStack subtitle={status === 'open' ? (item.command ? `${item.command} is typed, not run. Press Return in the terminal to run it.` : `A shell in ${item.repo}’s folder.`) : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…'} />
         <TermScreen t={t} active onStatus={setStatus} onActivity={() => {}} register={() => {}} />
       </Flow>
     </Drawer>
