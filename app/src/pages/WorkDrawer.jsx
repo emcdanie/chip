@@ -105,7 +105,7 @@ function Change({ diff, proves, branch }) {
   return (
     <Flow gap={8}>
       {/* Figma Flow 12 heads each drawer group with a Section head (parts-motion read 791:264033) */}
-      <SectionHead title="The change" titleLevel={3} />
+      <SectionHead title="What changed" titleLevel={3} />
       <TextStack body={proves} />
       {branch ? <TextStack subtitle={`Branch ${branch}`} /> : null}
       <Disclosure flush title="Show the change" summary={plural(files.length, 'file')}>
@@ -165,7 +165,7 @@ function Notes({ summary, onAnswer }) {
   return (
     <Flow gap={16}>
       <Flow gap={8}>
-        <SectionHead title="What the agent says" titleLevel={3} />
+        <SectionHead title="Agent notes" titleLevel={3} />
         <TextStack body={<Words text={n.verdict} />} />
         {n.points.length ? (
           <Flow as="ul" gap={4} aria-label="The agent's main points">
@@ -350,7 +350,7 @@ function FixBody({ s, onAnswer }) {
       {s.notes ? <Notes summary={s.notes} onAnswer={onAnswer} /> : null}
       {s.change ? (
         <Flow gap={8}>
-          <SectionHead title="The change" titleLevel={3} />
+          <SectionHead title="What changed" titleLevel={3} />
           <TextStack body={s.change} subtitle={s.files?.length ? s.files.join(' · ') : undefined} />
         </Flow>
       ) : null}
