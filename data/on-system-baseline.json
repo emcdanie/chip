@@ -7,8 +7,8 @@
    "styled <a>": 4
   },
   "app/src/Atlas.jsx": {
-   "<button>": 22,
-   "<input>": 2,
+   "<button>": 21,
+   "<input>": 1,
    "<table>": 5,
    "kit StatusPill": 1
   },
@@ -20,19 +20,17 @@
    "kit StatusPill": 1
   },
   "app/src/Connectors.css": {
-   "css raw size": 22
+   "css raw size": 21
   },
   "app/src/Connectors.jsx": {
    "kit Card": 1,
    "kit DataTable": 1,
    "kit PageHeader": 1,
-   "kit Segmented": 1,
    "kit Sheet": 1,
    "kit StatusPill": 1,
    "kit Toggle": 1
   },
   "app/src/DoNext.css": {
-   "css part selector": 1,
    "css raw size": 21
   },
   "app/src/DoNext.jsx": {
@@ -41,26 +39,9 @@
    "kit Sheet": 1,
    "kit StatusPill": 1
   },
-  "app/src/Foundations.css": {
-   "css part selector": 1,
-   "css raw size": 79
-  },
-  "app/src/Foundations.jsx": {
-   "<button>": 7,
-   "<input>": 2,
-   "<table>": 1,
-   "inline font-family literal": 1,
-   "kit DataTable": 1,
-   "kit PageHeader": 1,
-   "kit Segmented": 1,
-   "kit Sheet": 1,
-   "kit StatusPill": 1
-  },
   "app/src/Health.jsx": {
    "<button>": 12,
    "<table>": 1,
-   "inline style raw size": 2,
-   "kit Segmented": 1,
    "kit Sheet": 1,
    "kit StatusPill": 1,
    "kit Toggle": 1
@@ -69,7 +50,7 @@
    "css defines custom property": 2,
    "css font-family literal": 1,
    "css part selector": 1,
-   "css raw size": 42
+   "css raw size": 39
   },
   "app/src/History.jsx": {
    "<button>": 9,
@@ -105,7 +86,7 @@
    "styled <a>": 1
   },
   "app/src/Projects.css": {
-   "css raw size": 15
+   "css raw size": 14
   },
   "app/src/Projects.jsx": {
    "<button>": 1,
@@ -148,7 +129,7 @@
    "css font-family literal": 1,
    "css overrides --component-*": 2,
    "css raw colour": 4,
-   "css raw size": 141
+   "css raw size": 126
   },
   "app/src/kit/index.jsx": {
    "<button>": 7,
@@ -158,9 +139,9 @@
    "kit defines a BELLA duplicate": 7
   },
   "app/src/kit/kit.css": {
-   "css font-family literal": 20,
+   "css font-family literal": 19,
    "css part selector": 2,
-   "css raw size": 48
+   "css raw size": 47
   },
   "app/src/kit/tokens.css": {
    "css defines custom property": 69,
@@ -172,8 +153,8 @@
   "app/src/shell.css": {
    "css defines custom property": 11,
    "css overrides --component-*": 24,
-   "css part selector": 4,
-   "css raw size": 128
+   "css part selector": 2,
+   "css raw size": 103
   }
  }
 }

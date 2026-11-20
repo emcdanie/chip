@@ -39,7 +39,7 @@ function GateBanner({ run }) {
 /* A card CHIP has no data for: the same Stat card at zero, an empty bar, and the
    footer saying why (StatCard chart="empty", her 21 Nov pick A). */
 function NoData({ title, icon, of, context, caption, button }) {
-  return <StatCard title={title} icon={icon} tone="neutral" chart="empty" value={0} unit={of != null ? `of ${of}` : undefined} context={context} caption={caption} button={button} />;
+  return <StatCard title={title} icon={icon} tone="neutral" chart="empty" value={0} emptyTotal={of != null ? `of ${of}` : undefined} context={context} caption={caption} button={button} />;
 }
 
 /* Drift from BELLA as a Stat card (21 Nov publish): how many parts differ from

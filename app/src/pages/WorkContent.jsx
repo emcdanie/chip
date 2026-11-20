@@ -48,7 +48,7 @@ export const VIEWS = [
 const tagTone = (t) => (t === 'neutral' ? 'default' : t);
 const TABLE_COLUMNS = [
   { key: 'title', label: 'Task', sortable: true },
-  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag variant="line" tone={tagTone(LANE_TONE[r.laneId])}>{r.lane}</Tag> },
+  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag variant="line" tone={tagTone(LANE_BAR[r.laneId])}>{r.lane}</Tag> },
   { key: 'status', label: 'Status', sortable: true, render: (r) => (r.status ? <Tag variant="line" tone={tagTone(r.tone)}>{r.status}</Tag> : null) },
   { key: 'branch', label: 'Branch', sortable: true, render: (r) => r.branch ?? 'No branch' },
   // the role alone; capitalised here because it starts its cell (Elleta, 21 Nov)
@@ -63,15 +63,15 @@ const EMPTY = {
   ready: { mark: '📭', title: 'Nothing ready', line: 'Finished work waits here for your Accept.' },
 };
 
-/* Each lane's dot is the panel's Status dot for the same lane (dots mean status).
-   Figma's lane head has no dot, but BoardLane always draws one (part gap, parts-dev). */
-const LANE_TONE = { needs: 'attention', agent: 'info', gate: 'neutral', ready: 'success' };
+/* BoardLane's lane, published 21 Nov ("A, light tints"): each lane its own tint
+   and a filled count plate; no number, no dot. */
+const LANE_KIND = { needs: 'needs-you', agent: 'agent', gate: 'gate', ready: 'ready' };
 
 /* The List view's status bar per lane: the short rounded bar at the row's
-   left (20 Nov rule; published List row), the same tone as the lane's dot. */
+   left (20 Nov rule; published List row), the same tone as the lane's tint. */
 const LANE_BAR = { needs: 'attention', agent: 'info', gate: 'neutral', ready: 'success' };
 
-function Lane({ lane: given, index, move }) {
+function Lane({ lane: given, move }) {
   const e = EMPTY[given.id];
   // a card on its way to the agent leaves Needs you at once
   const lane = given.id === 'needs' ? { ...given, cards: given.cards.filter((c) => !move.starting.some((s) => s.id === c.id)) } : given;
@@ -117,9 +117,9 @@ function Lane({ lane: given, index, move }) {
   ].filter(Boolean);
   const live = agent ? lane.cards.length + move.starting.filter((c) => !lane.cards.some((t) => t.title === c.title)).length : lane.cards.length;
   return (
-    // Figma's lane head: number, name, count; no order line
-    <BoardLane name={lane.name} index={String(index + 1).padStart(2, '0')} lane={lane.id === 'needs' ? 'needs-you' : 'other'} statusTone={LANE_TONE[lane.id]} count={live} headingLevel={2} dropTarget={agent && !!move.dragging}>
-      {cards.length ? cards : [<EmptyState key="empty" size="lane" mark={e.mark} title={e.title} line={e.line} />]}
+    // Figma's lane head: name and count; an empty lane shows its centred Empty state (Show empty)
+    <BoardLane name={lane.name} lane={LANE_KIND[lane.id]} count={live} headingLevel={2} dropTarget={agent && !!move.dragging} empty={<EmptyState size="lane" mark={e.mark} title={e.title} line={e.line} />}>
+      {cards.length ? cards : null}
     </BoardLane>
   );
 }
@@ -288,8 +288,8 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
             </Card>
           ) : (
             <Flow board direction="row" gap={24} aria-label="Work board" onDragOver={(ev) => move.dragging && ev.preventDefault()} onDrop={onDrop}>
-              {model.lanes.map((l, i) => (
-                <Lane key={l.id} lane={l} index={i} move={move} />
+              {model.lanes.map((l) => (
+                <Lane key={l.id} lane={l} move={move} />
               ))}
             </Flow>
           )}
