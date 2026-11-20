@@ -348,7 +348,6 @@ function Tiers() {
   );
 }
 
-const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 
 /* Token problems (Figma 612:62034): one List item each, its status bar, the parts, an Open
    tag, the verb and ›. Send hands the raw values to the agent (a run with each file and line);
@@ -391,8 +390,8 @@ function Problems({ rows }) {
                       {busy === r.p ? 'Sending…' : 'Send'}
                     </Button>
                   }
-                  trailing
-                  href={`#/components/${kebab(parts[0])}`}
+                  // one control per row: Send changes something, so the row is not also a link with ↗
+                  // (READ FIRST [12]: "Arrows go, buttons do"; audit 3, item 11)
                 />
               );
             })}
