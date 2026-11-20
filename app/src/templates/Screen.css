@@ -90,12 +90,18 @@
 
 .chip-board > .chip-flow--board {
   flex: 1 1 auto;
-  block-size: 100%;
+  /* the foot room below is extra height, so the lanes still end where they did */
+  block-size: calc(100% + var(--layout-gutter));
   /* room for the end lanes' card shadows inside the sideways scroll: the page's own padding
      (32, 16 on a phone), given back by the margin so the lanes stay lined up with the header
      and tabs and the page never scrolls sideways (audit 3, way A, 21 Nov) */
   padding-inline: var(--layout-container-pad);
   margin-inline: calc(var(--layout-container-pad) * -1);
+  /* and below the lanes, down to the window's foot: the page's own bottom padding (the
+     gutter), so the board's clip no longer cuts the last card's shadow at the lane's foot
+     (clip-sweep, 21 Nov) and the page never scrolls further */
+  padding-block-end: var(--layout-gutter);
+  margin-block-end: calc(var(--layout-gutter) * -1);
 }
 
 /* the cue at an end with more lanes: a fade from the page ground and a chevron */
