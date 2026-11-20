@@ -11,6 +11,9 @@ import Pin from '@bella/components/Pin/Pin';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Flow from './Flow.jsx';
 
+// the server prompt's "General knowledge" fallback, cut where it starts (a record's answer never carries it)
+const noFallback = (t) => String(t).split(/\n?\s*General knowledge, not your sources:/i)[0].trim();
+
 /* The server's error, in words a reader can act on. */
 function plainError(message = '') {
   if (/no index/i.test(message)) return "BELLA's docs aren't indexed on this Mac yet, so there's nothing to answer from. Run chip sync once, then ask again.";
@@ -53,8 +56,9 @@ export default function useAsk() {
           if (ev.type === 'sources' || ev.type === 'provider') set({ steps: tk('done', 'current'), reply });
           else if (ev.type === 'token') {
             reply += ev.text;
-            set({ steps: tk('done', 'current'), reply });
-          } else if (ev.type === 'done') set({ steps: tk('done', 'done'), reply: ev.reply || reply, done: true });
+            // with a record, the fallback line never shows, not even while it streams in
+            set({ steps: tk('done', 'current'), reply: record ? noFallback(reply) : reply });
+          } else if (ev.type === 'done') set({ steps: tk('done', 'done'), reply: record ? noFallback(ev.reply || reply) : ev.reply || reply, done: true });
           else if (ev.type === 'weak') {
             const near = (ev.closest ?? []).map((s) => s.title).filter(Boolean);
             set({ steps: tk('done', 'done'), reply: `Nothing in BELLA's docs is close enough to answer that.${near.length ? ` Nearest: ${near.join('; ')}.` : ''} Try asking it another way.`, done: true });

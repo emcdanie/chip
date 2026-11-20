@@ -59,6 +59,9 @@ Answer ONLY from the sources in the message (each starts with "[n] <title>"). Ru
 
 Format (answers are scanned, not read): the first line is the verdict, one sentence, with its key phrase in **bold**. Then at most 3 "- " bullets with the detail. No headings, no other bold. Under 90 words.`;
 
+// the SYSTEM prompt's fallback line, cut where it starts (a record's answer never carries it)
+export const withoutFallback = (t) => String(t).split(/\n?\s*General knowledge, not your sources:/i)[0].trim();
+
 const sessions = new Map(); // sessionId -> [{ role, content }]
 
 // One numbered source per document, in rank order; the passage is the start
@@ -187,7 +190,7 @@ async function prepare(message, sessionId, page, { cloud = false, includePrivate
   const chunks = fitBudget(found);
   const nums = numbered(chunks);
   const context = chunks.map((c) => `[${nums.get(keyOf(c)).n}] ${c.title}\n${c.text}`).join('\n\n---\n\n');
-  const where = (withPage ? `The user is looking at: ${page}.\n\n` : '') + (record ? 'Source [1] is the commit the user is looking at: its title, its own description and its files. Explain it in plain words from source [1] only, and put [1] after each claim. "Explain" or "I don\'t understand" means: say what changed and why in simpler words than the commit, for someone who wasn\'t there; don\'t repeat its title. Only if source [1] has nothing on the question, say "The commit doesn\'t say." and stop.\n\n' : '');
+  const where = (withPage ? `The user is looking at: ${page}.\n\n` : '') + (record ? 'Source [1] is the commit the user is looking at: its title, its own description and its files. Explain it in plain words from source [1] only, and put [1] after each claim. "Explain" or "I don\'t understand" means: say what changed and why in simpler words than the commit, for someone who wasn\'t there; don\'t repeat its title. Only if source [1] has nothing on the question, say "The commit doesn\'t say." and stop. Never add a "General knowledge" line here.\n\n' : '');
   const turns = [...history, { role: 'user', content: `Sources:\n\n${context}\n\n===\n\n${where}Question: ${message}` }];
   const messages = [{ role: 'system', content: withPack(SYSTEM) }, ...turns]; // non-streamed path is local only
   // history keeps the bare question, not the sources, where it was answered
@@ -263,5 +266,8 @@ export async function* askStream(message, sessionId, page, opts = {}) {
     }
   }
   remember(reply.trim(), provider.place);
+  // asked about one record, the answer is that record's only: a "General knowledge" line goes,
+  // and with it anything after it (audit 21 Nov: "General knowledge, not your sources: The commit doesn't say.")
+  if (opts.record) reply = withoutFallback(reply);
   yield { type: 'done', reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }
