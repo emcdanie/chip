@@ -59,7 +59,7 @@ function AgentRun({ id, onOpen }) {
   const outcome = run.status === 'passed' ? (run.summary?.split('\n')[0] ?? RUN_WORDS.passed) : run.error ?? RUN_WORDS[run.status];
   return (
     <Flow gap={8}>
-      <ChatBubble side="received" senderName="Agent">
+      <ChatBubble side="received" senderName="Agent · Claude Code">
         {`On it: ${run.title}.`}
       </ChatBubble>
       {said.map((s, i) => (
@@ -96,7 +96,7 @@ const planSteps = (answer) => {
 function PlanTurn({ t, onStart, onLater }) {
   return (
     <Flow gap={12}>
-      <Reply who="BELLA" disc="B">
+      <Reply who="CHIP · no model" disc="C">
         {t.planState === 'later' ? 'Kept in Next on the Work board. Drag it into Now when you want it done.' : 'Here is the plan. Nothing runs until you press Start; Later puts it in Next.'}
       </Reply>
       <Flow as="ol" gap={0} aria-label={`The plan: ${t.plan.title}`}>
@@ -132,13 +132,13 @@ function StatusTurn({ t, last }) {
       {a.status === 'thinking' ? <TypingDots name="BELLA" /> : null}
       {a.status === 'answer' ? (
         <Flow gap={4}>
-          <Reply who="BELLA" disc="B">
+          <Reply who="CHIP · Work board, no model" disc="C">
             <AnswerLines shaped={{ verdict: a.verdict, bullets: a.bullets }} onPin={() => {}} />
           </Reply>
           <TextStack subtitle={a.line} />
         </Flow>
       ) : null}
-      {a.status === 'error' ? <Reply who="BELLA" disc="B">{`I can’t say what is being worked on: ${a.error}. Nothing is made up, so there is no answer.`}</Reply> : null}
+      {a.status === 'error' ? <Reply who="CHIP · no model" disc="C">{`I can’t say what is being worked on: ${a.error}. Nothing is made up, so there is no answer.`}</Reply> : null}
     </Flow>
   );
 }
@@ -164,7 +164,7 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
         </Flow>
       ) : null}
       {a?.status === 'answer' ? (
-        <Reply who="BELLA" disc="B" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
+        <Reply who={a.model ? `BELLA · ${a.model}` : 'BELLA'} disc="B" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
           <AnswerLines shaped={shaped} onPin={openPin} />
         </Reply>
       ) : null}
@@ -269,7 +269,7 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
               {n === rows.length - 1 ? <ChatThreadDelivered>{`${t.at} · read`}</ChatThreadDelivered> : null}
             </Flow>
             {t.plan ? <PlanTurn t={t} onStart={() => start(t)} onLater={() => later(t)} /> : null}
-            {t.run ? <AgentRun id={t.run} onOpen={onOpen} /> : t.runError ? <ChatBubble side="received" senderName="Agent">{t.runError}</ChatBubble> : t.plan ? null : <TypingDots name="the agent" />}
+            {t.run ? <AgentRun id={t.run} onOpen={onOpen} /> : t.runError ? <ChatBubble side="received" senderName="Agent · Claude Code">{t.runError}</ChatBubble> : t.plan ? null : <TypingDots name="the agent" />}
           </Flow>
         )}
         </Fragment>

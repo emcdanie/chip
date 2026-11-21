@@ -251,13 +251,13 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
                   ))}
                   {status?.state === 'answer' ? (
                     <Flow gap={4}>
-                      <Reply who="CHIP" disc="C">
+                      <Reply who="CHIP · Work board, no model" disc="C">
                         <AnswerLines shaped={{ verdict: status.verdict, bullets: status.bullets }} onPin={() => {}} />
                       </Reply>
                       <TextStack subtitle={status.line} />
                     </Flow>
                   ) : status?.state === 'error' ? (
-                    <Reply who="CHIP" disc="C">{`I can’t say what is being worked on: ${status.error}. Nothing is made up, so there is no answer.`}</Reply>
+                    <Reply who="CHIP · no model" disc="C">{`I can’t say what is being worked on: ${status.error}. Nothing is made up, so there is no answer.`}</Reply>
                   ) : status?.state === 'reading' ? (
                     <TextStack subtitle="Reading the Work board…" />
                   ) : null}

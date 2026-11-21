@@ -450,6 +450,9 @@ export async function workStatus() {
     const how = !p || p.state === 'blank' ? 'no steps listed yet' : p.state === 'done' ? `all ${p.total} steps done` : `step ${Math.min(p.done + 1, p.total)} of ${p.total}${p.now ? `: ${p.now}` : ''}`;
     return `${c.title} · ${how}`;
   });
-  if (next) bullets.push(`Next · ${next} ${next === 1 ? 'card' : 'cards'} lined up by you`);
-  return { verdict, bullets, at, line: `From the Work board, read ${at}. Sessions in the Claude app and CHIP's own runs.` };
+  // short answers (her reading, 22 Nov): three tasks at most, the rest counted, with where to see them
+  const shown = bullets.slice(0, 3);
+  if (bullets.length > 3) shown.push(`${bullets.length - 3} more · on the Work board`);
+  if (next) shown.push(`Next · ${next} ${next === 1 ? 'card' : 'cards'} lined up by you`);
+  return { verdict, bullets: shown, at, line: `From the Work board, read ${at}. Sessions in the Claude app and CHIP's own runs.` };
 }
