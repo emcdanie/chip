@@ -13,8 +13,8 @@
 //
 // Gaps (parts-dev): the model menu on Fix; Figma's deadline bar has no CHIP
 // data, so it is left out (no number invented); Iconoir "List" for the List
-// card's head is not in BELLA's registry (Clock stands in); BoardLane always
-// draws its dot, so lanes are wider than Figma's (Screen.css).
+// card's head is not in BELLA's registry (Clock stands in); BoardLane spaces
+// its cards 16 apart where Figma's board has 12 (a BELLA part, not CHIP's).
 import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
 import BoardLane, { BoardLaneDropSpace } from '@bella/components/BoardLane/BoardLane';

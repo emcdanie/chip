@@ -105,6 +105,9 @@
 
 .chip-board > .chip-flow--board {
   flex: 1 1 auto;
+  /* a lane is as tall as its cards, never stretched to the window; a full lane stops at the
+     board's foot and its cards scroll inside it (Elleta, 22 Nov: the lanes looked too big) */
+  align-items: flex-start;
   /* the foot room below is extra height, so the lanes still end where they did */
   block-size: calc(100% + var(--layout-gutter));
   /* room for the end lanes' card shadows inside the sideways scroll: the page's own padding
