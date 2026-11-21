@@ -1,8 +1,8 @@
 {
   "source": {
     "repo": "bella",
-    "commit": "039aef3",
-    "committedAt": "2026-11-19T19:50:13+01:00"
+    "commit": "8923753",
+    "committedAt": "2026-11-21T09:05:07+01:00"
   },
   "refs": {},
   "type": {
@@ -446,14 +446,20 @@
     ]
   },
   "tokenized": {
-    "files": 77,
+    "files": 86,
     "rows": [
       {
         "p": "Border",
         "tokens": "11 widths + colour roles",
-        "decl": 127,
-        "ok": 121,
+        "decl": 145,
+        "ok": 136,
         "not": [
+          {
+            "component": "AnatomyHighlight",
+            "file": "src/components/AnatomyHighlight/AnatomyHighlight.module.css",
+            "line": 57,
+            "decl": "outline-color: Highlight"
+          },
           {
             "component": "MapLine",
             "file": "src/components/MapLine/MapLine.module.css",
@@ -481,7 +487,7 @@
           {
             "component": "Pin",
             "file": "src/components/Pin/Pin.module.css",
-            "line": 85,
+            "line": 98,
             "decl": "border-color: CanvasText"
           },
           {
@@ -489,19 +495,31 @@
             "file": "src/components/StatusPill/StatusPill.module.css",
             "line": 38,
             "decl": "border: 1px solid transparent"
+          },
+          {
+            "component": "VariantTile",
+            "file": "src/components/VariantTile/VariantTile.module.css",
+            "line": 91,
+            "decl": "border-color: CanvasText"
+          },
+          {
+            "component": "VariantTile",
+            "file": "src/components/VariantTile/VariantTile.module.css",
+            "line": 92,
+            "decl": "border-color: Highlight"
           }
         ]
       },
       {
         "p": "Radius",
         "tokens": 8,
-        "decl": 109,
-        "ok": 108,
+        "decl": 145,
+        "ok": 144,
         "not": [
           {
             "component": "StatusPill",
             "file": "src/components/StatusPill/StatusPill.module.css",
-            "line": 98,
+            "line": 109,
             "decl": "border-radius: 50%"
           }
         ]
@@ -509,34 +527,46 @@
       {
         "p": "Padding",
         "tokens": 12,
-        "decl": 115,
-        "ok": 115,
+        "decl": 130,
+        "ok": 130,
         "not": []
       },
       {
         "p": "Gap",
         "tokens": 12,
-        "decl": 148,
-        "ok": 148,
+        "decl": 174,
+        "ok": 174,
         "not": []
       },
       {
         "p": "Font size",
         "tokens": 9,
-        "decl": 144,
-        "ok": 144,
+        "decl": 178,
+        "ok": 178,
         "not": []
       },
       {
         "p": "Line height",
         "tokens": 5,
-        "decl": 90,
-        "ok": 88,
+        "decl": 129,
+        "ok": 125,
         "not": [
           {
             "component": "Avatar",
             "file": "src/components/Avatar/Avatar.module.css",
             "line": 34,
+            "decl": "line-height: 1"
+          },
+          {
+            "component": "ChatBubble",
+            "file": "src/components/ChatBubble/ChatBubble.module.css",
+            "line": 158,
+            "decl": "line-height: 1"
+          },
+          {
+            "component": "ChatBubble",
+            "file": "src/components/ChatBubble/ChatBubble.module.css",
+            "line": 298,
             "decl": "line-height: 1"
           },
           {
@@ -550,16 +580,34 @@
       {
         "p": "Shadow",
         "tokens": 1,
-        "decl": 39,
-        "ok": 39,
+        "decl": 41,
+        "ok": 41,
         "not": []
       },
       {
         "p": "Motion",
         "tokens": 14,
-        "decl": 25,
-        "ok": 24,
+        "decl": 67,
+        "ok": 63,
         "not": [
+          {
+            "component": "BoardLane",
+            "file": "src/components/BoardLane/BoardLane.module.css",
+            "line": 110,
+            "decl": "animation: laneFade linear both"
+          },
+          {
+            "component": "BoardLane",
+            "file": "src/components/BoardLane/BoardLane.module.css",
+            "line": 111,
+            "decl": "animation-timeline: scroll(self block)"
+          },
+          {
+            "component": "Drawer",
+            "file": "src/components/Drawer/Drawer.module.css",
+            "line": 86,
+            "decl": "animation-name: drawerOutRight"
+          },
           {
             "component": "TypingDots",
             "file": "src/components/TypingDots/TypingDots.module.css",
@@ -571,8 +619,8 @@
     ]
   },
   "tiers": {
-    "definitions": 213,
-    "theme": 128,
+    "definitions": 216,
+    "theme": 131,
     "component": 31
   }
 }

@@ -42,7 +42,8 @@ app.use(express.json());
 // The built app (npm run app:build) at /, real BELLA data at /data. The old
 // static bridge is archived in docs/archive/chip-bridge-v0.
 app.use(express.static(join(ROOT, 'app/dist')));
-app.use('/data', express.static(join(ROOT, 'data'), { index: false }));
+// every read of BELLA's snapshot first checks it is still BELLA's HEAD; a moved HEAD re-syncs it in the background
+app.use('/data', (req, res, next) => (bellaWork.keepBellaFresh(), next()), express.static(join(ROOT, 'data'), { index: false }));
 
 // The Bar: lane state, SSE stream, and image proxy.
 app.get('/bar/state', barState);

@@ -5,7 +5,7 @@
 // push ONLY that docs/<component>-<slug> branch and open a DRAFT pull
 // request. CHIP never merges and never pushes anything else.
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, readFileSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT } from './config.mjs';
@@ -17,6 +17,54 @@ const PROPOSAL_BASE = process.env.BELLA_PROPOSAL_BASE || 'feat/chip-components';
 const BRANCH = /^docs\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const git = (args, opts = {}) => execFileSync('git', ['-C', opts.cwd ?? BELLA, '--no-optional-locks', ...args], { encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'], ...opts.exec });
 const gitBuf = (args) => execFileSync('git', ['-C', BELLA, '--no-optional-locks', ...args], { maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'pipe'] });
+
+/* data/bella.json and data/foundations.json are snapshots of BELLA made by scripts/sync-bella.mjs and
+   scripts/sync-foundations.mjs. They re-make themselves when BELLA's HEAD moves (data check, 22 Nov: they were
+   34 and 101 commits behind, so part counts, token usage and the Foundations table were stale). The syncs run in
+   the background (about 90 s); until they finish the pages read the last snapshot, which names its commit. A
+   lock file keeps two CHIP servers on one checkout from syncing at once. HEAD is looked at every 30 s at most. */
+const SYNC_LOCK = join(tmpdir(), `chip-bella-sync-${ROOT.replace(/\W/g, '_')}.lock`);
+const snapshotCommit = (file) => {
+  try {
+    return JSON.parse(readFileSync(join(ROOT, 'data', file), 'utf8')).source?.commit ?? null;
+  } catch {
+    return null;
+  }
+};
+let freshCheckedAt = 0;
+let syncing = null;
+export function bellaFreshness() {
+  let head = null;
+  try {
+    head = git(['rev-parse', '--short', 'HEAD']).trim();
+  } catch {}
+  return { head, bella: snapshotCommit('bella.json'), foundations: snapshotCommit('foundations.json'), syncing: !!syncing };
+}
+export function keepBellaFresh() {
+  if (syncing || Date.now() - freshCheckedAt < 30 * 1000) return;
+  freshCheckedAt = Date.now();
+  const { head, bella, foundations } = bellaFreshness();
+  if (!head || (bella === head && foundations === head)) return;
+  try {
+    // another server's sync still running (a lock younger than 5 minutes): leave it to that one
+    if (existsSync(SYNC_LOCK) && Date.now() - statSync(SYNC_LOCK).mtimeMs < 5 * 60 * 1000) return;
+    writeFileSync(SYNC_LOCK, `${process.pid} ${head}`);
+  } catch {
+    return;
+  }
+  const env = { ...process.env, BELLA_DIR: BELLA };
+  const run = (script) => new Promise((done) => spawn(process.execPath, [join(ROOT, 'scripts', script)], { cwd: ROOT, env, stdio: 'ignore' }).on('exit', done).on('error', done));
+  console.log(`[CHIP] BELLA moved to ${head} (snapshot ${bella ?? 'none'}): re-syncing data/bella.json and data/foundations.json`);
+  syncing = run('sync-foundations.mjs')
+    .then(() => run('sync-bella.mjs'))
+    .finally(() => {
+      syncing = null;
+      try {
+        unlinkSync(SYNC_LOCK);
+      } catch {}
+      console.log(`[CHIP] BELLA data synced at ${snapshotCommit('bella.json')}`);
+    });
+}
 
 function component(id) {
   const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));

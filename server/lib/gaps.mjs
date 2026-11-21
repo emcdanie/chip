@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATA_DIR, ROOT } from './config.mjs';
-import { BELLA } from './bella-work.mjs';
+import { BELLA, keepBellaFresh } from './bella-work.mjs';
 import { BASE, readResult } from './checks.mjs';
 import { lastLint } from './spec-lint.mjs';
 import { bellaPairs, declaredLists } from '../../scripts/lib/bella-pairs.mjs';
@@ -83,6 +83,8 @@ function measure(T, fg, bg) {
 
 /* ---------- shared reads ---------- */
 function load() {
+  // a moved BELLA HEAD re-syncs the snapshot in the background (data check, 22 Nov)
+  keepBellaFresh();
   const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
   const contracts = JSON.parse(read('tokens/contracts.json')).component;
   const pairSrc = read('scripts/contrast-pairs.mjs');
