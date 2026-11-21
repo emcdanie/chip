@@ -28,7 +28,7 @@ import { saveBoard, saveIdea, workBoard, workLanes } from './lib/lanes.mjs';
 import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
-import { ciRuns, systemMap } from './lib/map.mjs';
+import { ciRuns, warmCi, systemMap } from './lib/map.mjs';
 import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
 import { appOrigins, onlyChip } from './lib/origin.mjs';
 import { playMap, playPages, playTarget, startPlayProxy, PROXY } from './lib/play.mjs';
@@ -789,6 +789,13 @@ app.get('/play/map', async (req, res) => {
 const server = app.listen(PORT, '127.0.0.1', () => {
   console.log(`[CHIP] http://localhost:${PORT} · model ${CHIP_MODEL} · embeddings ${CHIP_EMBED_MODEL} · ${OLLAMA_URL}`);
   const t = Date.now();
+  // Health's slow reads, ready before anyone opens it (GitHub's CI list, BELLA's contrast pairs)
+  warmCi().catch(() => {});
+  setTimeout(() => {
+    try {
+      declaredPairs();
+    } catch {}
+  }, 0);
   warm().then(() => console.log(`[CHIP] models warm (${((Date.now() - t) / 1000).toFixed(1)}s)`))
     .catch((err) => console.error('[CHIP] warm-up failed:', err.message));
 });

@@ -4,6 +4,7 @@
 // (tokens/contracts.json), the built tokens (tokens/bella.css), the gate
 // scripts and the component sources. Where those can't suggest a fix, the
 // item says so and names what is needed instead of guessing.
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATA_DIR, ROOT } from './config.mjs';
@@ -497,7 +498,24 @@ export function gapReport(pairs) {
 /** Every pair contrast-pairs.mjs declares, measured as the gate measures it:
  * PAIRS (with its highlight-wash pairs, '<wash> over <surface>') at their bar,
  * and DISTINCT (fills kept apart) at APART, in all four themes, worst shown. */
+/* BELLA's pairs cost about 2 s to measure; they only change when BELLA does, so they are measured once per BELLA
+   commit (and once at server start), not on every Health load. */
+let pairsCache = { head: null, value: null };
+const bellaHead = () => {
+  try {
+    return execFileSync('git', ['-C', BELLA, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    return null;
+  }
+};
 export function declaredPairs() {
+  const head = bellaHead();
+  if (head && pairsCache.head === head) return pairsCache.value;
+  const value = measurePairs();
+  pairsCache = { head, value };
+  return value;
+}
+function measurePairs() {
   // BELLA's own list and its own ratios in its four themes (contrast-pairs.mjs --verbose)
   const r = bellaPairs(BELLA);
   const pairs = [...r.pairs, ...r.distinct].filter((p) => p.measured.length).map((p) => ({ ...p, bg: p.bg.split(' over ')[0] }));

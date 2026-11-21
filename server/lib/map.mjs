@@ -3,10 +3,10 @@
 // connectors' last test, git), and what each one blocks when it fails.
 // Edges point from what a node reads to the node. A node whose source is
 // failing says "Blocked by …", like a status page greys what depends on it.
-import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { execFile, execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROOT, OLLAMA_URL, CHIP_CLAUDE_BIN } from './config.mjs';
+import { ROOT, OLLAMA_URL, CHIP_CLAUDE_BIN, DATA_DIR } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
 import { BASE, listChecks } from './checks.mjs';
 import { waitingChecks } from './review.mjs';
@@ -48,20 +48,46 @@ const has = (cmd) => {
 /* CI as GitHub ran it (data check, 22 Nov: the node was always "unknown" though its source said "read through gh"):
    the newest run of BELLA's base branch, read with gh run list and kept for five minutes. No gh, no login or no
    run: unknown, said as such. */
-let ciCache = { at: 0, value: null };
-/** GitHub's recorded CI runs of BELLA's base branch, newest first (up to 200); null when gh can't answer. */
-export function ciRuns() {
-  if (Date.now() - ciCache.at < 5 * 60 * 1000) return ciCache.value;
-  let value = null;
+/* GitHub's CI runs for the base (gh run list, about 5 s). Health waited for it on a cold server (coordinator, 22 Nov:
+   "Reading BELLA" for over 10 s), so the last read is kept on disk and answered at once, and a new read runs
+   behind it when it is over 5 minutes old (and once when the server starts). The answer names when it was read. */
+const CI_FILE = join(DATA_DIR, 'ci-runs.json');
+let ciCache = (() => {
   try {
-    const out = execFileSync('gh', ['run', 'list', '--branch', BASE, '--limit', '200', '--json', 'conclusion,status,createdAt,headSha,workflowName'], { cwd: BELLA, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000 });
-    value = JSON.parse(out);
+    const c = JSON.parse(readFileSync(CI_FILE, 'utf8'));
+    return c.base === BASE ? c : { at: 0, value: null };
   } catch {
-    value = null;
+    return { at: 0, value: null };
   }
-  ciCache = { at: Date.now(), value };
-  return value;
+})();
+let ciReading = null;
+function readCi() {
+  if (ciReading) return ciReading;
+  ciReading = new Promise((done) =>
+    execFile('gh', ['run', 'list', '--branch', BASE, '--limit', '200', '--json', 'conclusion,status,createdAt,headSha,workflowName'], { cwd: BELLA, encoding: 'utf8', timeout: 15000, maxBuffer: 8 << 20 }, (err, out) => {
+      let value = null;
+      try {
+        value = err ? null : JSON.parse(out);
+      } catch {}
+      // a failed read keeps the last good one
+      if (value || !ciCache.value) {
+        ciCache = { at: Date.now(), base: BASE, value };
+        try {
+          writeFileSync(CI_FILE, JSON.stringify(ciCache));
+        } catch {}
+      }
+      ciReading = null;
+      done(ciCache.value);
+    }),
+  );
+  return ciReading;
 }
+export function ciRuns() {
+  if (Date.now() - ciCache.at > 5 * 60 * 1000) readCi();
+  return ciCache.value;
+}
+/** Read once at start, so the first Health load has it. */
+export const warmCi = () => readCi();
 const ciRun = () => ciRuns()?.[0] ?? null;
 function ciNode() {
   const run = ciRun();

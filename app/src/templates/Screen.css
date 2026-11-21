@@ -41,6 +41,9 @@
   z-index: 20;
   /* as wide as its longest item */
   inline-size: max-content;
+  /* a long menu scrolls inside the window instead of running past its foot */
+  max-block-size: calc(var(--size-60) * 8);
+  overflow-y: auto;
 }
 .chip-screen__menu > .chip-pop__menu { inset-block-start: var(--h-control); inset-inline-start: var(--spacing-12); }
 
@@ -332,8 +335,12 @@
   overflow: visible;
   inset: auto;
   position: fixed;
-  inset-inline-end: var(--layout-gutter);
-  inset-block-end: var(--layout-gutter);
+  /* top centre of the work area, just under the top bar, in one place on every page (Work board
+     6b, her pick 22 Nov): it clears the board's scroll button, the last lane and the Work panel.
+     Toasts.jsx moves it to the measured work area; until then, the window's top centre. */
+  inset-block-start: var(--layout-gutter);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
   z-index: 50;
   display: flex;
   flex-direction: column;
