@@ -164,7 +164,7 @@ function StageSlot({ src, proxy, sections, title, width, notes, picking, onPicke
   );
 }
 
-export default function PlaygroundContent({ project, onProject, route, onRoute }) {
+export default function PlaygroundContent({ project, onProject, route, onRoute, onBack }) {
   const narrow = useNarrow();
   // what is on the canvas: nothing yet (Figma Screen 1 "Nothing picked yet", audit 10), a part or a page;
   // a link with a route opens the page
@@ -306,6 +306,14 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
 
   return (
     <>
+      {/* the way back to Your picks, where the Playground opens */}
+      {onBack ? (
+        <Flow direction="row">
+          <Button variant="tertiary" size="sm" icon="NavArrowLeft" leadingIcon onClick={onBack}>
+            Your picks
+          </Button>
+        </Flow>
+      ) : null}
       {sent === 'sent' ? <Notification tone="success" title="Your notes" message="Sent: they are on the progress board for the team." onClose={() => setSent(null)} /> : null}
 
       {/* Control bar: what you look at on the left, switches on the right */}
