@@ -293,7 +293,9 @@ function Citation({ sources, at, claim, onMove, onClose }) {
   // the title without its file path in brackets (it broke alone at 320); the path is under Exact line
   const title = String(s.title).replace(/\s*\([^()]*[/.][^()]*\)\s*$/, '') || s.title;
   // focus moves into the source as it opens (so Tab reads it next), and Esc closes it from anywhere
-  useEffect(() => box.current?.focus(), []);
+  useEffect(() => {
+    box.current?.focus();
+  }, []);
   // Esc closes the source only: caught first (window, capture) and stopped, so a Drawer the
   // thread sits in (the Work panel) never closes with it; focus goes back to the pin
   useEffect(() => {
