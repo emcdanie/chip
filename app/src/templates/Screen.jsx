@@ -1,20 +1,18 @@
 // CHIP / Screen: the code twin of the Figma template (CHIP Dashboard
-// 601:112027). One shell for every new page: the icon rail, the project
-// panel, the top bar, then the page header, its tabs and the content slot.
+// 601:112027). One shell for every new page: the side menu (her nav C pick,
+// 22 Nov), the top bar with where you are, then the page header, its tabs and
+// the content slot.
 // A page is this template plus one content component (Figma's slot fill);
 // pages pass words and parts, never styles (scripts/on-system-guard.mjs).
 //
 // Built only from published BELLA parts. The grid is the one template CSS
 // file (Screen.css), token values only. Data is CHIP's own where it has it
 // (/projects, /needs); anything CHIP does not measure shows no number.
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import useCached from './useCached.js';
-import IconRail from '@bella/components/IconRail/IconRail';
-import NavItem from '@bella/components/NavItem/NavItem';
-import ProjectPanel from '@bella/components/ProjectPanel/ProjectPanel';
-import ClientSwitcher from '@bella/components/ClientSwitcher/ClientSwitcher';
+import SideMenu from '@bella/components/SideMenu/SideMenu';
+import NavList from '@bella/components/NavList/NavList';
 import Menu, { MenuItem } from '@bella/components/Menu/Menu';
-import TreeItem from '@bella/components/TreeItem/TreeItem';
 import TopBar from '@bella/components/TopBar/TopBar';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
@@ -44,23 +42,9 @@ export function openAtTop() {
   document.querySelector('.chip-screen__content')?.scrollTo(0, 0);
 }
 import { filterFromHash, filtered, workModel } from '../pages/workModel.js';
+import { PROJECT_VIEWS } from './projectViews.js';
 import { useTheme } from '../theme.js';
 import './Screen.css';
-
-/* The rail's places, in Figma's order. Pages not yet rebuilt open the old
- * app, which stays beside the new routes until Elleta has seen that list. */
-const PLACES = [
-  // Home opens Figma's Home placeholder (Flow 8) until its content is picked;
-  // Work is a project view, so it marks Projects (Figma).
-  // Projects opens the project's overview (Health), and every other project
-  // view marks Projects: one current item, the one you are on. Settings holds
-  // Connectors (Elleta, 19 Nov: "under Settings, titled Connectors"); there is no Projects page.
-  { id: 'home', label: 'Home', icon: 'Home', href: '#/home' },
-  { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/health' },
-  { id: 'not-again', label: 'Not again', icon: 'Book', href: '#/not-again' },
-  { id: 'team', label: 'Team', icon: 'Group', href: '#/team' },
-  { id: 'map', label: 'System map', icon: 'Map', href: '#/system-map' },
-];
 
 /* CHIP's own data for the panel, kept between pages (useCached) so the
  * Projects group never blanks while a page loads. The Status counts are the
@@ -83,34 +67,30 @@ function useShellData() {
   return { projects: p?.projects ?? [], lanes: Object.fromEntries(lanes.map((l) => [l.id, l.cards.length])) };
 }
 
-const STATUS_ROWS = [
-  { id: 'needs', label: 'Needs you', tone: 'attention' },
-  { id: 'agent', label: 'Agent', tone: 'info' },
-  { id: 'gate', label: 'At the gate', tone: 'neutral' },
-  { id: 'ready', label: 'Ready', tone: 'success' },
-];
-
-/* A project folder and, while open, its branches. A branch row filters Work's
-   board to that branch (her rule "branches filter the board"). */
-function ProjectTree({ p, current, open, onToggle, branch }) {
-  const branches = useBranches(open ? p.id : null);
-  return (
-    <Fragment>
-      <TreeItem kind="folder" label={p.name} open={open} current={current} onClick={onToggle} />
-      {open ? branches.map((b, i) => <TreeItem key={b.name} kind="branch" label={b.name} status={b.status} lineBelow={i < branches.length - 1} href={`#/work?branch=${encodeURIComponent(b.name)}`} current={branch === b.name} />) : null}
-    </Fragment>
-  );
-}
-
-/* The open project's branches for the tree under it (Figma's project panel):
-   the newest four, with what CHIP knows of each: the one checked out is
-   "working", one not yet in the default branch is "waiting", one already in
-   it "passed". CHIP has no per-branch gate result, so nothing says failed. */
-function useBranches(id) {
-  const { data } = useCached(id ? [`/projects/${id}`] : []);
-  const live = data?.[0]?.live;
-  if (!live?.branches) return [];
-  return live.branches.slice(0, 4).map((b) => ({ name: b.name, status: b.name === live.branch ? 'working' : b.ahead > 0 ? 'waiting' : 'passed' }));
+/* The one side menu (her nav C pick, 22 Nov), in her words: where you go, what is pinned, the projects,
+   and Team and Settings at the foot. One current item, the page you are on (aria-current page): a pinned
+   page wins over its project, so Components marks Components, the other CHIP tabs mark CHIP. Branches
+   filter the board from Work's own control bar, so no branch name sits in the menu. Site and BELLA open
+   the old app's project page until theirs are rebuilt. */
+function menuModel({ place, tab, projects, needs, filter, onSearch }) {
+  const needsHere = tab === 'work' && filter.lane === 'needs';
+  return {
+    items: [
+      { label: 'Search', icon: 'Search', onClick: onSearch },
+      { label: 'Home', href: '#/home', icon: 'Home', current: place === 'home' },
+      { label: 'Needs you', href: '#/work?lane=needs', icon: 'Bell', badge: needs || undefined, current: needsHere },
+      { label: 'Not again', href: '#/not-again', icon: 'Book', current: place === 'not-again' },
+    ],
+    pinned: [
+      { label: 'Components', href: '#/components', icon: 'ViewGrid', current: tab === 'components' },
+      { label: 'System map', href: '#/system-map', icon: 'Map', current: place === 'map' },
+    ],
+    projects: (projects ?? []).map((p) => ({ label: p.name, href: p.id === 'chip' ? '#/work' : `#/projects/${p.id}`, current: p.id === 'chip' && place === 'projects' && tab !== 'components' && !needsHere })),
+    foot: [
+      { label: 'Team', href: '#/team', icon: 'Group', current: place === 'team' },
+      { label: 'Settings', href: '#/connectors', icon: 'Settings', current: place === 'settings' },
+    ],
+  };
 }
 
 // where a new task goes: the progress board, as Team's replies and Playground's notes
@@ -198,108 +178,73 @@ export default function Screen({ place, header, tabs, children }) {
   useTheme();
   const { projects, lanes } = useShellData();
   const needs = lanes?.needs ?? null;
-  const current = projects?.find((p) => p.id === 'chip') ?? projects?.[0];
-  const panelOut = useNarrow(1024);
+  // below 1024 the side menu steps out behind the top bar's Menu button; on a phone it rises as a sheet
+  const menuOut = useNarrow(1024);
   const phone = useNarrow();
   // below 400 the field would read "Sea": a search button that opens the field across the bar
   const tiny = useNarrow(400);
   const [searching, setSearching] = useState(false);
-  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
-  // folders open and close; the open project starts open, the others closed
-  const [opened, setOpened] = useState(() => new Set());
-  const [shut, setShut] = useState(() => new Set());
-  const toggle = (p, isCurrent) => {
-    const flip = (set) => {
-      const next = new Set(set);
-      next.has(p.id) ? next.delete(p.id) : next.add(p.id);
-      return next;
-    };
-    isCurrent ? setShut(flip) : setOpened(flip);
-  };
   const filter = filterFromHash();
-  // the top-left as one plain line (her 21 Nov pick "A, one plain line"; Figma CHIP / Screen 601:112027):
-  // ClientSwitcher plain, the name and its ⌄ (parts-dev 4a6ea62). CHIP has one client, so its list says so.
-  const client = (
-    <Flow gap={4}>
-      <ClientSwitcher variant="plain" name="BELLA" expanded={clientsOpen} onClick={() => setClientsOpen((o) => !o)} />
-      {clientsOpen ? (
-        <Menu label="Clients" onClose={() => setClientsOpen(false)}>
-          <MenuItem label="BELLA · the only client CHIP has" icon="Check" onSelect={() => setClientsOpen(false)} />
-        </Menu>
-      ) : null}
-    </Flow>
-  );
-  const projectRows =
-    projects == null
-      ? null
-      : projects.map((p) => (
-          <ProjectTree key={p.id} p={p} current={p === current} open={p === current ? !shut.has(p.id) : opened.has(p.id)} onToggle={() => toggle(p, p === current)} branch={filter.branch} />
-        ));
-  // each Status row filters Work's board to its lane (user test 21 Nov, item 4)
-  const statusRows = STATUS_ROWS.map((r) => (
-    <TreeItem key={r.id} kind="status" label={r.label} tone={r.tone} count={lanes?.[r.id]} showCount={lanes != null} href={`#/work?lane=${r.id}`} current={filter.lane === r.id} />
-  ));
-  const panel = <ProjectPanel switcher={client} projects={projectRows} status={statusRows} />;
-  /* In a drawer, ProjectPanel flush (parts-dev ebd21b2): no grey box, edge or padding of its own, and
-     "Projects" said once, by the drawer's title (Elleta, 21 Nov: "this is broken.."). */
-  // the phone's drawer is titled Menu, so ProjectPanel says "Projects" itself there (showHeading, 21 Nov publish)
-  const drawerPanel = <ProjectPanel flush showHeading={phone} switcher={client} projects={projectRows} status={statusRows} />;
+  const tab = place === 'projects' ? tabs?.value : null;
+  // the top bar says where you are: "CHIP › Work" on a project tab, "CHIP › Team" elsewhere
+  const here = tab ? (PROJECT_VIEWS.find((v) => v.id === tab)?.label ?? header?.title) : header?.title;
+  const onSearch = () => {
+    setMenuOpen(false);
+    if (tiny) setSearching(true);
+    else requestAnimationFrame(() => document.querySelector('.chip-screen__main [role="search"] input')?.focus());
+  };
+  const menu = menuModel({ place, tab, projects, needs, filter, onSearch });
+  // the drawer holds the same rows as BELLA's NavList (Drawer's own content); Search is in the top bar there
+  const strip = ({ label, href, icon, badge, current }) => ({ label, href, icon, badge, current });
+  const groups = [
+    { items: menu.items.filter((i) => i.href).map(strip) },
+    { label: 'Pinned', items: menu.pinned.map(strip) },
+    ...(menu.projects.length ? [{ label: 'Projects', items: menu.projects.map((p) => ({ ...strip(p), icon: 'Folder' })) }] : []),
+    { items: menu.foot.map(strip) },
+  ];
   return (
     <div className="chip-screen">
-      {/* Below 800 the rail steps out too: the top bar's Menu opens the places
-          and the projects in one Drawer, so a phone's content gets the full width
-          (b23: at 320 the 72 rail left 248 and words broke). */}
-      {phone ? null : (
-        <div className="chip-screen__rail">
-          <IconRail end={<NavItem iconOnly label="Settings" icon="Settings" href="#/connectors" current={place === 'settings' && !projectsOpen} />}>
-            {PLACES.map((p) =>
-              p.id === 'projects' && panelOut ? (
-                // one current item: while the Projects drawer is open it is Projects, else the page you are on
-                <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} onClick={() => setProjectsOpen(true)} current={projectsOpen || p.id === place} />
-              ) : (
-                <NavItem key={p.id} iconOnly label={p.label} icon={p.icon} href={p.href} current={p.id === place && !projectsOpen} />
-              ),
-            )}
-          </IconRail>
-        </div>
-      )}
-      {/* Below 1024 the panel steps out; the rail's Projects button opens it
-          as a Drawer (Elleta, 19 Nov 2026, y13: "A · a Projects button in
-          the rail opens it as a drawer"). */}
-      {panelOut ? (
-        <Drawer open={projectsOpen} onClose={() => setProjectsOpen(false)} label={phone ? 'Menu' : 'Projects'}>
-          {phone ? (
-            <Flow gap={24}>
-              <Flow as="nav" gap={4} aria-label="Places">
-                {PLACES.filter((p) => p.id !== 'projects').map((p) => (
-                  <NavItem key={p.id} label={p.label} icon={p.icon} href={p.href} current={p.id === place} />
-                ))}
-                <NavItem label="Settings" icon="Settings" href="#/connectors" current={place === 'settings'} />
-              </Flow>
-              {drawerPanel}
-            </Flow>
-          ) : (
-            drawerPanel
-          )}
+      {menuOut ? (
+        <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} label="Menu" side={phone ? 'bottom' : 'left'}>
+          <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />
         </Drawer>
       ) : (
-        <div className="chip-screen__panel">{panel}</div>
+        <div className="chip-screen__menu">
+          <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
+          {/* CHIP has one client, so its list says so */}
+          {clientsOpen ? (
+            <div className="chip-pop__menu">
+              <Menu label="Clients" onClose={() => setClientsOpen(false)}>
+                <MenuItem label="BELLA · the only client CHIP has" icon="Check" onSelect={() => setClientsOpen(false)} />
+              </Menu>
+            </div>
+          ) : null}
+        </div>
       )}
       <div className="chip-screen__main">
         {/* On a phone the ⌘ K legend steps out so the field keeps room for its words. */}
         <TopBar
+          placeParent="CHIP"
+          placeCurrent={here}
+          // below 400 the place line, search, the bell and Menu don't fit (335 at 320): the page title and
+          // the selected tab say where you are there
+          showPlace={!tiny}
           search={tiny && !searching ? <Button variant="tertiary" iconOnly icon="Search" ariaLabel="Search" onClick={() => setSearching(true)} /> : <Search showShortcut={!phone} autoFocus={tiny && searching} />}
           right={
             tiny && searching ? (
               <Button variant="tertiary" iconOnly icon="Xmark" ariaLabel="Close search" onClick={() => setSearching(false)} />
             ) : (
-            <Flow direction="row" gap={12} align="center">
-              {phone ? <Button variant="tertiary" iconOnly icon="SidebarExpand" ariaLabel="Menu" ariaExpanded={projectsOpen} onClick={() => setProjectsOpen(true)} /> : null}
-              {/* the bell opens what needs you, in the Work panel (Figma Flow 12, screen 1); ⌘J opens it too */}
-              <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you` : 'What needs you'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
-              <Avatar name="Elleta McDaniel" size="sm" />
-            </Flow>
+              // straight into TopBar's right group (12 apart, its own spacing): a Flow there shrank and spilled
+              // its buttons past the edge at 320
+              <>
+                {/* the bell opens what needs you, in the Work panel (Figma Flow 12, screen 1); ⌘J opens it too */}
+                <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you` : 'What needs you'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
+                {menuOut ? <Button variant="tertiary" iconOnly icon="SidebarExpand" ariaLabel="Menu" ariaExpanded={menuOpen} ariaHaspopup="dialog" onClick={() => setMenuOpen(true)} /> : null}
+                {/* on a phone the place line needs the room: the avatar steps out (minimal chrome) */}
+                {phone ? null : <Avatar name="Elleta McDaniel" size="sm" />}
+              </>
             )
           }
         />

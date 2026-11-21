@@ -37,6 +37,7 @@ import Flow from '../templates/Flow.jsx';
 import WorkDrawer from './WorkDrawer.jsx';
 import { LANE_NAMES } from './workModel.js';
 import useNarrow from '../templates/useNarrow.js';
+import useCached from '../templates/useCached.js';
 
 export const VIEWS = [
   { value: 'board', label: 'Board' },
@@ -252,6 +253,8 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
         <Flow direction="row" gap={16} wrap align="center">
           {/* what the board shows: all branches, or the sidebar's branch or status, with the way back */}
           <TextStack title={`${filter.branch ?? (filter.lane ? LANE_NAMES[filter.lane] : 'All branches')} · ${model ? model.total : '…'} ${model?.total === 1 ? 'task' : 'tasks'}`} />
+          {/* branches filter the board (READ FIRST): picked here since the side menu names no branch (nav C, 22 Nov) */}
+          <BranchPicker branch={filter.branch} />
           {filter.branch || filter.lane ? (
             <Button variant="tertiary" size="sm" href="#/work">
               Show all
@@ -338,5 +341,35 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
         </>
       )}
     </>
+  );
+}
+
+/* The board's branch filter: the project's newest branches, the one checked out first. */
+function BranchPicker({ branch }) {
+  const [open, setOpen] = useState(false);
+  const { data } = useCached(['/projects/chip']);
+  const live = data?.[0]?.live;
+  const names = (live?.branches ?? []).slice(0, 8).map((b) => b.name);
+  if (!names.length) return null;
+  const pick = (name) => {
+    setOpen(false);
+    window.location.hash = name ? `#/work?branch=${encodeURIComponent(name)}` : '#/work';
+  };
+  return (
+    <div className="chip-pop">
+      <Button variant="tertiary" size="sm" icon="NavArrowDown" ariaExpanded={open} onClick={() => setOpen((o) => !o)}>
+        Branch
+      </Button>
+      {open ? (
+        <div className="chip-pop__menu">
+          <Menu label="Branches" onClose={() => setOpen(false)}>
+            <MenuItem label="All branches" icon={branch ? undefined : 'Check'} onSelect={() => pick(null)} />
+            {names.map((n) => (
+              <MenuItem key={n} label={n === live.branch ? `${n} · checked out` : n} icon={n === branch ? 'Check' : undefined} onSelect={() => pick(n)} />
+            ))}
+          </Menu>
+        </div>
+      ) : null}
+    </div>
   );
 }
