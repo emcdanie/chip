@@ -16,7 +16,8 @@ import CheckRow from '@bella/components/CheckRow/CheckRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
-import ListRow from '@bella/components/ListRow/ListRow';
+import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
+import { TargetMark } from '@bella/components/ProgressTarget/ProgressTarget';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
 import Flow from '../templates/Flow.jsx';
@@ -288,7 +289,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             const line =
               view === 'gate' ? `${runs} recorded ${runs === 1 ? 'run' : 'runs'} · ${days.length} ${days.length === 1 ? 'day' : 'days'} · GitHub CI and CHIP · target ${TARGET}%`
               : view === 'drift' ? `Each part against its Figma set · ${n} parts`
-              : `Seven checks, six measured · ${n} parts · target ${TARGET}%`;
+              : `${n} parts · each block is 5 parts · target ${TARGET}%`;
             // her 21 Nov pick (question 1 A, "the control at teh top right and the feedback under?"): the
             // switch at the head's right end, and what the view reports in the line under the title
             return (
@@ -306,36 +307,39 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             <EmptyState size="lane" mark="🧭" title="Nothing compared yet" line="Take a Figma baseline and I'll spot what drifted." />
           ) : view === 'gate' && !model.gateDays.length ? (
             <EmptyState size="lane" mark="🚦" title="No run recorded" line="Neither GitHub CI nor CHIP has a gate run on record yet." />
-          ) : (
+          ) : view === 'gate' ? (
             // 24 between check rows, more than anything inside a row, so each row reads as its own group
             // (READ FIRST [10]: "24 between groups"; audit 3, item 12). The row's own layout is BELLA's Check row.
             <Flow gap={24}>
-              {(view === 'gate'
-                ? model.gateDays.map((d) => ({ id: d.id, missing: d.passed < d.runs ? [1] : [], title: d.title, line: d.line, value: `${d.passed}/${d.runs}`, fill: Math.round((d.passed / d.runs) * 100) }))
-                : rows.map((r) => ({ ...r, value: `${r.pass}/${n}` }))
-              )
+              {model.gateDays
+                .map((d) => ({ id: d.id, missing: d.passed < d.runs ? [1] : [], title: d.title, line: d.line, value: `${d.passed}/${d.runs}`, fill: Math.round((d.passed / d.runs) * 100) }))
                 .map((r, i, all) => (i % 2 ? null : all.slice(i, i + 2)))
                 .filter(Boolean)
                 .map((pair) => (
                   <Flow key={pair[0].id} direction={narrow ? 'column' : 'row'} gap={24} equal>
                     {pair.map((r) => (
-                      <CheckRow
-                        key={r.id}
-                        as="div"
-                        status={r.missing.length ? 'fail' : 'pass'}
-                        title={r.title}
-                        subtitle={r.line}
-                        value={r.value}
-                        fill={r.fill}
-                        target={TARGET}
-                        actionLabel={r.missing.length && r.action ? verb(r) : undefined}
-                        onAction={r.missing.length && r.action && !sending ? () => send(r) : undefined}
-                      />
+                      <CheckRow key={r.id} as="div" status={r.missing.length ? 'fail' : 'pass'} title={r.title} subtitle={r.line} value={r.value} fill={r.fill} target={TARGET} />
                     ))}
                     {/* a lone last row keeps its half, as the rows above */}
                     {pair.length === 1 && !narrow ? <div aria-hidden="true" /> : null}
                   </Flow>
                 ))}
+            </Flow>
+          ) : (
+            // her pick "C · Weather rows" (22 Nov): one row per check, a block per 5 parts against the dashed
+            // target, the count at the right; no divider under the last row. Each failing check's fix is in
+            // Needs you below, so a row carries no action of its own.
+            <Flow gap={16}>
+              <ListRowGroup ariaLabel="Component checks">
+                {rows.map((r, i) => (
+                  <CheckRow key={r.id} layout="weather" title={r.short ?? r.title} passed={r.pass} total={n} value={`${r.pass}/${n}`} target={TARGET} showDivider={i < rows.length - 1} />
+                ))}
+              </ListRowGroup>
+              {/* the legend: the dashed mark the rows draw, and what it means */}
+              <Flow direction="row" gap={8} align="center">
+                <TargetMark />
+                <TextStack subtitle={`Target ${TARGET}%`} />
+              </Flow>
             </Flow>
           )}
         </Flow>

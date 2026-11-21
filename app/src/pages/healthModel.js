@@ -14,7 +14,7 @@ export const CHECKS = [
   // doc page (every part has the page); contract = a contract exists; a11y = the contract has accessibility notes
   { id: 'docs', title: 'Docs', all: (n) => `All ${n} have a description on their doc page`, some: 'have no description on their doc page', action: 'Add docs' },
   { id: 'contract', title: 'Contract', all: (n) => `All ${n} have a contract`, some: 'have no contract', action: 'Add contracts' },
-  { id: 'dsds', title: 'Machine-readable spec', all: (n) => `All ${n} have one`, some: 'have no machine-readable spec', action: 'Add entries' },
+  { id: 'dsds', title: 'Machine-readable spec', short: 'Spec', all: (n) => `All ${n} have one`, some: 'have no machine-readable spec', action: 'Add entries' },
   { id: 'contrast', title: 'Contrast', all: (n) => `All ${n} have a pair`, some: 'lack a pair', action: 'Add pairs' },
   { id: 'a11y', title: 'A11y', all: (n) => `All ${n} have accessibility notes in their contract`, some: 'have no accessibility notes in their contract', action: 'Fill a11y' },
 ];
