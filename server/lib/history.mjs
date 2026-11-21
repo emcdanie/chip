@@ -118,18 +118,21 @@ function decisionRecords() {
 function actionRecords() {
   const all = readActions();
   const undone = new Set(all.filter((a) => a.kind === 'undo').map((a) => a.sha));
-  return all.filter((a) => a.kind === 'accept' || a.kind === 'undo').map((a, i) => ({
+  // an agent run's Accept is logged as "keep" (runs.mjs, no check id); a review card's keep follows its own
+  // "accept", so only the run's counts, once
+  const accepted = (a) => a.kind === 'accept' || (a.kind === 'keep' && !a.check);
+  return all.filter((a) => accepted(a) || a.kind === 'undo').map((a, i) => ({
     id: `chip:${a.kind}:${i}`,
     source: 'CHIP review card',
     repo: 'bella',
     sha: a.sha,
     date: a.at,
     who: 'Elleta, in CHIP',
-    title: a.kind === 'accept' ? `Accepted: ${a.title}` : `Undone: ${a.title}`,
-    why: a.kind === 'accept' ? `${a.sentence} On local branch ${a.branch} (${a.sha}), gate green; ${a.base} unchanged.${undone.has(a.sha) ? ' Undone later.' : ''}` : `Undid the Accept: deleted local branch ${a.branch} (${a.sha}). ${a.base} never moved.`,
+    title: accepted(a) ? `Accepted: ${a.title}` : `Undone: ${a.title}`,
+    why: accepted(a) ? `${a.sentence ?? ''} On local branch ${a.branch} (${a.sha}), gate green; ${a.base} unchanged.${undone.has(a.sha) ? ' Undone later.' : ''}` : `Undid the Accept: deleted local branch ${a.branch} (${a.sha}). ${a.base} never moved.`,
     type: 'Fix',
     breaking: false,
-    status: a.kind === 'accept' && !undone.has(a.sha) ? 'On a branch' : 'Undone',
+    status: accepted(a) && !undone.has(a.sha) ? 'On a branch' : 'Undone',
     branch: a.branch,
     files: a.files ?? [],
     measured: a.measured ?? null,

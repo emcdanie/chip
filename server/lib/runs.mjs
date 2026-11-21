@@ -231,7 +231,7 @@ export function keepRun(id) {
   if (run?.status !== 'passed') throw new Error('Only a run whose gate passed can be accepted');
   run.status = 'kept';
   save(run);
-  logAction({ kind: 'keep', title: run.title, branch: run.branch, sha: run.sha, base: BASE });
+  logAction({ kind: 'keep', title: run.title, branch: run.branch, sha: run.sha, base: BASE, files: run.files ?? [], sentence: run.summary?.split('\n')[0] ?? '' });
   return public_(run);
 }
 
