@@ -359,8 +359,10 @@ function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
   }, []);
   const k = view ? Math.max(1, Math.min(SLOTS, Math.floor(view / COLUMN))) : SLOTS;
   const pitch = view ? view / k : COLUMN;
-  // equal slots 16 apart in the frame (its 1px edge each side): a column and its gap are one pitch
-  const frame = Math.round(SLOTS * pitch - 14);
+  // equal slots 16 apart, inside the board's 16 sides and the frame's 1px edge: a column and its gap are one pitch
+  const frame = Math.round(SLOTS * pitch + 18);
+  // the column the view opens on: the row names sit over it, so they are in view at 100%
+  const [start, setStart] = useState(0);
   // open on whole columns that hold the picked step, lined up on the view's left edge
   useLayoutEffect(() => {
     if (!view || zoom !== 'actual') return;
@@ -374,6 +376,7 @@ function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
     let best = Math.min(col, SLOTS - k);
     for (let c = Math.max(0, col - k + 1); c <= Math.min(col, SLOTS - k); c += 1) if (count(c) > count(best)) best = c;
     box.scrollLeft = x0 + best * pitch;
+    setStart(best);
   }, [map, zoom, view, k]); // eslint-disable-line react-hooks/exhaustive-deps
   const shown = (id) => id && map.steps[id] && (!filterOnly || map.steps[id].state === 'bad');
   // HOLE zoom-steps: zoom in and out wait on BELLA Stage (it has Fit and 100% only)
@@ -381,11 +384,21 @@ function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
     <Stage grid="dots" label={`${label} board`} frameWidth={frame} zoom={zoom} onZoomChange={onZoom}>
       {/* HOLE connector: the curved lines between steps (the picked step's in blue) wait on a BELLA part that
           joins two nodes by their measured places; the gutters between rows are where they draw */}
-      <Flow gap={24} id="process-board" data-hole="connector zoom-steps node-box" {...pan}>
+      <Flow gap={24} inset id="process-board" data-hole="connector zoom-steps node-box" {...pan}>
+        {/* the board's top and foot: 24 clear of the frame's edge */}
+        <span aria-hidden="true" />
         {map.rows.map((row, i) => (
-          // the row's name over its four slots, so every row's steps line up in columns
+          // the row's name over the column the view opens on (at Fit, the first), then its four slots
           <Flow key={`${row.label}-${i}`} gap={8} role="group" aria-label={row.label || `${label}, row ${i + 1}`}>
-            {row.label ? <TextStack overline={row.label} /> : null}
+            {row.label ? (
+              <Flow direction="row" gap={16} equal>
+                {Array.from({ length: SLOTS }, (_, j) => (
+                  <Flow key={j} gap={0}>
+                    {j === (zoom === 'actual' ? start : 0) ? <TextStack overline={row.label} /> : null}
+                  </Flow>
+                ))}
+              </Flow>
+            ) : null}
             <Flow direction="row" gap={16} equal data-slots>
               {/* each slot is its own box, so a step's padding never widens its column */}
               {row.ids.map((id, j) => (
@@ -396,6 +409,7 @@ function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
             </Flow>
           </Flow>
         ))}
+        <span aria-hidden="true" />
       </Flow>
     </Stage>
   );
@@ -523,7 +537,7 @@ export default function SystemMapContent() {
   ) : (
     <Flow as="ul" gap={4} aria-label="Maps">
       {MAPS.map((m) => (
-        <ListRow key={m.id} layout="stacked" title={m.name} meta={metaOfMap(maps[m.id])} selected={m.id === mapId} onClick={() => setMapId(m.id)} />
+        <ListRow key={m.id} layout="stacked" title={m.name} description={metaOfMap(maps[m.id])} selected={m.id === mapId} onClick={() => setMapId(m.id)} />
       ))}
     </Flow>
   );
