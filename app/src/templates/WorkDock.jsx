@@ -278,7 +278,7 @@ export default function WorkDock() {
             New shell
           </Button>
         </Flow>
-        {asker.answer ? null : chatEmpty}
+        {asker.answer || turns.length ? null : chatEmpty}
         <TermChat asker={asker} turns={turns} setTurns={setTurns} provider={providerOf(model)} onOpen={setItem} sayRef={say} onNotice={setNotice} />
       </Flow>
     ),
