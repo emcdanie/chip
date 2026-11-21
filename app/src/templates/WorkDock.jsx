@@ -42,6 +42,9 @@ const KEY = 'chip-dock';
 const EXAMPLE = 'How could BELLA raise its A11y score?';
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
+/* The chat between pages: one per CHIP window, gone when the window closes. */
+const kept = { turns: [], past: [], answer: null };
+
 /** Open the dock from anywhere: openWork('needs'). */
 export const openWork = (tab) => window.dispatchEvent(new CustomEvent('chip:work', { detail: { tab } }));
 
@@ -116,7 +119,19 @@ export default function WorkDock() {
   // one chat (her 20 Nov "i just want one please"; audit 4, item 1): BELLA and the agent in
   // one ChatThread, one empty state, one Send
   const asker = useAsk({ thread: true });
-  const [turns, setTurns] = useState([]);
+  // the chat collapses without ending (her reading, 22 Nov): it is kept while CHIP is open, so closing
+  // the panel or moving to another page and back finds it as it was; New chat is what ends it
+  const [turns, setTurns] = useState(() => kept.turns);
+  useEffect(() => {
+    if (kept.past.length || kept.answer) asker.restore({ past: kept.past, answer: kept.answer });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    kept.turns = turns;
+    // an answer still being written isn't kept half done
+    kept.past = asker.past;
+    kept.answer = asker.answer?.status === 'thinking' ? null : asker.answer;
+  }, [turns, asker.past, asker.answer]);
   const say = useRef(null);
   // a question sent from another tab waits until the chat is on screen to hear it
   const [pending, setPending] = useState(null);
