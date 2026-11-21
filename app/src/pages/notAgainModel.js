@@ -47,7 +47,8 @@ export function stepsOf(state, n, run) {
   if (state === 'kept') return [found, added, { title: 'The gate', detail: 'The gate passed.', state: 'done' }, { ...keeper, detail: `Kept ${hhmm(run?.endedAt ?? run?.startedAt)}.`, state: 'done' }];
   // stopped by a maintainer: the agent's step says so and the gate never ran; else the gate refused it
   if (/^Stopped by/.test(run?.error ?? '')) return [found, { ...added, detail: `${run.error} before a commit.`, state: 'current' }, gateWaits, keeper];
-  return [found, run?.diff ? added : { ...added, detail: 'Stopped before a commit.', state: 'done' }, { title: 'The gate', detail: run?.error ?? 'The gate refused the commit.', state: 'current' }, keeper];
+  // the gate ran and did not pass: its step shows it failed (Step state failed, 22 Nov)
+  return [found, run?.diff ? added : { ...added, detail: 'Stopped before a commit.', state: 'done' }, { title: 'The gate', detail: run?.error ?? 'The gate refused the commit.', state: 'failed' }, keeper];
 }
 
 /** The fix's parts (/gaps), its latest run and every run (/runs); `reload` reads them again. */
