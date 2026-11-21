@@ -16,6 +16,7 @@ import CheckRow from '@bella/components/CheckRow/CheckRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
+import ListRow from '@bella/components/ListRow/ListRow';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
 import Flow from '../templates/Flow.jsx';
@@ -131,6 +132,53 @@ const CHECK_VIEWS = [
   { value: 'gate', label: 'Gate runs' },
   { value: 'drift', label: 'Drift' },
 ];
+
+/* Needs you (Figma Flow 2, screen 1, the card at the foot): the three checks with the most parts to fix,
+   each with who takes it, its fix and ↗ to the first part that needs it; "See all N fixes" opens
+   Components on Needs work. Counts are the Component checks' own (one source). */
+function NeedsYouCard({ rows, fixCount, verb, send, sending }) {
+  const top = rows.filter((r) => r.missing.length).sort((a, b) => b.missing.length - a.missing.length).slice(0, 3);
+  if (!top.length) return null;
+  return (
+    <Card>
+      <Flow gap={16}>
+        <SectionHead
+          icon="WarningCircle"
+          iconTone="warning"
+          title="Needs you"
+          showInfo={false}
+          description="Fixes that need a reviewer"
+          action={
+            <Button variant="tertiary" size="sm" icon="ArrowUpRight" href="#/components?filter=needs">
+              {`See all ${fixCount} ${fixCount === 1 ? 'fix' : 'fixes'}`}
+            </Button>
+          }
+        />
+        <Flow as="ul" gap={0} aria-label="Fixes that need a reviewer">
+          {top.map((r, i) => (
+            <ListRow
+              key={r.id}
+              layout="stacked"
+              statusBar="attention"
+              divider={i < top.length - 1}
+              title={`${r.missing.length} ${r.some}`}
+              description={r.line.split(': ').slice(1).join(': ')}
+              textButton={
+                r.action ? (
+                  <Button variant="tertiary" size="sm" busy={sending === r.id} onClick={sending ? undefined : () => send(r)}>
+                    {verb(r)}
+                  </Button>
+                ) : undefined
+              }
+              trailing="ArrowUpRight"
+              href={r.href}
+            />
+          ))}
+        </Flow>
+      </Flow>
+    </Card>
+  );
+}
 
 export default function HealthContent({ model, run, checked, onCheck, loading, view: startView = 'coverage' }) {
   const narrow = useNarrow();
@@ -291,6 +339,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
           )}
         </Flow>
       </Card>
+      <NeedsYouCard rows={rows} fixCount={model.fixCount} verb={verb} send={send} sending={sending} />
     </>
   );
 }
