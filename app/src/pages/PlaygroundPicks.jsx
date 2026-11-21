@@ -13,7 +13,7 @@
 // /screens/decisions/ shows; the page's Last-Modified dates them), and what you
 // already answered or noted (answers.json). CHIP has no route of its own for
 // them; when the board is down the last reading shows with its time, never
-// sample cards. Her notes show as she wrote them, typos included (stored words).
+// sample cards. Her notes show with obvious typos corrected (TYPOS), the stored words untouched.
 //
 // Sending: Post opens the sheet that shows what goes to the board, and only its
 // Send writes; Ask BELLA opens the run's plan (planRun), nothing runs until you
@@ -69,7 +69,26 @@ const pathOf = (u) => {
 const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7).toString(36);
 // a heading starts with its keyword: the review page's running number ("6 · ", "1. ") goes
 const clean = (t) => t.replace(/^\d+\s*[·.]\s*/, '');
-const short = (t, n) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
+// Her words, spelled right (21 Nov): obvious typos in her notes are corrected word by word from this list,
+// the meaning kept, nothing rewritten; a word not on the list shows as she wrote it
+const TYPOS = {
+  aasked: 'asked', aling: 'align', alittle: 'a little', annimated: 'animated', becasue: 'because', becuase: 'because', beucase: 'because', befroe: 'before', beofre: 'before',
+  compoentns: 'components', compoents: 'components', creatin: 'creating', curretn: 'current', desgin: 'design', desing: 'design', drawere: 'drawer', enought: 'enough',
+  entore: 'entire', heirachy: 'hierarchy', hierachy: 'hierarchy', hte: 'the', hwere: 'where', hwo: 'how', infigma: 'in Figma', inforamtion: 'information', iputs: 'inputs',
+  lareger: 'larger', liek: 'like', litghten: 'lighten', notifaction: 'notification', pdadding: 'padding', porperly: 'properly', recomendation: 'recommendation',
+  repetitve: 'repetitive', scrroll: 'scroll', seee: 'see', seperate: 'separate', shadwos: 'shadows', skelteons: 'skeletons', sotry: 'story', sould: 'should', swithc: 'switch',
+  taks: 'task', tecnically: 'technically', teh: 'the', tehere: 'there', ther: 'there', thye: 'they', tigehter: 'together', tyr: 'try', understnad: 'understand', unsed: 'unused',
+  usefull: 'useful', vicual: 'visual', waht: 'what', withthe: 'with the', wron: 'wrong', wrontg: 'wrong', wuerstion: 'question', wuestions: 'questions', wnat: 'want',
+  thign: 'thing', accesible: 'accessible', dont: 'don’t', cant: 'can’t', doesnt: 'doesn’t', isnt: 'isn’t', didnt: 'didn’t', wont: 'won’t', im: 'I’m', ive: 'I’ve', i: 'I',
+  figma: 'Figma',
+};
+const spell = (t) => {
+  const fixed = String(t).replace(/[A-Za-z]+/g, (w) => {
+    const r = TYPOS[w.toLowerCase()];
+    return r == null ? w : w[0] === w[0].toUpperCase() && w.length > 1 ? r[0].toUpperCase() + r.slice(1) : r;
+  });
+  return fixed.charAt(0).toUpperCase() + fixed.slice(1);
+};
 
 /** One decision card (section.part) on a review page, as decide.js reads it. */
 function readCard(sec, page, item, mod) {
@@ -138,13 +157,13 @@ function remarks(card, answers, single) {
     (a.cards ?? []).forEach((c) => {
       if (pathOf(c.from || a.url || '') !== path || c.title !== card.title) return;
       if (c.answer) out.answer = { text: c.answer, when };
-      if (c.note) out.comments.push({ id: `a${k}-${c.title}`, text: c.note, on: c.answer ? `with “${c.answer}”` : 'a note', when });
+      if (c.note) out.comments.push({ id: `a${k}-${c.title}`, text: spell(c.note), on: c.answer ? `with “${c.answer}”` : 'a note', when });
     });
     if (a.type === 'markup' && pathOf(a.url || '') === path) {
       (a.notes ?? []).forEach((n) => {
         const sec = String(n.section ?? '').toLowerCase();
         const mine = single || (sec && (card.title.toLowerCase().includes(sec) || sec.includes(card.title.toLowerCase().slice(0, 24))));
-        if (mine && n.note) out.comments.push({ id: `m${k}-${n.n}`, n: n.n, text: n.note, on: n.on ? 'a mark-up pin' : 'the page', when });
+        if (mine && n.note) out.comments.push({ id: `m${k}-${n.n}`, n: n.n, text: spell(n.note), on: n.on ? 'a mark-up pin' : 'the page', when });
       });
     }
   });
@@ -282,6 +301,33 @@ const age = (ms) => {
   return h >= 48 ? `${Math.floor(h / 24)} days` : h >= 1 ? plural(h, 'hour') : 'under an hour';
 };
 
+// NavList has no second line and its badge is set in the number face, so the row carries only a ✓ once answered;
+// the kind of answer is the stage's "Decide: …" line and the pin count heads Comments
+const kindOf = (p) => (p.answer ? '✓' : undefined);
+
+/** How many rows sit below the fold of a scrolling box, so a cut row always says there is more. */
+function useBelow(ref, rows, deps) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const count = () => {
+      const foot = el.getBoundingClientRect().bottom;
+      setN([...el.querySelectorAll(rows)].filter((r) => r.getBoundingClientRect().bottom > foot + 1).length);
+    };
+    count();
+    el.addEventListener('scroll', count, { passive: true });
+    const ro = new ResizeObserver(count);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', count);
+      ro.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return n;
+}
+
 const asked = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '');
 const linkTo = (id, n) => `#/playground?pick=${encodeURIComponent(id)}${n ? `&option=${n + 1}` : ''}`;
 
@@ -320,7 +366,9 @@ export default function PlaygroundPicks({ onTry }) {
   const stripBox = useRef(null);
   const headBox = useRef(null);
   const touch = useRef(null);
-  const [room, setRoom] = useState(null); // the stage's room: width, and height in the wide layout
+  const [room, setRoom] = useState(null);
+  const listBox = useRef(null);
+  const notesBox = useRef(null); // the stage's room: width, and height in the wide layout
 
   const shown = useMemo(() => (picks ?? []).filter((p) => !filter || FILTERS.find((f) => f.id === filter).test(p)), [picks, filter]);
   const pick = shown.find((p) => p.id === at) ?? shown[0] ?? null;
@@ -330,6 +378,9 @@ export default function PlaygroundPicks({ onTry }) {
   const draft = (pick && drafts[pick.id]) || { thumb: {}, pins: [] };
   const setDraft = (fn) => pick && setDrafts((all) => ({ ...all, [pick.id]: fn(all[pick.id] ?? { thumb: {}, pins: [] }) }));
   const mark = option?.letter ?? `${i + 1}`;
+
+  const pickMore = useBelow(listBox, 'nav a', [picks, filter, wide, phone]);
+  const notesMore = useBelow(notesBox, 'ol[aria-label="Comments"] > li', [picks, at, filter, wide, phone, opt]);
 
   // the selected pick has its own link, so a view can be shared
   useEffect(() => {
@@ -448,7 +499,10 @@ export default function PlaygroundPicks({ onTry }) {
       setSent('failed');
     }
   }
-  const suggestion = pinsHere.find((p) => p.note.trim())?.note.trim() || pick.comments[pick.comments.length - 1]?.text || '';
+  // the likely next question, never her own note played back: the newest pin to act on, else a plain ask
+  const lastPin = [...pick.comments].reverse().find((c) => c.n);
+  const other = pick.options.find((o) => o.letter && o.letter !== mark)?.letter;
+  const suggestion = lastPin ? `Can you fix pin ${lastPin.n} on ${pick.thumbs ? 'this' : mark}?` : other ? `What would make ${mark} better than ${other}?` : 'What would make this look right?';
   const askBella = (t) => {
     const q = (t || suggestion).trim();
     if (!q) return;
@@ -475,7 +529,7 @@ export default function PlaygroundPicks({ onTry }) {
   // how fresh it is: the time it was read, and Refresh; the last reading with its time when the board is down
   const freshness = (
     <Flow direction="row" gap={8} align="center" justify="between" wrap>
-      <TextStack subtitle={cached ? `Board down · read ${clock(readAt)}` : `Read at ${clock(readAt)}`} />
+      <TextStack subtitle={`${filter === 'open' ? 'Waiting on you' : filter ? FILTERS.find((f) => f.id === filter).title : 'Everything'} · ${cached ? `board down, read ${clock(readAt)}` : `read ${clock(readAt)}`}`} />
       <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon onClick={again}>
         Refresh
       </Button>
@@ -510,22 +564,22 @@ export default function PlaygroundPicks({ onTry }) {
 
   const list = (
     <Card>
-      <Flow gap={8} scroll style={HOLD}>
-        <SectionHead title="Picks" number={shown.length} words={filter === 'open' ? 'waiting on you' : filter ? `of ${picks.length}` : 'in all'} titleLevel={2} />
+      <Flow gap={8} scroll style={HOLD} ref={listBox}>
+        <SectionHead title="Picks" number={shown.length} showInfo titleLevel={2} />
         {freshness}
-        <Flow direction="row" gap={8} justify="between" align="center" wrap>
-          <TextStack subtitle={filter ? `Showing: ${FILTERS.find((f) => f.id === filter).title.toLowerCase()}` : 'Showing: everything'} />
-          {filter ? (
+        {filter ? (
+          <Flow direction="row">
             <Button variant="tertiary" size="sm" onClick={() => pickFilter(filter)}>
               Show everything
             </Button>
-          ) : null}
-        </Flow>
+          </Flow>
+        ) : null}
+        {pickMore ? <TextStack subtitle={`${pickMore} more below: scroll the list`} /> : null}
         {shown.length ? (
           // one line a row at reading size; the full question is the stage's heading
           <NavList
             label="Your picks"
-            groups={[{ items: shown.map((p) => ({ href: linkTo(p.id), label: short(clean(p.title), 18), badge: p.answer ? '✓' : undefined, current: p.id === pick?.id })) }]}
+            groups={[{ items: shown.map((p) => ({ href: linkTo(p.id), label: clean(p.title), badge: kindOf(p), current: p.id === pick?.id })) }]}
             onNavigate={(href, e) => {
               e.preventDefault();
               choose(decodeURIComponent(new URLSearchParams(href.split('?')[1]).get('pick')));
@@ -611,7 +665,7 @@ export default function PlaygroundPicks({ onTry }) {
           <div ref={strip} onKeyDown={onKey} {...swipe}>
             <Flow direction="row" gap={16} wrap aria-label="Options: arrow keys move between them">
               {pick.options.map((o, k) => (
-                <VariantTile key={`${o.letter ?? ''}${k}`} label={short(o.letter ? `${o.letter} · ${o.short}` : o.short, 28)} selected={k === i} onClick={() => (setOpt((x) => ({ ...x, [pick.id]: k })), setMarking(false))}>
+                <VariantTile key={`${o.letter ?? ''}${k}`} label={o.letter ? `${o.letter} · ${o.short}` : o.short} selected={k === i} onClick={() => (setOpt((x) => ({ ...x, [pick.id]: k })), setMarking(false))}>
                   {o.img ? <img src={o.img} alt="" width={144} height={72} style={{ objectFit: 'cover', objectPosition: 'left top' }} /> : null}
                 </VariantTile>
               ))}
@@ -627,7 +681,8 @@ export default function PlaygroundPicks({ onTry }) {
     <Card>
       <SectionHead title={pick.thumbs ? 'Comments' : `Comments on ${mark}`} number={pick.comments.length + pinsHere.length || undefined} titleLevel={2} />
       <Flow gap={16} scroll={wide} style={HOLD}>
-        <Flow gap={8} scroll={wide} style={HOLD} aria-label="Comments, scrolls on its own" tabIndex={wide ? 0 : undefined}>
+        {notesMore ? <TextStack subtitle={`${notesMore} more below: scroll the comments`} /> : null}
+        <Flow gap={8} scroll={wide} style={HOLD} aria-label="Comments, scrolls on its own" tabIndex={wide ? 0 : undefined} ref={notesBox}>
           {pick.comments.length || pinsHere.length ? (
             <Flow as="ol" gap={8} aria-label="Comments">
               {/* the note runs the card's full width under its pin, so it reads at 45 characters or more a line */}
@@ -667,7 +722,7 @@ export default function PlaygroundPicks({ onTry }) {
               Post
             </Button>
           </Flow>
-          <Input label="Ask BELLA for a change" value={ask} onChange={setAsk} placeholder={suggestion ? undefined : 'Ask for a change'} suggestion={suggestion ? short(suggestion, 60) : undefined} onSend={askBella} sendLabel="Ask BELLA" />
+          <Input label="Ask BELLA for a change" value={ask} onChange={setAsk} suggestion={suggestion} onSend={askBella} sendLabel="Ask BELLA" />
         </Flow>
       </Flow>
     </Card>
@@ -700,8 +755,7 @@ export default function PlaygroundPicks({ onTry }) {
             <Flow fit="rest">
               <Flow span={12}>{centre}</Flow>
             </Flow>
-            {/* a little more room for the comments than the stage, so a note reads at 45 characters or more */}
-            <Flow fit="rest" style={{ flexGrow: 1.15 }}>
+            <Flow fit="rest">
               <Flow span={12}>{right}</Flow>
             </Flow>
           </Flow>
