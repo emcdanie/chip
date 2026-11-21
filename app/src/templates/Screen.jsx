@@ -50,12 +50,12 @@ import './Screen.css';
 /* The rail's places, in Figma's order. Pages not yet rebuilt open the old
  * app, which stays beside the new routes until Elleta has seen that list. */
 const PLACES = [
-  // Home has no page of its own yet (Figma Home waits on Elleta's pick), so it
-  // opens Work, the board; Work is a project view, so it marks Projects (Figma).
+  // Home opens Figma's Home placeholder (Flow 8) until its content is picked;
+  // Work is a project view, so it marks Projects (Figma).
   // Projects opens the project's overview (Health), and every other project
   // view marks Projects: one current item, the one you are on. Settings holds
   // Connectors (Elleta, 19 Nov: "under Settings, titled Connectors"); there is no Projects page.
-  { id: 'home', label: 'Home', icon: 'Home', href: '#/work' },
+  { id: 'home', label: 'Home', icon: 'Home', href: '#/home' },
   { id: 'projects', label: 'Projects', icon: 'Folder', href: '#/health' },
   { id: 'not-again', label: 'Not again', icon: 'Book', href: '#/not-again' },
   { id: 'team', label: 'Team', icon: 'Group', href: '#/team' },
@@ -298,10 +298,10 @@ export default function Screen({ place, header, tabs, children }) {
         />
         <div className="chip-screen__page">
           <div className="chip-screen__head">
-            {/* project pages carry New task, as Figma; the health bar only on the Health tab (Elleta, 20 Nov: "Take it off"); rail pages (Team, Not again) carry neither */}
+            {/* project pages carry New task, as Figma; the health bar only on the Health tab (Elleta, 20 Nov: "Take it off"); Home carries New task too (Figma Flow 8); other rail pages (Team, Not again) carry neither */}
             {/* on a project's tabs the project name ("CHIP") is PageHeader size project, 28 on 36, so the tab's own
                 subject leads (batch 4, published 22 Nov); every other page keeps size page, 40 on 48 */}
-            <PageHeader {...(place === 'projects' ? { size: 'project', ...(tabs?.value === 'health' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header } : header)} />
+            <PageHeader {...(place === 'projects' ? { size: 'project', ...(tabs?.value === 'health' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header } : place === 'home' ? { actions: <NewTask />, ...header } : header)} />
             {tabs ? (
               <Tabs tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}

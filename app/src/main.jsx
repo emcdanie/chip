@@ -15,6 +15,7 @@ import Foundations from './pages/Foundations.jsx';
 import Team from './pages/Team.jsx';
 import Health from './pages/Health.jsx';
 import Work from './pages/Work.jsx';
+import Home from './pages/Home.jsx';
 import Components from './pages/Components.jsx';
 import { warmPages } from './templates/useCached.js';
 import { openAtTop } from './templates/Screen.jsx';
@@ -51,6 +52,7 @@ function Root() {
   // The root opens the new shell on Work (19 Nov audit); the old app's
   // Overview stays at #/health-old until Elleta has decided on it.
   if (hash === '' || hash === '#' || hash === '#/') return <Work />;
+  if (hash === '#/home') return <Home />;
   if (hash === '#/not-again') return <NotAgain />;
   if (hash.split('?')[0] === '#/playground') return <Playground />;
   if (hash.split('?')[0] === '#/team') return <Team />;
