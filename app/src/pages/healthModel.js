@@ -46,6 +46,7 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
   const contrast = rows.find((r) => r.id === 'contrast');
   return {
     n,
+    components,
     rows,
     // parts with at least one gap: the same count Components shows as Needs work
     health: n ? { pct: Math.round((passed / total) * 100), passed, total, failing: rows.filter((r) => r.missing.length), needsWork: new Set(rows.flatMap((r) => r.missing)).size } : null,

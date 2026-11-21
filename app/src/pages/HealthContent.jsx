@@ -44,40 +44,18 @@ function NoData({ title, icon, context, caption, button }) {
   return <StatCard title={title} icon={icon} tone="neutral" chart="empty" context={context} caption={caption} button={button} />;
 }
 
-/* Drift from BELLA as a Stat card (21 Nov publish): how many parts differ from
-   Figma, the worst named, when it was compared and the action. Real data from
-   /figma-baseline; with no baseline, the empty card (0 of the parts, her A). */
+/* Drift from BELLA, in one place (her note, 22 Nov: "we have drift in two places"): how many parts differ
+   from Figma, read from BELLA's specs (each spec lists its own Figma vs code mismatches, built by the parts
+   session from a Figma read), so it needs no Figma key here. A token name with the same value in Chip is
+   not drift. The worst parts are named; the card opens the worst one. */
 const SHOW = 3;
-function DriftCard() {
-  const { data, reload } = useCached(['/figma-baseline']);
-  const [busy, setBusy] = useState(false);
-  const base = data?.[0] ?? null;
-  const rows = (base?.rows ?? []).filter((r) => r.found);
-  const differ = rows.filter((r) => r.failing.length).sort((a, b) => (a.score ?? 0) - (b.score ?? 0));
-  const running = busy || !!base?.running;
-  const compare = () => {
-    setBusy(true);
-    fetch('/figma-baseline/run', { method: 'POST', headers: { 'content-type': 'application/json' } })
-      .catch(() => {})
-      .finally(() => {
-        setBusy(false);
-        reload();
-      });
-  };
-  const button = (
-    <Button variant="secondary" size="sm" onClick={compare} disabled={running}>
-      {running ? 'Comparing…' : 'Compare'}
-    </Button>
-  );
-  // Figma couldn't be read for any part: nothing was measured, so no 0 that reads as "no drift" (data check, 22 Nov;
-  // rule Real: "Where nothing is measured it says Not measured")
-  // never compared at all is the same: Not measured
-  if (!base?.at || (!rows.length && base.notRead === base.total))
-    // the caption says when it was compared, or that it hasn't been
-    return <NoData title="Drift from BELLA" icon="Activity" context={base?.at ? "Figma couldn't be read for any part" : 'Parts that differ from Figma'} caption={base?.at ? `Tried ${new Date(base.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, not compared` : 'Not compared yet'} button={button} />;
-  // Figma was read but holds none of the parts: measured, and none to compare
-  if (!rows.length) return <NoData title="Drift from BELLA" icon="Activity" context="Figma had none of the parts" caption={`Compared ${new Date(base.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`} button={button} />;
-  const worst = differ.slice(0, SHOW).map((r) => (r.score != null ? `${r.name} ${r.score}%` : r.name));
+function DriftCard({ components }) {
+  const { data } = useCached(['/drift']);
+  const d = data?.[0] ?? null;
+  if (!d?.compared) return <NoData title="Drift from BELLA" icon="Activity" context="Parts that differ from Figma" caption={d ? 'No spec read from Figma yet' : 'Reading the specs'} />;
+  const differ = d.parts.filter((p) => p.compared && p.differ);
+  const worst = differ.slice(0, SHOW).map((p) => `${p.name} ${p.differ}`);
+  const idOf = (name) => components.find((c) => c.name === name)?.id ?? name;
   return (
     <StatCard
       title="Drift from BELLA"
@@ -85,10 +63,10 @@ function DriftCard() {
       tone={differ.length ? 'warning' : 'success'}
       chart="none"
       value={differ.length}
-      unit={`of ${rows.length}`}
-      context={differ.length ? `Most: ${worst.join(', ')}${differ.length > SHOW ? ` +${differ.length - SHOW}` : ''}` : 'No part differs from Figma'}
-      caption={`Compared ${new Date(base.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
-      button={button}
+      unit={`of ${d.compared}`}
+      context={differ.length ? `Most differences: ${worst.join(', ')}${differ.length > SHOW ? ` +${differ.length - SHOW}` : ''}` : 'No part differs from Figma'}
+      caption={`Compared ${new Date(d.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · ${d.total - d.compared} not read from Figma`}
+      href={differ.length ? `#/components/${encodeURIComponent(idOf(differ[0].name))}` : undefined}
     />
   );
 }
@@ -132,7 +110,6 @@ function GateCard({ gate, run, onOpen }) {
 const CHECK_VIEWS = [
   { value: 'coverage', label: 'Coverage' },
   { value: 'gate', label: 'Gate runs' },
-  { value: 'drift', label: 'Drift' },
 ];
 
 /* Needs you (Figma Flow 2, screen 1, the card at the foot): the three checks with the most parts to fix,
@@ -247,7 +224,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
       <Flow span={4} gap={24} fill>
         {/* ↗ opens the gate's recorded runs in Component checks and brings that card into view (click test 22 Nov: it switched the view out of sight, so it read as doing nothing) */}
         <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => (setView('gate'), requestAnimationFrame(() => [...document.querySelectorAll('[role="heading"], h2, h3')].find((h) => h.textContent === 'Component checks')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))) : undefined} />
-        <DriftCard />
+        <DriftCard components={model.components ?? []} />
       </Flow>
       <Flow span={4} gap={24} fill>
         {contrast ? (
@@ -289,7 +266,6 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             // what the view reports, each number once
             const line =
               view === 'gate' ? `${runs} recorded ${runs === 1 ? 'run' : 'runs'} · ${days.length} ${days.length === 1 ? 'day' : 'days'} · GitHub CI and CHIP · target ${TARGET}%`
-              : view === 'drift' ? `Each part against its Figma set · ${n} parts`
               : (
                     // the target said once, in the line, with the blue marker (no legend under the rows)
                     <>
@@ -310,9 +286,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
               />
             );
           })()}
-          {view === 'drift' ? (
-            <EmptyState size="lane" mark="🧭" title="Nothing compared yet" line="Take a Figma baseline and I'll spot what drifted." />
-          ) : view === 'gate' && !model.gateDays.length ? (
+          {view === 'gate' && !model.gateDays.length ? (
             <EmptyState size="lane" mark="🚦" title="No run recorded" line="Neither GitHub CI nor CHIP has a gate run on record yet." />
           ) : view === 'gate' ? (
             // 24 between check rows, more than anything inside a row, so each row reads as its own group

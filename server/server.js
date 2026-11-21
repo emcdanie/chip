@@ -1,5 +1,6 @@
 // CHIP local server: serves the app and answers POST /ask with the local
 // model over the local index. Nothing here calls a paid or remote API.
+import { readDrift } from './lib/drift.mjs';
 import express from 'express';
 import cors from 'cors';
 import { join, resolve, relative } from 'node:path';
@@ -23,7 +24,7 @@ import { attachTerminal, repoList } from './lib/term.mjs';
 import { BASE as checksBase, gateLog, listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
 import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
-import { readMoves, saveMove, workLanes } from './lib/lanes.mjs';
+import { saveBoard, workBoard, workLanes } from './lib/lanes.mjs';
 import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
@@ -252,6 +253,8 @@ app.get('/figma-lint/:id', async (req, res) => {
 // Compare with Figma for every component: the baseline the Connectors page shows
 const propsOf = (c) => specOf(c).props?.map((p) => p.name) ?? c.props ?? [];
 app.get('/figma-baseline', (_req, res) => res.json(readBaseline()));
+// Drift from Figma read from BELLA's specs (each lists its own Figma vs code mismatches): no Figma key needed
+app.get('/drift', (_req, res) => res.json(readDrift()));
 app.post('/figma-baseline/run', (req, res) => {
   if (!sameApp(req, res)) return;
   res.json(runBaseline(propsOf));
@@ -498,12 +501,20 @@ app.post('/review/:check/keep', (req, res) => {
 // Runs: a brief handed to Claude Code headless, reported back as an outcome
 // base: today's BELLA branch, so a card can say when a run started from another one (data check, 22 Nov)
 // Work's Agent, Gate and Ready lanes beyond CHIP's runs: open PRs by their CI, sessions at work (read only)
-app.get('/work/lanes', async (_req, res) => res.json({ ...(await workLanes()), moves: readMoves() }));
-// where she put a card on the board, kept between visits
-app.post('/work/moves', (req, res) => {
+app.get('/work/lanes', async (_req, res) => res.json(await workLanes()));
+// the board in her Notion lanes: sessions and their steps, the progress board, components that need work, her order
+app.get('/work/board', (_req, res) => {
+  try {
+    res.json(workBoard());
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+// where she put a card and in what order (and paused), kept between visits; agents read it from GET /work/board
+app.post('/work/board', (req, res) => {
   if (!sameApp(req, res)) return;
   try {
-    res.json({ moves: saveMove({ id: req.body?.id, lane: req.body?.lane ?? null }) });
+    res.json({ board: saveBoard({ id: req.body?.id, lane: req.body?.lane ?? null, before: req.body?.before ?? null, paused: req.body?.paused === true }) });
   } catch (e) {
     errorOut(res, e);
   }
