@@ -9,6 +9,7 @@
 // Ask uses Input's own Send button.
 // Actions that run the agent (Ask) wait for the Menu part for the model menu
 // (Auto, local first).
+import Marker from '@bella/components/Marker/Marker';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -265,8 +266,7 @@ const firstSentence = (t) => {
 };
 
 /* Bold is for key words only (Elleta, 22 Nov: "only keywords, which were supposed to have the blue
-   underline thing"): a record's title reads regular and its one key word is bold. The blue marker waits on
-   BELLA's marker part (batch 5, coordinator 22 Nov: no CHIP class for it); wire it here when it is published.
+   underline thing"): a record's title reads regular and its one key word is bold, with BELLA's blue Marker.
    The key word is the part the record names (git's own list of parts it touched), else the area before
    the title's colon ("Scripts: …"); none when neither is there. Never more than one per line. */
 const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -283,7 +283,7 @@ function Keyed({ text, k }) {
   return (
     <>
       {t.slice(0, at)}
-      <strong>{t.slice(at, at + k.length)}</strong>
+      <Marker>{t.slice(at, at + k.length)}</Marker>
       {t.slice(at + k.length)}
     </>
   );
