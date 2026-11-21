@@ -2,7 +2,7 @@
    number or the outcome, so a line can be scanned instead of read. Never the part name, the area before a
    title's colon, or a label. Plain rule, no model, tested in server/test/key-phrase.test.mjs:
    1. drop the "Area: " before a title's colon;
-   2. split what is left into clauses at commas and semicolons;
+   2. split what is left into clauses at commas, semicolons and colons;
    3. in each clause, a number wins ("10 commits", "4.5:1", "90%");
       else a clause of up to 4 words is marked whole ("no sentence is bold");
       else the clause's verb and what follows it ("opens its plan first", "no longer blanks the app"),
@@ -40,7 +40,7 @@ function inClause(clause) {
   // a number, with the word it counts ("10 commits", "25 colours"), never "25 in"
   // a number, with the word it counts ("10 commits", "25 colours"), never "25 in" or "38 opens"; a time
   // ("10:02") is not a count. A bare number gives way to the clause's verb ("drop to 14").
-  const num = clause.text.match(/\b\d+(?:\.\d+)?(?::1)?%?(?:\s+of\s+\d+)?(?:\s+(?!(?:in|on|at|to|of|and|the|a|from|for|by|with)\b)[A-Za-z]+)?/);
+  const num = clause.text.match(/\b\d+(?:\.\d+)?(?::1)?%?(?:\s+of\s+\d+)?(?:\s+(?!(?:in|on|at|to|of|and|the|a|from|for|by|with|now|again|still|is|are|not)\b)[A-Za-z]+)?/);
     const inBracket = num && (clause.text.slice(0, num.index).match(/\(/g) ?? []).length > (clause.text.slice(0, num.index).match(/\)/g) ?? []).length;
   if (num && !inBracket && !/^\d+:\d\d\b/.test(clause.text.slice(num.index))) {
     const [n, counted] = num[0].replace(/[.,;:]+$/, '').split(/\s+(?=[A-Za-z]+$)/);
@@ -68,7 +68,8 @@ function inClause(clause) {
   while (first < ws.length - 1 && ['the', 'a', 'an', 'and'].includes(bare(ws[first].w))) first++;
   if (ws.length - first <= 4 && ['no', 'every', 'nothing'].includes(bare(ws[first].w))) return span(first, ws.length - 1);
   let s = v;
-  if (WEAK.has(bare(ws[s].w)) && s < ws.length - 1) {
+  // a weak verb is dropped ("sits centred"), except before "as"/"like" ("reads as a phrase")
+  if (WEAK.has(bare(ws[s].w)) && s < ws.length - 1 && !['as', 'like'].includes(bare(ws[s + 1].w))) {
     s++;
     while (s < ws.length - 1 && ['the', 'a', 'an'].includes(bare(ws[s].w))) s++;
   } else while (s < ws.length - 1 && SMALL.has(bare(ws[s].w))) s++;
@@ -89,7 +90,8 @@ export function keyPhrases(line, { names = [], max = 2 } = {}) {
   const area = t.match(/^[^:]{2,32}:\s+/);
   const from = area ? area[0].length : 0;
   const clauses = [];
-  const re = /[^,;]+/g;
+  // clauses end at a comma, a semicolon, or a colon before a space ("4.5:1" and "10:02" stay whole)
+  const re = /(?:[^,;:]|:(?!\s))+/g;
   let m;
   const body = t.slice(from);
   while ((m = re.exec(body))) {

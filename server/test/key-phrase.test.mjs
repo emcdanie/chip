@@ -46,5 +46,7 @@ test('every marked phrase reads as a phrase', () => {
   assert.deepEqual(marked('Reading CHIP gets easier: the one key phrase is bold with a soft underline (new Marker part), slim meta lines (Stat change)'), ['bold']);
   assert.deepEqual(marked('Searching "drawer" now reads 10 of 23 records, not 10 of every record.'), ['10 of 23 records']);
   assert.deepEqual(marked('a marked phrase over four words reads plain.'), ['plain']);
+  assert.deepEqual(marked('Reading: every marked phrase reads as a phrase: no verb joined to a list’s first item, no bare number'), ['reads as a phrase']);
+  assert.deepEqual(marked('Contrast: every pair clears 4.5:1 now'), ['4.5:1']);
   assert.deepEqual(marked('Foundations: Used by nothing in Cards says every card colour is in use and opens the 25 in the Table'), ['says every card colour']);
 });
