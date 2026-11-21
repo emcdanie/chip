@@ -1,8 +1,8 @@
 {
   "source": {
     "repo": "bella",
-    "commit": "8923753",
-    "committedAt": "2026-11-21T09:05:07+01:00"
+    "commit": "35effc1",
+    "committedAt": "2026-11-21T20:43:06+01:00"
   },
   "refs": {},
   "type": {
@@ -64,6 +64,15 @@
       }
     ],
     "sizes": [
+      {
+        "token": "font-size.14",
+        "name": "14",
+        "value": "14px",
+        "min": 14,
+        "max": 14,
+        "fluid": false,
+        "description": "Value: 14 in every mode. Meta lines only (short subtext under a title or value); reading text stays 16."
+      },
       {
         "token": "font-size.16",
         "name": "16",
@@ -446,13 +455,13 @@
     ]
   },
   "tokenized": {
-    "files": 86,
+    "files": 88,
     "rows": [
       {
         "p": "Border",
         "tokens": "11 widths + colour roles",
-        "decl": 145,
-        "ok": 136,
+        "decl": 151,
+        "ok": 142,
         "not": [
           {
             "component": "AnatomyHighlight",
@@ -513,8 +522,8 @@
       {
         "p": "Radius",
         "tokens": 8,
-        "decl": 145,
-        "ok": 144,
+        "decl": 156,
+        "ok": 155,
         "not": [
           {
             "component": "StatusPill",
@@ -527,29 +536,29 @@
       {
         "p": "Padding",
         "tokens": 12,
-        "decl": 130,
-        "ok": 130,
+        "decl": 134,
+        "ok": 134,
         "not": []
       },
       {
         "p": "Gap",
         "tokens": 12,
-        "decl": 174,
-        "ok": 174,
+        "decl": 183,
+        "ok": 183,
         "not": []
       },
       {
         "p": "Font size",
-        "tokens": 9,
-        "decl": 178,
-        "ok": 178,
+        "tokens": 10,
+        "decl": 182,
+        "ok": 182,
         "not": []
       },
       {
         "p": "Line height",
         "tokens": 5,
-        "decl": 129,
-        "ok": 125,
+        "decl": 133,
+        "ok": 129,
         "not": [
           {
             "component": "Avatar",
@@ -580,15 +589,15 @@
       {
         "p": "Shadow",
         "tokens": 1,
-        "decl": 41,
-        "ok": 41,
+        "decl": 42,
+        "ok": 42,
         "not": []
       },
       {
         "p": "Motion",
         "tokens": 14,
-        "decl": 67,
-        "ok": 63,
+        "decl": 80,
+        "ok": 70,
         "not": [
           {
             "component": "BoardLane",
@@ -603,10 +612,46 @@
             "decl": "animation-timeline: scroll(self block)"
           },
           {
+            "component": "DataTable",
+            "file": "src/components/DataTable/DataTable.module.css",
+            "line": 41,
+            "decl": "animation-timeline: --data-table-x"
+          },
+          {
+            "component": "DataTable",
+            "file": "src/components/DataTable/DataTable.module.css",
+            "line": 42,
+            "decl": "animation-fill-mode: both"
+          },
+          {
+            "component": "DataTable",
+            "file": "src/components/DataTable/DataTable.module.css",
+            "line": 43,
+            "decl": "animation-timing-function: linear"
+          },
+          {
+            "component": "DataTable",
+            "file": "src/components/DataTable/DataTable.module.css",
+            "line": 52,
+            "decl": "animation-name: dataTableEdgeIn"
+          },
+          {
+            "component": "DataTable",
+            "file": "src/components/DataTable/DataTable.module.css",
+            "line": 61,
+            "decl": "animation-name: dataTableEdgeOut"
+          },
+          {
             "component": "Drawer",
             "file": "src/components/Drawer/Drawer.module.css",
-            "line": 86,
+            "line": 91,
             "decl": "animation-name: drawerOutRight"
+          },
+          {
+            "component": "Drawer",
+            "file": "src/components/Drawer/Drawer.module.css",
+            "line": 94,
+            "decl": "animation-name: drawerOutBottom"
           },
           {
             "component": "TypingDots",
@@ -619,7 +664,7 @@
     ]
   },
   "tiers": {
-    "definitions": 216,
+    "definitions": 217,
     "theme": 131,
     "component": 31
   }

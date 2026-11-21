@@ -1,7 +1,7 @@
 // The one place CHIP finds BELLA (19 Nov 2026, build review: half the entry
 // points fell back to ~/DEV/bella, an old feat/chip-components checkout with
 // old tokens and no Lexend). Every build, script and the server resolve BELLA
-// here: BELLA_DIR when set, else ~/DEV/bella-chip-theme. It must exist and
+// here: BELLA_DIR when set, else ~/DEV/bella-parts (chip/parts-dev, the one BELLA, 22 Nov). It must exist and
 // sit on a chip/* branch (the BELLA line CHIP builds against), or this throws
 // with the reason. The first call prints which BELLA was used.
 import { execFileSync } from 'node:child_process';
@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-export const DEFAULT_BELLA = join(homedir(), 'DEV', 'bella-chip-theme');
+export const DEFAULT_BELLA = join(homedir(), 'DEV', 'bella-parts');
 // parts and props CHIP's pages need, checked on every resolve: [file, a word it must hold]
 const NEEDS = [
   ['src/components/NavItem/NavItem.tsx'],
