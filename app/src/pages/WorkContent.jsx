@@ -308,10 +308,10 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
           </Flow>
         </Flow>
         <Flow direction="row" gap={8} align="center" justify="end" wrap stretch={phone}>
-          <div className="chip-pop">
+          <div className="chip-pop" style={phone ? { position: 'static' } : undefined}>
             <Button variant="tertiary" size="sm" iconOnly icon="FilterList" ariaLabel="Filter" ariaExpanded={tool === 'filter'} onClick={() => setTool((t) => (t === 'filter' ? null : 'filter'))} />
             {tool === 'filter' ? (
-              <div className="chip-pop__menu">
+              <div className="chip-pop__menu" style={phone ? { marginInlineStart: 'var(--spacing-16)' } : undefined}>
                 <Menu label="Filter" onClose={() => setTool(null)}>
                   <MenuItem label="Everything" icon={filter ? undefined : 'Check'} onSelect={() => (setFilter(null), setTool(null))} />
                   <MenuItem label={`Needs you · ${waiting}`} icon={filter === 'needs' ? 'Check' : undefined} onSelect={() => (setFilter('needs'), setTool(null))} />
@@ -328,10 +328,10 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
               </div>
             ) : null}
           </div>
-          <div className="chip-pop">
+          <div className="chip-pop" style={phone ? { position: 'static' } : undefined}>
             <Button variant="tertiary" size="sm" iconOnly icon="NavArrowUpDown" ariaLabel={`Sort: ${SORTS.find((s) => s.value === sort).label}`} ariaExpanded={tool === 'sort'} onClick={() => setTool((t) => (t === 'sort' ? null : 'sort'))} />
             {tool === 'sort' ? (
-              <div className="chip-pop__menu">
+              <div className="chip-pop__menu" style={phone ? { marginInlineStart: 'var(--spacing-16)' } : undefined}>
                 <Menu label="Sort" onClose={() => setTool(null)}>
                   {SORTS.map((s) => (
                     <MenuItem key={s.value} label={s.label} icon={sort === s.value ? 'Check' : undefined} onSelect={() => (setSort(s.value), setTool(null))} />
