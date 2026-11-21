@@ -23,6 +23,7 @@ import Notification from '@bella/components/Notification/Notification';
 import Pin from '@bella/components/Pin/Pin';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import Select from '@bella/components/Select/Select';
+import Combobox from '@bella/components/Combobox/Combobox';
 import Stage from '@bella/components/Stage/Stage';
 import { CONTROLS, SPECIMENS, THEME } from '../specimens.jsx';
 import { useComponents } from './componentsModel.js';
@@ -201,6 +202,36 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
     ...PARTS.map((n) => ({ value: `part:${n}`, label: `Parts › ${n}` })),
     ...(pages ?? []).map((p) => ({ value: `page:${p.route}`, label: `Pages › ${p.label}` })),
   ];
+  // Show is a search, not a 40-row list (her note, 22 Nov: "too hard to select"): type to narrow, grouped
+  // Recent, Parts and Pages; the last five picked come first
+  const [q, setQ] = useState('');
+  const [recent, setRecent] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('chip.playground.recent') ?? '[]');
+    } catch {
+      return [];
+    }
+  });
+  const labelOf = (v) => (v ? showOptions.find((o) => o.value === v)?.label : null)?.replace(/^(Parts|Pages) › /, '') ?? null;
+  const match = (label) => !q.trim() || label.toLowerCase().replace(/[\s_-]+/g, '').includes(q.toLowerCase().replace(/[\s_-]+/g, ''));
+  const opt = (o) => ({ id: o.value, label: o.label.replace(/^(Parts|Pages) › /, ''), meta: o.value.startsWith('part:') ? 'Part' : 'Page' });
+  const real = showOptions.filter((o) => o.value);
+  const showGroups = [
+    { id: 'recent', label: 'Recent', options: q.trim() ? [] : recent.map((v) => real.find((o) => o.value === v)).filter(Boolean).map(opt) },
+    { id: 'parts', label: 'Parts', options: real.filter((o) => o.value.startsWith('part:') && match(o.label.slice(8))).map(opt) },
+    { id: 'pages', label: 'Pages', options: real.filter((o) => o.value.startsWith('page:') && match(o.label.slice(8))).map(opt) },
+  ];
+  const pickShow = (o) => {
+    setQ('');
+    const next = [o.id, ...recent.filter((v) => v !== o.id)].slice(0, 5);
+    setRecent(next);
+    try {
+      localStorage.setItem('chip.playground.recent', JSON.stringify(next));
+    } catch {}
+    onShow(o.id);
+    // the field gives up focus so its placeholder names what is showing
+    document.activeElement?.blur?.();
+  };
   const onShow = (v) => {
     if (!v) return;
     setNone(false);
@@ -283,7 +314,16 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
           {/* Figma: one Show select; a page also names its project */}
           {!part && !none && projects?.length ? <Select label="Project" value={project} onChange={onProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
           <Flow>
-            <Select label="Show" value={showValue} onChange={onShow} options={showOptions} />
+            <Combobox
+              label="Show"
+              search
+              value={q}
+              onChange={setQ}
+              groups={showGroups}
+              onSelect={pickShow}
+              placeholder={labelOf(showValue) ?? "Find a part or a page"}
+              noResults={`No part or page called “${q.trim()}”`}
+            />
           </Flow>
         </Flow>
         <Flow direction="row" gap={12} wrap>
@@ -331,16 +371,22 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
       ) : null}
 
       {part || none ? null : src ? (
-        <StageSlot
-          src={src}
-          proxy={map.proxy}
-          sections={(map.sections ?? []).map((sec) => sec.id)}
-          title={`${map.name} · ${page?.label ?? route}, live`}
-          width={width}
-          notes={notes}
-          picking={marking}
-          onPicked={onPicked}
-        />
+        // the stage fills the window from where it starts and the page scrolls inside it, so the control bar
+        // never scrolls away (her note, 22 Nov: "I can scroll the whole page")
+        <Flow fit="rest">
+          <Flow span={12}>
+            <StageSlot
+              src={src}
+              proxy={map.proxy}
+              sections={(map.sections ?? []).map((sec) => sec.id)}
+              title={`${map.name} · ${page?.label ?? route}, live`}
+              width={width}
+              notes={notes}
+              picking={marking}
+              onPicked={onPicked}
+            />
+          </Flow>
+        </Flow>
       ) : !map ? <EmptyState size="lane" title="Loading the page" /> : null}
 
       {/* Figma "controls open": the part's props as rows, value on the right; a click moves to the next value */}

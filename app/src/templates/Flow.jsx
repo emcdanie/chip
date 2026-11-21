@@ -35,6 +35,8 @@ const GAPS = new Set([0, 4, 8, 12, 16, 24]);
    so a list and its detail get the whole height under the tabs once the content scrolls them to the top
    (independent check, 22 Nov: at 1100 by 800 the panes were about 250 tall when they filled only what was
    left under the search). Watches the box, so it follows the window. */
+/* fit="rest": from where it starts to the box's foot, so nothing above it scrolls away (the Playground's
+   stage under its control bar; her note, 22 Nov: "I can scroll the whole page"). */
 function useFull(on) {
   const ref = useRef(null);
   const [h, setH] = useState(null);
@@ -45,13 +47,18 @@ function useFull(on) {
     const measure = () => {
       const cs = getComputedStyle(sc);
       const foot = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--spacing-16')) || 16;
-      const v = Math.max(0, Math.round(sc.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - foot));
+      const v =
+        on === 'rest'
+          ? Math.max(0, Math.round(sc.clientHeight - parseFloat(cs.paddingBottom) - (ref.current.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop)))
+          : Math.max(0, Math.round(sc.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - foot));
       setH((was) => (was === v ? was : v));
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(sc);
-    return () => ro.disconnect();
+    if (on === 'rest') ro.observe(document.body);
+    window.addEventListener('resize', measure);
+    return () => (ro.disconnect(), window.removeEventListener('resize', measure));
   }, [on]);
   return [ref, on && h != null ? { blockSize: `${h}px` } : undefined];
 }

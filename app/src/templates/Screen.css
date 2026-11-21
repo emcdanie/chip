@@ -223,6 +223,7 @@
   align-items: stretch;
   min-block-size: 0;
 }
+.chip-flow--fit > .chip-span-12 { grid-column: 1 / -1; }
 .chip-flow--fit > .chip-span-5 { grid-column: span 5; }
 .chip-flow--fit > .chip-span-7 { grid-column: span 7; }
 .chip-flow--fit > * { min-block-size: 0; }
