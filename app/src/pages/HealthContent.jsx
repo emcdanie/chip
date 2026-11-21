@@ -237,7 +237,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             const runs = days.reduce((t, d) => t + d.runs, 0);
             // what the view reports, each number once
             const line =
-              view === 'gate' ? `${runs} ${runs === 1 ? 'commit' : 'commits'} through the gate · ${days.length} ${days.length === 1 ? 'day' : 'days'} · target ${TARGET}%`
+              view === 'gate' ? `${runs} recorded ${runs === 1 ? 'run' : 'runs'} · ${days.length} ${days.length === 1 ? 'day' : 'days'} · GitHub CI and CHIP · target ${TARGET}%`
               : view === 'drift' ? `Each part against its Figma set · ${n} parts`
               : `Seven checks, six measured · ${n} parts · target ${TARGET}%`;
             // her 21 Nov pick (question 1 A, "the control at teh top right and the feedback under?"): the
@@ -256,7 +256,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
           {view === 'drift' ? (
             <EmptyState size="lane" mark="🧭" title="Nothing compared yet" line="Take a Figma baseline and I'll spot what drifted." />
           ) : view === 'gate' && !model.gateDays.length ? (
-            <EmptyState size="lane" mark="🚦" title="No gate runs yet" line="Run the gate once and I'll keep the tally." />
+            <EmptyState size="lane" mark="🚦" title="No run recorded" line="Neither GitHub CI nor CHIP has a gate run on record yet." />
           ) : (
             // 24 between check rows, more than anything inside a row, so each row reads as its own group
             // (READ FIRST [10]: "24 between groups"; audit 3, item 12). The row's own layout is BELLA's Check row.

@@ -20,13 +20,13 @@ import { barState, barStream, barImg } from './lib/bar.mjs';
 import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
 import { specOf, figmaLint, readBaseline, runBaseline } from './lib/spec-lint.mjs';
 import { attachTerminal, repoList } from './lib/term.mjs';
-import { BASE as checksBase, listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
+import { BASE as checksBase, gateLog, listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
 import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou } from './lib/needs.mjs';
 import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, searchHistory } from './lib/history.mjs';
-import { systemMap } from './lib/map.mjs';
+import { ciRuns, systemMap } from './lib/map.mjs';
 import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
 import { appOrigins, onlyChip } from './lib/origin.mjs';
 import { playMap, playPages, playTarget, startPlayProxy, PROXY } from './lib/play.mjs';
@@ -451,7 +451,8 @@ app.post('/cmd', (req, res) => {
 const errorOut = (res, e, code = 400) => res.status(code).json({ error: e.message });
 app.get('/checks', (_req, res) => {
   const rerun = refreshIfStale();
-  res.json({ ...listChecks({ waiting: waitingChecks(), fixable: fixableChecks() }), rerun });
+  // the gate's recorded runs for Health's Gate runs view: CHIP's logged gate checks and GitHub's CI runs, never re-run
+  res.json({ ...listChecks({ waiting: waitingChecks(), fixable: fixableChecks() }), rerun, log: gateLog(), ci: ciRuns() });
 });
 app.post('/checks/:id/run', (req, res) => {
   if (!sameApp(req, res)) return;

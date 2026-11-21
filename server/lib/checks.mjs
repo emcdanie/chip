@@ -7,7 +7,7 @@
 // Passed, Failed, Waiting on you (plus Running and Not run yet).
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createConnection } from 'node:net';
@@ -244,9 +244,55 @@ export function readResult(id) {
     return null;
   }
 }
+/* Every run is also logged, one line each, so the gate's history is what was recorded, never re-worked out
+   later on old commits (data check, 22 Nov: Gate runs re-ran two scripts on 30 old commits). */
+const LOG = join(CHECKS_DIR, 'log.jsonl');
 function save(id, r) {
   mkdirSync(CHECKS_DIR, { recursive: true });
   writeFileSync(resultFile(id), `${JSON.stringify(r, null, 2)}\n`);
+  if (r.ranAt) appendFileSync(LOG, `${JSON.stringify({ id, ok: !!r.ok, ranAt: r.ranAt, commit: r.commit ?? null, base: r.base ?? null })}\n`);
+}
+
+/** Records a story run made outside CHIP (a parts session's `story-run-<date>.json`: storybook build, then
+ *  test-storybook and audit-quality-docs, as audit:visual in the gate) as the Stories check's result, with that
+ *  run's own time and commit, so CHIP shows the real counts without re-running them (coordinator, 22 Nov). */
+export function recordStoryRun(run, file) {
+  const t = run.totals ?? {};
+  const prev = readResult('visual');
+  const suites = Object.fromEntries(Object.values(run.parts ?? {}).filter((p) => p.file).map((p) => [p.file, p.failed ? 'fail' : 'pass']));
+  const result = {
+    id: 'visual',
+    ok: !t.failed && !t.snapshotsFailed,
+    summary: `Tests: ${t.passed} passed, ${t.tests} total · snapshots: ${t.snapshots - (t.snapshotsFailed ?? 0)} passed, ${t.snapshots} total`,
+    failures: Object.entries(run.parts ?? {}).filter(([, p]) => p.failed).map(([name, p]) => `${name}: ${p.failed} of ${p.tests} failed`),
+    suites,
+    log: '',
+    ms: run.runSeconds?.total != null ? run.runSeconds.total * 1000 : null,
+    ranAt: new Date(run.ranAt).toISOString(),
+    commit: run.commit,
+    base: run.branch ?? BASE,
+    source: `${run.how ?? 'story run'} · ${file}`,
+    previous: prev ? { ok: prev.ok, ranAt: prev.ranAt, commit: prev.commit, score: prev.score ?? null } : null,
+  };
+  save('visual', result);
+  return result;
+}
+
+/** The gate checks' recorded runs: the run log, plus each result file's latest and previous run (kept before the
+ *  log existed), one entry per check and time, newest first. Only checks that are part of the gate. */
+export function gateLog() {
+  const gate = new Set(CHECKS.filter((c) => c.gate === true).map((c) => c.id));
+  const seen = new Map();
+  const add = (e) => e?.ranAt && gate.has(e.id) && !seen.has(`${e.id}@${e.ranAt}`) && seen.set(`${e.id}@${e.ranAt}`, { id: e.id, name: byId[e.id]?.name ?? e.id, ok: !!e.ok, ranAt: e.ranAt, commit: e.commit ?? null });
+  try {
+    for (const line of readFileSync(LOG, 'utf8').split('\n')) if (line.trim()) add(JSON.parse(line));
+  } catch {}
+  for (const id of gate) {
+    const r = readResult(id);
+    add(r && { id, ...r });
+    add(r?.previous && { id, ...r.previous });
+  }
+  return [...seen.values()].sort((a, b) => b.ranAt.localeCompare(a.ranAt));
 }
 
 // the last agent bench run, from its results file (read, never re-run)

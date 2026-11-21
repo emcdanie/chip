@@ -49,18 +49,20 @@ const has = (cmd) => {
    the newest run of BELLA's base branch, read with gh run list and kept for five minutes. No gh, no login or no
    run: unknown, said as such. */
 let ciCache = { at: 0, value: null };
-function ciRun() {
+/** GitHub's recorded CI runs of BELLA's base branch, newest first (up to 200); null when gh can't answer. */
+export function ciRuns() {
   if (Date.now() - ciCache.at < 5 * 60 * 1000) return ciCache.value;
   let value = null;
   try {
-    const out = execFileSync('gh', ['run', 'list', '--branch', BASE, '--limit', '1', '--json', 'conclusion,status,createdAt,headSha,workflowName'], { cwd: BELLA, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000 });
-    value = JSON.parse(out)[0] ?? null;
+    const out = execFileSync('gh', ['run', 'list', '--branch', BASE, '--limit', '200', '--json', 'conclusion,status,createdAt,headSha,workflowName'], { cwd: BELLA, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000 });
+    value = JSON.parse(out);
   } catch {
     value = null;
   }
   ciCache = { at: Date.now(), value };
   return value;
 }
+const ciRun = () => ciRuns()?.[0] ?? null;
 function ciNode() {
   const run = ciRun();
   const unpushed = Number(git(['rev-list', '--count', `${BASE}@{upstream}..${BASE}`]) ?? NaN);
@@ -136,7 +138,7 @@ export async function systemMap() {
     // Checks
     node({ id: 'contrast', group: 'Checks', name: 'Contrast pairs', ...((p) => ({ state: p.state, detail: p.line }))(pairsReading()), source: 'scripts/contrast-pairs.mjs (BELLA’s own pairs, as Health reads them)', deps: ['tokens'], action: { type: 'review', check: 'contrast', label: 'Open the review card' } }),
     // a part with no story needs someone, as Health counts it (audit 11), whether or not the visual run has happened
-    node({ id: 'stories', group: 'Checks', name: 'Stories & tests', state: n.withStory < n.components ? 'bad' : fromCheck(ck.visual), detail: `${n.withStory} of ${n.components} components have a story. ${ck.visual?.summary ?? 'Not run yet.'}`, source: 'npm run audit:visual · data/checks/visual.json', deps: ['components'], action: { type: 'run', check: 'visual', label: 'Run the stories' } }),
+    node({ id: 'stories', group: 'Checks', name: 'Stories & tests', state: n.withStory < n.components ? 'bad' : fromCheck(ck.visual), detail: `${n.withStory} of ${n.components} components have a story. ${ck.visual?.summary ? `${ck.visual.summary}, run ${new Date(ck.visual.ranAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} on ${ck.visual.commit}.` : 'Not run yet.'}`, source: 'npm run audit:visual · data/checks/visual.json', deps: ['components'], action: { type: 'run', check: 'visual', label: 'Run the stories' } }),
     node({ id: 'agents', group: 'Checks', name: 'AGENTS.md', state: fromCheck(ck['agents-md']), detail: ck['agents-md']?.summary ?? 'Not run yet.', source: `AGENTS.md · ${lastChange(['AGENTS.md']) ?? ''}`, deps: ['components'] }),
     node({ id: 'gate', group: 'Checks', name: 'Gate', measured: true, state: lastGate.state, detail: lastGate.detail, source: 'npm run gate · the pre-commit hook · CHIP\'s last run of it (/checks)', deps: ['contrast', 'contracts', 'agents', 'tokens', 'stories'] }),
     node({ id: 'bench', group: 'Checks', name: 'Bench', state: ck['bench-static']?.status === 'not-run' ? 'unknown' : ck['bench-static']?.score >= 70 ? 'ok' : 'warn', detail: ck['bench-static']?.summary ?? 'Not run yet.', source: '~/DEV/tools/odsb · data/checks/bench-static.json', deps: ['components', 'agents'], action: { type: 'run', check: 'bench-static', label: 'Run the bench now' } }),

@@ -42,7 +42,6 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
   });
   const total = n * CHECKS.length;
   const passed = rows.reduce((s, r) => s + r.pass, 0);
-  const runs = history.filter((h) => h.gate).sort((a, b) => b.committedAt.localeCompare(a.committedAt));
   const contrast = rows.find((r) => r.id === 'contrast');
   return {
     n,
@@ -52,33 +51,46 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
     // the gate as CHIP last ran it (/checks): its checks by name, the one source System map and Connectors read
     gate: gateFrom(checks?.gate, checks),
     contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,
-    gateDays: gateDays(runs),
+    gateDays: gateDays(checks),
     lowest: lowestPair(pairs),
     fixCount: rows.reduce((s, r) => s + r.missing.length, 0),
   };
 }
 
-/* Figma's Gate view (767:102821): the last six days with gate runs, newest
-   first: how many ran, how many passed, and which check failed most. A run is
-   one of BELLA's commits with a gate result. */
+/* Figma's Gate view (767:102821): the last six days with recorded gate runs, newest first. Only what was
+   recorded (her "verify them and fix it", 22 Nov): GitHub's CI runs of BELLA's branch (each runs the whole gate
+   on a pushed commit) and CHIP's own runs of the gate checks (/checks log). Nothing is re-run on old commits, and
+   a day with no record is not shown. Each line names its source. */
 const WEEKDAY = (iso) => new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace(',', '');
-function gateDays(runs) {
+const localDay = (iso) => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+function gateDays(checks) {
   const by = new Map();
-  for (const r of runs) {
-    const k = r.committedAt.slice(0, 10);
-    if (!by.has(k)) by.set(k, []);
-    by.get(k).push(r);
-  }
-  return [...by.entries()].slice(0, 6).map(([k, list]) => {
-    const passed = list.filter((r) => r.gate.ok).length;
-    const contrast = list.filter((r) => r.gate.contrastPairs === false).length;
-    const contract = list.filter((r) => r.gate.contractParity === false).length;
-    // the check that failed most, in a few words
-    const worst = contrast >= contract ? (contrast ? `${contrast} failed on colour contrast` : null) : `${contract} failed on contracts`;
-    // commits, not "runs": the Gate card counts the latest run's checks (5 of 5); this counts commits that passed (audit 3)
-    const word = (n) => (n === 1 ? 'commit' : 'commits');
-    return { id: k, title: WEEKDAY(list[0].committedAt), runs: list.length, passed, line: passed === list.length ? (list.length === 1 ? 'The one commit passed the gate' : `All ${list.length} commits passed the gate`) : `${passed} of ${list.length} ${word(list.length)} passed the gate${worst ? `; ${worst}` : ''}` };
-  });
+  const at = (iso) => {
+    const k = localDay(iso);
+    if (!by.has(k)) by.set(k, { iso, ci: [], chip: [] });
+    return by.get(k);
+  };
+  for (const r of checks?.ci ?? []) if (r.status === 'completed') at(r.createdAt).ci.push(r);
+  for (const r of checks?.log ?? []) at(r.ranAt).chip.push(r);
+  const word = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  return [...by.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 6)
+    .map(([k, d]) => {
+      const ciPassed = d.ci.filter((r) => r.conclusion === 'success').length;
+      const chipPassed = d.chip.filter((r) => r.ok).length;
+      const commits = [...new Set(d.chip.map((r) => r.commit).filter(Boolean))];
+      const failed = d.chip.filter((r) => !r.ok).map((r) => r.name);
+      const parts = [
+        d.ci.length ? `GitHub CI: ${ciPassed} of ${word(d.ci.length, 'run', 'runs')} passed` : null,
+        d.chip.length ? `CHIP: ${chipPassed} of ${word(d.chip.length, 'gate check run', 'gate check runs')} passed${commits.length ? ` on ${commits.join(', ')}` : ''}${failed.length ? `; failed: ${[...new Set(failed)].join(', ')}` : ''}` : null,
+      ].filter(Boolean);
+      const runs = d.ci.length + d.chip.length;
+      return { id: k, title: WEEKDAY(d.iso), runs, passed: ciPassed + chipPassed, line: parts.join(' · ') };
+    });
 }
 
 /* The weakest text pair BELLA's gate measures (/contrast-pairs: BELLA's own list

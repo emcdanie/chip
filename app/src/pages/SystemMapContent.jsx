@@ -61,7 +61,17 @@ const SHORT = {
     return left ? `${left} have no story` : 'All have a story';
   },
   gate: (d) => (d.match(/(\d+) of (\d+)/) ? `${d.match(/(\d+) of (\d+)/)[0]} gate checks pass` : 'Not run yet'),
-  bench: (d) => (d.match(/Composite ([\d.]+)/) ? `Score ${d.match(/Composite ([\d.]+)/)[1]}` : null),
+  // the composite leans on the last paid agent run: its day goes with the score, and over a week old it says stale
+  // (coordinator, 22 Nov: "74.9 · 12 Nov", marked stale; a re-run needs her yes)
+  bench: (d) => {
+    const score = d.match(/Composite ([\d.]+)/)?.[1];
+    if (!score) return null;
+    const run = d.match(/the (\d{4})(\d{2})(\d{2})-\d{6}-[\w-]+ agent run/);
+    if (!run) return `Score ${score} · static only`;
+    const at = new Date(`${run[1]}-${run[2]}-${run[3]}T12:00:00`);
+    const stale = Date.now() - at > 7 * 86400000;
+    return `Score ${score} · ${at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}${stale ? ', stale' : ''}`;
+  },
   review: () => 'Accept or Undo',
   // GitHub's newest CI run: its result and day ("Passed 19 Nov")
   ci: (d) => (d.match(/^CI (passed|failed|ended \w+) on (\d{1,2} \w{3})/) ? `${d.match(/^CI (passed|failed|ended \w+) on (\d{1,2} \w{3})/)[1].replace(/^./, (c) => c.toUpperCase())} ${d.match(/^CI (passed|failed|ended \w+) on (\d{1,2} \w{3})/)[2]}` : /^CI is running/.test(d) ? 'Running now' : 'No run read'),

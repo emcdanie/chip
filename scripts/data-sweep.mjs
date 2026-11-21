@@ -101,6 +101,18 @@ for (const page of ['health', 'foundations', 'connectors', 'team', 'history', 'n
   await p.goto(`${APP}/#/${page}`);
   await p.waitForTimeout(3500);
   text[page] = await p.evaluate(() => (document.querySelector('#main') ?? document.body).innerText);
+  if (page === 'system-map') {
+    // the Stories & tests node's detail card, where the run's counts and day are
+    await p.evaluate(() => [...document.querySelectorAll('button')].find((e) => /^Stories & tests:/.test(e.getAttribute('aria-label') ?? ''))?.click());
+    await p.waitForTimeout(600);
+    text[page] = await p.evaluate(() => (document.querySelector('#main') ?? document.body).innerText);
+  }
+  if (page === 'health') {
+    // the Gate runs view of Component checks
+    await p.evaluate(() => [...document.querySelectorAll('button,[role=radio],label')].find((e) => e.textContent.trim() === 'Gate runs')?.click());
+    await p.waitForTimeout(800);
+    text['health-gate'] = await p.evaluate(() => { const x = document.querySelector('#main').innerText; return x.slice(x.lastIndexOf('Component checks')); });
+  }
   if (page === 'foundations')
     // an "on X" colour, measured on X in Chip light, worked out here from the tokens
     Object.assign(ratios, await p.evaluate(() => {
@@ -147,9 +159,42 @@ const checks = await json('/checks');
 const behind = (checks.checks ?? []).filter((c) => c.gate === true && c.commit && c.commit !== checks.head);
 for (const c of behind) check('health', `Gate names ${c.name}, behind HEAD`, text.health.includes(`${c.name} last ran ${day(c.ranAt)} on ${c.commit}`) ? 'named' : 'not named', 'named');
 
+// Gate runs: only recorded runs, each day's count recomputed from its sources: GitHub's CI runs (gh) and CHIP's
+// own gate check runs (data/checks/log.jsonl and each result file's latest and previous run). A day with no record
+// must not be shown.
+const localDay = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const WEEKDAY = (iso) => new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace(',', '');
+const ciAll = JSON.parse(sh('gh', ['run', 'list', '--branch', checks.base, '--limit', '200', '--json', 'conclusion,status,createdAt']) ?? 'null');
+const GATE_IDS = ['contrast', 'contract', 'agents-md', 'tokens-built', 'visual'];
+const chipRuns = new Map();
+const addRun = (e) => e?.ranAt && GATE_IDS.includes(e.id) && chipRuns.set(`${e.id}@${e.ranAt}`, e);
+try { for (const l of readFileSync(join(ROOT, 'data/checks/log.jsonl'), 'utf8').split('\n')) if (l.trim()) addRun(JSON.parse(l)); } catch {}
+for (const id of GATE_IDS) { try { const r = JSON.parse(readFileSync(join(ROOT, 'data/checks', `${id}.json`), 'utf8')); addRun({ id, ...r }); addRun(r.previous && { id, ...r.previous }); } catch {} }
+const perDay = new Map();
+const bump = (iso, ok) => { const k = localDay(iso); const d = perDay.get(k) ?? { iso, runs: 0, passed: 0 }; d.runs++; if (ok) d.passed++; perDay.set(k, d); };
+for (const r of ciAll ?? []) if (r.status === 'completed') bump(r.createdAt, r.conclusion === 'success');
+for (const r of chipRuns.values()) bump(r.ranAt, r.ok);
+const days = [...perDay.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 6);
+for (const [, d] of days) {
+  const m = text['health-gate']?.match(new RegExp(`${WEEKDAY(d.iso)}\\n[^\\n]*\\n(\\d+/\\d+)`));
+  check('health', `Gate runs ${WEEKDAY(d.iso)} (recorded)`, m?.[1], ciAll ? `${d.passed}/${d.runs}` : null);
+}
+const shownDays = [...(text['health-gate'] ?? '').matchAll(/\n(\w{3} \d{1,2} \w{3})\n/g)].map((m) => m[1]);
+check('health', 'Gate runs shows only recorded days', [...new Set(shownDays)].filter((t) => !days.some(([, d]) => WEEKDAY(d.iso) === t)).join(', ') || 'none extra', 'none extra');
+
 // ---- System map -------------------------------------------------------------
 const cssVars = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1])).size;
 check('system-map', 'Tokens: CSS variables', grab('system-map', /(\d+) CSS variables/)?.[1], cssVars);
+// Stories: the run's test count is every story in BELLA's Storybook index, and the run is today's BELLA
+const sbIndex = existsSync(join(B, 'storybook-static/index.json')) ? Object.values(JSON.parse(read('storybook-static/index.json')).entries ?? {}).filter((e) => e.type === 'story').length : null;
+check('system-map', 'Stories: tests in the run', grab('system-map', /Tests: \d+ passed, (\d+) total/)?.[1] ?? grab('system-map', /(\d+) total/)?.[1], sbIndex);
+check('system-map', 'Stories: the run is on BELLA\'s HEAD', grab('system-map', /run \d{1,2} \w{3} on ([0-9a-f]{7})/)?.[1], head);
+// Bench: the score as the bench last wrote it, with the day of the agent run it leans on, stale after a week
+const odsb = join(process.env.HOME, 'DEV/tools/odsb/runs');
+const lastAgent = existsSync(odsb) ? readdirSync(odsb).filter((d) => existsSync(join(odsb, d, 'manifest.json'))).sort().at(-1) : null;
+const benchScore = (() => { try { return JSON.parse(readFileSync(join(ROOT, 'data/checks/bench-static.json'), 'utf8')).score; } catch { return null; } })();
+const agentAt = lastAgent ? JSON.parse(readFileSync(join(odsb, lastAgent, 'manifest.json'), 'utf8')).startedAt : null;
+check('system-map', 'Bench score, its agent run day and staleness', grab('system-map', /(Score [\d.]+ · [^\n]+)/)?.[1], benchScore != null && agentAt ? `Score ${benchScore} · ${day(agentAt)}${Date.now() - Date.parse(agentAt) > 7 * 86400000 ? ', stale' : ''}` : null);
 check('system-map', 'Contracts', grab('system-map', /(\d+ of \d+) have a contract/)?.[1], `${N - missing.contract.length} of ${N}`);
 
 // ---- Connectors: CI as GitHub ran it --------------------------------------
