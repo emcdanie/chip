@@ -368,8 +368,9 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onFix, onTouch, list 
   useLayoutEffect(() => {
     // after the part's own transition (Button eases its background over motion/duration/150), so the
     // new variant's paint is read, not the frame between
-    const t = setTimeout(measure, 250);
-    return () => clearTimeout(t);
+    // and once more after it, for a paint that starts late (Tertiary to Secondary read "none" at 250)
+    const t = [setTimeout(measure, 250), setTimeout(measure, 700)];
+    return () => t.forEach(clearTimeout);
     function measure() {
     const root = document.getElementById(shownId)?.firstElementChild;
     if (!root || !anatomy.length) return;
@@ -418,11 +419,14 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onFix, onTouch, list 
     }
   }, [box, shownId, anatomy, variant, label, themeTick]);
   const said = (x) => measured[x.key] ?? x.token ?? '';
+  // the short value on a pin's chip and card follows the variant on show: the colour measured on the live
+  // part, else the contract's (click test 22 Nov: Secondary's pin still said the primary blue)
+  const live = (x) => String(measured[x.key] ?? '').match(/#[0-9a-f]{6}(?!.*#[0-9a-f]{6})/i)?.[0]?.toLowerCase() ?? (measured[x.key] === 'none' ? 'none' : valueOf(x));
   const markers = useMemo(() => {
     if (!box || !anatomy.length) return [];
     const pins = anatomy.map((x, i) => pinAt(x.kind, i, box));
     // "part · value" where the stage has room for it; a narrow stage keeps the name and the card shows the value
-    const full = anatomy.map((x) => (valueOf(x) ? `${x.title} · ${valueOf(x)}` : x.title));
+    const full = anatomy.map((x) => (live(x) ? `${x.title} · ${live(x)}` : x.title));
     const roomy = box.sw >= 560;
     const texts = roomy ? full : anatomy.map((x) => x.title);
     // a phone's stage has no room for every chip without a leader crossing one (audit 21 Nov r2):
@@ -447,10 +451,11 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onFix, onTouch, list 
       ...chips[i],
       selected: x.key === a?.key,
     }));
-  }, [box, anatomy, a?.key, scale]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [box, anatomy, a?.key, scale, measured]);
   const showsValue = (box?.sw ?? 0) >= 560;
   const legend = markers.length && markers[0].chipX == null ? [...markers].sort((p, q) => p.label - q.label).map((m) => `${m.label} ${m.part}`.replace(/ /g, '\u00a0')).join(' · ') : null; // an entry never breaks inside
-  const card = a ? <PartCard a={{ ...a, detail: said(a) }} touch={touch} value={showsValue ? null : valueOf(a)} onFix={onFix ?? (() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`))} /> : null;
+  const card = a ? <PartCard a={{ ...a, detail: said(a) }} touch={touch} value={showsValue ? null : live(a)} onFix={onFix ?? (() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`))} /> : null;
   /* Anatomy: the parts as a numbered list beside the specimen, in the same card (18 Nov: "the anotations
      descriptions can be inteh same card"); each row's number is its pin's, and hovering or focusing a row
      lights its pin, as the pin lights its chip. */
@@ -534,7 +539,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onFix, onTouch, list 
    (audit 10: up to 5); the History tab, full width, keeps the whole line. */
 const WHY_SHORT = 44;
 
-function HistoryCard({ part, detail, all }) {
+function HistoryCard({ part, detail, all, onAll }) {
   const list = all ? detail.history : detail.history.slice(0, HISTORY_SHOWN);
   let last = null;
   return (
@@ -545,7 +550,7 @@ function HistoryCard({ part, detail, all }) {
         <SectionHead
           title="History"
           {...(!all && detail.history.length > HISTORY_SHOWN
-            ? { action: <Button variant="tertiary" size="sm" icon="ArrowUpRight" href="#/history">{`See all ${detail.history.length}`}</Button> }
+            ? { action: <Button variant="tertiary" size="sm" icon="ArrowUpRight" onClick={onAll}>{`See all ${detail.history.length}`}</Button> }
             : { number: list.length, words: 'merged' })}
         />
         {list.length ? (
@@ -892,7 +897,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                 <>
                   {/* a list card hugs its rows (rule 15): it sits at the top, never stretched and centred (Card 0bc08b6) */}
                   <Flow span={8}>
-                    <HistoryCard part={part} detail={detail} />
+                    {/* See all opens this part's own History tab: the same records the count counts (click test 22 Nov: it opened every record in CHIP) */}
+                    <HistoryCard part={part} detail={detail} onAll={() => setView('history')} />
                   </Flow>
                   <Flow span={4} gap={24} grow="last">
                     <AskCard part={part} detail={detail} onAsk={(t) => ask(t, 'card')} thread={asked?.from === 'card' && answer ? thread : null} />
