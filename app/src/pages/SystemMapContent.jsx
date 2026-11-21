@@ -18,8 +18,11 @@
 //   step: A (every line, round the side) is the pick on the review page, still waiting on hers.
 // - zoom-steps: zoom in and zoom out beside Fit and 100% (Stage has Fit and 100% only).
 // - node-box: a flat bordered node; the steps are ListRows (selected = light blue), no box.
-// - audit-reports: the last report of each audit; CHIP has no read route for
-//   docs/reference/audit/<date>/ yet, so it says not measured.
+// - audit-reports: the last result of each audit and check; CHIP has no read route for
+//   docs/reference/audit/<date>/ yet, so each says Not measured.
+// - skeleton: the board's loading state (no skeleton part); the empty state stands in.
+// - share link: the page reads ?map=&step=, but the shell's router opens #/system-map only without
+//   a query (main.jsx), so the address is not written yet.
 import { useLayoutEffect, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -31,15 +34,12 @@ import ListRow from '@bella/components/ListRow/ListRow';
 import Select from '@bella/components/Select/Select';
 import Stage from '@bella/components/Stage/Stage';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 import { planRun } from '../templates/RunPlan.jsx';
 
-// the board's design width: a row name and four steps, five slots of about 245, so a step's name sits whole
-// on its line at 100%. The board opens at 100% at every width (reading text 16, meta 14, never smaller) and pans;
-// Fit stays a choice in the control
-const BOARD = 1320;
 const SLOTS = 4;
 const FIGMA_PATHS = ['figma', 'figma-console', 'figma-rest'];
 // a step's state in words and tone; a step with no entry is a role in the workflow, nothing to measure
@@ -114,8 +114,8 @@ const PIPELINE_RUNS = {
 };
 
 function usePipeline() {
-  const { data, error } = useCached(['/map']);
-  if (error) return { error: true };
+  const { data, error, at, reload, loading } = useCached(['/map']);
+  if (error && !data) return { error: true, reload };
   if (!data) return null;
   const all = data[0].nodes ?? [];
   const byId = Object.fromEntries(all.map((n) => [n.id, n]));
@@ -143,7 +143,8 @@ function usePipeline() {
         name: plain(n.name),
         state: n.state ?? 'unknown',
         line: lineOf(n),
-        detail: plain(n.detail),
+        detail: first(plain(n.detail)) + '.',
+        more: plain(n.detail).split(/(?<=\.)\s/).slice(1).join(' ') || null,
         deps: [...new Set((n.deps ?? []).map((d) => (FIGMA_PATHS.includes(d) ? 'figma' : d)))],
         blockedBy: FIGMA_PATHS.includes(n.blockedBy?.id) ? 'figma' : n.blockedBy?.id,
         href: n.href ?? (n.action?.type === 'test' ? '#/connectors' : undefined),
@@ -152,7 +153,7 @@ function usePipeline() {
     }
   // a missing id means /map no longer sends it: its slot stays empty
   const rows = PIPELINE_ROWS.map((r) => ({ ...r, ids: r.ids.map((id) => (id && steps[id] ? id : null)) }));
-  return { steps, rows };
+  return { steps, rows, at, reload, loading };
 }
 
 /* ------------------------------------------------- Agent workflow (CHIP CLAUDE.md, Relay) */
@@ -168,8 +169,9 @@ const AGENT_STEPS = [
   ['click', 'Click test', 'unmeasured', 'An agent clicks each designed feature on the running app. It never presses anything that starts a paid run.', ['code']],
   ['review', 'Review page', 'unmeasured', 'Pictures side by side with a pick marked; thumbs, notes and Send all go to answers.json.', ['fresh', 'click']],
   ['answers', 'Your answers', 'unmeasured', 'The latest answer replaces an earlier one. A thumbs-down with no note means: find what is off and fix it.', ['review']],
-  ['publish', 'Library publish', 'you', 'A library publish is your click, after the batch report. Agents never publish.', ['answers']],
-  ['push', 'Push', 'you', 'Nothing is pushed or merged without your OK.', ['answers']],
+  ['publish', 'Library publish', 'unmeasured', 'A library publish is your click, after the batch report. Agents never publish.', ['answers']],
+  // measured from git: the commits a push would send (GET /push/<repo>)
+  ['push', 'Push', 'unmeasured', 'Nothing is pushed or merged without your OK.', ['answers']],
 ];
 // the steps CHIP can start for you: each opens its plan first
 const AGENT_RUNS = {
@@ -214,7 +216,7 @@ function staticMaps() {
   const agents = Object.fromEntries(
     AGENT_STEPS.map(([id, name, state, detail, deps]) => [
       id,
-      { id, name, state, line: null, detail: state === 'unmeasured' ? `${detail} Its state is not measured: CHIP keeps no record of this step yet.` : detail, deps, run: AGENT_RUNS[id] },
+      { id, name, state, line: null, detail, more: state === 'unmeasured' ? 'Its state is not measured: CHIP keeps no record of this step yet.' : null, deps, run: AGENT_RUNS[id] },
     ]),
   );
   const audits = Object.fromEntries(
@@ -223,10 +225,11 @@ function staticMaps() {
       {
         id,
         name,
-        state: skill ? 'unmeasured' : null,
-        line: skill ? 'Last report not read' : null,
-        // HOLE audit-reports: no read route for docs/reference/audit yet
-        detail: skill ? `${detail} Its reports save to docs/reference/audit/<date>/, which CHIP does not read yet.` : detail,
+        // HOLE audit-reports: CHIP reads no audit result yet (no read route for the audit folder), so every check says so
+        state: 'unmeasured',
+        line: null,
+        detail,
+        more: skill ? 'Its last report is not measured: reports save in the audit folder, which CHIP does not read yet.' : 'Its last result is not measured: CHIP keeps no record of this check yet.',
         at,
         run: skill ? { label: 'Run it', brief: `Run the ${name} skill, read-only, and save its report to docs/reference/audit/<today>/${name}.md. Compare its scores with the last report.` } : AUDIT_RUNS[id],
       },
@@ -245,24 +248,44 @@ function staticMaps() {
   };
 }
 
+/* Push, measured: the commits a push would send in BELLA and in CHIP. With none read it says Not measured. */
+function withPush(agents, pushes) {
+  if (!pushes) return agents;
+  const read = pushes.filter((x) => x && x.upstream);
+  if (!read.length) return agents;
+  const n = read.reduce((a, x) => a + x.commits.length, 0);
+  const where = read.filter((x) => x.commits.length).map((x) => `${x.commits.length} in ${x.name} (${x.branch})`).join(', ');
+  const push = {
+    ...agents.steps.push,
+    state: n ? 'you' : 'ok',
+    line: n ? `${n} ${n === 1 ? 'commit' : 'commits'} to push` : 'Nothing to push',
+    more: n ? `Waiting: ${where}.` : 'Every branch matches its upstream.',
+    why: n ? 'A push needs your OK (CHIP CLAUDE.md, Relay: never push or merge without it). Read from git.' : null,
+  };
+  return { ...agents, steps: { ...agents.steps, push } };
+}
+
 /* ---------------------------------------------------------------- the page */
 
 const MAPS = [
   { id: 'pipeline', name: 'BELLA pipeline', sub: 'Sources to ship: what each check waits on and feeds.', source: "CHIP's map of BELLA's checks" },
-  { id: 'agents', name: 'Agent workflow', sub: 'From your ask to a change you approve: who does what, and where you answer.', source: "the Relay rules in CHIP's CLAUDE.md" },
+  { id: 'agents', name: 'Agent workflow', sub: 'From your ask to a change you approve: who does what, and where you answer.', source: "the Relay rules in CHIP's CLAUDE.md, pushes from git" },
   { id: 'audits', name: 'Audits and skills', sub: 'Each moment runs the checks in its row.', source: "the checks rules in CHIP's CLAUDE.md" },
 ];
 
-// the map list's one line: what needs you on it
-function metaOfMap(id, map) {
+// each map's one line: what needs you on it, counted from its steps' measured states
+const needing = (map) => Object.values(map.steps).filter((s) => s.state === 'bad' || s.state === 'you');
+function metaOfMap(map) {
   if (!map) return 'Reading the map';
-  const steps = Object.values(map.steps);
-  if (id === 'pipeline') {
-    const n = steps.filter((s) => s.state === 'bad').length;
-    return n ? `${n} need you` : 'Nothing needs you';
-  }
-  if (id === 'agents') return `${steps.filter((s) => s.state === 'you').length} wait on your click`;
-  return `${steps.filter((s) => s.run).length} reports not read`;
+  const n = needing(map).length;
+  if (n) return `${n} ${n === 1 ? 'needs' : 'need'} you`;
+  return Object.values(map.steps).every((s) => s.state === 'unmeasured') ? 'Not measured' : 'Nothing needs you';
+}
+function summaryOf(map) {
+  const n = needing(map);
+  if (n.length) return `${n.map((s) => s.name).join(', ').replace(/, ([^,]*)$/, ' and $1')} ${n.length === 1 ? 'needs' : 'need'} you.`;
+  if (Object.values(map.steps).every((s) => s.state === 'unmeasured')) return 'Not measured: CHIP reads no result for these steps yet.';
+  return 'Nothing needs you.';
 }
 
 // the nearest box that scrolls around an element (Stage's frame at 100%)
@@ -271,6 +294,12 @@ function scroller(el) {
     const s = getComputedStyle(e);
     if (/(auto|scroll)/.test(s.overflowX + s.overflowY) && (e.scrollWidth > e.clientWidth || e.scrollHeight > e.clientHeight)) return e;
   }
+  return null;
+}
+
+// the box the stage scrolls in, overflowing or not
+function scrollBox(el) {
+  for (let e = el; e && !e.matches('[data-bella-component="stage"]'); e = e.parentElement) if (/(auto|scroll)/.test(getComputedStyle(e).overflowX)) return e;
   return null;
 }
 
@@ -311,29 +340,60 @@ function Node({ step, picked, onPick }) {
   );
 }
 
+// a step column is at least this wide on screen, so its name sits whole at 100%
+const COLUMN = 250;
+
 function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
   const pan = usePan();
-  // the board opens with the picked step in view (at 100% it is wider than the window)
+  // the visible width of the board: the board is four columns, and k of them fill the view exactly, so the
+  // first view never cuts a name at its edge; the rest are a pan away
+  const [view, setView] = useState(null);
   useLayoutEffect(() => {
-    const node = document.querySelector('#process-board [aria-current="true"]');
-    const box = node && scroller(node.parentElement);
-    if (!node || !box) return;
-    const n = node.getBoundingClientRect();
-    const b = box.getBoundingClientRect();
-    if (n.left < b.left || n.right > b.right) box.scrollLeft += n.left - b.left - (b.width - n.width) / 2;
-  }, [map, zoom]); // eslint-disable-line react-hooks/exhaustive-deps
+    const box = scrollBox(document.getElementById('process-board'));
+    if (!box) return undefined;
+    const measure = () => setView((v) => (v === box.clientWidth ? v : box.clientWidth));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, []);
+  const k = view ? Math.max(1, Math.min(SLOTS, Math.floor(view / COLUMN))) : SLOTS;
+  const pitch = view ? view / k : COLUMN;
+  // equal slots 16 apart in the frame (its 1px edge each side): a column and its gap are one pitch
+  const frame = Math.round(SLOTS * pitch - 14);
+  // open on whole columns that hold the picked step, lined up on the view's left edge
+  useLayoutEffect(() => {
+    if (!view || zoom !== 'actual') return;
+    const box = scrollBox(document.getElementById('process-board'));
+    const row = document.querySelector('#process-board [data-slots]');
+    if (!box || !row) return;
+    const x0 = row.getBoundingClientRect().left - box.getBoundingClientRect().left + box.scrollLeft;
+    const col = Math.max(0, map.rows.reduce((c, r) => (r.ids.includes(picked) ? r.ids.indexOf(picked) : c), 0));
+    // of the views that hold the picked step, the one that shows the most steps
+    const count = (c) => map.rows.reduce((n, r) => n + r.ids.slice(c, c + k).filter(Boolean).length, 0);
+    let best = Math.min(col, SLOTS - k);
+    for (let c = Math.max(0, col - k + 1); c <= Math.min(col, SLOTS - k); c += 1) if (count(c) > count(best)) best = c;
+    box.scrollLeft = x0 + best * pitch;
+  }, [map, zoom, view, k]); // eslint-disable-line react-hooks/exhaustive-deps
   const shown = (id) => id && map.steps[id] && (!filterOnly || map.steps[id].state === 'bad');
   // HOLE zoom-steps: zoom in and out wait on BELLA Stage (it has Fit and 100% only)
   return (
-    <Stage grid="dots" label={`${label} board`} frameWidth={BOARD} zoom={zoom} onZoomChange={onZoom}>
+    <Stage grid="dots" label={`${label} board`} frameWidth={frame} zoom={zoom} onZoomChange={onZoom}>
       {/* HOLE connector: the curved lines between steps (the picked step's in blue) wait on a BELLA part that
           joins two nodes by their measured places; the gutters between rows are where they draw */}
-      <Flow gap={24} inset id="process-board" data-hole="connector zoom-steps node-box" {...pan}>
+      <Flow gap={24} id="process-board" data-hole="connector zoom-steps node-box" {...pan}>
         {map.rows.map((row, i) => (
-          // the row's name takes the first of five equal slots, so every row's steps line up
-          <Flow key={`${row.label}-${i}`} direction="row" gap={16} equal align="center" role="group" aria-label={row.label || `${label}, row ${i + 1}`}>
-            {row.label ? <TextStack overline={row.label} /> : <span aria-hidden="true" />}
-            {row.ids.map((id, j) => (shown(id) ? <Node key={id} step={map.steps[id]} picked={picked === id} onPick={onPick} /> : <span key={`gap-${j}`} aria-hidden="true" />))}
+          // the row's name over its four slots, so every row's steps line up in columns
+          <Flow key={`${row.label}-${i}`} gap={8} role="group" aria-label={row.label || `${label}, row ${i + 1}`}>
+            {row.label ? <TextStack overline={row.label} /> : null}
+            <Flow direction="row" gap={16} equal data-slots>
+              {/* each slot is its own box, so a step's padding never widens its column */}
+              {row.ids.map((id, j) => (
+                <Flow key={id ?? `gap-${j}`} gap={0}>
+                  {shown(id) ? <Node step={map.steps[id]} picked={picked === id} onPick={onPick} /> : null}
+                </Flow>
+              ))}
+            </Flow>
           </Flow>
         ))}
       </Flow>
@@ -347,11 +407,25 @@ function Detail({ map, mapId, step, onPick }) {
   const waits = (step.deps ?? []).map((id) => map.steps[id]).filter(Boolean);
   const dotOf = (s) => {
     const x = SAYS[s.state];
-    return <StatusDot tone={x ? (s.state === 'bad' ? 'danger' : x[1]) : 'neutral'} showDot={Boolean(x)} label={s.name} />;
+    // the step's name, then its dot with a word, never colour alone; the two wrap apart in a narrow card
+    return (
+      <Flow direction="row" gap={8} align="center" wrap>
+        <TextStack body={s.name} />
+        {x ? <StatusDot tone={s.state === 'bad' ? 'danger' : x[1]} label={x[0]} /> : null}
+      </Flow>
+    );
   };
   const blocker = step.blockedBy ? map.steps[step.blockedBy] : null;
   const action = step.run ? (
-    <Button variant="secondary" size="sm" onClick={() => planRun({ title: step.run.label === 'Run it' ? `Run ${step.name}` : step.run.label, from: 'Processes', brief: step.run.brief }).catch(() => null)}>
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={() => {
+        const title = step.run.label === 'Run it' ? `Run ${step.name}` : step.run.label;
+        // the plan's step: a short title, the brief as its line
+        planRun({ title, from: 'Processes', brief: step.run.brief, steps: [{ id: 'run', title, line: step.run.brief }] }).catch(() => null);
+      }}
+    >
       {step.run.label}
     </Button>
   ) : blocker ? (
@@ -382,8 +456,19 @@ function Detail({ map, mapId, step, onPick }) {
         <Flow gap={8}>
           <SectionHead title={step.name} titleLevel={3} showInfo={false} />
           {said ? <StatusDot tone={said[1]} label={said[0]} /> : null}
+          {step.line ? <TextStack meta={step.line} /> : null}
           <TextStack body={step.detail} />
         </Flow>
+        {/* anything that needs you says why, from its source */}
+        {step.state === 'bad' || step.state === 'you' ? (
+          <Disclosure title="Why this?">
+            <TextStack body={step.why ?? `Its own check reports it: ${step.more ?? step.detail} Read from CHIP's map of BELLA's checks.`} />
+          </Disclosure>
+        ) : step.more ? (
+          <Disclosure title="More">
+            <TextStack body={step.more} />
+          </Disclosure>
+        ) : null}
         {list('Waits on', waits, (d) => <li key={d.id}>{dotOf(d)}</li>)}
         {list('Runs at', step.at ?? [], (m) => (
           <li key={m}>
@@ -396,20 +481,28 @@ function Detail({ map, mapId, step, onPick }) {
   );
 }
 
-// opens on the step that needs you most: one that needs you, then one waiting on you or unmeasured, then the first
+// opens on the step that needs you: one that needs you, then one waiting on your click, then the first
 const firstPick = (map) => {
   const all = map.rows.flatMap((r) => r.ids).filter(Boolean).map((id) => map.steps[id]);
-  return (all.find((s) => s.state === 'bad') ?? all.find((s) => s.state === 'you' || s.state === 'unmeasured') ?? all[0])?.id;
+  return (all.find((s) => s.state === 'bad') ?? all.find((s) => s.state === 'you') ?? all[0])?.id;
 };
+
+// the address names the map and the step, so a view can be shared: #/system-map?map=agents&step=push
+const fromHash = () => Object.fromEntries(new URLSearchParams(window.location.hash.split('?')[1] ?? ''));
+const timeOf = (t) => (t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null);
 
 export default function SystemMapContent() {
   const pipeline = usePipeline();
-  const [{ agents, audits }] = useState(staticMaps);
-  const [mapId, setMapId] = useState('pipeline');
-  const [picks, setPicks] = useState({});
+  const [statics] = useState(staticMaps);
+  const pushes = useCached(['/push/bella', '/push/chip']);
+  const agents = withPush(statics.agents, pushes.data);
+  const audits = statics.audits;
+  const start = fromHash();
+  const [mapId, setMapId] = useState(MAPS.some((m) => m.id === start.map) ? start.map : 'pipeline');
+  const [picks, setPicks] = useState(start.step ? { [start.map ?? 'pipeline']: start.step } : {});
   const [only, setOnly] = useState(false);
   const [zoom, setZoom] = useState(null);
-  // below 1200 the map list becomes a Select over the board and the board opens at 100%; below 720 the detail sits under it
+  // below 1200 the map list becomes a Select over the board; below 720 the detail sits under it
   const listOut = useNarrow(1200);
   const stack = useNarrow(720);
 
@@ -422,18 +515,20 @@ export default function SystemMapContent() {
     setPicks((p) => ({ ...p, [mapId]: id }));
     if (stack) requestAnimationFrame(() => document.getElementById('process-step')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
-  const needs = mapId === 'pipeline' && map ? Object.values(map.steps).filter((s) => s.state === 'bad').length : 0;
+  // HOLE share link: the page reads ?map=&step=, but the shell's router (main.jsx) opens #/system-map only
+  // without a query, so writing the address would break a reload; it is written once the router accepts it
 
   const list = listOut ? (
     <Select label="Map" value={mapId} onChange={setMapId} options={MAPS.map((m) => ({ value: m.id, label: m.name }))} />
   ) : (
     <Flow as="ul" gap={4} aria-label="Maps">
       {MAPS.map((m) => (
-        <ListRow key={m.id} layout="stacked" title={m.name} meta={metaOfMap(m.id, maps[m.id])} selected={m.id === mapId} onClick={() => setMapId(m.id)} />
+        <ListRow key={m.id} layout="stacked" title={m.name} meta={metaOfMap(maps[m.id])} selected={m.id === mapId} onClick={() => setMapId(m.id)} />
       ))}
     </Flow>
   );
 
+  // HOLE skeleton: BELLA has no skeleton part yet, so the board's loading state is the empty state
   const board = !map ? (
     pipeline?.error ? (
       <EmptyState size="page" title="The map isn't answering" line="CHIP couldn't read its checks just now. Refresh and I'll ask again." />
@@ -444,18 +539,33 @@ export default function SystemMapContent() {
     <Board key={mapId} map={map} filterOnly={mapId === 'pipeline' && only} picked={pickId} onPick={pick} zoom={zoom ?? 'actual'} onZoom={setZoom} label={meta.name} />
   );
 
+  // how fresh it is: the read's time and Refresh, or the rules it is drawn from
+  const live = mapId === 'pipeline' ? pipeline : mapId === 'agents' ? pushes : null;
+  const fresh = live ? (
+    <Flow direction="row" gap={8} align="center" wrap>
+      <TextStack meta={live.at ? `Updated ${timeOf(live.at)} · ${meta.source}` : `Not read yet · ${meta.source}`} />
+      <Button variant="tertiary" size="sm" onClick={live.reload} busy={Boolean(live.loading)}>
+        Refresh
+      </Button>
+    </Flow>
+  ) : (
+    <TextStack meta={`Drawn from ${meta.source}`} />
+  );
+
   const center = (
     <Flow gap={16}>
-      <SectionHead title={meta.name} description={meta.sub} showDescription {...(mapId === 'pipeline' && map ? { number: needs, words: 'need you', showNumber: true } : { showInfo: false })} />
+      <Flow gap={8}>
+        {/* the map's name, then its one-line summary: what needs you */}
+        <SectionHead title={meta.name} description={map ? summaryOf(map) : meta.sub} showDescription showInfo={false} />
+        {fresh}
+      </Flow>
       {mapId === 'pipeline' ? (
         <Flow direction="row" gap={8} wrap>
           <FilterChip pressed={only} onClick={() => setOnly(!only)}>
             Show only what needs you
           </FilterChip>
         </Flow>
-      ) : (
-        <TextStack subtitle={`Pick a step to see it ${stack ? 'below' : 'on the right'}. From ${meta.source}.`} />
-      )}
+      ) : null}
       {board}
     </Flow>
   );
