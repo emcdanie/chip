@@ -143,9 +143,10 @@ for (const f of ['bella.json', 'foundations.json']) {
 const pairs = (await json('/contrast-pairs')).pairs ?? [];
 const pairToks = new Set(pairs.flatMap((p) => [p.fg, ...String(p.bg).split(' over ')]).flatMap((s) => s.match(/--[\w-]+/g) ?? []));
 missing.contrast = comps.filter((c) => ![...tokensOf[c]].some((t) => pairToks.has(t)));
-const ROWS = { Story: 'story', Docs: 'docs', Contract: 'contract', 'Machine-readable spec': 'dsds', Contrast: 'contrast', A11y: 'a11y' };
+// Weather rows (22 Nov): the check's short name, then its count on the next line
+const ROWS = { Story: 'story', Docs: 'docs', Contract: 'contract', Spec: 'dsds', Contrast: 'contrast', A11y: 'a11y' };
 for (const [title, id] of Object.entries(ROWS)) {
-  const m = text.health.match(new RegExp(`\\n${title}\\n[^\\n]*\\n(\\d+)/(\\d+)`));
+  const m = text.health.match(new RegExp(`\\n${title}\\n(\\d+)/(\\d+)`));
   check('health', `${title} row`, m ? `${m[1]}/${m[2]}` : null, missing[id] ? `${N - missing[id].length}/${N}` : null);
 }
 const measured = Object.values(missing).filter(Boolean);
@@ -154,7 +155,7 @@ check('health', 'System health pass', grab('health', /(\d+) of (\d+) pass/)?.sli
 const needWork = new Set(measured.flat()).size;
 check('health', 'Parts that need work', grab('health', /Parts that need work\n(\d+ of \d+) parts/)?.[1], `${needWork} of ${N}`);
 const base = await json('/figma-baseline').catch(() => null);
-if (base?.at && base.notRead === base.total) check('health', 'Drift when Figma was not read', /Drift from BELLA\n+Not measured/.test(text.health) ? 'Not measured' : 'a number', 'Not measured');
+if (base?.at && base.notRead === base.total) check('health', 'Drift when Figma was not read', /Drift from BELLA\n+(?:Drift from BELLA)?Not measured/.test(text.health) ? 'Not measured' : 'a number', 'Not measured');
 const checks = await json('/checks');
 const behind = (checks.checks ?? []).filter((c) => c.gate === true && c.commit && c.commit !== checks.head);
 for (const c of behind) check('health', `Gate names ${c.name}, behind HEAD`, text.health.includes(`${c.name} last ran ${day(c.ranAt)} on ${c.commit}`) ? 'named' : 'not named', 'named');

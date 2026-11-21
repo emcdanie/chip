@@ -205,7 +205,8 @@ function Stats() {
     return (
       <>
         <Flow span={6} fill>
-          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Runs this week" context="Saved fixes run since Monday" caption="Nothing run yet this week" href="#/history" />
+          {/* none run is a count, measured: 0 shows */}
+          <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={0} context="Saved fixes run since Monday" caption="Nothing run yet this week" href="#/history" />
         </Flow>
         <Flow span={6} fill>
           <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Kept" context="Accept a fix and it lands here" caption="Undone runs stay in History" href="#/history" />
