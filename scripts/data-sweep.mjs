@@ -237,6 +237,21 @@ check('not-again', 'Runs this week (saved fixes only)', grab('not-again', /Runs 
 const onBoard = runs.filter((r) => ['failed', 'login', 'starting', 'running', 'gate', 'passed'].includes(r.status) && new Date(r.startedAt).toDateString() !== new Date().toDateString());
 for (const r of onBoard) check('work', `Run "${r.title}" names its day`, text.work.includes(`${day(r.startedAt)} `) ? 'named' : 'time only', 'named');
 
+// the board in her Notion lanes: Ideas is the progress board's to-dos, her tasks and the components
+// with a gap (the same set Health counts as Parts that need work), less what she moved out
+const board = await json('/work/board').catch(() => null);
+if (board) {
+  const place = board.board?.place ?? {};
+  const busy = new Set(runs.filter((r) => ['starting', 'running', 'gate', 'passed'].includes(r.status)).map((r) => r.title));
+  const ideas = [
+    ...board.progress.items.filter((i) => i.stage === 'To do').map((i) => [i.id, i.title]),
+    ...board.progress.tasks.map((t) => [t.id, t.title]),
+    ...[...new Set(measured.flat())].map((n) => [`comp-${n}`, n]),
+  ];
+  const ideasNow = ideas.filter(([id, t]) => (!place[id] || place[id].lane === 'ideas') && !busy.has(t)).length + Object.entries(place).filter(([id, p]) => p.lane === 'ideas' && !ideas.some(([i]) => i === id)).length;
+  check('work', 'Ideas: to-dos, your tasks and parts that need work', grab('work', /\bIdeas\n(\d+)/)?.[1], ideasNow);
+}
+
 // ---- report -----------------------------------------------------------------
 writeFileSync(join(OUT, 'results.json'), JSON.stringify(results, null, 2));
 const bad = results.filter((r) => r.ok === false);
