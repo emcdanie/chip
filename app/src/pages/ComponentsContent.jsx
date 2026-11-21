@@ -28,6 +28,7 @@ import Tag from '@bella/components/Tag/Tag';
 import Notification from '@bella/components/Notification/Notification';
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
+import Drawer from '@bella/components/Drawer/Drawer';
 import Stage from '@bella/components/Stage/Stage';
 import Stat from '@bella/components/Stat/Stat';
 import Progress from '@bella/components/Progress/Progress';
@@ -278,7 +279,86 @@ function PartCard({ a, touch, value, onFix }) {
   );
 }
 
-function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch, list = false }) {
+/* Fix <part> (Figma Flow 3, screens 4 and 5, 651:116769): the plan before anything runs. One step per
+   finding and per failing check, then the gate on the agent's copy; Edit plan opens the brief the agent
+   gets as text; Approve plan hands it over (POST /runs: its own branch, the gate, then a reviewer on Work). */
+function FixPlan({ part, detail, gaps, checked, onClose, onSent }) {
+  const steps = [
+    // a finding on the stage is a contrast pair under its bar (componentsModel): say the fix and the measure
+    ...(detail?.anatomy ?? [])
+      .filter((a) => a.status === 'finding')
+      .map((a) => ({
+        id: `finding-${a.title}`,
+        title: `Bring the ${a.title.toLowerCase()} up to ${a.contrast.bar}:1`,
+        line: `Contrast check · ${ratio(a.contrast.ratio)} now${a.token ? ` · ${a.token}` : ''}`,
+        brief: `${a.title}: its contrast pair (${a.contrast.label}) measures ${ratio(a.contrast.ratio)}; it needs ${a.contrast.bar}:1. Use an existing token${a.token ? ` in place of ${a.token}` : ''}.`,
+      })),
+    ...part.checks
+      .filter((k) => !k.ok)
+      .map((k) => {
+        const b = gaps?.[k.id]?.[part.name]?.brief;
+        return { id: `check-${k.id}`, title: VERB[k.id] ?? k.title, line: `${k.title} check${b ? ` · ${sentence(b)}` : ''}`, brief: b ?? `${VERB[k.id] ?? k.title} for ${part.name}.` };
+      }),
+  ];
+  const pass = part.checks.filter((k) => k.ok).length;
+  const first = [`Fix BELLA's ${part.name}. Steps:`, ...steps.map((x, i) => `${i + 1}. ${x.brief}`), 'Change only what each step names. Ask before changing a token.'].join('\n');
+  const [brief, setBrief] = useState(first);
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const approve = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief, title: `Fix ${part.name}`, from: 'Components' }) });
+      const run = await r.json().catch(() => ({}));
+      if (!r.ok || run.error) throw new Error(run.error || 'CHIP did not answer');
+      if (run.status === 'login' || run.status === 'failed') throw new Error(run.error || 'The agent could not start');
+      window.dispatchEvent(new Event('chip:changed'));
+      onSent({ tone: 'success', text: `Sent to the agent: Fix ${part.name}. It works on a copy; its card is on Work, where a reviewer Accepts or Undoes it.` });
+    } catch (e) {
+      onSent({ tone: 'danger', text: `Not sent: ${e.message}.` });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Drawer
+      open
+      onClose={onClose}
+      side="right"
+      size="lg"
+      label={`Fix ${part.name}`}
+      subtitle={`Plan ready · from CHIP’s checks${checked ? `, ${checked}` : ''}`}
+      footer={
+        <Flow gap={16}>
+          <TextStack subtitle="The agent in CHIP · works on a copy, main untouched" />
+          <Flow direction="row" gap={8} justify="end" wrap>
+            <Button variant="secondary" size="sm" onClick={() => setEditing((e) => !e)}>
+              {editing ? 'Done editing' : 'Edit plan'}
+            </Button>
+            <Button variant="primary" size="sm" busy={busy} onClick={busy || !steps.length ? undefined : approve} disabled={!steps.length}>
+              {busy ? 'Sending…' : 'Approve plan'}
+            </Button>
+          </Flow>
+        </Flow>
+      }
+    >
+      <Flow gap={16}>
+        <SectionHead icon="WarningCircle" iconTone="warning" title={`${steps.length} ${steps.length === 1 ? 'step' : 'steps'} to fix`} showInfo={false} description={`${part.name} · ${pass} of ${part.checks.length} checks pass`} />
+        {editing ? (
+          <Input multiline label="The brief the agent gets" value={brief} onChange={setBrief} />
+        ) : (
+          <Flow as="ul" gap={0} aria-label={`The plan for ${part.name}`}>
+            {[...steps, { id: 'gate', title: 'Run the gate on the agent’s copy', line: 'Then a reviewer accepts or undoes it on Work' }].map((x, i, all) => (
+              <ListRow key={x.id} layout="stacked" statusBar={x.id === 'gate' ? 'neutral' : 'attention'} divider={i < all.length - 1} title={x.title} description={x.line} tag={<Tag variant="line">{`Step ${i + 1}`}</Tag>} />
+            ))}
+          </Flow>
+        )}
+      </Flow>
+    </Drawer>
+  );
+}
+
+function OnTheStage({ part, detail, picked, onPick, onAsk, onFix, onTouch, list = false }) {
   const tiny = useNarrow(420);
   // a pin or chip under the pointer or keyboard lights its match (Stage, parts-dev ebac13a)
   const [lit, setLit] = useState(null);
@@ -423,7 +503,7 @@ function OnTheStage({ part, detail, picked, onPick, onAsk, onTouch, list = false
   }, [box, anatomy, a?.key, scale]);
   const showsValue = (box?.sw ?? 0) >= 560;
   const legend = markers.length && markers[0].chipX == null ? [...markers].sort((p, q) => p.label - q.label).map((m) => `${m.label} ${m.part}`.replace(/ /g, '\u00a0')).join(' · ') : null; // an entry never breaks inside
-  const card = a ? <PartCard a={{ ...a, detail: said(a) }} touch={touch} value={showsValue ? null : valueOf(a)} onFix={() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`)} /> : null;
+  const card = a ? <PartCard a={{ ...a, detail: said(a) }} touch={touch} value={showsValue ? null : valueOf(a)} onFix={onFix ?? (() => onAsk(`Fix ${part.name}'s ${a.title}: ${a.detail}`))} /> : null;
   /* Anatomy: the parts as a numbered list beside the specimen, in the same card (18 Nov: "the anotations
      descriptions can be inteh same card"); each row's number is its pin's, and hovering or focusing a row
      lights its pin, as the pin lights its chip. */
@@ -754,6 +834,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   // where the question was asked (a chip in the row, or the card's field): the answer shows there, in view
   const [asked, setAsked] = useState(null);
   const [said, setSaid] = useState(null);
+  // the Fix plan drawer (Flow 3, screen 5), open for the part on show
+  const [fixing, setFixing] = useState(false);
   useEffect(() => {
     const st = answer?.status;
     if (st && st !== 'thinking' && asked) setSaid(st === 'error' || st === 'stopped' ? { tone: 'danger', text: 'BELLA couldn’t answer that just now.' } : { tone: 'success', text: `BELLA answered: ${asked.q}` });
@@ -824,7 +906,9 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
               <StatusDot tone="success" label={live} />
               {(() => {
                 const n = (detail?.findings ?? 0) + (part.checks.find((k) => k.id === 'a11y')?.ok && touch && (touch.w < 44 || touch.h < 44) ? 1 : 0);
-                return n ? <Tag tone="attention" showDot count={n}>{n === 1 ? 'finding' : 'findings'}</Tag> : null;
+                // the part's status as a Tag either way (19 Nov audit, header tags): its findings, or that it has none
+                if (detail?.findings == null) return null;
+                return n ? <Tag tone="attention" showDot count={n}>{n === 1 ? 'finding' : 'findings'}</Tag> : <Tag tone="success" showDot>No findings</Tag>;
               })()}
             </Flow>
             {tiny && detail?.updated ? <TextStack subtitle={`Updated ${detail.updated}`} /> : null}
@@ -838,6 +922,17 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
           ) : null}
           {detail ? <AskRow part={part} detail={detail} onAsk={(t) => ask(t, 'row')} asking={pending && asked?.from === 'row' ? asked.q : null} /> : null}
           {asked?.from === 'row' && answer ? thread : null}
+          {fixing && part ? (
+            <FixPlan
+              key={part.id}
+              part={part}
+              detail={detail}
+              gaps={gapsData?.[0]?.gaps}
+              checked={gapsData?.[0]?.at ? new Date(gapsData[0].at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null}
+              onClose={() => setFixing(false)}
+              onSent={(n) => (setSaid(n), n.tone === 'success' && setFixing(false))}
+            />
+          ) : null}
           {said ? (
             <Toasts>
               <Toast tone={said.tone} onClose={() => setSaid(null)}>
@@ -858,7 +953,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                   <Button variant="tertiary" size="sm" icon="RefreshDouble" iconOnly ariaLabel="Check again" onClick={onCheckAgain} />
                 </Flow>
               </Flow>
-              <OnTheStage part={part} detail={detail} picked={picked} onPick={setPicked} onAsk={(t) => { ask(t); }} onTouch={setTouch} list={view === 'anatomy'} />
+              <OnTheStage part={part} detail={detail} picked={picked} onPick={setPicked} onAsk={(t) => { ask(t); }} onFix={() => setFixing(true)} onTouch={setTouch} list={view === 'anatomy'} />
               {view === 'anatomy' ? null : (
                 <>
                   {/* a list card hugs its rows (rule 15): it sits at the top, never stretched and centred (Card 0bc08b6) */}
