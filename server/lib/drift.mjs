@@ -39,3 +39,24 @@ export function readDrift(dir = join(BELLA, 'specs/components')) {
   const compared = parts.filter((p) => p.compared);
   return { at: at ? new Date(at).toISOString() : null, total: parts.length, compared: compared.length, drifting: compared.filter((p) => p.differ).length, parts };
 }
+
+/* Gaps: what BELLA can't do yet (CHIP rules, 22 Nov: "Gaps lists what BELLA can't do yet"), measured:
+   - parts with a spec (drawn and specified) but no code part yet: no src/components file exports them;
+   - the parts BELLA's AGENTS.md lists as "Not in BELLA yet". */
+export function readGaps(bella = BELLA) {
+  const dir = join(bella, 'specs/components');
+  const src = join(bella, 'src/components');
+  const exported = new Set();
+  if (existsSync(src))
+    for (const d of readdirSync(src)) {
+      const f = join(src, d, `${d}.tsx`);
+      if (!existsSync(f)) continue;
+      exported.add(d);
+      for (const m of readFileSync(f, 'utf8').matchAll(/export (?:default )?(?:function|const) ([A-Z]\w+)/g)) exported.add(m[1]);
+    }
+  const notInCode = existsSync(dir) ? readdirSync(dir).filter((x) => x.endsWith('.spec.yaml')).map((x) => x.replace(/\.spec\.yaml$/, '')).filter((n) => !exported.has(n)).sort() : [];
+  const agents = existsSync(join(bella, 'AGENTS.md')) ? readFileSync(join(bella, 'AGENTS.md'), 'utf8') : '';
+  const line = agents.match(/Not in BELLA yet[^:]*:\s*([^.]+)\./)?.[1] ?? '';
+  const notInBella = line.split(',').map((s) => s.trim()).filter(Boolean);
+  return { notInCode, notInBella };
+}
