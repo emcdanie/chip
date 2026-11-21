@@ -8,7 +8,8 @@
       else the clause's verb and what follows it ("opens its plan first", "no longer blanks the app"),
       with a weak lead verb dropped ("sits centred on its line" marks "centred on its line"),
       cut to 6 words and never ending on a small word;
-   4. at most two phrases a line, and a phrase that is only a part name is skipped. */
+   4. at most two phrases a line; skipped: a phrase that is only a part name, one that opens a quote or
+      bracket halfway, and a verb with the first item of a list ("finds lands, sets, hides …"). */
 
 // verbs that are only verbs here, and verbs that are also nouns ("line", "runs", "count"): the second kind
 // counts only after a word that isn't "the", "its", "to"…, with a word after it, and when two sit side by
@@ -37,14 +38,21 @@ function inClause(clause) {
   if (!ws.length) return null;
   const span = (i, j) => ({ at: clause.at + ws[i].at, text: clause.text.slice(ws[i].at, ws[j].at + ws[j].w.length) });
   // a number, with the word it counts ("10 commits", "25 colours"), never "25 in"
-  const num = clause.text.match(/\b\d+(?:[.:]\d+)*(?::1)?%?(?:\s+of\s+\d+)?(?:\s+(?!(?:in|on|at|to|of|and|the|a|from|for|by|with)\b)[A-Za-z]+)?/);
-  if (num) return { at: clause.at + num.index, text: num[0].replace(/[.,;:]+$/, '') };
+  // a number, with the word it counts ("10 commits", "25 colours"), never "25 in" or "38 opens"; a time
+  // ("10:02") is not a count. A bare number gives way to the clause's verb ("drop to 14").
+  const num = clause.text.match(/\b\d+(?:\.\d+)?(?::1)?%?(?:\s+of\s+\d+)?(?:\s+(?!(?:in|on|at|to|of|and|the|a|from|for|by|with)\b)[A-Za-z]+)?/);
+    const inBracket = num && (clause.text.slice(0, num.index).match(/\(/g) ?? []).length > (clause.text.slice(0, num.index).match(/\)/g) ?? []).length;
+  if (num && !inBracket && !/^\d+:\d\d\b/.test(clause.text.slice(num.index))) {
+    const [n, counted] = num[0].replace(/[.,;:]+$/, '').split(/\s+(?=[A-Za-z]+$)/);
+    if (counted && !VERBS.has(counted.toLowerCase()) && !AMBIG.has(counted.toLowerCase())) return { at: clause.at + num.index, text: `${n} ${counted}` };
+    // a bare number is marked only as part of its verb's phrase ("drop to 14"), never alone ("not 10")
+  }
   const verbAt = (i) => {
     const b = bare(ws[i].w);
     const prev = bare(ws[i - 1]?.w ?? '');
     if (RELATIVE.has(prev)) return false;
     if (VERBS.has(b)) return true;
-    return AMBIG.has(b) && i < ws.length - 1 && !['and', 'or'].includes(bare(ws[i + 1].w)) && !DET.has(prev) && !/'s$|’s$/.test(prev);
+    return AMBIG.has(b) && i < ws.length - 1 && /^[A-Za-z"“]/.test(ws[i + 1].w) && !['and', 'or'].includes(bare(ws[i + 1].w)) && !DET.has(prev) && !/'s$|’s$/.test(prev);
   };
   // the verb: the first one not inside "that starts …"; a "never"/"no longer" before it comes along
   let v = -1;
@@ -60,12 +68,19 @@ function inClause(clause) {
   while (first < ws.length - 1 && ['the', 'a', 'an', 'and'].includes(bare(ws[first].w))) first++;
   if (ws.length - first <= 4 && ['no', 'every', 'nothing'].includes(bare(ws[first].w))) return span(first, ws.length - 1);
   let s = v;
-  if (WEAK.has(bare(ws[s].w)) && s < ws.length - 1) s++;
-  while (s < ws.length - 1 && SMALL.has(bare(ws[s].w))) s++;
+  if (WEAK.has(bare(ws[s].w)) && s < ws.length - 1) {
+    s++;
+    while (s < ws.length - 1 && ['the', 'a', 'an'].includes(bare(ws[s].w))) s++;
+  } else while (s < ws.length - 1 && SMALL.has(bare(ws[s].w))) s++;
   let e = Math.min(ws.length - 1, s + 5);
   for (let i = s + 1; i <= e; i++) if (['and', 'or', 'so', 'with', 'beside', 'while'].includes(bare(ws[i].w))) { e = i - 1; break; }
-  while (e > s && SMALL.has(bare(ws[e].w))) e--;
-  return span(s, e);
+  // never end on a small word or a dangling "is" ("says every card colour is")
+  while (e > s && (SMALL.has(bare(ws[e].w)) || ['is', 'are', 'has', 'have', 'was', 'be'].includes(bare(ws[e].w)))) e--;
+  const out = span(s, e);
+  out.text = out.text.replace(/[.,;:!?]+$/, '');
+  out.ends = e === ws.length - 1;
+  out.words = e - s + 1;
+  return out;
 }
 
 /** The phrases to mark in one line, as { at, text } in the line's own spelling, in order. */
@@ -82,11 +97,16 @@ export function keyPhrases(line, { names = [], max = 2 } = {}) {
   }
   const nameSet = new Set(names.map((n) => n.toLowerCase()));
   const out = [];
-  for (const c of clauses) {
+  for (const [i, c] of clauses.entries()) {
     if (out.length >= max) break;
     const p = inClause(c);
-    // a phrase that opens or closes a quote halfway reads wrong; leave that clause plain
-    if (!p || !p.text.trim() || (p.text.match(/["“”]/g) ?? []).length % 2) continue;
+    // a phrase that opens or closes a quote or a bracket halfway reads wrong; leave that clause plain
+    if (!p || !p.text.trim() || (p.text.match(/["“”]/g) ?? []).length % 2 || (p.text.match(/[(]/g) ?? []).length !== (p.text.match(/[)]/g) ?? []).length) continue;
+    // a verb and the first item of a list ("finds lands, sets, hides and …") is not a phrase: when a
+    // two-word phrase ends its clause and the next clause is a bare item with no verb ("sets", not "a count"),
+    // the list goes on there
+    const next = clauses[i + 1];
+    if (p.ends && p.words <= 2 && next && !/^\s*(the|a|an)\b/i.test(next.text) && !inClause(next)) continue;
     const plain = p.text.toLowerCase().replace(/[^\w\s]/g, '').trim();
     if (nameSet.has(plain) || nameSet.has(plain.replace(/\s+/g, ''))) continue;
     out.push(p);

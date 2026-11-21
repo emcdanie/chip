@@ -32,3 +32,19 @@ test('nothing is marked rather than a part name, a label or half a quote', () =>
   assert.deepEqual(marked('Team: "every ask is answered" only when no ask is open'), []);
   assert.deepEqual(marked('Foundations: the Colour roles table\'s last column is "Parts", a count'), ['"Parts"']);
 });
+
+// coordinator check of the 20 newest records, 22 Nov: "finds lands" joined a verb to a list's first item
+test('every marked phrase reads as a phrase', () => {
+  assert.deepEqual(marked('Reading: the Marker also finds lands, sets, hides and other common verbs, so more titles mark their outcome'), ['mark their outcome']);
+  assert.deepEqual(marked('History: the record count and Show N records follow your search, chips and filters'), ['follow your search']);
+  // a weak verb keeps the place it names; a count is never joined to a verb; a time is not a count
+  assert.deepEqual(marked('Open pull requests sit At the gate while CI runs and in Ready once it passes; Claude Code sessions writing now sit in Agent.'), ['At the gate', 'now sit in Agent']);
+  assert.deepEqual(marked('With Secondary picked, the Fill pin reads the white it paints, not the primary blue; See all 38 opens Button’s own history.').slice(-1), ['opens Button’s own history']);
+  assert.deepEqual(marked('Each step now reads as one line, "Pairs added · 10:02", with the title in bold'), ['now reads as one line']);
+  // nothing inside a bracket, no bare number, no full stop inside the mark
+  assert.deepEqual(marked('The label is now centred on the dashed line, and the bar sits in the middle of that line (8 above, 8 below).'), ['now centred on the dashed line', 'in the middle of that line']);
+  assert.deepEqual(marked('Reading CHIP gets easier: the one key phrase is bold with a soft underline (new Marker part), slim meta lines (Stat change)'), ['bold']);
+  assert.deepEqual(marked('Searching "drawer" now reads 10 of 23 records, not 10 of every record.'), ['10 of 23 records']);
+  assert.deepEqual(marked('a marked phrase over four words reads plain.'), ['plain']);
+  assert.deepEqual(marked('Foundations: Used by nothing in Cards says every card colour is in use and opens the 25 in the Table'), ['says every card colour']);
+});
