@@ -19,6 +19,8 @@ import Notification from '@bella/components/Notification/Notification';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Input from '@bella/components/Input/Input';
+import Combobox from '@bella/components/Combobox/Combobox';
+import { find } from '../templates/Search.jsx';
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Drawer from '@bella/components/Drawer/Drawer';
@@ -563,6 +565,29 @@ function Record({ id, fit, landing }) {
 export default function HistoryContent() {
   const phone = useNarrow();
   const [draft, setDraft] = useState('');
+  // Recent searches: this browser's own, a convenience (lost with site data, never shared)
+  const [recent, setRecent] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('chip:history-recent') ?? '[]');
+    } catch {
+      return [];
+    }
+  });
+  const { data: bellaData } = useCached(['/data/bella.json']);
+  const parts = bellaData?.[0]?.components ?? [];
+  const search = (text) => {
+    const t = String(text).trim();
+    setDraft(t);
+    setQ(t);
+    if (!t) return;
+    const next = [t, ...recent.filter((r) => r !== t)].slice(0, 5);
+    setRecent(next);
+    try {
+      localStorage.setItem('chip:history-recent', JSON.stringify(next));
+    } catch {
+      /* no storage: Recent lasts this visit */
+    }
+  };
   const [q, setQ] = useState('');
   const [kind, setKind] = useState(null);
   const [status, setStatus] = useState([]);
@@ -604,8 +629,20 @@ export default function HistoryContent() {
         {/* Figma's content set opens with its lede (664:123672) */}
         <TextStack body="What we agreed, when and why, across BELLA and CHIP." />
         {/* Search beside the field, lined up with its box (the label sits above); a phone stacks them */}
-        <Flow direction={phone ? 'column' : 'row'} gap={8} grow={phone ? undefined : 'first'} as="form" role="search" onSubmit={(e) => (e.preventDefault(), setQ(draft.trim()))}>
-          <Input label="Ask about a change, in plain words" leadingIcon="Search" value={draft} onChange={setDraft} />
+        <Flow direction={phone ? 'column' : 'row'} gap={8} grow={phone ? undefined : 'first'} as="form" role="search" onSubmit={(e) => (e.preventDefault(), search(draft))}>
+          {/* Ask suggestions (Figma Flow 5, screen 2): the field opens matching parts and pages, then
+              Recent; picking one searches the record for it (screen 4, "Only the fixes for Button") */}
+          <Combobox
+            label="Ask about a change, in plain words"
+            search
+            value={draft}
+            onChange={setDraft}
+            groups={[
+              { id: 'match', label: 'Parts and pages', options: find(draft, parts).map((x) => ({ id: x.key, label: x.title, meta: x.where })) },
+              { id: 'recent', label: 'Recent', options: recent.filter((r) => !draft.trim() || r.toLowerCase().includes(draft.trim().toLowerCase())).map((r) => ({ id: `recent:${r}`, label: r })) },
+            ]}
+            onSelect={(o) => search(o.label)}
+          />
           <Flow direction={phone ? 'row' : 'column'} justify="end">
             {/* Figma (664:123671): Search, then Filters, both white, words only; the page's one blue action is New task */}
             <Flow direction="row" gap={8} justify="end">

@@ -19,7 +19,7 @@ import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
 import useCached from './useCached.js';
 
-const PAGES = [
+export const PAGES = [
   { id: 'work', label: 'Work', where: 'Page · CHIP project' },
   { id: 'health', label: 'Health', where: 'Page · CHIP project' },
   { id: 'components', label: 'Components', where: 'Page · CHIP project' },
@@ -37,7 +37,7 @@ const MAX = 8;
 const breakable = (name) => name.split(/(?<=[a-z])(?=[A-Z])/).flatMap((w, i) => (i ? [<wbr key={i} />, w] : [w]));
 
 /* Pages and parts whose name starts with the words, then names that hold them, then a part's description. */
-function find(q, parts) {
+export function find(q, parts) {
   const t = q.trim().toLowerCase();
   if (!t) return [];
   const rank = (name, about = '') => (name.toLowerCase().startsWith(t) ? 0 : name.toLowerCase().includes(t) ? 1 : about.toLowerCase().includes(t) ? 2 : -1);
