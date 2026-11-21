@@ -102,7 +102,9 @@ const plain = (t) =>
     .replace(/\bElleta\b/g, 'the maintainer')
     .replace(/#\/[\w-]+-old\b/g, 'its old address')
     .replace(/#\/([\w-]+)(?:\?[\w=&%.-]*)?/g, (_, r) => `the ${r.replace(/-/g, ' ')} page`)
-    .replace(/(?:[\w.-]+\/)+[\w.-]+\.\w+|\b[\w-]+\.(?:jsx?|tsx?|css|html|json|mjs|md|ya?ml)\b/g, '')
+    // a file named in quotes is what the sentence is about, so it stays; any other path goes
+    .replace(/(?<!["“\w.\/-])(?:(?:[\w.-]+\/)+[\w.-]+\.\w+\b|[\w-]+\.(?:jsx?|tsx?|css|html|json|mjs|md|ya?ml)\b)(?!["”])/g, '')
+    .replace(/\s*["“]\s*["”]/g, '')
     .replace(/\bClaude Code\b|\bClaude\b/g, 'the agent')
     // a commit reference in brackets ("(bella-parts f134741)") is bookkeeping, not words
     .replace(/\s*\([^()]*\b[0-9a-f]{7,40}\b[^()]*\)/g, '')
@@ -118,13 +120,17 @@ const plain = (t) =>
     .replace(/\(\s*,\s*/g, '(')
     // a removed path at a bracket's start leaves no space after it ("(data/x.json radius" reads "(radius")
     .replace(/\(\s+/g, '(')
+    // a bracket whose every name was removed goes whole ("relay inbox ()")
+    .replace(/\s*\(\s*\)/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim()
     // what a removal leaves at the start ("Batch 4 (…). Type on…" reads "Type on…"), and a lower-case start
     .replace(/^[\s.,;:·-]+/, '')
     .replace(/\s+([,.;:])/g, '$1')
     .replace(/([.;:]),/g, '$1')
-    .replace(/^./, (c) => c.toUpperCase());
+    .replace(/^./, (c) => c.toUpperCase())
+    // a quoted file name wraps at its joins like the path titles, and its closing quote stays on its line
+    .replace(/(["“])([\w./-]+\.\w+)(["”])/g, (_, a, f, z) => `${a}${pathTitle(f)}\u2060${z}`);
 /* A touched file in plain words: what it is, not its path ("Team page", "Button part"). */
 const fileWords = (f) => {
   const parts = String(f).split('/');
