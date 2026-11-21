@@ -102,9 +102,9 @@ function noNames(t) {
 
 /* Figma's Why line under a record: the commit body's first plain sentence,
    after its "Name, date: \"quote\"" opening; none when the body has none. */
-function whyOf(body) {
+function whyOf(body, full = false) {
   const t = String(body ?? '').replace(/\s+/g, ' ').trim().replace(/^[A-Z][\w ]*, \d{1,2} \w{3}(?: \d{4})?:?\s*(\([^)]*\)\s*)?("[^"]*"[.,]?\s*)?(?:,?\s*after [^.]*\.\s*)?/, '');
-  const one = short(noNames(firstSentence(t)));
+  const one = short(noNames(firstSentence(t)), full);
   return one.length > 3 ? one : null;
 }
 
@@ -116,13 +116,13 @@ export function clip(text, max) {
   if (!text || text.length <= max) return text;
   return `${text.slice(0, max + 1).slice(0, text.slice(0, max + 1).lastIndexOf(' ')).replace(/[,;:.]$/, '')}…`;
 }
-function short(text) {
+function short(text, full = false) {
   let t = text.replace(/^[-–]\s*/, '');
   for (let prev; prev !== t; ) { prev = t; t = t.replace(/\s*\([^()]*\)/g, ''); }
   // an unclosed bracket in the commit text: drop it up to its comma or colon, and any stray closer
   t = t.replace(/\s*\([^()]*?[,:]+\s*/g, ': ').replace(/[()]/g, '');
   t = t.replace(/\s+([,.;:])/g, '$1').replace(/\s+/g, ' ').trim();
-  const out = clip(t, WHY_MAX);
+  const out = full ? t : clip(t, WHY_MAX);
   // the page breaks a path (Components/<Type>/<Name>) after its slashes with <wbr> (ComponentsContent)
   return out;
 }
@@ -132,7 +132,7 @@ export function detailModel(part, { history, pairs, map }) {
     const contrast = pairFor(a.token, pairs?.pairs);
     return { ...a, contrast, status: contrast && !contrast.ok ? 'finding' : 'pass' };
   });
-  const entries = (history?.entries ?? []).map((e) => ({ id: e.sha, title: cap(noNames(e.subject.replace(/^\w+(\([^)]*\))?!?:\s*/, ''))), why: whyOf(e.detail), date: e.date, type: (e.types ?? [])[0] ?? null, types: e.types ?? [] }));
+  const entries = (history?.entries ?? []).map((e) => ({ id: e.sha, title: cap(noNames(e.subject.replace(/^\w+(\([^)]*\))?!?:\s*/, ''))), why: whyOf(e.detail), whyAll: whyOf(e.detail, true), date: e.date, type: (e.types ?? [])[0] ?? null, types: e.types ?? [] }));
   const figma = (map?.nodes ?? []).find((n) => n.id === 'figma-rest') ?? null;
   return {
     anatomy,
@@ -177,7 +177,7 @@ export function studioChecks({ part, checks, drift, lint, gate, gaps, links = {}
       value: d.differ ? `${d.differ} to fix` : 'Matches',
       count: d.differ || null,
       items: [
-        ...d.fields.map((f) => ({ title: f, value: 'differs', key: true })),
+        ...d.fields.map((f) => ({ title: f, value: 'differs', fails: true })),
         ...(d.sameValueOnly ? [{ title: 'Token names only', value: `${d.sameValueOnly} · same value in Chip` }] : []),
       ],
       source: `From ${part.name}.spec.yaml${drift.at ? `, ${day(drift.at)}` : ''}`,
@@ -218,11 +218,11 @@ export function studioChecks({ part, checks, drift, lint, gate, gaps, links = {}
 /** The fixes a part's checks suggest, one per thing to change, all picked to start. */
 export function studioFixes({ part, rows, findings = [] }) {
   const out = [];
-  for (const a of findings) out.push({ id: `finding-${a.key}`, verb: 'Raise', key: `${a.title.toLowerCase()} contrast`, line: `${a.title}: ${a.contrast.label} measures ${a.contrast.ratio.toFixed(2)}:1, needs ${a.contrast.bar}:1.` });
+  for (const a of findings) out.push({ id: `finding-${a.key}`, area: a.title, verb: 'Raise', key: `${a.title.toLowerCase()} contrast`, line: `${a.title}: ${a.contrast.label} measures ${a.contrast.ratio.toFixed(2)}:1, needs ${a.contrast.bar}:1.` });
   const parity = rows.find((r) => r.id === 'parity' && r.tone === 'danger');
-  for (const f of parity?.items.filter((i) => i.key) ?? []) out.push({ id: `parity-${f.title}`, verb: 'Match', key: f.title.replace(/^props\.|^tokens\./, ''), line: `${part.name}'s ${f.title} differs between Figma and code (${part.name}.spec.yaml, mismatch).` });
+  for (const f of parity?.items.filter((i) => i.fails) ?? []) out.push({ id: `parity-${f.title}`, area: 'Figma parity', verb: 'Match', key: f.title.replace(/^props\.|^tokens\./, ''), line: `${part.name}'s ${f.title} differs between Figma and code (${part.name}.spec.yaml, mismatch).` });
   for (const r of rows.filter((x) => x.tone === 'danger' && !['parity', 'gate', 'lint'].includes(x.id)))
-    out.push({ id: `check-${r.id}`, verb: 'Add', key: r.title.toLowerCase(), line: r.items[0]?.value ?? `${r.title} fails for ${part.name}.` });
+    out.push({ id: `check-${r.id}`, area: r.title, verb: 'Add', key: r.title.toLowerCase(), line: r.items[0]?.value ?? `${r.title} fails for ${part.name}.` });
   return out;
 }
 
