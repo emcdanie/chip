@@ -199,7 +199,7 @@ function Activity({ records, total, open, onOpen, fit }) {
   return (
     <Card>
       <Flow gap={8} scroll={fit}>
-        <SectionHead title="Activity" words={`${list.length} of ${total} records`} />
+        <SectionHead title="Activity" words={`${list.length} of ${total} ${total === 1 ? 'record' : 'records'}`} />
         {/* flush rows, each Step's line meeting the next one's, through the day breaks (BELLA's own Step list) */}
         <Flow gap={0} as="ol" aria-label="Records, newest first">
           {list.map((r, i) => {
@@ -687,7 +687,8 @@ export default function HistoryContent() {
         // (Elleta, 22 Nov: "I don't want to scroll the whole page"). A phone stacks them and scrolls.
         <Flow fit={!phone} span={12} direction={phone ? 'column' : 'row'} gap={24} id="history-frame">
           <Flow span={5}>
-            <Activity records={records} total={data.total} open={open} onOpen={openRecord} fit={!phone} />
+            {/* the count follows search, chips and filters: the server's matches (count), not every record (total) */}
+            <Activity records={records} total={data.count ?? data.total} open={open} onOpen={openRecord} fit={!phone} />
           </Flow>
           <Flow span={7} id="history-record">
             {/* a new record opens at its top (keyed), never mid-scroll from the last one */}
@@ -709,7 +710,7 @@ export default function HistoryContent() {
               Clear
             </Button>
             <Button variant="primary" onClick={() => setFilters(false)}>
-              Show {data?.total ?? ''} records
+              Show {data?.count ?? data?.total ?? ''} {(data?.count ?? data?.total) === 1 ? 'record' : 'records'}
             </Button>
           </Flow>
         }
