@@ -419,13 +419,13 @@ export async function workStatus() {
   const next = m.lanes.find((l) => l.id === 'next').cards.length;
   const at = new Date(board.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const verdict = atWork.length
-    ? `**${atWork.length} ${atWork.length === 1 ? 'task is' : 'tasks are'}** being worked on, and **${waiting}** ${waiting === 1 ? 'thing waits' : 'things wait'} on you.`
+    ? `**${atWork.length} ${atWork.length === 1 ? 'task' : 'tasks'}** ${atWork.length === 1 ? 'is' : 'are'} being worked on, and **${waiting}** ${waiting === 1 ? 'thing waits' : 'things wait'} on you.`
     : `**Nothing** is being worked on right now; **${waiting}** ${waiting === 1 ? 'thing waits' : 'things wait'} on you.`;
   const bullets = atWork.map((c) => {
     const p = c.progress;
-    const how = !p || p.state === 'blank' ? 'no steps listed yet' : p.state === 'done' ? `all ${p.total} steps done` : `step ${Math.min(p.done + 1, p.total)} of ${p.total}${p.now ? `, ${p.now}` : ''}`;
-    return `${c.title}: ${how}`;
+    const how = !p || p.state === 'blank' ? 'no steps listed yet' : p.state === 'done' ? `all ${p.total} steps done` : `step ${Math.min(p.done + 1, p.total)} of ${p.total}${p.now ? `: ${p.now}` : ''}`;
+    return `${c.title} · ${how}`;
   });
-  if (next) bullets.push(`Next: ${next} ${next === 1 ? 'card' : 'cards'} lined up by you`);
+  if (next) bullets.push(`Next · ${next} ${next === 1 ? 'card' : 'cards'} lined up by you`);
   return { verdict, bullets, at, line: `From the Work board, read ${at}. Sessions in the Claude app and CHIP's own runs.` };
 }
