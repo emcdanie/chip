@@ -1,7 +1,7 @@
 // Work's board, from CHIP's own data: what needs her (/needs) and the agent
 // runs CHIP started (/runs). Lanes as Figma (Work · content 608:207182):
 // Needs you, Agent, Gate, Ready (slim Work: no Merged today, no Just finished).
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useCached from '../templates/useCached.js';
 
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -57,19 +57,42 @@ export const daysQuiet = (l, now = Date.now()) => Math.floor((now - l.updated) /
 /* A relay lane at work, as an Agent card: the agent's name and its role. */
 const laneCard = (l) => ({ id: `lane-${l.id}`, title: l.name, branch: null, line: ['Agent session', l.role].filter(Boolean).join(' · '), status: 'Working', tone: 'info', who: 'agent' });
 
-export function workModel({ needs = [], runs = [], agents = [], runBase = null }) {
+/* Open pull requests by their CI and Claude Code sessions at work (/work/lanes, server/lib/lanes.mjs):
+   CI running is At the gate, every check passed is Ready, sessions writing now are Agent. */
+const prCard = (p) => ({
+  id: p.id,
+  title: p.title,
+  branch: p.branch,
+  line: ['Pull request', `${p.project} #${p.number}`, p.draft ? 'draft' : null].filter(Boolean).join(' · '),
+  status: p.lane === 'gate' ? 'CI running' : 'CI passed',
+  tone: p.lane === 'gate' ? 'info' : 'success',
+  who: p.lane === 'gate' ? 'gate' : 'reviewer',
+  open: { kind: 'link', href: p.url },
+});
+const sessionCard = (x) => ({ id: x.id, title: `${x.count} Claude Code ${x.count === 1 ? 'session' : 'sessions'} in ${x.project}`, branch: null, line: `Agent session · active ${hhmm(x.last)}`, status: 'Working', tone: 'info', who: 'agent' });
+
+export function workModel({ needs = [], runs = [], agents = [], runBase = null, lanes: extra = null }) {
   // a check an agent is already working on leaves Needs you (its run shows in Agent)
   const working = new Set(runs.filter((r) => ['starting', 'running', 'gate'].includes(r.status)).map((r) => r.title));
   const needsYou = needs.map(needCard).filter((c) => !(c.fixable && working.has(c.title))).sort((a, b) => Number(b.failed) - Number(a.failed) || (a.at ?? 0) - (b.at ?? 0));
   const by = (...s) => runs.filter((r) => s.includes(r.status));
   const lanes = [
-    { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r, runBase), status: 'Failed', tone: 'danger', who: 'developer' })), ...needsYou] },
-    { id: 'agent', name: 'Agent', cards: [...by('starting', 'running').map((r) => ({ ...runCard(r, runBase), status: 'Working', tone: 'info', who: 'agent' })), ...agents.filter((l) => laneState(l) === 'working').map(laneCard)] },
-    { id: 'gate', name: 'At the gate', cards: by('gate').map((r) => ({ ...runCard(r, runBase), status: 'Checking', tone: 'info', who: 'gate' })) },
-    { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r, runBase), status: 'Gate passed', tone: 'success', who: 'reviewer' })) },
+    { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r, runBase), status: 'Failed', tone: 'danger', who: 'developer', runBrief: r.brief ?? null })), ...needsYou] },
+    { id: 'agent', name: 'Agent', cards: [...by('starting', 'running').map((r) => ({ ...runCard(r, runBase), status: 'Working', tone: 'info', who: 'agent' })), ...agents.filter((l) => laneState(l) === 'working').map(laneCard), ...(extra?.sessions ?? []).map(sessionCard)] },
+    { id: 'gate', name: 'At the gate', cards: [...by('gate').map((r) => ({ ...runCard(r, runBase), status: 'Checking', tone: 'info', who: 'gate' })), ...(extra?.prs ?? []).filter((p) => p.lane === 'gate').map(prCard)] },
+    { id: 'ready', name: 'Ready', cards: [...by('passed').map((r) => ({ ...runCard(r, runBase), status: 'Gate passed', tone: 'success', who: 'reviewer' })), ...(extra?.prs ?? []).filter((p) => p.lane === 'ready').map(prCard)] },
   ];
-  const total = lanes.reduce((s, l) => s + l.cards.length, 0);
-  return { lanes, total, brief: briefOf(lanes) };
+  // her moves (saved on the server, /work/moves): a card sits where she put it, keeping its own status
+  const moves = extra?.moves ?? {};
+  for (const l of lanes) for (const c of l.cards) c.home = l.id;
+  const placed = lanes.map((l) => ({ ...l, cards: l.cards.filter((c) => !moves[c.id] || moves[c.id].lane === l.id) }));
+  for (const l of lanes)
+    for (const c of l.cards) {
+      const to = moves[c.id]?.lane;
+      if (to && to !== l.id) placed.find((x) => x.id === to)?.cards.unshift({ ...c, moved: true, line: [c.line, 'moved here by you'].filter(Boolean).join(' · ') });
+    }
+  const total = placed.reduce((s, l) => s + l.cards.length, 0);
+  return { lanes: placed, total, brief: briefOf(placed), why: extra?.windowDays ? whyEmpty(extra) : null };
 }
 
 /* The Brief carries its own next step (Figma Flow 1, screen 1, "Fix the Figma key"): the top card's
@@ -84,6 +107,20 @@ function briefOf(lanes) {
   return { message: `${needs.length} ${needs.length === 1 ? 'thing needs' : 'things need'} you; the top one is ${top.title}${top.failed || top.tone === 'danger' ? ', which failed' : ''}.${agent ? ` ${agent} ${agent === 1 ? 'agent is' : 'agents are'} working.` : ''}`, action: top.action ?? (top.open ? (top.tone === 'danger' ? 'See why it failed' : 'Open it') : undefined), open: top.open };
 }
 
+/* Why an empty lane is empty, from what was measured (her rule: an empty lane says why). */
+function whyEmpty(x) {
+  const n = (k, one, many) => `${k} ${k === 1 ? one : many}`;
+  const days = `the last ${x.windowDays} days`;
+  if (!x.reached) return { gate: 'GitHub didn’t answer, so open pull requests aren’t counted.', ready: 'GitHub didn’t answer, so open pull requests aren’t counted.' };
+  const failed = x.left?.failed ? ` ${n(x.left.failed, 'pull request’s CI failed', 'pull requests’ CI failed')}.` : '';
+  const none = x.left?.none ? ` ${n(x.left.none, 'has', 'have')} no CI.` : '';
+  return {
+    agent: `No agent run and no Claude Code session wrote in the last ${x.activeMin} minutes.`,
+    gate: `No CI is running on a pull request opened or moved in ${days}.${failed}`,
+    ready: `No pull request from ${days} has passed CI yet.${none}`,
+  };
+}
+
 /** Reads CHIP's data (kept between pages); `reload` reads it again (Check again). */
 export function useWork() {
   const { data, error, at, loading, reload } = useCached(['/needs', '/runs', '/bar/state']);
@@ -91,8 +128,23 @@ export function useWork() {
     window.addEventListener('chip:changed', reload);
     return () => window.removeEventListener('chip:changed', reload);
   }, [reload]);
-  const model = useMemo(() => (data ? workModel({ needs: data[0].items ?? [], runs: data[1].runs ?? [], runBase: data[1].base ?? null, agents: data[2]?.lanes ?? [] }) : null), [data]);
-  return { model, error, loading, reload, checked: at ? hhmm(at) : null };
+  // the PR and session lanes come on their own: a slow or missing GitHub never holds up the board
+  const { data: extra, reload: reloadExtra } = useCached(['/work/lanes']);
+  useEffect(() => {
+    window.addEventListener('chip:changed', reloadExtra);
+    return () => window.removeEventListener('chip:changed', reloadExtra);
+  }, [reloadExtra]);
+  // a move shows at once: the server's answer to the save stands in until the lanes are read again
+  const [moved, setMoved] = useState(null);
+  useEffect(() => {
+    const on = (e) => setMoved(e.detail);
+    window.addEventListener('chip:moves', on);
+    return () => window.removeEventListener('chip:moves', on);
+  }, []);
+  useEffect(() => setMoved(null), [extra]);
+  const lanes = extra?.[0] ? { ...extra[0], moves: moved ?? extra[0].moves } : moved ? { moves: moved } : null;
+  const model = useMemo(() => (data ? workModel({ needs: data[0].items ?? [], runs: data[1].runs ?? [], runBase: data[1].base ?? null, agents: data[2]?.lanes ?? [], lanes }) : null), [data, lanes]);
+  return { model, error, loading, reload: () => (reload(), reloadExtra()), checked: at ? hhmm(at) : null };
 }
 
 /* The sidebar's filters (her rule "branches filter the board"; the Status rows
@@ -103,6 +155,17 @@ export function filterFromHash(hash = window.location.hash) {
   return { branch: q.get('branch'), lane: q.get('lane') };
 }
 export const LANE_NAMES = { needs: 'Needs you', agent: 'Agent', gate: 'At the gate', ready: 'Ready' };
+/* A card an agent can take: a failed check with a brief, or a failed run (its own brief, again). */
+export const runnable = (c) => !!(c.fixable || c.runBrief);
+/** Saves where she put a card (lane null: back where it came from). */
+export async function saveMove(id, lane) {
+  const r = await fetch('/work/moves', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, lane }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error ?? 'CHIP did not save it');
+  window.dispatchEvent(new CustomEvent('chip:moves', { detail: d.moves }));
+  window.dispatchEvent(new Event('chip:changed'));
+  return d.moves;
+}
 export function filtered(model, { branch, lane }) {
   if (!model || (!branch && !lane)) return model;
   const lanes = model.lanes

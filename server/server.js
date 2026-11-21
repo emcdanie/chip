@@ -23,6 +23,7 @@ import { attachTerminal, repoList } from './lib/term.mjs';
 import { BASE as checksBase, gateLog, listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
 import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
+import { readMoves, saveMove, workLanes } from './lib/lanes.mjs';
 import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
@@ -496,6 +497,17 @@ app.post('/review/:check/keep', (req, res) => {
 });
 // Runs: a brief handed to Claude Code headless, reported back as an outcome
 // base: today's BELLA branch, so a card can say when a run started from another one (data check, 22 Nov)
+// Work's Agent, Gate and Ready lanes beyond CHIP's runs: open PRs by their CI, sessions at work (read only)
+app.get('/work/lanes', async (_req, res) => res.json({ ...(await workLanes()), moves: readMoves() }));
+// where she put a card on the board, kept between visits
+app.post('/work/moves', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json({ moves: saveMove({ id: req.body?.id, lane: req.body?.lane ?? null }) });
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
 // what a push would send, read only; CHIP never pushes and never types a push
 app.get('/push/:repo', (req, res) => {
   try {

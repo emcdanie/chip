@@ -7,7 +7,7 @@
 // Built only from published BELLA parts. The grid is the one template CSS
 // file (Screen.css), token values only. Data is CHIP's own where it has it
 // (/projects, /needs); anything CHIP does not measure shows no number.
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import useCached from './useCached.js';
 import IconRail from '@bella/components/IconRail/IconRail';
 import NavItem from '@bella/components/NavItem/NavItem';
@@ -67,12 +67,19 @@ const PLACES = [
  * Work board's own lanes (workModel), so the panel and the board always agree;
  * 0 is a real count (no runs), shown as Figma shows it. */
 function useShellData() {
-  const { data } = useCached(['/projects', '/needs', '/runs', '/bar/state']);
+  const { data, reload } = useCached(['/projects', '/needs', '/runs', '/bar/state']);
+  const { data: extra, reload: reloadExtra } = useCached(['/work/lanes']);
+  // a move, a run or an Accept anywhere: the Status counts follow at once
+  useEffect(() => {
+    const on = () => (reload(), reloadExtra());
+    window.addEventListener('chip:changed', on);
+    return () => window.removeEventListener('chip:changed', on);
+  }, [reload, reloadExtra]);
   if (!data) return { projects: null, lanes: null };
   const [p, n, r, bar] = data;
   // the Status counts are the board's own, branch filter included, so the two never disagree
   const { branch } = filterFromHash();
-  const { lanes } = filtered(workModel({ needs: n?.items ?? [], runs: r?.runs ?? [], runBase: r?.base ?? null, agents: bar?.lanes ?? [] }), { branch });
+  const { lanes } = filtered(workModel({ needs: n?.items ?? [], runs: r?.runs ?? [], runBase: r?.base ?? null, agents: bar?.lanes ?? [], lanes: extra?.[0] ?? null }), { branch });
   return { projects: p?.projects ?? [], lanes: Object.fromEntries(lanes.map((l) => [l.id, l.cards.length])) };
 }
 

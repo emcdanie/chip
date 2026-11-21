@@ -32,6 +32,7 @@ import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import { useEffect, useRef, useState } from 'react';
 import { planRun } from '../templates/RunPlan.jsx';
+import { runnable, saveMove } from './workModel.js';
 import Flow from '../templates/Flow.jsx';
 import WorkDrawer from './WorkDrawer.jsx';
 import { LANE_NAMES } from './workModel.js';
@@ -72,16 +73,20 @@ const LANE_KIND = { needs: 'needs-you', agent: 'agent', gate: 'gate', ready: 're
    left (20 Nov rule; published List row), the same tone as the lane's tint. */
 const LANE_BAR = { needs: 'attention', agent: 'info', gate: 'neutral', ready: 'success' };
 
-function Lane({ lane: given, move }) {
-  const e = EMPTY[given.id];
+function Lane({ lane: given, move, why }) {
+  // an empty lane says why, from what was measured (/work/lanes); the friendly line stays where nothing was
+  const e = why ? { ...EMPTY[given.id], line: why } : EMPTY[given.id];
   // a card on its way to the agent leaves Needs you at once
   const lane = given.id === 'needs' ? { ...given, cards: given.cards.filter((c) => !move.starting.some((s) => s.id === c.id)) } : given;
   const agent = lane.id === 'agent';
+  const dragged = move.dragging ? move.find(move.dragging) : null;
+  // the drop space shows only while a card is being dragged, at the top of every other lane;
+  // in Agent it says the drop starts work (a plan first), elsewhere it moves the card
+  const dropHere = dragged && dragged.lane !== lane.id && (!agent || runnable(dragged.card) || dragged.card.home === 'agent');
   const cards = [
-    // the drop space shows only while a card is being dragged, at the top of Agent
     // it opens while a card is dragged, and after the drop (or a cancel) it closes up before it goes (parts-dev dc158de)
-    ...(agent && (move.dragging || move.closing) ? [<BoardLaneDropSpace key="drop" label="Drop here to start" open={!!move.dragging} onClosed={() => move.setClosing(false)} />] : []),
-    ...(agent ? move.starting.filter((c) => !lane.cards.some((t) => t.title === c.title)).map((c) => <TaskCard key={`start-${c.id}`} title={c.title} line="Sent from Needs you" status="Starting" statusTone="info" />) : []),
+    ...(dropHere || (move.closing && move.find(move.closing)?.lane !== lane.id) ? [<BoardLaneDropSpace key="drop" label={agent && runnable(dragged?.card ?? {}) ? 'Drop here to plan the run' : `Drop here to move it to ${lane.name}`} open={!!dropHere} onClosed={() => move.setClosing(false)} />] : []),
+    ...(agent ? move.starting.filter((c) => !lane.cards.some((t) => t.title === c.title)).map((c) => <TaskCard key={`start-${c.id}`} title={c.title} line="Plan open, waiting for your Approve" status="Starting" statusTone="info" />) : []),
     ...[...lane.cards, ...Object.values(move.leaving).filter((x) => x.lane === lane.id && !lane.cards.some((c) => c.id === x.card.id)).map((x) => x.card)].flatMap((c) => {
       const needs = lane.id === 'needs';
       const card = (
@@ -97,21 +102,27 @@ function Lane({ lane: given, move }) {
           leaving={!!move.leaving[c.id]}
           onLeft={move.leaving[c.id] ? () => move.left(c.id) : undefined}
           dragging={move.dragging === c.id}
-          draggable={needs && c.fixable ? true : undefined}
-          onDragStart={needs && c.fixable ? (ev) => (ev.dataTransfer.setData('text/plain', c.id), (ev.dataTransfer.effectAllowed = 'move'), move.setDragging(c.id)) : undefined}
-          onDragEnd={needs && c.fixable ? () => move.setDragging(null) : undefined}
-          onMoveTo={needs ? () => move.setMenu(move.menu === c.id ? null : c.id) : undefined}
+          // every card moves, by mouse (drag) or keyboard (its Move to… menu); the move is saved
+          draggable
+          onDragStart={(ev) => (ev.dataTransfer.setData('text/plain', c.id), (ev.dataTransfer.effectAllowed = 'move'), move.setDragging(c.id))}
+          onDragEnd={() => move.setDragging(null)}
+          onMoveTo={() => move.setMenu(move.menu === c.id ? null : c.id)}
         />
       );
       if (move.menu !== c.id) return [card];
       return [
         card,
         <Menu key={`menu-${c.id}`} label={`Move ${c.title}`} onClose={() => move.setMenu(null)}>
-          {c.fixable ? (
-            <MenuItem label="Send to the agent" icon="Sparks" onSelect={() => (move.setMenu(null), move.send(c))} />
-          ) : (
-            <MenuItem label="Stays with you: pull, merge and push are your call" onSelect={() => move.setMenu(null)} />
-          )}
+          {Object.entries(LANE_NAMES)
+            // Agent only for what an agent can take: pull, merge and push stay with a person
+            .filter(([id]) => id !== lane.id && (id !== 'agent' || runnable(c) || c.home === 'agent'))
+            .map(([id, name]) =>
+              id === 'agent' && runnable(c) ? (
+                <MenuItem key={id} label="Send to the agent (opens the plan)" icon="Sparks" onSelect={() => (move.setMenu(null), move.drop(c, lane.id, id))} />
+              ) : (
+                <MenuItem key={id} label={id === c.home ? `Put back in ${name}` : `Move to ${name}`} onSelect={() => (move.setMenu(null), move.drop(c, lane.id, id))} />
+              ),
+            )}
         </Menu>,
       ];
     }),
@@ -119,7 +130,7 @@ function Lane({ lane: given, move }) {
   const live = agent ? lane.cards.length + move.starting.filter((c) => !lane.cards.some((t) => t.title === c.title)).length : lane.cards.length;
   return (
     // Figma's lane head: name and count; an empty lane shows its centred Empty state (Show empty)
-    <BoardLane name={lane.name} lane={LANE_KIND[lane.id]} count={live} headingLevel={2} dropTarget={agent && !!move.dragging} empty={<EmptyState size="lane" mark={e.mark} title={e.title} line={e.line} />}>
+    <BoardLane name={lane.name} lane={LANE_KIND[lane.id]} count={live} headingLevel={2} dropTarget={!!dropHere} empty={<EmptyState size="lane" mark={e.mark} title={e.title} line={e.line} />}>
       {cards.length ? cards : null}
     </BoardLane>
   );
@@ -131,7 +142,7 @@ function useMove() {
   // the drop space stays a moment after a drag ends, closing up
   const [closing, setClosing] = useState(false);
   const setDragging = (id) => {
-    if (!id && dragging) setClosing(true);
+    if (!id && dragging) setClosing(dragging);
     setDraggingNow(id);
   };
   const [menu, setMenu] = useState(null);
@@ -157,7 +168,20 @@ function useMove() {
       if (!err.shown) setNotice({ tone: 'danger', title: `Not sent: ${card.title}`, message: err.message });
     }
   };
-  return { dragging, setDragging, closing, setClosing, menu, setMenu, starting, send, notice, setNotice };
+  // a drop or a menu pick: to Agent, a card an agent can take opens its plan; back home clears her move;
+  // anywhere else is saved as her placement (/work/moves), with feedback on the card's new lane and a toast
+  const drop = async (card, from, to) => {
+    if (!to || to === from) return;
+    if (to === 'agent' && runnable(card)) return send(card);
+    if (to === 'agent' && card.home !== 'agent') return setNotice({ tone: 'attention', title: `Stays with you: ${card.title}`, message: 'An agent can’t take this one: pull, merge and push are a person’s call.' });
+    try {
+      await saveMove(card.id, to === card.home ? null : to);
+      setNotice({ tone: 'success', title: to === card.home ? `Put back: ${card.title}` : `Moved to ${LANE_NAMES[to]}: ${card.title}`, message: to === card.home ? 'It sits where CHIP measured it again.' : 'Saved. It keeps its own status; Move to… puts it back.' });
+    } catch (err) {
+      setNotice({ tone: 'danger', title: `Not moved: ${card.title}`, message: err.message });
+    }
+  };
+  return { dragging, setDragging, closing, setClosing, menu, setMenu, starting, send, drop, notice, setNotice };
 }
 
 export default function WorkContent({ model, filter = {}, view = 'board', onView, checked, onCheck, loading }) {
@@ -177,8 +201,16 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
   else if (needsIds) needsIds.forEach((id) => !seen.current.has(id) && (seen.current.add(id), arrived.current.add(id)));
   const move = {
     ...useMove(),
-    open: (o, card) => ((from.current = card ?? null), setOpen(o)),
+    // a pull request opens on GitHub in a new tab; everything else in this shell's drawer
+    open: (o, card) => (o.kind === 'link' ? window.open(o.href, '_blank', 'noopener') : ((from.current = card ?? null), setOpen(o))),
     isNew: (id) => arrived.current.has(id),
+    find: (id) => {
+      for (const l of model?.lanes ?? []) {
+        const card = l.cards.find((c) => c.id === id);
+        if (card) return { card, lane: l.id };
+      }
+      return null;
+    },
     leaving,
     left: (id) => (setLeaving(({ [id]: _, ...rest }) => rest), window.dispatchEvent(new Event('chip:changed'))),
   };
@@ -190,22 +222,27 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
   };
   // Check again ends with a toast that says what it found (feedback on the control plus a toast)
   const wasLoading = useRef(false);
+  const checkAsked = useRef(false);
   useEffect(() => {
-    if (wasLoading.current && !loading && model) {
+    // only for her Check again, never for a reload a move or a run set off (its own toast says what happened)
+    if (wasLoading.current && !loading && model && checkAsked.current) {
+      checkAsked.current = false;
       const n = model.lanes.find((l) => l.id === 'needs')?.cards.length ?? 0;
       move.setNotice({ tone: 'success', title: `Checked ${checked ?? ''}`.trim(), message: n ? `${n} ${n === 1 ? 'thing needs' : 'things need'} you.` : 'Nothing needs you.' });
     }
     wasLoading.current = !!loading;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
-  // a drop anywhere on the Agent lane sends the dragged card
+  // a drop anywhere on a lane moves the dragged card there (move.drop says what that means)
   const onDrop = (ev) => {
-    const lane = ev.target.closest?.('[data-bella-component="board-lane"]');
-    const card = model?.lanes[0].cards.find((c) => c.id === move.dragging);
+    const el = ev.target.closest?.('[data-bella-component="board-lane"]');
+    const name = el?.querySelector('h2')?.textContent;
+    const to = Object.keys(LANE_NAMES).find((id) => LANE_NAMES[id] === name);
+    const found = move.dragging ? move.find(move.dragging) : null;
     move.setDragging(null);
-    if (!card || lane?.querySelector('h2')?.textContent !== 'Agent') return;
+    if (!found || !to) return;
     ev.preventDefault();
-    move.send(card);
+    move.drop(found.card, found.lane, to);
   };
   return (
     <>
@@ -223,7 +260,7 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
           <Flow direction="row" gap={8} align="center">
             {checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
             {/* busy while the check runs: the icon turns and clicks wait (Button busy, parts-dev 99a021d) */}
-            <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={onCheck}>
+            <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={() => ((checkAsked.current = true), onCheck?.())}>
               {loading ? 'Checking…' : 'Check again'}
             </Button>
           </Flow>
@@ -294,7 +331,7 @@ export default function WorkContent({ model, filter = {}, view = 'board', onView
           ) : (
             <Flow board direction="row" gap={24} aria-label="Work board" onDragOver={(ev) => move.dragging && ev.preventDefault()} onDrop={onDrop}>
               {model.lanes.map((l) => (
-                <Lane key={l.id} lane={l} move={move} />
+                <Lane key={l.id} lane={l} move={move} why={model.why?.[l.id]} />
               ))}
             </Flow>
           )}
