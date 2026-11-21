@@ -9,7 +9,7 @@
 // Ask uses Input's own Send button.
 // Actions that run the agent (Ask) wait for the Menu part for the model menu
 // (Auto, local first).
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Step, { StepDay } from '@bella/components/Step/Step';
@@ -24,6 +24,7 @@ import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
+import TourStep from '@bella/components/TourStep/TourStep';
 import Flow from '../templates/Flow.jsx';
 import { parseDiff } from './WorkDrawer.jsx';
 import useCached from '../templates/useCached.js';
@@ -209,7 +210,6 @@ const firstSentence = (t) => {
   return str;
 };
 
-
 /* Bold is for key words only (Elleta, 22 Nov: "only keywords, which were supposed to have the blue
    underline thing"): a record's title reads regular and its one key word gets bold plus the blue marker.
    The key word is the part the record names (git's own list of parts it touched), else the area before
@@ -231,6 +231,116 @@ function Keyed({ text, k }) {
       <strong className="chip-key">{t.slice(at, at + k.length)}</strong>
       {t.slice(at + k.length)}
     </>
+  );
+}
+
+/* "Help me understand" for one file of the change (her 19 Nov mock; READ FIRST "Code as proof"): a step
+   at a time, each one lighting the line it explains with its numbered pin, Back / n of N / Next. Only the
+   steps this file's code has; the lines are counted from the code itself. */
+function walk(f) {
+  const lines = f.body.split('\n');
+  const at = (re) => lines.findIndex((l) => re.test(l)) + 1;
+  const hunk = f.body.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,(\d+))? @@/m);
+  const add = at(/^\+/);
+  const del = at(/^-/);
+  const same = at(/^ \S/);
+  return [
+    hunk ? { line: at(/^@@/), text: `This line says where the change sits in ${f.path.split('/').pop()}: from line ${hunk[2]}${hunk[3] ? `, ${hunk[3]} lines` : ''}.` } : null,
+    del ? { line: del, text: 'A line starting − was taken out. It has the red band.' } : null,
+    add ? { line: add, text: `A line starting + was added. It has the green band${f.add > 1 ? `; this file has ${f.add} of them` : ''}.` } : null,
+    same ? { line: same, text: 'A line with neither mark is unchanged, there to show where the change sits.' } : null,
+  ].filter(Boolean);
+}
+
+/* What changed: the picture, one plain line on what the code proves, then Help me understand, then the
+   change itself, folded (Figma History visual · diff; overview by default, detail on request). The line is
+   measured from the diff, never written by a model. */
+const proves = (files) => {
+  const add = files.reduce((n, f) => n + f.add, 0);
+  const del = files.reduce((n, f) => n + f.del, 0);
+  const where = files.length === 1 ? fileWords(files[0].path) : `${files.length} files`;
+  if (files.length === 1 && files[0].kind === 'new') return `The proof: ${where} is new, ${count(add, 'line')} written from scratch.`;
+  return `The proof: in ${where}, ${count(add, 'line')} added (green) and ${count(del, 'line')} taken out (red).`;
+};
+
+/* The part before and after, large (her 18 Nov History mock, "omg so cool"; Figma History visual · default):
+   the screenshot the commit saved, read from git as it was before the commit and after it. Prefers the
+   Chip light picture. A commit that saved no screenshot says so in one line, as Figma draws it. */
+const pictureOf = (files) => {
+  const pngs = files.filter((f) => /\.png$/i.test(f));
+  return pngs.find((f) => /chip-light/i.test(f)) ?? pngs[0] ?? null;
+};
+function Picture({ rec }) {
+  const path = pictureOf(Array.isArray(rec.files) ? rec.files : []);
+  const [gone, setGone] = useState({});
+  if (!path) return <TextStack body="No before picture: this change saved no screenshot." />;
+  const src = (side) => `/history/picture?id=${encodeURIComponent(rec.id)}&path=${encodeURIComponent(path)}&side=${side}`;
+  const what = fileWords(path);
+  const sides = ['before', 'after'].filter((s) => !gone[s]);
+  return (
+    // one above the other, each the record's full width, so the part reads large (the mock's "large")
+    <Flow gap={16} aria-label={`${what}, before and after`}>
+      {sides.map((side) => (
+        <Card key={side} media={<img src={src(side)} alt={`${what}, ${side} this change`} loading="lazy" onError={() => setGone((g) => ({ ...g, [side]: true }))} />}>
+          <TextStack title={side === 'before' ? 'Before' : sides.length === 1 ? 'New' : 'After'} subtitle={side === 'after' ? [day(rec.date), roleOf(rec.who)].filter(Boolean).join(' · ') : undefined} />
+        </Card>
+      ))}
+    </Flow>
+  );
+}
+
+function WhatChanged({ diff, rec }) {
+  const files = parseDiff(diff).filter((f) => f.body);
+  const [file, setFile] = useState(0);
+  const [step, setStep] = useState(null);
+  const [open, setOpen] = useState(false);
+  // each step brings its card and the line it lights into view, inside the record's own scroll
+  const here = useRef(null);
+  useEffect(() => {
+    if (step != null) here.current?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }, [step]);
+  if (!files.length && !pictureOf(rec.files ?? [])) return null;
+  const f = files[file] ?? files[0];
+  const steps = f ? walk(f) : [];
+  const help = () => (setOpen(true), setStep(0));
+  const last = step === steps.length - 1;
+  return (
+    <Flow gap={8}>
+      <SectionHead title="What changed" titleLevel={3} />
+      <Picture rec={rec} />
+      {files.length ? <TextStack body={proves(files)} /> : null}
+      {steps.length ? (
+        <Flow direction="row" justify="end">
+          <Button variant="tertiary" size="sm" onClick={step == null ? help : () => setStep(null)} ariaExpanded={step != null}>
+            Help me understand
+          </Button>
+        </Flow>
+      ) : null}
+      {files.length ? (
+        <Disclosure flush title="Show the change" summary={count(files.length, 'file')} open={open} onToggle={setOpen}>
+          <Flow gap={8}>
+            {files.length > 1 ? (
+              <Flow direction="row" gap={8} wrap aria-label="Files in this change">
+                {files.map((x, i) => (
+                  <FilterChip key={x.path} size="compact" pressed={i === file} onClick={() => (setFile(i), setStep(step == null ? null : 0))}>
+                    {x.path.split('/').pop()}
+                  </FilterChip>
+                ))}
+              </Flow>
+            ) : null}
+            {/* the step sits right above the code it explains, its pin on the line it lights */}
+            {step != null && steps[step] ? (
+              <div ref={here}>
+                <TourStep number={step + 1} count={`${step + 1} of ${steps.length}`} isEnd={last} onBack={step ? () => setStep(step - 1) : undefined} onNext={() => setStep(last ? null : step + 1)} onClose={() => setStep(null)}>
+                  {steps[step].text}
+                </TourStep>
+              </div>
+            ) : null}
+            <CodeBlock key={f.path} code={f.body} language="diff" title={f.path} copy lineMarks={step != null && steps[step] ? [{ line: steps[step].line, kind: 'lit', pin: step + 1 }] : undefined} />
+          </Flow>
+        </Disclosure>
+      ) : null}
+    </Flow>
   );
 }
 
@@ -296,6 +406,7 @@ function Record({ id, fit }) {
             })()}
           />
         ) : null}
+        <WhatChanged key={rec.id} diff={rec.diff} rec={rec} />
         <Flow gap={8}>
           <SectionHead title="What it touched" titleLevel={3} />
           {/* flat rows on the page, one List item each, no card per row (her note, 21 Nov) */}

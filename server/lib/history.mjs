@@ -243,3 +243,18 @@ export function historyRecord(id) {
   }
   return rec;
 }
+
+/* A screenshot a commit saved (a part's story picture), as it was before the commit and after it: the
+   record's "What changed" picture (her 18 Nov History mock: the part before and after, large). Only a
+   .png the record itself lists; a side that doesn't exist (a new or deleted picture) is null. */
+export function historyPicture(id, path, side) {
+  const r = allRecords().find((x) => x.id === id);
+  if (!r?.sha || !(r.source === 'BELLA git' || r.source === 'CHIP git')) return null;
+  if (!/\.png$/i.test(path) || !(r.files ?? []).includes(path)) return null;
+  const dir = r.repo === 'bella' ? BELLA : ROOT;
+  try {
+    return execFileSync('git', ['-C', dir, '--no-optional-locks', 'show', `${r.sha}${side === 'before' ? '^' : ''}:${path}`], { maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch {
+    return null;
+  }
+}

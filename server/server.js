@@ -25,7 +25,7 @@ import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChec
 import { needsYou } from './lib/needs.mjs';
 import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
-import { historyRecord, searchHistory } from './lib/history.mjs';
+import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
 import { ciRuns, systemMap } from './lib/map.mjs';
 import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
 import { appOrigins, onlyChip } from './lib/origin.mjs';
@@ -618,6 +618,11 @@ app.get('/history', (req, res) => res.json(searchHistory(req.query)));
 app.get('/history/record', (req, res) => {
   const r = historyRecord(String(req.query.id ?? ''));
   return r ? res.json(r) : res.status(404).json({ error: 'No such record' });
+});
+// a screenshot the record saved, before or after it (read only; the record must list the .png)
+app.get('/history/picture', (req, res) => {
+  const png = historyPicture(String(req.query.id ?? ''), String(req.query.path ?? ''), req.query.side === 'before' ? 'before' : 'after');
+  return png ? res.type('png').set('cache-control', 'private, max-age=86400').send(png) : res.status(404).end();
 });
 app.get('/map', async (req, res) => {
   try {
