@@ -22,6 +22,8 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow from '@bella/components/ListRow/ListRow';
 import TourStep from '@bella/components/TourStep/TourStep';
+import Step from '@bella/components/Step/Step';
+import Progress from '@bella/components/Progress/Progress';
 import Flow from '../templates/Flow.jsx';
 import { planRun } from '../templates/RunPlan.jsx';
 import { Words, AnswerLines } from '../templates/useAsk.jsx';
@@ -446,9 +448,38 @@ function TermDrawer({ item, onClose }) {
   );
 }
 
-/** item: { kind: 'review', check } | { kind: 'run', id } | { kind: 'terminal', repo, command, title }; null = closed. */
+/* A session's whole plan, behind the short card (Work board, 22 Nov): steps done, the step running now and
+   what's left, read from its saved record (server/lib/lanes.mjs). Read only: the session is the Claude app's. */
+const STEP_STATE = { completed: 'done', in_progress: 'current', pending: 'pending' };
+function SessionDrawer({ item, onClose }) {
+  const c = item.card;
+  const steps = c.steps ?? [];
+  const p = c.progress;
+  return (
+    <Drawer open onClose={onClose} side="right" size="lg" label={c.title} status={c.line}>
+      <Flow gap={16}>
+        {p?.total ? <Progress label={`${p.done} of ${p.total} steps done`} fill={Math.round((100 * p.done) / p.total)} tone={p.state === 'done' ? 'success' : 'info'} /> : null}
+        {steps.length ? (
+          <Flow as="ol" gap={0} aria-label="Steps">
+            {steps.map((s, i) => (
+              <li key={i}>
+                <Step layout="vertical" title={s.text} state={STEP_STATE[s.status] ?? 'pending'} showLineAbove={i > 0} showConnector={i < steps.length - 1} />
+              </li>
+            ))}
+          </Flow>
+        ) : (
+          <EmptyState size="lane" mark="📝" title="No steps yet" line="This session hasn’t listed its plan. Its steps show here once it does." />
+        )}
+        <TextStack subtitle="Read from the session’s own plan in the Claude app. CHIP shows it; it can’t stop or steer the session." />
+      </Flow>
+    </Drawer>
+  );
+}
+
+/** item: { kind: 'session', card } | { kind: 'review', check } | { kind: 'run', id } | { kind: 'terminal', repo, command, title }; null = closed. */
 export default function WorkDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
   if (!item) return null;
+  if (item.kind === 'session') return <SessionDrawer key={item.card.id} item={item} onClose={onClose} />;
   if (item.kind === 'push') return <PushDrawer key={item.repo} item={item} onClose={onClose} />;
   if (item.kind === 'terminal') return <TermDrawer key={`${item.repo}-${item.command}`} item={item} onClose={onClose} />;
   return <FixDrawer key={item.id ?? item.check} item={item} onClose={onClose} onNotice={onNotice} onChanged={onChanged} onAccepted={onAccepted} />;

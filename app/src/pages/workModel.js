@@ -1,6 +1,6 @@
-// Work's board, from CHIP's own data: what needs her (/needs) and the agent
-// runs CHIP started (/runs). Lanes as Figma (Work · content 608:207182):
-// Needs you, Agent, Gate, Ready (slim Work: no Merged today, no Just finished).
+// Two models of the work. workModel (below, first) is the count the shell, the Work panel and Team
+// read: Needs you, Agent, Gate, Ready. boardModel (further down) is the Work board itself in her
+// Notion lanes (22 Nov): Ideas, Next, Now, Shipped, Not doing.
 import { useEffect, useMemo, useState } from 'react';
 import useCached from '../templates/useCached.js';
 
@@ -121,32 +121,6 @@ function whyEmpty(x) {
   };
 }
 
-/** Reads CHIP's data (kept between pages); `reload` reads it again (Check again). */
-export function useWork() {
-  const { data, error, at, loading, reload } = useCached(['/needs', '/runs', '/bar/state']);
-  useEffect(() => {
-    window.addEventListener('chip:changed', reload);
-    return () => window.removeEventListener('chip:changed', reload);
-  }, [reload]);
-  // the PR and session lanes come on their own: a slow or missing GitHub never holds up the board
-  const { data: extra, reload: reloadExtra } = useCached(['/work/lanes']);
-  useEffect(() => {
-    window.addEventListener('chip:changed', reloadExtra);
-    return () => window.removeEventListener('chip:changed', reloadExtra);
-  }, [reloadExtra]);
-  // a move shows at once: the server's answer to the save stands in until the lanes are read again
-  const [moved, setMoved] = useState(null);
-  useEffect(() => {
-    const on = (e) => setMoved(e.detail);
-    window.addEventListener('chip:moves', on);
-    return () => window.removeEventListener('chip:moves', on);
-  }, []);
-  useEffect(() => setMoved(null), [extra]);
-  const lanes = extra?.[0] ? { ...extra[0], moves: moved ?? extra[0].moves } : moved ? { moves: moved } : null;
-  const model = useMemo(() => (data ? workModel({ needs: data[0].items ?? [], runs: data[1].runs ?? [], runBase: data[1].base ?? null, agents: data[2]?.lanes ?? [], lanes }) : null), [data, lanes]);
-  return { model, error, loading, reload: () => (reload(), reloadExtra()), checked: at ? hhmm(at) : null };
-}
-
 /* The sidebar's filters (her rule "branches filter the board"; the Status rows
    filter by lane): #/work?branch=<name> keeps the cards on that branch,
    #/work?lane=<id> keeps that lane. Read from the address, so a sidebar row is a link. */
@@ -154,22 +128,277 @@ export function filterFromHash(hash = window.location.hash) {
   const q = new URLSearchParams(hash.split('?')[1] ?? '');
   return { branch: q.get('branch'), lane: q.get('lane') };
 }
-export const LANE_NAMES = { needs: 'Needs you', agent: 'Agent', gate: 'At the gate', ready: 'Ready' };
-/* A card an agent can take: a failed check with a brief, or a failed run (its own brief, again). */
-export const runnable = (c) => !!(c.fixable || c.runBrief);
-/** Saves where she put a card (lane null: back where it came from). */
-export async function saveMove(id, lane) {
-  const r = await fetch('/work/moves', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, lane }) });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error ?? 'CHIP did not save it');
-  window.dispatchEvent(new CustomEvent('chip:moves', { detail: d.moves }));
-  window.dispatchEvent(new Event('chip:changed'));
-  return d.moves;
-}
 export function filtered(model, { branch, lane }) {
   if (!model || (!branch && !lane)) return model;
   const lanes = model.lanes
     .filter((l) => !lane || l.id === lane)
     .map((l) => (branch ? { ...l, cards: l.cards.filter((c) => c.branch === branch) } : l));
   return { ...model, lanes, total: lanes.reduce((n, l) => n + l.cards.length, 0), brief: branch ? briefOf(lanes) : model.brief };
+}
+
+/* ---------- The Work board in her Notion lanes (22 Nov) ----------
+   Every card is read from where the work is (server/lib/lanes.mjs: GET /work/board and
+   /work/lanes, plus CHIP's own /needs and /runs), never typed:
+   - Ideas: the progress board's to-dos, tasks she sent, BELLA components missing a piece;
+   - Now: what needs her first (review pages, CHIP's checks, runs to accept, PRs to merge,
+     sessions waiting on her), then the work going on, in the order it started;
+   - Shipped: sessions whose steps are all done, runs she kept, the progress board's Done;
+   - Next and Not doing: only what she put there. Her placements and order are saved. */
+const ago = (t, now = Date.now()) => {
+  const m = Math.round((now - t) / 60e3);
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`;
+};
+
+/* her Notion lanes on BoardLane's published tints: Now the agent blue, Shipped the ready green, the rest the lane grey */
+export const LANES = [
+  { id: 'ideas', name: 'Ideas', kind: 'gate' },
+  { id: 'next', name: 'Next', kind: 'gate' },
+  { id: 'now', name: 'Now', kind: 'agent' },
+  { id: 'shipped', name: 'Shipped', kind: 'ready' },
+  { id: 'not-doing', name: 'Not doing', kind: 'gate' },
+];
+export const LANE_NAMES = Object.fromEntries(LANES.map((l) => [l.id, l.name]));
+
+/* the progress board's tracks as the board's area tags */
+const AREA = { you: 'Your call', design: 'Figma', figma: 'Figma', library: 'Docs', parts: 'Components', pages: 'Components', bugs: 'Tooling & gate', code: 'Tooling & gate' };
+export const AREAS = ['Your call', 'Components', 'Figma', 'Docs', 'Accessibility', 'Tooling & gate'];
+
+/* A plan's progress: steps done, the step running now, and how many in all. */
+function progressOf(steps, { working = true } = {}) {
+  if (!steps?.length) return { state: 'blank', done: 0, total: 0, now: null };
+  const done = steps.filter((x) => x.status === 'completed').length;
+  const cur = steps.find((x) => x.status === 'in_progress');
+  if (done === steps.length) return { state: 'done', done, total: steps.length, now: steps[steps.length - 1].text };
+  return { state: cur && working ? 'working' : 'waiting', done, total: steps.length, now: cur?.text ?? steps.find((x) => x.status === 'pending')?.text ?? null };
+}
+
+/* A CHIP run in four plain steps, from its status (runs.mjs): sign-in check, the agent, the gate, her Accept. */
+const RUN_STEPS = ['Check Claude Code is signed in', 'Agent makes the change', 'Run the gate', 'Your Accept'];
+function runProgress(r) {
+  const at = { starting: 0, login: 0, running: 1, gate: 2, passed: 3, kept: 4, failed: r.steps?.length ? 1 : 0 }[r.status] ?? 0;
+  const p = { done: Math.min(at, 4), total: 4 };
+  if (r.status === 'kept') return { ...p, state: 'done', now: 'Kept' };
+  if (r.status === 'failed' || r.status === 'login') return { ...p, state: 'error', now: r.error ?? RUN_STEPS[at] };
+  if (r.status === 'passed') return { ...p, state: 'waiting', now: RUN_STEPS[3] };
+  return { ...p, state: 'working', now: r.status === 'running' && r.step ? r.step : RUN_STEPS[at] };
+}
+
+/* The card's line: what it is, then how far along ("2 of 5", the step now). */
+const lineOf = (what, p) => {
+  if (!p || p.state === 'blank') return [what, p ? 'No steps yet' : null].filter(Boolean).join(' · ');
+  if (p.state === 'done') return `${what} · ${p.total} of ${p.total} done`;
+  if (p.state === 'error') return [what, `Stopped at ${p.done + 1} of ${p.total}`, p.now].filter(Boolean).join(' · ');
+  return [what, `${p.done} of ${p.total}`, p.state === 'waiting' ? `Next: ${p.now}` : p.now].filter(Boolean).join(' · ');
+};
+const TONE = { working: 'info', waiting: 'neutral', blank: 'neutral', done: 'success', error: 'danger' };
+
+function bSession(s, now) {
+  const done = s.steps.length > 0 && s.steps.every((x) => x.status === 'completed');
+  const p = progressOf(s.steps, { working: s.working });
+  const what = s.asks ? 'Agent · waiting on you' : `Agent · ${s.working ? 'working' : ago(s.updatedAt, now)}`;
+  return {
+    id: s.id,
+    kind: 'session',
+    title: s.title,
+    line: lineOf(what, p),
+    progress: p,
+    steps: s.steps,
+    tone: s.asks ? 'attention' : TONE[p.state],
+    status: s.asks ? 'Needs you' : done ? 'Shipped' : p.state === 'working' ? 'Working' : 'Waiting',
+    needs: s.asks,
+    home: done && !s.working && !s.asks ? 'shipped' : s.working || s.asks || now - s.updatedAt < 60 * 60e3 ? 'now' : null,
+    startedAt: s.startedAt,
+    who: 'agent',
+    area: s.project,
+  };
+}
+
+function bRun(r, base) {
+  const p = runProgress(r);
+  const what = ['CHIP run', r.startedAt ? when(r.startedAt) : null, base && r.base && r.base !== base ? `from ${r.base}` : null].filter(Boolean).join(' · ');
+  const needs = ['passed', 'failed', 'login'].includes(r.status);
+  return {
+    id: r.id,
+    kind: 'run',
+    title: r.title ?? 'Fix',
+    line: lineOf(what, p),
+    progress: p,
+    tone: r.status === 'passed' ? 'attention' : TONE[p.state],
+    status: { passed: 'Your Accept', failed: 'Failed', login: 'Sign in', kept: 'Kept', gate: 'Checking' }[r.status] ?? 'Working',
+    needs,
+    home: r.status === 'kept' ? 'shipped' : ['starting', 'running', 'gate', 'passed', 'failed', 'login'].includes(r.status) ? 'now' : null,
+    branch: r.branch ?? null,
+    startedAt: r.startedAt ? Date.parse(r.startedAt) : null,
+    open: { kind: 'run', id: r.id },
+    runBrief: r.status === 'failed' ? (r.brief ?? null) : null,
+    who: needs ? 'reviewer' : 'agent',
+    area: 'Tooling & gate',
+  };
+}
+
+const bNeed = (n) => ({ ...needCard(n), kind: 'need', line: ['CHIP check', needCard(n).line].filter(Boolean).join(' · '), needs: true, home: 'now', area: 'Tooling & gate' });
+
+const bPr = (p) => ({
+  id: p.id,
+  kind: 'pr',
+  title: p.title,
+  line: ['Pull request', `${p.project} #${p.number}`, p.lane === 'gate' ? 'CI running' : 'CI passed, yours to merge', p.draft ? 'draft' : null].filter(Boolean).join(' · '),
+  status: p.lane === 'gate' ? 'CI running' : 'Yours to merge',
+  tone: p.lane === 'gate' ? 'info' : 'attention',
+  needs: p.lane !== 'gate',
+  home: 'now',
+  branch: p.branch,
+  startedAt: Date.parse(p.updatedAt),
+  who: p.lane === 'gate' ? 'gate' : 'maintainer',
+  open: { kind: 'link', href: p.url },
+  area: 'Tooling & gate',
+});
+
+/* The progress board's items: a review page waiting on her opens in full (her pick B, 22 Nov). */
+function bItem(i) {
+  const area = AREA[i.track] ?? 'Components';
+  const page = i.link ? { kind: 'page', href: i.link } : null;
+  if (i.stage === 'Waiting on you') return { id: i.id, kind: 'review', title: i.title, line: `Review page · ${area}`, status: 'Needs you', tone: 'attention', needs: true, home: 'now', open: page, area, who: 'you', n: i.n };
+  if (i.stage === 'Done') return { id: i.id, kind: 'item', title: i.title, line: `Shipped · ${area}`, status: 'Shipped', tone: 'success', home: 'shipped', open: page, area, n: i.n };
+  if (i.stage === 'To do') return { id: i.id, kind: 'idea', title: i.title, line: `Idea · ${area}`, status: 'Idea', tone: 'neutral', home: 'ideas', open: page, brief: [i.title, i.detail].filter(Boolean).join('. '), area, n: i.n };
+  return null; // Building and Checking are the sessions' own words for work Now already reads from the session
+}
+const bTask = (t) => ({ id: t.id, kind: 'idea', title: t.title, line: 'Idea · from you', status: 'Idea', tone: 'neutral', home: 'ideas', brief: t.title, area: 'Your call' });
+/* Components that need work, from CHIP's gap checks (/gaps), the count Health and Components show */
+const GAP_WORDS = { story: 'story', docs: 'doc page description', contract: 'contract', dsds: 'spec', contrast: 'contrast pair', a11y: 'accessibility notes' };
+function componentsOf(gaps = {}) {
+  const by = new Map();
+  for (const [check, names] of Object.entries(gaps)) for (const name of Object.keys(names ?? {})) if (GAP_WORDS[check]) by.set(name, [...(by.get(name) ?? []), GAP_WORDS[check]]);
+  return [...by].map(([name, missing]) => ({ id: `comp-${name}`, name, missing })).sort((a, b) => b.missing.length - a.missing.length || a.name.localeCompare(b.name));
+}
+const bComponent = (c) => ({
+  id: c.id,
+  kind: 'component',
+  title: c.name,
+  line: `Component · no ${c.missing.join(', ')}`,
+  status: 'Needs work',
+  tone: 'neutral',
+  home: 'ideas',
+  component: true,
+  open: { kind: 'hash', href: `#/components?part=${encodeURIComponent(c.name)}` },
+  brief: `BELLA's ${c.name} has no ${c.missing.join(', ')}. Add ${c.missing.length === 1 ? 'it' : 'them'} from the component's Figma part and spec, following BELLA's rules, then run the gate.`,
+  area: c.missing.length === 1 && c.missing[0] === 'accessibility notes' ? 'Accessibility' : 'Components',
+  who: 'agent',
+});
+
+export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra = null, board = null, gaps = null, now = Date.now() }) {
+  const parts = componentsOf(gaps ?? {});
+  const all = [
+    ...needs.map(bNeed),
+    ...runs.map((r) => bRun(r, runBase)),
+    ...(extra?.prs ?? []).map(bPr),
+    ...(board?.sessions ?? []).map((s) => bSession(s, now)),
+    ...(board?.progress?.items ?? []).map(bItem).filter(Boolean),
+    ...(board?.progress?.tasks ?? []).map(bTask),
+    ...parts.map(bComponent),
+  ].filter((c) => c.home);
+  // a check or idea an agent is already working on leaves its lane: its run shows in Now
+  const busy = new Set(runs.filter((r) => ['starting', 'running', 'gate', 'passed'].includes(r.status)).map((r) => r.title));
+  const place = board?.board?.place ?? {};
+  const order = board?.board?.order ?? {};
+  const lanes = LANES.map((l) => ({ ...l, cards: [] }));
+  for (const c of all) {
+    if (c.kind !== 'run' && busy.has(c.title)) continue;
+    const p = place[c.id];
+    const lane = p?.lane ?? c.home;
+    lanes.find((x) => x.id === lane)?.cards.push(p && p.lane !== c.home ? { ...c, moved: true, paused: !!p.paused } : c);
+  }
+  for (const l of lanes) {
+    const mine = order[l.id] ?? [];
+    const rank = (c) => (mine.includes(c.id) ? mine.indexOf(c.id) : Infinity);
+    l.cards.sort((a, b) => {
+      // in Now, what needs her comes first, then her order, then the order the work started in
+      // (so one finishing first never makes another look lost)
+      if (l.id === 'now' && !!a.needs !== !!b.needs) return a.needs ? -1 : 1;
+      if (rank(a) !== rank(b)) return rank(a) - rank(b);
+      if (l.id === 'shipped') return (b.n ?? -1) - (a.n ?? -1);
+      if (l.id === 'now') return (a.startedAt ?? 0) - (b.startedAt ?? 0);
+      return 0;
+    });
+  }
+  const checks = needs.map(bNeed);
+  return { lanes, total: lanes.reduce((s, l) => s + l.cards.length, 0), brief: boardBrief(checks), why: boardWhy(board, extra), components: parts.length };
+}
+
+/* The Brief: CHIP's own checks, with the top one's next step. */
+function boardBrief(checks) {
+  const top = [...checks].sort((a, b) => Number(b.tone === 'danger') - Number(a.tone === 'danger'))[0];
+  if (!top) return null;
+  return { message: `${checks.length} of CHIP’s checks ${checks.length === 1 ? 'needs' : 'need'} you; the top one is ${top.title}${top.tone === 'danger' ? ', which failed' : ''}.`, action: top.action ?? (top.open ? (top.tone === 'danger' ? 'See why it failed' : 'Open it') : undefined), open: top.open };
+}
+
+/* Why an empty lane is empty, from what was measured (her rule: an empty lane says why). */
+function boardWhy(board, extra) {
+  if (!board) return {};
+  return {
+    ideas: board.progress?.reached ? 'No to-dos on the progress board and every component has its pieces.' : 'The progress board didn’t answer, so its ideas aren’t shown.',
+    now: `No session wrote in the last ${board.activeMin} minutes and nothing needs you.${extra && !extra.reached ? ' GitHub didn’t answer, so pull requests aren’t counted.' : ''}`,
+    shipped: `Nothing finished in the last ${board.sessionHours} hours.`,
+  };
+}
+
+/** Reads the board's data (kept between pages); it is read again every 15 seconds, so progress moves on its own. */
+export function useWork() {
+  const { data, error, at, loading, reload } = useCached(['/needs', '/runs', '/gaps']);
+  const { data: extra, reload: reloadExtra } = useCached(['/work/lanes']);
+  const { data: boardData, reload: reloadBoard } = useCached(['/work/board']);
+  const [live, setLive] = useState(null);
+  const [runsLive, setRunsLive] = useState(null);
+  useEffect(() => setLive(null), [boardData]);
+  useEffect(() => setRunsLive(null), [data]);
+  useEffect(() => {
+    const again = () => (reload(), reloadExtra(), reloadBoard());
+    window.addEventListener('chip:changed', again);
+    // a move shows at once: the server's answer to the save stands in until the board is read again
+    const moved = (e) => setLive((b) => ({ ...(b ?? boardData?.[0] ?? {}), board: e.detail }));
+    window.addEventListener('chip:board', moved);
+    const read = (u, set) =>
+      fetch(u)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => d && set(d))
+        .catch(() => {});
+    const tick = setInterval(() => document.hidden || (read('/work/board', setLive), read('/runs', setRunsLive)), 15e3);
+    return () => (window.removeEventListener('chip:changed', again), window.removeEventListener('chip:board', moved), clearInterval(tick));
+  }, [reload, reloadExtra, reloadBoard, boardData]);
+  const board = live ?? boardData?.[0] ?? null;
+  const runs = runsLive ?? data?.[1] ?? null;
+  const model = useMemo(() => (data ? boardModel({ needs: data[0].items ?? [], runs: runs?.runs ?? [], runBase: runs?.base ?? null, lanes: extra?.[0] ?? null, board, gaps: data[2]?.gaps ?? null }) : null), [data, runs, extra, board]);
+  return { model, error, loading, reload: () => (reload(), reloadExtra(), reloadBoard()), checked: at ? hhmm(at) : null };
+}
+
+/** Saves where she put a card and before which one (lane null: back where CHIP measured it). */
+export async function saveMove(id, lane, { before = null, paused = false } = {}) {
+  const r = await fetch('/work/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, lane, before, paused }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error ?? 'CHIP did not save it');
+  window.dispatchEvent(new CustomEvent('chip:board', { detail: d.board }));
+  return d.board;
+}
+
+/* A card an agent can take: an idea or component with a brief, a failed check with a review, a failed run. */
+export const runnable = (c) => !!(c.brief || c.fixable || c.runBrief);
+/* Work going on: dragging it out of Now pauses it (saved on the board, where its agent reads it). */
+export const going = (c) => (c.kind === 'session' || c.kind === 'run') && ['working', 'waiting'].includes(c.progress?.state);
+
+/* The tools row: Filter, Sort, Search, and the Branch menu. */
+export function shown(model, { filter = null, sort = 'mine', q = '', branch = null } = {}) {
+  if (!model) return model;
+  const words = q.trim().toLowerCase();
+  const keep = (c) =>
+    (!branch || c.branch === branch) &&
+    (!words || `${c.title} ${c.line}`.toLowerCase().includes(words)) &&
+    (!filter || filter.startsWith('lane:') || (filter === 'needs' ? c.needs : filter === 'components' ? c.component : filter.startsWith('area:') ? c.area === filter.slice(5) : true));
+  const by = { updated: (a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0), started: (a, b) => (a.startedAt ?? Infinity) - (b.startedAt ?? Infinity) }[sort];
+  const lanes = model.lanes
+    .filter((l) => !filter?.startsWith('lane:') || l.id === filter.slice(5))
+    .map((l) => {
+      const cards = l.cards.filter(keep);
+      return { ...l, cards: by ? [...cards].sort(by) : cards };
+    });
+  return { ...model, lanes, total: lanes.reduce((n, l) => n + l.cards.length, 0) };
 }

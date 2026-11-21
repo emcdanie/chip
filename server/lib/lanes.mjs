@@ -7,7 +7,7 @@
 //   ~/.claude/projects are read, never a transcript) are in Agent.
 // A PR whose CI failed, or that has no CI, is left out here; it is named in the lane's empty line.
 import { execFile, execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { projectList } from './projects.mjs';
@@ -117,29 +117,234 @@ export async function workLanes() {
   return cache.data;
 }
 
-/* Her moves on the board (click test 22 Nov: "it doesn't let me move any"). A move that means
-   work (Needs you to Agent) opens a plan and becomes a run; any other move is her placement,
-   kept here so it survives a reload and a restart: { cardId: { lane, at } }. The card keeps its
-   own measured status; only where it sits is hers. Moving it back to where it came from clears it. */
-const MOVES = join(DATA_DIR, 'work-moves.json');
-const LANES = ['needs', 'agent', 'gate', 'ready'];
-export function readMoves() {
+/* ---------- The Work board in her Notion lanes (22 Nov: Ideas, Next, Now, Shipped, Not doing) ----------
+   Every card is read from where the work already is, never typed:
+   - Claude Code sessions: the app's session records (title, times, archived, waiting on a person) and
+     each transcript's plan, replayed from its update_plan / wrap_up tool calls only (no message text).
+     Only sessions in a project CHIP works on count, so private work never reaches the board.
+   - The progress board (progress.json): review pages waiting on her, ideas to do, what shipped.
+   - New tasks she sent (answers.json, type task).
+   Components that need work come from CHIP's gap checks on the page (/gaps), as Health counts them.
+   Her placements and order are hers, kept in data/work-board.json. */
+const env = process.env;
+const hm = (p) => p.replace(/^~\//, `${homedir()}/`);
+export const SESSIONS_DIR = hm(env.CHIP_SESSIONS_DIR || '~/Library/Application Support/Claude/claude-code-sessions');
+export const PROGRESS_DIR = hm(env.CHIP_PROGRESS_DIR || '~/DEV/chip/docs/reference/screens/progress');
+export const REVIEW_URL = env.CHIP_REVIEW_URL || 'http://localhost:3123/screens/progress/';
+export const SESSION_HOURS = 36;
+const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
+
+/** Replays one transcript line onto a plan: update_plan replaces or advances the list, wrap_up ends the turn. */
+function replayLine(steps, line) {
+  if (!line.includes('update_plan') && !line.includes('wrap_up')) return steps;
+  let o;
   try {
-    return JSON.parse(readFileSync(MOVES, 'utf8'));
+    o = JSON.parse(line);
   } catch {
-    return {};
+    return steps;
+  }
+  if (o.isSidechain || !Array.isArray(o.message?.content)) return steps;
+  for (const b of o.message.content) {
+    if (b?.type !== 'tool_use') continue;
+    const name = String(b.name ?? '');
+    const i = b.input ?? {};
+    if (name.endsWith('update_plan')) {
+      if (Array.isArray(i.items)) steps = i.items.map((x) => ({ text: String(x.content ?? ''), status: x.status }));
+      if (i.advance) {
+        const k = steps.findIndex((x) => x.status === 'in_progress');
+        if (k >= 0) {
+          steps[k].status = 'completed';
+          const n = steps.findIndex((x, j) => j > k && x.status === 'pending');
+          if (n >= 0) steps[n].status = 'in_progress';
+        }
+      }
+      for (const d of Array.isArray(i.done) ? i.done : []) if (steps[d - 1]) steps[d - 1].status = 'completed';
+      if (steps[i.start - 1]) {
+        for (const x of steps) if (x.status === 'in_progress') x.status = 'pending';
+        steps[i.start - 1].status = 'in_progress';
+      }
+    }
+    if (name.endsWith('wrap_up')) for (const x of steps) if (x.status === 'in_progress') x.status = 'completed';
+  }
+  return steps;
+}
+/** A plan from a transcript's text. */
+export const replayPlan = (text) => text.split('\n').reduce(replayLine, []);
+
+const ndaTerms = () => {
+  try {
+    return readFileSync(join(homedir(), '.claude', 'nda-terms.txt'), 'utf8')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#'))
+      .map((t) => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'));
+  } catch {
+    return [];
+  }
+};
+// transcripts only grow: each read replays just the lines added since the last one
+const plans = new Map(); // path -> { size, steps, rest }
+const planOf = (path) => {
+  const st = statSync(path);
+  let p = plans.get(path);
+  if (!p || st.size < p.size) p = { size: 0, steps: [], rest: '' };
+  if (st.size > p.size) {
+    const fd = openSync(path, 'r');
+    try {
+      const buf = Buffer.alloc(st.size - p.size);
+      readSync(fd, buf, 0, buf.length, p.size);
+      const lines = (p.rest + buf.toString('utf8')).split('\n');
+      const rest = lines.pop();
+      p = { size: st.size, steps: lines.reduce(replayLine, p.steps.map((x) => ({ ...x }))), rest };
+    } finally {
+      closeSync(fd);
+    }
+    plans.set(path, p);
+  }
+  // a last line still being written is read as it stands, never kept
+  return { steps: p.rest ? replayLine(p.steps.map((x) => ({ ...x })), p.rest) : p.steps, mtime: st.mtimeMs };
+};
+
+// the app's session records, read again only when they change; only the fields the board uses are kept
+const recs = new Map();
+const recordOf = (file) => {
+  try {
+    const m = statSync(file).mtimeMs;
+    const hit = recs.get(file);
+    if (hit?.m === m) return hit.r;
+    const d = JSON.parse(readFileSync(file, 'utf8'));
+    const r = { sessionId: d.sessionId, cliSessionId: d.cliSessionId, lastAssistantCliSessionId: d.lastAssistantCliSessionId, cwd: d.cwd, title: d.title, isArchived: d.isArchived, lastActivityAt: d.lastActivityAt, createdAt: d.createdAt, interruptedAwaitingPerson: d.interruptedAwaitingPerson, spawnedFrom: d.spawnedFrom ? { name: d.spawnedFrom.name } : null };
+    recs.set(file, { m, r });
+    return r;
+  } catch {
+    return null;
+  }
+};
+/** The sessions of the last SESSION_HOURS in CHIP's projects, each with its plan. */
+export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, transcripts = PROJECTS_DIR } = {}) {
+  if (!existsSync(dir)) return [];
+  const roots = projects.flatMap((p) => checkouts(p.repo).map((path) => ({ path, project: p.short ?? p.name })));
+  const where = (cwd) => roots.find((r) => cwd === r.path || cwd?.startsWith(`${r.path}/`));
+  const files = new Map();
+  try {
+    for (const d of readdirSync(transcripts)) {
+      try {
+        for (const f of readdirSync(join(transcripts, d))) if (f.endsWith('.jsonl')) files.set(f.slice(0, -6), join(transcripts, d, f));
+      } catch {}
+    }
+  } catch {}
+  const nda = ndaTerms();
+  const out = [];
+  const records = [];
+  for (const a of readdirSync(dir)) {
+    let subs = [];
+    try {
+      subs = readdirSync(join(dir, a));
+    } catch {
+      continue;
+    }
+    for (const b of subs) {
+      try {
+        for (const f of readdirSync(join(dir, a, b))) if (/^local_[\w-]+\.json$/.test(f)) records.push(join(dir, a, b, f));
+      } catch {}
+    }
+  }
+  for (const file of records) {
+    const r = recordOf(file);
+    if (!r) continue;
+    if (r.isArchived || now - (r.lastActivityAt ?? 0) > SESSION_HOURS * 36e5) continue;
+    const home = where(r.cwd);
+    if (!home) continue;
+    const title = String(r.title ?? '').slice(0, 120);
+    if (!title || nda.some((t) => t.test(title))) continue;
+    const path = files.get(r.lastAssistantCliSessionId) ?? files.get(r.cliSessionId);
+    if (!path) continue;
+    let plan;
+    try {
+      plan = planOf(path);
+    } catch {
+      continue;
+    }
+    out.push({
+      id: r.sessionId,
+      title,
+      project: home.project,
+      steps: plan.steps,
+      startedAt: r.createdAt ?? null,
+      updatedAt: Math.round(plan.mtime),
+      working: now - plan.mtime < ACTIVE_MIN * 60e3,
+      asks: !!r.interruptedAwaitingPerson,
+      parent: r.spawnedFrom?.name ?? null,
+    });
+  }
+  return out.sort((x, y) => (x.startedAt ?? 0) - (y.startedAt ?? 0));
+}
+
+/** The progress board's items and her new tasks, with links made whole (review pages on :3123). */
+export function progressItems(dir = PROGRESS_DIR, base = REVIEW_URL) {
+  const read = (f) => {
+    try {
+      return JSON.parse(readFileSync(join(dir, f), 'utf8'));
+    } catch {
+      return null;
+    }
+  };
+  const prog = read('progress.json');
+  const whole = (p) => {
+    if (!p) return null;
+    try {
+      return new URL(p, base).href;
+    } catch {
+      return null;
+    }
+  };
+  // a card keeps its id when items are added, so her placement stays with it; a repeated id gets its count
+  const seen = new Map();
+  const idOf = (i) => {
+    const k = String(i.id ?? i.title).replace(/[^\w.:-]/g, '-').slice(0, 80);
+    const n = (seen.get(k) ?? 0) + 1;
+    seen.set(k, n);
+    return n === 1 ? `p-${k}` : `p-${k}-${n}`;
+  };
+  const items = (prog?.items ?? []).map((i, n) => ({ id: idOf(i), title: String(i.title ?? ''), stage: i.stage, track: i.track ?? null, detail: i.detail ?? null, link: whole(i.link), img: whole(i.img), n }));
+  const answers = read('answers.json');
+  const tasks = (Array.isArray(answers) ? answers : []).filter((a) => a?.type === 'task' && a.text).map((a, n) => ({ id: `task-${a.at ?? n}`, title: String(a.text).slice(0, 120), stage: 'To do', track: 'you', detail: null, link: null, img: null, at: a.at ?? null, n }));
+  return { reached: !!prog, items, tasks };
+}
+
+/* Her placements and order: { place: { cardId: { lane, at, paused? } }, order: { lane: [cardId] } }.
+   A card she never moved sits where CHIP measured it; one she moved keeps its own status. */
+export const BOARD_LANES = ['ideas', 'next', 'now', 'shipped', 'not-doing'];
+const BOARD = join(DATA_DIR, 'work-board.json');
+export function readBoard(file = BOARD) {
+  try {
+    const b = JSON.parse(readFileSync(file, 'utf8'));
+    return { place: b.place ?? {}, order: b.order ?? {} };
+  } catch {
+    return { place: {}, order: {} };
   }
 }
-/** POST /work/moves { id, lane | null } */
-export function saveMove({ id, lane }, file = MOVES) {
-  if (typeof id !== 'string' || !/^[\w.:/-]{1,160}$/.test(id)) throw new Error('No card to move');
-  if (lane != null && !LANES.includes(lane)) throw new Error(`No lane called ${lane}`);
-  let moves = {};
-  try {
-    moves = JSON.parse(readFileSync(file, 'utf8'));
-  } catch {}
-  if (lane == null) delete moves[id];
-  else moves[id] = { lane, at: new Date().toISOString() };
-  writeFileSync(file, JSON.stringify(moves, null, 2));
-  return moves;
+const okId = (id) => typeof id === 'string' && /^[\w.:/-]{1,160}$/.test(id);
+/** POST /work/board { id, lane | null, before?, paused? }: lane null puts it back where CHIP measured it. */
+export function saveBoard({ id, lane, before = null, paused = false }, file = BOARD) {
+  if (!okId(id)) throw new Error('No card to move');
+  if (lane != null && !BOARD_LANES.includes(lane)) throw new Error(`No lane called ${lane}`);
+  if (before != null && !okId(before)) throw new Error('No card to drop it before');
+  const b = readBoard(file);
+  for (const l of Object.keys(b.order)) b.order[l] = b.order[l].filter((x) => x !== id);
+  if (lane == null) delete b.place[id];
+  else {
+    b.place[id] = { lane, at: new Date().toISOString(), ...(paused ? { paused: true } : {}) };
+    const list = (b.order[lane] ??= []);
+    const at = before ? list.indexOf(before) : -1;
+    list.splice(at < 0 ? list.length : at, 0, id);
+  }
+  writeFileSync(file, JSON.stringify(b, null, 2));
+  return b;
+}
+
+/** GET /work/board: everything the lanes are made of, read now. */
+export function workBoard(now = Date.now()) {
+  const projects = projectList().filter((p) => existsSync(p.repo));
+  return { sessions: sessionTasks(projects, now), progress: progressItems(), board: readBoard(), activeMin: ACTIVE_MIN, sessionHours: SESSION_HOURS, at: new Date(now).toISOString() };
 }
