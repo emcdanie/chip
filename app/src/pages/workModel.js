@@ -72,14 +72,16 @@ export function workModel({ needs = [], runs = [], agents = [], runBase = null }
   return { lanes, total, brief: briefOf(lanes) };
 }
 
-/* The Brief counts the Needs you lane as the board shows it (failed runs included), so its
+/* The Brief carries its own next step (Figma Flow 1, screen 1, "Fix the Figma key"): the top card's
+   action, or for a card with none (an agent run) the drawer it opens, named for what it shows.
+   The Brief counts the Needs you lane as the board shows it (failed runs included), so its
    number is the lane's number, filtered or not (audit 21 Nov: "2 things need you" over a lane of 3). */
 function briefOf(lanes) {
   const needs = lanes.find((l) => l.id === 'needs')?.cards ?? [];
   const agent = lanes.find((l) => l.id === 'agent')?.cards.length ?? 0;
   const top = needs[0];
   if (!top) return null;
-  return { message: `${needs.length} ${needs.length === 1 ? 'thing needs' : 'things need'} you; the top one is ${top.title}${top.failed || top.tone === 'danger' ? ', which failed' : ''}.${agent ? ` ${agent} ${agent === 1 ? 'agent is' : 'agents are'} working.` : ''}`, action: top.action, open: top.open };
+  return { message: `${needs.length} ${needs.length === 1 ? 'thing needs' : 'things need'} you; the top one is ${top.title}${top.failed || top.tone === 'danger' ? ', which failed' : ''}.${agent ? ` ${agent} ${agent === 1 ? 'agent is' : 'agents are'} working.` : ''}`, action: top.action ?? (top.open ? (top.tone === 'danger' ? 'See why it failed' : 'Open it') : undefined), open: top.open };
 }
 
 /** Reads CHIP's data (kept between pages); `reload` reads it again (Check again). */
