@@ -154,8 +154,9 @@ function Activity({ records, total, open, onOpen, fit }) {
     <Card>
       <Flow gap={8} scroll={fit}>
         <SectionHead title="Activity" words={`${list.length} of ${total} records`} />
-        <Flow gap={4} as="ol" aria-label="Records, newest first">
-          {list.map((r) => {
+        {/* flush rows, each Step's line meeting the next one's, through the day breaks (BELLA's own Step list) */}
+        <Flow gap={0} as="ol" aria-label="Records, newest first">
+          {list.map((r, i) => {
             const d = day(r.date);
             const head = d !== last ? d : null;
             last = d;
@@ -172,6 +173,8 @@ function Activity({ records, total, open, onOpen, fit }) {
                   kind={STEP_KIND[r.type]}
                   icon={STEP_KIND[r.type] ? undefined : 'Clock'}
                   state="done"
+                  showLineAbove
+                  showConnector={i < list.length - 1}
                   selected={r.id === open}
                   onSelect={() => onOpen(r.id)}
                 />
@@ -373,7 +376,8 @@ function Record({ id, fit }) {
           {/* the counts, once, under the title (her note, 21 Nov: "should these not be at the top").
               Gap: no BELLA part sets numbers in Geist Mono and words in Lexend on one line, so the
               line is TextStack's meta line for now */}
-          <TextStack subtitle={countLine(files, rec.stat)} />
+          {/* a decision touches no files: no "0 files · 0 lines" line for it */}
+          {files.length ? <TextStack subtitle={countLine(files, rec.stat)} /> : null}
         </Flow>
         {plainWhy(rec.why) ? (
           // the commit's own words, its first sentence up front and the rest under Exact words; never a

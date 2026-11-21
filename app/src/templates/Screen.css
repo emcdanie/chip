@@ -227,6 +227,7 @@
 .chip-flow--center-items { align-items: center; }
 .chip-flow--start-items { align-items: flex-start; }
 .chip-flow--end-items { align-items: flex-end; }
+.chip-flow--gap-0 { gap: 0; }
 .chip-flow--gap-4 { gap: var(--spacing-4); }
 .chip-flow--gap-8 { gap: var(--spacing-8); }
 .chip-flow--gap-12 { gap: var(--spacing-12); }
