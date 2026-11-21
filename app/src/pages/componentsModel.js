@@ -180,7 +180,8 @@ export function studioChecks({ part, checks, drift, lint, gate, gaps, links = {}
         ...d.fields.map((f) => ({ title: f, value: 'differs', fails: true })),
         ...(d.sameValueOnly ? [{ title: 'Token names only', value: `${d.sameValueOnly} · same value in Chip` }] : []),
       ],
-      source: `From ${part.name}.spec.yaml${drift.at ? `, ${day(drift.at)}` : ''}`,
+      // measured from the spec's own mismatch list, written when BELLA's spec was last built from a Figma read
+      source: `From ${part.name}.spec.yaml, its last Figma read${drift.at ? ` (spec built ${day(drift.at)})` : ''}`,
       why: RULES.parity,
     });
   for (const k of checks) {

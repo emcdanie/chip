@@ -34,7 +34,7 @@ import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import Drawer from '@bella/components/Drawer/Drawer';
-import NavList from '@bella/components/NavList/NavList';
+import TreeItem from '@bella/components/TreeItem/TreeItem';
 import Marker from '@bella/components/Marker/Marker';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Toast from '@bella/components/Toast/Toast';
@@ -502,44 +502,41 @@ function Strip({ title, label, items, current, onPick, render }) {
   );
 }
 
-/* The component list (left): BELLA's NavList, 16 on its rows (sidebar nav is its job), Needs work first,
-   then All. No Pinned group: CHIP keeps no pinned parts (the side menu pins pages, not parts), so there is
-   nothing true to show there yet. A long name breaks between its words (SegmentedControl → Segmented·Control),
-   so it stays inside the card. */
-const breakable = (name) => (name.length > 12 ? name.replace(/([a-z])([A-Z])/g, '$1\u200b$2') : name);
+/* The component list (left): BELLA's TreeItem, the component-list row (16 on a 44 row, a chevron group
+   with its count, a "needs work" dot that is spoken, the current row in light blue), Needs work first,
+   then All. TreeItem marks needs work with its end dot, not the mock's bar: that is the part's own design
+   (Figma TreeItem "Needs work"). No Pinned group: CHIP keeps no pinned parts (the side menu pins pages,
+   not parts). The list sits on the page, not in a Card: inside a Card's 24 padding, TreeItem's icon and
+   dot leave about 90 for the name and long names broke mid-word; on the page 14 characters fit. */
 function PartList({ model, query, filter, current, onPick, onHide, onAll }) {
+  const [shut, setShut] = useState({});
   const q = query.trim().toLowerCase();
   const match = (p) => !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
   const needs = model.parts.filter((p) => !p.ready && match(p));
   const all = model.parts.filter((p) => match(p) && (filter !== 'ready' || p.ready));
-  const item = (p) => ({ href: `#/components/${encodeURIComponent(p.id)}`, label: breakable(p.name), current: p.id === current, ...(p.ready ? {} : { icon: 'WarningCircle' }) });
-  const groups = [
-    ...(filter !== 'ready' && needs.length ? [{ label: `Needs work · ${needs.length}`, items: needs.map(item) }] : []),
-    ...(filter !== 'needs' && all.length ? [{ label: `${filter === 'ready' ? 'Ready' : 'All'} · ${all.length}`, items: all.map(item) }] : []),
-  ];
+  // 14 characters fit the row beside TreeItem's icon and dot; a longer name is cut, its full name on hover
+  // (TreeItem takes no accessible name or tooltip of its own: a BELLA gap, so a screen reader hears the cut name)
+  const row = (p) => <TreeItem key={p.id} kind="item" label={p.name.length > 14 ? <span title={p.name}>{`${p.name.slice(0, 13)}…`}</span> : p.name} needsWork={!p.ready} current={p.id === current} onClick={() => onPick(p.id)} />;
+  const group = (id, title, list) => (
+    <Flow gap={4} key={id}>
+      <TreeItem kind="group" label={title} count={list.length} open={!shut[id]} onClick={() => setShut({ ...shut, [id]: !shut[id] })} />
+      {shut[id] ? null : <Flow gap={4}>{list.map(row)}</Flow>}
+    </Flow>
+  );
   return (
-    <Card>
-      <Flow gap={16}>
+    <Flow gap={16}>
         <SectionHead title="Components" titleLevel={2} action={onHide ? <Button variant="tertiary" iconOnly icon="SidebarCollapse" ariaLabel="Hide the component list" ariaExpanded onClick={onHide} /> : undefined} />
-        {groups.length ? (
-          <NavList
-            label="Components"
-            groups={groups}
-            onNavigate={(href, e) => {
-              e.preventDefault();
-              onPick(decodeURIComponent(href.split('/')[2]));
-            }}
-          />
-        ) : (
-          <EmptyState size="lane" mark="🤷" title="Nothing matches" line="No component has that name. Ask BELLA instead: press Return." />
-        )}
+        {!needs.length && !all.length ? <EmptyState size="lane" mark="🤷" title="Nothing matches" line="No component has that name. Ask BELLA instead: press Return." /> : null}
+        <Flow as="nav" aria-label="Components" gap={8}>
+          {filter !== 'ready' && needs.length ? group('needs', 'Needs work', needs) : null}
+          {filter !== 'needs' && all.length ? group('all', filter === 'ready' ? 'Ready' : 'All', all) : null}
+        </Flow>
         {filter === 'needs' ? (
           <Flow direction="row">
             <Button variant="tertiary" size="sm" onClick={onAll}>{`Show all ${model.parts.length}`}</Button>
           </Flow>
         ) : null}
-      </Flow>
-    </Card>
+    </Flow>
   );
 }
 
@@ -568,7 +565,7 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
   const [allUse, setAllUse] = useState(false);
   // on the smallest phones a row's value goes under its words, so the row keeps inside its card
   const tiny = useNarrow(420);
-  const valued = (v) => (tiny ? { layout: 'stacked', description: v } : { layout: 'inline', value: v });
+  const valued = (v, words = false) => (tiny ? { layout: 'stacked', description: v } : { layout: 'inline', ...(words ? { valueLabel: v } : { value: v }) });
   const back = <Back label="Inspect" onBack={() => setOpen(null)} />;
   const knobs = props.filter((p) => /\|/.test(p.values) || p.name === 'label');
   const code = `import ${part.name} from '@bella/components/${part.name}/${part.name}';${PLAY[part.name] ? `\n\n<${part.name}${variant ? ` variant="${variant}"` : ''}>${label || PLAY[part.name].children}</${part.name}>` : ''}`;
@@ -656,10 +653,10 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
           {docs.use.length || instead.length ? (
             <Flow as="ul" gap={0} aria-label="Use it for">
               {(allUse ? docs.use : docs.use.slice(0, 3)).map((u) => (
-                <ListRow key={u} title={u} {...valued(part.name)} />
+                <ListRow key={u} title={u} {...(u.length > 32 ? { layout: tiny ? 'stacked' : 'inline' } : valued(part.name, true))} {...(part.storyUrl ? { trailing: true, onClick: () => window.open(part.storyUrl, '_blank', 'noopener') } : {})} />
               ))}
               {instead.map((d) => (
-                <ListRow key={d.title} title={forJob(d.title)} {...valued(d.other.name)} trailing onClick={() => onPart(d.other.id)} />
+                <ListRow key={d.title} title={forJob(d.title)} {...valued(d.other.name, true)} trailing onClick={() => onPart(d.other.id)} />
               ))}
             </Flow>
           ) : (
@@ -671,9 +668,9 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
         <Flow gap={8}>
           <SectionHead title="Hand off" titleLevel={3} />
           <Flow as="ul" gap={0} aria-label="Hand off">
-            <ListRow title="Properties" {...valued(props.length || 'Not measured')} {...(props.length ? { trailing: true, onClick: () => setOpen('props') } : {})} />
+            <ListRow title="Properties" {...valued(props.length || 'Not measured', !props.length)} {...(props.length ? { trailing: true, onClick: () => setOpen('props') } : {})} />
             <ListRow title="Tokens" {...valued(part.doc.tokens.length)} trailing onClick={() => setOpen('tokens')} />
-            <ListRow title="Code" {...valued('import')} trailing onClick={() => setOpen('code')} />
+            <ListRow title="Code" {...valued('import', true)} trailing onClick={() => setOpen('code')} />
             <ListRow title="Motion" {...valued(docs.motion.length ? `${docs.motion.join(' · ')} ms` : 'none')} {...(docs.motion.length ? { trailing: true, onClick: () => setOpen('motion') } : {})} />
           </Flow>
         </Flow>
@@ -756,7 +753,7 @@ function ChecksPanel({ part, rows, open, setOpen }) {
             </Flow>
           ) : null}
           {row.why ? (
-            <Disclosure title="Why it matters">
+            <Disclosure title="Why this?">
               <TextStack title={row.why.rule} subtitle={row.why.source} />
             </Disclosure>
           ) : null}
@@ -802,8 +799,8 @@ function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, m
     <>
       <Card>
         <Flow gap={8}>
-          <SectionHead title="Suggested fixes" titleLevel={3} number={n} words={`of ${fixes.length} picked`} />
-          <Flow as="ul" gap={4} aria-label="Suggested fixes">
+          <SectionHead title="Fixes" titleLevel={3} number={n} words={`of ${fixes.length} picked`} />
+          <Flow as="ul" gap={4} aria-label="Fixes">
             {fixes.map((f) => {
               const on = chosen.includes(f.id);
               return (
@@ -873,11 +870,15 @@ function HistoryPanel({ part, detail, names, open, setOpen }) {
 
 export default function ComponentsContent({ model, filter = 'all', onFilter, partId, onPart, onCheckAgain }) {
   const phone = useNarrow();
+  const narrowHead = useNarrow(420);
   // the list stands beside the stage where the studio has room (1440); narrower, it is a drawer
   const listOut = useNarrow(1400);
   const [listHidden, setListHidden] = useState(false);
   const [listOpen, setListOpen] = useState(false);
-  const [tab, setTab] = useState('inspect');
+  // a view can be shared by its address: #/components/<id>?variant=…&tab=… (her reading, 22 Nov)
+  const [shared] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? ''));
+  const [tab, setTab] = useState(() => (TABS.some((t) => t.id === shared.get('tab')) ? shared.get('tab') : 'inspect'));
+  const [sharedVariant, setSharedVariant] = useState(() => shared.get('variant'));
   const [open, setOpen] = useState(null);
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState(null);
@@ -904,7 +905,9 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const variants = part && PLAY[part.name] ? part.variants : [];
   const label = part ? SAMPLE_LABEL[part.name] ?? '' : '';
   useEffect(() => {
-    setVariant(variants[0] ?? null);
+    // a shared address's variant is used once, when its part has loaded
+    if (part) setSharedVariant(null);
+    setVariant(sharedVariant && variants.includes(sharedVariant) ? sharedVariant : variants[0] ?? null);
     setShown('default');
     setOpen(null);
     setMeasured({});
@@ -914,6 +917,15 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   useEffect(() => {
     setPicked(detail?.anatomy.find((x) => x.status === 'finding')?.key ?? detail?.anatomy[0]?.key ?? null);
   }, [part?.id, detail]);
+  useEffect(() => {
+    if (!part || !/^#\/components\b/.test(window.location.hash)) return;
+    const qs = new URLSearchParams();
+    if (filter !== 'all') qs.set('filter', filter);
+    if (variant) qs.set('variant', variant);
+    if (tab !== 'inspect') qs.set('tab', tab);
+    const next = `#/components/${encodeURIComponent(part.id)}${qs.toString() ? `?${qs}` : ''}`;
+    if (window.location.hash !== next) window.history.replaceState(null, '', next);
+  }, [part?.id, variant, tab, filter]); // eslint-disable-line react-hooks/exhaustive-deps
   const checks = part ? checksWithTouch(part, touch) : [];
   const sbParts = studio.stories?.parts?.[part?.name];
   const sbBase = studio.stories?.base;
@@ -969,12 +981,15 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   };
   const parity = rows.find((r) => r.id === 'parity');
   // one status, the same count the Checks tab shows: Figma parity first (the mock's line), else what fails
+  // a StatusDot's words keep one line: on the smallest phones "in its spec" moves to the line under it
+  const tinyHead = narrowHead;
   const failing = rows.filter((r) => r.tone === 'danger');
+  const checkedAt = studio.gaps?.at ? `${day(studio.gaps.at)}, ${new Date(studio.gaps.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : model.checked;
   const toFix = failing.reduce((n, r) => n + (r.count ?? 1), 0) + (detail?.anatomy ?? []).filter((x) => x.status === 'finding').length;
   const status = !detail || !studio.ready
     ? { tone: 'neutral', text: 'Reading its checks' }
     : parity?.tone === 'danger' && toFix === parity.count
-      ? { tone: 'attention', text: `${parity.count} ${parity.count === 1 ? 'difference' : 'differences'} from Figma` }
+      ? { tone: 'attention', text: `${parity.count} ${parity.count === 1 ? 'difference' : 'differences'} from Figma${tinyHead ? '' : ' in its spec'}`, spec: true }
       : toFix
         ? { tone: 'attention', text: `${toFix} to fix` }
         : { tone: 'success', text: rows.some((r) => r.tone === 'neutral') ? 'No findings · some not measured' : 'No findings' };
@@ -988,7 +1003,11 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
           <Heading tier="section" as="h2">{part.name}</Heading>
           <StatusDot tone={status.tone} label={status.text} />
         </Flow>
-        <TextStack subtitle={[model.version, detail?.updated ? `updated ${detail.updated}` : null, model.checked ? `checked ${model.checked}` : null].filter(Boolean).join(' · ')} />
+        {/* how fresh it is: when CHIP last checked, with refresh (her reading, 22 Nov) */}
+        <Flow direction="row" gap={8} align="center" wrap>
+          <TextStack subtitle={[tinyHead && status.spec ? 'in its spec' : null, model.version, detail?.updated ? `updated ${detail.updated}` : null, checkedAt ? `checked ${checkedAt}` : null].filter(Boolean).join(' · ')} />
+          <Button variant="tertiary" size="sm" iconOnly icon="RefreshDouble" ariaLabel="Check again" onClick={onCheckAgain} />
+        </Flow>
       </Flow>
       <Flow direction="row" gap={8} wrap align="end" grow={phone ? 'last' : undefined}>
         {part.storyUrl ? <Button variant="secondary" icon="ArrowUpRight" href={part.storyUrl}>Story</Button> : null}
@@ -1044,8 +1063,21 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     ) : (
       <HistoryPanel part={part} detail={detail} names={names} open={open} setOpen={setOpen} />
     );
+  // highlights (her second reading, 22 Nov): what changed last and what to do, before the tabs
+  const latest = detail?.history[0];
+  const highlights = detail && studio.ready ? (
+    <TextStack
+      body={
+        <>
+          {latest ? <>{`Changed ${day(latest.date)}: `}<Keyed text={latest.title} names={names} />{'. '}</> : null}
+          {fixes.length ? <>{'To do: '}<Marker>{`${fixes.length} ${fixes.length === 1 ? 'fix' : 'fixes'}`}</Marker>{' in Fix.'}</> : 'Nothing to fix.'}
+        </>
+      }
+    />
+  ) : null;
   const right = (
     <Flow gap={16}>
+      {highlights}
       <Tabs label={`${part.name}: inspect, fix, checks, history`} idBase="studio-view" value={tab} onChange={(t) => (setTab(t), setOpen(null))} tabs={TABS} />
       <TabPanels tabs={{ idBase: 'studio-view', value: tab, items: TABS }}>
         <Flow gap={16} scroll={!phone}>
