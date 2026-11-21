@@ -7,9 +7,9 @@
 // may edit and run the build in that worktree only; it never commits, pushes
 // or merges, and her BELLA checkout is never touched.
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { CHIP_CLAUDE_BIN, CHIP_CLAUDE_MODEL, DATA_DIR } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
 import { BASE, prepare } from './checks.mjs';
@@ -53,6 +53,23 @@ export function claudeReady() {
   }
 }
 
+/* A run works on the one BELLA (coordinator, 22 Nov: a run on the old bella-chip-theme checkout failed at its
+   gate): bella-parts on chip/parts-dev, never bella-chip-theme or ~/DEV/bella. Returns why not, or null. */
+export const RUN_BELLA = { dir: 'bella-parts', branch: 'chip/parts-dev' };
+export function runBellaProblem({ dir, base }) {
+  const name = basename(String(dir ?? ''));
+  if (name !== RUN_BELLA.dir) return `Runs work on ${RUN_BELLA.dir}, not ${name || 'no checkout'} (${dir})`;
+  if (base !== RUN_BELLA.branch) return `Runs branch from ${RUN_BELLA.branch}, not ${base}`;
+  return null;
+}
+const realBella = () => {
+  try {
+    return realpathSync(BELLA);
+  } catch {
+    return BELLA;
+  }
+};
+
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'brief';
 const public_ = ({ child, ...r }) => r;
 export const getRun = (id) => (runs.has(id) ? public_(runs.get(id)) : null);
@@ -74,16 +91,18 @@ function stepOf(tool) {
  *  A run costs plan usage, so it starts only from its approved plan (click test 22 Nov: one
  *  click on Health started a paid run). The page's plan drawer (templates/RunPlan.jsx) is the
  *  one place that sends approved: true; anything else is refused before Claude is touched. */
-export async function startRun({ brief, title, from, approved }) {
+export async function startRun({ brief, title, from, approved, dryRun = false }) {
   if (approved !== true) throw new Error('A run starts only from its approved plan. Open the plan, then Approve plan');
   if (typeof brief !== 'string' || brief.trim().length < 10) throw new Error('No brief to run');
+  const wrong = runBellaProblem({ dir: realBella(), base: BASE });
+  if (wrong) throw new Error(wrong);
   const busy = [...runs.values()].find((r) => ['starting', 'running', 'gate'].includes(r.status));
   if (busy) throw new Error(`Another run is still going: “${busy.title}”. It has to finish first (the gate needs port 6006).`);
   const at = new Date();
   const id = `${at.toISOString().slice(0, 10).replace(/-/g, '')}-${at.getTime().toString(36).slice(-5)}`;
   const name = title || brief.split('\n')[0].slice(0, 90);
   const branch = `chip/fix-run-${slug(name)}-${id.slice(-5)}`;
-  const run = { id, title: name, from: from || 'a page', brief, branch, base: BASE, status: 'starting', step: 'Checking Claude Code is signed in', steps: [], startedAt: at.toISOString(), summary: null, diff: null, files: [], gate: null, error: null, cost: null };
+  const run = { id, title: name, from: from || 'a page', brief, branch, base: BASE, status: 'starting', step: 'Checking Claude Code is signed in', steps: [], startedAt: at.toISOString(), summary: null, diff: null, files: [], gate: null, error: null, cost: null, dryRun: !!dryRun };
   runs.set(id, run);
   mkdirSync(RUNS_DIR, { recursive: true });
   run.briefFile = join(RUNS_DIR, `${id}.md`);
@@ -117,6 +136,13 @@ async function go(run) {
   try {
     step(run, `Making ${run.branch} from ${BASE}`);
     prepare(dir, { branch: run.branch, withStaged: false });
+    // a dry run (tests, the demo check) goes this far and stops before the paid model call
+    if (run.dryRun) {
+      step(run, null);
+      run.status = 'dry';
+      run.summary = `Dry run: the worktree ${run.branch} was made from ${BASE} in ${realBella()}; stopped before the model call.`;
+      return;
+    }
     step(run, 'The agent is working on the brief');
     run.status = 'running';
     const prompt = `${run.brief}\n\n---\nYou are running headless for CHIP. Nobody will answer questions: decide, using AGENTS.md. You are in a fresh worktree of BELLA on the local branch ${run.branch}, made from ${BASE}. Make the change here. Run npm run build if you change tokens, contracts or anything generated. Do not commit, push, merge or switch branches: CHIP commits your change through BELLA's gate afterwards. End with a short summary for Elleta: one line per file changed and why, then anything you could not do.`;
@@ -137,9 +163,10 @@ async function go(run) {
     run.status = 'gate';
     const cm = await sh('git', ['-C', dir, 'commit', '-q', '-m', `fix: ${run.title}\n\nMade by Claude Code from a CHIP brief (headless), committed through BELLA's gate.`], dir);
     if (cm.code !== 0) {
+      // the hook writes its log in the worktree's own git dir (BELLA pre-commit, 19 Nov), not /tmp
       let log = cm.out;
       try {
-        log = readFileSync('/tmp/bella-pre-commit-gate.log', 'utf8');
+        log = readFileSync(join(git(['rev-parse', '--absolute-git-dir'], dir).trim(), 'pre-commit-gate.log'), 'utf8');
       } catch {}
       const blockers = visualBlockers(dir, log, run.branch);
       run.gate = { passed: false, log: strip(cm.out).slice(-3000), blockers };
@@ -232,7 +259,91 @@ export function keepRun(id) {
   run.status = 'kept';
   save(run);
   logAction({ kind: 'keep', title: run.title, branch: run.branch, sha: run.sha, base: BASE, files: run.files ?? [], sentence: run.summary?.split('\n')[0] ?? '' });
+  afterKeep(run).catch((e) => Object.assign(run, { step: null, afterError: e.message }));
   return public_(run);
+}
+
+/** The parts a run's files touch: src/components/<Name>/… */
+export const partsTouched = (files = []) => [...new Set(files.map((f) => f.match(/^src\/components\/([A-Z]\w+)\//)?.[1]).filter(Boolean))].sort();
+
+/* After her Accept (coordinator, 22 Nov: "making a change" end to end), on the run's own branch in a fresh
+   worktree: the touched parts' specs rebuilt from their code, the docs regenerated (BELLA's build), both committed
+   through BELLA's gate, Storybook built from the branch into the run's own folder to look at, then where Figma and
+   CHIP's data stand. Each is a step in the run's list as it happens (run.step, run.steps), so the run drawer and
+   the Work card show it live. `only` picks steps (tests); nothing here pushes or merges. */
+export const AFTER_STEPS = ['spec', 'docs', 'commit', 'storybook', 'figma', 'sync'];
+export async function afterKeep(run, { only = AFTER_STEPS } = {}) {
+  const dir = join(tmpdir(), 'chip-runs', `${run.branch.replace(/\//g, '__')}-after`);
+  const parts = partsTouched(run.files);
+  // a finished step replaces the running one in the list (step() would also log the running label)
+  const done = (label) => ((run.step = null), run.steps.push({ step: label, endedAt: new Date().toISOString(), after: true }), save(run));
+  const on = (id) => only.includes(id);
+  run.after = { startedAt: new Date().toISOString(), parts };
+  try {
+    if (on('spec') || on('docs') || on('commit') || on('storybook')) {
+      step(run, `Opening ${run.branch} to update its specs and docs`);
+      git(['worktree', 'add', '-q', dir, run.branch]);
+      try {
+        lstatSync(join(dir, 'node_modules'));
+      } catch {
+        symlinkSync(join(BELLA, 'node_modules'), join(dir, 'node_modules'));
+      }
+    }
+    if (on('spec')) {
+      if (!parts.length) done('Specs: no part was touched');
+      for (const name of parts) {
+        step(run, `Rebuilding ${name}'s spec from its code`);
+        save(run);
+        const r = await sh(process.execPath, ['scripts/spec-build.mjs', name], dir);
+        if (r.code !== 0) throw new Error(`${name}'s spec did not build: ${strip(r.out).trim().split('\n').at(-1)}`);
+        done(`Spec rebuilt: ${name}`);
+      }
+    }
+    if (on('docs')) {
+      step(run, 'Regenerating the docs (BELLA build: tokens, machine-readable spec, docs)');
+      save(run);
+      const r = await sh('npm', ['run', 'build'], dir);
+      if (r.code !== 0) throw new Error(`BELLA's build failed: ${strip(r.out).trim().split('\n').at(-1)}`);
+      done('Docs regenerated');
+    }
+    if (on('commit')) {
+      const changed = git(['status', '--porcelain'], dir).split('\n').filter(Boolean).map((l) => l.slice(3)).filter((f) => f !== 'node_modules' && !f.startsWith('storybook-static'));
+      if (!changed.length) done('Specs and docs already matched the change');
+      else {
+        step(run, `Committing ${changed.length} spec and doc ${changed.length === 1 ? 'file' : 'files'} through BELLA's gate`);
+        save(run);
+        git(['add', '--', ...changed], dir);
+        const cm = await sh('git', ['-C', dir, 'commit', '-q', '-m', `docs: specs and docs for "${run.title}"\n\nRebuilt by CHIP after the run was accepted.`], dir);
+        if (cm.code !== 0) throw new Error("BELLA's gate refused the spec and doc commit");
+        run.afterSha = git(['rev-parse', '--short', 'HEAD'], dir).trim();
+        done(`Specs and docs committed (${run.afterSha})`);
+      }
+    }
+    if (on('storybook')) {
+      step(run, 'Building Storybook from the branch');
+      save(run);
+      const out = join(RUNS_DIR, run.id, 'storybook');
+      const r = await sh('npx', ['storybook', 'build', '--quiet', '-o', out], dir);
+      if (r.code !== 0) throw new Error('Storybook did not build from the branch');
+      run.storybook = out;
+      done('Storybook built from the branch');
+    }
+    // Figma: a headless run can't write Figma safely yet (no Figma write path without the Desktop Bridge,
+    // which takes the file from the session writing in it), so its part of the change is listed for the parts session
+    if (on('figma')) done(parts.length ? `Figma: listed for the parts session (${parts.join(', ')})` : 'Figma: nothing to list');
+    // CHIP reads BELLA's chip/parts-dev; its data re-syncs by itself when the branch is merged there (bella-work keepBellaFresh)
+    if (on('sync')) done("CHIP's BELLA data: re-syncs when the branch is merged");
+    run.after.endedAt = new Date().toISOString();
+  } finally {
+    step(run, null);
+    save(run);
+    try {
+      if (lstatSync(join(dir, 'node_modules')).isSymbolicLink()) unlinkSync(join(dir, 'node_modules'));
+    } catch {}
+    try {
+      git(['worktree', 'remove', '--force', dir]);
+    } catch {}
+  }
 }
 
 /** POST /runs/:id/undo: deletes the branch, only when it holds the run's one commit. */

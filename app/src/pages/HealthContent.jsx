@@ -56,9 +56,34 @@ const driftLine = (p) =>
   p.noSpec
     ? 'No spec yet'
     : [p.differ ? plural(p.differ, 'Figma difference') : p.compared ? 'Matches Figma' : 'Not read from Figma', p.specBehind.length ? `spec behind on ${plural(p.specBehind.length, 'prop')}` : null].filter(Boolean).join(' · ');
+/* The plan for one part's drift: the code is the truth for its spec (rebuild it); a Figma difference is fixed in
+   code where the code is behind Figma, and listed for the parts session where Figma is behind the code. */
+function driftPlan(p) {
+  const steps = [];
+  if (p.noSpec) steps.push({ id: 'spec', title: `Write ${p.name}'s spec from its code (node scripts/spec-build.mjs ${p.name})` });
+  else if (p.specBehind.length) steps.push({ id: 'spec', title: `Rebuild ${p.name}'s spec: it is behind on ${plural(p.specBehind.length, 'prop')}` });
+  if (p.differ) steps.push({ id: 'figma', title: `Bring ${p.name}'s code in line with Figma on ${plural(p.differ, 'difference')}; list any that Figma should change for the parts session` });
+  const brief = [
+    `Close ${p.name}'s drift in BELLA. For each:`,
+    ...(p.noSpec ? [`- ${p.name} has no spec: run node scripts/spec-build.mjs ${p.name} and keep the generated file.`] : []),
+    ...(p.specBehind.length ? [`- The spec is behind the code: ${p.specBehind.join('; ')}. Rebuild it with node scripts/spec-build.mjs ${p.name}.`] : []),
+    ...(p.differ ? [`- Figma and code differ on: ${p.fields.join('; ')}. Change the code where Figma is the decided look (Figma first); where the code is right, list the field under "For the parts session" in your summary and leave it.`] : []),
+    'Follow BELLA AGENTS.md; no new tokens; ask before changing a public API.',
+  ].join('\n');
+  return { title: `Fix ${p.name}'s drift`, from: 'Health · Drift', brief, steps };
+}
+
 function DriftCard({ components }) {
   const { data } = useCached(['/drift']);
   const [open, setOpen] = useState(false);
+  // a Fix asks for its plan once this drawer has closed, so the plan opens on top, never under it
+  const pending = useRef(null);
+  const closed = () => {
+    setOpen(false);
+    const p = pending.current;
+    pending.current = null;
+    if (p) planRun(driftPlan(p)).catch(() => {});
+  };
   const d = data?.[0] ?? null;
   if (!d?.total) return <NoData title="Drift from BELLA" icon="Activity" context="Parts that differ from Figma, spec or code" caption={d ? 'No parts found' : 'Reading the specs'} />;
   const idOf = (name) => components.find((c) => c.name === name)?.id ?? name.replace(/(?<=[a-z])(?=[A-Z])/g, '-').toLowerCase();
@@ -76,10 +101,26 @@ function DriftCard({ components }) {
         caption={day ? `Specs from ${day} · ${d.total - d.compared} not read from Figma` : `${d.total - d.compared} not read from Figma`}
         onOpen={() => setOpen(true)}
       />
-      <Drawer open={open} onClose={() => setOpen(false)} side="right" size="lg" label="Drift from BELLA" status={`${d.differing} of ${d.total} parts differ · most first`}>
+      <Drawer open={open} onClose={closed} side="right" size="lg" label="Drift from BELLA" status={`${d.differing} of ${d.total} parts differ · most first`}>
         <ListRowGroup ariaLabel="Every part and what differs">
           {d.parts.map((p) => (
-            <ListRow key={p.name} layout="stacked" statusBar={p.differ || p.specBehind.length || p.noSpec ? 'attention' : 'success'} title={p.name} description={driftLine(p)} trailing onClick={() => ((window.location.hash = `#/components/${encodeURIComponent(idOf(p.name))}`), setOpen(false))} />
+            <ListRow
+              key={p.name}
+              layout="stacked"
+              statusBar={p.differ || p.specBehind.length || p.noSpec ? 'attention' : 'success'}
+              title={p.name}
+              description={driftLine(p)}
+              trailing
+              onClick={() => ((window.location.hash = `#/components/${encodeURIComponent(idOf(p.name))}`), setOpen(false))}
+              // Fix opens the same plan-first sheet as every fix; nothing runs until it is approved
+              actionButton={
+                p.differ || p.specBehind.length || p.noSpec ? (
+                  <Button variant="tertiary" size="sm" onClick={() => ((pending.current = p), setOpen(false))}>
+                    Fix
+                  </Button>
+                ) : undefined
+              }
+            />
           ))}
         </ListRowGroup>
       </Drawer>
@@ -93,11 +134,19 @@ function DriftCard({ components }) {
 function GapsCard() {
   const { data } = useCached(['/bella-gaps']);
   const [open, setOpen] = useState(false);
+  // the plan opens once this drawer has closed, so it sits on top
+  const planNext = useRef(false);
   const g = data?.[0] ?? null;
   if (!g) return <NoData title="Gaps" icon="WarningCircle" context="What BELLA can't do yet" caption="Reading BELLA" />;
   const total = g.notInCode.length + g.notInBella.length;
   const brief = ['Build these BELLA parts in code from their specs (specs/components/<Name>.spec.yaml), one at a time, each with a story:', ...g.notInCode.map((n) => `- ${n}`), 'Follow BELLA AGENTS.md; no new tokens; ask before changing a public API.'].join('\n');
-  const plan = () => (setOpen(false), planRun({ title: `Build ${plural(g.notInCode.length, 'part')} from their specs`, from: 'Health · Gaps', brief, steps: g.notInCode.map((n) => ({ id: n, title: `Build ${n} from its spec` })) }).catch(() => {}));
+  const plan = () => ((planNext.current = true), setOpen(false));
+  const closed = () => {
+    setOpen(false);
+    if (!planNext.current) return;
+    planNext.current = false;
+    planRun({ title: `Build ${plural(g.notInCode.length, 'part')} from their specs`, from: 'Health · Gaps', brief, steps: g.notInCode.map((n) => ({ id: n, title: `Build ${n} from its spec` })) }).catch(() => {});
+  };
   return (
     <>
       <StatCard
@@ -113,7 +162,7 @@ function GapsCard() {
       />
       <Drawer
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={closed}
         side="right"
         size="lg"
         label="Gaps"
