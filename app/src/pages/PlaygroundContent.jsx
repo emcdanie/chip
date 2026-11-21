@@ -344,7 +344,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
       ) : !map ? <EmptyState size="lane" title="Loading the page" /> : null}
 
       {/* Figma "controls open": the part's props as rows, value on the right; a click moves to the next value */}
-      <Drawer open={controls && !!part} onClose={() => setControls(false)} label="Controls" side="right">
+      <Drawer open={controls && !!part} onClose={() => setControls(false)} label="Controls" side="right" size="sm">
         <Flow as="ul" gap={4} aria-label={`${part ?? ''} controls`}>
           {controlRows.map((c) => {
             const now = partValues[c.key] ?? c.options[0];

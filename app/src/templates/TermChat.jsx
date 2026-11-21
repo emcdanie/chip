@@ -11,7 +11,7 @@
 // Gaps: no dotted-underline term with a plain-speech card yet (Tooltip would
 // carry it; the terms need words from CHIP first); the agent can't ask her a
 // question mid-run (runs are headless), so no permission bubbles are drawn.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Fragment } from 'react';
 import ChatThread, { ChatThreadDelivered, ChatThreadTimestamp } from '@bella/components/ChatThread/ChatThread';
 import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
 import TypingDots from '@bella/components/TypingDots/TypingDots';
@@ -149,12 +149,15 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
     <Flow gap={16}>
     {/* no head of its own: the Work drawer's status line names the chat and the composer the model (one chat, one head; audit 3) */}
     <ChatThread label="BELLA and the agent">
-      {rows.length ? <ChatThreadTimestamp boldWord="Today">{rows[0].at}</ChatThreadTimestamp> : null}
-      {rows.map((t, n) =>
-        t.agentFor == null ? (
-          <Turn key={n} turn={t} last={n === rows.length - 1} sent={rows.some((x) => x.agentFor === t.i)} onAgent={startRun} onRetry={n === rows.length - 1 ? (p) => asker.retry(p ?? provider) : undefined} />
+      {rows.map((t, n) => (
+        <Fragment key={n}>
+        {/* each exchange under its own time (ChatThread's stamp), not one stamp for the whole chat; a turn
+            in the same minute as the last shares its stamp */}
+        {n === 0 || rows[n - 1].at !== t.at ? <ChatThreadTimestamp boldWord={n === 0 ? 'Today' : undefined}>{t.at}</ChatThreadTimestamp> : null}
+        {t.agentFor == null ? (
+          <Turn turn={t} last={n === rows.length - 1} sent={rows.some((x) => x.agentFor === t.i)} onAgent={startRun} onRetry={n === rows.length - 1 ? (p) => asker.retry(p ?? provider) : undefined} />
         ) : (
-          <Flow key={n} gap={12}>
+          <Flow gap={12}>
             <Flow gap={4}>
               <ChatBubble side="sent" tail>
                 {t.text}
@@ -163,8 +166,9 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
             </Flow>
             {t.run ? <AgentRun id={t.run} onOpen={onOpen} /> : t.runError ? <ChatBubble side="received" senderName="Agent">{t.runError}</ChatBubble> : <TypingDots name="the agent" />}
           </Flow>
-        ),
-      )}
+        )}
+        </Fragment>
+      ))}
       <span ref={end} />
     </ChatThread>
     </Flow>
