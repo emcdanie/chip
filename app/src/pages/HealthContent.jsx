@@ -108,7 +108,15 @@ function GateCard({ gate, run, onOpen }) {
       unit={`of ${of}`}
       chart="segments"
       meter={{ segments: of, done: ok }}
-      context={run && run.state !== 'none' ? 'Last run just now' : gate.when ? `Gate checks, last run ${gate.when}${gate.on ? ` on ${gate.on}` : ''}` : 'Gate checks'}
+      context={
+        run && run.state !== 'none'
+          ? 'Last run just now'
+          : gate.behind?.length
+            ? `${gate.behind.map((b) => b.name).join(', ')} last ran ${gate.behind[0].when} on ${gate.behind[0].commit}; the rest on ${gate.on}`
+            : gate.when
+              ? `Gate checks, last run ${gate.when}${gate.on ? ` on ${gate.on}` : ''}`
+              : 'Gate checks'
+      }
       // of what: the checks that didn't pass, by name (one source with System map and Connectors)
       caption={failed ? run.why : gate.failing.length ? `Failing: ${gate.failing.join('; ')}` : gate.notRun.length ? `Not run yet: ${gate.notRun.join('; ')}` : `All ${of} pass`}
       href={onOpen ? undefined : '#/history'}

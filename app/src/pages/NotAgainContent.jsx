@@ -163,17 +163,19 @@ function Banner({ state, data, busy, act }) {
   );
 }
 
-/* CHIP's run log, this week: how many fixes ran and how many a maintainer
-   kept. A run still going, waiting at the end, or stopped is named once. */
+/* CHIP's run log, this week: how many saved fixes ran and how many a maintainer kept. Only the runs of the
+   fixes in the Library count, never every hand-off in the log; a run that found nothing to change is "no
+   change", not "stopped" (data check, 22 Nov). A run still going, waiting at the end, or stopped is named once. */
 const RUNNING = new Set(['starting', 'running', 'gate']);
-const STOPPED = new Set(['failed', 'nochange', 'login']);
+const STOPPED = new Set(['failed', 'login']);
 function useWeek() {
   const { data } = useCached(['/runs']);
   const runs = data?.[0]?.runs ?? [];
   const monday = new Date();
   monday.setHours(0, 0, 0, 0);
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-  const week = runs.filter((r) => new Date(r.startedAt) >= monday);
+  const saved = (r) => LIBRARY.some((f) => String(r.title ?? '').startsWith(f.name));
+  const week = runs.filter((r) => saved(r) && new Date(r.startedAt) >= monday);
   const count = (f) => week.filter((r) => f(r.status)).length;
   const last = week.reduce((a, r) => (a && new Date(a) > new Date(r.startedAt) ? a : r.startedAt), null);
   return {
@@ -183,6 +185,7 @@ function useWeek() {
     waiting: count((x) => x === 'passed'),
     running: count((x) => RUNNING.has(x)),
     stopped: count((x) => STOPPED.has(x)),
+    nochange: count((x) => x === 'nochange'),
     last,
   };
 }
@@ -200,7 +203,7 @@ function Stats() {
     return (
       <>
         <Flow span={6} fill>
-          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Runs this week" value={0} context="Fixes run since Monday" caption="Nothing run yet this week" href="#/history" />
+          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Runs this week" value={0} context="Saved fixes run since Monday" caption="Nothing run yet this week" href="#/history" />
         </Flow>
         <Flow span={6} fill>
           <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Kept" value={0} context="Accept a fix and it lands here" caption="Undone runs stay in History" href="#/history" />
@@ -208,11 +211,11 @@ function Stats() {
       </>
     );
   // Figma names the one thing besides undone: running, else stopped, else waiting
-  const besides = w.running ? `${w.running} running` : w.stopped ? `${w.stopped} stopped` : `${w.waiting} waiting on a maintainer`;
+  const besides = w.running ? `${w.running} running` : w.stopped ? `${w.stopped} stopped` : w.nochange ? `${w.nochange} made no change` : `${w.waiting} waiting on a maintainer`;
   return (
     <>
       <Flow span={6} fill>
-        <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={w.total} context="Fixes run since Monday" caption={lastRun(w.last)} href="#/history" />
+        <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={w.total} context="Saved fixes run since Monday" caption={lastRun(w.last)} href="#/history" />
       </Flow>
       <Flow span={6} fill>
         <StatCard

@@ -97,7 +97,20 @@ function lowestPair(res) {
 function gateFrom(g, checks) {
   if (!g?.members?.length) return null;
   const not = (s) => g.members.filter((m) => s.includes(m.status)).map((m) => m.name);
-  return { ok: g.counts.passed, of: g.counts.total, when: g.ranAt ? day(g.ranAt) : null, failing: not(['failed', 'waiting']), notRun: not(['not-run']), on: checks?.base ? `${checks.base}${checks.head ? ` @ ${checks.head}` : ''}` : null };
+  // the gate's date is its oldest check's, never the newest one's for all five (data check, 22 Nov): a check that
+  // last ran on an older commit than BELLA's HEAD is named with its own day and commit
+  const runs = (checks?.checks ?? []).filter((c) => c.gate === true && c.ranAt);
+  const oldest = runs.reduce((a, c) => (!a || Date.parse(c.ranAt) < Date.parse(a.ranAt) ? c : a), null);
+  const behind = runs.filter((c) => c.commit && checks?.head && c.commit !== checks.head);
+  return {
+    ok: g.counts.passed,
+    of: g.counts.total,
+    when: oldest ? day(oldest.ranAt) : g.ranAt ? day(g.ranAt) : null,
+    failing: not(['failed', 'waiting']),
+    notRun: not(['not-run']),
+    on: checks?.base ? `${checks.base}${checks.head ? ` @ ${checks.head}` : ''}` : null,
+    behind: behind.map((c) => ({ name: c.name, when: day(c.ranAt), commit: c.commit })),
+  };
 }
 
 /** Reads CHIP's data (kept between pages); `model` is null only on the very first visit. */

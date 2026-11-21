@@ -55,6 +55,9 @@ const ROLES = [
   { name: 'Status', job: 'only for state', items: [['success', '--color-content-utility-success'], ['attention', '--color-background-utility-warning-mark', 'fill'], ['error', '--color-content-utility-error'], ['warning', '--color-content-utility-warning'], ['info', '--color-content-utility-info']] },
   { name: 'Highlight', job: 'annotation, focus and the logo', items: [['wash', '--color-background-utility-warning', 'fill'], ['focus', '--color-border-focus'], ['pin', '--color-background-accent-1'], ['target', '--color-border-brand'], ['logo blue', '--color-background-accent-3'], ['logo red', '--color-background-accent-4']] },
 ];
+// an "on X" colour is measured on X, never on the white surface (data check, 22 Nov: "on action" said 16.2:1 on
+// white; on the action fill it is 7.1:1). The ground each one is made for, by its token's name.
+const ON = { '--color-content-brand-knockout': ['--color-background-brand', 'action'], '--color-content-on-accent-1': ['--color-background-accent-1', 'pin'] };
 // Figma's type ramp: the TypeSpecimen size, the words set in it and the token that sets it. Every step
 // the specimen can draw, named by what sets in it in CHIP (body and labels 16, headings 18, titles 20).
 const RAMP = [
@@ -120,10 +123,12 @@ function useRoles() {
           .map(([name, token, kind]) => {
             const c = read(token);
             if (!c || !surface) return null;
-            const solid = over(c, surface);
+            const ground = ON[token] ? read(ON[token][0]) : null;
+            const bg = ground ? over(ground, surface) : surface;
+            const solid = over(c, bg);
             const words = c.a < 1 ? `${hex(c)} at ${Math.round(c.a * 100)}%` : hex(c);
             // a translucent line shows its colour and strength, no ratio (Figma: "its hex at 20%"), so the swatch keeps one line
-            return { name, token, color: `var(${token})`, hex: words, ratio: kind ?? (c.a < 1 ? undefined : `${ratio(solid, surface).toFixed(1)}:1`) };
+            return { name, token, color: `var(${token})`, hex: words, ratio: kind ?? (c.a < 1 ? undefined : `${ratio(solid, bg).toFixed(1)}:1${ground ? ` on ${ON[token][1]}` : ''}`) };
           })
           .filter(Boolean),
       })),
@@ -227,11 +232,13 @@ function TypeRamp() {
   );
 }
 
-function Tokenized({ rows }) {
+function Tokenized({ rows, source }) {
+  // the snapshot's commit and day, so a stale count shows its age (data check, 22 Nov)
+  const from = source?.commit ? ` · BELLA @ ${source.commit}, ${new Date(source.committedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : '';
   return (
     <Card>
       <Flow gap={16}>
-        <SectionHead size="card" icon="Code" iconTone="info" title="Tokenized" description="Values that use a token" showDescription />
+        <SectionHead size="card" icon="Code" iconTone="info" title="Tokenized" description={`Values that use a token${from}`} showDescription />
         <Flow gap={12}>
           {rows.map((r) => (
             <Progress key={r.p} label={r.p} value={`${r.ok} of ${r.decl} values`} fill={r.decl ? (100 * r.ok) / r.decl : 0} tone={r.ok === r.decl ? 'success' : 'attention'} />
@@ -433,6 +440,8 @@ function useAllRoles(bella) {
       return channels(getComputedStyle(el).color);
     };
     const surface = read(light, '--color-background-surface');
+    // an "on X" role is measured on X (ON above), the rest on the light surface
+    const groundOf = (t) => (ON[t] && read(light, ON[t][0]) ? over(read(light, ON[t][0]), surface) : surface);
     const nameOf = Object.fromEntries((bella.components ?? []).map((c) => [c.name, c.id]));
     const words = (c) => (c.a < 1 ? `${hex(c)} ${Math.round(c.a * 100)}%` : hex(c));
     const out = Object.keys(bella.palette ?? {})
@@ -447,8 +456,8 @@ function useAllRoles(bella) {
           role: t.replace(/^--color-/, ''),
           light: words(l),
           dark: words(d),
-          contrast: /^--color-background-/.test(t) ? 'Base' : `${ratio(over(l, surface), surface).toFixed(1)}:1`,
-          ratio: /^--color-background-/.test(t) ? 0 : ratio(over(l, surface), surface),
+          contrast: /^--color-background-/.test(t) ? 'Base' : `${ratio(over(l, groundOf(t)), groundOf(t)).toFixed(1)}:1${ON[t] ? ` on ${ON[t][1]}` : ''}`,
+          ratio: /^--color-background-/.test(t) ? 0 : ratio(over(l, groundOf(t)), groundOf(t)),
           used: used.length,
           firstPart: used[0] ? nameOf[used[0]] ?? null : null,
         };
@@ -645,7 +654,7 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
         <TypeRamp />
       </Flow>
       <Flow span={6}>
-        <Tokenized rows={f.tokenized.rows} />
+        <Tokenized rows={f.tokenized.rows} source={f.source} />
       </Flow>
       <ShapeAndSpace radius={f.radius} />
       {f.motion ? <Motion motion={f.motion} /> : null}

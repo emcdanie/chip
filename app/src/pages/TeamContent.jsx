@@ -168,7 +168,8 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
           <Tag variant="outline" tone="info" count={data.working}>working</Tag>
         </li>
         <li>
-          <Tag variant="outline" tone="attention" count={asks.length}>{`${asks.length === 1 ? 'ask' : 'asks'} for you`}</Tag>
+          {/* the asks from the last week, said as such: "for you" is Needs you's word, which counts something else (data check, 22 Nov) */}
+          <Tag variant="outline" tone="attention" count={asks.length}>{asks.length === 1 ? 'new ask' : 'new asks'}</Tag>
         </li>
         <li>
           <Tag variant="outline" count={data.prs}>{data.prs === 1 ? 'open PR' : 'open PRs'}</Tag>

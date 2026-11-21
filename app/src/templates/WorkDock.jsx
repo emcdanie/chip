@@ -159,7 +159,7 @@ export default function WorkDock() {
     window.addEventListener('chip:changed', reload);
     return () => window.removeEventListener('chip:changed', reload);
   }, [reload]);
-  const needs = useMemo(() => (data ? workModel({ needs: data[0]?.items ?? [], runs: data[1]?.runs ?? [], agents: data[2]?.lanes ?? [] }).lanes.find((l) => l.id === 'needs').cards : null), [data]);
+  const needs = useMemo(() => (data ? workModel({ needs: data[0]?.items ?? [], runs: data[1]?.runs ?? [], runBase: data[1]?.base ?? null, agents: data[2]?.lanes ?? [] }).lanes.find((l) => l.id === 'needs').cards : null), [data]);
   const sessions = useMemo(() => {
     if (!data) return null;
     const runs = [...(data[1]?.runs ?? [])].sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));

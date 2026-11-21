@@ -698,7 +698,7 @@ function checksWithTouch(part, touch) {
   });
 }
 
-function ChecksCard({ part, detail, checked, touch }) {
+function ChecksCard({ part, detail, touch }) {
   // Story and Docs open the part's Storybook docs page in a new tab, never in place. Contract,
   // spec and A11y opened the old app; Figma draws no new-app view for them yet, so they read
   // their result in place until one is drawn (user test 21 Nov, item 1)
@@ -709,8 +709,13 @@ function ChecksCard({ part, detail, checked, touch }) {
   const weakest = detail.anatomy.filter((x) => x.contrast).sort((x, y) => x.contrast.ratio - y.contrast.ratio)[0];
   const checks = checksWithTouch(part, touch);
   // Figma's seven rows: the six checks, then Figma set, which counts (5 of 7 while CHIP can't reach Figma)
-  const total = checks.length + 1;
+  // an unread Figma is not measured, so it counts neither as a pass nor in the total (data check, 22 Nov: 6 of 7)
+  const total = checks.length + (detail.figmaBlind ? 0 : 1);
   const pass = checks.filter((k) => k.ok).length + (detail.figmaBlind ? 0 : 1);
+  // where the checks come from: BELLA's snapshot, its commit and day (never a typed "on main")
+  const { data: snap } = useCached(['/data/bella.json']);
+  const src = snap?.[0]?.source;
+  const from = src?.commit ? `From BELLA @ ${src.commit}, ${new Date(src.committedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : undefined;
   // an inline row's value never wraps, so on the smallest phones the value goes under the title
   // (final audit 21 Nov: "Matches the code" ran 3 past the card at 320)
   const stacked = useNarrow(400);
@@ -718,7 +723,7 @@ function ChecksCard({ part, detail, checked, touch }) {
   return (
     <Card>
       <Flow gap={8}>
-        <SectionHead title="Checks" description={checked ? `Run ${checked} on main` : undefined} number={pass} words={`of ${total} pass`} />
+        <SectionHead title="Checks" description={from} number={pass} words={`of ${total} pass${detail.figmaBlind ? ' · Figma not read' : ''}`} />
         <Flow gap={4} as="ul" aria-label={`${part.name}'s checks`}>
           {checks.map((k) => {
             const href = linkFor(k);
@@ -862,7 +867,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                   </Flow>
                   <Flow span={4} gap={24} grow="last">
                     <AskCard part={part} detail={detail} onAsk={(t) => ask(t, 'card')} thread={asked?.from === 'card' && answer ? thread : null} />
-                    <ChecksCard part={part} detail={detail} checked={model.checked} touch={touch} />
+                    <ChecksCard part={part} detail={detail} touch={touch} />
                   </Flow>
                 </>
               )}

@@ -30,11 +30,17 @@ function needCard(n) {
 }
 
 /* An agent run as a card, by where it is. */
-function runCard(r) {
+// a time alone means today; any other day is named (data check, 22 Nov: yesterday's run read as today's)
+const when = (t) => {
+  const d = new Date(t);
+  return d.toDateString() === new Date().toDateString() ? hhmm(t) : `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${hhmm(t)}`;
+};
+function runCard(r, base) {
   // the card says what it is in plain words, "Agent run · 12:38" (Elleta's fix list, 21 Nov); the branch
-  // stays on the item (sidebar filter, table, drawer meta line), never as the card's line
+  // stays on the item (sidebar filter, table, drawer meta line), never as the card's line. A run made from
+  // another BELLA branch than today's says which.
   return { id: r.id, open: { kind: 'run', id: r.id }, title: r.title ?? 'Fix', branch: r.branch ?? null,
-    line: ['Agent run', r.startedAt ? hhmm(r.startedAt) : null].filter(Boolean).join(' · ') };
+    line: ['Agent run', r.startedAt ? when(r.startedAt) : null, base && r.base && r.base !== base ? `from ${r.base}` : null].filter(Boolean).join(' · ') };
 }
 
 /* Who is working, one rule for the board, the sidebar, Team and Sessions (audit 3, 21 Nov:
@@ -51,16 +57,16 @@ export const daysQuiet = (l, now = Date.now()) => Math.floor((now - l.updated) /
 /* A relay lane at work, as an Agent card: the agent's name and its role. */
 const laneCard = (l) => ({ id: `lane-${l.id}`, title: l.name, branch: null, line: ['Agent session', l.role].filter(Boolean).join(' · '), status: 'Working', tone: 'info', who: 'agent' });
 
-export function workModel({ needs = [], runs = [], agents = [] }) {
+export function workModel({ needs = [], runs = [], agents = [], runBase = null }) {
   // a check an agent is already working on leaves Needs you (its run shows in Agent)
   const working = new Set(runs.filter((r) => ['starting', 'running', 'gate'].includes(r.status)).map((r) => r.title));
   const needsYou = needs.map(needCard).filter((c) => !(c.fixable && working.has(c.title))).sort((a, b) => Number(b.failed) - Number(a.failed) || (a.at ?? 0) - (b.at ?? 0));
   const by = (...s) => runs.filter((r) => s.includes(r.status));
   const lanes = [
-    { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r), status: 'Failed', tone: 'danger', who: 'developer' })), ...needsYou] },
-    { id: 'agent', name: 'Agent', cards: [...by('starting', 'running').map((r) => ({ ...runCard(r), status: 'Working', tone: 'info', who: 'agent' })), ...agents.filter((l) => laneState(l) === 'working').map(laneCard)] },
-    { id: 'gate', name: 'At the gate', cards: by('gate').map((r) => ({ ...runCard(r), status: 'Checking', tone: 'info', who: 'gate' })) },
-    { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r), status: 'Gate passed', tone: 'success', who: 'reviewer' })) },
+    { id: 'needs', name: 'Needs you', cards: [...by('failed', 'login').map((r) => ({ ...runCard(r, runBase), status: 'Failed', tone: 'danger', who: 'developer' })), ...needsYou] },
+    { id: 'agent', name: 'Agent', cards: [...by('starting', 'running').map((r) => ({ ...runCard(r, runBase), status: 'Working', tone: 'info', who: 'agent' })), ...agents.filter((l) => laneState(l) === 'working').map(laneCard)] },
+    { id: 'gate', name: 'At the gate', cards: by('gate').map((r) => ({ ...runCard(r, runBase), status: 'Checking', tone: 'info', who: 'gate' })) },
+    { id: 'ready', name: 'Ready', cards: by('passed').map((r) => ({ ...runCard(r, runBase), status: 'Gate passed', tone: 'success', who: 'reviewer' })) },
   ];
   const total = lanes.reduce((s, l) => s + l.cards.length, 0);
   return { lanes, total, brief: briefOf(lanes) };
@@ -83,7 +89,7 @@ export function useWork() {
     window.addEventListener('chip:changed', reload);
     return () => window.removeEventListener('chip:changed', reload);
   }, [reload]);
-  const model = useMemo(() => (data ? workModel({ needs: data[0].items ?? [], runs: data[1].runs ?? [], agents: data[2]?.lanes ?? [] }) : null), [data]);
+  const model = useMemo(() => (data ? workModel({ needs: data[0].items ?? [], runs: data[1].runs ?? [], runBase: data[1].base ?? null, agents: data[2]?.lanes ?? [] }) : null), [data]);
   return { model, error, loading, reload, checked: at ? hhmm(at) : null };
 }
 

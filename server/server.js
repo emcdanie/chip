@@ -20,7 +20,7 @@ import { barState, barStream, barImg } from './lib/bar.mjs';
 import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
 import { specOf, figmaLint, readBaseline, runBaseline } from './lib/spec-lint.mjs';
 import { attachTerminal, repoList } from './lib/term.mjs';
-import { listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
+import { BASE as checksBase, listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
 import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou } from './lib/needs.mjs';
 import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
@@ -493,7 +493,8 @@ app.post('/review/:check/keep', (req, res) => {
   }
 });
 // Runs: a brief handed to Claude Code headless, reported back as an outcome
-app.get('/runs', (_req, res) => res.json({ runs: listRuns() }));
+// base: today's BELLA branch, so a card can say when a run started from another one (data check, 22 Nov)
+app.get('/runs', (_req, res) => res.json({ runs: listRuns(), base: checksBase }));
 app.get('/runs/ready', (_req, res) => res.json(claudeReady()));
 app.get('/runs/:id', (req, res) => {
   const r = getRun(String(req.params.id));

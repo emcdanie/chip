@@ -35,7 +35,8 @@ function typeOf(subject, files = []) {
 
 function gitRecords(dir, repo, ref) {
   const sep = '\x1f';
-  const raw = git(dir, ['log', ref, '--no-merges', '-n', '400', '--date=iso-strict', `--format=%h${sep}%ad${sep}%an${sep}%s${sep}%b${sep}`, '--name-only']);
+  // every commit, so "All" is all (data check, 22 Nov: CHIP's newest 400 of 467 showed as All)
+  const raw = git(dir, ['log', ref, '--no-merges', '--date=iso-strict', `--format=%h${sep}%ad${sep}%an${sep}%s${sep}%b${sep}`, '--name-only']);
   const out = [];
   for (const block of raw.split(/\n(?=[0-9a-f]{7,}\x1f)/)) {
     const parts = block.split(sep);

@@ -211,7 +211,8 @@ async function gitState(p) {
 }
 
 async function prsOf(p) {
-  const out = await run('gh', ['pr', 'list', '--state', 'open', '--limit', '10', '--json', 'number,title,headRefName,url,isDraft,updatedAt'], p.repo, 8000);
+  // every open PR, so the header's count is the real total (data check, 22 Nov: 10 per repo showed 19 of 27)
+  const out = await run('gh', ['pr', 'list', '--state', 'open', '--limit', '500', '--json', 'number,title,headRefName,url,isDraft,updatedAt'], p.repo, 8000);
   if (out == null) return null; // gh missing, signed out or offline: left out
   try {
     return JSON.parse(out);
