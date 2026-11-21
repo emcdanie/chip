@@ -163,7 +163,7 @@ function Activity({ records, total, open, onOpen, fit }) {
               <Fragment key={r.id}>
                 {head ? <StepDay>{head}</StepDay> : null}
                 <Step
-                  title={plain(r.title)}
+                  title={<Keyed text={plain(r.title)} k={keyOf(plain(r.title), r.components)} />}
                   time={time(r.date)}
                   // a Tag only where nothing else says it (audit 4, item 4): Merged is what Activity
                   // is made of, so only the other statuses get one; the open record keeps its own
@@ -200,6 +200,30 @@ const touched = (files) => {
 
 const firstSentence = (t) => String(t).split(/(?<=[.!?])\s/)[0];
 
+/* Bold is for key words only (Elleta, 22 Nov: "only keywords, which were supposed to have the blue
+   underline thing"): a record's title reads regular and its one key word gets bold plus the blue marker.
+   The key word is the part the record names (git's own list of parts it touched), else the area before
+   the title's colon ("Scripts: …"); none when neither is there. Never more than one per line. */
+const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const keyOf = (title, components = []) => {
+  const t = String(title ?? '');
+  const part = [...components].sort((a, b) => b.length - a.length).find((c) => new RegExp(`\\b${esc(c)}\\b`).test(t));
+  if (part) return part;
+  return t.match(/^([^:]{2,32}):\s/)?.[1] ?? null;
+};
+function Keyed({ text, k }) {
+  const t = String(text ?? '');
+  const at = k ? t.search(new RegExp(`\\b${esc(k)}\\b`)) : -1;
+  if (at < 0) return t;
+  return (
+    <>
+      {t.slice(0, at)}
+      <strong className="chip-key">{t.slice(at, at + k.length)}</strong>
+      {t.slice(at + k.length)}
+    </>
+  );
+}
+
 function Record({ id, fit }) {
   const rec = useRecord(id);
   const [q, setQ] = useState('');
@@ -224,7 +248,7 @@ function Record({ id, fit }) {
           </Flow>
           {/* Figma: the record's title at the subsection size, the biggest thing in the record */}
           {/* Figma draws the record title as Text stack Title (20 regular); an h2 for the record (TextStack titleAs, parts 111fc0c) */}
-          <TextStack titleAs="h2" title={plain(rec.title)} />
+          <TextStack titleAs="h2" title={<Keyed text={plain(rec.title)} k={keyOf(plain(rec.title), rec.components)} />} />
           {/* the counts, once, under the title (her note, 21 Nov: "should these not be at the top").
               Gap: no BELLA part sets numbers in Geist Mono and words in Lexend on one line, so the
               line is TextStack's meta line for now */}
@@ -244,7 +268,10 @@ function Record({ id, fit }) {
               const rest = [lines[0].slice(first.length).trim(), ...lines.slice(1)].filter(Boolean);
               return (
                 <Flow gap={4} as="span">
-                  <span>{first}</span>
+                  {/* one key word in the Why too, the same one as the title's where the Why names it */}
+                  <span>
+                    <Keyed text={first} k={[keyOf(plain(rec.title), rec.components), ...(rec.components ?? [])].find((k) => k && new RegExp(`\\b${esc(k)}\\b`).test(first))} />
+                  </span>
                   {rest.length ? (
                     <Disclosure flush title="Exact words">
                       <Flow gap={4} as="span">

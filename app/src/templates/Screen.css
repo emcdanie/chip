@@ -187,6 +187,15 @@
 .chip-flow--bullets > li { display: list-item; }
 /* a word and the pins after it stay on one line (useAsk Words): a pin never starts a line */
 .chip-hold { white-space: nowrap; }
+/* the key word of a title or a Why: bold plus the blue marker underline (Elleta, 19 Nov chat sheet's
+   marker, BELLA's see-through brand blue; 22 Nov: "only keywords, which were supposed to have the blue
+   underline thing"). Gap: BELLA has no marker part yet; this is the one CHIP class until it has. */
+.chip-key {
+  font-weight: var(--typography-font-weight-600);
+  background: linear-gradient(transparent 62%, var(--color-background-wash-blue-strong) 62%) no-repeat;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
 .chip-flow--row { flex-direction: row; }
 .chip-flow--wrap { flex-wrap: wrap; }
 .chip-flow--fill > * { flex: 1 1 auto; }
