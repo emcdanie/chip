@@ -669,7 +669,19 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
       {view === 'table' ? (
         <RolesTable rows={tableRows} total={all.length} />
       ) : (
-        <Roles roles={cardRoles} onOpen={(name) => (setQ(name), setView('table'))} empty={<EmptyState size="lane" mark="🔎" title="No role matches" line="Nothing by that name. Try fewer letters." />} />
+        <Roles
+          roles={cardRoles}
+          onOpen={(name) => (setQ(name), setView('table'))}
+          empty={
+            // the cards hold the role colours, and every one of them is used; the unused ones are other tokens,
+            // listed in the Table (click test 22 Nov: "No role matches" under a chip that says 25)
+            used === 'unused' && !words ? (
+              <EmptyState size="lane" mark="🧹" title="Every colour on these cards is in use" line={`The ${all.length - usedN} used by nothing are other colour tokens, listed in the Table.`} actions={<Button variant="secondary" onClick={() => setView('table')}>Show them in the Table</Button>} />
+            ) : (
+              <EmptyState size="lane" mark="🔎" title="No role matches" line={used === 'all' ? 'Nothing by that name. Try fewer letters.' : `Nothing by that name among the ${used === 'used' ? 'used' : 'unused'} roles. Try All, or fewer letters.`} />
+            )
+          }
+        />
       )}
       {/* Figma's Foundations sections (decided 18 Nov): who uses what after the roles */}
       <WhoUsesWhat bella={data[1]} />
