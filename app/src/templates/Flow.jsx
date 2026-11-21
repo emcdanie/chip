@@ -28,14 +28,40 @@ const GAPS = new Set([0, 4, 8, 12, 16, 24]);
  * shows its bullet markers (an answer's bullets, her mock and Figma Flow 12); fit: a list beside its
  * detail that fills the window from where it starts, on the 12 columns, so the page itself never scrolls
  * (History, Elleta 22 Nov: "I don't want to scroll the whole page"); scroll: a column inside fit (or a card)
- * that scrolls on its own.
+ * that scrolls on its own; sticky: stays at the top of the box it scrolls in while the rest moves under it
+ * (a walk-through step over the code it explains).
  */
+/* fit: as tall as the page's own scroll box shows, less its padding and a foot where card shadows fade,
+   so a list and its detail get the whole height under the tabs once the content scrolls them to the top
+   (independent check, 22 Nov: at 1100 by 800 the panes were about 250 tall when they filled only what was
+   left under the search). Watches the box, so it follows the window. */
+function useFull(on) {
+  const ref = useRef(null);
+  const [h, setH] = useState(null);
+  useLayoutEffect(() => {
+    if (!on) return undefined;
+    const sc = ref.current?.closest('.chip-screen__content');
+    if (!sc) return undefined;
+    const measure = () => {
+      const cs = getComputedStyle(sc);
+      const foot = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--spacing-16')) || 16;
+      const v = Math.max(0, Math.round(sc.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - foot));
+      setH((was) => (was === v ? was : v));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(sc);
+    return () => ro.disconnect();
+  }, [on]);
+  return [ref, on && h != null ? { blockSize: `${h}px` } : undefined];
+}
+
 /* board: the Work board's frame (Elleta, 19 Nov: "the work board needs to stay
    in the veiwport.. and scrool horizontal and hten independently in there own
    lanes"). It fills the window from where it starts, scrolls sideways when the
    lanes don't fit, and each lane scrolls on its own. On a phone, where the
    header takes most of the window, it keeps at least 70% of the window. */
-function useToBottom(on, foot = '0px') {
+function useToBottom(on) {
   const ref = useRef(null);
   const [top, setTop] = useState(null);
   useLayoutEffect(() => {
@@ -71,8 +97,7 @@ function useToBottom(on, foot = '0px') {
       window.removeEventListener('resize', measure);
     };
   }, [on]);
-  // foot: extra room under it, where a card's soft shadow fades before the window's edge (fit)
-  const fit = `calc(100dvh - ${top}px - var(--layout-gutter) - ${foot})`;
+  const fit = `calc(100dvh - ${top}px - var(--layout-gutter))`;
   return [ref, on && top != null ? { blockSize: window.innerWidth < 800 ? `max(${fit}, 70dvh)` : fit } : undefined];
 }
 
@@ -113,10 +138,11 @@ function useMore(ref, on) {
   return [more, step];
 }
 
-export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, fit = false, scroll = false, stretch = false, aside = false, bullets = false, inset = false, children, ...rest }) {
-  const [boardRef, boardSize] = useToBottom(board || fit, fit ? 'var(--spacing-16)' : '0px');
+export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, fit = false, scroll = false, sticky = false, stretch = false, aside = false, bullets = false, inset = false, children, ...rest }) {
+  const [boardRef, boardSize] = useToBottom(board);
+  const [fitRef, fitSize] = useFull(fit);
   if (!GAPS.has(gap)) throw new Error(`Flow: gap ${gap} is not on the spacing scale (0, 4, 8, 12, 16, 24)`);
-  const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', fit ? 'chip-flow--fit' : '', scroll ? 'chip-flow--scroll' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', `chip-span-${span}`]
+  const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', fit ? 'chip-flow--fit' : '', scroll ? 'chip-flow--scroll' : '', sticky ? 'chip-flow--sticky' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', `chip-span-${span}`]
     .filter(Boolean)
     .join(' ');
   const [more, step] = useMore(boardRef, board);
@@ -140,7 +166,7 @@ export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, 
     );
   if (fit)
     return (
-      <Tag className={cls} ref={boardRef} style={boardSize} {...rest}>
+      <Tag className={cls} ref={fitRef} style={fitSize} {...rest}>
         {children}
       </Tag>
     );

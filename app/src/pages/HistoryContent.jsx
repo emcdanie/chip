@@ -243,7 +243,10 @@ function Keyed({ text, k }) {
    steps this file's code has; the lines are counted from the code itself. */
 function walk(f) {
   const lines = f.body.split('\n');
-  const at = (re) => lines.findIndex((l) => re.test(l)) + 1;
+  // only the first changed block, so each lit line sits just under its step card, never pages below it
+  const next = lines.findIndex((l, i) => i > 0 && /^@@/.test(l));
+  const block = next > 0 ? lines.slice(0, next) : lines;
+  const at = (re) => block.findIndex((l) => re.test(l)) + 1;
   const hunk = f.body.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,(\d+))? @@/m);
   const add = at(/^\+/);
   const del = at(/^-/);
@@ -251,7 +254,7 @@ function walk(f) {
   return [
     hunk ? { line: at(/^@@/), text: `This line says where the change sits in ${f.path.split('/').pop()}: from line ${hunk[2]}${hunk[3] ? `, ${hunk[3]} lines` : ''}.` } : null,
     del ? { line: del, text: 'A line starting − was taken out. It has the red band.' } : null,
-    add ? { line: add, text: `A line starting + was added. It has the green band${f.add > 1 ? `; this file has ${f.add} of them` : ''}.` } : null,
+    add ? { line: add, text: `A line starting + was added. It has the green band${f.add > 1 ? `; this file has ${f.add} in all` : ''}.` } : null,
     same ? { line: same, text: 'A line with neither mark is unchanged, there to show where the change sits.' } : null,
   ].filter(Boolean);
 }
@@ -281,6 +284,8 @@ function Picture({ rec }) {
   const src = (side) => `/history/picture?id=${encodeURIComponent(rec.id)}&path=${encodeURIComponent(path)}&side=${side}`;
   const what = fileWords(path);
   const sides = ['before', 'after'].filter((s) => !gone[s]);
+  // neither side could be read (an older server, a moved file): the one line, never a blank space
+  if (!sides.length) return <TextStack body="No before picture: this change's screenshot can't be read here." />;
   return (
     // one above the other, each the record's full width, so the part reads large (the mock's "large")
     <Flow gap={16} aria-label={`${what}, before and after`}>
@@ -300,9 +305,21 @@ function WhatChanged({ diff, rec }) {
   const [open, setOpen] = useState(false);
   // each step brings its card and the line it lights into view, inside the record's own scroll
   const here = useRef(null);
+  // each step brings the line it lights in just under the step card pinned at the record's top, never under it
   useEffect(() => {
-    if (step != null) here.current?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-  }, [step]);
+    if (step == null) return;
+    requestAnimationFrame(() => {
+      const card = here.current?.parentElement;
+      const code = card?.parentElement?.querySelector('[data-bella-component="code-block"]');
+      // the lit line is the one CodeBlock tells screen readers about (", step N"), found by its words, not its styling
+      const lit = [...(code?.querySelectorAll('span') ?? [])].find((e) => !e.childElementCount && e.textContent === `, step ${step + 1}`)?.parentElement;
+      if (!lit) return here.current?.scrollIntoView({ block: 'start' });
+      lit.scrollIntoView({ block: 'center' });
+      const box = card.closest('.chip-flow--scroll, .chip-screen__content');
+      const gap = lit.getBoundingClientRect().top - (card.getBoundingClientRect().bottom + 16);
+      if (box && gap < 0) box.scrollBy({ top: gap });
+    });
+  }, [step, file]);
   if (!files.length && !pictureOf(rec.files ?? [])) return null;
   const f = files[file] ?? files[0];
   const steps = f ? walk(f) : [];
@@ -334,11 +351,12 @@ function WhatChanged({ diff, rec }) {
             ) : null}
             {/* the step sits right above the code it explains, its pin on the line it lights */}
             {step != null && steps[step] ? (
-              <div ref={here}>
+              <Flow sticky>
+                <span ref={here} />
                 <TourStep number={step + 1} count={`${step + 1} of ${steps.length}`} isEnd={last} onBack={step ? () => setStep(step - 1) : undefined} onNext={() => setStep(last ? null : step + 1)} onClose={() => setStep(null)}>
                   {steps[step].text}
                 </TourStep>
-              </div>
+              </Flow>
             ) : null}
             <CodeBlock key={f.path} code={f.body} language="diff" title={f.path} copy lineMarks={step != null && steps[step] ? [{ line: steps[step].line, kind: 'lit', pin: step + 1 }] : undefined} />
           </Flow>
@@ -348,8 +366,16 @@ function WhatChanged({ diff, rec }) {
   );
 }
 
-function Record({ id, fit }) {
+const smoothScroll = () => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+
+function Record({ id, fit, landing }) {
   const rec = useRecord(id);
+  // opened by a tap on a phone: once its words are here, it scrolls up to the top of the window
+  useEffect(() => {
+    if (!rec || landing?.current !== id) return;
+    landing.current = null;
+    requestAnimationFrame(() => document.getElementById('history-record')?.scrollIntoView({ block: 'start', behavior: smoothScroll() }));
+  }, [rec, id, landing]);
   const [q, setQ] = useState('');
   const { answer, ask: send, clear, retry, stop } = useAsk();
   // the answer rewrites the Why in place (A, "Rewrite in place", /screens/2026-11-21-history-ask-a-b/; B was
@@ -489,6 +515,7 @@ export default function HistoryContent() {
   const [breaking, setBreaking] = useState(false);
   const [filters, setFilters] = useState(false);
   const [open, setOpen] = useState(null);
+  const landing = useRef(null);
   const params = useMemo(() => {
     const p = { limit: 400 };
     if (q) p.q = q;
@@ -505,6 +532,14 @@ export default function HistoryContent() {
     if (records.length && !records.some((r) => r.id === open)) setOpen(records[0].id);
   }, [records, open]);
   const counts = all?.counts?.types ?? {};
+  // a record you open lands in view: beside the list the two panes scroll up to fill the space under the
+  // tabs; on a phone, where the record sits under the list, the record itself scrolls into view
+  // (independent check, 22 Nov: at 375 a tap changed nothing you could see)
+  const openRecord = (id) => {
+    setOpen(id);
+    if (phone) landing.current = id; // the record scrolls itself into view once it has loaded (Record)
+    else requestAnimationFrame(() => document.getElementById('history-frame')?.scrollIntoView({ block: 'start', behavior: smoothScroll() }));
+  };
   const toggle = (list, set, v) => set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const extra = status.length + (since ? 1 : 0) + (breaking ? 1 : 0);
 
@@ -558,13 +593,13 @@ export default function HistoryContent() {
       ) : (
         // the list and the record fill the window and each scrolls on its own; the page never scrolls
         // (Elleta, 22 Nov: "I don't want to scroll the whole page"). A phone stacks them and scrolls.
-        <Flow fit={!phone} span={12} direction={phone ? 'column' : 'row'} gap={24}>
+        <Flow fit={!phone} span={12} direction={phone ? 'column' : 'row'} gap={24} id="history-frame">
           <Flow span={5}>
-            <Activity records={records} total={data.total} open={open} onOpen={setOpen} fit={!phone} />
+            <Activity records={records} total={data.total} open={open} onOpen={openRecord} fit={!phone} />
           </Flow>
-          <Flow span={7}>
+          <Flow span={7} id="history-record">
             {/* a new record opens at its top (keyed), never mid-scroll from the last one */}
-            <Record key={open} id={open} fit={!phone} />
+            <Record key={open} id={open} fit={!phone} landing={landing} />
           </Flow>
         </Flow>
       )}

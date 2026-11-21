@@ -218,6 +218,12 @@
 .chip-flow--fit > .chip-span-7 { grid-column: span 7; }
 .chip-flow--fit > * { min-block-size: 0; }
 .chip-flow--fit > * > * { flex: 1 1 0; min-block-size: 0; }
+/* stays put at the top of its scroll box (Flow sticky): a walk-through step over the code it explains */
+.chip-flow--sticky {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+}
 /* a column that scrolls on its own: its height comes from its frame, never from its content, and 8 of
    room inside so focus rings and selected rows are never cut at the edge */
 .chip-flow--scroll {
