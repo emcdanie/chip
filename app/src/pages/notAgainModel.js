@@ -30,10 +30,11 @@ export function stateOf(run) {
 
 const hhmm = (t) => (t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '');
 
-/* The four steps, Figma's words with the real count and the run's own step. */
+/* The four steps, Figma's words with the real count and the run's own step. n is the parts a pair can be added
+   for (colours of their own), never the parts with nothing to pair. */
 export function stepsOf(state, n, run) {
   const pairs = `${n} ${n === 1 ? 'pair' : 'pairs'}`;
-  const found = { title: 'Trigger: Contrast check', detail: `Found ${n} ${n === 1 ? 'component' : 'components'} with no pair.`, state: 'done' };
+  const found = { title: 'Trigger: Contrast check', detail: `Found ${n} ${n === 1 ? 'component' : 'components'} with colours and no pair.`, state: 'done' };
   const added = { title: 'The agent runs the script', detail: `Added ${pairs}, one commit.`, state: 'done' };
   const gateWaits = { title: 'The gate', detail: '5 checks must pass.', state: 'pending' };
   const keeper = { title: 'Maintainer', detail: 'Accept, or Undo.', state: 'pending' };
@@ -58,6 +59,11 @@ export function useNotAgain() {
     const runs = data[1]?.runs ?? [];
     const mine = (name) => runs.filter((r) => String(r.title ?? '').startsWith(name));
     const run = mine(FIX.name)[0] ?? null; // newest first
-    return { parts: Object.keys(gaps[FIX.check] ?? {}), gaps, runs, run, mine, reload };
+    const fixGaps = gaps[FIX.check] ?? {};
+    // the parts with no pair, and of those the ones with colours of their own: only those can get a pair
+    // (data check, 22 Nov: Icon, Columns and the rest draw in the text colour or none, so there is nothing to pair)
+    const parts = Object.keys(fixGaps);
+    const pairable = parts.filter((p) => !fixGaps[p]?.noSuggest);
+    return { parts, pairable, gaps, runs, run, mine, reload };
   }, [data, error, reload]);
 }

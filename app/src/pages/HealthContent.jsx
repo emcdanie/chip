@@ -67,8 +67,13 @@ function DriftCard({ parts }) {
       {running ? 'Comparing…' : 'Compare'}
     </Button>
   );
-  // no baseline, or Figma had none of the parts: nothing measured, the empty card
-  if (!base?.at || !rows.length) return <NoData title="Drift from BELLA" icon="Activity" of={parts} context="Parts that differ from Figma" caption={base?.at ? 'Figma had none of them' : 'Not compared yet'} button={button} />;
+  // Figma couldn't be read for any part: nothing was measured, so no 0 that reads as "no drift" (data check, 22 Nov;
+  // rule Real: "Where nothing is measured it says Not measured")
+  // never compared at all is the same: Not measured
+  if (!base?.at || (!rows.length && base.notRead === base.total))
+    return <StatCard title="Drift from BELLA" icon="Activity" tone="neutral" chart="empty" emptyCount="Not measured" emptyTotal="" context={base?.at ? "Figma couldn't be read for any part" : 'Not compared with Figma yet'} caption={base?.at ? `Tried ${new Date(base.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Compare reads Figma'} button={button} />;
+  // Figma was read but holds none of the parts: measured, and none to compare
+  if (!rows.length) return <NoData title="Drift from BELLA" icon="Activity" of={parts} context="Parts that differ from Figma" caption="Figma had none of them" button={button} />;
   const worst = differ.slice(0, SHOW).map((r) => (r.score != null ? `${r.name} ${r.score}%` : r.name));
   return (
     <StatCard

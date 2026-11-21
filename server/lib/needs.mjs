@@ -119,12 +119,20 @@ function checkItems() {
       });
     } else if (c.status === 'waiting') {
       const card = reviewCard(c.id);
+      // only what is measured (data check, 22 Nov: the card said "gate green" and "hasn't moved" for an old
+      // branch already inside the base): a branch with no commit of its own has nothing to merge, so no card;
+      // the gate is green only when CHIP's Accept committed this very commit through it; how far the base
+      // moved is counted, never assumed
+      const ahead = Number(git(BELLA, ['rev-list', '--count', `${BASE}..${card.branch}`]) ?? 0);
+      if (!ahead) continue;
+      const behind = Number(git(BELLA, ['rev-list', '--count', `${card.branch}..${BASE}`]) ?? 0);
+      const gated = card.job?.status === 'done' && card.job.sha === card.sha;
       out.push({
         id: `fix-${c.id}`, kind: 'Fix', risk: 'Medium', at: Date.now(),
         status: 'Ready to review', title: `Merge ${card.branch}?`,
-        what: `Merge ${card.branch}? ${card.title}, gate green on the branch`,
-        detail: `${card.change?.sentence ?? ''} The branch is local; ${BASE} hasn't moved.`,
-        riskWhy: 'Medium: merging changes what every consumer of BELLA renders in that theme.',
+        what: `Merge ${card.branch}? ${card.title}, ${gated ? 'committed through the gate' : 'not through the gate yet'}`,
+        detail: `${card.change?.sentence ?? ''} ${ahead} ${ahead === 1 ? 'commit' : 'commits'} of its own; ${behind ? `${BASE} has moved ${behind} ${behind === 1 ? 'commit' : 'commits'} since` : `${BASE} hasn't moved since`}.`.trim(),
+        riskWhy: card.blast?.sentence ? `Medium: ${card.blast.sentence}` : `Medium: merging adds the branch's ${ahead === 1 ? 'commit' : 'commits'} to ${BASE}.`,
         thisWill: 'open the review card, where Undo deletes the branch',
         undo: 'Undo on the card deletes the branch',
         action: { type: 'review', check: c.id, label: 'Open the review card' },

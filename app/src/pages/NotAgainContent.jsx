@@ -82,8 +82,10 @@ function FixCard({ state, data, busy, act }) {
     ro.observe(el);
     return () => ro.disconnect();
   });
-  const { parts, run } = data;
+  const { parts, pairable, run } = data;
+  // n: the parts with no pair; p: those with colours of their own, the only ones the fix can add a pair for
   const n = parts.length;
+  const p = pairable.length;
   const runUrl = run ? `/runs/${encodeURIComponent(run.id)}` : null;
   const footer =
     state === 'your-call' ? (
@@ -99,25 +101,27 @@ function FixCard({ state, data, busy, act }) {
       <Button variant="secondary" size="sm" disabled={!!busy} onClick={() => act('stop', () => post(`${runUrl}/stop`), 'Stopped. Nothing was kept.')}>
         {busy === 'stop' ? 'Stopping…' : 'Stop'}
       </Button>
-    ) : (state === 'suggested' || state === 'gate-fails') && n ? (
-      <Button variant="primary" size="sm" disabled={!!busy} onClick={() => act('run', () => start(FIX.check, parts, FIX.name), `Sent to the agent: ${FIX.name} on ${plural(n, 'part')}. It shows here and on Work.`)}>
-        {busy === 'run' ? 'Starting…' : state === 'gate-fails' ? 'Send back' : `Run on ${n}`}
+    ) : (state === 'suggested' || state === 'gate-fails') && p ? (
+      <Button variant="primary" size="sm" disabled={!!busy} onClick={() => act('run', () => start(FIX.check, pairable, FIX.name), `Sent to the agent: ${FIX.name} on ${plural(p, 'part')}. It shows here and on Work.`)}>
+        {busy === 'run' ? 'Starting…' : state === 'gate-fails' ? 'Send back' : `Run on ${p}`}
       </Button>
     ) : undefined;
   if (state === 'suggested' && !n) return <EmptyState size="lane" mark="🎉" title="Every part has a pair" line="The contrast check finds nothing for this fix today." />;
-  const steps = stepsOf(state, n, run);
+  if (state === 'suggested' && !p)
+    return <EmptyState size="lane" mark="🎉" title="Nothing to pair" line={`The ${plural(n, 'part')} with no pair ${n === 1 ? 'has' : 'have'} no colours of ${n === 1 ? 'its' : 'their'} own.`} />;
+  const steps = stepsOf(state, p, run);
   return (
     // Figma's audited fix: the card's action sits in its footer, bottom right
     <Card footerAction={footer}>
       <Flow gap={8}>
-        <SectionHead icon="Book" iconTone="info" title={`${LEAD[state]}: ${FIX.name}`} description={n ? `${plural(n, 'component')} ${n === 1 ? 'has' : 'have'} no declared pair` : 'The parts it fixed now have a pair'} />
+        <SectionHead icon="Book" iconTone="info" title={`${LEAD[state]}: ${FIX.name}`} description={p ? `${plural(p, 'component')} with colours of ${p === 1 ? 'its' : 'their'} own ${p === 1 ? 'has' : 'have'} no declared pair` : 'The parts it fixed now have a pair'} />
         <Flow gap={16} ref={stepsBox}>
           {/* the parts as Tags (her 21 Nov pick, question 4 A), wrapping, never a clipped comma list */}
-          {n ? (
-            <Flow as="ul" direction="row" wrap gap={8} aria-label={`The ${plural(n, 'part')} it fixes`}>
-              {parts.map((p) => (
-                <li key={p}>
-                  <Tag>{p}</Tag>
+          {p ? (
+            <Flow as="ul" direction="row" wrap gap={8} aria-label={`The ${plural(p, 'part')} it fixes`}>
+              {pairable.map((name) => (
+                <li key={name}>
+                  <Tag>{name}</Tag>
                 </li>
               ))}
             </Flow>
@@ -136,6 +140,7 @@ function FixCard({ state, data, busy, act }) {
 function Banner({ state, data, busy, act }) {
   if (state === 'gate-fails' || state === 'running' || state === 'your-call') return null;
   const n = data.parts.length;
+  const p = data.pairable.length;
   if (state === 'kept' && data.run)
     return (
       <Notification
@@ -149,7 +154,11 @@ function Banner({ state, data, busy, act }) {
     <Notification
       tone="info"
       title="What is Not again?"
-      message={n ? `The contrast check fails on ${plural(n, 'part')}. This saved fix adds their pairs. Next time it fails, the agent repeats it and a reviewer only presses Accept.` : 'A saved fix: when a check fails, the agent repeats it and a reviewer only presses Accept.'}
+      message={
+        n
+          ? `${plural(n, 'part')} ${n === 1 ? 'has' : 'have'} no contrast pair. ${p ? `This saved fix adds pairs for the ${p} with colours of their own.` : `None of them has colours of its own, so there is no pair to add.`} When a check fails, the agent repeats a saved fix and a reviewer only presses Accept.`
+          : 'A saved fix: when a check fails, the agent repeats it and a reviewer only presses Accept.'
+      }
     />
   );
 }
@@ -233,7 +242,8 @@ function Library({ data, busy, act }) {
           {LIBRARY.map((f) => {
             const mine = data.mine(f.name);
             const kept = mine.filter((r) => r.status === 'kept').length;
-            const parts = Object.keys(data.gaps[f.check] ?? {});
+            // the contrast fix acts only on parts with colours of their own (nothing to pair otherwise)
+            const parts = f.check === FIX.check ? data.pairable : Object.keys(data.gaps[f.check] ?? {});
             const ran = mine.length ? `${plural(mine.length, 'run')} · ${kept} kept` : 'Not run yet';
             return (
               <ListRow
