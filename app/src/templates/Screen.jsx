@@ -41,7 +41,7 @@ export function openAtTop() {
   // the window no longer scrolls; the page's content does (READ FIRST, 22 Nov)
   document.querySelector('.chip-screen__content')?.scrollTo(0, 0);
 }
-import { filterFromHash, filtered, workModel } from '../pages/workModel.js';
+import { boardModel, filterFromHash } from '../pages/workModel.js';
 import { PROJECT_VIEWS } from './projectViews.js';
 import { useTheme } from '../theme.js';
 import './Screen.css';
@@ -51,20 +51,24 @@ import './Screen.css';
  * Work board's own lanes (workModel), so the panel and the board always agree;
  * 0 is a real count (no runs), shown as Figma shows it. */
 function useShellData() {
-  const { data, reload } = useCached(['/projects', '/needs', '/runs', '/bar/state']);
+  // the same reads as the Work board (useCached shares them), so the menu's Needs you count is the board's own
+  const { data, reload } = useCached(['/needs', '/runs', '/gaps']);
+  const { data: proj } = useCached(['/projects']);
   const { data: extra, reload: reloadExtra } = useCached(['/work/lanes']);
-  // a move, a run or an Accept anywhere: the Status counts follow at once
+  const { data: board, reload: reloadBoard } = useCached(['/work/board']);
+  // a move, a run or an Accept anywhere: the count follows at once
   useEffect(() => {
-    const on = () => (reload(), reloadExtra());
+    const on = () => (reload(), reloadExtra(), reloadBoard());
     window.addEventListener('chip:changed', on);
     return () => window.removeEventListener('chip:changed', on);
-  }, [reload, reloadExtra]);
-  if (!data) return { projects: null, lanes: null };
-  const [p, n, r, bar] = data;
-  // the Status counts are the board's own, branch filter included, so the two never disagree
-  const { branch } = filterFromHash();
-  const { lanes } = filtered(workModel({ needs: n?.items ?? [], runs: r?.runs ?? [], runBase: r?.base ?? null, agents: bar?.lanes ?? [], lanes: extra?.[0] ?? null }), { branch });
-  return { projects: p?.projects ?? [], lanes: Object.fromEntries(lanes.map((l) => [l.id, l.cards.length])) };
+  }, [reload, reloadExtra, reloadBoard]);
+  const projects = proj?.[0]?.projects ?? null;
+  if (!data) return { projects, needs: null };
+  const [n, r, g] = data;
+  const model = boardModel({ needs: n?.items ?? [], runs: r?.runs ?? [], runBase: r?.base ?? null, lanes: extra?.[0] ?? null, board: board?.[0] ?? null, gaps: g?.gaps ?? null });
+  // what waits on her: the cards in Now that need her, the number the board's Needs you filter shows
+  const needs = (model.lanes.find((l) => l.id === 'now')?.cards ?? []).filter((c) => c.needs).length;
+  return { projects, needs };
 }
 
 /* The one side menu (her nav C pick, 22 Nov), in her words: where you go, what is pinned, the projects,
@@ -73,12 +77,12 @@ function useShellData() {
    filter the board from Work's own control bar, so no branch name sits in the menu. Site and BELLA open
    the old app's project page until theirs are rebuilt. */
 function menuModel({ place, tab, projects, needs, filter, onSearch }) {
-  const needsHere = tab === 'work' && filter.lane === 'needs';
+  const needsHere = tab === 'work' && new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('filter') === 'needs';
   return {
     items: [
       { label: 'Search', icon: 'Search', onClick: onSearch },
       { label: 'Home', href: '#/home', icon: 'Home', current: place === 'home' },
-      { label: 'Needs you', href: '#/work?lane=needs', icon: 'Bell', badge: needs || undefined, current: needsHere },
+      { label: 'Needs you', href: '#/work?filter=needs', icon: 'Bell', badge: needs || undefined, current: needsHere },
       { label: 'Not again', href: '#/not-again', icon: 'Book', current: place === 'not-again' },
     ],
     pinned: [
@@ -176,8 +180,7 @@ function HealthLine() {
  */
 export default function Screen({ place, header, tabs, children }) {
   useTheme();
-  const { projects, lanes } = useShellData();
-  const needs = lanes?.needs ?? null;
+  const { projects, needs } = useShellData();
   // below 1024 the side menu steps out behind the top bar's Menu button; on a phone it rises as a sheet
   const menuOut = useNarrow(1024);
   const phone = useNarrow();
