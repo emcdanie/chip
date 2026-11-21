@@ -35,20 +35,15 @@ const LIVE = { ok: ['Live', 'success'], bad: ['Needs setup', 'danger'], blocked:
 const REACHES = [
   // Figma's App tiles: GitHub's mark on ink, git's branch on its orange, the agent on Claude's colour, the local model outlined
   { id: 'ci', name: 'GitHub CI', tile: { tone: 'inverse', brand: 'github' }, ok: 'Ran' },
-  { id: 'git', name: 'git', tile: { tone: 'git', icon: 'GitBranch' }, ok: 'Up to date' },
+  // git ok means CHIP can read BELLA's branch, never "up to date" (nothing measures that; data check, 22 Nov)
+  { id: 'git', name: 'git', tile: { tone: 'git', icon: 'GitBranch' }, ok: 'Reads BELLA' },
   { id: 'claude', name: 'Agent', tile: { tone: 'claude', brand: 'claude' }, ok: 'Ready' },
   { id: 'ollama', name: 'Local model', tile: { tone: 'outline', icon: 'Activity' }, ok: 'Ready' },
 ];
 // Figma's tile: a large headline, then one short meta line, both from the node's own detail
-const pushes = (d) => (/nothing unpushed/i.test(d ?? '') ? 0 : Number(String(d ?? '').match(/(\d+) (?:commits? )?unpushed/i)?.[1] ?? NaN));
 function headline(r) {
-  if (r.id === 'ci') {
-    const n = pushes(r.n.detail);
-    if (n === 0) return 'All pushed';
-    if (n > 0) return `${n} to push`;
-    // never the status word again (audit 3: "Waiting" twice on one tile)
-    if (r.n.state !== 'ok') return 'Not run yet';
-  }
+  // CI as GitHub ran it, read with gh (data check, 22 Nov): the result of the newest run, its day and commit under it
+  if (r.id === 'ci') return { ok: 'Passed', bad: 'Failed', warn: 'Running' }[r.n.state] ?? 'Not read';
   return r.n.state === 'ok' ? r.ok : LIVE[r.n.state]?.[0] ?? 'Not tested';
 }
 // "4 of 5 gate checks pass, last run 19 Nov." → "4 of 5 pass · 19 Nov"
@@ -58,9 +53,12 @@ const gateWords = (g) => {
 };
 function meta(r, gate) {
   const d = String(r.n.detail ?? '');
-  // until GitHub runs CI, the tile says what BELLA's gate said on the last commit: the same
-  // reading as Health and System map (one gate, one answer)
-  if (r.id === 'ci') return r.n.state === 'ok' ? 'CI ran' : gateWords(gate) ? `Gate ${gateWords(gate)}` : undefined;
+  // the run's day and commit; with no run read, what BELLA's gate said on the last commit (one gate, one answer)
+  if (r.id === 'ci') {
+    const m = d.match(/on (\d{1,2} \w{3}) at [\d:]+ on ([0-9a-f]{7})/);
+    if (m) return `${m[1]} · ${m[2]}`;
+    return gateWords(gate) ? `Gate ${gateWords(gate)}` : undefined;
+  }
   if (r.id === 'git') return sha(d);
   if (r.id === 'claude') return r.n.state === 'ok' ? 'OBI uses it' : 'Not installed';
   if (r.id === 'ollama') return d.match(/:(\d{2,5})\b/) ? `:${d.match(/:(\d{2,5})\b/)[1]}` : undefined;

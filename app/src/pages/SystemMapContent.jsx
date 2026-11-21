@@ -52,7 +52,8 @@ const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0].replace(/\.$/, '');
 const SHORT = {
   // 429 checks of 105 pairs (each pair in 4 themes): say both, as the data means (final audit, 21 Nov)
   contrast: (d) => (d.match(/(\d+) checks across (\d+) pairs/) ? `${d.match(/(\d+) checks across (\d+) pairs/)[1]} checks across ${d.match(/(\d+) checks across (\d+) pairs/)[2]} pairs` : d.match(/fails: (\d+) failing/) ? `${d.match(/fails: (\d+) failing/)[1]} failing` : null),
-  contracts: (d) => (d.match(/(\d+) of (\d+)/) ? `${d.match(/(\d+) of (\d+)/)[1]} of ${d.match(/(\d+) of (\d+)/)[2]} match` : null),
+  // the node counts parts that have a contract, not contracts that match (data check, 22 Nov)
+  contracts: (d) => (d.match(/(\d+) of (\d+)/) ? `${d.match(/(\d+) of (\d+)/)[1]} of ${d.match(/(\d+) of (\d+)/)[2]} have a contract` : null),
   stories: (d) => {
     const m = d.match(/(\d+) of (\d+)/);
     if (!m) return null;
@@ -62,7 +63,8 @@ const SHORT = {
   gate: (d) => (d.match(/(\d+) of (\d+)/) ? `${d.match(/(\d+) of (\d+)/)[0]} gate checks pass` : 'Not run yet'),
   bench: (d) => (d.match(/Composite ([\d.]+)/) ? `Score ${d.match(/Composite ([\d.]+)/)[1]}` : null),
   review: () => 'Accept or Undo',
-  ci: (d) => (/nothing unpushed/i.test(d) ? 'All pushed' : null),
+  // GitHub's newest CI run: its result and day ("Passed 19 Nov")
+  ci: (d) => (d.match(/^CI (passed|failed|ended \w+) on (\d{1,2} \w{3})/) ? `${d.match(/^CI (passed|failed|ended \w+) on (\d{1,2} \w{3})/)[1].replace(/^./, (c) => c.toUpperCase())} ${d.match(/^CI (passed|failed|ended \w+) on (\d{1,2} \w{3})/)[2]}` : /^CI is running/.test(d) ? 'Running now' : 'No run read'),
   // the role, never a person (Many users, not one: 20 Nov)
   ship: () => 'A maintainer merges',
   compare: (d, n) => (n.state === 'ok' ? 'Figma matches the code' : 'Not compared yet'),

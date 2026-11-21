@@ -45,6 +45,35 @@ const has = (cmd) => {
   }
 };
 
+/* CI as GitHub ran it (data check, 22 Nov: the node was always "unknown" though its source said "read through gh"):
+   the newest run of BELLA's base branch, read with gh run list and kept for five minutes. No gh, no login or no
+   run: unknown, said as such. */
+let ciCache = { at: 0, value: null };
+function ciRun() {
+  if (Date.now() - ciCache.at < 5 * 60 * 1000) return ciCache.value;
+  let value = null;
+  try {
+    const out = execFileSync('gh', ['run', 'list', '--branch', BASE, '--limit', '1', '--json', 'conclusion,status,createdAt,headSha,workflowName'], { cwd: BELLA, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000 });
+    value = JSON.parse(out)[0] ?? null;
+  } catch {
+    value = null;
+  }
+  ciCache = { at: Date.now(), value };
+  return value;
+}
+function ciNode() {
+  const run = ciRun();
+  const unpushed = Number(git(['rev-list', '--count', `${BASE}@{upstream}..${BASE}`]) ?? NaN);
+  const local = Number.isNaN(unpushed) ? 'CHIP could not count the local commits.' : unpushed ? `${unpushed} local ${unpushed === 1 ? 'commit is' : 'commits are'} not pushed, so CI hasn't seen ${unpushed === 1 ? 'it' : 'them'}.` : `${BASE} has nothing unpushed.`;
+  if (!run) return { state: 'unknown', detail: `GitHub runs the gate after a push. CHIP couldn't read a CI run for ${BASE} (gh). ${local}` };
+  const at = new Date(run.createdAt);
+  const when = `${at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} at ${at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+  const sha = String(run.headSha ?? '').slice(0, 7);
+  if (run.status !== 'completed') return { state: 'warn', detail: `CI is running on ${sha}, started ${when}. ${local}` };
+  const ok = run.conclusion === 'success';
+  return { state: ok ? 'ok' : 'bad', detail: `CI ${ok ? 'passed' : run.conclusion === 'failure' ? 'failed' : `ended ${run.conclusion}`} on ${when} on ${sha}, the last pushed commit. ${local}` };
+}
+
 const fromCheck = (c) => (!c ? 'unknown' : c.status === 'passed' ? 'ok' : c.status === 'failed' ? 'bad' : c.status === 'waiting' ? 'warn' : 'unknown');
 const fromServer = (s) => (!s ? 'unknown' : s.disabled ? 'off' : s.status === 'connected' ? 'ok' : s.status === 'error' ? 'bad' : 'unknown');
 // a Figma path is optional while another one reads: closed reads as off, never as failing
@@ -102,7 +131,7 @@ export async function systemMap() {
     // a part with no contract needs someone, as Health counts it (one reading: audit 21 Nov)
     // a part with no contract needs someone, as Health counts it; that gap is the node's own, so it
     // never blanks what reads Contracts (audit 21 Nov r2: AGENTS.md and Bench lost their measured readings)
-    node({ id: 'contracts', group: 'Source', name: 'Contracts', ownGap: n.withContract < n.components, state: n.withContract < n.components ? 'bad' : fromCheck(ck.contract), detail: `${n.withContract} of ${n.components} components have one. ${ck.contract?.summary ?? ''}`, source: `tokens/contracts.json · ${lastChange(['tokens/contracts.json']) ?? ''}`, deps: ['tokens'] }),
+    node({ id: 'contracts', group: 'Source', name: 'Contracts', ownGap: n.withContract < n.components, state: n.withContract < n.components ? 'bad' : fromCheck(ck.contract), detail: `${n.withContract} of ${n.components} components have a contract.${ck.contract?.summary ? ` Contract parity: ${ck.contract.summary.replace(/^\w/, (c) => c.toLowerCase())}.` : ''}`, source: `tokens/contracts.json · ${lastChange(['tokens/contracts.json']) ?? ''}`, deps: ['tokens'] }),
     node({ id: 'components', group: 'Source', name: 'Components', state: 'ok', detail: `${n.components} components in src/components.`, source: `src/components · ${lastChange(['src/components']) ?? ''}`, deps: ['tokens', 'contracts'] }),
     // Checks
     node({ id: 'contrast', group: 'Checks', name: 'Contrast pairs', ...((p) => ({ state: p.state, detail: p.line }))(pairsReading()), source: 'scripts/contrast-pairs.mjs (BELLA’s own pairs, as Health reads them)', deps: ['tokens'], action: { type: 'review', check: 'contrast', label: 'Open the review card' } }),
@@ -114,7 +143,7 @@ export async function systemMap() {
     node({ id: 'compare', group: 'Checks', name: 'Compare with Figma', state: 'unknown', detail: `Reads each component set through ${readPath === 'figma' ? 'the desktop MCP (REST has no token)' : 'the Figma REST API'}.`, source: 'Components · Compare tab · Connectors › Figma baseline', deps: [readPath, 'components'] }),
     // Review and ship
     node({ id: 'review', group: 'Review', name: 'Review card', state: 'ok', detail: 'Accept makes a local chip/fix-* branch; Undo deletes it.', source: 'server/lib/review.mjs', deps: ['gate'] }),
-    node({ id: 'ci', group: 'Review', name: 'CI', state: 'unknown', detail: `GitHub runs the gate after a push. ${git(['rev-list', '--count', `${BASE}@{upstream}..${BASE}`]) === '0' ? `${BASE} has nothing unpushed.` : 'Local commits are not pushed yet.'}`, source: 'GitHub Actions (read only through gh)', deps: ['gate'] }),
+    node({ id: 'ci', group: 'Review', name: 'CI', measured: true, ...ciNode(), source: 'GitHub Actions (read only through gh run list)', deps: ['gate'] }),
     node({ id: 'ship', group: 'Ship', name: 'Merge and release', state: 'unknown', detail: 'A maintainer merges. CHIP never merges or pushes.', source: 'git', deps: ['review', 'ci'] }),
     // Context
     node({ id: 'git', group: 'Context', name: 'git', state: git(['rev-parse', BASE]) ? 'ok' : 'bad', detail: `${BASE} @ ${git(['rev-parse', '--short', BASE]) ?? '?'}.`, source: BELLA.replace(process.env.HOME, '~') }),
