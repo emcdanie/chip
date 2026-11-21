@@ -198,7 +198,17 @@ const touched = (files) => {
   return [...files.reduce((m, f) => m.set(words(f), (m.get(words(f)) ?? 0) + 1), new Map())];
 };
 
-const firstSentence = (t) => String(t).split(/(?<=[.!?])\s/)[0];
+// the first sentence, never cut inside a quote ('Team said "No one's waiting on you. Every ask is answered"' is one)
+const firstSentence = (t) => {
+  const str = String(t);
+  let quotes = 0;
+  for (let i = 0; i < str.length; i++) {
+    if (/["“”]/.test(str[i])) quotes++;
+    if (/[.!?]/.test(str[i]) && /\s/.test(str[i + 1] ?? '') && quotes % 2 === 0) return str.slice(0, i + 1);
+  }
+  return str;
+};
+
 
 /* Bold is for key words only (Elleta, 22 Nov: "only keywords, which were supposed to have the blue
    underline thing"): a record's title reads regular and its one key word gets bold plus the blue marker.
