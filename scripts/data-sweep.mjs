@@ -111,7 +111,7 @@ for (const page of ['health', 'foundations', 'connectors', 'team', 'history', 'n
     // the Gate runs view of Component checks
     await p.evaluate(() => [...document.querySelectorAll('button,[role=radio],label')].find((e) => e.textContent.trim() === 'Gate runs')?.click());
     await p.waitForTimeout(800);
-    text['health-gate'] = await p.evaluate(() => { const x = document.querySelector('#main').innerText; return x.slice(x.lastIndexOf('Component checks')); });
+    text['health-gate'] = await p.evaluate(() => { const x = document.querySelector('#main').innerText; return x.slice(x.lastIndexOf('Component checks')).split('\nAudits\n')[0]; });
   }
   if (page === 'foundations')
     // an "on X" colour, measured on X in Chip light, worked out here from the tokens
@@ -187,10 +187,9 @@ check('health', 'Gate runs shows only recorded days', [...new Set(shownDays)].fi
 // ---- System map -------------------------------------------------------------
 const cssVars = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1])).size;
 check('system-map', 'Tokens: CSS variables', grab('system-map', /(\d+) CSS variables/)?.[1], cssVars);
-// Stories: the run's test count is every story in BELLA's Storybook index, and the run is today's BELLA
-const sbIndex = existsSync(join(B, 'storybook-static/index.json')) ? Object.values(JSON.parse(read('storybook-static/index.json')).entries ?? {}).filter((e) => e.type === 'story').length : null;
-check('system-map', 'Stories: tests in the run', grab('system-map', /Tests: \d+ passed, (\d+) total/)?.[1] ?? grab('system-map', /(\d+) total/)?.[1], sbIndex);
-check('system-map', 'Stories: the run is on BELLA\'s HEAD', grab('system-map', /run \d{1,2} \w{3} on ([0-9a-f]{7})/)?.[1], head);
+// Processes' Stories node no longer shows the run's test count or commit (23 Nov); the commit the checks ran on is
+// said on Health's Checks card, so that is what is read: it must be BELLA's HEAD
+check('health', 'Checks: the run is on BELLA\'s HEAD', grab('health', /@ ([0-9a-f]{7})/)?.[1], head);
 // Bench: the score as the bench last wrote it, with the day of the agent run it leans on, stale after a week
 const odsb = join(process.env.HOME, 'DEV/tools/odsb/runs');
 const lastAgent = existsSync(odsb) ? readdirSync(odsb).filter((d) => existsSync(join(odsb, d, 'manifest.json'))).sort().at(-1) : null;

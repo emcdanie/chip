@@ -302,6 +302,86 @@ function NeedsYouCard({ rows, fixCount, verb, send, sending }) {
   );
 }
 
+/* Audits, all in one place (CHIP rule 22 Nov): one card per audit, read from the report it saved in
+   docs/reference/audit/<date>/ (/audits). An audit with no saved report says Not run. The card: score and trend,
+   the day it ran, red and yellow; ↗ opens its top three work orders and its full report. Run all opens a plan first. */
+const dayOf = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const AUDIT_ICON = { product: 'ViewGrid', figma: 'Palette', ds: 'ShieldCheck', tokens: 'Key', a11y: 'Eye', agents: 'Brain' };
+function AuditCard({ a }) {
+  const [open, setOpen] = useState(false);
+  if (!a.ran) return <NoData title={a.title} icon={AUDIT_ICON[a.id] ?? 'Activity'} context={`${a.skill}`} caption="Not run: no saved report yet" />;
+  const lights = a.red == null ? 'Red and yellow not counted' : `${a.red} red · ${a.yellow} yellow`;
+  const was = a.prev ? ` · was ${a.prev.value} on ${dayOf(a.prev.day)}` : '';
+  return (
+    <>
+      <StatCard
+        title={a.title}
+        icon={AUDIT_ICON[a.id] ?? 'Activity'}
+        tone={a.red ? 'danger' : a.yellow ? 'warning' : 'success'}
+        chart="none"
+        value={a.value ?? '–'}
+        unit={a.unit ?? ''}
+        context={lights}
+        caption={`Ran ${dayOf(a.ran)}${was}`}
+        onOpen={() => setOpen(true)}
+      />
+      <Drawer open={open} onClose={() => setOpen(false)} side="right" size="lg" label={`${a.title} audit`} status={`Ran ${dayOf(a.ran)} · ${lights}`}>
+        <Flow gap={24}>
+          <SectionHead icon="WarningCircle" iconTone="warning" title="Top work orders" showInfo={false} description={a.orders.length ? 'Most important first, from the saved report' : 'The report lists none'} />
+          {a.orders.length ? (
+            <ListRowGroup ariaLabel={`${a.title}: top work orders`}>
+              {a.orders.map((o, i) => (
+                <ListRow key={o} layout="stacked" title={o} subtitle={`Work order ${i + 1}`} />
+              ))}
+            </ListRowGroup>
+          ) : null}
+          <Button variant="secondary" size="sm" icon="ArrowUpRight" href={`/audits/${a.id}/report`}>
+            Read the full report
+          </Button>
+        </Flow>
+      </Drawer>
+    </>
+  );
+}
+
+function AuditsSection() {
+  const { data } = useCached(['/audits']);
+  const audits = data?.[0] ?? null;
+  if (!audits) return <EmptyState size="lane" mark="⏳" title="Reading the audits" line="Looking for each audit's saved report." />;
+  const runAll = () =>
+    planRun({
+      title: `Run all ${audits.length} audits`,
+      from: 'Health · Audits',
+      subtitle: 'Plan ready · read only',
+      summary: 'Read only: nothing changes except each audit saving its report. Cost in plan usage: not measured, each is a long read, so check your plan limit first. Nothing runs until you approve.',
+      brief: ['Run each audit read only and save its report to docs/reference/audit/<today>/ :', ...audits.map((a) => `- ${a.title}: ${a.skill}`), 'Change no repo, Figma or config file other than the reports.'].join('\n'),
+      steps: audits.map((a) => ({ id: a.id, title: `${a.title}: ${a.skill}, read only`, line: a.ran ? `Last ran ${dayOf(a.ran)}` : 'Not run yet' })),
+    }).catch(() => {});
+  // two cards under each other in three columns, as the cards above (the page's 12-column grid)
+  const cols = [0, 1, 2].map((c) => audits.slice(c * 2, c * 2 + 2));
+  return (
+    <>
+      <Flow span={12} gap={24}>
+        <SectionHead
+          icon="ShieldCheck"
+          iconTone="info"
+          title="Audits"
+          showInfo={false}
+          description="The latest saved report of each audit"
+          action={<Button variant="secondary" size="sm" onClick={runAll}>Run all audits</Button>}
+        />
+      </Flow>
+      {cols.map((col, i) => (
+        <Flow key={i} span={4} gap={24} fill>
+          {col.map((a) => (
+            <AuditCard key={a.id} a={a} />
+          ))}
+        </Flow>
+      ))}
+    </>
+  );
+}
+
 export default function HealthContent({ model, run, checked, onCheck, loading, view: startView = 'coverage' }) {
   const narrow = useNarrow();
   const [view, setView] = useState(startView);
@@ -462,6 +542,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
         </Flow>
       </Card>
       <NeedsYouCard rows={rows} fixCount={model.fixCount} verb={verb} send={send} sending={sending} />
+      <AuditsSection />
     </>
   );
 }

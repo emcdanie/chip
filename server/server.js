@@ -1,5 +1,6 @@
 // CHIP local server: serves the app and answers POST /ask with the local
 // model over the local index. Nothing here calls a paid or remote API.
+import { readAudits, readAuditReport } from './lib/audits.mjs';
 import { bellaHead, driftHistory, readDrift, readGaps } from './lib/drift.mjs';
 import express from 'express';
 import cors from 'cors';
@@ -257,6 +258,13 @@ app.get('/figma-baseline', (_req, res) => res.json(readBaseline()));
 app.get('/drift', (_req, res) => {
   const d = readDrift();
   res.json({ ...d, history: driftHistory(d, bellaHead()) });
+});
+// Audits: the latest saved report of each audit (docs/reference/audit/<date>/), read only
+app.get('/audits', (_req, res) => res.json(readAudits()));
+app.get('/audits/:id/report', (req, res) => {
+  const text = readAuditReport(String(req.params.id));
+  if (text == null) return res.status(404).type('text/plain').send('No saved report');
+  res.type('text/plain; charset=utf-8').send(text);
 });
 // Gaps: what BELLA can't do yet (parts with a spec but no code, and AGENTS.md's "Not in BELLA yet")
 app.get('/bella-gaps', (_req, res) => res.json(readGaps()));
