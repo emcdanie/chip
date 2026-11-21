@@ -125,6 +125,8 @@ export function useNeeds() {
 
 function run(a, onLane) {
   if (a.type === 'review') openReview(a.check);
+  // a push: a plain shell in that repo, nothing typed (CHIP never types a push)
+  else if (a.type === 'push') window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: a.repo, command: null, from: 'Needs you' } }));
   else if (a.type === 'terminal') window.dispatchEvent(new CustomEvent('chip:terminal', { detail: { repo: a.repo, command: a.command, from: 'Needs you' } }));
   else if (a.type === 'lane') onLane(a.lane);
 }

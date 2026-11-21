@@ -15,7 +15,7 @@ const branchIn = (t) => String(t).match(/\b(?:feat|fix|chip|chore|main|release)\
 /* What a card opens in the new shell's drawer (WorkDrawer): a check's fix to
    review, or a shell with its command typed; null when there is nothing to open. */
 const openOf = (n) =>
-  n.action?.type === 'review' && n.action.check ? { kind: 'review', check: n.action.check } : n.action?.type === 'terminal' ? { kind: 'terminal', repo: n.action.repo, command: n.action.command, title: n.title } : null;
+  n.action?.type === 'review' && n.action.check ? { kind: 'review', check: n.action.check } : n.action?.type === 'push' ? { kind: 'push', repo: n.action.repo, title: n.title } : n.action?.type === 'terminal' ? { kind: 'terminal', repo: n.action.repo, command: n.action.command, title: n.title } : null;
 
 /* A Needs-you item as a card: the check's own name, not the raw error. */
 function needCard(n) {

@@ -81,7 +81,8 @@ export function TermScreen({ t, active, onStatus, onActivity, register }) {
     // a command from Needs you: typed once the login shell has drawn its
     // prompt (output has gone quiet for 400 ms), never followed by Return.
     // Typed earlier, zsh echoes it ahead of the prompt and it shows twice.
-    let pending = t.typed || null;
+    // never a push: that one she types herself (click test, 22 Nov)
+    let pending = t.typed && !/\bgit\s+push\b/.test(t.typed) ? t.typed : null;
     let quiet = null;
     ws.onmessage = (e) => {
       term.write(typeof e.data === 'string' ? e.data : '');

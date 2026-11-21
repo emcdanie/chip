@@ -2,7 +2,8 @@
 // the checks, the fix branches, git state in the three repos and the lane
 // reports, ranked by risk (High, Medium, Low), newest first within a level.
 // Every item says what its button will do and how to undo it. CHIP never
-// pushes: a push item opens a terminal with the command typed, not run.
+// pushes: a push item shows what would be pushed (the commits, the files); she types
+// git push herself in a plain shell. CHIP never types a push (click test, 22 Nov).
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -46,13 +47,32 @@ function failureTitle(c) {
   return `${prefix}: ${short(f.replace(`${c.name}: `, ''), 56)}`;
 }
 
-function gitItems() {
-  const out = [];
-  const repos = [
+const reposOf = () => [
     { id: 'bella', name: 'BELLA', dir: BELLA, branch: BASE },
     { id: 'chip', name: 'CHIP', dir: ROOT, branch: git(ROOT, ['rev-parse', '--abbrev-ref', 'HEAD']) },
     { id: 'site', name: 'the site', dir: join(homedir(), 'DEV', 'ctrl-alt-design'), branch: null },
-  ];
+];
+
+/** GET /push/:repo: what a push would send, read only: the branch, where it goes, and each
+ *  commit GitHub hasn't seen with the files it touches. Nothing here pushes, and no command is
+ *  typed anywhere: the push stays hers to type (needs you, push item). */
+export function pushPreview(id, repos = reposOf()) {
+  const r = repos.find((x) => x.id === id);
+  if (!r) throw new Error(`No repo called ${id}`);
+  const branch = r.branch ?? git(r.dir, ['rev-parse', '--abbrev-ref', 'HEAD']);
+  const up = branch && git(r.dir, ['rev-parse', '--abbrev-ref', `${branch}@{upstream}`]);
+  if (!up) return { repo: r.id, name: r.name, branch, upstream: null, commits: [], files: 0 };
+  const log = git(r.dir, ['log', '--format=%h%x09%cI%x09%s', `${up}..${branch}`]) ?? '';
+  const commits = log.split('\n').filter(Boolean).map((l) => {
+    const [sha, date, subject] = l.split('\t');
+    return { sha, date, subject };
+  });
+  const files = (git(r.dir, ['diff', '--name-only', `${up}...${branch}`]) ?? '').split('\n').filter(Boolean);
+  return { repo: r.id, name: r.name, branch, upstream: up, commits, files: files.length, sample: files.slice(0, 8) };
+}
+
+export function gitItems(repos = reposOf()) {
+  const out = [];
   for (const r of repos) {
     const branch = r.branch ?? git(r.dir, ['rev-parse', '--abbrev-ref', 'HEAD']);
     if (!branch || branch === 'HEAD') continue;
@@ -80,9 +100,9 @@ function gitItems() {
         what: `Push ${branch}? ${ahead} commit${ahead === 1 ? '' : 's'} CI hasn't run`,
         detail: `${r.name} has ${ahead} local commit${ahead === 1 ? '' : 's'} on ${branch} that GitHub hasn't seen. The gate ran locally; CI hasn't.`,
         riskWhy: 'High: a push is outward-facing and other people see it.',
-        thisWill: `open a terminal in ${r.name} with git push typed, not run`,
-        undo: 'nothing runs until you press Return; after a push, a revert commit',
-        action: { type: 'terminal', repo: r.id, command: 'git push', label: `Open a terminal to push` },
+        thisWill: `show the ${ahead === 1 ? 'commit' : 'commits'} a push would send; you type git push yourself if you want it`,
+        undo: 'looking changes nothing; after a push, a revert commit',
+        action: { type: 'push', repo: r.id, label: 'See what would be pushed' },
       });
     }
   }
