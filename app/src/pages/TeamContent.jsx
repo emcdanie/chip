@@ -28,7 +28,8 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Tag from '@bella/components/Tag/Tag';
 import Flow from '../templates/Flow.jsx';
 import { Reply } from '../templates/TermChat.jsx';
-import { workModel, laneState, daysQuiet, QUIET_DAYS } from './workModel.js';
+import { workModel, laneState, daysQuiet, QUIET_DAYS, STATUS_Q, workStatus } from './workModel.js';
+import { AnswerLines } from '../templates/useAsk.jsx';
 
 export const BOARD = 'http://localhost:3123';
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -101,6 +102,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
   const [text, setText] = useState(draft?.text ?? '');
   const [sent, setSent] = useState(sentBefore); // { ask, text } you sent this visit
   const [failed, setFailed] = useState(false);
+  const [status, setStatus] = useState(null); // CHIP's answer to a status question
   // the draft state: the reply field takes focus, so it reads as "your turn" at a glance
   useEffect(() => {
     if (draft) document.getElementById('team-reply')?.focus();
@@ -134,7 +136,18 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
     />
   );
 
+  // "what is being worked on": CHIP answers at once from the Work board (never a model), so the team chat
+  // never leaves that question unanswered; the message still goes to the board for the agents
+  const askStatus = async () => {
+    setStatus({ state: 'reading' });
+    try {
+      setStatus({ state: 'answer', ...(await workStatus()) });
+    } catch (e) {
+      setStatus({ state: 'error', error: e.message });
+    }
+  };
   async function send() {
+    if (STATUS_Q.test(text)) askStatus();
     const body = { type: 'reply', to: replyTo?.agent ?? 'all', ask: replyTo?.text ?? null, text: text.trim(), page: 'Team' };
     try {
       const r = await fetch(`${BOARD}/answers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -209,7 +222,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
         <Card>
           <Flow gap={16}>
             <SectionHead icon="ChatBubbleEmpty" iconTone="info" title="Team chat" description="Today, with every agent" />
-            {data.thread.length || sent.length ? (
+            {data.thread.length || sent.length || status ? (
               // one chat (her 21 Nov answer 5 B): the same ChatThread as Ask BELLA and the Terminal.
               // Each agent's name sits over the first of its run of bubbles, its tail on the last;
               // replies take reactions; hers are pink on the right with the time under the last.
@@ -236,6 +249,18 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
                       {i === sent.length - 1 ? <ChatThreadDelivered>{[s.at ? hhmm(s.at) : null, 'sent to the board'].filter(Boolean).join(' · ')}</ChatThreadDelivered> : null}
                     </Fragment>
                   ))}
+                  {status?.state === 'answer' ? (
+                    <Flow gap={4}>
+                      <Reply who="CHIP" disc="C">
+                        <AnswerLines shaped={{ verdict: status.verdict, bullets: status.bullets }} onPin={() => {}} />
+                      </Reply>
+                      <TextStack subtitle={status.line} />
+                    </Flow>
+                  ) : status?.state === 'error' ? (
+                    <Reply who="CHIP" disc="C">{`I can’t say what is being worked on: ${status.error}. Nothing is made up, so there is no answer.`}</Reply>
+                  ) : status?.state === 'reading' ? (
+                    <TextStack subtitle="Reading the Work board…" />
+                  ) : null}
                   {reply && sent.length ? <Reply who={reply.who} disc={String(reply.who ?? '?').slice(0, 1).toUpperCase()}>{reply.text}</Reply> : null}
                 </Flow>
               </ChatThread>
