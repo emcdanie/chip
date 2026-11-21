@@ -79,16 +79,16 @@ function Lane({ lane, move, why }) {
   const e = why ? { ...EMPTY[lane.id], line: why } : EMPTY[lane.id];
   const d = move.drag;
   const over = move.over?.lane === lane.id ? move.over : null;
-  const target = d && over ? <BoardLaneDropSpace key="drop" label={dropLabel(d.card, d.from, lane.id)} /> : null;
+  const target = d && over ? <BoardLaneDropSpace key="drop" label={dropLabel(d.card, d.from, lane.id)} style={{ blockSize: d.h }} /> : null;
   const items = lane.cards.flatMap((c) => {
     const lifted = d?.card.id === c.id;
     const card = (
       // the wrapper only names the card for the drop position and hides it while it is lifted (its
       // grey space stands in); the card itself is BELLA's TaskCard as published
-      <div key={c.id} data-card={c.id} hidden={lifted && d.shown}>
+      <div key={c.id} data-card={c.id} data-needs={c.needs ? '' : undefined} hidden={lifted && d.shown}>
         <TaskCard
           title={c.title}
-          line={c.paused ? `Paused by you · ${c.line}` : c.line}
+          line={c.line}
           status={c.status}
           statusTone={c.tone}
           onOpen={c.open || c.kind === 'session' ? () => move.open(c) : undefined}
@@ -98,7 +98,7 @@ function Lane({ lane, move, why }) {
           onDragEnd={move.end}
           onMoveTo={() => move.setMenu(move.menu === c.id ? null : c.id)}
         />
-        {move.menu === c.id ? <MoveMenu card={c} lane={lane} move={move} /> : null}
+        {move.menu === c.id ? <div ref={(el) => el?.scrollIntoView({ block: 'nearest' })}><MoveMenu card={c} lane={lane} move={move} /></div> : null}
       </div>
     );
     const out = [];
@@ -155,6 +155,12 @@ function useMove({ open }) {
     requestAnimationFrame(() => setDrag((x) => (x?.card.id === card.id ? { ...x, shown: true } : x)));
   };
   const end = () => (setDrag(null), setOver(null));
+  useEffect(() => {
+    if (!drag) return undefined;
+    window.addEventListener('dragend', end);
+    window.addEventListener('drop', end);
+    return () => (window.removeEventListener('dragend', end), window.removeEventListener('drop', end));
+  }, [drag]);
   const toast = (tone, message, action) => setNotice({ tone, message, action });
   // Undo puts it back where it was: the lane she had put it in, or where CHIP found it
   const save = async (card, lane, opts, said, from) => {
@@ -226,7 +232,8 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     const lane = LANES.find((l) => l.name === el?.querySelector('h2')?.textContent);
     if (!lane) return;
     ev.preventDefault();
-    const cards = [...el.querySelectorAll('[data-card]')].filter((c) => !c.hidden);
+    // in Now, what needs you stays on top: a card lands under it
+    const cards = [...el.querySelectorAll('[data-card]')].filter((c) => !c.hidden && !(lane.id === 'now' && c.hasAttribute('data-needs')));
     const before = cards.find((c) => {
       const r = c.getBoundingClientRect();
       return ev.clientY < r.top + r.height / 2;
@@ -242,7 +249,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     move.drop(d.card, d.from, o.lane, o.before);
   };
   const now = all?.lanes.find((l) => l.id === 'now')?.cards ?? [];
-  const working = now.filter((c) => c.progress?.state === 'working').length;
+  const working = now.filter((c) => !c.needs).length;
   const waiting = now.filter((c) => c.needs).length;
   const filterLabel = filter === 'needs' ? 'Needs you' : filter === 'components' ? 'Components that need work' : filter?.startsWith('area:') ? filter.slice(5) : filter?.startsWith('lane:') ? `Lane: ${LANE_NAMES[filter.slice(5)]}` : null;
   return (
@@ -255,7 +262,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
               {`${filterLabel} · ${model?.total ?? 0}`}
             </FilterChip>
           ) : (
-            <TextStack title={all ? `${working} ${working === 1 ? 'agent' : 'agents'} working · ${waiting} wait on you` : 'Reading the board'} />
+            <TextStack title={all ? `${working} at work · ${waiting} wait on you` : 'Reading the board'} />
           )}
           <Flow direction="row" gap={8} align="center">
             {checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}

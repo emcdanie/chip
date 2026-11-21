@@ -319,9 +319,9 @@ const BOARD = join(DATA_DIR, 'work-board.json');
 export function readBoard(file = BOARD) {
   try {
     const b = JSON.parse(readFileSync(file, 'utf8'));
-    return { place: b.place ?? {}, order: b.order ?? {} };
+    return { place: b.place ?? {}, order: b.order ?? {}, ideas: b.ideas ?? [] };
   } catch {
-    return { place: {}, order: {} };
+    return { place: {}, order: {}, ideas: [] };
   }
 }
 const okId = (id) => typeof id === 'string' && /^[\w.:/-]{1,160}$/.test(id);
@@ -341,6 +341,18 @@ export function saveBoard({ id, lane, before = null, paused = false }, file = BO
   }
   writeFileSync(file, JSON.stringify(b, null, 2));
   return b;
+}
+
+/** POST /work/ideas { title, brief, lane? }: a plan from Talk she said Later to, kept as a card (in Next by default). */
+export function saveIdea({ title, brief, lane = 'next' }, file = BOARD) {
+  if (typeof title !== 'string' || !title.trim()) throw new Error('An idea needs a title');
+  if (typeof brief !== 'string' || !brief.trim()) throw new Error('An idea needs its brief');
+  if (!BOARD_LANES.includes(lane)) throw new Error(`No lane called ${lane}`);
+  const b = readBoard(file);
+  const idea = { id: `idea-${Date.now()}`, title: title.trim().slice(0, 120), brief: brief.trim().slice(0, 4000), at: new Date().toISOString() };
+  b.ideas.push(idea);
+  writeFileSync(file, JSON.stringify(b, null, 2));
+  return { idea, board: lane === 'ideas' ? b : saveBoard({ id: idea.id, lane }, file) };
 }
 
 /** GET /work/board: everything the lanes are made of, read now. */

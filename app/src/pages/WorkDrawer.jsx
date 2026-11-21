@@ -23,6 +23,7 @@ import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow from '@bella/components/ListRow/ListRow';
 import TourStep from '@bella/components/TourStep/TourStep';
 import Step from '@bella/components/Step/Step';
+import Tag from '@bella/components/Tag/Tag';
 import Progress from '@bella/components/Progress/Progress';
 import Flow from '../templates/Flow.jsx';
 import { planRun } from '../templates/RunPlan.jsx';
@@ -457,14 +458,12 @@ function SessionDrawer({ item, onClose }) {
   const p = c.progress;
   return (
     <Drawer open onClose={onClose} side="right" size="lg" label={c.title} status={c.line}>
-      <Flow gap={16}>
+      <Flow gap={16} inset>
         {p?.total ? <Progress label={`${p.done} of ${p.total} steps done`} fill={Math.round((100 * p.done) / p.total)} tone={p.state === 'done' ? 'success' : 'info'} /> : null}
         {steps.length ? (
           <Flow as="ol" gap={0} aria-label="Steps">
             {steps.map((s, i) => (
-              <li key={i}>
-                <Step layout="vertical" title={s.text} state={STEP_STATE[s.status] ?? 'pending'} showLineAbove={i > 0} showConnector={i < steps.length - 1} />
-              </li>
+                <Step key={i} layout="vertical" number={i + 1} title={s.text} state={STEP_STATE[s.status] ?? 'pending'} selected={s.status === 'in_progress'} tag={<Tag variant="line" tone={s.status === 'completed' ? 'success' : s.status === 'in_progress' ? 'info' : 'default'}>{s.status === 'completed' ? 'Done' : s.status === 'in_progress' ? 'Now' : 'Left'}</Tag>} showLineAbove={i > 0} showConnector={i < steps.length - 1} />
             ))}
           </Flow>
         ) : (

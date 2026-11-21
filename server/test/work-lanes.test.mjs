@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.BELLA_DIR ??= join(process.env.HOME, 'DEV', 'bella-parts');
-const { ciOf, prCards, saveBoard, readBoard, replayPlan, sessionTasks, progressItems } = await import('../lib/lanes.mjs');
+const { ciOf, prCards, saveBoard, saveIdea, readBoard, replayPlan, sessionTasks, progressItems } = await import('../lib/lanes.mjs');
 
 test('a PR’s CI in a word', () => {
   assert.equal(ciOf([]), 'none');
@@ -97,4 +97,14 @@ test('progress links are made whole', () => {
   const { items } = progressItems(p, 'http://localhost:3123/screens/progress/');
   assert.equal(items[0].link, 'http://localhost:3123/screens/2026-11-22-x/');
   assert.deepEqual(items.map((i) => i.id), ['p-x', 'p-x-2']);
+});
+
+test('a plan put off from Talk is kept as a card in Next, with its brief; the route is guarded', () => {
+  const f = join(dir, 'ideas.json');
+  const { idea, board } = saveIdea({ title: 'Fix the dark label', brief: 'Do this in BELLA: fix it' }, f);
+  assert.equal(board.place[idea.id].lane, 'next');
+  assert.equal(readBoard(f).ideas[0].brief, 'Do this in BELLA: fix it');
+  assert.throws(() => saveIdea({ title: '', brief: 'x' }, f), /title/);
+  const src = readFileSync(new URL('../server.js', import.meta.url), 'utf8');
+  assert.match(src.slice(src.indexOf("app.post('/work/ideas'")).slice(0, 200), /if \(!sameApp\(req, res\)\) return;/);
 });

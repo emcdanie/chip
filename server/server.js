@@ -24,7 +24,7 @@ import { attachTerminal, repoList } from './lib/term.mjs';
 import { BASE as checksBase, gateLog, listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
 import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
-import { saveBoard, workBoard, workLanes } from './lib/lanes.mjs';
+import { saveBoard, saveIdea, workBoard, workLanes } from './lib/lanes.mjs';
 import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
@@ -517,6 +517,15 @@ app.post('/work/board', (req, res) => {
   if (!sameApp(req, res)) return;
   try {
     res.json({ board: saveBoard({ id: req.body?.id, lane: req.body?.lane ?? null, before: req.body?.before ?? null, paused: req.body?.paused === true }) });
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+// a plan from Talk she put off (Later): a card in Next, its brief kept for when she starts it
+app.post('/work/ideas', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(saveIdea({ title: req.body?.title, brief: req.body?.brief, lane: req.body?.lane ?? 'next' }));
   } catch (e) {
     errorOut(res, e);
   }

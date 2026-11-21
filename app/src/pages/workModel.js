@@ -195,7 +195,7 @@ const TONE = { working: 'info', waiting: 'neutral', blank: 'neutral', done: 'suc
 function bSession(s, now) {
   const done = s.steps.length > 0 && s.steps.every((x) => x.status === 'completed');
   const p = progressOf(s.steps, { working: s.working });
-  const what = s.asks ? 'Agent · waiting on you' : `Agent · ${s.working ? 'working' : ago(s.updatedAt, now)}`;
+  const what = s.asks ? 'Agent · waiting on you' : done ? 'Agent' : `Agent · ${s.working ? 'working' : ago(s.updatedAt, now)}`;
   return {
     id: s.id,
     kind: 'session',
@@ -206,7 +206,7 @@ function bSession(s, now) {
     tone: s.asks ? 'attention' : TONE[p.state],
     status: s.asks ? 'Needs you' : done ? 'Shipped' : p.state === 'working' ? 'Working' : 'Waiting',
     needs: s.asks,
-    home: done && !s.working && !s.asks ? 'shipped' : s.working || s.asks || now - s.updatedAt < 60 * 60e3 ? 'now' : null,
+    home: done && !s.asks ? 'shipped' : s.working || s.asks || now - s.updatedAt < 60 * 60e3 ? 'now' : null,
     startedAt: s.startedAt,
     who: 'agent',
     area: s.project,
@@ -295,6 +295,7 @@ export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra
     ...(board?.sessions ?? []).map((s) => bSession(s, now)),
     ...(board?.progress?.items ?? []).map(bItem).filter(Boolean),
     ...(board?.progress?.tasks ?? []).map(bTask),
+    ...(board?.board?.ideas ?? []).map((i) => ({ id: i.id, kind: 'idea', title: i.title, line: 'Idea · from Talk', status: 'Idea', tone: 'neutral', home: 'ideas', brief: i.brief, area: 'Your call' })),
     ...parts.map(bComponent),
   ].filter((c) => c.home);
   // a check or idea an agent is already working on leaves its lane: its run shows in Now
@@ -306,7 +307,9 @@ export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra
     if (c.kind !== 'run' && busy.has(c.title)) continue;
     const p = place[c.id];
     const lane = p?.lane ?? c.home;
-    lanes.find((x) => x.id === lane)?.cards.push(p && p.lane !== c.home ? { ...c, moved: true, paused: !!p.paused } : c);
+    const card = p && p.lane !== c.home ? { ...c, moved: true, paused: !!p.paused } : c;
+    if (card.paused && card.progress?.total) card.line = `Paused by you · ${card.progress.done} of ${card.progress.total}`;
+    lanes.find((x) => x.id === lane)?.cards.push(card);
   }
   for (const l of lanes) {
     const mine = order[l.id] ?? [];
@@ -401,4 +404,28 @@ export function shown(model, { filter = null, sort = 'mine', q = '', branch = nu
       return { ...l, cards: by ? [...cards].sort(by) : cards };
     });
   return { ...model, lanes, total: lanes.reduce((n, l) => n + l.cards.length, 0) };
+}
+
+/* "What is being worked on?" in Talk and on Team: answered from the board itself, never a model, so the
+   numbers are the board's. Asked in her words: what's being worked on, what's running, where are we, status. */
+export const STATUS_Q = /\b(what(?:'s|’s| is| are)?\b[^?]*\b(?:being )?work(?:ed|ing)? on|what(?:'s|’s| is) (?:running|going on|happening)|where are we|who(?:'s|’s| is) working|what are (?:the |my )?agents|status)\b/i;
+export async function workStatus() {
+  const get = (u) => fetch(u).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${u} answered ${r.status}`))));
+  const [needs, runs, gaps, board, lanes] = await Promise.all([get('/needs'), get('/runs'), get('/gaps').catch(() => null), get('/work/board'), get('/work/lanes').catch(() => null)]);
+  const m = boardModel({ needs: needs.items ?? [], runs: runs.runs ?? [], runBase: runs.base ?? null, board, gaps: gaps?.gaps ?? null, lanes });
+  const now = m.lanes.find((l) => l.id === 'now').cards;
+  const atWork = now.filter((c) => !c.needs && (c.kind === 'session' || c.kind === 'run' || c.kind === 'pr'));
+  const waiting = now.filter((c) => c.needs).length;
+  const next = m.lanes.find((l) => l.id === 'next').cards.length;
+  const at = new Date(board.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const verdict = atWork.length
+    ? `**${atWork.length} ${atWork.length === 1 ? 'task is' : 'tasks are'}** being worked on, and **${waiting}** ${waiting === 1 ? 'thing waits' : 'things wait'} on you.`
+    : `**Nothing** is being worked on right now; **${waiting}** ${waiting === 1 ? 'thing waits' : 'things wait'} on you.`;
+  const bullets = atWork.map((c) => {
+    const p = c.progress;
+    const how = !p || p.state === 'blank' ? 'no steps listed yet' : p.state === 'done' ? `all ${p.total} steps done` : `step ${Math.min(p.done + 1, p.total)} of ${p.total}${p.now ? `, ${p.now}` : ''}`;
+    return `${c.title}: ${how}`;
+  });
+  if (next) bullets.push(`Next: ${next} ${next === 1 ? 'card' : 'cards'} lined up by you`);
+  return { verdict, bullets, at, line: `From the Work board, read ${at}. Sessions in the Claude app and CHIP's own runs.` };
 }
