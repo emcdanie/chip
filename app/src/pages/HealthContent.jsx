@@ -17,7 +17,7 @@ import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
-import { TargetMark } from '@bella/components/ProgressTarget/ProgressTarget';
+import Marker from '@bella/components/Marker/Marker';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
 import Flow from '../templates/Flow.jsx';
@@ -290,7 +290,13 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             const line =
               view === 'gate' ? `${runs} recorded ${runs === 1 ? 'run' : 'runs'} · ${days.length} ${days.length === 1 ? 'day' : 'days'} · GitHub CI and CHIP · target ${TARGET}%`
               : view === 'drift' ? `Each part against its Figma set · ${n} parts`
-              : `${n} parts · each block is 5 parts · target ${TARGET}%`;
+              : (
+                    // the target said once, in the line, with the blue marker (no legend under the rows)
+                    <>
+                      {`${n} parts · each block is 5 parts · `}
+                      <Marker>{`target ${TARGET}%`}</Marker>
+                    </>
+                  );
             // her 21 Nov pick (question 1 A, "the control at teh top right and the feedback under?"): the
             // switch at the head's right end, and what the view reports in the line under the title
             return (
@@ -330,18 +336,11 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             // her pick "C · Weather rows" (22 Nov): one row per check, a block per 5 parts against the dashed
             // target, the count at the right; no divider under the last row. Each failing check's fix is in
             // Needs you below, so a row carries no action of its own.
-            <Flow gap={16}>
-              <ListRowGroup ariaLabel="Component checks">
-                {rows.map((r, i) => (
-                  <CheckRow key={r.id} layout="weather" title={r.short ?? r.title} passed={r.pass} total={n} value={`${r.pass}/${n}`} target={TARGET} showDivider={i < rows.length - 1} />
-                ))}
-              </ListRowGroup>
-              {/* the legend: the dashed mark the rows draw, and what it means */}
-              <Flow direction="row" gap={8} align="center">
-                <TargetMark />
-                <TextStack subtitle={`Target ${TARGET}%`} />
-              </Flow>
-            </Flow>
+            <ListRowGroup ariaLabel="Component checks">
+              {rows.map((r, i) => (
+                <CheckRow key={r.id} layout="weather" title={r.short ?? r.title} passed={r.pass} total={n} value={`${r.pass}/${n}`} target={TARGET} showDivider={i < rows.length - 1} />
+              ))}
+            </ListRowGroup>
           )}
         </Flow>
       </Card>
