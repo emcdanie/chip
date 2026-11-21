@@ -12,9 +12,10 @@
 // ships with its Chip light and dark values, contrast on the surface and the
 // parts that use it (data/bella.json palette and tokenUsage).
 //
-// Gaps: DataTable takes no cell kind, so the Light and Dark columns show the
-// hex without Figma's colour chip (TableCell has kind=swatch; DataTable
-// doesn't pass it); Figma's Columns menu waits on that too. The tier chain (Figma: pick a token, see where it comes from and
+// The Light and Dark columns are DataTable swatch columns: one square of one
+// colour per cell, each in its own theme, with the hex in the number face
+// (Elleta, 22 Nov: "the swatches are still missing").
+// Gaps: Figma's Columns menu. The tier chain (Figma: pick a token, see where it comes from and
 // where it goes, drawn with connectors) waits on the connector tile; the
 // Figma states sent to Claude / checking / tested / check failed wait on a
 // fix route for token problems (CHIP has none yet).
@@ -467,10 +468,11 @@ const VIEWS = [
 
 function RolesTable({ rows, total }) {
   const columns = [
-    // role names and hex in Geist Mono (TextStack's subtext face), as Figma and the type rule; DataTable takes no cell kind yet
+    // role names in Geist Mono (TextStack's subtext face), as Figma and the type rule
     { key: 'role', label: 'Role', sortable: true, render: (r) => <TextStack subtitle={r.role} /> },
-    { key: 'light', label: 'Light', sortable: true, render: (r) => <TextStack subtitle={r.light} /> },
-    { key: 'dark', label: 'Dark', sortable: true, render: (r) => <TextStack subtitle={r.dark} /> },
+    // a swatch square per cell, the role's colour in that column's theme, its hex beside it in the number face
+    { key: 'light', label: 'Light', sortable: true, kind: 'swatch', swatch: (r) => `var(${r.token})`, swatchTheme: 'chip-light' },
+    { key: 'dark', label: 'Dark', sortable: true, kind: 'swatch', swatch: (r) => `var(${r.token})`, swatchTheme: 'chip-dark' },
     { key: 'contrast', label: 'Contrast', sortable: true, sortValue: (r) => r.ratio },
     {
       key: 'used',
