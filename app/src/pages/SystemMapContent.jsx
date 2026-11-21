@@ -20,7 +20,7 @@
 // - node-box: a flat bordered node; the steps are ListRows (selected = light blue), no box.
 // - audit-reports: the last report of each audit; CHIP has no read route for
 //   docs/reference/audit/<date>/ yet, so it says not measured.
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
@@ -36,8 +36,10 @@ import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 import { planRun } from '../templates/RunPlan.jsx';
 
-// the board's design width: a row name and four steps, five slots of about 160 (a long line takes two lines)
-const BOARD = 880;
+// the board's design width: a row name and four steps, five slots of about 245, so a step's name sits whole
+// on its line at 100%. The board opens at 100% at every width (reading text 16, meta 14, never smaller) and pans;
+// Fit stays a choice in the control
+const BOARD = 1320;
 const SLOTS = 4;
 const FIGMA_PATHS = ['figma', 'figma-console', 'figma-rest'];
 // a step's state in words and tone; a step with no entry is a role in the workflow, nothing to measure
@@ -145,7 +147,7 @@ function usePipeline() {
         deps: [...new Set((n.deps ?? []).map((d) => (FIGMA_PATHS.includes(d) ? 'figma' : d)))],
         blockedBy: FIGMA_PATHS.includes(n.blockedBy?.id) ? 'figma' : n.blockedBy?.id,
         href: n.href ?? (n.action?.type === 'test' ? '#/connectors' : undefined),
-        run: PIPELINE_RUNS[id],
+        run: PIPELINE_RUNS[id] ?? (n.action?.type === 'run' ? { label: n.action.label, brief: `${n.action.label} in BELLA and report the result.` } : undefined),
       };
     }
   // a missing id means /map no longer sends it: its slot stays empty
@@ -155,20 +157,25 @@ function usePipeline() {
 
 /* ------------------------------------------------- Agent workflow (CHIP CLAUDE.md, Relay) */
 
-// [id, name, state, detail, waits on]
+// [id, name, state, detail, waits on]; a role CHIP keeps no record of says Not measured
 const AGENT_STEPS = [
-  ['ask', 'Your ask or mark-up', null, 'A message, a thumbs-down or a mark-up note on a review page. Each one lands in answers.json.', []],
-  ['coord', 'Coordinator', null, 'Reads every answer newer than its last read, routes each one, and writes the brief with the rules pasted in.', ['ask', 'answers']],
-  ['figma', 'Figma writer', null, 'One writer per Figma file, on the 01 · CHIP flows page; checks the file key before every write.', ['coord']],
-  ['code', 'Code builder', null, 'Builds one page from BELLA parts on its own test server, then clicks every feature.', ['coord']],
-  ['pics', 'Option pictures', null, 'A and B side by side at the same scale, the pick marked.', ['coord']],
-  ['fresh', 'Fresh reviewer', null, 'A session that did not build it checks the work against the rules at 320 to 1440.', ['figma', 'pics', 'code']],
-  ['click', 'Click test', null, 'An agent clicks each designed feature on the running app. It never presses anything that starts a paid run.', ['code']],
-  ['review', 'Review page', null, 'Pictures side by side with a pick marked; thumbs, notes and Send all go to answers.json.', ['fresh', 'click']],
-  ['answers', 'Your answers', null, 'The latest answer replaces an earlier one. A thumbs-down with no note means: find what is off and fix it.', ['review']],
+  ['ask', 'Your ask or mark-up', 'unmeasured', 'A message, a thumbs-down or a mark-up note on a review page. Each one lands in answers.json.', []],
+  ['coord', 'Coordinator', 'unmeasured', 'Reads every answer newer than its last read, routes each one, and writes the brief with the rules pasted in.', ['ask', 'answers']],
+  ['figma', 'Figma writer', 'unmeasured', 'One writer per Figma file, on the 01 · CHIP flows page; checks the file key before every write.', ['coord']],
+  ['code', 'Code builder', 'unmeasured', 'Builds one page from BELLA parts on its own test server, then clicks every feature.', ['coord']],
+  ['pics', 'Option pictures', 'unmeasured', 'A and B side by side at the same scale, the pick marked.', ['coord']],
+  ['fresh', 'Fresh reviewer', 'unmeasured', 'A session that did not build it checks the work against the rules at 320 to 1440.', ['figma', 'pics', 'code']],
+  ['click', 'Click test', 'unmeasured', 'An agent clicks each designed feature on the running app. It never presses anything that starts a paid run.', ['code']],
+  ['review', 'Review page', 'unmeasured', 'Pictures side by side with a pick marked; thumbs, notes and Send all go to answers.json.', ['fresh', 'click']],
+  ['answers', 'Your answers', 'unmeasured', 'The latest answer replaces an earlier one. A thumbs-down with no note means: find what is off and fix it.', ['review']],
   ['publish', 'Library publish', 'you', 'A library publish is your click, after the batch report. Agents never publish.', ['answers']],
   ['push', 'Push', 'you', 'Nothing is pushed or merged without your OK.', ['answers']],
 ];
+// the steps CHIP can start for you: each opens its plan first
+const AGENT_RUNS = {
+  fresh: { label: 'Run a fresh review', brief: 'As a session that did not build it, review the latest CHIP change against the rules at 320, 768, 1024 and 1440, read-only, and report what fails.' },
+  click: { label: 'Run the click test', brief: 'Click every designed feature in docs/reference/designed-features.md on a test CHIP server, read-only, never pressing anything that starts a paid run, and report what works and what does not.' },
+};
 const AGENT_ROWS = [
   { label: 'You ask', ids: [null, 'ask', null, null] },
   { label: 'Coordinator', ids: [null, 'coord', null, null] },
@@ -182,7 +189,8 @@ const AGENT_ROWS = [
 
 // [id, name, detail, moments it runs at, skill (a run opens its plan)]
 const AUDIT_STEPS = [
-  ['craft', 'craft-check and pixel-check', 'Ends every Figma write; a pass is 0 findings or named exceptions, pasted in the report.', ['Every Figma write']],
+  ['craft', 'craft-check', 'Ends every Figma write: how the parts are built. A pass is 0 findings or named exceptions, pasted in the report.', ['Every Figma write']],
+  ['pixel', 'pixel-check', 'Ends every Figma write: sizes, edges and spacing measured at 1x. A pass is 0 findings or named exceptions.', ['Every Figma write']],
   ['sweep', 'data-sweep and click test', 'Every number on screen checked against its source, and every designed feature clicked on the running app.', ['Before every report']],
   ['hook', 'Pre-commit hook', 'Blocks a commit with a hex value or a px font size in the app, a failed build, or a private term.', ['Before a commit']],
   ['audit', 'npm audit', 'Runs in the check before each commit; fixes go in without major upgrades, the rest are listed.', ['Before a commit']],
@@ -193,10 +201,22 @@ const AUDIT_STEPS = [
   ['prodinsp', 'product-inspection', 'Inspects CHIP across ten stations; scores are compared with the last run. Weekly, and before a page is called done.', ['Weekly'], true],
   ['dsinsp', 'ds-inspection', 'Inspects BELLA across ten stations; scores are compared with the last run. Weekly.', ['Weekly'], true],
 ];
+// checks CHIP can start on their own, read-only: each opens its plan first
+const AUDIT_RUNS = {
+  sweep: { label: 'Run it', brief: 'Run node scripts/data-sweep.mjs against a test CHIP server and report every number that does not match its source.' },
+  audit: { label: 'Run it', brief: 'Run npm audit --omit=dev in CHIP and list what it finds; change nothing.' },
+  sec: { label: 'Run it', brief: 'Run the security-review skill on CHIP, read-only, and report each finding with its route.' },
+  copilot: { label: 'Run it', brief: 'Run npm run review on the latest CHIP commits, measure each finding, and report only the real ones.' },
+};
 const MOMENTS = ['Every Figma write', 'Before every report', 'Before a commit', 'Before merge or push', 'Before a publish', 'Weekly'];
 
 function staticMaps() {
-  const agents = Object.fromEntries(AGENT_STEPS.map(([id, name, state, detail, deps]) => [id, { id, name, state, line: null, detail, deps }]));
+  const agents = Object.fromEntries(
+    AGENT_STEPS.map(([id, name, state, detail, deps]) => [
+      id,
+      { id, name, state, line: null, detail: state === 'unmeasured' ? `${detail} Its state is not measured: CHIP keeps no record of this step yet.` : detail, deps, run: AGENT_RUNS[id] },
+    ]),
+  );
   const audits = Object.fromEntries(
     AUDIT_STEPS.map(([id, name, detail, at, skill]) => [
       id,
@@ -208,7 +228,7 @@ function staticMaps() {
         // HOLE audit-reports: no read route for docs/reference/audit yet
         detail: skill ? `${detail} Its reports save to docs/reference/audit/<date>/, which CHIP does not read yet.` : detail,
         at,
-        run: skill ? { label: 'Run it', brief: `Run the ${name} skill, read-only, and save its report to docs/reference/audit/<today>/${name}.md. Compare its scores with the last report.` } : undefined,
+        run: skill ? { label: 'Run it', brief: `Run the ${name} skill, read-only, and save its report to docs/reference/audit/<today>/${name}.md. Compare its scores with the last report.` } : AUDIT_RUNS[id],
       },
     ]),
   );
@@ -245,16 +265,18 @@ function metaOfMap(id, map) {
   return `${steps.filter((s) => s.run).length} reports not read`;
 }
 
-/* Drag the board to pan: moves whatever box scrolls around it (Stage's frame at 100%). */
+// the nearest box that scrolls around an element (Stage's frame at 100%)
+function scroller(el) {
+  for (let e = el; e && e !== document.body; e = e.parentElement) {
+    const s = getComputedStyle(e);
+    if (/(auto|scroll)/.test(s.overflowX + s.overflowY) && (e.scrollWidth > e.clientWidth || e.scrollHeight > e.clientHeight)) return e;
+  }
+  return null;
+}
+
+/* Drag the board to pan: moves whatever box scrolls around it. */
 function usePan() {
   const drag = useRef(null);
-  const scroller = (el) => {
-    for (let e = el; e && e !== document.body; e = e.parentElement) {
-      const s = getComputedStyle(e);
-      if (/(auto|scroll)/.test(s.overflowX + s.overflowY) && (e.scrollWidth > e.clientWidth || e.scrollHeight > e.clientHeight)) return e;
-    }
-    return null;
-  };
   return {
     onPointerDown: (e) => {
       if (e.button !== 0 || e.target.closest('button, a, input, select')) return;
@@ -291,13 +313,22 @@ function Node({ step, picked, onPick }) {
 
 function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
   const pan = usePan();
+  // the board opens with the picked step in view (at 100% it is wider than the window)
+  useLayoutEffect(() => {
+    const node = document.querySelector('#process-board [aria-current="true"]');
+    const box = node && scroller(node.parentElement);
+    if (!node || !box) return;
+    const n = node.getBoundingClientRect();
+    const b = box.getBoundingClientRect();
+    if (n.left < b.left || n.right > b.right) box.scrollLeft += n.left - b.left - (b.width - n.width) / 2;
+  }, [map, zoom]); // eslint-disable-line react-hooks/exhaustive-deps
   const shown = (id) => id && map.steps[id] && (!filterOnly || map.steps[id].state === 'bad');
   // HOLE zoom-steps: zoom in and out wait on BELLA Stage (it has Fit and 100% only)
   return (
     <Stage grid="dots" label={`${label} board`} frameWidth={BOARD} zoom={zoom} onZoomChange={onZoom}>
       {/* HOLE connector: the curved lines between steps (the picked step's in blue) wait on a BELLA part that
           joins two nodes by their measured places; the gutters between rows are where they draw */}
-      <Flow gap={24} inset data-hole="connector zoom-steps node-box" {...pan}>
+      <Flow gap={24} inset id="process-board" data-hole="connector zoom-steps node-box" {...pan}>
         {map.rows.map((row, i) => (
           // the row's name takes the first of five equal slots, so every row's steps line up
           <Flow key={`${row.label}-${i}`} direction="row" gap={16} equal align="center" role="group" aria-label={row.label || `${label}, row ${i + 1}`}>
@@ -410,7 +441,7 @@ export default function SystemMapContent() {
       <EmptyState size="page" title="Drawing the map" line="Asking every check how it's doing. Two ticks." />
     )
   ) : (
-    <Board key={mapId} map={map} filterOnly={mapId === 'pipeline' && only} picked={pickId} onPick={pick} zoom={zoom ?? (listOut ? 'actual' : 'fit')} onZoom={setZoom} label={meta.name} />
+    <Board key={mapId} map={map} filterOnly={mapId === 'pipeline' && only} picked={pickId} onPick={pick} zoom={zoom ?? 'actual'} onZoom={setZoom} label={meta.name} />
   );
 
   const center = (
