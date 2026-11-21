@@ -162,6 +162,8 @@ const projects = (await json('/projects')).projects ?? [];
 const prCounts = projects.map((p) => JSON.parse(sh('gh', ['pr', 'list', '--state', 'open', '--limit', '500', '--json', 'number'], p.repo) ?? 'null'));
 check('team', 'Open PRs', grab('team', /(\d+)\nopen PRs?/)?.[1], prCounts.every(Array.isArray) ? prCounts.reduce((a, l) => a + l.length, 0) : null);
 check('team', 'No "asks for you" (Needs you\'s word)', /asks? for you/.test(text.team) ? 'said' : 'not said', 'not said');
+const older = Number(grab('team', /(\d+) older asks?/)?.[1] ?? 0);
+if (older) check('team', `"Every ask is answered" not said while ${older} older asks are open`, /Every ask is answered/.test(text.team) ? 'said' : 'not said', 'not said');
 
 // ---- History: All is all ----------------------------------------------------
 const commits = Number(sh('git', ['rev-list', '--count', '--no-merges', checks.base]) ?? NaN) + Number(sh('git', ['rev-list', '--count', '--no-merges', 'HEAD'], ROOT) ?? NaN);

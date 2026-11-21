@@ -180,13 +180,14 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
       <Flow span={6}>
         <Card>
           <Flow gap={16}>
-            <SectionHead icon="Group" iconTone="warning" title="Waiting on you" number={asks.length} words={asks.length === 1 ? 'ask' : 'asks'} description="Every ask lands here. Reply to one, or to all" />
+            <SectionHead icon="Group" iconTone="warning" title="Waiting on you" number={asks.length} words={asks.length === 1 ? 'new ask' : 'new asks'} description="Every ask lands here. Reply to one, or to all" />
             {asks.length ? (
               <Flow as="ul" gap={8} aria-label="Asks waiting on you">
                 {asks.map((a) => askRow(a))}
               </Flow>
             ) : (
-              <EmptyState size="lane" mark="🍻" title="No one's waiting on you" line="Every ask is answered. Put the kettle on." />
+              // "every ask is answered" only when it is: older open asks are still asks (data sweep, 22 Nov)
+              <EmptyState size="lane" mark="🍻" title={older.length ? 'Nothing new this week' : "No one's waiting on you"} line={older.length ? `${older.length} older ${older.length === 1 ? 'ask is' : 'asks are'} still open, below.` : 'Every ask is answered. Put the kettle on.'} />
             )}
             {older.length ? (
               // the summary is short meta on one line (T5); the why is the first line inside
