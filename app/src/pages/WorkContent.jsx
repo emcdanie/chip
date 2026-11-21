@@ -188,7 +188,7 @@ function useMove({ open }) {
       if (runnable(card)) return plan(card);
     }
     if (from === 'now' && to === 'next' && going(card))
-      return save(card, 'next', { before, paused: true }, `Paused: ${card.title}. Saved in Next; ${card.kind === 'run' ? 'CHIP can’t stop a run between steps yet, so it finishes this one' : 'CHIP can’t stop a Claude app session itself, so it carries on until its agent reads the board'}.`, from);
+      return save(card, 'next', { before, paused: true }, `Paused: ${card.title}. Saved in Next; it ${card.kind === 'run' ? 'finishes the step it is on' : 'carries on until its agent reads the board'}.`, from);
     return save(card, to, { before }, to === from ? `Moved: ${card.title}. The new order is saved.` : `Moved to ${LANE_NAMES[to]}: ${card.title}.`, from);
   };
   const back = (card) => save(card, null, {}, `Put back: ${card.title}. It sits where CHIP found it.`);
