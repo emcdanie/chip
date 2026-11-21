@@ -485,11 +485,12 @@ function RolesTable({ rows, total }) {
     { key: 'contrast', label: 'Contrast', sortable: true, sortValue: (r) => r.ratio },
     {
       key: 'used',
-      label: 'Used by',
+      // the count under a "Parts" head, so the five columns fit from 768 with the swatch squares in (the head and
+      // "60 parts" made the table 51 too wide at 1024, cut with no cue; coordinator, 22 Nov)
+      label: 'Parts',
       numeric: true,
       sortable: true,
-      // "parts", not Figma's "components": the shorter word keeps the cell on one line at 1100
-      render: (r) => (r.used ? <Link href={r.firstPart ? `#/components/${r.firstPart}` : '#/components'}>{`${r.used} ${r.used === 1 ? 'part' : 'parts'}`}</Link> : 'Nothing'),
+      render: (r) => (r.used ? <Link href={r.firstPart ? `#/components/${r.firstPart}` : '#/components'}>{String(r.used)}</Link> : '0'),
     },
   ];
   return (
