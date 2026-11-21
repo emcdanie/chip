@@ -215,7 +215,8 @@ export default function ConnectorsContent() {
             {paths.map((p) => {
               const act = p.n.state === 'bad' ? <Button variant="secondary" size="sm" onClick={() => setSetup(p.n)}>Set up</Button> : testButton(p.n);
               // ListRow moves its button under the words on a narrow row by itself (parts-dev b69a5de)
-              return <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} status={<StateTag state={p.n.state} />} actionButton={act} />;
+              // ↗ opens the path's detail, the button tests it (READ FIRST [12]: arrows go, buttons do; Figma Flow 2, screen 7)
+              return <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} status={<StateTag state={p.n.state} />} actionButton={act} trailing="ArrowUpRight" onClick={() => setSetup(p.n)} />;
             })}
           </Flow>
           {compare ? (
@@ -234,7 +235,7 @@ export default function ConnectorsContent() {
             {/* one List item for every row, no card inside a card (20 Nov rule) */}
             <Flow gap={8} as="ul" aria-label="Need setup">
               {needs.map((n) => (
-                <ListRow key={n.id} title={nameOf(n)} description={why(n)} actionButton={<Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} />
+                <ListRow key={n.id} title={nameOf(n)} description={why(n)} actionButton={<Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} trailing="ArrowUpRight" onClick={() => setSetup(n)} />
               ))}
             </Flow>
           </Flow>
@@ -245,12 +246,13 @@ export default function ConnectorsContent() {
         side="right"
         open={!!setup}
         onClose={() => setSetup(null)}
-        label={setup ? `Set up ${nameOf(setup)}` : 'Set up'}
+        // a path that works opens under its own name; one that needs setup says so
+        label={setup ? (setup.state === 'ok' ? nameOf(setup) : `Set up ${nameOf(setup)}`) : 'Set up'}
         footer={setup ? <Flow direction="row" justify="end">{testButton(setup, 'Test it')}</Flow> : null}
       >
         {setup ? (
           // the drawer's title already names it, so the body opens with what to do; groups 24 apart (rule 10)
-          <Flow gap={24}>
+          <Flow gap={24} inset>
             <TextStack body={plainWords(setup.detail)} />
             {setup.id === 'figma-rest' && fileKey?.state === 'bad' ? <TextStack overline="File key" body={plainWords(fileKey.detail)} /> : null}
             {setup.dependents?.length ? <TextStack overline="Unlocks" body={setup.dependents.join(', ')} /> : null}
