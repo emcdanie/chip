@@ -343,9 +343,14 @@ function FixPlan({ part, detail, gaps, checked, onClose, onSent }) {
       }
     >
       <Flow gap={16}>
-        <SectionHead icon="WarningCircle" iconTone="warning" title={`${steps.length} ${steps.length === 1 ? 'step' : 'steps'} to fix`} showInfo={false} description={`${part.name} · ${pass} of ${part.checks.length} checks pass`} />
+        {/* plain content lands on the title's edge (Flow inset); the plan's rows bring their own 16 */}
+        <Flow inset>
+          <SectionHead icon="WarningCircle" iconTone="warning" title={`${steps.length} ${steps.length === 1 ? 'step' : 'steps'} to fix`} showInfo={false} description={`${part.name} · ${pass} of ${part.checks.length} checks pass`} />
+        </Flow>
         {editing ? (
-          <Input multiline label="The brief the agent gets" value={brief} onChange={setBrief} />
+          <Flow inset>
+            <Input multiline label="The brief the agent gets" value={brief} onChange={setBrief} />
+          </Flow>
         ) : (
           <Flow as="ul" gap={0} aria-label={`The plan for ${part.name}`}>
             {[...steps, { id: 'gate', title: 'Run the gate on the agent’s copy', line: 'Then a reviewer accepts or undoes it on Work' }].map((x, i, all) => (
