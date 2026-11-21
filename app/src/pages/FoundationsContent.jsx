@@ -35,6 +35,7 @@ import EmptyState from '@bella/components/EmptyState/EmptyState';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import DataTable from '@bella/components/DataTable/DataTable';
+import Tag from '@bella/components/Tag/Tag';
 import Link from '@bella/components/Link/Link';
 import SearchField from '@bella/components/SearchField/SearchField';
 import Flow from '../templates/Flow.jsx';
@@ -482,7 +483,29 @@ function RolesTable({ rows, total }) {
     // a swatch square per cell, the role's colour in that column's theme, its hex beside it in the number face
     { key: 'light', label: 'Light', sortable: true, kind: 'swatch', swatch: (r) => `var(${r.token})`, swatchTheme: 'chip-light' },
     { key: 'dark', label: 'Dark', sortable: true, kind: 'swatch', swatch: (r) => `var(${r.token})`, swatchTheme: 'chip-dark' },
-    { key: 'contrast', label: 'Contrast', sortable: true, sortValue: (r) => r.ratio },
+    // the contrast pill (her table pick, 22 Nov: "build it with our components"): a Tag with the ratio as its count
+    // (number face, the tone's ink), success when it clears 7:1 for a text role or 3:1 for any other, attention when
+    // not, and then the line under it says "below 7:1" in words, never colour alone. Grounds are the base, no ratio.
+    {
+      key: 'contrast',
+      label: 'Contrast',
+      sortable: true,
+      sortValue: (r) => r.ratio,
+      render: (r) => {
+        if (!r.ratio) return r.contrast;
+        const bar = /^--color-content-/.test(r.token) ? 7 : 3;
+        const ok = r.ratio >= bar;
+        // the pill holds the ratio alone; the ground it was measured on, or how far short it falls, sits under it
+        // in the subtext face, so the column stays the width of its head
+        const note = [ON[r.token] ? `on ${ON[r.token][1]}` : null, ok ? null : `below ${bar}:1`].filter(Boolean).join(', ');
+        return (
+          <Flow gap={4}>
+            <Tag tone={ok ? 'success' : 'attention'} count={`${r.ratio.toFixed(1)}:1`} />
+            {note ? <TextStack subtitle={note} /> : null}
+          </Flow>
+        );
+      },
+    },
     {
       key: 'used',
       label: 'Used by',
