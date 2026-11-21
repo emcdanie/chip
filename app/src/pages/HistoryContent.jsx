@@ -42,9 +42,9 @@ const TRAILER = /^\s*([\w-]+-by:|.*Generated with \[|🤖)/i;
 const plainWhy = (why) => (why ?? '').split('\n').filter((l) => !TRAILER.test(l)).join('\n').trim();
 
 const KINDS = ['Decision', 'Fix', 'Visual', 'Contract', 'Tokens', 'Tooling', 'Docs'];
-// one icon per kind, as Figma's Activity draws them: Tooling a gear, Visual an eye; Docs (a page) and
-// Tokens (a palette) stand in with Book and Sparks until BELLA has those glyphs (gap). Figma draws no
-// icon for Fix, Contract or Decision: never the done tick, which reads as a status.
+// one icon per kind, as Figma's Activity draws them: Tooling a gear, Visual an eye, Docs a page, Tokens a palette
+// (BELLA Step's own kind glyphs). Figma draws no icon for Fix, Contract or Decision: never the done tick, which
+// reads as a status.
 /* Each record kind as BELLA Step's kind marker (b2729ec): one deeper wash per kind with an ink glyph, a decision a dark ink
    circle, green only for Merged (her 19 Nov rule). A contract change is code. */
 const STEP_KIND = { Decision: 'decision', Fix: 'fix', Visual: 'visual', Contract: 'code', Tokens: 'tokens', Tooling: 'tooling', Docs: 'docs' };

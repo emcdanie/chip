@@ -796,7 +796,7 @@ function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, m
         </Flow>
       </Card>
     );
-  if (!fixes.length) return <EmptyState size="lane" mark="✨" title="Nothing to fix" line={`Every check ${part.name} answers to passes or isn't measured yet.`} />;
+  if (!fixes.length) return <EmptyState size="lane" mark="✅" title="Nothing to fix" line={`Every check ${part.name} answers to passes or isn't measured yet.`} />;
   const n = fixes.filter((f) => chosen.includes(f.id)).length;
   return (
     <>

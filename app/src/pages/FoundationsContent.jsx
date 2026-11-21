@@ -406,7 +406,7 @@ function Problems({ rows }) {
             })}
           </Flow>
         ) : (
-          <EmptyState size="lane" mark="✨" title="No token problems" line="Every value in the parts’ CSS reads a token." />
+          <EmptyState size="lane" mark="👌" title="No token problems" line="Every value in the parts’ CSS reads a token." />
         )}
         {said ? (
           <Toasts>

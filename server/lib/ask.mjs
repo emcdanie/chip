@@ -309,7 +309,7 @@ export function checkClaims(reply, texts) {
     if (!kept.length) return null;
     // never two full stops: the kept words lose their own end mark, the claim gets one
     let text = kept.join('; ').replace(/[.!?]+(\**)$/, '$1');
-    // a bold the model left open (or closed twice) never shows its stars
+    // a bold the model left open (or closed twice) never shows its asterisks
     if (((lead + text).match(/\*\*/g) ?? []).length % 2) text = text.replace(/\*\*(?=[^*]*$)/, '');
     return { lead, text, end: end || '.', lines: [...new Set(lines)] };
   };

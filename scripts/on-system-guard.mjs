@@ -154,6 +154,18 @@ if (strayCss.length) {
   process.exit(1);
 }
 
+// No sparkles, anywhere (Elleta, 22 Nov, a repeat: "NO sparkles"; CHIP CLAUDE.md): no ✨ and no Sparks, Stars or
+// Sparkle icon in app/src. Not a ratchet: one is enough to fail the commit.
+const SPARKLE = /✨|🌟|💫|['"](?:Sparks|Stars|Sparkle|Sparkles)['"]|\b(?:icon|mark|name)=["'{]?["']?(?:Sparks|Stars|Sparkle|Sparkles)\b/;
+const sparkles = files(SRC)
+  .flatMap((f) => readFileSync(f, 'utf8').split('\n').map((l, i) => [relative(ROOT, f), i + 1, l]))
+  .filter(([, , l]) => SPARKLE.test(l));
+if (sparkles.length) {
+  console.log(`on-system-guard: a sparkle in app/src. Commit blocked (no ✨, Sparks, Stars or Sparkle anywhere).`);
+  for (const [f, n, l] of sparkles) console.log(`  ${f}:${n}  ${l.trim().slice(0, 100)}`);
+  process.exit(1);
+}
+
 const now = count();
 const update = process.env.UPDATE_ON_SYSTEM_BASELINE === '1';
 const flat = (o) => Object.fromEntries(Object.entries(o).map(([f, r]) => [f, sorted(Object.fromEntries(Object.entries(r).map(([c, v]) => [c, v.n])))]));
