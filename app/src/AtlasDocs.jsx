@@ -280,7 +280,7 @@ function Proposal({ p, onOpenPr, onDiscard, onBack }) {
     <Card innerClassName="doc-edit">
       <div className="card-row">
         <p className="card-title">Proposed: {p.summary || p.branch}</p>
-        <StatusPill variant="success">gate green</StatusPill>
+        <StatusPill variant="success">Committed through the gate</StatusPill>
       </div>
       <p className="label">
         Branch <span className="mono">{p.branch}</span> in BELLA, one commit. Not pushed.

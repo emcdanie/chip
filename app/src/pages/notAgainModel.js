@@ -36,7 +36,8 @@ export function stepsOf(state, n, run) {
   const pairs = `${n} ${n === 1 ? 'pair' : 'pairs'}`;
   const found = { title: 'Trigger: Contrast check', detail: `Found ${n} ${n === 1 ? 'component' : 'components'} with colours and no pair.`, state: 'done' };
   const added = { title: 'The agent runs the script', detail: `Added ${pairs}, one commit.`, state: 'done' };
-  const gateWaits = { title: 'The gate', detail: '5 checks must pass.', state: 'pending' };
+  // never a typed count of checks (Measured, never typed): the gate's own list decides
+  const gateWaits = { title: 'The gate', detail: 'Every gate check must pass.', state: 'pending' };
   const keeper = { title: 'Maintainer', detail: 'Accept, or Undo.', state: 'pending' };
   if (state === 'suggested') return [{ ...found, detail: 'Finds a component with no pair declared.', state: 'pending' }, { ...added, detail: `Adds the ${pairs}, one commit.`, state: 'pending' }, gateWaits, keeper];
   if (state === 'running')

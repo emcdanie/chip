@@ -40,6 +40,8 @@ const FIX = {
   'inline font-family literal': 'Use a BELLA typography token, through a part.',
   'inline radius or shadow literal': 'Corners and shadows come from BELLA parts and tokens.',
   'kit defines a BELLA duplicate': 'BELLA has this part; use it and delete the kit copy.',
+  'bold sentence title': 'Pass a short title (the area or name) and put the sentence in the regular text; no whole sentence is ever bold.',
+  'typed measure': 'Compute the number or status from its source when the page loads (Measured, never typed).',
 };
 const fixFor = (c) => {
   if (FIX[c]) return FIX[c];
@@ -78,7 +80,7 @@ function tagEnd(s, from) {
   return s.length;
 }
 
-function scanJs(raw) {
+function scanJs(raw, isFixture = false) {
   const s = noComments(raw);
   const hits = [];
   for (const m of s.matchAll(/<(button|table|input|select|dialog)(?=[\s/>])/g)) hits.push([`<${m[1]}>`, m.index]);
@@ -102,6 +104,19 @@ function scanJs(raw) {
     if (/fontFamily\s*:\s*['"`]/.test(body)) hits.push(['inline font-family literal', m.index]);
     if (/(?:borderRadius|boxShadow)\s*:\s*(?!['"`]var\()['"`\d]/.test(body)) hits.push(['inline radius or shadow literal', m.index]);
   }
+  // a whole sentence as a bold title (her repeat, 22 Nov: "why is the font all bold?"): Step, ListRow and TaskCard
+  // set their title bold, so a typed title is a short name (an area, a part), never a sentence or over 40 characters
+  for (const m of s.matchAll(/<(Step|ListRow|TaskCard)\b/g)) {
+    const tag = s.slice(m.index, tagEnd(s, m.index));
+    const t = tag.match(/\btitle=(?:"([^"]*)"|'([^']*)'|\{\s*['"`]([^'"`$]*)['"`]\s*\})/);
+    const words = t ? (t[1] ?? t[2] ?? t[3] ?? '') : '';
+    if (words.length > 40 || /[.!?]\s+\S/.test(words)) hits.push(['bold sentence title', m.index]);
+  }
+  // a measure typed in (her rule "Measured, never typed", 22 Nov: 19 of 45 numbers were wrong): a count of
+  // parts, checks, runs… or a status like "gate green" written as text, where the data sweep has a source
+  // fixtures (*Fixture.js) are Figma's sample data for stories, so they may type numbers
+  if (!isFixture) for (const m of s.matchAll(/(["'>])([^"'<>{}`\n]*?(?:\b\d+(?: of \d+)? (?:parts|checks|components|pairs|tests|runs|tasks|commits|stories)\b|(?<!make the )\bgate (?:is )?green\b|\bon main\b)[^"'<>{}`\n]*)\1?/gi))
+    hits.push(['typed measure', m.index]);
   // the kit's own copies of parts BELLA has (frozen: may only go away)
   for (const m of s.matchAll(/export\s+(?:default\s+)?function\s+(StatusPill|DataTable|Card|PageHeader|Segmented|Sheet|Drawer)\b/g))
     hits.push(['kit defines a BELLA duplicate', m.index]);
@@ -134,7 +149,7 @@ function count() {
     const rel = relative(ROOT, f);
     if (EXEMPT[rel]) continue;
     const raw = readFileSync(f, 'utf8');
-    const hits = f.endsWith('.css') ? scanCss(raw) : scanJs(raw);
+    const hits = f.endsWith('.css') ? scanCss(raw) : scanJs(raw, /Fixture\.js$/.test(f));
     if (!hits.length) continue;
     const row = (out[rel] = {});
     for (const [c, i] of hits) (row[c] ??= { n: 0, lines: [] }), row[c].n++, row[c].lines.push(lineAt(raw, i));
@@ -163,6 +178,30 @@ const sparkles = files(SRC)
 if (sparkles.length) {
   console.log(`on-system-guard: a sparkle in app/src. Commit blocked (no ✨, Sparks, Stars or Sparkle anywhere).`);
   for (const [f, n, l] of sparkles) console.log(`  ${f}:${n}  ${l.trim().slice(0, 100)}`);
+  process.exit(1);
+}
+
+// A commit names its paths (CHIP CLAUDE.md "Shared checkouts", 22 Nov: two commits swept in another session's
+// staged files): in scripts, server code and package.json a `git commit` must give `-- <paths>`, or run in its own
+// temporary worktree (`git -C <dir> commit`). Not a ratchet.
+const COMMIT_DIRS = ['scripts', 'server', 'bin'].map((d) => join(ROOT, d));
+const codeFiles = (dir, out = []) => {
+  if (!existsSync(dir)) return out;
+  for (const f of readdirSync(dir).sort()) {
+    const p = join(dir, f);
+    if (f === 'node_modules' || f === 'test') continue;
+    if (statSync(p).isDirectory()) codeFiles(p, out);
+    else if (/\.(mjs|js|sh)$/.test(f)) out.push(p);
+  }
+  return out;
+};
+const bareCommits = [...COMMIT_DIRS.flatMap((d) => codeFiles(d)), join(ROOT, 'package.json')]
+  .filter((f) => existsSync(f) && f !== fileURLToPath(import.meta.url))
+  .flatMap((f) => noComments(readFileSync(f, 'utf8')).split('\n').map((l, i) => [relative(ROOT, f), i + 1, l]))
+  .filter(([, , l]) => (/\bgit\s+(?:-\S+\s+)*commit\b/.test(l) && !/\scommit\b[^\n]*\s--\s/.test(l) && !/git\s+-C\s/.test(l)) || (/['"]commit['"]/.test(l) && /['"]git['"]|\bsh\(|\bgit\(/.test(l) && !/['"]-C['"]/.test(l) && !/['"]--['"]/.test(l)));
+if (bareCommits.length) {
+  console.log('on-system-guard: a git commit without paths. Commit blocked (use git commit -- <paths>, or git -C <its own worktree>).');
+  for (const [f, n, l] of bareCommits) console.log(`  ${f}:${n}  ${l.trim().slice(0, 100)}`);
   process.exit(1);
 }
 
