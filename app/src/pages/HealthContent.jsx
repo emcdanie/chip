@@ -18,6 +18,7 @@ import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import Drawer from '@bella/components/Drawer/Drawer';
+import { planRun } from '../templates/RunPlan.jsx';
 import Marker from '@bella/components/Marker/Marker';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
@@ -81,6 +82,58 @@ function DriftCard({ components }) {
             <ListRow key={p.name} layout="stacked" statusBar={p.differ || p.specBehind.length || p.noSpec ? 'attention' : 'success'} title={p.name} description={driftLine(p)} trailing onClick={() => ((window.location.hash = `#/components/${encodeURIComponent(idOf(p.name))}`), setOpen(false))} />
           ))}
         </ListRowGroup>
+      </Drawer>
+    </>
+  );
+}
+
+/* Gaps: what BELLA can't do yet (her presentation, 22 Nov), measured from BELLA itself (/bella-gaps): parts drawn
+   and specified that have no code yet, and the parts AGENTS.md lists as not in BELLA. ↗ opens both lists; the
+   specified ones can be built: Plan the build opens the plan, and nothing runs until it is approved. */
+function GapsCard() {
+  const { data } = useCached(['/bella-gaps']);
+  const [open, setOpen] = useState(false);
+  const g = data?.[0] ?? null;
+  if (!g) return <NoData title="Gaps" icon="WarningCircle" context="What BELLA can't do yet" caption="Reading BELLA" />;
+  const total = g.notInCode.length + g.notInBella.length;
+  const brief = ['Build these BELLA parts in code from their specs (specs/components/<Name>.spec.yaml), one at a time, each with a story:', ...g.notInCode.map((n) => `- ${n}`), 'Follow BELLA AGENTS.md; no new tokens; ask before changing a public API.'].join('\n');
+  const plan = () => (setOpen(false), planRun({ title: `Build ${plural(g.notInCode.length, 'part')} from their specs`, from: 'Health · Gaps', brief, steps: g.notInCode.map((n) => ({ id: n, title: `Build ${n} from its spec` })) }).catch(() => {}));
+  return (
+    <>
+      <StatCard
+        title="Gaps"
+        icon="WarningCircle"
+        tone={total ? 'warning' : 'success'}
+        chart="none"
+        value={total}
+        unit={total === 1 ? 'part' : 'parts'}
+        context={`${g.notInCode.length} specified, not in code · ${g.notInBella.length} not in BELLA yet`}
+        caption="What BELLA can't do yet"
+        onOpen={() => setOpen(true)}
+      />
+      <Drawer
+        open={open}
+        onClose={() => setOpen(false)}
+        side="right"
+        size="lg"
+        label="Gaps"
+        status={`${plural(total, 'part')} BELLA can't give yet`}
+        footer={g.notInCode.length ? <Button variant="primary" onClick={plan}>Plan the build</Button> : undefined}
+      >
+        <Flow gap={24}>
+          <Flow gap={8}>
+            <SectionHead title="Specified, not in code" description={`${g.notInCode.length} parts have a spec from Figma and no code part yet`} showInfo={false} />
+            <ListRowGroup ariaLabel="Specified, not in code">
+              {g.notInCode.map((n) => <ListRow key={n} layout="inline" statusBar="attention" title={n} />)}
+            </ListRowGroup>
+          </Flow>
+          <Flow gap={8}>
+            <SectionHead title="Not in BELLA yet" description="Listed in BELLA's AGENTS.md: ask before building" showInfo={false} />
+            <ListRowGroup ariaLabel="Not in BELLA yet">
+              {g.notInBella.map((n) => <ListRow key={n} layout="inline" statusBar="neutral" title={n} />)}
+            </ListRowGroup>
+          </Flow>
+        </Flow>
       </Drawer>
     </>
   );
@@ -240,6 +293,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
         {/* ↗ opens the gate's recorded runs in Component checks and brings that card into view (click test 22 Nov: it switched the view out of sight, so it read as doing nothing) */}
         <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => (setView('gate'), requestAnimationFrame(() => [...document.querySelectorAll('[role="heading"], h2, h3')].find((h) => h.textContent === 'Component checks')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))) : undefined} />
         <DriftCard components={model.components ?? []} />
+        <GapsCard />
       </Flow>
       <Flow span={4} gap={24} fill>
         {contrast ? (
