@@ -200,15 +200,15 @@ const lastRun = (at) => {
 function Stats() {
   const w = useWeek();
   /* No run this week: the same Stat cards at zero, an empty bar and the footer
-     saying why (StatCard chart="empty", her 21 Nov pick A). */
+     saying why (StatCard chart="empty"; no number before a measure, 22 Nov 19:08). */
   if (w.total === 0)
     return (
       <>
         <Flow span={6} fill>
-          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Runs this week" value={0} context="Saved fixes run since Monday" caption="Nothing run yet this week" href="#/history" />
+          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Runs this week" context="Saved fixes run since Monday" caption="Nothing run yet this week" href="#/history" />
         </Flow>
         <Flow span={6} fill>
-          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Kept" value={0} context="Accept a fix and it lands here" caption="Undone runs stay in History" href="#/history" />
+          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Kept" context="Accept a fix and it lands here" caption="Undone runs stay in History" href="#/history" />
         </Flow>
       </>
     );

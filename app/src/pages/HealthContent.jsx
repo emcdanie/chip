@@ -38,17 +38,17 @@ function GateBanner({ run }) {
   return <Notification tone="danger" title="The gate" message={`Failed on ${run.failed}: ${run.why}`} />;
 }
 
-/* A card CHIP has no data for: the same Stat card at zero, an empty bar, and the
-   footer saying why (StatCard chart="empty", her 21 Nov pick A). */
-function NoData({ title, icon, of, context, caption, button }) {
-  return <StatCard title={title} icon={icon} tone="neutral" chart="empty" value={0} emptyTotal={of != null ? `of ${of}` : undefined} context={context} caption={caption} button={button} />;
+/* A card CHIP has no data for: no number before a measure, the empty bar, and the footer saying why
+   with its action (StatCard chart="empty", 22 Nov 19:08). */
+function NoData({ title, icon, context, caption, button }) {
+  return <StatCard title={title} icon={icon} tone="neutral" chart="empty" context={context} caption={caption} button={button} />;
 }
 
 /* Drift from BELLA as a Stat card (21 Nov publish): how many parts differ from
    Figma, the worst named, when it was compared and the action. Real data from
    /figma-baseline; with no baseline, the empty card (0 of the parts, her A). */
 const SHOW = 3;
-function DriftCard({ parts }) {
+function DriftCard() {
   const { data, reload } = useCached(['/figma-baseline']);
   const [busy, setBusy] = useState(false);
   const base = data?.[0] ?? null;
@@ -73,9 +73,10 @@ function DriftCard({ parts }) {
   // rule Real: "Where nothing is measured it says Not measured")
   // never compared at all is the same: Not measured
   if (!base?.at || (!rows.length && base.notRead === base.total))
-    return <StatCard title="Drift from BELLA" icon="Activity" tone="neutral" chart="empty" emptyCount="Not measured" emptyTotal="" context={base?.at ? "Figma couldn't be read for any part" : 'Not compared with Figma yet'} caption={base?.at ? `Tried ${new Date(base.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'Compare reads Figma'} button={button} />;
+    // the caption says when it was compared, or that it hasn't been
+    return <NoData title="Drift from BELLA" icon="Activity" context={base?.at ? "Figma couldn't be read for any part" : 'Parts that differ from Figma'} caption={base?.at ? `Tried ${new Date(base.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, not compared` : 'Not compared yet'} button={button} />;
   // Figma was read but holds none of the parts: measured, and none to compare
-  if (!rows.length) return <NoData title="Drift from BELLA" icon="Activity" of={parts} context="Parts that differ from Figma" caption="Figma had none of them" button={button} />;
+  if (!rows.length) return <NoData title="Drift from BELLA" icon="Activity" context="Figma had none of the parts" caption={`Compared ${new Date(base.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`} button={button} />;
   const worst = differ.slice(0, SHOW).map((r) => (r.score != null ? `${r.name} ${r.score}%` : r.name));
   return (
     <StatCard
@@ -246,7 +247,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
       <Flow span={4} gap={24} fill>
         {/* ↗ opens the gate's recorded runs in Component checks and brings that card into view (click test 22 Nov: it switched the view out of sight, so it read as doing nothing) */}
         <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => (setView('gate'), requestAnimationFrame(() => [...document.querySelectorAll('[role="heading"], h2, h3')].find((h) => h.textContent === 'Component checks')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))) : undefined} />
-        <DriftCard parts={n} />
+        <DriftCard />
       </Flow>
       <Flow span={4} gap={24} fill>
         {contrast ? (
