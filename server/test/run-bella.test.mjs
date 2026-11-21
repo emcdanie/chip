@@ -62,3 +62,60 @@ test('after an Accept: the touched parts, their specs rebuilt, Figma and CHIP da
     }
   }
 });
+
+/* The 22 Nov crash: CHIP's server runs with FORCE_COLOR=1, which made the commit hook's `console.log(port)` print
+   an escape sequence, so `wait-on tcp:127.0.0.1:<port>` crashed and every run died in the Storybook step. */
+test('a process CHIP starts gets plain output even when CHIP itself runs with FORCE_COLOR=1', async () => {
+  const was = process.env.FORCE_COLOR;
+  process.env.FORCE_COLOR = '1';
+  try {
+    const { sh } = await import('../lib/review.mjs');
+    const r = await sh(process.execPath, ['-e', 'console.log(61116)'], process.cwd());
+    assert.equal(r.out, '61116\n');
+    assert.ok(!r.out.includes('\x1b'));
+  } finally {
+    if (was === undefined) delete process.env.FORCE_COLOR;
+    else process.env.FORCE_COLOR = was;
+  }
+});
+
+test('packages: bella-parts’ own, with the one documented link to bella-chip-theme and nothing else', async () => {
+  const { packagesProblem } = await import('../lib/runs.mjs');
+  const { mkdtempSync, mkdirSync, symlinkSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'pk-'));
+  try {
+    mkdirSync(join(dir, 'bella/node_modules'), { recursive: true });
+    mkdirSync(join(dir, 'theme/node_modules'), { recursive: true });
+    mkdirSync(join(dir, 'other/node_modules'), { recursive: true });
+    assert.equal(packagesProblem(join(dir, 'bella'), join(dir, 'theme/node_modules')), null); // its own
+    rmSync(join(dir, 'bella/node_modules'), { recursive: true });
+    symlinkSync(join(dir, 'theme/node_modules'), join(dir, 'bella/node_modules'));
+    assert.equal(packagesProblem(join(dir, 'bella'), join(dir, 'theme/node_modules')), null); // the documented link
+    rmSync(join(dir, 'bella/node_modules'));
+    symlinkSync(join(dir, 'other/node_modules'), join(dir, 'bella/node_modules'));
+    assert.match(packagesProblem(join(dir, 'bella'), join(dir, 'theme/node_modules')), /not bella-parts/); // anything else
+    rmSync(join(dir, 'bella/node_modules'));
+    assert.match(packagesProblem(join(dir, 'bella'), join(dir, 'theme/node_modules')), /no readable node_modules/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('gate ready: the harness passes in CHIP’s own environment, FORCE_COLOR=1 included, with no model call', async () => {
+  const was = process.env.FORCE_COLOR;
+  process.env.FORCE_COLOR = '1';
+  try {
+    const { gateReady } = await import('../lib/runs.mjs');
+    const g = await gateReady();
+    const bad = g.checks.filter((c) => !c.ok);
+    // Claude sign-in and port 6006 are the machine's state; the harness checks are what this proves
+    const harness = bad.filter((c) => !['Claude Code signed in', 'Port 6006 free'].includes(c.name));
+    assert.deepEqual(harness, [], JSON.stringify(g.checks));
+    assert.ok(g.checks.some((c) => c.name === 'Gate port' && /bare number/.test(c.detail)));
+    assert.ok(g.checks.some((c) => c.name === 'wait-on' && c.ok));
+  } finally {
+    if (was === undefined) delete process.env.FORCE_COLOR;
+    else process.env.FORCE_COLOR = was;
+  }
+});

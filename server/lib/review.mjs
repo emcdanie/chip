@@ -10,7 +10,7 @@ import { appendFileSync, copyFileSync, existsSync, lstatSync, mkdirSync, readFil
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createConnection } from 'node:net';
-import { DATA_DIR, ROOT } from './config.mjs';
+import { DATA_DIR, ROOT, plainEnv } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
 import { BASE, measureBench, prepare, readResult, runCheck, staged } from './checks.mjs';
 import { gapFix } from './gaps.mjs';
@@ -417,9 +417,9 @@ export function reviewCard(checkId) {
   };
 }
 
-export const sh = (cmd, args, cwd) =>
+export const sh = (cmd, args, cwd, env = {}) =>
   new Promise((resolve) => {
-    const p = spawn(cmd, args, { cwd, env: { ...process.env, NO_COLOR: '1' } });
+    const p = spawn(cmd, args, { cwd, env: plainEnv(env) });
     let out = '';
     p.stdout.on('data', (d) => (out += d));
     p.stderr.on('data', (d) => (out += d));

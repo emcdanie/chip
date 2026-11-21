@@ -65,3 +65,9 @@ function notesDir() {
 }
 export const NOTES_DIR = notesDir();
 export const INBOX_DIR = join(ROOT, 'docs', 'reference', 'inbox');
+
+/* The environment for any process CHIP starts that may run BELLA's commit hook or its gate. CHIP's own server runs
+   with FORCE_COLOR=1, and NO_COLOR does not beat it: the hook captures a free port with `node -e "console.log(port)"`,
+   which Node then colours, so the gate's `wait-on tcp:127.0.0.1:<port>` got an escape sequence for a port and crashed
+   ("object null is not iterable") before any test ran: every run failed there (22 Nov). Plain text always. */
+export const plainEnv = (extra = {}) => ({ ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', ...extra });

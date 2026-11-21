@@ -8,7 +8,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, readFileSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ROOT } from './config.mjs';
+import { ROOT, plainEnv } from './config.mjs';
 import { bellaDir } from '../../scripts/lib/bella-dir.mjs';
 
 export const BELLA = bellaDir();
@@ -182,7 +182,7 @@ function applyEdit(dir, id, kind, content) {
 
 const run = (cmd, args, cwd) =>
   new Promise((resolve) => {
-    const p = spawn(cmd, args, { cwd, env: { ...process.env, NO_COLOR: '1' } });
+    const p = spawn(cmd, args, { cwd, env: plainEnv() });
     let out = '';
     p.stdout.on('data', (d) => (out += d));
     p.stderr.on('data', (d) => (out += d));

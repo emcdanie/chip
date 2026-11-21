@@ -8,9 +8,10 @@
 // or merges, and her BELLA checkout is never touched.
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
+import { createServer } from 'node:net';
 import { basename, join } from 'node:path';
-import { CHIP_CLAUDE_BIN, CHIP_CLAUDE_MODEL, DATA_DIR } from './config.mjs';
+import { CHIP_CLAUDE_BIN, CHIP_CLAUDE_MODEL, DATA_DIR, plainEnv } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
 import { BASE, prepare } from './checks.mjs';
 import { logAction, portBusy, sh, strip, visualBlockers } from './review.mjs';
@@ -70,6 +71,85 @@ const realBella = () => {
   }
 };
 
+/* A run's gate uses bella-parts' own installed packages. The one allowed exception, documented here: since 19 Nov
+   bella-parts/node_modules is a symlink to bella-chip-theme/node_modules (one install for both checkouts), so a run's
+   packages may resolve there and nowhere else. Anything else (a different checkout, another folder) stops the run
+   before the model is called. Returns why not, or null. `bella` is a parameter for the test. */
+export const PACKAGES_EXCEPTION = join(homedir(), 'DEV', 'bella-chip-theme', 'node_modules');
+export function packagesProblem(bella = BELLA, exception = PACKAGES_EXCEPTION) {
+  try {
+    const real = realpathSync(join(bella, 'node_modules'));
+    const own = realpathSync(bella);
+    if (real.startsWith(`${own}/`) || real === realpathSync(exception)) return null;
+    return `A run's packages come from ${real}, not bella-parts (the only allowed link is ${exception})`;
+  } catch (e) {
+    return `bella-parts has no readable node_modules (${e.code ?? e.message}): run npm ci there`;
+  }
+}
+
+/* "Gate ready": the gate's harness checked without the model, so a paid run cannot fail for a harness reason (22 Nov:
+   every run died in the Storybook step because CHIP's FORCE_COLOR=1 coloured the commit hook's port number). Quick: BELLA
+   and packages, Claude signed in, the visual audit's port free, the hook's port capture giving a bare number in CHIP's
+   own environment, and wait-on reaching a listener on that port. deep: also an empty commit through the full gate in
+   a throwaway worktree (minutes). Nothing is pushed, and the branch and worktree are removed. */
+export async function gateReady({ deep = false } = {}) {
+  const checks = [];
+  const add = (name, ok, detail) => checks.push({ name, ok: !!ok, detail });
+  const wrong = runBellaProblem({ dir: realBella(), base: BASE });
+  add('BELLA checkout', !wrong, wrong ?? `${basename(realBella())} on ${BASE}`);
+  const pk = packagesProblem();
+  add('Packages', !pk, pk ?? 'bella-parts’ own (through the one allowed link)');
+  const ready = claudeReady();
+  add('Claude Code signed in', ready.ok, ready.ok ? ready.how : ready.why);
+  const busy = await portBusy(6006);
+  add('Port 6006 free', !busy, busy ? 'a Storybook is running there' : 'free');
+  // the hook's own port capture, in CHIP's own environment
+  let raw = null;
+  try {
+    const hook = readFileSync(join(git(['rev-parse', '--git-common-dir']).trim(), 'hooks', 'pre-commit'), 'utf8');
+    const line = hook.match(/^BELLA_SB_PORT=\$\(.*\)$/m)?.[0];
+    if (!line) add('Gate port', true, 'the hook does not capture a port');
+    else {
+      const r = await sh('sh', ['-c', `${line}; printf %s "$BELLA_SB_PORT"`], BELLA);
+      raw = r.out.trim();
+      add('Gate port', /^\d+$/.test(raw), /^\d+$/.test(raw) ? `a bare number (${raw})` : `not a number: ${JSON.stringify(raw)}`);
+    }
+  } catch (e) {
+    add('Gate port', false, `the commit hook could not be read: ${e.message}`);
+  }
+  // wait-on, as the gate calls it, against a listener on that port
+  if (/^\d+$/.test(raw ?? '')) {
+    const srv = createServer();
+    await new Promise((done) => srv.listen(Number(raw), '127.0.0.1', done).on('error', done));
+    const w = await sh('sh', ['-c', 'node_modules/.bin/wait-on tcp:127.0.0.1:${BELLA_SB_PORT:-6006} -t 8000'], BELLA, { BELLA_SB_PORT: raw });
+    srv.close();
+    add('wait-on', w.code === 0, w.code === 0 ? 'reaches the port' : strip(w.out).trim().split('\n').at(-1));
+  }
+  if (deep && checks.every((c) => c.ok)) {
+    const branch = `chip/gate-ready-${Date.now().toString(36)}`;
+    const dir = join(tmpdir(), 'chip-runs', branch.replace(/\//g, '__'));
+    mkdirSync(join(tmpdir(), 'chip-runs'), { recursive: true });
+    try {
+      prepare(dir, { branch, withStaged: false });
+      const cm = await sh('git', ['-C', dir, 'commit', '-q', '--allow-empty', '-m', 'gate ready: no change'], dir);
+      add('Full gate on an empty commit', cm.code === 0, cm.code === 0 ? 'green' : strip(cm.out).trim().split('\n').slice(-3).join(' | '));
+    } catch (e) {
+      add('Full gate on an empty commit', false, e.message);
+    } finally {
+      try {
+        if (lstatSync(join(dir, 'node_modules')).isSymbolicLink()) unlinkSync(join(dir, 'node_modules'));
+      } catch {}
+      try {
+        git(['worktree', 'remove', '--force', dir]);
+      } catch {}
+      try {
+        git(['branch', '-D', branch]);
+      } catch {}
+    }
+  }
+  return { ok: checks.every((c) => c.ok), deep, checks };
+}
+
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'brief';
 const public_ = ({ child, ...r }) => r;
 export const getRun = (id) => (runs.has(id) ? public_(runs.get(id)) : null);
@@ -94,7 +174,7 @@ function stepOf(tool) {
 export async function startRun({ brief, title, from, approved, dryRun = false }) {
   if (approved !== true) throw new Error('A run starts only from its approved plan. Open the plan, then Approve plan');
   if (typeof brief !== 'string' || brief.trim().length < 10) throw new Error('No brief to run');
-  const wrong = runBellaProblem({ dir: realBella(), base: BASE });
+  const wrong = runBellaProblem({ dir: realBella(), base: BASE }) ?? packagesProblem();
   if (wrong) throw new Error(wrong);
   const busy = [...runs.values()].find((r) => ['starting', 'running', 'gate'].includes(r.status));
   if (busy) throw new Error(`Another run is still going: “${busy.title}”. It has to finish first (the gate needs port 6006).`);
@@ -136,6 +216,10 @@ async function go(run) {
   try {
     step(run, `Making ${run.branch} from ${BASE}`);
     prepare(dir, { branch: run.branch, withStaged: false });
+    // the gate's harness is checked before any model call: a run must not spend plan usage to find a broken harness
+    step(run, 'Checking the gate is ready');
+    const ready = await gateReady();
+    if (!ready.ok) throw new Error(`The gate is not ready: ${ready.checks.filter((c) => !c.ok).map((c) => `${c.name}: ${c.detail}`).join('; ')}`);
     // a dry run (tests, the demo check) goes this far and stops before the paid model call
     if (run.dryRun) {
       step(run, null);
@@ -205,7 +289,7 @@ async function go(run) {
 function claude(run, prompt, cwd) {
   return new Promise((resolve) => {
     const args = ['-p', prompt, '--model', CHIP_CLAUDE_MODEL, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'acceptEdits', '--allowedTools', ...ALLOW, '--disallowedTools', ...DENY];
-    const child = spawn(CHIP_CLAUDE_BIN, args, { cwd, env: { ...process.env, NO_COLOR: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(CHIP_CLAUDE_BIN, args, { cwd, env: plainEnv(), stdio: ['ignore', 'pipe', 'pipe'] });
     run.child = child;
     let buf = '';
     let err = '';
