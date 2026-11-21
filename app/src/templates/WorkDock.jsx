@@ -128,6 +128,8 @@ export default function WorkDock() {
   const talk = useTalk(setDraft);
   // under 400 the field's hint is shorter, so it shows whole beside Talk (its label says what it asks)
   const tiny = useNarrow(400);
+  // on a phone the panel rises from the bottom as a sheet (Drawer side bottom, 22 Nov); lg is the tall sheet
+  const phone = useNarrow();
 
   useEffect(() => {
     try {
@@ -291,7 +293,7 @@ export default function WorkDock() {
   ) : null;
   return (
     <>
-      <Drawer open={open} onClose={() => setOpen(false)} side="right" size="lg" label="Work" status={statusWords} action={action} footer={composer}>
+      <Drawer open={open} onClose={() => setOpen(false)} side={phone ? 'bottom' : 'right'} size="lg" label="Work" status={statusWords} action={action} footer={composer}>
         <Flow gap={16}>
           <Tabs tabs={tabs} value={tab} onChange={setTab} label="Work panel" idBase="work-dock" />
           <div {...tabPanelProps('work-dock', tab, true)}>{body}</div>
