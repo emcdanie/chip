@@ -243,7 +243,8 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
         )}
       </Flow>
       <Flow span={4} gap={24} fill>
-        <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => setView('gate') : undefined} />
+        {/* ↗ opens the gate's recorded runs in Component checks and brings that card into view (click test 22 Nov: it switched the view out of sight, so it read as doing nothing) */}
+        <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => (setView('gate'), requestAnimationFrame(() => [...document.querySelectorAll('[role="heading"], h2, h3')].find((h) => h.textContent === 'Component checks')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))) : undefined} />
         <DriftCard parts={n} />
       </Flow>
       <Flow span={4} gap={24} fill>
