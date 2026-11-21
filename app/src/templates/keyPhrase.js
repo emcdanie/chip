@@ -16,7 +16,7 @@
 const VERBS = new Set(
   ('opens shows sits share shares moves gets reads follow follows fills wraps stays says finds keeps scrolls ' +
     'carries suggests rewrites goes becomes appears grows draws switches matches reaches clears fails leaves adds ' +
-    'waits explains sends loads saves fits brings takes jumps recomputes updates syncs is are has have get gets sit').split(' '),
+    'waits explains sends loads saves fits brings takes jumps recomputes updates syncs lands sets aligns hides links returns lets allows makes tells gives offers asks is are has have get gets sit').split(' '),
 );
 const AMBIG = new Set(
   ('open show fill read move keep run runs line lines count counts name names list lists point points end ends ' +
