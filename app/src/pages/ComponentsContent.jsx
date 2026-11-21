@@ -731,8 +731,10 @@ function ChecksCard({ part, detail, touch }) {
   // their result in place until one is drawn (user test 21 Nov, item 1)
   // Story opens the part's first story (BELLA's Storybook index, /stories); Docs its docs page
   const { data: sb } = useCached(['/stories']);
-  const firstStory = part.storyUrl ? sb?.[0]?.first?.[part.storyUrl.match(/\/docs\/(.+)--docs/)?.[1]] : null;
-  const linkFor = (k) => (k.id === 'story' && firstStory ? part.storyUrl.replace(/\/docs\/.+$/, `/story/${firstStory}`) : k.id === 'docs' && part.storyUrl ? part.storyUrl : null);
+  // ids from the index of the Storybook the link opens (/stories), by part name, never the local build's
+  const ids = sb?.[0]?.parts?.[part.name];
+  const sbBase = sb?.[0]?.base;
+  const linkFor = (k) => (!sbBase || !ids ? null : k.id === 'story' && ids.first ? `${sbBase}?path=/story/${ids.first}` : k.id === 'docs' && ids.docs ? `${sbBase}?path=/docs/${ids.docs}` : null);
   const weakest = detail.anatomy.filter((x) => x.contrast).sort((x, y) => x.contrast.ratio - y.contrast.ratio)[0];
   const checks = checksWithTouch(part, touch);
   // Figma's seven rows: the six checks, then Figma set, which counts (5 of 7 while CHIP can't reach Figma)
