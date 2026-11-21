@@ -27,6 +27,7 @@ import { planRun } from '../templates/RunPlan.jsx';
 import { Words, AnswerLines } from '../templates/useAsk.jsx';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import { TermScreen } from '../Terminal.jsx';
+import { keyPhrases } from '../templates/keyPhrase.js';
 
 const POST = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' };
 // when it ran, with its day: "today 10:26", "20 Nov, 19:04"
@@ -157,12 +158,13 @@ function shapeNotes(t) {
       const label = m[1].replace(/[.:]$/, '');
       const first = m[2].split(/(?<=[.!?])\s+/)[0];
       if (/your say|want you|should I|\?\s*$/i.test(m[2])) questions.push({ label, line: first });
-      else points.push(`**${label}:** ${first}`);
+      else points.push(`${label}: ${first}`);
     }
   }
-  // the key phrase only, never the whole line: its first words (bold is for key words, rules 22 Nov)
-  const bold = verdict.replace(/^((?:\S+\s){0,2}\S+)/, '**$1**');
-  const asks = questions.map((q) => `**${q.label}:** ${q.line}`);
+  // the words that say the outcome, by the same rule as History (the marker marks what matters, 22 Nov)
+  const key = keyPhrases(verdict, { max: 1 })[0];
+  const bold = key ? `${verdict.slice(0, key.at)}**${key.text}**${verdict.slice(key.at + key.text.length)}` : verdict;
+  const asks = questions.map((q) => `${q.label}: ${q.line}`);
   return { verdict: bold, bullets: [...asks, ...points, ...sentences.slice(1)].slice(0, 3), questions, all: text };
 }
 
@@ -221,7 +223,7 @@ function shapeOf(item, d) {
       title: d.title,
       status: ['Agent', d.from ? `from ${d.from}` : null, d.startedAt ? `ran ${when(d.startedAt)}` : null].filter(Boolean).join(' · '),
       // the outcome in one plain line: a gate stop names its tests and file; the agent's notes fold, whole
-      outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d).line : `**Stopped:** ${String(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}. Nothing was kept.`) : d.status === 'kept' ? '**Accepted:** the branch is kept.' : d.status === 'passed' ? (firstLine(d.summary) ? `**Gate passed:** ${firstLine(d.summary)}` : '**The gate passed.**') : d.step || 'Working.',
+      outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d).line : `Stopped: ${String(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}. **Nothing was kept.**`) : d.status === 'kept' ? 'Accepted: **the branch is kept**.' : d.status === 'passed' ? (firstLine(d.summary) ? `**Gate passed**: ${firstLine(d.summary)}` : '**The gate passed.**') : d.step || 'Working.',
       gate: d.gate?.passed ? `Gate passed · ${d.sha ? '1 commit' : 'no commit'}` : failed && d.gate && d.gate.passed === false ? gateReason(d).facts : null,
       notes: d.summary ?? null,
       // what the change shows, in one line: what the agent wrote and what the gate made of it

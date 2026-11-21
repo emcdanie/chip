@@ -59,7 +59,7 @@ Answer ONLY from the sources in the message (each starts with "[n] <title>"). Ru
 - Some CHIP docs describe the April 2026 hackathon demo (47 components, iOS/Android parity, Jira tickets). That scenario is synthetic. Never report its numbers as real; if it is the only match, say it is demo data.
 - Jira, Figma, Zeroheight and live Storybook are not connected. Say so if asked about them.
 
-Format (answers are scanned, not read): the first line is the verdict, one sentence, with its key phrase in **bold**. Then at most 3 "- " bullets with the detail, each starting with a short bold label and a colon ("- **Label:** the fact"), with numbers only as the sources give them, never from this example.
+Format (answers are scanned, not read): the first line is the verdict, one sentence, with **bold** on the two to four words that say the outcome or the number ("**3 of 12** parts fail", "Button **clears AAA**"), never on a part name, a title or a label. Then at most 3 "- " bullets with the detail, each starting with a short plain label and a colon ("- Label: the fact"), with numbers only as the sources give them, never from this example.
 - The verdict states the key fact the bullets rest on. Never write "not stated" or "not mentioned" in a verdict whose bullets give facts. No headings, no other bold. Under 90 words. Last line: "Next: " then two short follow-up questions the same sources can answer, separated by " | ".`;
 
 // the SYSTEM prompt's fallback line, cut where it starts (a record's answer never carries it)
@@ -426,7 +426,7 @@ export function dataAnswer(message) {
         const cp = d.gates?.contrastPairs;
         // said truly (audit 21 Nov): checks across pairs, never "N pairs pass" (429 checks are 105 pairs in 4 themes)
         const contrast = cp ? contrastWords(cp) : null;
-        const findings = [...without.slice(0, 8).map((n) => ({ text: `**${n}** has no a11y notes`, ok: false })), ...(without.length > 8 ? [{ text: `${without.length - 8} more without a11y notes`, ok: false }] : []), { text: `**${parts.length - without.length} others** have a11y notes`, ok: true }, ...(cp ? [{ text: `Contrast pairs: ${contrast}`, ok: cp.ok !== false }] : [])];
+        const findings = [...without.slice(0, 8).map((n) => ({ text: `${n} has no a11y notes`, ok: false })), ...(without.length > 8 ? [{ text: `${without.length - 8} more without a11y notes`, ok: false }] : []), { text: `**${parts.length - without.length} others** have a11y notes`, ok: true }, ...(cp ? [{ text: `Contrast pairs: ${contrast}`, ok: cp.ok !== false }] : [])];
         const a11yLine = `- **A11y:** ${st.score}%${/^(\d+)\/(\d+)/.test(st.basis) ? `, ${st.basis.match(/^(\d+)\/(\d+)/)[1]} of ${st.basis.match(/^(\d+)\/(\d+)/)[2]} parts have a11y notes and no failing contrast pair` : ''} [1].`;
         const contrastLine = cp ? `- **Contrast:** ${contrast} [1].` : null;
         const reply = [without.length ? `**Add a11y notes** to the ${without.length} parts without them [1].` : `**Every part has a11y notes** [1].`, a11yLine, without.length ? `- **Without notes:** ${list(without)} [1].` : null, contrastLine].filter(Boolean).join('\n');
@@ -434,9 +434,9 @@ export function dataAnswer(message) {
         return { reply, sources: [source(findings, `A11y station: ${st.score}% (${st.assessment}). ${st.basis}.`, backsFor)], next: ['Which parts lack a11y notes?', 'Which gates fail?'] };
       }
       const reply = st.score == null
-        ? `**${st.name} has no score**: it is ${st.assessment} [1].\n- **Why:** ${st.basis} [1].`
-        : `**${st.name} is at ${st.score}%** [1].\n- **Measured:** ${st.basis} [1].`;
-      return { reply, sources: [source([{ text: `**${st.name}**: ${st.score == null ? 'no score' : `${st.score}%`} (${st.assessment})`, ok: st.score != null && st.score >= 90 }, { text: st.basis }], `${st.name}: ${st.basis}.`)], next: ['How could BELLA raise its A11y score?', 'Which gates fail?'] };
+        ? `${st.name} has **no score**: it is ${st.assessment} [1].\n- **Why:** ${st.basis} [1].`
+        : `${st.name} is at **${st.score}%** [1].\n- **Measured:** ${st.basis} [1].`;
+      return { reply, sources: [source([{ text: `${st.name}: **${st.score == null ? 'no score' : `${st.score}%`}** (${st.assessment})`, ok: st.score != null && st.score >= 90 }, { text: st.basis }], `${st.name}: ${st.basis}.`)], next: ['How could BELLA raise its A11y score?', 'Which gates fail?'] };
     }
   }
   // the contrast gate: how many, does it pass (the model once said "429 pairs pass"; it is 429 checks across 105 pairs)
@@ -479,7 +479,7 @@ export function dataAnswer(message) {
   const having = parts.filter((c) => c[check.key]).map((c) => c.name);
   const wantHave = !LACK.test(q) && HAVE.test(q);
   const shown = wantHave ? having : lacking;
-  const findings = [...lacking.slice(0, 8).map((n) => ({ text: `**${n}** has no ${check.noun.replace(/^an? /, '')}`, ok: false })), ...(lacking.length > 8 ? [{ text: `${lacking.length - 8} more without`, ok: false }] : []), { text: `**${having.length} others** have ${check.noun}`, ok: true }];
+  const findings = [...lacking.slice(0, 8).map((n) => ({ text: `${n} has no ${check.noun.replace(/^an? /, '')}`, ok: false })), ...(lacking.length > 8 ? [{ text: `${lacking.length - 8} more without`, ok: false }] : []), { text: `**${having.length} others** have ${check.noun}`, ok: true }];
   const verdict = shown.length
     ? `**${shown.length} of ${parts.length} parts** ${wantHave ? 'have' : 'lack'} ${check.noun} [1].`
     : `**No part** ${wantHave ? 'has' : 'lacks'} ${check.noun} [1].`;

@@ -214,11 +214,13 @@ export function Words({ text, onPin }) {
     .split(/(\*\*[^*]+\*\*|\[\d+\])/)
     .filter(Boolean);
   const pin = (bit, i) => <Pin key={i} number={bit.slice(1, -1)} variant="red" pinStyle="solid" ariaLabel={`Open source ${bit.slice(1, -1)}`} onClick={onPin ? (e) => onPin(Number(bit.slice(1, -1)), e.currentTarget, text) : undefined} />;
-  // bold is for key words only, with BELLA's blue Marker (rules, 22 Nov): a marked phrase of more than
+  // the marker marks what matters (rules, 22 Nov): the outcome or number, never a label; a phrase of more than
   // four words is a sentence, so it reads plain instead of turning a whole line bold
   const word = (bit, i) => {
     if (!/^\*\*/.test(bit)) return bit;
     const phrase = bit.slice(2, -2);
+    // the marker marks what matters, never a label ("Why:", "Measured:"): a bold label reads plain
+    if (/:\s*$/.test(phrase)) return phrase;
     return phrase.trim().split(/\s+/).length <= 4 ? <Marker key={i}>{phrase}</Marker> : phrase;
   };
   const out = [];

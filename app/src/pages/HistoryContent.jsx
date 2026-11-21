@@ -10,6 +10,7 @@
 // Actions that run the agent (Ask) wait for the Menu part for the model menu
 // (Auto, local first).
 import Marker from '@bella/components/Marker/Marker';
+import { keyPhrases } from '../templates/keyPhrase.js';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -212,7 +213,7 @@ function Activity({ records, total, open, onOpen, fit }) {
               <Fragment key={r.id}>
                 {head ? <StepDay>{head}</StepDay> : null}
                 <Step
-                  title={<Keyed text={plain(r.title)} k={keyOf(plain(r.title), r.components)} />}
+                  title={<Keyed text={plain(r.title)} names={r.components} />}
                   time={time(r.date)}
                   // a Tag only where nothing else says it (audit 4, item 4): Merged is what Activity
                   // is made of, so only the other statuses get one; the open record keeps its own
@@ -265,28 +266,21 @@ const firstSentence = (t) => {
   return str;
 };
 
-/* Bold is for key words only (Elleta, 22 Nov: "only keywords, which were supposed to have the blue
-   underline thing"): a record's title reads regular and its one key word is bold, with BELLA's blue Marker.
-   The key word is the part the record names (git's own list of parts it touched), else the area before
-   the title's colon ("Scripts: …"); none when neither is there. Never more than one per line. */
-const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const keyOf = (title, components = []) => {
-  const t = String(title ?? '');
-  const part = [...components].sort((a, b) => b.length - a.length).find((c) => new RegExp(`\\b${esc(c)}\\b`).test(t));
-  if (part) return part;
-  return t.match(/^([^:]{2,32}):\s/)?.[1] ?? null;
-};
-function Keyed({ text, k }) {
+/* The keyword marker marks what matters (CHIP rules, 22 Nov): the few words of a title or Why that say
+   what changed, the number or the outcome, so a record can be scanned. Never the part name or the area
+   before the colon. The words come from the record's own sentence by a tested rule (templates/keyPhrase.js). */
+function Keyed({ text, names }) {
   const t = String(text ?? '');
-  const at = k ? t.search(new RegExp(`\\b${esc(k)}\\b`)) : -1;
-  if (at < 0) return t;
-  return (
-    <>
-      {t.slice(0, at)}
-      <Marker>{t.slice(at, at + k.length)}</Marker>
-      {t.slice(at + k.length)}
-    </>
-  );
+  const marks = keyPhrases(t, { names });
+  if (!marks.length) return t;
+  const out = [];
+  let from = 0;
+  marks.forEach((m, i) => {
+    out.push(t.slice(from, m.at), <Marker key={i}>{m.text}</Marker>);
+    from = m.at + m.text.length;
+  });
+  out.push(t.slice(from));
+  return <>{out}</>;
 }
 
 /* "Help me understand" for one file of the change (her 19 Nov mock; READ FIRST "Code as proof"): a step
@@ -464,7 +458,7 @@ function Record({ id, fit, landing }) {
           </Flow>
           {/* Figma: the record's title at the subsection size, the biggest thing in the record */}
           {/* Figma draws the record title as Text stack Title (20 regular); an h2 for the record (TextStack titleAs, parts 111fc0c) */}
-          <TextStack titleAs="h2" title={<Keyed text={plain(rec.title)} k={keyOf(plain(rec.title), rec.components)} />} />
+          <TextStack titleAs="h2" title={<Keyed text={plain(rec.title)} names={rec.components} />} />
           {/* the counts, once, under the title (her note, 21 Nov: "should these not be at the top").
               Gap: no BELLA part sets numbers in Geist Mono and words in Lexend on one line, so the
               line is TextStack's meta line for now */}
@@ -498,9 +492,9 @@ function Record({ id, fit, landing }) {
               const rest = [lines[0].slice(first.length).trim(), ...lines.slice(1)].filter(Boolean);
               return (
                 <Flow gap={4} as="span">
-                  {/* one key word in the Why too, the same one as the title's where the Why names it */}
+                  {/* the Why's first sentence marked by the same rule: what changed, not the part */}
                   <span>
-                    <Keyed text={first} k={[keyOf(plain(rec.title), rec.components), ...(rec.components ?? [])].find((k) => k && new RegExp(`\\b${esc(k)}\\b`).test(first))} />
+                    <Keyed text={first} names={rec.components} />
                   </span>
                   {rest.length ? (
                     <Disclosure flush title="Exact words">
