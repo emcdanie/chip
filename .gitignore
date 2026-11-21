@@ -68,6 +68,7 @@ Thumbs.db
 /data/runs/
 /data/work-board.json
 /data/ci-runs.json
+/data/drift-history.json
 /data/actions.jsonl
 
 # Playground briefs: her notes on her pages, local only

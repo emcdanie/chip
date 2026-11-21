@@ -77,21 +77,19 @@ function gateDays(checks) {
   };
   for (const r of checks?.ci ?? []) if (r.status === 'completed') at(r.createdAt).ci.push(r);
   for (const r of checks?.log ?? []) at(r.ranAt).chip.push(r);
-  const word = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   return [...by.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
     .slice(0, 6)
     .map(([k, d]) => {
       const ciPassed = d.ci.filter((r) => r.conclusion === 'success').length;
       const chipPassed = d.chip.filter((r) => r.ok).length;
-      const commits = [...new Set(d.chip.map((r) => r.commit).filter(Boolean))];
       const failed = d.chip.filter((r) => !r.ok).map((r) => r.name);
-      const parts = [
-        d.ci.length ? `GitHub CI: ${ciPassed} of ${word(d.ci.length, 'run', 'runs')} passed` : null,
-        d.chip.length ? `CHIP: ${chipPassed} of ${word(d.chip.length, 'gate check run', 'gate check runs')} passed${commits.length ? ` on ${commits.join(', ')}` : ''}${failed.length ? `; failed: ${[...new Set(failed)].join(', ')}` : ''}` : null,
-      ].filter(Boolean);
       const runs = d.ci.length + d.chip.length;
-      return { id: k, title: WEEKDAY(d.iso), runs, passed: ciPassed + chipPassed, line: parts.join(' · ') };
+      const passed = ciPassed + chipPassed;
+      // plain words (pin 6): "57 of 58 passed, 1 failed: contracts"; the commit ids stay on the day as data, not in the text
+      const commits = [...new Set(d.chip.map((r) => r.commit).filter(Boolean))];
+      const line = `${passed} of ${runs} passed${runs > passed ? `, ${runs - passed} failed${failed.length ? `: ${[...new Set(failed)].join(', ')}` : ''}` : ''}`;
+      return { id: k, title: WEEKDAY(d.iso), runs, passed, line, commits };
     });
 }
 

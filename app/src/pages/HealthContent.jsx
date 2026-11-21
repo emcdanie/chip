@@ -11,6 +11,8 @@ import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import StatCard from '@bella/components/StatCard/StatCard';
+import Stat from '@bella/components/Stat/Stat';
+import Progress from '@bella/components/Progress/Progress';
 import SystemHealth from '@bella/components/SystemHealth/SystemHealth';
 import CheckRow from '@bella/components/CheckRow/CheckRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
@@ -85,6 +87,9 @@ function DriftCard({ components }) {
     if (p) planRun(driftPlan(p)).catch(() => {});
   };
   const d = data?.[0] ?? null;
+  const hist = d?.history ?? [];
+  const prev = hist.length > 1 ? hist.at(-2) : null;
+  const kinds = d?.total ? [{ label: 'Differ from Figma', n: d.drifting }, { label: 'Spec behind the code', n: d.specBehind }, { label: 'No spec', n: d.noSpec }].sort((a, b) => b.n - a.n) : [];
   if (!d?.total) return <NoData title="Drift from BELLA" icon="Activity" context="Parts that differ from Figma, spec or code" caption={d ? 'No parts found' : 'Reading the specs'} />;
   const idOf = (name) => components.find((c) => c.name === name)?.id ?? name.replace(/(?<=[a-z])(?=[A-Z])/g, '-').toLowerCase();
   const day = d.at ? new Date(d.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
@@ -97,11 +102,31 @@ function DriftCard({ components }) {
         chart="none"
         value={d.differing}
         unit={`of ${d.total}`}
-        context={`${d.drifting} differ from Figma · ${d.specBehind} specs behind the code · ${d.noSpec} with no spec`}
+        context="Parts that differ from Figma, their spec or their code"
         caption={day ? `Specs from ${day} · ${d.total - d.compared} not read from Figma` : `${d.total - d.compared} not read from Figma`}
         onOpen={() => setOpen(true)}
       />
       <Drawer open={open} onClose={closed} side="right" size="lg" label="Drift from BELLA" status={`${d.differing} of ${d.total} parts differ · most first`}>
+        <Flow gap={24}>
+          {/* since the last check: the trend arrow and the mini chart from the snapshots CHIP keeps (/drift history);
+              with one snapshot there is no change to show yet */}
+          <Stat
+            label="Parts that differ"
+            value={d.differing}
+            unit={`of ${d.total}`}
+            series={hist.length > 1 ? hist.map((x) => x.differing) : undefined}
+            seriesLabels={hist.length > 1 ? hist.map((x) => new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ` ${new Date(x.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`) : undefined}
+            delta={prev ? `${Math.abs(d.differing - prev.differing) || 'No'} ${d.differing === prev.differing ? 'change' : d.differing < prev.differing ? 'fewer' : 'more'} since the last check, ${new Date(prev.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'First check kept: the change shows once BELLA moves'}
+            trend={prev && d.differing !== prev.differing ? (d.differing < prev.differing ? 'down' : 'up') : undefined}
+          />
+          {/* three kinds of drift, sorted, words in Lexend (pin 2) */}
+          <Flow gap={12} as="ul" aria-label="The three kinds of drift, most first">
+            {kinds.map((k) => (
+              <li key={k.label}>
+                <Progress label={k.label} value={`${k.n} of ${d.total}`} fill={(k.n / d.total) * 100} tone="attention" showTarget={false} />
+              </li>
+            ))}
+          </Flow>
         <ListRowGroup ariaLabel="Every part and what differs">
           {d.parts.map((p) => (
             <ListRow
@@ -123,6 +148,7 @@ function DriftCard({ components }) {
             />
           ))}
         </ListRowGroup>
+        </Flow>
       </Drawer>
     </>
   );
@@ -355,7 +381,6 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             chart="bar"
             meter={{ fill: contrast.pct, target: TARGET }}
             context={`${contrast.pass} of ${contrast.of} have pairs${contrast.toGo ? ` · ${contrast.toGo} to go` : ''}`}
-            caption={`Target ${TARGET}%`}
             href={contrast.href ?? undefined}
           />
         ) : null}

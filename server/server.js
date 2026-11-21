@@ -1,6 +1,6 @@
 // CHIP local server: serves the app and answers POST /ask with the local
 // model over the local index. Nothing here calls a paid or remote API.
-import { readDrift, readGaps } from './lib/drift.mjs';
+import { bellaHead, driftHistory, readDrift, readGaps } from './lib/drift.mjs';
 import express from 'express';
 import cors from 'cors';
 import { join, resolve, relative } from 'node:path';
@@ -254,7 +254,10 @@ app.get('/figma-lint/:id', async (req, res) => {
 const propsOf = (c) => specOf(c).props?.map((p) => p.name) ?? c.props ?? [];
 app.get('/figma-baseline', (_req, res) => res.json(readBaseline()));
 // Drift from Figma read from BELLA's specs (each lists its own Figma vs code mismatches): no Figma key needed
-app.get('/drift', (_req, res) => res.json(readDrift()));
+app.get('/drift', (_req, res) => {
+  const d = readDrift();
+  res.json({ ...d, history: driftHistory(d, bellaHead()) });
+});
 // Gaps: what BELLA can't do yet (parts with a spec but no code, and AGENTS.md's "Not in BELLA yet")
 app.get('/bella-gaps', (_req, res) => res.json(readGaps()));
 app.post('/figma-baseline/run', (req, res) => {

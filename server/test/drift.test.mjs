@@ -54,3 +54,22 @@ test('spec and code props: what the spec is behind on', async () => {
   assert.deepEqual(specProps('name: A\nprops:\n  - name: size\n    type: string\n  - name: old\nvariants:\n  - name: no\n'), ['size', 'old']);
   assert.deepEqual(codeProps('export interface AProps {\n  /** doc */\n  size?: string;\n  tone: string;\n}\n', 'A'), ['size', 'tone']);
 });
+
+test('drift history: a snapshot when BELLA moves or the count changes, never twice for the same state', async () => {
+  const { driftHistory } = await import('../lib/drift.mjs');
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'drift-hist-'));
+  const f = join(dir, 'h.json');
+  const d = (differing) => ({ total: 88, differing, drifting: 3, specBehind: 2, noSpec: 1 });
+  try {
+    assert.equal(driftHistory(d(79), 'aaa', f).length, 1);
+    assert.equal(driftHistory(d(79), 'aaa', f).length, 1);
+    assert.equal(driftHistory(d(75), 'aaa', f).length, 2);
+    assert.equal(driftHistory(d(75), 'bbb', f).length, 3);
+    assert.deepEqual(driftHistory(d(75), 'bbb', f).map((x) => x.differing), [79, 75, 75]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

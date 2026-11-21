@@ -3,9 +3,11 @@
 // read and the code; each lists its own `mismatch:` entries, field by field. Drift is read from there:
 // a part drifts when it has a mismatch that is not only a token name with the same value in Chip
 // (`sameValueInChip: true`). A spec with no `figma:` block was never read from Figma: not compared.
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BELLA } from './bella-work.mjs';
+import { DATA_DIR } from './config.mjs';
 
 /** One spec's text → { compared, fields: [{ field, sameValue }] } (only the lines this needs). */
 export function mismatchOf(text) {
@@ -102,3 +104,29 @@ export function readGaps(bella = BELLA) {
   const notInBella = line.split(',').map((s) => s.trim()).filter(Boolean);
   return { notInCode, notInBella };
 }
+
+/* Drift over time (approved 22 Nov, "Health: what changes", pin 1): one snapshot each time BELLA's HEAD or the count
+   moves, kept in data/drift-history.json (gitignored), so the trend is measured since the last check, never typed.
+   A snapshot is only ever added by a /drift read; with one point there is no trend yet and the page says so. */
+const HIST = join(DATA_DIR, 'drift-history.json');
+export function driftHistory(d, head, file = HIST, now = new Date()) {
+  let h = [];
+  try {
+    h = JSON.parse(readFileSync(file, 'utf8'));
+  } catch {}
+  const last = h.at(-1);
+  if (d?.total && (!last || last.head !== head || last.differing !== d.differing)) {
+    h = [...h, { at: now.toISOString(), head, differing: d.differing, drifting: d.drifting, specBehind: d.specBehind, noSpec: d.noSpec }].slice(-60);
+    try {
+      writeFileSync(file, JSON.stringify(h));
+    } catch {}
+  }
+  return h;
+}
+export const bellaHead = () => {
+  try {
+    return execFileSync('git', ['-C', BELLA, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    return null;
+  }
+};
