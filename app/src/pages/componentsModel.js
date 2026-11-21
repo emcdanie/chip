@@ -43,6 +43,17 @@ export function componentsModel({ components = [], gaps = {}, version, checkedAt
         checks,
         pass,
         ready: pass === checks.length,
+        // the part's own documentation, as BELLA's snapshot carries it (bella.json, from its contract)
+        doc: {
+          use: c.usage ?? [],
+          dont: c.dont ?? [],
+          a11y: c.a11y ?? null,
+          minTarget: c.minTarget ?? null,
+          tokens: c.tokens?.list ?? [],
+          usedIn: c.composesInto ?? [],
+          madeOf: c.composedFrom ?? [],
+          props: c.props ?? [],
+        },
       };
     })
     .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
@@ -121,7 +132,7 @@ export function detailModel(part, { history, pairs, map }) {
     const contrast = pairFor(a.token, pairs?.pairs);
     return { ...a, contrast, status: contrast && !contrast.ok ? 'finding' : 'pass' };
   });
-  const entries = (history?.entries ?? []).map((e) => ({ id: e.sha, title: cap(noNames(e.subject.replace(/^\w+(\([^)]*\))?!?:\s*/, ''))), why: whyOf(e.detail), date: e.date, type: (e.types ?? [])[0] ?? null }));
+  const entries = (history?.entries ?? []).map((e) => ({ id: e.sha, title: cap(noNames(e.subject.replace(/^\w+(\([^)]*\))?!?:\s*/, ''))), why: whyOf(e.detail), date: e.date, type: (e.types ?? [])[0] ?? null, types: e.types ?? [] }));
   const figma = (map?.nodes ?? []).find((n) => n.id === 'figma-rest') ?? null;
   return {
     anatomy,
@@ -137,4 +148,126 @@ export function usePartDetail(part) {
   // nothing to read until a part is picked
   const { data } = useCached(part ? [`/bella-history/${part.id}`, '/contrast-pairs', '/map'] : []);
   return useMemo(() => (part && data ? detailModel(part, { history: data[0], pairs: data[1], map: data[2] }) : null), [part, data]);
+}
+
+/* ---------- The studio (layout B, 22 Nov): checks, fixes and documentation, all measured ---------- */
+
+/* Why a check matters: the rule and where it is written. A check's own rule comes from /gaps (each gap
+   carries it); these are the rules for the checks /gaps doesn't carry, quoted from where they live. */
+const RULES = {
+  parity: { rule: 'Figma first, code follows: code is built from published Figma, so a part that differs from Figma can’t be rebuilt from it.', source: 'BELLA READ FIRST, guideline 5' },
+  lint: { rule: 'Every part is benchmarked, and Figma lint finds no hard-coded values.', source: 'BELLA READ FIRST, Tokens and parts' },
+  a11y: { rule: 'Targets are at least 44 by 44, and all text meets 7:1.', source: 'BELLA AGENTS.md, Floors' },
+};
+const STORY_TITLE = { story: 'Story', docs: 'Doc page', contract: 'Contract', dsds: 'Spec entry', contrast: 'Contrast', a11y: 'A11y notes' };
+
+/** The checks a part answers to, each a row that opens its detail: what was found, and why it matters.
+ *  drift: /drift; lint: /figma-lint/:id; gate: /checks .gate; gaps: /gaps .gaps; checks: the part's six
+ *  (touch target included); stories: /stories. Nothing measured shows "Not measured" and its source. */
+export function studioChecks({ part, checks, drift, lint, gate, gaps, links = {}, weakest }) {
+  const rows = [];
+  const d = drift?.parts?.find((x) => x.name === part.name);
+  if (!d || !d.compared)
+    rows.push({ id: 'parity', title: 'Parity with Figma', tone: 'neutral', value: 'Not measured', items: [{ title: 'Source', value: d ? `${part.name}.spec.yaml has no Figma read` : `No spec for ${part.name} in BELLA` }], why: RULES.parity });
+  else
+    rows.push({
+      id: 'parity',
+      title: 'Parity with Figma',
+      tone: d.differ ? 'danger' : 'success',
+      value: d.differ ? `${d.differ} to fix` : 'Matches',
+      count: d.differ || null,
+      items: [
+        ...d.fields.map((f) => ({ title: f, value: 'differs', key: true })),
+        ...(d.sameValueOnly ? [{ title: 'Token names only', value: `${d.sameValueOnly} · same value in Chip` }] : []),
+      ],
+      source: `From ${part.name}.spec.yaml${drift.at ? `, ${day(drift.at)}` : ''}`,
+      why: RULES.parity,
+    });
+  for (const k of checks) {
+    const g = gaps?.[k.id]?.[part.name];
+    const any = g ?? Object.values(gaps?.[k.id] ?? {})[0];
+    const why = any?.why?.rule ? { rule: firstSentence(any.why.rule), source: any.why.source } : k.id === 'a11y' ? RULES.a11y : null;
+    const items = g
+      ? [
+          { title: 'What’s missing', value: firstSentence(g.missing) },
+          ...(g.where?.[0] ? [{ title: 'Where', value: `${g.where[0].file} · ${g.where[0].field}` }] : []),
+          ...(g.suggest?.text ? [{ title: 'Start from', value: firstSentence(g.suggest.text) }] : []),
+        ]
+      : [{ title: 'Result', value: k.id === 'contrast' && weakest ? `Weakest: ${weakest}` : k.words }];
+    rows.push({ id: k.id, title: STORY_TITLE[k.id] ?? k.title, tone: k.ok ? 'success' : 'danger', value: k.ok ? 'pass' : k.words, items, why, href: links[k.id] ?? null });
+  }
+  if (!lint || lint.read === false)
+    rows.push({ id: 'lint', title: 'Figma lint', tone: 'neutral', value: 'Not measured', items: [{ title: 'Why not', value: lint?.reason ?? 'CHIP has not asked Figma yet.' }], why: RULES.lint });
+  else {
+    const found = lint.findings ?? lint.issues ?? [];
+    rows.push({ id: 'lint', title: 'Figma lint', tone: found.length ? 'danger' : 'success', value: found.length ? `${found.length} to fix` : 'pass', count: found.length || null, items: found.slice(0, 12).map((f) => ({ title: f.title ?? f.rule ?? String(f), value: f.node ?? '' })), why: RULES.lint });
+  }
+  if (gate)
+    rows.push({
+      id: 'gate',
+      title: 'The gate',
+      tone: gate.counts?.failed ? 'danger' : gate.counts?.passed ? 'success' : 'neutral',
+      value: gate.counts ? `pass ${gate.counts.passed}/${gate.counts.total}` : 'Not measured',
+      items: (gate.members ?? []).map((m) => ({ title: m.name, value: m.status })),
+      source: gate.ranAt ? `Ran ${day(gate.ranAt)}` : null,
+      why: { rule: gate.plain, source: gate.schedule },
+    });
+  return rows;
+}
+
+/** The fixes a part's checks suggest, one per thing to change, all picked to start. */
+export function studioFixes({ part, rows, findings = [] }) {
+  const out = [];
+  for (const a of findings) out.push({ id: `finding-${a.key}`, verb: 'Raise', key: `${a.title.toLowerCase()} contrast`, line: `${a.title}: ${a.contrast.label} measures ${a.contrast.ratio.toFixed(2)}:1, needs ${a.contrast.bar}:1.` });
+  const parity = rows.find((r) => r.id === 'parity' && r.tone === 'danger');
+  for (const f of parity?.items.filter((i) => i.key) ?? []) out.push({ id: `parity-${f.title}`, verb: 'Match', key: f.title.replace(/^props\.|^tokens\./, ''), line: `${part.name}'s ${f.title} differs between Figma and code (${part.name}.spec.yaml, mismatch).` });
+  for (const r of rows.filter((x) => x.tone === 'danger' && !['parity', 'gate', 'lint'].includes(x.id)))
+    out.push({ id: `check-${r.id}`, verb: 'Add', key: r.title.toLowerCase(), line: r.items[0]?.value ?? `${r.title} fails for ${part.name}.` });
+  return out;
+}
+
+/* "--motion-duration-150" → 150: the durations a part's tokens name, so Motion is read, never typed. */
+export const motionOf = (tokens) => [...new Set(tokens.map((t) => t.match(/^--motion-duration-(\d+)$/)?.[1]).filter(Boolean).map(Number))].sort((a, b) => a - b);
+
+/** The part's documentation as rows: purpose, use and don't, states, anatomy, a11y, decisions. */
+export function studioDocs(part, detail) {
+  const d = part.doc;
+  // a don't line says what not to do before its colon; the rest is the reason
+  const dont = d.dont.map((t) => {
+    const [head, ...rest] = String(t).replace(/^Do not\s+/i, '').split(/:\s+/);
+    return { title: cap(head), value: rest.join(': ') || null };
+  });
+  const a11y = String(d.a11y ?? '')
+    .split(/(?<=[.!?])\s+(?=[A-Z])/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .map((x) => {
+      const m = x.match(/^([^:]{2,40}):\s+(.+)$/);
+      return m ? { title: m[1], value: m[2] } : { title: x, value: null };
+    });
+  const decisions = (detail?.history ?? []).filter((e) => e.types.includes('decision') || /\bdecid|\bpick(ed)?\b/i.test(e.title));
+  return { purpose: part.lede, use: d.use, dont, a11y, decisions, motion: motionOf(d.tokens) };
+}
+
+/** The spec's props (/bella-spec/:id) as rows; the values the stage shows win over the defaults. */
+export function studioProps(spec, shown) {
+  return (spec?.props ?? [])
+    .filter((p) => !['className', 'style', 'children'].includes(p.name))
+    .map((p) => ({ name: p.name, values: p.values, value: shown[p.name] ?? (p.default != null ? String(p.default).replace(/^'|'$/g, '') : null) }));
+}
+
+/** What the studio reads for one part, each on its own so one slow or missing answer never blanks the rest. */
+export function useStudio(part) {
+  const shared = useCached(['/drift', '/checks', '/gaps', '/stories']).data;
+  const lint = useCached(part ? [`/figma-lint/${part.id}`] : []).data;
+  const spec = useCached(part ? [`/bella-spec/${part.id}`] : []).data;
+  return {
+    drift: shared?.[0] ?? null,
+    gate: shared?.[1]?.gate ?? null,
+    gaps: shared?.[2] ?? null,
+    stories: shared?.[3] ?? null,
+    lint: lint?.[0] ?? null,
+    spec: spec?.[0] ?? null,
+    ready: Boolean(shared),
+  };
 }
