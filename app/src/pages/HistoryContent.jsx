@@ -213,7 +213,10 @@ function Activity({ records, total, open, onOpen, fit }) {
               <Fragment key={r.id}>
                 {head ? <StepDay>{head}</StepDay> : null}
                 <Step
-                  title={<Keyed text={plain(r.title)} names={r.components} />}
+                  // never a whole sentence in bold (Step titles are 600): the area is the title, the sentence
+                  // reads as regular text under it with the marker on its key words
+                  title={areaOf(plain(r.title)).area ?? r.type ?? 'Change'}
+                  detail={<Keyed text={areaOf(plain(r.title)).rest} names={r.components} />}
                   time={time(r.date)}
                   // a Tag only where nothing else says it (audit 4, item 4): Merged is what Activity
                   // is made of, so only the other statuses get one; the open record keeps its own
@@ -269,6 +272,14 @@ const firstSentence = (t) => {
 /* The keyword marker marks what matters (CHIP rules, 22 Nov): the few words of a title or Why that say
    what changed, the number or the outcome, so a record can be scanned. Never the part name or the area
    before the colon. The words come from the record's own sentence by a tested rule (templates/keyPhrase.js). */
+/* "Health: Component checks read as Weather rows" → area "Health", rest the sentence. A title with no
+   area keeps all of it as the sentence. */
+function areaOf(t) {
+  const m = String(t ?? '').match(/^([^:]{2,32}):\s+([\s\S]+)$/);
+  // the sentence stands on its own under the area, so it starts with a capital
+  return m ? { area: m[1].trim(), rest: m[2].charAt(0).toUpperCase() + m[2].slice(1) } : { area: null, rest: String(t ?? '') };
+}
+
 function Keyed({ text, names }) {
   const t = String(text ?? '');
   const marks = keyPhrases(t, { names });
