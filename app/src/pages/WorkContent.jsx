@@ -68,6 +68,26 @@ const SORTS = [
   { value: 'started', label: 'When it started' },
 ];
 
+/* The short card's progress (section 4, her pick still open; my pick built): one bar with "n of m" beside it
+   in Geist Mono, then the step running now after the circle. Every card with work carries c.progress
+   ({ state: blank | working | waiting | done | error, done, total, now }) and c.what (the line without
+   the count), read live (sessions every 15 s, runs every 3 s while one goes).
+   ── HOLE ── BELLA's TaskCard body zone and ProgressRing aren't in bella-parts yet (parts-her-notes adds them
+   after her publish, 23 Nov). When they land:
+     1. import ProgressRing from '@bella/components/ProgressRing/ProgressRing';
+     2. set SHORT_CARD = true;
+     3. fill progressBody() with the parts, e.g. Progress (bar, fill from done/total, tone success when done)
+        plus the count, and ProgressRing (state → its kind) beside p.now; use the props the published parts
+        name, and nothing drawn here.
+   Until then the count and the step stay in the card's line, so nothing is lost. */
+const SHORT_CARD = false;
+function progressBody(c) {
+  const p = c.progress;
+  if (!SHORT_CARD || !p || p.state === 'blank') return undefined;
+  return undefined; // ── HOLE ── the TaskCard body content goes here (see above)
+}
+const cardLine = (c) => (SHORT_CARD && c.progress && c.progress.state !== 'blank' && c.what ? c.what : c.line);
+
 /* the label on the blue drop space: what the drop does */
 function dropLabel(card, from, to) {
   if (to === 'now' && from !== 'now') return going(card) ? 'Drop here to pick it up' : runnable(card) ? 'Drop here to start' : 'Drop here';
@@ -88,7 +108,8 @@ function Lane({ lane, move, why }) {
       <div key={c.id} data-card={c.id} data-needs={c.needs ? '' : undefined} hidden={lifted && d.shown}>
         <TaskCard
           title={c.title}
-          line={c.line}
+          line={cardLine(c)}
+          body={progressBody(c)}
           status={c.status}
           statusTone={c.tone}
           onOpen={c.open || c.kind === 'session' ? () => move.open(c) : undefined}
