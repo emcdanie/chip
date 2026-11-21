@@ -241,6 +241,11 @@ const touched = (files) => {
 };
 
 // the first sentence, never cut inside a quote ('Team said "No one's waiting on you. Every ask is answered"' is one)
+/* A file path as a code block's title wraps at its slashes and at the joins inside a name
+   ("Foundations|Content|.jsx"), never inside a word (independent check, 22 Nov: the diff header broke a path
+   mid-word): zero-width break opportunities, invisible and read as nothing. */
+const pathTitle = (p) => String(p).replace(/\//g, '/\u200B').replace(/([a-z])([A-Z])/g, '$1\u200B$2').replace(/([^/\u200B])\./g, '$1\u200B.');
+
 const firstSentence = (t) => {
   const str = String(t);
   let quotes = 0;
@@ -396,7 +401,7 @@ function WhatChanged({ diff, rec }) {
                 </TourStep>
               </Flow>
             ) : null}
-            <CodeBlock key={f.path} code={f.body} language="diff" title={f.path} copy lineMarks={step != null && steps[step] ? [{ line: steps[step].line, kind: 'lit', pin: step + 1 }] : undefined} />
+            <CodeBlock key={f.path} code={f.body} language="diff" title={pathTitle(f.path)} copy lineMarks={step != null && steps[step] ? [{ line: steps[step].line, kind: 'lit', pin: step + 1 }] : undefined} />
           </Flow>
         </Disclosure>
       ) : null}
@@ -535,7 +540,7 @@ function Record({ id, fit, landing }) {
           {shown ? (
             <Flow gap={8} aria-live="polite">
               {parseDiff(rec.diff).filter((d) => touched([d.path])[0]?.[0] === shown || fileWords(d.path) === shown).map((d) => (
-                <CodeBlock key={d.path} code={d.body || 'No line changes: a binary or renamed file.'} language="diff" title={d.path} copy />
+                <CodeBlock key={d.path} code={d.body || 'No line changes: a binary or renamed file.'} language="diff" title={pathTitle(d.path)} copy />
               ))}
             </Flow>
           ) : null}
