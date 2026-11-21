@@ -139,7 +139,7 @@ function useRoles() {
   return roles;
 }
 
-function Roles({ roles, empty }) {
+function Roles({ roles, empty, onOpen }) {
   // two groups to a row from a 1440 window, as Figma draws it (audit 10); below, one group a row,
   // so swatches in a row share one height (rule 15); three swatches a row, two below 768 and one below 480, so a name never breaks mid-word (audit 9 at 320)
   const narrow = useNarrow(1440);
@@ -159,7 +159,8 @@ function Roles({ roles, empty }) {
               {roles.slice(i, i + 2).filter((g) => g.items.length).map((g) => (
                 <Flow key={g.name} gap={12} aria-label={g.name}>
                   {/* a section description is in the reading face (Fonts rule) */}
-                  <TextStack title={g.name} body={g.job} />
+                  {/* the group's head ends in ↗, opening its colours in the table (Figma Flow 4, screen 1) */}
+                  <ListRow as="div" layout="stacked" barHierarchy title={g.name} description={g.job} trailing="ArrowUpRight" onClick={() => onOpen(g.name)} />
                   {/* equal columns, as Figma; a short last row keeps the column widths */}
                   {/* each row is its own list, so every <li> sits in a <ul> (audit 21 Nov) */}
                   <Flow gap={8} role="group" aria-label={`${g.name} colours`}>
@@ -643,7 +644,9 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
   const usage = data[1].tokenUsage ?? {};
   const words = q.trim().toLowerCase();
   const keep = (token, name = '') => (!words || token.includes(words) || name.toLowerCase().includes(words)) && (used === 'all' || (used === 'used') === (usage[token]?.length ?? 0) > 0);
-  const tableRows = all.filter((r) => keep(r.token));
+  // a role's name finds its colours in the table too (the ↗ on each role group opens them there)
+  const groupOf = Object.fromEntries(roles.flatMap((g) => g.items.map((i) => [i.token, g.name])));
+  const tableRows = all.filter((r) => keep(r.token, groupOf[r.token] ?? ''));
   const cardRoles = roles.map((g) => ({ ...g, items: g.items.filter((i) => keep(i.token, `${g.name} ${i.name}`)) }));
   const usedN = all.filter((r) => r.used).length;
   return (
@@ -667,7 +670,7 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
       {view === 'table' ? (
         <RolesTable rows={tableRows} total={all.length} />
       ) : (
-        <Roles roles={cardRoles} empty={<EmptyState size="lane" mark="🔎" title="No role matches" line="Nothing by that name. Try fewer letters." />} />
+        <Roles roles={cardRoles} onOpen={(name) => (setQ(name), setView('table'))} empty={<EmptyState size="lane" mark="🔎" title="No role matches" line="Nothing by that name. Try fewer letters." />} />
       )}
       {/* Figma's Foundations sections (decided 18 Nov): who uses what after the roles */}
       <WhoUsesWhat bella={data[1]} />
