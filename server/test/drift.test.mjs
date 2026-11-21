@@ -48,3 +48,9 @@ test('gaps: specs with no code part, and AGENTS.md "Not in BELLA yet"', async ()
   assert.deepEqual(g.notInCode, ['Gauge']);
   assert.deepEqual(g.notInBella, ['Switch/toggle', 'Checkbox', 'Dialog/Modal']);
 });
+
+test('spec and code props: what the spec is behind on', async () => {
+  const { specProps, codeProps } = await import('../lib/drift.mjs');
+  assert.deepEqual(specProps('name: A\nprops:\n  - name: size\n    type: string\n  - name: old\nvariants:\n  - name: no\n'), ['size', 'old']);
+  assert.deepEqual(codeProps('export interface AProps {\n  /** doc */\n  size?: string;\n  tone: string;\n}\n', 'A'), ['size', 'tone']);
+});

@@ -17,6 +17,7 @@ import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
+import Drawer from '@bella/components/Drawer/Drawer';
 import Marker from '@bella/components/Marker/Marker';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
@@ -44,30 +45,44 @@ function NoData({ title, icon, context, caption, button }) {
   return <StatCard title={title} icon={icon} tone="neutral" chart="empty" context={context} caption={caption} button={button} />;
 }
 
-/* Drift from BELLA, in one place (her note, 22 Nov: "we have drift in two places"): how many parts differ
-   from Figma, read from BELLA's specs (each spec lists its own Figma vs code mismatches, built by the parts
-   session from a Figma read), so it needs no Figma key here. A token name with the same value in Chip is
-   not drift. The worst parts are named; the card opens the worst one. */
-const SHOW = 3;
+/* Drift from BELLA, in one place (her note, 22 Nov: "we have drift in two places"; her whole presentation):
+   every code part, what differs between Figma, its spec and its code, read from BELLA's own files (/drift), so
+   it needs no Figma key. Figma: the spec's own Figma-vs-code mismatches (a token name with the same value in
+   Chip is not counted). Spec: props the spec is behind on. A part with no spec is named too. The card counts;
+   ↗ opens every part, the most differences first, each opening its part. */
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const driftLine = (p) =>
+  p.noSpec
+    ? 'No spec yet'
+    : [p.differ ? plural(p.differ, 'Figma difference') : p.compared ? 'Matches Figma' : 'Not read from Figma', p.specBehind.length ? `spec behind on ${plural(p.specBehind.length, 'prop')}` : null].filter(Boolean).join(' · ');
 function DriftCard({ components }) {
   const { data } = useCached(['/drift']);
+  const [open, setOpen] = useState(false);
   const d = data?.[0] ?? null;
-  if (!d?.compared) return <NoData title="Drift from BELLA" icon="Activity" context="Parts that differ from Figma" caption={d ? 'No spec read from Figma yet' : 'Reading the specs'} />;
-  const differ = d.parts.filter((p) => p.compared && p.differ);
-  const worst = differ.slice(0, SHOW).map((p) => `${p.name} ${p.differ}`);
-  const idOf = (name) => components.find((c) => c.name === name)?.id ?? name;
+  if (!d?.total) return <NoData title="Drift from BELLA" icon="Activity" context="Parts that differ from Figma, spec or code" caption={d ? 'No parts found' : 'Reading the specs'} />;
+  const idOf = (name) => components.find((c) => c.name === name)?.id ?? name.replace(/(?<=[a-z])(?=[A-Z])/g, '-').toLowerCase();
+  const day = d.at ? new Date(d.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
   return (
-    <StatCard
-      title="Drift from BELLA"
-      icon="Activity"
-      tone={differ.length ? 'warning' : 'success'}
-      chart="none"
-      value={differ.length}
-      unit={`of ${d.compared}`}
-      context={differ.length ? `Most differences: ${worst.join(', ')}${differ.length > SHOW ? ` +${differ.length - SHOW}` : ''}` : 'No part differs from Figma'}
-      caption={`Compared ${new Date(d.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · ${d.total - d.compared} not read from Figma`}
-      href={differ.length ? `#/components/${encodeURIComponent(idOf(differ[0].name))}` : undefined}
-    />
+    <>
+      <StatCard
+        title="Drift from BELLA"
+        icon="Activity"
+        tone={d.differing ? 'warning' : 'success'}
+        chart="none"
+        value={d.differing}
+        unit={`of ${d.total}`}
+        context={`${d.drifting} differ from Figma · ${d.specBehind} specs behind the code · ${d.noSpec} with no spec`}
+        caption={day ? `Specs from ${day} · ${d.total - d.compared} not read from Figma` : `${d.total - d.compared} not read from Figma`}
+        onOpen={() => setOpen(true)}
+      />
+      <Drawer open={open} onClose={() => setOpen(false)} side="right" size="lg" label="Drift from BELLA" status={`${d.differing} of ${d.total} parts differ · most first`}>
+        <ListRowGroup ariaLabel="Every part and what differs">
+          {d.parts.map((p) => (
+            <ListRow key={p.name} layout="stacked" statusBar={p.differ || p.specBehind.length || p.noSpec ? 'attention' : 'success'} title={p.name} description={driftLine(p)} trailing onClick={() => ((window.location.hash = `#/components/${encodeURIComponent(idOf(p.name))}`), setOpen(false))} />
+          ))}
+        </ListRowGroup>
+      </Drawer>
+    </>
   );
 }
 
