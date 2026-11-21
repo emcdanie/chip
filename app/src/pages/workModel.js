@@ -172,9 +172,25 @@ function progressOf(steps, { working = true } = {}) {
   return { state: cur && working ? 'working' : 'waiting', done, total: steps.length, now: cur?.text ?? steps.find((x) => x.status === 'pending')?.text ?? null };
 }
 
+/* After her Accept a run keeps going (runs.mjs afterKeep, ad9a891): each touched part's spec, the docs, the
+   commit through BELLA's gate, Storybook, Figma listed, CHIP's data. Its finished steps carry after:true and
+   run.step names the one running; run.after.endedAt (or afterError) says it is over. */
+export const AFTER_PLAN = (parts = []) => [...(parts.length ? parts.map((p) => `Spec rebuilt: ${p}`) : ['Specs']), 'Docs regenerated', 'Specs and docs committed', 'Storybook built from the branch', 'Figma listed for the parts session', "CHIP's BELLA data"];
+export function afterSteps(r) {
+  if (r?.status !== 'kept' || !r.after) return null;
+  const done = (r.steps ?? []).filter((x) => x.after).map((x) => x.step);
+  const plan = AFTER_PLAN(r.after.parts);
+  const total = Math.max(plan.length, done.length + (r.step ? 1 : 0));
+  const state = r.afterError ? 'error' : r.after.endedAt ? 'done' : 'working';
+  const left = plan.slice(done.length + (r.step && state === 'working' ? 1 : 0));
+  return { state, done: done.length, total: state === 'done' ? done.length : total, now: r.afterError ?? r.step ?? null, finished: done, left };
+}
+
 /* A CHIP run in four plain steps, from its status (runs.mjs): sign-in check, the agent, the gate, her Accept. */
 const RUN_STEPS = ['Check Claude Code is signed in', 'Agent makes the change', 'Run the gate', 'Your Accept'];
 function runProgress(r) {
+  const after = afterSteps(r);
+  if (after) return { ...after, now: after.state === 'done' ? 'Specs, docs and Storybook done' : after.now ?? 'Next after-Accept step' };
   const at = { starting: 0, login: 0, running: 1, gate: 2, passed: 3, kept: 4, failed: r.steps?.length ? 1 : 0 }[r.status] ?? 0;
   const p = { done: Math.min(at, 4), total: 4 };
   if (r.status === 'kept') return { ...p, state: 'done', now: 'Kept' };
@@ -215,8 +231,9 @@ function bSession(s, now) {
 
 function bRun(r, base) {
   const p = runProgress(r);
-  const what = ['CHIP run', r.startedAt ? when(r.startedAt) : null, base && r.base && r.base !== base ? `from ${r.base}` : null].filter(Boolean).join(' · ');
-  const needs = ['passed', 'failed', 'login'].includes(r.status);
+  const what = [afterSteps(r)?.state === 'working' ? 'Accepted, finishing' : afterSteps(r)?.state === 'error' ? 'Accepted, then stopped' : 'CHIP run', r.startedAt ? when(r.startedAt) : null, base && r.base && r.base !== base ? `from ${r.base}` : null].filter(Boolean).join(' · ');
+  // a run whose after-Accept steps stopped needs her again
+  const needs = ['passed', 'failed', 'login'].includes(r.status) || afterSteps(r)?.state === 'error';
   return {
     id: r.id,
     kind: 'run',
@@ -224,9 +241,9 @@ function bRun(r, base) {
     line: lineOf(what, p),
     progress: p,
     tone: r.status === 'passed' ? 'attention' : TONE[p.state],
-    status: { passed: 'Your Accept', failed: 'Failed', login: 'Sign in', kept: 'Kept', gate: 'Checking' }[r.status] ?? 'Working',
+    status: r.status === 'kept' && afterSteps(r)?.state === 'error' ? 'Stopped after Accept' : r.status === 'kept' && afterSteps(r)?.state === 'working' ? 'Finishing' : ({ passed: 'Your Accept', failed: 'Failed', login: 'Sign in', kept: 'Kept', gate: 'Checking' }[r.status] ?? 'Working'),
     needs,
-    home: r.status === 'kept' ? 'shipped' : ['starting', 'running', 'gate', 'passed', 'failed', 'login'].includes(r.status) ? 'now' : null,
+    home: r.status === 'kept' ? (['working', 'error'].includes(afterSteps(r)?.state) ? 'now' : 'shipped') : ['starting', 'running', 'gate', 'passed', 'failed', 'login'].includes(r.status) ? 'now' : null,
     branch: r.branch ?? null,
     startedAt: r.startedAt ? Date.parse(r.startedAt) : null,
     open: { kind: 'run', id: r.id },
@@ -370,6 +387,13 @@ export function useWork() {
   }, [reload, reloadExtra, reloadBoard, boardData]);
   const board = live ?? boardData?.[0] ?? null;
   const runs = runsLive ?? data?.[1] ?? null;
+  // while a run is going, or finishing after her Accept, its card is read every 3 seconds
+  const busy = (runs?.runs ?? []).some((r) => ['starting', 'running', 'gate'].includes(r.status) || afterSteps(r)?.state === 'working');
+  useEffect(() => {
+    if (!busy) return undefined;
+    const t = setInterval(() => document.hidden || fetch('/runs').then((r) => (r.ok ? r.json() : null)).then((r) => r && setRunsLive(r)).catch(() => {}), 3000);
+    return () => clearInterval(t);
+  }, [busy]);
   const model = useMemo(() => (data ? boardModel({ needs: data[0].items ?? [], runs: runs?.runs ?? [], runBase: runs?.base ?? null, lanes: extra?.[0] ?? null, board, gaps: data[2]?.gaps ?? null }) : null), [data, runs, extra, board]);
   return { model, error, loading, reload: () => (reload(), reloadExtra(), reloadBoard()), checked: at ? hhmm(at) : null };
 }

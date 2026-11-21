@@ -26,6 +26,7 @@ import Step from '@bella/components/Step/Step';
 import Tag from '@bella/components/Tag/Tag';
 import Progress from '@bella/components/Progress/Progress';
 import Flow from '../templates/Flow.jsx';
+import { afterSteps } from './workModel.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import { Words, AnswerLines } from '../templates/useAsk.jsx';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
@@ -236,6 +237,7 @@ function shapeOf(item, d) {
       branch: d.branch,
       can: waiting ? 'decide' : ['starting', 'running'].includes(d.status) ? 'stop' : null,
       kept: d.status === 'kept',
+      after: afterSteps(d),
     };
   }
   const decide = d.state === 'accepted' && !d.kept;
@@ -261,7 +263,8 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
   const [busy, setBusy] = useState(null);
   const { data, error } = useItem(item, tick);
   // a run that is going is read again every 3 s, so its step and its Stop stay current
-  const going = item.kind === 'run' && ['starting', 'running', 'gate'].includes(data?.status);
+  // after her Accept it keeps reading until the last after-Accept step (specs, docs, commit, Storybook, Figma, sync)
+  const going = item.kind === 'run' && (['starting', 'running', 'gate'].includes(data?.status) || afterSteps(data)?.state === 'working');
   useEffect(() => {
     if (!going) return undefined;
     const t = setInterval(() => setTick((n) => n + 1), 3000);
@@ -283,7 +286,8 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
       await said(await fetch(`${base}/${verb}`, POST));
       onNotice({ tone: 'success', title: done.title, message: done.message });
       // Accept: the drawer closes and the card leaves the board (motion item 6)
-      if (verb === 'keep' && onAccepted) return onAccepted();
+      // Accept on a run: the drawer stays open on its after-Accept steps; anything else leaves the board
+      if (verb === 'keep' && onAccepted && item.kind !== 'run') return onAccepted();
       onChanged();
       setTick((t) => t + 1);
     } catch (e) {
@@ -354,6 +358,21 @@ function FixBody({ s, onAnswer }) {
         </Flow>
       ) : null}
       {s.kept ? <TextStack body={`Kept on ${s.branch}. Merging and pushing stay with a maintainer.`} /> : null}
+      {s.after ? (
+        // after Accept: what CHIP does next, live, one numbered step each, until the last one
+        <Flow gap={8}>
+          <Progress label={s.after.state === 'done' ? `All ${s.after.total} after-Accept steps done` : s.after.state === 'error' ? `Stopped at step ${s.after.done + 1} of ${s.after.total}` : `${s.after.done} of ${s.after.total} after-Accept steps done`} fill={Math.round((100 * s.after.done) / Math.max(s.after.total, 1))} tone={s.after.state === 'error' ? 'danger' : s.after.state === 'done' ? 'success' : 'info'} />
+          <Flow as="ol" gap={0} aria-label="After Accept">
+            {[
+              ...s.after.finished.map((t) => ({ t, state: 'done' })),
+              ...(s.after.state !== 'done' && s.after.now ? [{ t: s.after.now, state: s.after.state === 'error' ? 'failed' : 'current' }] : []),
+              ...(s.after.state === 'working' ? s.after.left.map((t) => ({ t, state: 'pending' })) : []),
+            ].map((x, i, all) => (
+              <Step key={i} layout="vertical" number={i + 1} title={x.t} state={x.state} selected={x.state === 'current'} showLineAbove={i > 0} showConnector={i < all.length - 1} />
+            ))}
+          </Flow>
+        </Flow>
+      ) : null}
       {s.why ? (
         <Flow gap={8}>
           <SectionHead title="Why" titleLevel={3} />
