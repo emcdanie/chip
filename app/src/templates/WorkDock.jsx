@@ -12,7 +12,7 @@
 //     BELLA from CHIP's data first, and the agent when she sends it on, in one
 //     ChatThread (TermChat); New shell opens a real shell in its own drawer.
 // The composer sits at the foot on every tab: the model (Auto, local first),
-// the field, and Speak (the browser’s own speech into the field, never sending by itself).
+// the field, and Talk (the browser’s own speech into the field, never sending by itself).
 // New chat sits in the Drawer head's action slot, before Close (Head 172:528).
 // Gaps (named for the library, not drawn here): Drawer has no tabs slot under
 // its head (the tabs scroll with the body) and it dims the page; the model
@@ -126,7 +126,7 @@ export default function WorkDock() {
     setPending(null);
   }, [tab, pending]);
   const talk = useTalk(setDraft);
-  // under 400 the field's hint is shorter, so it shows whole beside Speak (its label says what it asks)
+  // under 400 the field's hint is shorter, so it shows whole beside Talk (its label says what it asks)
   const tiny = useNarrow(400);
 
   useEffect(() => {
@@ -204,12 +204,13 @@ export default function WorkDock() {
     sessions: sessions ? `Sessions · ${sessions.length}, newest first` : 'Sessions · reading',
     ask: 'Ask BELLA · CHIP’s data first, then the agent',
   }[tab];
-  // New chat: the head's action, before Close, once the chat has an answer
-  const action = tab === 'ask' && asker.answer ? (
-    <Button variant="tertiary" size="sm" onClick={newChat}>
+  // New chat: the head's action, before Close, on every tab as Figma Flow 12 draws it. It opens Ask BELLA
+  // on an empty chat; a chat with something in it is cleared, with Undo in the toast
+  const action = (
+    <Button variant="tertiary" size="sm" onClick={() => ((asker.answer || turns.length) && newChat(), setTab('ask'))}>
       New chat
     </Button>
-  ) : undefined;
+  );
 
   // the likely next question, grey in the empty field; Enter sends it, typing replaces it (CLAUDE.md
   // "Suggest the next question"; her 👍 on Input suggestion, 21 Nov). Only questions CHIP's data
@@ -224,7 +225,7 @@ export default function WorkDock() {
         <Input label="Ask about BELLA" placeholder={tiny ? 'Your question' : 'Ask about BELLA'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" suggestion={suggestion} />
         {talk.can ? (
           <Button variant="secondary" ariaExpanded={talk.on} onClick={talk.toggle}>
-            {talk.on ? 'Listening' : 'Speak'}
+            {talk.on ? 'Listening' : 'Talk'}
           </Button>
         ) : null}
       </Flow>
