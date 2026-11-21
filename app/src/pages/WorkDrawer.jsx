@@ -404,23 +404,25 @@ function PushDrawer({ item, onClose }) {
       }
     >
       <Flow inset gap={16}>
+        {/* the shell opens at the top, in view; the commits stay under it */}
+        {shell ? (
+          <Flow gap={8}>
+            <TextStack subtitle={status === 'open' ? `A shell in ${p.name}’s folder, nothing typed. Type git push to send it.` : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…'} />
+            <TermScreen t={{ id: `push-${item.repo}`, repo: item.repo, kind: 'shell', typed: null }} active onStatus={setStatus} onActivity={() => {}} register={() => {}} />
+          </Flow>
+        ) : null}
         {error ? <EmptyState size="lane" title="Couldn’t read it" line={`${error}. Close this and try again.`} /> : null}
         {!p && !error ? <EmptyState size="lane" title="Reading it" line="Asking git what a push would send." /> : null}
         {p ? (
           <>
             <TextStack body={`A push sends these ${n} ${n === 1 ? 'commit' : 'commits'} (${p.files} ${p.files === 1 ? 'file' : 'files'}) to GitHub, where other people see ${n === 1 ? 'it' : 'them'} and CI runs. CHIP doesn’t push: if you want it, type git push in a shell yourself.`} />
             <Flow as="ul" gap={0} aria-label="Commits a push would send">
-              {p.commits.map((c, i) => (
-                <ListRow key={c.sha} layout="stacked" title={c.subject} description={`${c.sha} · ${when(c.date)}`} divider={i < n - 1} />
+              {p.commits.slice(0, 10).map((c, i) => (
+                <ListRow key={c.sha} layout="stacked" title={c.subject} description={`${c.sha} · ${when(c.date)}`} divider={i < Math.min(n, 10) - 1} />
               ))}
             </Flow>
+            {n > 10 ? <TextStack subtitle={`The newest 10 of ${n}; git log ${p.upstream}..${p.branch} lists them all.`} /> : null}
           </>
-        ) : null}
-        {shell ? (
-          <Flow gap={8}>
-            <TextStack subtitle={status === 'open' ? `A shell in ${p.name}’s folder, nothing typed. Type git push to send it.` : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…'} />
-            <TermScreen t={{ id: `push-${item.repo}`, repo: item.repo, kind: 'shell', typed: null }} active onStatus={setStatus} onActivity={() => {}} register={() => {}} />
-          </Flow>
         ) : null}
       </Flow>
     </Drawer>
