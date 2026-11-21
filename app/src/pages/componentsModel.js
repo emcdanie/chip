@@ -164,21 +164,22 @@ const STORY_TITLE = { story: 'Story', docs: 'Doc page', contract: 'Contract', ds
 /** The checks a part answers to, each a row that opens its detail: what was found, and why it matters.
  *  drift: /drift; lint: /figma-lint/:id; gate: /checks .gate; gaps: /gaps .gaps; checks: the part's six
  *  (touch target included); stories: /stories. Nothing measured shows "Not measured" and its source. */
-export function studioChecks({ part, checks, drift, lint, gate, gaps, links = {}, weakest }) {
+export function studioChecks({ part, checks, drift, lint, gate, gaps, gapsAt, links = {}, weakest }) {
   const rows = [];
   const d = drift?.parts?.find((x) => x.name === part.name);
   if (!d || !d.compared)
-    rows.push({ id: 'parity', title: 'Parity with Figma', tone: 'neutral', value: 'Not measured', items: [{ title: 'Source', value: d ? `${part.name}.spec.yaml has no Figma read` : `No spec for ${part.name} in BELLA` }], why: RULES.parity });
+    rows.push({ id: 'parity', ran: null, title: 'Parity with Figma', tone: 'neutral', value: 'Not measured', items: [{ title: 'Source', value: d ? `${part.name}.spec.yaml has no Figma read` : `No spec for ${part.name} in BELLA` }], why: RULES.parity });
   else
     rows.push({
       id: 'parity',
+      ran: drift.at ?? null,
       title: 'Parity with Figma',
       tone: d.differ ? 'danger' : 'success',
       value: d.differ ? `${d.differ} to fix` : 'Matches',
       count: d.differ || null,
       items: [
         ...d.fields.map((f) => ({ title: f, value: 'differs', fails: true })),
-        ...(d.sameValueOnly ? [{ title: 'Token names only', value: `${d.sameValueOnly} · same value in Chip` }] : []),
+        ...(d.sameValueOnly ? [{ title: 'Same value in Chip', value: d.sameValueOnly }] : []),
       ],
       // measured from the spec's own mismatch list, written when BELLA's spec was last built from a Figma read
       source: `From ${part.name}.spec.yaml, its last Figma read${drift.at ? ` (spec built ${day(drift.at)})` : ''}`,
@@ -195,17 +196,18 @@ export function studioChecks({ part, checks, drift, lint, gate, gaps, links = {}
           ...(g.suggest?.text ? [{ title: 'Start from', value: firstSentence(g.suggest.text) }] : []),
         ]
       : [{ title: 'Result', value: k.id === 'contrast' && weakest ? `Weakest: ${weakest}` : k.words }];
-    rows.push({ id: k.id, title: STORY_TITLE[k.id] ?? k.title, tone: k.ok ? 'success' : 'danger', value: k.ok ? 'pass' : k.words, items, why, href: links[k.id] ?? null });
+    rows.push({ id: k.id, ran: gapsAt ?? null, title: STORY_TITLE[k.id] ?? k.title, tone: k.ok ? 'success' : 'danger', value: k.ok ? 'pass' : k.words, items, why, href: links[k.id] ?? null });
   }
   if (!lint || lint.read === false)
-    rows.push({ id: 'lint', title: 'Figma lint', tone: 'neutral', value: 'Not measured', items: [{ title: 'Why not', value: lint?.reason ?? 'CHIP has not asked Figma yet.' }], why: RULES.lint });
+    rows.push({ id: 'lint', ran: null, title: 'Figma lint', tone: 'neutral', value: 'Not measured', items: [{ title: 'Why not', value: lint?.reason ?? 'CHIP has not asked Figma yet.' }], why: RULES.lint });
   else {
     const found = lint.findings ?? lint.issues ?? [];
-    rows.push({ id: 'lint', title: 'Figma lint', tone: found.length ? 'danger' : 'success', value: found.length ? `${found.length} to fix` : 'pass', count: found.length || null, items: found.slice(0, 12).map((f) => ({ title: f.title ?? f.rule ?? String(f), value: f.node ?? '' })), why: RULES.lint });
+    rows.push({ id: 'lint', ran: lint.at ?? null, title: 'Figma lint', tone: found.length ? 'danger' : 'success', value: found.length ? `${found.length} to fix` : 'pass', count: found.length || null, items: found.slice(0, 12).map((f) => ({ title: f.title ?? f.rule ?? String(f), value: f.node ?? '' })), why: RULES.lint });
   }
   if (gate)
     rows.push({
       id: 'gate',
+      ran: gate.ranAt ?? null,
       title: 'The gate',
       tone: gate.counts?.failed ? 'danger' : gate.counts?.passed ? 'success' : 'neutral',
       value: gate.counts ? `pass ${gate.counts.passed}/${gate.counts.total}` : 'Not measured',

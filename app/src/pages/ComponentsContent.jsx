@@ -59,6 +59,10 @@ const TABS = [
 ];
 /* The stage's sample label: Figma 690:492657's own ("Send"). */
 const SAMPLE_LABEL = { Button: 'Send' };
+/* The sample's own props, as the approved mock draws it: Button with its send icon, leading (Button icon + leadingIcon). */
+const SAMPLE_PROPS = { Button: { icon: 'SendDiagonal', leadingIcon: true } };
+/* Words read in Lexend, numbers in Geist Mono (mono for numbers only): a row's value goes in the matching slot. */
+const val = (v) => (v == null || v === '' ? {} : /^[\d.,:×\s·%+-]+(ms|px)?$/.test(String(v)) || typeof v === 'number' ? { value: v } : { valueLabel: v });
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const ratio = (r) => `${Number(r).toFixed(2)}:1`;
 /* The keyword marker (CHIP rules, 22 Nov): the few words that say what changed, by the tested rule. */
@@ -78,12 +82,12 @@ function Keyed({ text, names }) {
 
 /* The live part, as the code renders it: the Playground's props when the part
    has them (variant and label follow the controls), else its specimen. */
-function LivePart({ part, variant, label, state, small }) {
+function LivePart({ part, variant, label, state }) {
   const play = PLAY[part.name];
   if (play) {
     const { C, children, props } = play;
     return (
-      <C {...props} {...(variant ? { variant } : {})} {...(small && C === Button ? { size: 'sm' } : {})} disabled={state === 'disabled' || undefined}>
+      <C {...props} {...(SAMPLE_PROPS[part.name] ?? {})} {...(variant ? { variant } : {})} disabled={state === 'disabled' || undefined}>
         {label || children}
       </C>
     );
@@ -115,7 +119,7 @@ function StateThumb({ part, variant, label, state, selected, onPick }) {
   return (
     <VariantTile label={state.label} selected={selected} onClick={onPick}>
       <Flow id={id} align="center" inert="" aria-hidden="true">
-        <LivePart part={part} variant={variant} label={label} state={state.id} small />
+        <LivePart part={part} variant={variant} label={label} state={state.id} />
       </Flow>
     </VariantTile>
   );
@@ -565,10 +569,10 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
   const [allUse, setAllUse] = useState(false);
   // on the smallest phones a row's value goes under its words, so the row keeps inside its card
   const tiny = useNarrow(420);
-  const valued = (v, words = false) => (tiny ? { layout: 'stacked', description: v } : { layout: 'inline', ...(words ? { valueLabel: v } : { value: v }) });
+  const valued = (v) => (tiny ? { layout: 'stacked', description: v } : { layout: 'inline', ...val(v) });
   const back = <Back label="Inspect" onBack={() => setOpen(null)} />;
   const knobs = props.filter((p) => /\|/.test(p.values) || p.name === 'label');
-  const code = `import ${part.name} from '@bella/components/${part.name}/${part.name}';${PLAY[part.name] ? `\n\n<${part.name}${variant ? ` variant="${variant}"` : ''}>${label || PLAY[part.name].children}</${part.name}>` : ''}`;
+  const code = `import ${part.name} from '@bella/components/${part.name}/${part.name}';${PLAY[part.name] ? `\n\n<${part.name}${variant ? ` variant="${variant}"` : ''}${Object.entries(SAMPLE_PROPS[part.name] ?? {}).map(([k, v]) => (v === true ? ` ${k}` : ` ${k}="${v}"`)).join('')}>${label || PLAY[part.name].children}</${part.name}>` : ''}`;
   if (open === 'props')
     return (
       <Card>
@@ -578,7 +582,7 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
           {knobs.length ? (
             <Flow as="ul" gap={0} aria-label="On the stage now">
               {knobs.map((p) => (
-                <ListRow key={p.name} layout="inline" title={p.name} value={p.name === 'label' ? label || p.value || 'none' : p.value ?? 'not set'} />
+                <ListRow key={p.name} layout="inline" title={p.name} {...val(p.name === 'label' ? label || p.value || 'none' : p.value ?? 'not set')} />
               ))}
             </Flow>
           ) : null}
@@ -744,7 +748,7 @@ function ChecksPanel({ part, rows, open, setOpen }) {
           <SectionHead title={row.title} titleLevel={3} number={row.count ?? undefined} words={row.count ? undefined : row.value} description={row.source ?? undefined} />
           <Flow as="ul" gap={4} aria-label={`${row.title}: what it found`}>
             {row.items.map((x) => (
-              <ListRow key={x.title} layout={String(x.value ?? '').length > 24 ? 'stacked' : 'inline'} {...(String(x.value ?? '').length > 24 ? { description: x.value } : { value: x.value || undefined })} title={x.title} statusBar={x.fails ? 'danger' : undefined} />
+              <ListRow key={x.title} layout={String(x.value ?? '').length > 24 ? 'stacked' : 'inline'} {...(String(x.value ?? '').length > 24 ? { description: x.value } : val(x.value))} title={x.title} statusBar={x.fails ? 'danger' : undefined} />
             ))}
           </Flow>
           {row.href ? (
@@ -768,7 +772,8 @@ function ChecksPanel({ part, rows, open, setOpen }) {
         <SectionHead title="Checks" titleLevel={3} number={measured.filter((r) => r.tone === 'success').length} words={`of ${measured.length} pass · ${rows.length - measured.length} not measured`} />
         <Flow as="ul" gap={4} aria-label={`${part.name}'s checks`}>
           {rows.map((r) => (
-            <ListRow layout="inline" key={r.id} title={r.title} value={r.value} statusBar={r.tone} trailing onClick={() => setOpen(`check:${r.id}`)} />
+            // when it last ran, from the check's own source (/checks, the spec's build, /figma-lint, /gaps); none stored: Not measured
+              <ListRow layout="inline" key={r.id} title={r.title} subValue={r.ran ? `${day(r.ran)}, ${new Date(r.ran).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Not measured'} {...val(r.value)} statusBar={r.tone} trailing onClick={() => setOpen(`check:${r.id}`)} />
           ))}
         </Flow>
       </Flow>
@@ -820,7 +825,7 @@ function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, m
         <Flow gap={8}>
           <SectionHead title="Send to" titleLevel={3} />
           <SegmentedControl label="Send to" value={target} onChange={setTarget} options={[{ value: 'code', label: 'Code' }, { value: 'figma', label: 'Figma' }, { value: 'both', label: 'Both' }]} />
-          <ListRow layout="inline" title="Reaches" value={usedIn.length ? `${usedIn.length} ${usedIn.length === 1 ? 'part' : 'parts'}` : 'only itself'} {...(usedIn.length ? { trailing: true, onClick: () => setOpen('reach') } : {})} />
+          <ListRow layout="inline" title="Reaches" {...val(usedIn.length ? `${usedIn.length} ${usedIn.length === 1 ? 'part' : 'parts'}` : 'only itself')} {...(usedIn.length ? { trailing: true, onClick: () => setOpen('reach') } : {})} />
         </Flow>
       </Card>
     </>
@@ -840,7 +845,7 @@ function HistoryPanel({ part, detail, names, open, setOpen }) {
           <TextStack subtitle={`${day(rec.date)} · ${cap(rec.type ?? 'change')}`} title={area ?? cap(rec.type ?? 'Change')} body={<Keyed text={rest} names={names} />} />
           <Flow as="ul" gap={0} aria-label="The record">
             <ListRow layout="stacked" title="Why" description={rec.whyAll ?? rec.why ?? 'The commit gives no reason.'} />
-            {rec.types.length ? <ListRow layout="inline" title="Kind" value={rec.types.join(' · ')} /> : null}
+            {rec.types.length ? <ListRow layout="inline" title="Kind" {...val(rec.types.join(' · '))} /> : null}
             <ListRow layout="inline" title="Commit" value={rec.id} trailing onClick={() => window.open(`https://github.com/emcdanie/bella/commit/${rec.id}`, '_blank', 'noopener')} />
           </Flow>
         </Flow>
@@ -931,7 +936,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const sbBase = studio.stories?.base;
   const links = sbBase && sbParts ? { story: sbParts.first ? `${sbBase}?path=/story/${sbParts.first}` : null, docs: sbParts.docs ? `${sbBase}?path=/docs/${sbParts.docs}` : null } : {};
   const weakestPair = detail?.anatomy.filter((x) => x.contrast).sort((x, y) => x.contrast.ratio - y.contrast.ratio)[0];
-  const rows = part ? studioChecks({ part, checks, drift: studio.drift, lint: studio.lint, gate: studio.gate, gaps: studio.gaps?.gaps, links, weakest: weakestPair ? `${weakestPair.title} ${ratio(weakestPair.contrast.ratio)}` : null }) : [];
+  const rows = part ? studioChecks({ part, checks, drift: studio.drift, lint: studio.lint, gate: studio.gate, gaps: studio.gaps?.gaps, gapsAt: studio.gaps?.at, links, weakest: weakestPair ? `${weakestPair.title} ${ratio(weakestPair.contrast.ratio)}` : null }) : [];
   const fixes = part ? studioFixes({ part, rows, findings: (detail?.anatomy ?? []).filter((x) => x.status === 'finding') }) : [];
   const fixKey = fixes.map((f) => f.id).join('|');
   useEffect(() => setChosen(fixes.map((f) => f.id)), [fixKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1105,7 +1110,9 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         </Flow>
       ) : (
         // the studio fills the window under the header; the list, the stage column and the panel scroll on their own
-        <Flow fit span={12} id="studio">
+        // fit="rest" measures where the studio starts once: when the header grows (the Figma notice, an
+        // answer), the studio is drawn again so it still ends at the window's foot and nothing sits below the fold
+        <Flow fit="rest" span={12} id="studio" key={`${Boolean(detail)}-${Boolean(detail?.figmaBlind)}-${studio.ready}-${Boolean(thread)}`}>
           <Flow span={12} direction="row" gap={24}>
             {listInline ? (
               <Flow aside>
