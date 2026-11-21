@@ -45,6 +45,8 @@ function inClause(clause) {
   if (num && !inBracket && !/^\d+:\d\d\b/.test(clause.text.slice(num.index))) {
     const [n, counted] = num[0].replace(/[.,;:]+$/, '').split(/\s+(?=[A-Za-z]+$)/);
     if (counted && !VERBS.has(counted.toLowerCase()) && !AMBIG.has(counted.toLowerCase())) return { at: clause.at + num.index, text: `${n} ${counted}` };
+    // a ratio or a percentage says itself ("4.5:1", "90%")
+    if (/:1$|%$/.test(n)) return { at: clause.at + num.index, text: n };
     // a bare number is marked only as part of its verb's phrase ("drop to 14"), never alone ("not 10")
   }
   const verbAt = (i) => {
