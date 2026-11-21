@@ -244,7 +244,7 @@ function Tokenized({ rows, source }) {
         <SectionHead size="card" icon="Code" iconTone="info" title="Tokenized" description={`Values that use a token${from}`} showDescription />
         <Flow gap={12}>
           {rows.map((r) => (
-            <Progress key={r.p} label={r.p} value={`${r.ok} of ${r.decl} values`} fill={r.decl ? (100 * r.ok) / r.decl : 0} tone={r.ok === r.decl ? 'success' : 'attention'} />
+            <Progress drawIn key={r.p} label={r.p} value={`${r.ok} of ${r.decl} values`} fill={r.decl ? (100 * r.ok) / r.decl : 0} tone={r.ok === r.decl ? 'success' : 'attention'} />
           ))}
         </Flow>
       </Flow>
