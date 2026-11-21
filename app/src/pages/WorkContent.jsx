@@ -34,7 +34,7 @@ import Flow from '../templates/Flow.jsx';
 import WorkDrawer from './WorkDrawer.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import useCached from '../templates/useCached.js';
-import { AREAS, LANES, LANE_NAMES, going, runnable, saveMove, shown } from './workModel.js';
+import { AREAS, LANES, LANE_NAMES, filterFromHash, going, runnable, saveMove, shown } from './workModel.js';
 
 export const VIEWS = [
   { value: 'board', label: 'Board' },
@@ -226,7 +226,22 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
   const phone = useNarrow();
   const [briefShut, setBriefShut] = useState(false);
   const [opened, setOpen] = useState(null);
-  const [filter, setFilter] = useState(null);
+  // the filter starts from the address, so the side menu's "Needs you" opens the board filtered
+  const [filter, setFilterNow] = useState(hashFilter.filter ?? null);
+  useEffect(() => {
+    const on = () => setFilterNow(filterFromHash().filter ?? null);
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  // picking or clearing one keeps the address in step, so a reload or a shared link shows the same board
+  const setFilter = (f) => {
+    setFilterNow(f);
+    const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    if (f) q.set('filter', f);
+    else q.delete('filter');
+    const next = `#/work${q.toString() ? `?${q}` : ''}`;
+    if (window.location.hash !== next) window.history.replaceState(null, '', next);
+  };
   const [sort, setSort] = useState('mine');
   const [q, setQ] = useState('');
   const [tool, setTool] = useState(null); // 'filter' | 'sort' | 'search'

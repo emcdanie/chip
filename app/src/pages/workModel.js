@@ -126,7 +126,10 @@ function whyEmpty(x) {
    #/work?lane=<id> keeps that lane. Read from the address, so a sidebar row is a link. */
 export function filterFromHash(hash = window.location.hash) {
   const q = new URLSearchParams(hash.split('?')[1] ?? '');
-  return { branch: q.get('branch'), lane: q.get('lane') };
+  // filter: the board's Filter from the address (#/work?filter=needs), so a link can open the board filtered
+  const f = q.get('filter');
+  const ok = f && (['needs', 'components'].includes(f) || /^(area|lane):[\w &-]{1,40}$/.test(f));
+  return { branch: q.get('branch'), lane: q.get('lane'), filter: ok ? f : null };
 }
 export function filtered(model, { branch, lane }) {
   if (!model || (!branch && !lane)) return model;

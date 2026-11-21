@@ -97,6 +97,11 @@ const teamWords = (t) =>
     .replace(/\bShe\b/g, 'The maintainer');
 const plain = (t) =>
   teamWords(t)
+    // no sparkle word or mark on screen, not even quoted from a commit (her rule, 22 Nov): it reads as the AI decoration it was
+    .replace(/\s*\u2728\s*/g, ' ')
+    .replace(/\b([Aa]) sparkle\b/g, '$1n AI decoration')
+    .replace(/\bsparkles\b/gi, 'AI decorations')
+    .replace(/\bsparkle\b/gi, 'AI decoration')
     // a bracket that holds a Figma node id goes whole ("(612:60963, table 800:79888)"), never half (audit 9)
     .replace(/\s*\([^()]*\b\d{2,4}:\d{2,7}\b[^()]*\)/g, '')
     .replace(/\s*\b\d{2,4}:\d{2,7}\b/g, '')
@@ -273,11 +278,24 @@ const firstSentence = (t) => {
    what changed, the number or the outcome, so a record can be scanned. Never the part name or the area
    before the colon. The words come from the record's own sentence by a tested rule (templates/keyPhrase.js). */
 /* "Health: Component checks read as Weather rows" → area "Health", rest the sentence. A title with no
-   area keeps all of it as the sentence. */
+   area keeps all of it as the sentence. The area is said in her plain words (coordinator, 22 Nov: a
+   housekeeping commit showed its own word as the area): a page by its name, a BELLA part as Parts, the side panel and chat as Work, the app's
+   frame as App, docs and specs as Docs, and housekeeping as Clean-up. */
+const AREA_WORDS = { health: 'Health', 'system health': 'Health', gaps: 'Health', 'stat cards': 'Health', charts: 'Health', work: 'Work', 'work panel': 'Work', 'work drawer': 'Work', chat: 'Work', ask: 'Work', talk: 'Work', 'talk, team': 'Work', runs: 'Work', components: 'Components', foundations: 'Foundations', history: 'History', reading: 'History', playground: 'Playground', 'not again': 'Not again', team: 'Team', connectors: 'Settings', 'system map': 'Processes', processes: 'Processes', home: 'Home', shell: 'App', nav: 'App', 'side menu': 'App', search: 'App', screen: 'App', template: 'App', toasts: 'App', parts: 'Parts', tokens: 'Parts', fonts: 'Parts', 'type, spacing': 'Parts', docs: 'Docs', specs: 'Docs', contracts: 'Docs', checks: 'Checks', gate: 'Checks', data: 'Checks', 'data sweep': 'Checks', 'clip sweep': 'Checks', 'audit 3': 'Checks' };
+export function plainArea(area, partNames = new Set()) {
+  const a = String(area).trim().toLowerCase();
+  if (AREA_WORDS[a]) return AREA_WORDS[a];
+  const first = a.split(',')[0].trim();
+  if (AREA_WORDS[first]) return AREA_WORDS[first];
+  // a BELLA part by its name ("List row", "Board lane, stage")
+  if (partNames.has(first.replace(/[\s-]+/g, ''))) return 'Parts';
+  return 'Clean-up';
+}
+let PART_NAMES = new Set();
 function areaOf(t) {
   const m = String(t ?? '').match(/^([^:]{2,32}):\s+([\s\S]+)$/);
   // the sentence stands on its own under the area, so it starts with a capital
-  return m ? { area: m[1].trim(), rest: m[2].charAt(0).toUpperCase() + m[2].slice(1) } : { area: null, rest: String(t ?? '') };
+  return m ? { area: plainArea(m[1], PART_NAMES), rest: m[2].charAt(0).toUpperCase() + m[2].slice(1) } : { area: null, rest: String(t ?? '') };
 }
 
 function Keyed({ text, names }) {
@@ -469,7 +487,7 @@ function Record({ id, fit, landing }) {
           </Flow>
           {/* Figma: the record's title at the subsection size, the biggest thing in the record */}
           {/* Figma draws the record title as Text stack Title (20 regular); an h2 for the record (TextStack titleAs, parts 111fc0c) */}
-          <TextStack titleAs="h2" title={<Keyed text={plain(rec.title)} names={rec.components} />} />
+          <TextStack titleAs="h2" title={<Keyed text={((a) => (a.area ? `${a.area}: ${a.rest}` : a.rest))(areaOf(plain(rec.title)))} names={rec.components} />} />
           {/* the counts, once, under the title (her note, 21 Nov: "should these not be at the top").
               Gap: no BELLA part sets numbers in Geist Mono and words in Lexend on one line, so the
               line is TextStack's meta line for now */}
@@ -580,6 +598,8 @@ export default function HistoryContent() {
   });
   const { data: bellaData } = useCached(['/data/bella.json']);
   const parts = bellaData?.[0]?.components ?? [];
+  // BELLA's part names, so an area that names a part reads as Parts
+  PART_NAMES = new Set(parts.map((c) => c.name.toLowerCase()));
   const search = (text) => {
     const t = String(text).trim();
     setDraft(t);
