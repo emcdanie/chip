@@ -50,9 +50,9 @@ function gitRecords(dir, repo, ref) {
       date,
       who,
       // the conventional prefix goes, its scope stays as words, so two "Built to the published Figma" records say which page ("Health: built to …")
-      title: subject.replace(/^\w+(?:\(([^)]*)\))?!?:\s*/, (_, scope) => (scope ? `${scope.replace(/[-_]/g, ' ')}: ` : '')).replace(/^./, (c) => c.toUpperCase()),
+      title: glyphWords(subject.replace(/^\w+(?:\(([^)]*)\))?!?:\s*/, (_, scope) => (scope ? `${scope.replace(/[-_]/g, ' ')}: ` : '')).replace(/^./, (c) => c.toUpperCase())),
       subject,
-      why: body.trim().split('\n\n')[0] || null,
+      why: glyphWords(body.trim().split('\n\n')[0] || null),
       type: typeOf(subject, files),
       breaking: /!:|BREAKING/.test(subject + body),
       status: 'Merged',
@@ -61,6 +61,13 @@ function gitRecords(dir, repo, ref) {
   }
   return out;
 }
+
+/* UI glyphs written into a commit or changelog sentence ("ends in the ↗ that
+   means open") read on the page as a stray open arrow inside the text; the
+   arrow belongs at a row's end, never inside a sentence (Elleta, 22 Nov). In
+   a record's words each glyph is named instead. */
+const GLYPH_WORDS = [[/↗/g, 'up-right arrow'], [/›/g, 'chevron'], [/[→⇢]/g, 'to'], [/[↵⏎]/g, 'Return key']];
+export const glyphWords = (t) => (t == null ? t : GLYPH_WORDS.reduce((s, [re, w]) => s.replace(re, w), String(t)));
 
 function changelogRecords() {
   const file = join(BELLA, 'CHANGELOG.md');
@@ -83,8 +90,8 @@ function changelogRecords() {
       repo: 'bella',
       date: `${h3[2]}T12:00:00`,
       who: null,
-      title: h3[1],
-      why: body.split('\n').find((l) => l.trim())?.replace(/^- /, '').replace(/\*\*/g, '') ?? null,
+      title: glyphWords(h3[1]),
+      why: glyphWords(body.split('\n').find((l) => l.trim())?.replace(/^- /, '').replace(/\*\*/g, '') ?? null),
       body,
       type: /token|colour|ground|oklch|theme|highlight/i.test(h3[1] + body.slice(0, 300)) ? 'Tokens' : 'Visual',
       breaking: /BREAKING/.test(body),
@@ -103,7 +110,7 @@ function decisionRecords() {
     const date = f.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] ?? new Date(statSync(join(dir, f)).mtimeMs).toISOString().slice(0, 10);
     const title = body.match(/^# (.+?)(?: · .*)?$/m)?.[1] ?? f;
     const why = body.match(/\*\*Decision[^*]*\*\*:?\s*(.+)/)?.[1] ?? body.split('\n\n')[1] ?? null;
-    return { id: `decision:${f}`, source: 'Decision record', repo: 'bella', path: `docs/decisions/${f}`, date: `${date}T12:00:00`, who: 'Elleta', title, why, body, type: 'Decision', breaking: false, status: 'Decided' };
+    return { id: `decision:${f}`, source: 'Decision record', repo: 'bella', path: `docs/decisions/${f}`, date: `${date}T12:00:00`, who: 'Elleta', title: glyphWords(title), why: glyphWords(why), body, type: 'Decision', breaking: false, status: 'Decided' };
   });
 }
 
