@@ -219,7 +219,8 @@ export function searchHistory(query) {
     total: all.length,
     count: records.length,
     counts: { types: typeCounts, anyType: all.filter((r) => match(r, 'types')).length, components: compCounts, status: statusCounts, breaking: all.filter((r) => match(r, 'breaking') && r.breaking).length },
-    records: records.slice(0, 80).map(({ text, body, ...r }) => ({ ...r, files: (r.files ?? []).slice(0, 12) })),
+    // as many as the page asks for (History asks 400 and shows 10 at a time), never more than 1000; 80 when it doesn't say
+    records: records.slice(0, Math.min(Number(query.limit) || 80, 1000)).map(({ text, body, ...r }) => ({ ...r, files: (r.files ?? []).slice(0, 12) })),
     timeline: records.slice(0, 60).map((r) => ({ id: r.id, date: r.date, title: r.title, type: r.type })),
   };
 }

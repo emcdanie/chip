@@ -60,8 +60,39 @@ const STATUS_TONE = { Merged: 'success', Shipped: 'success', Decided: 'info', 'O
 // the role alone, no "a" or "the" (Elleta, 21 Nov)
 const roleOf = (who) => (!who ? null : /claude|agent|bot/i.test(who) ? 'agent' : /in CHIP/i.test(who) ? 'maintainer, in CHIP' : 'maintainer');
 // Plain words on screen (her rule): no Figma node ids, file paths, app routes or model names.
-const plain = (t) =>
+/* Old commits were written for the team, not for the person using CHIP: they carry her quoted words,
+   "batch N", session names and audit labels. New commits are user-facing (CHIP rule, 22 Nov); for the old
+   ones History shows the words without those, and the raw commit stays one click away (git is never
+   rewritten). */
+const SESSIONS = /\b(?:coordinator(?:-\d+)?|chip-fixes|chip-code|chip-chat|hifi-refine|docs-finish|parts-code(?:-\d+)?|parts-motion|library-writer|figma-screens|history-restore|CHIP-code)\b/gi;
+const INTERNAL = /["“”]|\bbatch \d|\bElleta\b|\bher\b|\bshe\b|visual study|\baudit \d|\bcard [a-z]?\d|\bpublished \d|\bpick(?:ed|s)?\b|\bnote\b/i;
+const teamWords = (t) =>
   String(t ?? '')
+    // a bracket that holds her words, a quote or an internal label goes whole
+    .replace(/\s*\(([^()]*)\)/g, (m, inner) => (INTERNAL.test(inner) ? '' : m))
+    // her words quoted outside a bracket ("Elleta, 22 Nov: \"…\"", "she said \"…\"")
+    .replace(/\s*(?:Elleta|she|the maintainer)(?:[^".“]{0,40})[:,]?\s*["“][^"”]*["”]/gi, '')
+    // "batch 3 BELLA parts" reads "BELLA parts"; "in batch 5" reads "in a library update"
+    // a sentence that is only a batch label ("Batch 4 (published …)." before the real first sentence) goes whole
+    .replace(/(^|[.!?]\s+)(?:BELLA )?[Bb]atch \d+\s*(?:\([^()]*\))?\s*[.:;]\s*/g, '$1')
+    .replace(/\b[Bb]atch-\d+\s+/g, '')
+    .replace(/\b(?:BELLA )?[Bb]atch \d+\b\s+(?=[A-Z])/g, '')
+    .replace(/\b(?:BELLA )?[Bb]atch \d+\b/g, 'a library update')
+    .replace(/\b([Tt]he) coordinator(?:-\d+)?\b/g, '$1 reviewer')
+    .replace(/\baudit \d+\b/gi, 'the audit')
+    .replace(/,?\s*(?:from|in|on) the \d{1,2} \w{3} visual study,?/gi, '')
+    .replace(/\b(?:the )?(?:decision )?card [a-z]\d+\b/gi, 'a decision')
+    // where the team's pictures were saved is not for the reader
+    .replace(/\bPictures?:\s*[^.;]*[.;]?/g, '')
+    .replace(/\b(?:[\w.-]+\/){2,}[\w.-]*/g, '')
+    .replace(/\s*\b(?:from|by|to|for|in)\s+(?=(?:coordinator|chip-|hifi-|docs-|parts-|library-|figma-|history-|CHIP-code))/gi, ' ')
+    .replace(SESSIONS, '')
+    .replace(/\bHer\b/g, 'The')
+    .replace(/\bher\b/g, 'the')
+    .replace(/\bshe\b/g, 'the maintainer')
+    .replace(/\bShe\b/g, 'The maintainer');
+const plain = (t) =>
+  teamWords(t)
     // a bracket that holds a Figma node id goes whole ("(612:60963, table 800:79888)"), never half (audit 9)
     .replace(/\s*\([^()]*\b\d{2,4}:\d{2,7}\b[^()]*\)/g, '')
     .replace(/\s*\b\d{2,4}:\d{2,7}\b/g, '')
@@ -88,7 +119,12 @@ const plain = (t) =>
     // a removed path at a bracket's start leaves no space after it ("(data/x.json radius" reads "(radius")
     .replace(/\(\s+/g, '(')
     .replace(/\s{2,}/g, ' ')
-    .trim();
+    .trim()
+    // what a removal leaves at the start ("Batch 4 (…). Type on…" reads "Type on…"), and a lower-case start
+    .replace(/^[\s.,;:·-]+/, '')
+    .replace(/\s+([,.;:])/g, '$1')
+    .replace(/([.;:]),/g, '$1')
+    .replace(/^./, (c) => c.toUpperCase());
 /* A touched file in plain words: what it is, not its path ("Team page", "Button part"). */
 const fileWords = (f) => {
   const parts = String(f).split('/');
@@ -97,9 +133,11 @@ const fileWords = (f) => {
   if (shot) return `${shot[1].replace(/(^|-)(\w)/g, (_, __, c) => c.toUpperCase())} screenshots`;
   // a part's CSS module is the part ("Input.module part" was a second, broken row)
   const base = parts.pop().replace(/\.(stories|module)?\.?(jsx?|tsx?|mjs|css|md|json|ya?ml|html)$/, '');
-  const name = base.replace(/Content$/, '').replace(/\.stories$/, '');
+  // a part's spec ("ProjectPanel.spec.yaml") reads "ProjectPanel spec", words that can wrap, never a dotted name
+  const name = base.replace(/Content$/, '').replace(/\.stories$/, '').replace(/\.spec$/, ' spec');
   if (/\.stories\./.test(f)) return `${name} stories`;
   // a page's model is its data, not a page ("workModel page" read as a page, audit 9)
+  if (/ spec$/.test(name)) return name;
   if (parts.includes('pages') && /Model$/.test(name)) return `${name.replace(/Model$/, '')} data`;
   // a page's own file is the page; a helper beside it (WorkDrawer) reads as words, not a page
   if (parts.includes('pages')) return PAGES.includes(name.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()) ? `${name} page` : name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^(\w)(.*)$/, (_, a, b) => a + b.toLowerCase());
@@ -458,6 +496,12 @@ function Record({ id, fit, landing }) {
                           <span key={l}>{l}</span>
                         ))}
                       </Flow>
+                    </Disclosure>
+                  ) : null}
+                  {/* the commit exactly as git has it, for anyone who wants the team's own wording */}
+                  {rec.body ? (
+                    <Disclosure flush title="The commit as written">
+                      <CodeBlock code={plainWhy(rec.body)} language="plain" title={`${rec.repo === 'bella' ? 'BELLA' : 'CHIP'} commit ${rec.sha}`} lineNumbers={false} copy />
                     </Disclosure>
                   ) : null}
                 </Flow>
