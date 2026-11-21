@@ -373,11 +373,13 @@ export default function PlaygroundContent({ project, onProject, route, onRoute }
           </Button>
         }
       >
-        <Flow gap={16}>
+        {/* plain content in a Drawer body lands on the title's edge with Flow inset (Flow.jsx) */}
+        <Flow gap={16} inset>
         <Flow as="ol" gap={16} aria-label="Notes">
           {notes.map((n, i) => (
             <Flow as="li" key={n.id} gap={8}>
-              <Flow direction="row" gap={8}>
+              {/* wraps rather than squeezing the pin's label onto two lines */}
+              <Flow direction="row" gap={8} wrap align="center">
                 <Pin number={i + 1} label={`on ${n.on}`} />
                 <Button variant="tertiary" size="sm" onClick={() => setNotes((ns) => ns.filter((x) => x.id !== n.id))} ariaLabel={`Remove note ${i + 1}`}>
                   Remove
