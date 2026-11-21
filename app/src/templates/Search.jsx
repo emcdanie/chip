@@ -40,7 +40,10 @@ const breakable = (name) => name.split(/(?<=[a-z])(?=[A-Z])/).flatMap((w, i) => 
 export function find(q, parts) {
   const t = q.trim().toLowerCase();
   if (!t) return [];
-  const rank = (name, about = '') => (name.toLowerCase().startsWith(t) ? 0 : name.toLowerCase().includes(t) ? 1 : about.toLowerCase().includes(t) ? 2 : -1);
+  // spaces and hyphens don't count in a name: "avatar stack" finds AvatarStack (click test, 22 Nov)
+  const squash = (x) => x.toLowerCase().replace(/[\s_-]+/g, '');
+  const n = squash(t);
+  const rank = (name, about = '') => (squash(name).startsWith(n) ? 0 : squash(name).includes(n) ? 1 : about.toLowerCase().includes(t) ? 2 : -1);
   const pages = PAGES.map((p) => ({ key: `page:${p.id}`, title: p.label, where: p.where, href: `#/${p.id}`, r: rank(p.label) }));
   const comps = parts.map((c) => ({ key: `part:${c.name}`, title: c.name, where: `Part · ${c.category ?? 'BELLA'}`, href: `#/components/${encodeURIComponent(c.id ?? c.name)}`, r: rank(c.name, c.description ?? '') }));
   return [...pages, ...comps].filter((x) => x.r >= 0).sort((a, b) => a.r - b.r || a.title.localeCompare(b.title)).slice(0, MAX);
