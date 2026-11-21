@@ -145,13 +145,13 @@ function useRecord(id) {
   return id && data ? data[0] : null;
 }
 
-function Activity({ records, total, open, onOpen }) {
+function Activity({ records, total, open, onOpen, fit }) {
   const [shown, setShown] = useState(PAGE);
   const list = records.slice(0, shown);
   let last = null;
   return (
     <Card>
-      <Flow gap={8}>
+      <Flow gap={8} scroll={fit}>
         <SectionHead title="Activity" words={`${list.length} of ${total} records`} />
         <Flow gap={4} as="ol" aria-label="Records, newest first">
           {list.map((r) => {
@@ -200,7 +200,7 @@ const touched = (files) => {
 
 const firstSentence = (t) => String(t).split(/(?<=[.!?])\s/)[0];
 
-function Record({ id }) {
+function Record({ id, fit }) {
   const rec = useRecord(id);
   const [q, setQ] = useState('');
   const { answer, ask: send, clear, retry, stop } = useAsk();
@@ -216,7 +216,7 @@ function Record({ id }) {
   const ask = () => q.trim() && send(`About ${rec.repo} commit ${rec.sha} ("${rec.title}"): ${plainAsk(q.trim())}`, 'history', { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: `${rec.title}\n\n${plainWhy(rec.why)}\n\nFiles: ${files.join(', ') || 'none listed'}` }, q.trim());
   return (
     <Card>
-      <Flow gap={24}>
+      <Flow gap={24} scroll={fit} aria-label="The open record" tabIndex={fit ? 0 : undefined}>
         <Flow gap={8}>
           <Flow direction="row" justify="between" wrap gap={8} align="center">
             <Tag tone={STATUS_TONE[rec.status] ?? 'neutral'}>{rec.status}</Tag>
@@ -375,14 +375,17 @@ export default function HistoryContent() {
       ) : !data ? (
         <EmptyState size="page" title="Reading the record" line="Pulling BELLA's and CHIP's git logs. Won't be a minute." />
       ) : (
-        <>
+        // the list and the record fill the window and each scrolls on its own; the page never scrolls
+        // (Elleta, 22 Nov: "I don't want to scroll the whole page"). A phone stacks them and scrolls.
+        <Flow fit={!phone} span={12} direction={phone ? 'column' : 'row'} gap={24}>
           <Flow span={5}>
-            <Activity records={records} total={data.total} open={open} onOpen={setOpen} />
+            <Activity records={records} total={data.total} open={open} onOpen={setOpen} fit={!phone} />
           </Flow>
           <Flow span={7}>
-            <Record id={open} />
+            {/* a new record opens at its top (keyed), never mid-scroll from the last one */}
+            <Record key={open} id={open} fit={!phone} />
           </Flow>
-        </>
+        </Flow>
       )}
 
       <Drawer

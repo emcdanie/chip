@@ -190,6 +190,30 @@
 .chip-flow--row { flex-direction: row; }
 .chip-flow--wrap { flex-wrap: wrap; }
 .chip-flow--fill > * { flex: 1 1 auto; }
+/* fit (Flow.jsx): the 12 columns again, filling the window from where it starts (Flow sets the block
+   size); each column keeps the window's height and its card scrolls inside it */
+.chip-flow--fit {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--layout-gutter);
+  align-items: stretch;
+  min-block-size: 0;
+}
+.chip-flow--fit > .chip-span-5 { grid-column: span 5; }
+.chip-flow--fit > .chip-span-7 { grid-column: span 7; }
+.chip-flow--fit > * { min-block-size: 0; }
+.chip-flow--fit > * > * { flex: 1 1 0; min-block-size: 0; }
+/* a column that scrolls on its own: its height comes from its frame, never from its content, and 8 of
+   room inside so focus rings and selected rows are never cut at the edge */
+.chip-flow--scroll {
+  flex: 1 1 0;
+  block-size: 0;
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--spacing-8);
+  margin: calc(var(--spacing-8) * -1);
+}
 /* the container's full width, even inside one that centres its child (Stage) */
 .chip-flow--stretch { inline-size: 100%; }
 /* a side column of a set width beside a growing first child (the part card beside the stage) */
@@ -232,7 +256,9 @@
   :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 { grid-column: span 6; }
   /* History's list and record share the row in halves, so the list's titles never break mid-word (1100: "Component s") */
   :is(.chip-screen__content, .chip-tabpanel) > .chip-span-5,
-  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-7 { grid-column: span 6; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-7,
+  .chip-flow--fit > .chip-span-5,
+  .chip-flow--fit > .chip-span-7 { grid-column: span 6; }
   /* the third of three third-width groups takes the row and lays its cards side by side */
   :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; flex-direction: row; }
   :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) > * { flex: 1 1 0; min-inline-size: 0; }

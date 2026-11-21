@@ -24,7 +24,10 @@ const GAPS = new Set([4, 8, 12, 16, 24]);
  * full width even where the container centres its child (the System map's
  * steps on the Stage); aside: a side column beside a growing first child,
  * Figma's part card width (240), never squeezed (Components' part card); bullets: a list
- * shows its bullet markers (an answer's bullets, her mock and Figma Flow 12).
+ * shows its bullet markers (an answer's bullets, her mock and Figma Flow 12); fit: a list beside its
+ * detail that fills the window from where it starts, on the 12 columns, so the page itself never scrolls
+ * (History, Elleta 22 Nov: "I don't want to scroll the whole page"); scroll: a column inside fit (or a card)
+ * that scrolls on its own.
  */
 /* board: the Work board's frame (Elleta, 19 Nov: "the work board needs to stay
    in the veiwport.. and scrool horizontal and hten independently in there own
@@ -106,10 +109,10 @@ function useMore(ref, on) {
   return [more, step];
 }
 
-export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, stretch = false, aside = false, bullets = false, inset = false, children, ...rest }) {
-  const [boardRef, boardSize] = useToBottom(board);
+export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, fit = false, scroll = false, stretch = false, aside = false, bullets = false, inset = false, children, ...rest }) {
+  const [boardRef, boardSize] = useToBottom(board || fit);
   if (!GAPS.has(gap)) throw new Error(`Flow: gap ${gap} is not on the spacing scale (4, 8, 12, 16, 24)`);
-  const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', `chip-span-${span}`]
+  const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', fit ? 'chip-flow--fit' : '', scroll ? 'chip-flow--scroll' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', `chip-span-${span}`]
     .filter(Boolean)
     .join(' ');
   const [more, step] = useMore(boardRef, board);
@@ -130,6 +133,12 @@ export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, 
           </div>
         ) : null}
       </div>
+    );
+  if (fit)
+    return (
+      <Tag className={cls} ref={boardRef} style={boardSize} {...rest}>
+        {children}
+      </Tag>
     );
   return (
     <Tag className={cls} {...rest}>
