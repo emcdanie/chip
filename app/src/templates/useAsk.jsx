@@ -19,6 +19,7 @@
 // (it opens under the answer). Finding marks are IconWell sm (error ✕, success ✓; parts 7e637ee).
 // Folded rows keep Disclosure's hairline,
 // as Figma Flow 12 draws them.
+import Marker from '@bella/components/Marker/Marker';
 import { planRun } from './RunPlan.jsx';
 import { useEffect, useRef, useState } from 'react';
 import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
@@ -202,7 +203,7 @@ export default function useAsk({ thread = false } = {}) {
   };
 }
 
-/* An answer's words: **key phrase** bold, [n] as her pink pin, no code ticks. */
+/* An answer's words: **key phrase** bold with the blue Marker, [n] as her pink pin, no code ticks. */
 export function Words({ text, onPin }) {
   const bits = String(text)
     .replace(/`/g, '')
@@ -213,7 +214,13 @@ export function Words({ text, onPin }) {
     .split(/(\*\*[^*]+\*\*|\[\d+\])/)
     .filter(Boolean);
   const pin = (bit, i) => <Pin key={i} number={bit.slice(1, -1)} variant="red" pinStyle="solid" ariaLabel={`Open source ${bit.slice(1, -1)}`} onClick={onPin ? (e) => onPin(Number(bit.slice(1, -1)), e.currentTarget, text) : undefined} />;
-  const word = (bit, i) => (/^\*\*/.test(bit) ? <strong key={i}>{bit.slice(2, -2)}</strong> : bit);
+  // bold is for key words only, with BELLA's blue Marker (rules, 22 Nov): a marked phrase of more than
+  // four words is a sentence, so it reads plain instead of turning a whole line bold
+  const word = (bit, i) => {
+    if (!/^\*\*/.test(bit)) return bit;
+    const phrase = bit.slice(2, -2);
+    return phrase.trim().split(/\s+/).length <= 4 ? <Marker key={i}>{phrase}</Marker> : phrase;
+  };
   const out = [];
   for (let i = 0; i < bits.length; i++) {
     if (!/^\[\d+\]$/.test(bits[i])) {

@@ -49,7 +49,7 @@ function gateReason(d) {
   const what = n ? `${n} story ${n === 1 ? 'test' : 'tests'} ${/timeout/i.test(log) ? 'timed out' : 'failed'}` : 'a gate check failed';
   const touched = files.some((f) => (d.files ?? []).some((c) => String(c).endsWith(f)));
   return {
-    line: '**BELLA’s gate stopped the commit.** Nothing was kept.',
+    line: 'BELLA’s **gate stopped** the commit. Nothing was kept.',
     facts: [what, ...files.map((f) => f.split('/').pop()), files.length && !touched ? 'not a file the agent changed' : null].filter(Boolean).join(' · '),
   };
 }
@@ -160,7 +160,8 @@ function shapeNotes(t) {
       else points.push(`**${label}:** ${first}`);
     }
   }
-  const bold = verdict.length <= 40 ? `**${verdict}**` : verdict.replace(/^((?:\S+\s){0,3}\S+)/, '**$1**');
+  // the key phrase only, never the whole line: its first words (bold is for key words, rules 22 Nov)
+  const bold = verdict.replace(/^((?:\S+\s){0,2}\S+)/, '**$1**');
   const asks = questions.map((q) => `**${q.label}:** ${q.line}`);
   return { verdict: bold, bullets: [...asks, ...points, ...sentences.slice(1)].slice(0, 3), questions, all: text };
 }
@@ -220,7 +221,7 @@ function shapeOf(item, d) {
       title: d.title,
       status: ['Agent', d.from ? `from ${d.from}` : null, d.startedAt ? `ran ${when(d.startedAt)}` : null].filter(Boolean).join(' · '),
       // the outcome in one plain line: a gate stop names its tests and file; the agent's notes fold, whole
-      outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d).line : `**${String(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}.** Nothing was kept.`) : d.status === 'kept' ? '**Accepted:** the branch is kept.' : d.status === 'passed' ? `**${firstLine(d.summary) || 'The gate passed.'}**` : d.step || 'Working.',
+      outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d).line : `**Stopped:** ${String(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}. Nothing was kept.`) : d.status === 'kept' ? '**Accepted:** the branch is kept.' : d.status === 'passed' ? (firstLine(d.summary) ? `**Gate passed:** ${firstLine(d.summary)}` : '**The gate passed.**') : d.step || 'Working.',
       gate: d.gate?.passed ? `Gate passed · ${d.sha ? '1 commit' : 'no commit'}` : failed && d.gate && d.gate.passed === false ? gateReason(d).facts : null,
       notes: d.summary ?? null,
       // what the change shows, in one line: what the agent wrote and what the gate made of it
