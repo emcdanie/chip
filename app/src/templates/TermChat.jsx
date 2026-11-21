@@ -8,6 +8,10 @@
 // from the run (/runs/:id). Reactions are the coloured bar on any reply.
 // A real shell still opens from New shell, in its own drawer (the plain text
 // fallback, never the chat itself).
+// Talk (Work board, section 8, 22 Nov): "Send it to the agent" brings the plan back in the chat, its
+// numbered steps outside the bubble, Later and Start under them on the right. Start runs it (her
+// press is the approval of the plan she sees); Later keeps it as a card in Next. "What is being
+// worked on?" is answered from the Work board itself (workStatus), never by a model.
 // Gaps: no dotted-underline term with a plain-speech card yet (Tooltip would
 // carry it; the terms need words from CHIP first); the agent can't ask her a
 // question mid-run (runs are headless), so no permission bubbles are drawn.
@@ -18,8 +22,10 @@ import TypingDots from '@bella/components/TypingDots/TypingDots';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
+import Step from '@bella/components/Step/Step';
 import Flow from './Flow.jsx';
-import { AnswerLines, NotAnswered, Reply, Ticks, sendToAgent, shapeReply, useCitations } from './useAsk.jsx';
+import { AnswerLines, NotAnswered, Reply, Ticks, briefOf, shapeReply, useCitations } from './useAsk.jsx';
+import { STATUS_Q, workStatus } from '../pages/workModel.js';
 
 // Team draws its replies with the same bubble
 export { Reply };
@@ -75,6 +81,68 @@ function AgentRun({ id, onOpen }) {
   );
 }
 
+/* A plan's steps: a short title each (Step titles are bold, so never a whole sentence), the sentence under it. */
+const planSteps = (answer) => {
+  const { verdict, bullets } = answer.verdict ? { verdict: answer.verdict, bullets: answer.bullets ?? [] } : shapeReply(answer.reply ?? '');
+  const clean = (t) => String(t).replace(/\*\*|\[\d+\]/g, '').replace(/\s+([.,;:!?])/g, '$1').trim();
+  const split = (t) => {
+    const m = clean(t).match(/^([^:]{2,40}):\s*(.+)$/);
+    return m ? { title: m[1], detail: m[2] } : { title: 'The change', detail: clean(t) };
+  };
+  return [split(verdict), ...bullets.slice(0, 4).map(split), { title: 'The gate', detail: 'Run BELLA’s gate on the agent’s copy, then show you before and after' }].filter((x) => x.detail);
+};
+
+/* The plan, back in the chat: one line in BELLA's bubble, the numbered steps on the panel, Later and Start on the right. */
+function PlanTurn({ t, onStart, onLater }) {
+  return (
+    <Flow gap={12}>
+      <Reply who="BELLA" disc="B">
+        {t.planState === 'later' ? 'Kept in Next on the Work board. Drag it into Now when you want it done.' : 'Here is the plan. Nothing runs until you press Start; Later puts it in Next.'}
+      </Reply>
+      <Flow as="ol" gap={0} aria-label={`The plan: ${t.plan.title}`}>
+        {t.plan.steps.map((x, i) => (
+          <Step key={i} layout="vertical" number={i + 1} title={x.title} detail={x.detail} state="pending" showLineAbove={i > 0} showConnector={i < t.plan.steps.length - 1} />
+        ))}
+      </Flow>
+      {t.planState === 'open' || t.planState === 'busy' ? (
+        <Flow direction="row" gap={8} justify="end">
+          <Button variant="secondary" onClick={t.planState === 'busy' ? undefined : onLater}>
+            Later
+          </Button>
+          <Button variant="primary" busy={t.planState === 'busy'} onClick={t.planState === 'busy' ? undefined : onStart}>
+            {t.planState === 'busy' ? 'Starting…' : 'Start'}
+          </Button>
+        </Flow>
+      ) : null}
+    </Flow>
+  );
+}
+
+/* An answer CHIP made from the Work board: no model, so it says where it came from. */
+function StatusTurn({ t, last }) {
+  const a = t.local;
+  return (
+    <Flow gap={12}>
+      <Flow gap={4}>
+        <ChatBubble side="sent" tail>
+          {t.text}
+        </ChatBubble>
+        {last ? <ChatThreadDelivered>{`${t.at} · read`}</ChatThreadDelivered> : null}
+      </Flow>
+      {a.status === 'thinking' ? <TypingDots name="BELLA" /> : null}
+      {a.status === 'answer' ? (
+        <Flow gap={4}>
+          <Reply who="BELLA" disc="B">
+            <AnswerLines shaped={{ verdict: a.verdict, bullets: a.bullets }} onPin={() => {}} />
+          </Reply>
+          <TextStack subtitle={a.line} />
+        </Flow>
+      ) : null}
+      {a.status === 'error' ? <Reply who="BELLA" disc="B">{`I can’t say what is being worked on: ${a.error}. Nothing is made up, so there is no answer.`}</Reply> : null}
+    </Flow>
+  );
+}
+
 /* One turn: her message, then BELLA's reply (or what it's doing), then the agent's run if she sent it on. */
 function Turn({ turn, last, sent, onAgent, onRetry }) {
   const a = turn.answer;
@@ -116,23 +184,57 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
   // tabs keeps the chat (audit 21 Nov); BELLA's answers come from asker
   const end = useRef(null);
   const answers = [...asker.past, asker.answer].filter(Boolean);
-  const startRun = async (turn) => {
-    const at = hhmm();
-    setTurns((t) => [...t, { text: 'Send it to the agent.', at, agentFor: turn.i }]);
+  // "Send it to the agent": the plan comes back in the chat; Start runs it, Later keeps it in Next
+  const patch = (agentFor, p) => setTurns((t) => t.map((x) => (x.agentFor === agentFor && !x.run ? { ...x, ...p } : x)));
+  const startRun = (turn) => {
+    const plan = { title: String(turn.answer.q).slice(0, 90), brief: briefOf(turn.answer), steps: planSteps(turn.answer) };
+    setTurns((t) => [...t, { text: 'Send it to the agent.', at: hhmm(), agentFor: turn.i, plan, planState: 'open' }]);
+  };
+  const start = async (t) => {
+    patch(t.agentFor, { planState: 'busy' });
     try {
-      // the plan opens first; closing it takes her line back out, and nothing runs
-      const id = await sendToAgent(turn.answer);
-      if (!id) return setTurns((t) => t.filter((x) => !(x.agentFor === turn.i && !x.run && !x.runError)));
-      setTurns((t) => t.map((x) => (x.agentFor === turn.i && !x.run ? { ...x, run: id } : x)));
+      const r = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief: t.plan.brief, title: t.plan.title, from: 'Talk', approved: true }) });
+      const run = await r.json().catch(() => ({}));
+      if (!r.ok || run.error) throw new Error(run.error || 'CHIP did not answer');
+      if (run.status === 'login' || run.status === 'failed') throw new Error(run.error || 'The agent could not start');
+      patch(t.agentFor, { planState: 'started', run: run.id });
+      window.dispatchEvent(new Event('chip:changed'));
+      onNotice?.({ tone: 'success', text: `Started: ${t.plan.title.replace(/[.?!]$/, '')}. Its card is in Now on the Work board.` });
     } catch (e) {
-      setTurns((t) => t.map((x) => (x.agentFor === turn.i && !x.run ? { ...x, runError: `I couldn’t start: ${e.message}` } : x)));
-      if (!e.shown) onNotice?.({ tone: 'danger', text: `Not sent: ${e.message}` });
+      patch(t.agentFor, { planState: 'open', runError: `I couldn’t start: ${e.message}` });
+      onNotice?.({ tone: 'danger', text: `Not started: ${e.message}` });
+    }
+  };
+  const later = async (t) => {
+    patch(t.agentFor, { planState: 'busy' });
+    try {
+      const r = await fetch('/work/ideas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: t.plan.title, brief: t.plan.brief, lane: 'next' }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error ?? 'CHIP did not save it');
+      patch(t.agentFor, { planState: 'later' });
+      window.dispatchEvent(new CustomEvent('chip:board', { detail: d.board }));
+      onNotice?.({ tone: 'success', text: `In Next: ${t.plan.title.replace(/[.?!]$/, '')}.` });
+    } catch (e) {
+      patch(t.agentFor, { planState: 'open' });
+      onNotice?.({ tone: 'danger', text: `Not kept: ${e.message}` });
+    }
+  };
+  // "what is being worked on": read from the Work board, shown as CHIP's own answer
+  const status = async (text) => {
+    const at = hhmm();
+    setTurns((t) => [...t, { text, at, local: { status: 'thinking' } }]);
+    const set = (local) => setTurns((t) => t.map((x) => (x.at === at && x.text === text && x.local ? { ...x, local } : x)));
+    try {
+      set({ status: 'answer', ...(await workStatus()) });
+    } catch (e) {
+      set({ status: 'error', error: e.message });
     }
   };
   // the composer's words: "send it to the agent" sends the last answer on; anything else asks BELLA
   sayRef.current = (text) => {
-    const lastAsked = turns.filter((t) => t.agentFor == null).length - 1;
+    const lastAsked = turns.filter((t) => t.agentFor == null && !t.local).length - 1;
     if (SEND.test(text) && answers[lastAsked]?.status === 'answer') return startRun({ i: lastAsked, answer: answers[lastAsked] });
+    if (STATUS_Q.test(text)) return status(text);
     setTurns((t) => [...t, { text, at: hhmm() }]);
     asker.ask(text, window.location.hash || '#/work', undefined, undefined, provider);
   };
@@ -144,7 +246,7 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
   }, [turns.length]);
   // her questions pair with BELLA's answers in order; "send it to the agent" turns carry their run
   let k = -1;
-  const rows = turns.map((t) => (t.agentFor == null ? { ...t, i: ++k, answer: answers[k] } : { ...t, answer: null }));
+  const rows = turns.map((t) => (t.agentFor == null && !t.local ? { ...t, i: ++k, answer: answers[k] } : { ...t, answer: null }));
   return (
     <Flow gap={16}>
     {/* no head of its own: the Work drawer's status line names the chat and the composer the model (one chat, one head; audit 3) */}
@@ -154,7 +256,9 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
         {/* each exchange under its own time (ChatThread's stamp), not one stamp for the whole chat; a turn
             in the same minute as the last shares its stamp */}
         {n === 0 || rows[n - 1].at !== t.at ? <ChatThreadTimestamp boldWord={n === 0 ? 'Today' : undefined}>{t.at}</ChatThreadTimestamp> : null}
-        {t.agentFor == null ? (
+        {t.local ? (
+          <StatusTurn t={t} last={n === rows.length - 1} />
+        ) : t.agentFor == null ? (
           <Turn turn={t} last={n === rows.length - 1} sent={rows.some((x) => x.agentFor === t.i)} onAgent={startRun} onRetry={n === rows.length - 1 ? (p) => asker.retry(p ?? provider) : undefined} />
         ) : (
           <Flow gap={12}>
@@ -164,7 +268,8 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
               </ChatBubble>
               {n === rows.length - 1 ? <ChatThreadDelivered>{`${t.at} · read`}</ChatThreadDelivered> : null}
             </Flow>
-            {t.run ? <AgentRun id={t.run} onOpen={onOpen} /> : t.runError ? <ChatBubble side="received" senderName="Agent">{t.runError}</ChatBubble> : <TypingDots name="the agent" />}
+            {t.plan ? <PlanTurn t={t} onStart={() => start(t)} onLater={() => later(t)} /> : null}
+            {t.run ? <AgentRun id={t.run} onOpen={onOpen} /> : t.runError ? <ChatBubble side="received" senderName="Agent">{t.runError}</ChatBubble> : t.plan ? null : <TypingDots name="the agent" />}
           </Flow>
         )}
         </Fragment>
