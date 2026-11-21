@@ -25,7 +25,7 @@ import { BASE as checksBase, gateLog, listChecks, readResult, refreshIfStale, ru
 import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
 import { saveBoard, saveIdea, workBoard, workLanes } from './lib/lanes.mjs';
-import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
+import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
 import { ciRuns, warmCi, systemMap } from './lib/map.mjs';
@@ -540,6 +540,8 @@ app.get('/push/:repo', (req, res) => {
 });
 app.get('/runs', (_req, res) => res.json({ runs: listRuns(), base: checksBase }));
 app.get('/runs/ready', (_req, res) => res.json(claudeReady()));
+// what a run does, step by step, for every plan a page shows (Talk)
+app.get('/runs/plan', (_req, res) => res.json(runPlan()));
 app.get('/runs/:id', (req, res) => {
   const r = getRun(String(req.params.id));
   r ? res.json(r) : res.status(404).json({ error: 'No such run (runs are kept until CHIP restarts)' });

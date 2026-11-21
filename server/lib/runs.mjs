@@ -263,6 +263,21 @@ export function keepRun(id) {
   return public_(run);
 }
 
+/** GET /runs/plan: what a run does, in order, as startRun, go and afterKeep do it, so every plan a page shows
+ *  (Talk, the plan sheet) lists the run's own actions, not the answer it came from. Keep it in step with them. */
+export function runPlan() {
+  return {
+    steps: [
+      { id: 'signin', title: 'Check Claude Code', detail: 'Claude Code must be signed in on this Mac' },
+      { id: 'branch', title: 'Make a branch', detail: `A new branch from ${RUN_BELLA.branch} in ${RUN_BELLA.dir}; main is untouched` },
+      { id: 'change', title: 'Make the change', detail: 'The agent works on the brief in that branch' },
+      { id: 'gate', title: 'Commit through the gate', detail: 'BELLA’s hook runs the NDA scan and the full gate; if it fails, nothing is kept' },
+      { id: 'accept', title: 'Your Accept', detail: 'You see before and after, then Accept or Undo' },
+      { id: 'after', title: 'Specs, docs, Storybook', detail: 'After your Accept: the touched parts’ specs rebuilt, docs regenerated and committed, Storybook built, Figma listed for the parts session' },
+    ],
+  };
+}
+
 /** The parts a run's files touch: src/components/<Name>/… */
 export const partsTouched = (files = []) => [...new Set(files.map((f) => f.match(/^src\/components\/([A-Z]\w+)\//)?.[1]).filter(Boolean))].sort();
 

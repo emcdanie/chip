@@ -81,16 +81,16 @@ function AgentRun({ id, onOpen }) {
   );
 }
 
-/* A plan's steps: a short title each (Step titles are bold, so never a whole sentence), the sentence under it. */
-const planSteps = (answer) => {
-  const { verdict, bullets } = answer.verdict ? { verdict: answer.verdict, bullets: answer.bullets ?? [] } : shapeReply(answer.reply ?? '');
-  const clean = (t) => String(t).replace(/\*\*|\[\d+\]/g, '').replace(/\s+([.,;:!?])/g, '$1').trim();
-  const split = (t) => {
-    const m = clean(t).match(/^([^:]{2,40}):\s*(.+)$/);
-    return m ? { title: m[1], detail: m[2] } : { title: 'The change', detail: clean(t) };
-  };
-  return [split(verdict), ...bullets.slice(0, 4).map(split), { title: 'The gate', detail: 'Run BELLA’s gate on the agent’s copy, then show you before and after' }].filter((x) => x.detail);
-};
+/* A plan's steps are the run's own actions, read from the server (GET /runs/plan): check, branch, change,
+   gate, your Accept, then specs, docs and Storybook. The answer only says what the change is. */
+async function planSteps(answer) {
+  const { verdict } = answer.verdict ? { verdict: answer.verdict } : shapeReply(answer.reply ?? '');
+  const what = String(verdict).replace(/\*\*|\[\d+\]/g, '').replace(/\s+([.,;:!?])/g, '$1').trim();
+  const r = await fetch('/runs/plan');
+  if (!r.ok) throw new Error('CHIP couldn’t read what a run does');
+  const { steps } = await r.json();
+  return steps.map((x) => (x.id === 'change' && what ? { ...x, detail: `The agent works on the brief: ${what}` } : x));
+}
 
 /* The plan, back in the chat: one line in BELLA's bubble, the numbered steps on the panel, Later and Start on the right. */
 function PlanTurn({ t, onStart, onLater }) {
@@ -186,9 +186,15 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
   const answers = [...asker.past, asker.answer].filter(Boolean);
   // "Send it to the agent": the plan comes back in the chat; Start runs it, Later keeps it in Next
   const patch = (agentFor, p) => setTurns((t) => t.map((x) => (x.agentFor === agentFor && !x.run ? { ...x, ...p } : x)));
-  const startRun = (turn) => {
-    const plan = { title: String(turn.answer.q).slice(0, 90), brief: briefOf(turn.answer), steps: planSteps(turn.answer) };
-    setTurns((t) => [...t, { text: 'Send it to the agent.', at: hhmm(), agentFor: turn.i, plan, planState: 'open' }]);
+  const startRun = async (turn) => {
+    const at = hhmm();
+    setTurns((t) => [...t, { text: 'Send it to the agent.', at, agentFor: turn.i }]);
+    try {
+      const plan = { title: String(turn.answer.q).slice(0, 90), brief: briefOf(turn.answer), steps: await planSteps(turn.answer) };
+      patch(turn.i, { plan, planState: 'open' });
+    } catch (e) {
+      patch(turn.i, { runError: `${e.message}, so there is no plan to show. Nothing ran.` });
+    }
   };
   const start = async (t) => {
     patch(t.agentFor, { planState: 'busy' });
