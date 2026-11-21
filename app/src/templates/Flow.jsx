@@ -35,13 +35,15 @@ const GAPS = new Set([0, 4, 8, 12, 16, 24]);
    lanes"). It fills the window from where it starts, scrolls sideways when the
    lanes don't fit, and each lane scrolls on its own. On a phone, where the
    header takes most of the window, it keeps at least 70% of the window. */
-function useToBottom(on) {
+function useToBottom(on, foot = '0px') {
   const ref = useRef(null);
   const [top, setTop] = useState(null);
   useLayoutEffect(() => {
     if (!on) return undefined;
     const measure = () => {
-      const t = ref.current ? Math.max(0, Math.round(ref.current.getBoundingClientRect().top + window.scrollY)) : null;
+      // where it starts on the page, whatever the page's own scroll (the content scrolls, not the window, since 22 Nov)
+      const sc = ref.current?.closest('.chip-screen__content');
+      const t = ref.current ? Math.max(0, Math.round(ref.current.getBoundingClientRect().top + (sc ? sc.scrollTop : window.scrollY))) : null;
       setTop((was) => (was === t ? was : t));
     };
     measure();
@@ -69,7 +71,8 @@ function useToBottom(on) {
       window.removeEventListener('resize', measure);
     };
   }, [on]);
-  const fit = `calc(100dvh - ${top}px - var(--layout-gutter))`;
+  // foot: extra room under it, where a card's soft shadow fades before the window's edge (fit)
+  const fit = `calc(100dvh - ${top}px - var(--layout-gutter) - ${foot})`;
   return [ref, on && top != null ? { blockSize: window.innerWidth < 800 ? `max(${fit}, 70dvh)` : fit } : undefined];
 }
 
@@ -111,7 +114,7 @@ function useMore(ref, on) {
 }
 
 export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, fit = false, scroll = false, stretch = false, aside = false, bullets = false, inset = false, children, ...rest }) {
-  const [boardRef, boardSize] = useToBottom(board || fit);
+  const [boardRef, boardSize] = useToBottom(board || fit, fit ? 'var(--spacing-16)' : '0px');
   if (!GAPS.has(gap)) throw new Error(`Flow: gap ${gap} is not on the spacing scale (0, 4, 8, 12, 16, 24)`);
   const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', fit ? 'chip-flow--fit' : '', scroll ? 'chip-flow--scroll' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', `chip-span-${span}`]
     .filter(Boolean)

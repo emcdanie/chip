@@ -140,6 +140,14 @@ function measure() {
     for (const [k, [gap, push]] of Object.entries(sides)) {
       if ((k === 'l' || k === 'r') && !c.x) continue;
       if ((k === 't' || k === 'b') && !c.y) continue;
+      // a side the box can still scroll toward is a fold, not a clip: more content waits past it, as at the
+      // window's own fold (the page content scrolls in its own box since 22 Nov, not the window)
+      if (c.scrolls) {
+        if (k === 'b' && a.scrollTop + a.clientHeight < a.scrollHeight - 1) continue;
+        if (k === 't' && a.scrollTop > 0) continue;
+        if (k === 'r' && a.scrollLeft + a.clientWidth < a.scrollWidth - 1) continue;
+        if (k === 'l' && a.scrollLeft > 0) continue;
+      }
       // the cut line's middle, beside the box, with what any mask leaves of it
       const cx = k === 'l' ? b.l + 0.5 : k === 'r' ? b.r - 0.5 : (Math.max(r.left, b.l) + Math.min(r.right, b.r)) / 2;
       const cy = k === 't' ? b.t + 0.5 : k === 'b' ? b.b - 0.5 : (Math.max(r.top, b.t) + Math.min(r.bottom, b.b)) / 2;
@@ -158,10 +166,10 @@ function measure() {
     const leaf = el.tagName === 'svg' || el.tagName === 'IMG' || (el.childElementCount === 0 && el.textContent.trim()) || /^(BUTTON|INPUT|SELECT|TEXTAREA)$/.test(el.tagName);
     // shadow
     const ls = layers(el);
-    if (ls.length) for (const { a, x, y } of anc) {
+    if (ls.length) for (const { a, x, y, scrolls } of anc) {
       const b = clipBox(a);
       if (!inside(r, b)) break; // scrolled out or itself cut: content check covers it
-      const o = shadowCut(ls, r, b, { x, y }, el, a);
+      const o = shadowCut(ls, r, b, { x, y, scrolls }, el, a);
       if (o) { hits.push({ kind: 'shadow', el: path(el), by: name(a), over: `gap and ink at the cut: ${o}`, box: [r.left, r.top, r.width, r.height], clip: [b.l, b.t, b.r - b.l, b.b - b.t] }); break; }
     }
     // content cut by a clip that does not scroll
@@ -247,8 +255,11 @@ button:focus-visible{outline:4px solid #2b8fd0;outline-offset:4px}
 <div class="f f2-shadow-faded shadow" style="left:260px;mask-image:linear-gradient(to top,transparent,#000 24px)"><div class="card"></div></div>
 <div class="f f3-ring-cut" style="left:520px;height:44px;overflow:hidden"><button>Cut</button></div>
 <div class="f f4-ring-room ring" style="left:780px;scroll-padding-block:16px"><div class="spacer"></div><button>Room</button><div class="after"></div></div>
-<div class="f f5-ring-no-room ring" style="left:1040px"><div class="spacer"></div><button>No room</button><div class="after"></div></div>`;
-const EXPECT = { 'f1-shadow-cut': 'shadow', 'f2-shadow-faded': null, 'f3-ring-cut': 'ring', 'f4-ring-room': null, 'f5-ring-no-room': 'ring' };
+<div class="f f5-ring-no-room ring" style="left:1040px"><div class="spacer"></div><button>No room</button><div class="after"></div></div>
+<div class="f f6-shadow-fold" style="left:0;top:200px;height:100px;overflow:auto"><div class="card"></div><div class="after"></div></div>
+<div class="f f7-shadow-scroll-end" style="left:260px;top:200px;height:100px;overflow:auto"><div class="card"></div></div>`;
+// f6: a card at a scroller's fold, more to scroll to: not a cut; f7: the scroller's real end cuts it: a cut
+const EXPECT = { 'f1-shadow-cut': 'shadow', 'f2-shadow-faded': null, 'f3-ring-cut': 'ring', 'f4-ring-room': null, 'f5-ring-no-room': 'ring', 'f6-shadow-fold': null, 'f7-shadow-scroll-end': 'shadow' };
 {
   const p = await browser.newPage({ viewport: { width: 1300, height: 400 } });
   await p.setContent(FIXTURE);

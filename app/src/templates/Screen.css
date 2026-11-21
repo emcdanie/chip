@@ -14,7 +14,10 @@
 .chip-screen {
   display: grid;
   grid-template-columns: var(--layout-rail-width) var(--layout-panel-width) minmax(0, 1fr);
-  min-block-size: 100dvh;
+  /* the window never scrolls as a whole page (READ FIRST, 22 Nov): the shell is the window's height and
+     only the content (and the lists and panes inside it) scrolls, so the header, tabs and page actions
+     stay where they are */
+  block-size: 100dvh;
   background: var(--color-background-default);
   /* The shell sets its own reading face and ink, so it looks the same in
      the app and in Storybook (the ⌘ K hint fell back to Times there). */
@@ -39,16 +42,20 @@
   display: flex;
   flex-direction: column;
   min-inline-size: 0;
+  min-block-size: 0;
 }
 
 .chip-screen__page {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-block-size: 0;
   padding-block-start: var(--layout-stack-lg);
   background: var(--color-background-surface);
 }
 
 .chip-screen__head {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: var(--layout-stack-lg);
@@ -61,6 +68,14 @@
   gap: var(--layout-gutter);
   align-content: start;
   flex: 1;
+  min-block-size: 0;
+  /* the page's own scroll: everything under the tabs; positioned, so parts' absolute bits (screen-reader
+     labels, progress targets) stay inside it and never stretch the window */
+  position: relative;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* a control focused by keyboard scrolls in with room for its whole focus ring (4 wide, 4 out) */
+  scroll-padding-block: var(--spacing-12);
   padding: var(--layout-gutter) var(--layout-container-pad);
   background: var(--color-background-default);
 }
@@ -211,6 +226,7 @@
   min-block-size: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scroll-padding-block: var(--spacing-12);
   padding: var(--spacing-8);
   margin: calc(var(--spacing-8) * -1);
 }

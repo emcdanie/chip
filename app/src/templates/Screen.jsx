@@ -40,6 +40,8 @@ import WorkDock, { openWork } from './WorkDock.jsx';
 if (typeof history !== 'undefined' && 'scrollRestoration' in history) history.scrollRestoration = 'manual';
 export function openAtTop() {
   window.scrollTo(0, 0);
+  // the window no longer scrolls; the page's content does (READ FIRST, 22 Nov)
+  document.querySelector('.chip-screen__content')?.scrollTo(0, 0);
 }
 import { filterFromHash, filtered, workModel } from '../pages/workModel.js';
 import { useTheme } from '../theme.js';
