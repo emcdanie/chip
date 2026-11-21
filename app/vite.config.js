@@ -33,5 +33,5 @@ export default defineConfig({
     fs: { allow: [resolve(here, '..'), BELLA] },
     proxy: { '/ask': SERVER, '/needs': SERVER, '/cmd': SERVER, '/health': SERVER, '/data': SERVER, '/notes': SERVER, '/source': SERVER, '/docs': SERVER, '/models': SERVER, '/host': SERVER, '/usage': SERVER, '/obi-docs': SERVER, '/visibility': SERVER, '/compare': SERVER, '/bella-doc': SERVER, '/bella-history': SERVER, '/bella-baseline': SERVER, '/bella-spec': SERVER, '/figma-lint': SERVER, '/bar': SERVER, '/search': SERVER, '/term/repos': SERVER, '/play': SERVER, '/projects': SERVER, '/contrast-pairs': SERVER, '/term': { target: SERVER, ws: true } },
   },
-  build: { outDir: resolve(here, 'dist'), emptyOutDir: true },
+  build: { outDir: process.env.CHIP_OUT_DIR || resolve(here, 'dist'), emptyOutDir: true },
 });

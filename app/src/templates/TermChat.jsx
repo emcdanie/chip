@@ -120,12 +120,13 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
     const at = hhmm();
     setTurns((t) => [...t, { text: 'Send it to the agent.', at, agentFor: turn.i }]);
     try {
+      // the plan opens first; closing it takes her line back out, and nothing runs
       const id = await sendToAgent(turn.answer);
+      if (!id) return setTurns((t) => t.filter((x) => !(x.agentFor === turn.i && !x.run && !x.runError)));
       setTurns((t) => t.map((x) => (x.agentFor === turn.i && !x.run ? { ...x, run: id } : x)));
-      onNotice?.({ tone: 'success', text: 'Sent to the agent. Its card is in the Agent lane.' });
     } catch (e) {
       setTurns((t) => t.map((x) => (x.agentFor === turn.i && !x.run ? { ...x, runError: `I couldn’t start: ${e.message}` } : x)));
-      onNotice?.({ tone: 'danger', text: `Not sent: ${e.message}` });
+      if (!e.shown) onNotice?.({ tone: 'danger', text: `Not sent: ${e.message}` });
     }
   };
   // the composer's words: "send it to the agent" sends the last answer on; anything else asks BELLA

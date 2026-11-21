@@ -43,12 +43,14 @@ function useAct(reload) {
   const act = async (key, fn, done) => {
     setBusy(key);
     try {
-      await fn();
-      setNotice({ tone: 'success', text: done });
+      // a run opens its plan first: closing it (null) changes nothing and says nothing; the plan toasts its own send
+      const out = await fn();
+      if (out === null) return;
+      if (!out?.planned) setNotice({ tone: 'success', text: done });
       reload?.();
       window.dispatchEvent(new Event('chip:changed'));
     } catch (e) {
-      setNotice({ tone: 'danger', text: `That didn’t go through: ${e.message}. Nothing changed.` });
+      if (!e.shown) setNotice({ tone: 'danger', text: `That didn’t go through: ${e.message}. Nothing changed.` });
     } finally {
       setBusy(null);
     }
@@ -68,7 +70,7 @@ const post = async (url) => {
   if (!r.ok) throw new Error(d.error || 'CHIP did not answer');
   return d;
 };
-const start = (check, parts, name) => handOff({ id: check, title: check, missing: parts, action: name });
+const start = (check, parts, name) => handOff({ id: check, title: check, missing: parts, action: name }).then((run) => run && { planned: run });
 
 function FixCard({ state, data, busy, act }) {
   // a Steps row (her 21 Nov pick, question 4 A) wherever the card has room for four steps side by side

@@ -8,7 +8,7 @@
     "chip": "bin/chip.mjs"
   },
   "scripts": {
-    "test": "node --test server/test/*.test.mjs",
+    "test": "node --test --test-force-exit server/test/*.test.mjs",
     "start": "node server/server.js",
     "dev": "node --watch server/server.js",
     "sync:bella": "node scripts/sync-bella.mjs",

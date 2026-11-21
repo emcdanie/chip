@@ -245,8 +245,7 @@ export default function App() {
   // brief only went to the clipboard and Claude opened empty.
   const session = async (brief, title) => {
     try {
-      await startRun(brief, title, NAME[ws] ?? 'a page');
-      setWork({ open: true, tab: 'sessions' });
+      if (await startRun(brief, title, NAME[ws] ?? 'a page')) setWork({ open: true, tab: 'sessions' });
     } catch (e) {
       setToast(e.message);
     }

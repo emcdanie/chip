@@ -28,7 +28,6 @@ import Tag from '@bella/components/Tag/Tag';
 import Notification from '@bella/components/Notification/Notification';
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
-import Drawer from '@bella/components/Drawer/Drawer';
 import Stage from '@bella/components/Stage/Stage';
 import Stat from '@bella/components/Stat/Stat';
 import Progress from '@bella/components/Progress/Progress';
@@ -45,6 +44,7 @@ import Toasts from '../templates/Toasts.jsx';
 import Toast from '@bella/components/Toast/Toast';
 import useAsk, { AskAnswer } from '../templates/useAsk.jsx';
 import { handOff } from './healthModel.js';
+import { planRun } from '../templates/RunPlan.jsx';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
 import { clip, usePartDetail } from './componentsModel.js';
@@ -280,9 +280,9 @@ function PartCard({ a, touch, value, onFix }) {
 }
 
 /* Fix <part> (Figma Flow 3, screens 4 and 5, 651:116769): the plan before anything runs. One step per
-   finding and per failing check, then the gate on the agent's copy; Edit plan opens the brief the agent
-   gets as text; Approve plan hands it over (POST /runs: its own branch, the gate, then a reviewer on Work). */
-function FixPlan({ part, detail, gaps, checked, onClose, onSent }) {
+   finding and per failing check, then the gate on the agent's copy; the shared plan drawer
+   (templates/RunPlan.jsx) shows it, with Edit plan and Approve plan. */
+function fixPlan({ part, detail, gaps, checked }) {
   const steps = [
     // a finding on the stage is a contrast pair under its bar (componentsModel): say the fix and the measure
     ...(detail?.anatomy ?? [])
@@ -301,66 +301,8 @@ function FixPlan({ part, detail, gaps, checked, onClose, onSent }) {
       }),
   ];
   const pass = part.checks.filter((k) => k.ok).length;
-  const first = [`Fix BELLA's ${part.name}. Steps:`, ...steps.map((x, i) => `${i + 1}. ${x.brief}`), 'Change only what each step names. Ask before changing a token.'].join('\n');
-  const [brief, setBrief] = useState(first);
-  const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const approve = async () => {
-    setBusy(true);
-    try {
-      const r = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief, title: `Fix ${part.name}`, from: 'Components' }) });
-      const run = await r.json().catch(() => ({}));
-      if (!r.ok || run.error) throw new Error(run.error || 'CHIP did not answer');
-      if (run.status === 'login' || run.status === 'failed') throw new Error(run.error || 'The agent could not start');
-      window.dispatchEvent(new Event('chip:changed'));
-      onSent({ tone: 'success', text: `Sent to the agent: Fix ${part.name}. It works on a copy; its card is on Work, where a reviewer Accepts or Undoes it.` });
-    } catch (e) {
-      onSent({ tone: 'danger', text: `Not sent: ${e.message}.` });
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Drawer
-      open
-      onClose={onClose}
-      side="right"
-      size="lg"
-      label={`Fix ${part.name}`}
-      subtitle={`Plan ready · from CHIP’s checks${checked ? `, ${checked}` : ''}`}
-      footer={
-        <Flow gap={16}>
-          <TextStack subtitle="The agent in CHIP · works on a copy, main untouched" />
-          <Flow direction="row" gap={8} justify="end" wrap>
-            <Button variant="secondary" size="sm" onClick={() => setEditing((e) => !e)}>
-              {editing ? 'Done editing' : 'Edit plan'}
-            </Button>
-            <Button variant="primary" size="sm" busy={busy} onClick={busy || !steps.length ? undefined : approve} disabled={!steps.length}>
-              {busy ? 'Sending…' : 'Approve plan'}
-            </Button>
-          </Flow>
-        </Flow>
-      }
-    >
-      <Flow gap={16}>
-        {/* plain content lands on the title's edge (Flow inset); the plan's rows bring their own 16 */}
-        <Flow inset>
-          <SectionHead icon="WarningCircle" iconTone="warning" title={`${steps.length} ${steps.length === 1 ? 'step' : 'steps'} to fix`} showInfo={false} description={`${part.name} · ${pass} of ${part.checks.length} checks pass`} />
-        </Flow>
-        {editing ? (
-          <Flow inset>
-            <Input multiline label="The brief the agent gets" value={brief} onChange={setBrief} />
-          </Flow>
-        ) : (
-          <Flow as="ul" gap={0} aria-label={`The plan for ${part.name}`}>
-            {[...steps, { id: 'gate', title: 'Run the gate on the agent’s copy', line: 'Then a reviewer accepts or undoes it on Work' }].map((x, i, all) => (
-              <ListRow key={x.id} layout="stacked" statusBar={x.id === 'gate' ? 'neutral' : 'attention'} divider={i < all.length - 1} title={x.title} description={x.line} tag={<Tag variant="line">{`Step ${i + 1}`}</Tag>} />
-            ))}
-          </Flow>
-        )}
-      </Flow>
-    </Drawer>
-  );
+  const brief = [`Fix BELLA's ${part.name}. Steps:`, ...steps.map((x, i) => `${i + 1}. ${x.brief}`), 'Change only what each step names. Ask before changing a token.'].join('\n');
+  return { title: `Fix ${part.name}`, from: 'Components', brief, steps, subtitle: `Plan ready · from CHIP’s checks${checked ? `, ${checked}` : ''}`, summary: `${part.name} · ${pass} of ${part.checks.length} checks pass` };
 }
 
 function OnTheStage({ part, detail, picked, onPick, onAsk, onFix, onTouch, list = false }) {
@@ -839,8 +781,6 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   // where the question was asked (a chip in the row, or the card's field): the answer shows there, in view
   const [asked, setAsked] = useState(null);
   const [said, setSaid] = useState(null);
-  // the Fix plan drawer (Flow 3, screen 5), open for the part on show
-  const [fixing, setFixing] = useState(false);
   useEffect(() => {
     const st = answer?.status;
     if (st && st !== 'thinking' && asked) setSaid(st === 'error' || st === 'stopped' ? { tone: 'danger', text: 'BELLA couldn’t answer that just now.' } : { tone: 'success', text: `BELLA answered: ${asked.q}` });
@@ -876,9 +816,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const fixCheck = answer?.fix;
   const fix = fixCheck
     ? () =>
-        handOff({ id: fixCheck.id, title: fixCheck.title, missing: [part.name], action: VERB[fixCheck.id] })
-          .then(() => setSaid({ tone: 'success', text: `Sent to the agent: ${VERB[fixCheck.id]} to ${part.name}. Its card is on Work.` }))
-          .catch((e) => setSaid({ tone: 'danger', text: `Not sent: ${e.message}.` }))
+        handOff({ id: fixCheck.id, title: fixCheck.title, missing: [part.name], action: VERB[fixCheck.id] }).catch((e) => !e.shown && setSaid({ tone: 'danger', text: `Not sent: ${e.message}.` }))
     : undefined;
   const thread = (
     <AskAnswer
@@ -927,17 +865,6 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
           ) : null}
           {detail ? <AskRow part={part} detail={detail} onAsk={(t) => ask(t, 'row')} asking={pending && asked?.from === 'row' ? asked.q : null} /> : null}
           {asked?.from === 'row' && answer ? thread : null}
-          {fixing && part ? (
-            <FixPlan
-              key={part.id}
-              part={part}
-              detail={detail}
-              gaps={gapsData?.[0]?.gaps}
-              checked={gapsData?.[0]?.at ? new Date(gapsData[0].at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null}
-              onClose={() => setFixing(false)}
-              onSent={(n) => (setSaid(n), n.tone === 'success' && setFixing(false))}
-            />
-          ) : null}
           {said ? (
             <Toasts>
               <Toast tone={said.tone} onClose={() => setSaid(null)}>
@@ -958,7 +885,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
                   <Button variant="tertiary" size="sm" icon="RefreshDouble" iconOnly ariaLabel="Check again" onClick={onCheckAgain} />
                 </Flow>
               </Flow>
-              <OnTheStage part={part} detail={detail} picked={picked} onPick={setPicked} onAsk={(t) => { ask(t); }} onFix={() => setFixing(true)} onTouch={setTouch} list={view === 'anatomy'} />
+              <OnTheStage part={part} detail={detail} picked={picked} onPick={setPicked} onAsk={(t) => { ask(t); }} onFix={() => planRun(fixPlan({ part, detail, gaps: gapsData?.[0]?.gaps, checked: gapsData?.[0]?.at ? new Date(gapsData[0].at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null })).catch((e) => !e.shown && setSaid({ tone: 'danger', text: `Not sent: ${e.message}.` }))} onTouch={setTouch} list={view === 'anatomy'} />
               {view === 'anatomy' ? null : (
                 <>
                   {/* a list card hugs its rows (rule 15): it sits at the top, never stretched and centred (Card 0bc08b6) */}

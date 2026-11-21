@@ -70,8 +70,12 @@ function stepOf(tool) {
   return `Used ${tool.name}`;
 }
 
-/** POST /runs { brief, title? } -> the run. One at a time: the gate needs port 6006. */
-export async function startRun({ brief, title, from }) {
+/** POST /runs { brief, title?, approved } -> the run. One at a time: the gate needs port 6006.
+ *  A run costs plan usage, so it starts only from its approved plan (click test 22 Nov: one
+ *  click on Health started a paid run). The page's plan drawer (templates/RunPlan.jsx) is the
+ *  one place that sends approved: true; anything else is refused before Claude is touched. */
+export async function startRun({ brief, title, from, approved }) {
+  if (approved !== true) throw new Error('A run starts only from its approved plan. Open the plan, then Approve plan');
   if (typeof brief !== 'string' || brief.trim().length < 10) throw new Error('No brief to run');
   const busy = [...runs.values()].find((r) => ['starting', 'running', 'gate'].includes(r.status));
   if (busy) throw new Error(`Another run is still going: “${busy.title}”. It has to finish first (the gate needs port 6006).`);

@@ -19,6 +19,7 @@
 // where it goes, drawn with connectors) waits on the connector tile; the
 // Figma states sent to Claude / checking / tested / check failed wait on a
 // fix route for token problems (CHIP has none yet).
+import { planRun } from '../templates/RunPlan.jsx';
 import { useEffect, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -370,12 +371,10 @@ function Problems({ rows }) {
     setBusy(r.p);
     try {
       const brief = [`Replace raw ${r.p.toLowerCase()} values in BELLA's parts with tokens (${r.tokens}). Each line is file:line and the declaration:`, ...r.not.map((n) => `- ${n.file}:${n.line} ${n.decl}`), 'Use an existing token only; ask before adding or changing one.'].join('\n');
-      const res = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief, title: `Tokens for ${r.not.length} ${r.p.toLowerCase()} values`, from: 'Foundations' }) });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok || d.status === 'failed' || d.status === 'login') throw new Error(d.error || 'CHIP did not answer');
-      setSaid({ tone: 'success', text: `Sent to the agent: ${r.not.length} ${r.p.toLowerCase()} values. Its card is on Work.` });
+      // the plan opens first (templates/RunPlan.jsx); its Approve sends it and says so
+      await planRun({ brief, title: `Tokens for ${r.not.length} ${r.p.toLowerCase()} values`, from: 'Foundations', steps: r.not.map((n, i) => ({ id: `v${i}`, title: `${n.component}: ${n.decl}`, line: `${n.file}:${n.line}` })) });
     } catch (e) {
-      setSaid({ tone: 'danger', text: `Not sent: ${e.message}.` });
+      if (!e.shown) setSaid({ tone: 'danger', text: `Not sent: ${e.message}.` });
     } finally {
       setBusy(null);
     }

@@ -23,6 +23,7 @@ import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow from '@bella/components/ListRow/ListRow';
 import TourStep from '@bella/components/TourStep/TourStep';
 import Flow from '../templates/Flow.jsx';
+import { planRun } from '../templates/RunPlan.jsx';
 import { Words, AnswerLines } from '../templates/useAsk.jsx';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import { TermScreen } from '../Terminal.jsx';
@@ -196,7 +197,7 @@ function useItem(item, tick) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   useEffect(() => {
-    if (!item || item.kind === 'terminal') return undefined;
+    if (!item || item.kind === 'terminal' || item.kind === 'push') return undefined;
     let live = true;
     setError(null);
     fetch(item.kind === 'run' ? `/runs/${encodeURIComponent(item.id)}` : `/review/${encodeURIComponent(item.check)}`)
@@ -227,7 +228,7 @@ function shapeOf(item, d) {
       again: failed && d.brief ? { brief: d.brief, title: d.title, from: d.from } : null,
       diff: d.diff ?? null,
       branch: d.branch,
-      can: waiting ? 'decide' : null,
+      can: waiting ? 'decide' : ['starting', 'running'].includes(d.status) ? 'stop' : null,
       kept: d.status === 'kept',
     };
   }
@@ -253,6 +254,13 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
   const [tick, setTick] = useState(0);
   const [busy, setBusy] = useState(null);
   const { data, error } = useItem(item, tick);
+  // a run that is going is read again every 3 s, so its step and its Stop stay current
+  const going = item.kind === 'run' && ['starting', 'running', 'gate'].includes(data?.status);
+  useEffect(() => {
+    if (!going) return undefined;
+    const t = setInterval(() => setTick((n) => n + 1), 3000);
+    return () => clearInterval(t);
+  }, [going]);
   const shell = (label, status, body, footer) => (
     <Drawer open onClose={onClose} side="right" size="lg" label={label} status={status} footer={footer}>
       {/* one left edge with the sheet's title (audit 4, item 5) */}
@@ -278,16 +286,17 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
       setBusy(null);
     }
   };
-  // a failed run goes again with its own brief: a new run, its card in the Agent lane
+  // a failed run goes again with its own brief: its plan opens first (approve, edit or close), then a new run
   const again = async (a) => {
     setBusy('again');
     try {
-      await said(await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(a) }));
-      onNotice({ tone: 'success', title: 'Started again', message: `${a.title}: the agent works on a new branch; its card is in the Agent lane.` });
-      onChanged();
-      onClose();
+      const run = await planRun({ ...a, subtitle: 'Run again · the same brief, on a new branch' });
+      if (run) {
+        onChanged();
+        onClose();
+      }
     } catch (e) {
-      onNotice({ tone: 'danger', title: 'Not started', message: `${e.message}.` });
+      if (!e.shown) onNotice({ tone: 'danger', title: 'Not started', message: `${e.message}.` });
     } finally {
       setBusy(null);
     }
@@ -300,6 +309,13 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
         </Button>
         <Button variant="primary" disabled={!!busy} onClick={() => act('keep', { title: s.merge ? 'Kept for merging' : 'Accepted', message: `${s.branch} is kept. Merging it is a maintainer’s step in git.` })}>
           {busy === 'keep' ? (s.merge ? 'Keeping…' : 'Accepting…') : s.merge ? 'Keep branch' : 'Accept'}
+        </Button>
+      </Flow>
+    ) : s.can === 'stop' ? (
+      // a running run always has Stop: nothing is kept, the branch stays for a look
+      <Flow direction="row" justify="end" gap={8}>
+        <Button variant="secondary" disabled={!!busy} onClick={() => act('stop', { title: 'Stopped', message: `${s.title}: the agent stopped. Nothing was kept.` })}>
+          {busy === 'stop' ? 'Stopping…' : 'Stop'}
         </Button>
       </Flow>
     ) : s.again ? (
@@ -352,13 +368,73 @@ function FixBody({ s, onAnswer }) {
   );
 }
 
+// CHIP never types a push: a push is outward-facing, so she types it herself (click test, 22 Nov)
+const NO_TYPE = /\bgit\s+push\b/;
+
+/* What a push would send (Needs you's push card): the branch, where it goes, each commit GitHub
+   hasn't seen and the files. Open a shell gives a plain shell in that repo with nothing typed. */
+function PushDrawer({ item, onClose }) {
+  const [p, setP] = useState(null);
+  const [error, setError] = useState(null);
+  const [shell, setShell] = useState(false);
+  const [status, setStatus] = useState('connecting');
+  useEffect(() => {
+    fetch(`/push/${encodeURIComponent(item.repo)}`)
+      .then(said)
+      .then(setP)
+      .catch((e) => setError(e.message));
+  }, [item.repo]);
+  const n = p?.commits.length ?? 0;
+  return (
+    <Drawer
+      open
+      onClose={onClose}
+      side="right"
+      size="lg"
+      label={p ? `Push ${p.branch}?` : 'Push'}
+      status={p ? `${p.name} · ${n} ${n === 1 ? 'commit' : 'commits'} to ${p.upstream ?? 'nowhere yet'}` : undefined}
+      footer={
+        shell ? undefined : (
+          <Flow direction="row" justify="end" gap={8}>
+            <Button variant="secondary" disabled={!p} onClick={() => setShell(true)}>
+              Open a shell
+            </Button>
+          </Flow>
+        )
+      }
+    >
+      <Flow inset gap={16}>
+        {error ? <EmptyState size="lane" title="Couldn’t read it" line={`${error}. Close this and try again.`} /> : null}
+        {!p && !error ? <EmptyState size="lane" title="Reading it" line="Asking git what a push would send." /> : null}
+        {p ? (
+          <>
+            <TextStack body={`A push sends these ${n} ${n === 1 ? 'commit' : 'commits'} (${p.files} ${p.files === 1 ? 'file' : 'files'}) to GitHub, where other people see ${n === 1 ? 'it' : 'them'} and CI runs. CHIP doesn’t push: if you want it, type git push in a shell yourself.`} />
+            <Flow as="ul" gap={0} aria-label="Commits a push would send">
+              {p.commits.map((c, i) => (
+                <ListRow key={c.sha} layout="stacked" title={c.subject} description={`${c.sha} · ${when(c.date)}`} divider={i < n - 1} />
+              ))}
+            </Flow>
+          </>
+        ) : null}
+        {shell ? (
+          <Flow gap={8}>
+            <TextStack subtitle={status === 'open' ? `A shell in ${p.name}’s folder, nothing typed. Type git push to send it.` : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…'} />
+            <TermScreen t={{ id: `push-${item.repo}`, repo: item.repo, kind: 'shell', typed: null }} active onStatus={setStatus} onActivity={() => {}} register={() => {}} />
+          </Flow>
+        ) : null}
+      </Flow>
+    </Drawer>
+  );
+}
+
 function TermDrawer({ item, onClose }) {
   const [status, setStatus] = useState('connecting');
-  const t = { id: `drawer-${item.repo}`, repo: item.repo, kind: 'shell', typed: item.command };
+  const command = item.command && !NO_TYPE.test(item.command) ? item.command : null;
+  const t = { id: `drawer-${item.repo}`, repo: item.repo, kind: 'shell', typed: command };
   return (
     <Drawer open onClose={onClose} side="right" size="lg" label="Terminal" status={`${item.repo} · ${item.title ?? 'a shell'}`}>
       <Flow gap={8}>
-        <TextStack subtitle={status === 'open' ? (item.command ? `${item.command} is typed, not run. Press Return in the terminal to run it.` : `A shell in ${item.repo}’s folder.`) : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…'} />
+        <TextStack subtitle={status === 'open' ? (command ? `${command} is typed, not run. Press Return in the terminal to run it.` : `A shell in ${item.repo}’s folder.`) : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…'} />
         <TermScreen t={t} active onStatus={setStatus} onActivity={() => {}} register={() => {}} />
       </Flow>
     </Drawer>
@@ -368,6 +444,7 @@ function TermDrawer({ item, onClose }) {
 /** item: { kind: 'review', check } | { kind: 'run', id } | { kind: 'terminal', repo, command, title }; null = closed. */
 export default function WorkDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
   if (!item) return null;
+  if (item.kind === 'push') return <PushDrawer key={item.repo} item={item} onClose={onClose} />;
   if (item.kind === 'terminal') return <TermDrawer key={`${item.repo}-${item.command}`} item={item} onClose={onClose} />;
   return <FixDrawer key={item.id ?? item.check} item={item} onClose={onClose} onNotice={onNotice} onChanged={onChanged} onAccepted={onAccepted} />;
 }

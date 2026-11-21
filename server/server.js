@@ -22,7 +22,7 @@ import { specOf, figmaLint, readBaseline, runBaseline } from './lib/spec-lint.mj
 import { attachTerminal, repoList } from './lib/term.mjs';
 import { BASE as checksBase, gateLog, listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
 import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
-import { needsYou } from './lib/needs.mjs';
+import { needsYou, pushPreview } from './lib/needs.mjs';
 import { claudeReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
@@ -41,7 +41,8 @@ app.use(express.json());
 
 // The built app (npm run app:build) at /, real BELLA data at /data. The old
 // static bridge is archived in docs/archive/chip-bridge-v0.
-app.use(express.static(join(ROOT, 'app/dist')));
+// CHIP_DIST: a test server serves its own build, so :3160's pages never change under her
+app.use(express.static(process.env.CHIP_DIST || join(ROOT, 'app/dist')));
 // every read of BELLA's snapshot first checks it is still BELLA's HEAD; a moved HEAD re-syncs it in the background
 app.use('/data', (req, res, next) => (bellaWork.keepBellaFresh(), next()), express.static(join(ROOT, 'data'), { index: false }));
 
@@ -495,6 +496,14 @@ app.post('/review/:check/keep', (req, res) => {
 });
 // Runs: a brief handed to Claude Code headless, reported back as an outcome
 // base: today's BELLA branch, so a card can say when a run started from another one (data check, 22 Nov)
+// what a push would send, read only; CHIP never pushes and never types a push
+app.get('/push/:repo', (req, res) => {
+  try {
+    res.json(pushPreview(String(req.params.repo)));
+  } catch (e) {
+    errorOut(res, e, 404);
+  }
+});
 app.get('/runs', (_req, res) => res.json({ runs: listRuns(), base: checksBase }));
 app.get('/runs/ready', (_req, res) => res.json(claudeReady()));
 app.get('/runs/:id', (req, res) => {
@@ -504,7 +513,7 @@ app.get('/runs/:id', (req, res) => {
 app.post('/runs', async (req, res) => {
   if (!sameApp(req, res)) return;
   try {
-    res.json(await startRun({ brief: req.body?.brief, title: typeof req.body?.title === 'string' ? req.body.title.slice(0, 120) : null, from: typeof req.body?.from === 'string' ? req.body.from.slice(0, 60) : null }));
+    res.json(await startRun({ approved: req.body?.approved === true, brief: req.body?.brief, title: typeof req.body?.title === 'string' ? req.body.title.slice(0, 120) : null, from: typeof req.body?.from === 'string' ? req.body.from.slice(0, 60) : null }));
   } catch (e) {
     errorOut(res, e);
   }

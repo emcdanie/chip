@@ -9,18 +9,15 @@ import Button from '@bella/components/Button/Button';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import { Sheet, StatusPill } from './kit/index.jsx';
 import { changed } from './ReviewSheet.jsx';
+import { planRun } from './templates/RunPlan.jsx';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
 export const openRun = (id) => window.dispatchEvent(new CustomEvent('chip:run', { detail: { id } }));
 
-/** Starts a run for a brief. Its progress shows in the work panel's Sessions
- * tree (chip:run-started), whose row opens this report. Returns the run or throws. */
+/** Asks for a run for a brief: its plan opens first (templates/RunPlan.jsx), and only
+ * Approve starts it. Resolves with the run, or null when the plan is closed. */
 export async function startRun(brief, title, from) {
-  const r = await fetch('/runs', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ brief, title, from }) });
-  const j = await r.json();
-  if (!r.ok) throw new Error(j.error);
-  window.dispatchEvent(new CustomEvent('chip:run-started', { detail: { id: j.id } }));
-  return j;
+  return planRun({ brief, title, from });
 }
 
 /** Every run CHIP knows, kept fresh while one is going (the Sessions tree). */

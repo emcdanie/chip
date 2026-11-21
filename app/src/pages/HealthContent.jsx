@@ -189,10 +189,10 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
   const send = async (row) => {
     setSending(row.id);
     try {
+      // opens the plan; the plan's Approve sends it and says so (templates/RunPlan.jsx)
       await handOff(row);
-      setNotice({ tone: 'success', text: `Sent to the agent: ${row.action}. It works on its own branch; its card is on Work, where a reviewer Accepts or Undoes it.` });
     } catch (e) {
-      setNotice({ tone: 'danger', text: `Not sent: ${e.message}.` });
+      if (!e.shown) setNotice({ tone: 'danger', text: `Not sent: ${e.message}.` });
     } finally {
       setSending(null);
     }

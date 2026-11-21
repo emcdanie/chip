@@ -19,6 +19,8 @@ import Home from './pages/Home.jsx';
 import Components from './pages/Components.jsx';
 import { warmPages } from './templates/useCached.js';
 import { openAtTop } from './templates/Screen.jsx';
+import RunPlanHost from './templates/RunPlan.jsx';
+import PageGuard from './templates/PageGuard.jsx';
 
 // #/kit shows the shared pieces on their own, outside the app shell.
 // Pages on the new CHIP / Screen template; the old app stays beside them
@@ -37,13 +39,7 @@ const NEW_PAGES = [
   { id: 'foundations', label: 'Foundations' },
 ];
 
-function Root() {
-  const [hash, setHash] = useState(window.location.hash);
-  useEffect(() => {
-    const on = () => setHash(window.location.hash);
-    window.addEventListener('hashchange', on);
-    return () => window.removeEventListener('hashchange', on);
-  }, []);
+function Page({ hash }) {
   // a new page opens at its top; a part, query or view inside the same page
   // (#/components/Button, #/history?…) keeps its place
   const page = hash.match(/^#\/([\w-]+)/)?.[1] ?? '';
@@ -64,6 +60,26 @@ function Root() {
   if (hash.split('?')[0] === '#/work') return <Work />;
   if (hash.split('?')[0] === '#/components' || hash.startsWith('#/components/')) return <Components />;
   return <App />;
+}
+
+/* Every page sits in a guard (an error shows in place, never a white app) beside the one
+   plan host (any run opens its plan first). The guard resets when the page changes. */
+function Root() {
+  const [hash, setHash] = useState(window.location.hash);
+  useEffect(() => {
+    const on = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  const page = hash.match(/^#\/([\w-]+)/)?.[1] ?? '';
+  return (
+    <>
+      <PageGuard key={page}>
+        <Page hash={hash} />
+      </PageGuard>
+      <RunPlanHost />
+    </>
+  );
 }
 
 warmPages();

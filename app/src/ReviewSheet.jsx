@@ -139,8 +139,7 @@ export default function ReviewSheet() {
   const fixWithClaude = async () => {
     setBusy(true);
     try {
-      await startRun(card.brief, card.title, 'Needs you');
-      close();
+      if (await startRun(card.brief, card.title, 'Needs you')) close();
     } catch (e) {
       setError(e.message);
     } finally {

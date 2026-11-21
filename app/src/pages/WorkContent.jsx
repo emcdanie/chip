@@ -31,6 +31,7 @@ import SegmentedControl from '@bella/components/SegmentedControl/SegmentedContro
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import { useEffect, useRef, useState } from 'react';
+import { planRun } from '../templates/RunPlan.jsx';
 import Flow from '../templates/Flow.jsx';
 import WorkDrawer from './WorkDrawer.jsx';
 import { LANE_NAMES } from './workModel.js';
@@ -136,20 +137,24 @@ function useMove() {
   const [menu, setMenu] = useState(null);
   const [starting, setStarting] = useState([]);
   const [notice, setNotice] = useState(null);
+  // a card sent to the agent opens its plan first (templates/RunPlan.jsx): Approve starts the run, closing changes nothing
   const send = async (card) => {
     setStarting((s) => [...s, card]);
     try {
-      const review = await fetch(`/review/${encodeURIComponent(card.check)}`).then((r) => r.json());
-      if (!review.brief) throw new Error('CHIP has its own fix for this one, so it waits on its review card, not an agent.');
-      const r = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief: review.brief, title: card.title, from: 'Work board' }) });
-      const run = await r.json();
-      if (!r.ok || run.error) throw new Error(run.error ?? 'The agent did not start.');
-      setNotice({ tone: 'success', title: `Sent to the agent: ${card.title}`, message: 'It works on its own branch, then the gate checks it. You Accept or Undo when it’s ready.' });
-      window.dispatchEvent(new Event('chip:changed'));
+      let plan;
+      if (card.runBrief) plan = { brief: card.runBrief, title: card.title, from: 'Work board', subtitle: 'Run again · the same brief, on a new branch' };
+      else {
+        const review = await fetch(`/review/${encodeURIComponent(card.check)}`).then((r) => r.json());
+        if (!review.brief) throw new Error('CHIP has its own fix for this one, so it waits on its review card, not an agent.');
+        plan = { brief: review.brief, title: card.title, from: 'Work board' };
+      }
+      const run = await planRun(plan);
+      if (run) window.dispatchEvent(new Event('chip:changed'));
+      else setStarting((s) => s.filter((c) => c.id !== card.id));
     } catch (err) {
       // the card goes back to Needs you; it shows "Starting" only while the run is on its way
       setStarting((s) => s.filter((c) => c.id !== card.id));
-      setNotice({ tone: 'danger', title: `Not sent: ${card.title}`, message: err.message });
+      if (!err.shown) setNotice({ tone: 'danger', title: `Not sent: ${card.title}`, message: err.message });
     }
   };
   return { dragging, setDragging, closing, setClosing, menu, setMenu, starting, send, notice, setNotice };

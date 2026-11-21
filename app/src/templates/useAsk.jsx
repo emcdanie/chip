@@ -19,6 +19,7 @@
 // (it opens under the answer). Finding marks are IconWell sm (error ✕, success ✓; parts 7e637ee).
 // Folded rows keep Disclosure's hairline,
 // as Figma Flow 12 draws them.
+import { planRun } from './RunPlan.jsx';
 import { useEffect, useRef, useState } from 'react';
 import ChatBubble from '@bella/components/ChatBubble/ChatBubble';
 import { ChatThreadDelivered, ThinkingList, ThinkingTick } from '@bella/components/ChatThread/ChatThread';
@@ -443,12 +444,11 @@ export function briefOf(answer) {
     .filter(Boolean)
     .join('\n');
 }
-/** Fix: hands an answer to an agent run (POST /runs); resolves to the run's id, or throws with the reason. */
+/** Fix: opens the plan for an answer (templates/RunPlan.jsx); resolves to the run's id once she
+ *  approves it, null when she closes the plan, or throws with the reason. */
 export async function sendToAgent(answer, from = 'Work panel') {
-  const r = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief: briefOf(answer), title: String(answer.q).slice(0, 90), from }) });
-  const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error ?? String(r.status));
-  return d.id;
+  const run = await planRun({ brief: briefOf(answer), title: String(answer.q).slice(0, 90), from });
+  return run?.id ?? null;
 }
 
 /* A model's reply in the answer's shape: the verdict (first sentence, one short bold phrase) and up to 3 bullets. */

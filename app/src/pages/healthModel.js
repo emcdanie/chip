@@ -3,6 +3,7 @@
 // Nothing here is invented: a card CHIP has no data for gets `null` and the
 // page shows the Empty state.
 import { useMemo } from 'react';
+import { planRun } from '../templates/RunPlan.jsx';
 import useCached from '../templates/useCached.js';
 
 /* The six component checks, in Figma's order (Health · content 601:111049),
@@ -135,18 +136,16 @@ export function useHealth() {
 
 /* Hand a check's gaps to the agent (user test 21 Nov, item 2; rule: "Fix opens
    a ready plan; the job shows on Work"): BELLA's own brief for each part that
-   misses the check (/gaps), as one run (POST /runs). The run's card shows in
-   Work's Agent lane; a reviewer Accepts or Undoes it there. */
+   misses the check (/gaps), as one plan, one step per part. Nothing runs until
+   she approves it (templates/RunPlan.jsx); the run's card then shows in Work's
+   Agent lane, where a reviewer Accepts or Undoes it. Resolves with the run, or
+   null when she closes the plan. */
 export async function handOff(row) {
   const r = await fetch('/gaps');
   const gaps = (await r.json().catch(() => ({}))).gaps?.[row.id] ?? {};
-  const lines = row.missing.map((name) => gaps[name]?.brief).filter(Boolean);
-  if (!lines.length) throw new Error('CHIP has no brief for these yet, so there is nothing to hand over');
-  const brief = [`Close BELLA's ${row.title} gap for ${lines.length} ${lines.length === 1 ? 'part' : 'parts'}. For each:`, ...lines.map((l) => `- ${l}`), 'Change only what each line names. Ask before changing a token.'].join('\n');
-  const res = await fetch('/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brief, title: `${row.action}: ${names(row.missing)}`, from: 'Health' }) });
-  const run = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(run.error || 'CHIP did not answer');
-  if (run.status === 'login' || run.status === 'failed') throw new Error(run.error || 'The agent could not start');
-  window.dispatchEvent(new Event('chip:changed'));
-  return run;
+  const parts = row.missing.filter((name) => gaps[name]?.brief);
+  if (!parts.length) throw new Error('CHIP has no brief for these yet, so there is nothing to hand over');
+  const brief = [`Close BELLA's ${row.title} gap for ${parts.length} ${parts.length === 1 ? 'part' : 'parts'}. For each:`, ...parts.map((n) => `- ${gaps[n].brief}`), 'Change only what each line names. Ask before changing a token.'].join('\n');
+  const steps = parts.map((n) => ({ id: n, title: `${row.action ?? row.title}: ${n}`, line: String(gaps[n].brief).split('\n').find((l) => /^Missing:/.test(l))?.replace(/^Missing:\s*/, '') }));
+  return planRun({ title: `${row.action}: ${names(parts)}`, from: 'Health', brief, steps, summary: `${row.title} check · ${parts.length} ${parts.length === 1 ? 'part' : 'parts'} missing it` });
 }
