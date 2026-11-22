@@ -48,8 +48,9 @@ import { handOff } from './healthModel.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
-import { ContractCard } from './DocReader.jsx';
-import QualityPanel, { QualityCentre, useQuality, visiblePins } from './QualityPanel.jsx';
+import { ContractCard, StoryDrawer } from './DocReader.jsx';
+import A11yStage from './A11yViews.jsx';
+import QualityPanel, { AccessMini, QualityCentre, useQuality, visiblePins } from './QualityPanel.jsx';
 import { day, usePartDetail, useStudio, studioChecks, studioFixes, studioDocs, studioProps } from './componentsModel.js';
 
 const noop = () => {};
@@ -756,7 +757,7 @@ const splitHead = (t) => {
 
 /* Inspect, as the approved studio (22 Nov): "Use it for" (each job and the part for it) and "Hand off"
    (Properties, Tokens, Code, Motion, each opening its detail), then the part's own documentation as rows. */
-function InspectPanel({ part, detail, docs, props, measured, picked, onPick, variant, label, touch, open, setOpen, onFix, onPart, model }) {
+function InspectPanel({ part, detail, docs, props, measured, picked, onPick, variant, label, touch, open, setOpen, onFix, onPart, model, q, onQuality }) {
   const anatomy = detail?.anatomy ?? [];
   const a = anatomy.find((x) => x.key === picked);
   const [allUse, setAllUse] = useState(false);
@@ -844,13 +845,14 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
   return (
     <>
       {a?.status === 'finding' ? <PartCard a={{ ...a, detail: measured[a.key]?.text ?? a.token }} touch={touch} value={null} onFix={onFix} /> : null}
+      <AccessMini q={q} onOpen={onQuality} />
       <Card>
         <Flow gap={8}>
           <SectionHead title="Use it for" titleLevel={3} action={docs.use.length > 3 ? <Button variant="tertiary" size="sm" ariaExpanded={allUse} onClick={() => setAllUse(!allUse)}>{allUse ? 'Fewer' : `All ${docs.use.length}`}</Button> : undefined} />
           {docs.use.length || instead.length ? (
             <Flow as="ul" gap={0} aria-label="Use it for">
               {(allUse ? docs.use : docs.use.slice(0, 3)).map((u) => (
-                <ListRow key={u} title={u} {...(u.length > 32 ? { layout: tiny ? 'stacked' : 'inline' } : valued(part.name, true))} {...(part.storyUrl ? { trailing: true, onClick: () => window.open(part.storyUrl, '_blank', 'noopener') } : {})} />
+                <ListRow key={u} title={u} {...(u.length > 32 ? { layout: tiny ? 'stacked' : 'inline' } : valued(part.name, true))} />
               ))}
               {instead.map((d) => (
                 <ListRow key={d.title} title={forJob(d.title)} {...valued(d.other.name, true)} trailing onClick={() => onPart(d.other.id)} />
@@ -932,7 +934,7 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
 }
 
 /* Checks: one ListRow per check we run, each opening what it found and why it matters. */
-function ChecksPanel({ part, rows, open, setOpen }) {
+function ChecksPanel({ part, rows, open, setOpen, onStory }) {
   const row = rows.find((r) => `check:${r.id}` === open);
   if (row)
     return (
@@ -945,9 +947,9 @@ function ChecksPanel({ part, rows, open, setOpen }) {
               <ListRow key={x.title} layout={String(x.value ?? '').length > 24 ? 'stacked' : 'inline'} {...(String(x.value ?? '').length > 24 ? { description: x.value } : val(x.value))} title={x.title} statusBar={x.fails ? 'danger' : undefined} />
             ))}
           </Flow>
-          {row.href ? (
+          {row.id === 'story' || row.id === 'docs' ? (
             <Flow direction="row" justify="end">
-              <Button variant="secondary" icon="ArrowUpRight" href={row.href}>{`Open ${row.title.toLowerCase()}`}</Button>
+              <Button variant="secondary" onClick={() => onStory(row.id)}>{`Open ${row.title.toLowerCase()}`}</Button>
             </Flow>
           ) : null}
           {row.why ? (
@@ -1113,6 +1115,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const [askText, setAskText] = useState('');
   const [picked, setPicked] = useState(null);
   const [keyOpen, setKeyOpen] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(null); // 'story' | 'docs': the part's story shown inside CHIP
   const [touch, setTouch] = useState(null);
   const [measured, setMeasured] = useState({});
   const [variant, setVariant] = useState(null);
@@ -1162,9 +1165,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     if (window.location.hash !== next) window.history.replaceState(null, '', next);
   }, [part?.id, variant, tab, filter]); // eslint-disable-line react-hooks/exhaustive-deps
   const checks = part ? checksWithTouch(part, touch) : [];
-  const sbParts = studio.stories?.parts?.[part?.name];
-  const sbBase = studio.stories?.base;
-  const links = sbBase && sbParts ? { story: sbParts.first ? `${sbBase}?path=/story/${sbParts.first}` : null, docs: sbParts.docs ? `${sbBase}?path=/docs/${sbParts.docs}` : null } : {};
+  // the Story and Docs rows open the part's real story inside CHIP (StoryDrawer), never Storybook in another tab
+  const links = {};
   const weakestPair = detail?.anatomy.filter((x) => x.contrast).sort((x, y) => x.contrast.ratio - y.contrast.ratio)[0];
   const rows = part ? studioChecks({ part, checks, drift: studio.drift, lint: studio.lint, gate: studio.gate, gaps: studio.gaps?.gaps, gapsAt: studio.gaps?.at, links, weakest: weakestPair ? `${weakestPair.title} ${ratio(weakestPair.contrast.ratio)}` : null }) : [];
   const fixes = part ? studioFixes({ part, rows, findings: (detail?.anatomy ?? []).filter((x) => x.status === 'finding') }) : [];
@@ -1229,7 +1231,6 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         ? { tone: 'attention', text: `${toFix} to fix` }
         : { tone: 'success', text: rows.some((r) => r.tone === 'neutral') ? 'No findings · some not measured' : 'No findings' };
   const states = PLAY[part.name] ? part.states : [];
-  const sameKind = parts.filter((p) => p.category === part.category);
 
   const header = (
     <Flow direction="row" gap={16} wrap justify="between" align="center">
@@ -1245,7 +1246,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         </Flow>
       </Flow>
       <Flow direction="row" gap={8} wrap align="end" grow={phone ? 'last' : undefined}>
-        {part.storyUrl ? <Button variant="secondary" icon="ArrowUpRight" href={part.storyUrl}>Story</Button> : null}
+        <Button variant="secondary" onClick={() => setStoryOpen('story')}>Story</Button>
         <Input label="Ask BELLA" value={askText} onChange={setAskText} onSend={(t) => (onSearch(t), setAskText(''))} sendLabel="Ask" suggestion={detail ? questions(part, detail)[0] : undefined} />
       </Flow>
     </Flow>
@@ -1262,7 +1263,11 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
       </Flow>
       {tab === 'quality' ? (
         <QualityCentre q={q} part={part} mode={qMode} setMode={setQMode}>
-          <StudioStage part={part} detail={{ anatomy: visiblePins(q, qMode) }} variant={variant} label={label} shown={qMode === 'focus' ? 'focus' : 'default'} picked={qPick ?? visiblePins(q, qMode)[0]?.key} onPick={setQPick} onMeasured={noop} onTouch={setTouch} />
+          {qMode === 'all' || !q ? (
+            <StudioStage part={part} detail={{ anatomy: visiblePins(q, qMode) }} variant={variant} label={label} shown="default" picked={qPick ?? visiblePins(q, qMode)[0]?.key} onPick={setQPick} onMeasured={noop} onTouch={setTouch} />
+          ) : (
+            <A11yStage part={part} mode={qMode} facts={q.facts} variant={variant} label={label} renderPart={() => <LivePart part={part} variant={variant} label={label} state="default" />} />
+          )}
         </QualityCentre>
       ) : (
       <Flow gap={16} grow="first">
@@ -1276,20 +1281,22 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
           onPick={setShown}
           render={(s, on, go) => <StateThumb part={part} variant={variant} label={label} state={s} selected={on} onPick={go} />}
         />
-      ) : sameKind.length > 1 ? (
+      ) : (
+        // never other components (her bug, 22 Nov: "its meant to be states not take you to other components"): a part
+        // whose states cannot be drawn says so and lists the states its contract names, as text cards
         <Strip
-          title={`${part.category} · components`}
-          label="component"
-          items={sameKind.map((p) => ({ id: p.id, label: p.name }))}
-          current={part.id}
-          onPick={pick}
-          render={(p, on, go) => (
-            <VariantTile label={p.label} selected={on} onClick={go}>
-              <StatusDot tone={parts.find((x) => x.id === p.id)?.ready ? 'success' : 'attention'} label={parts.find((x) => x.id === p.id)?.ready ? 'Ready' : 'Needs work'} />
+          title={`${part.name} · states`}
+          label="state"
+          items={(part.stateNames.length ? part.stateNames : ['Default']).map((n) => ({ id: n, label: n }))}
+          current={null}
+          onPick={noop}
+          render={(s) => (
+            <VariantTile label={s.label}>
+              <TextStack subtitle={part.stateNames.length ? 'States not drawn yet' : 'No states in its contract'} />
             </VariantTile>
           )}
         />
-      ) : null}
+      )}
       </Flow>
       )}
     </Flow>
@@ -1298,11 +1305,11 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     tab === 'quality' ? (
       <QualityPanel q={q} part={part} mode={qMode} pick={qPick} />
     ) : tab === 'inspect' ? (
-      <InspectPanel part={part} detail={detail} docs={docs} props={props} measured={measured} picked={picked} onPick={setPicked} variant={variant} label={label} touch={touch} open={open} setOpen={setOpen} onFix={() => send([`finding-${picked}`])} onPart={pick} model={model} />
+      <InspectPanel part={part} detail={detail} docs={docs} props={props} measured={measured} picked={picked} onPick={setPicked} variant={variant} label={label} touch={touch} open={open} setOpen={setOpen} onFix={() => send([`finding-${picked}`])} onPart={pick} model={model} q={q} onQuality={() => (setTab('quality'), setOpen(null))} />
     ) : tab === 'fix' ? (
       <FixPanel part={part} fixes={fixes} chosen={chosen} setChosen={setChosen} target={target} setTarget={setTarget} onSend={() => send()} model={model} onPart={pick} open={open} setOpen={setOpen} />
     ) : tab === 'checks' ? (
-      <ChecksPanel part={part} rows={rows} open={open} setOpen={setOpen} />
+      <ChecksPanel part={part} rows={rows} open={open} setOpen={setOpen} onStory={setStoryOpen} />
     ) : (
       <HistoryPanel part={part} detail={detail} names={names} open={open} setOpen={setOpen} />
     );
@@ -1315,9 +1322,9 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const right = (
     <Flow gap={16}>
       <Tabs label={`${part.name}: inspect, quality, fix, checks, history`} idBase="studio-view" value={tab} onChange={(t) => (setTab(t), setOpen(null))} tabs={TABS} />
-      {highlights}
       <TabPanels tabs={{ idBase: 'studio-view', value: tab, items: TABS }}>
         <Flow gap={16} scroll={!phone}>
+          {highlights}
           {!detail || !studio.ready ? <EmptyState size="lane" mark="⏳" title={`Reading ${part.name}`} line="Fetching its checks, history and contrast pairs." /> : panel}
         </Flow>
       </TabPanels>
@@ -1326,6 +1333,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   return (
     <>
       {header}
+      {storyOpen ? <StoryDrawer name={part.name} view={storyOpen} onClose={() => setStoryOpen(null)} /> : null}
       {detail?.figmaBlind ? <Notification tone="attention" message="Figma can’t see it: no file key in CHIP’s settings." action={{ label: 'Add file key', onClick: () => setKeyOpen(true) }} /> : null}
       <FigmaKeyDrawer open={keyOpen} onClose={() => setKeyOpen(false)} onSaved={onCheckAgain} />
       {thread}

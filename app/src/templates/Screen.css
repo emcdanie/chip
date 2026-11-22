@@ -118,8 +118,13 @@
   /* a control focused by keyboard scrolls in with room for its whole focus ring (4 wide, 4 out) */
   scroll-padding-block: var(--spacing-12);
   padding: var(--layout-gutter) var(--layout-container-pad);
+  /* 64 of room after the last content, so scrolling can bring it clear of the window's foot (Elleta, 22 Nov: "the
+     padding at the bottom of the page need to be bigger for scrolling"); the cards' own 24 gap is a different thing */
+  padding-block-end: var(--spacing-64);
   background: var(--color-background-default);
 }
+/* the Work board fills the window to its foot and does not scroll as a page */
+.chip-screen__content:has(> .chip-board) { padding-block-end: var(--layout-gutter); }
 
 :is(.chip-screen__content, .chip-tabpanel) > * {
   grid-column: 1 / -1;
@@ -163,7 +168,7 @@
   margin-block-end: calc(var(--layout-gutter) * -1);
 }
 
-/* the cue at an end with more lanes: a fade from the page ground and a chevron */
+/* the cue at an end with more lanes: a chevron button only. A fade over the lanes washed out the first letters of cards (Elleta, 22 Nov), so the scroller clips at one crisp edge */
 .chip-board__more {
   position: absolute;
   inset-block: 0;
@@ -181,13 +186,11 @@
 .chip-board__more--start {
   inset-inline-start: 0;
   justify-content: flex-start;
-  background: linear-gradient(to right, var(--color-background-default), transparent);
 }
 
 .chip-board__more--end {
   inset-inline-end: 0;
   justify-content: flex-end;
-  background: linear-gradient(to left, var(--color-background-default), transparent);
 }
 
 .chip-flow--board {
@@ -291,7 +294,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-padding-block: var(--spacing-12);
+  /* 8 for focus rings, then 64 of room after the last content (Elleta, 22 Nov) */
   padding: var(--spacing-8);
+  padding-block-end: calc(var(--spacing-8) + var(--spacing-64));
   margin: calc(var(--spacing-8) * -1);
 }
 /* the container's full width, even inside one that centres its child (Stage) */

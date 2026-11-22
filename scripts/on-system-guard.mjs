@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from '
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { RECORD, WATCHED, leaderInputsHash, PROCESS_RECORD, PROCESS_WATCHED, processInputsHash, CARD_RECORD, RESPONSIVE_RECORD, PAGE_ROUTES, fileHashes, cardWatched, cardInputsHash } from './lib/stage-leaders.mjs';
+import { RECORD, WATCHED, leaderInputsHash, PROCESS_RECORD, PROCESS_WATCHED, processInputsHash, CARD_RECORD, RESPONSIVE_RECORD, PAGE_ROUTES, fileHashes, cardWatched, cardInputsHash, STRIP_WATCHED, STRIP_RECORD, stripInputsHash } from './lib/stage-leaders.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(ROOT, 'data/on-system-baseline.json');
@@ -183,6 +183,20 @@ if (sparkles.length) {
   process.exit(1);
 }
 
+// Person emoji are the woman variant (Elleta, 22 Nov: "can we use female emojis"; CHIP CLAUDE.md): a person emoji in app/src
+// carries the female sign (base + U+200D + U+2640 + U+FE0F), and a man or a person is a woman (👩). Not a ratchet.
+const PERSON = '🙅🙆💁🙋🙇🤦🤷💆💇🚶🏃🧍🧎🧏🙍🙎🤵👰🤱🧖🧗🧘🏌🏄🚣🏊⛹🏋🚴🚵🤸🤼🤽🤾🤹👮🕵💂🥷👷🤴👸👳👲🧕🦸🦹🧙🧚🧛🧜🧝🧞🧟🧔👨🧑';
+const MAN = /[👨🧑]/u;
+const BARE = new RegExp(`[${PERSON}]\\uFE0F?[\\u{1F3FB}-\\u{1F3FF}]?(?!\\u200D)`, 'u');
+const persons = files(SRC)
+  .flatMap((f) => readFileSync(f, 'utf8').split('\n').map((l, i) => [relative(ROOT, f), i + 1, l]))
+  .filter(([, , l]) => BARE.test(l) || MAN.test(l));
+if (persons.length) {
+  console.log('on-system-guard: a person emoji without the female sign in app/src. Commit blocked (use the woman variant: 🙅\u200D♀️, 🤷\u200D♀️, 👩).');
+  for (const [f, n, l] of persons) console.log(`  ${f}:${n}  ${l.trim().slice(0, 100)}`);
+  process.exit(1);
+}
+
 // Nothing sends her out of CHIP (Elleta, 23 Nov, CHIP CLAUDE.md "READ FIRST"): a report, plan, audit or log opens in the
 // drawer on the page, never as a link or new tab to /audits/*, a docs/ path or a raw .md file. fetch() of the report is fine.
 // Not a ratchet: one is enough to fail the commit.
@@ -248,6 +262,20 @@ if (bareCommits.length) {
     const why = !rec ? 'it has not been run' : rec.hash !== leaderInputsHash() ? 'it ran on other files than these' : !rec.full ? 'its last run was one part only' : !rec.ok ? `it found ${rec.total - rec.clean} of ${rec.total} part-widths not clean` : null;
     if (why) {
       console.log(`on-system-guard: the stage's labels changed and the leader check is not clean (${why}). Run npm run check:leaders. Commit blocked.`);
+      process.exit(1);
+    }
+  }
+}
+
+// The strip under the stage: a commit that changes the files building it needs a clean full run of
+// `npm run check:states` (all 98 parts, 1440 and 320) on exactly these files.
+{
+  const staged = spawnSync('git', ['diff', '--cached', '--name-only'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n');
+  if (STRIP_WATCHED.some((f) => staged.includes(f))) {
+    const rec = existsSync(STRIP_RECORD) ? JSON.parse(readFileSync(STRIP_RECORD, 'utf8')) : null;
+    const why = !rec ? 'it has not been run' : rec.hash !== stripInputsHash() ? 'it ran on other files than these' : !rec.ok ? `it found ${rec.bad} strips that are not the part's own states` : null;
+    if (why) {
+      console.log(`on-system-guard: the states strip changed and its check is not clean (${why}). Run npm run check:states. Commit blocked.`);
       process.exit(1);
     }
   }

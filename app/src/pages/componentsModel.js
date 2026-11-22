@@ -38,6 +38,8 @@ export function componentsModel({ components = [], gaps = {}, version, checkedAt
         lede: firstSentence(c.description),
         variants: c.variants ?? [],
         states: (c.states ?? []).filter((s) => STATE_WORDS[s]).map((s) => ({ id: s, label: STATE_WORDS[s] })),
+        // every state the contract names, as words, for a part whose states cannot be drawn
+        stateNames: [...new Set((c.states ?? []).map((s) => cap(String(s).replace(/[-_]+/g, ' '))))],
         storyUrl: c.storyUrl ?? null,
         anatomy: (c.parts ?? []).map((a) => ({ key: a.key, n: a.n, title: a.title, detail: a.detail, token: a.token, value: a.value?.light ?? null, kind: a.kind, trigger: a.trigger, zone: a.zone })),
         checks,

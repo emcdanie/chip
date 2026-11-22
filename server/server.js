@@ -681,34 +681,31 @@ app.get('/contrast-pairs', (_req, res) => {
   }
 });
 // GET /stories: each part's first story in BELLA's built Storybook (its id prefix -> the
-// story's id), so Components' Story row opens a story and its Docs row the docs page. Read only.
-// Story and Docs links use the ids of the Storybook they open: the published one (BELLA's
-// package.json homepage), read from its own index.json (click test 22 Nov: the local build's ids,
-// components-actions-button, don't exist on the published site, components-button). Per part
-// name: its docs page and its first story. Read every 30 min; the local build only when offline.
+// story's id), so Components' Story button opens a real story INSIDE CHIP (Elleta, 22 Nov: "when i click it opens
+// storybook and it doesnt work"). The ids come from the local build's own index.json (bella-parts/storybook-static),
+// which CHIP serves read-only at /storybook/, so an id always exists there; the published site is the fallback
+// only when there is no local build (its ids differ: components-button, not components-actions-button).
+// Per part name: its docs page and its first story. Read every 30 min.
 let storiesCache = null;
-async function storyIndex() {
-  if (storiesCache && Date.now() - storiesCache.at < 30 * 60e3) return storiesCache.data;
+const storyEntries = async () => {
+  try {
+    return { from: 'local', base: '/storybook/', entries: JSON.parse(readFileSync(join(BELLA_DIR, 'storybook-static/index.json'), 'utf8')).entries };
+  } catch {}
   let base = null;
   try {
     base = String(JSON.parse(readFileSync(join(BELLA_DIR, 'package.json'), 'utf8')).homepage || '').replace(/\/?$/, '/') || null;
   } catch {}
-  let entries = null;
-  let from = 'published';
   if (base) {
     try {
       const r = await fetch(`${base}index.json`, { signal: AbortSignal.timeout(8000) });
-      if (r.ok) entries = (await r.json()).entries;
+      if (r.ok) return { from: 'published', base, entries: (await r.json()).entries };
     } catch {}
   }
-  if (!entries) {
-    from = 'local';
-    try {
-      entries = JSON.parse(readFileSync(join(BELLA_DIR, 'storybook-static/index.json'), 'utf8')).entries;
-    } catch {
-      entries = {};
-    }
-  }
+  return { from: 'none', base: null, entries: {} };
+};
+async function storyIndex() {
+  if (storiesCache && Date.now() - storiesCache.at < 30 * 60e3) return storiesCache.data;
+  const { from, base, entries } = await storyEntries();
   const parts = {};
   for (const e of Object.values(entries)) {
     const name = String(e.title ?? '').split('/').pop();
@@ -717,10 +714,11 @@ async function storyIndex() {
     if (e.type === 'docs' && !p.docs) p.docs = e.id;
     if (e.type === 'story' && !p.first) p.first = e.id;
   }
-  const data = { base: from === 'published' ? base : null, from, parts };
+  const data = { base, from, parts };
   storiesCache = { at: Date.now(), data };
   return data;
 }
+app.use('/storybook', express.static(join(BELLA_DIR, 'storybook-static'), { index: false }));
 app.get('/stories', async (_req, res) => res.json(await storyIndex()));
 // Do next: per component, what each Overview gap needs and the suggested fix
 app.get('/gaps', (_req, res) => {

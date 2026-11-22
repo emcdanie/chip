@@ -53,3 +53,13 @@ export const PAGE_ROUTES = [
   [/NotAgain/, '#/not-again'],
 ];
 export const fileHashes = () => Object.fromEntries(cardWatched().map((f) => [f, createHash('sha1').update(existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f)) : '').digest('hex')]));
+
+// The strip under the stage shows the part's own states, never other components (scripts/states-strip-check.mjs; her
+// bug, 22 Nov: "its meant to be states not take you to other components")
+export const STRIP_WATCHED = ['app/src/pages/ComponentsContent.jsx', 'app/src/pages/componentsModel.js', 'app/src/specimens.jsx'];
+export const STRIP_RECORD = join(ROOT, 'data', 'states-strips.json');
+export const stripInputsHash = () => {
+  const h = createHash('sha1');
+  for (const f of STRIP_WATCHED) h.update(existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f)) : '');
+  return h.digest('hex');
+};

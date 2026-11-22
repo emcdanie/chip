@@ -9,7 +9,10 @@
 //   (c) a card overflows its own box or the window, or clips its content,
 //   (d) the cards of a page or of a card do not share their edges: a band of cards that touch vertically leaves
 //       more than 24px unused at its left or right end of the box they sit in, or two bands that fill that box differ
-//       at their left or right edge by more than 1px.
+//       at their left or right edge by more than 1px,
+//   (e) a scrolling container (the page's content, a column that scrolls on its own) ends less than 48px after its
+//       last content: from the last content to the end of the scroll is at least 48px (the page and the inspector
+//       panel give 64, the cards' own 24 gap is a different thing; Elleta, 22 Nov).
 // It prints, for every page and width, how many cards and rows it measured and the worst numbers, so it cannot
 // pass on nothing. Usage: node scripts/card-align-check.mjs [--app http://localhost:3160] [--out dir]
 //   [--route '#/health'] [--width 1024] [--quick]   (--quick: the menu as it comes and the panel closed only; no record)
@@ -153,6 +156,38 @@ const measure = () => {
   });
 };
 
+/* (e) the space after the last content of every container that scrolls: its scroll height less the lowest bottom of
+   anything inside it. Lanes, cards and lists that scroll inside a card by design are not pages. */
+const endGaps = () => {
+  const out = [];
+  const els = [...document.querySelectorAll('.chip-screen__content, .chip-flow--scroll')];
+  for (const sc of els) {
+    const cs = getComputedStyle(sc);
+    if (!/(auto|scroll)/.test(cs.overflowY) || sc.scrollHeight <= sc.clientHeight + 1) continue;
+    if (sc.closest('[role="dialog"], dialog, [class*="lane"], [class*="board"]') || sc.getBoundingClientRect().height < 40) continue;
+    // the Work board fills the window to its foot by design (its lanes scroll, not the page)
+    if (sc.querySelector(':scope > .chip-board')) continue;
+    const top = sc.getBoundingClientRect().top - sc.scrollTop;
+    let low = 0;
+    for (const e of sc.querySelectorAll('*')) {
+      const st = getComputedStyle(e);
+      if (st.position === 'fixed' || st.position === 'absolute' || st.display === 'none' || st.visibility === 'hidden' || e.closest('svg') && e.tagName !== 'svg') continue;
+      if (e.children.length && st.backgroundColor === 'rgba(0, 0, 0, 0)' && !e.matches('button, a, [role]') && !(e.textContent || '').trim()) continue;
+      // what a box inside a scroller or a clip holds is that box's own business: only the box itself counts here
+      let inner = false;
+      for (let p = e.parentElement; p && p !== sc; p = p.parentElement) if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(p).overflowY)) { inner = true; break; }
+      if (inner) continue;
+      const r = e.getBoundingClientRect();
+      if (r.height < 1 || r.width < 1) continue;
+      low = Math.max(low, r.bottom - top);
+    }
+    const gap = Math.round(sc.scrollHeight - low);
+    // a negative gap means something is drawn outside the scroll (a clipped or positioned box), not a short end: not measurable here
+    if (gap >= 0) out.push({ name: sc.className.split(' ')[0], gap, rows: 1 });
+  }
+  return out;
+};
+
 /* rows of cards that sit side by side (same outer card, the same top) */
 function rowsOf(cards) {
   const rows = [];
@@ -245,6 +280,16 @@ for (const route of routes) {
           cards = await page.evaluate(measure);
         }
         const j = judge(cards.filter((c) => c.shown));
+        // scrolled to the end, the last content stands 48 or more clear of the end of the scroll
+        // a list still arriving ends short for a moment: look again before it counts
+        let ends = await page.evaluate(endGaps);
+        for (let again = 0; again < 3 && ends.some((e) => e.gap < 48); again += 1) {
+          await page.waitForTimeout(2000);
+          ends = await page.evaluate(endGaps);
+        }
+        ends.filter((e) => e.gap < 48).forEach((e) => j.bad.push(`e) ${e.name} ends ${e.gap}px after its last content (needs 48 or more)`));
+        j.ends = ends.length;
+        j.minEnd = ends.length ? Math.min(...ends.map((e) => e.gap)) : null;
         results.push({ label, cards: cards.length, ...j });
         if (j.bad.length) await page.screenshot({ path: join(OUT, `${label.replace(/[^\w]+/g, '_')}.png`) }).catch(() => {});
         // Health's drawers: each stat card that opens one
@@ -268,7 +313,7 @@ for (const route of routes) {
 }
 await browser.close();
 writeFileSync(join(OUT, 'results.json'), JSON.stringify(results, null, 1));
-for (const r of results) console.log(`${r.bad.length ? 'FAIL' : 'ok  '} ${r.label.padEnd(52)} ${String(r.cards).padStart(3)} cards · ${r.rows} rows · worst y gap ${r.worstDy.toFixed(1)} · worst empty ${Math.round(r.worstDead)}${r.bad.length ? `\n      ${[...new Set(r.bad)].join('\n      ')}` : ''}`);
+for (const r of results) console.log(`${r.bad.length ? 'FAIL' : 'ok  '} ${r.label.padEnd(52)} ${String(r.cards).padStart(3)} cards · ${r.rows} rows · worst y gap ${r.worstDy.toFixed(1)} · worst empty ${Math.round(r.worstDead)} · ${r.ends ?? 0} scroll ends${r.minEnd != null ? ` (least ${r.minEnd}px after the last content)` : ''}${r.bad.length ? `\n      ${[...new Set(r.bad)].join('\n      ')}` : ''}`);
 // a page that shows cards at one width and none at another was not measured there: that fails too
 for (const route of routes) {
   const mine = results.filter((r) => r.label.startsWith(`${route} `) && !/drawer/.test(r.label));
