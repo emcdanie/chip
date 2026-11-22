@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from '
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { RECORD, WATCHED, leaderInputsHash } from './lib/stage-leaders.mjs';
+import { RECORD, WATCHED, leaderInputsHash, PROCESS_RECORD, PROCESS_WATCHED, processInputsHash } from './lib/stage-leaders.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(ROOT, 'data/on-system-baseline.json');
@@ -248,6 +248,20 @@ if (bareCommits.length) {
     const why = !rec ? 'it has not been run' : rec.hash !== leaderInputsHash() ? 'it ran on other files than these' : !rec.full ? 'its last run was one part only' : !rec.ok ? `it found ${rec.total - rec.clean} of ${rec.total} part-widths not clean` : null;
     if (why) {
       console.log(`on-system-guard: the stage's labels changed and the leader check is not clean (${why}). Run npm run check:leaders. Commit blocked.`);
+      process.exit(1);
+    }
+  }
+}
+
+// Processes' lines: a commit that changes the board needs a clean full run of `npm run check:process-lines` on
+// exactly this file (23 Nov: lines through a step or its text).
+{
+  const staged = spawnSync('git', ['diff', '--cached', '--name-only'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n');
+  if (PROCESS_WATCHED.some((f) => staged.includes(f))) {
+    const rec = existsSync(PROCESS_RECORD) ? JSON.parse(readFileSync(PROCESS_RECORD, 'utf8')) : null;
+    const why = !rec ? 'it has not been run' : rec.hash !== processInputsHash() ? 'it ran on another version of the file' : !rec.ok ? `it found ${rec.total - rec.clean} of ${rec.total} map-widths not clean` : null;
+    if (why) {
+      console.log(`on-system-guard: the Processes board changed and the line check is not clean (${why}). Run npm run check:process-lines. Commit blocked.`);
       process.exit(1);
     }
   }

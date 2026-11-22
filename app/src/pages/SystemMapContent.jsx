@@ -20,14 +20,14 @@
 // - skeleton: the board's loading state (no skeleton part); the empty state stands in.
 // - share link: the page reads ?map=&step=, but the shell's router opens #/system-map only without
 //   a query (main.jsx), so the address is not written yet.
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Button from '@bella/components/Button/Button';
-import ListRow from '@bella/components/ListRow/ListRow';
+import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import MapNode from '@bella/components/MapNode/MapNode';
 import MapLine from '@bella/components/MapLine/MapLine';
 import Select from '@bella/components/Select/Select';
@@ -301,12 +301,6 @@ function summaryOf(map) {
   return 'Nothing needs you.';
 }
 
-// the box the stage scrolls in, overflowing or not
-function scrollBox(el) {
-  for (let e = el; e && !e.matches('[data-bella-component="stage"]'); e = e.parentElement) if (/(auto|scroll)/.test(getComputedStyle(e).overflowX)) return e;
-  return null;
-}
-
 // a step is BELLA's MapNode: its name and its state word; the count line is in the detail beside the board
 const NODE_TONE = { bad: 'attention', you: 'attention', warn: 'attention', red: 'attention', yellow: 'attention', blocked: 'blocked' };
 function Node({ step, picked, onPick }) {
@@ -314,53 +308,114 @@ function Node({ step, picked, onPick }) {
   return <MapNode title={step.name} status={said ? said[0] : 'Not known'} tone={NODE_TONE[step.state] ?? 'default'} statusTone={said ? said[1] : 'neutral'} selected={picked} onSelect={() => onPick(step.id)} />;
 }
 
-/* The lines between steps (MapLine curve): each step is joined to the steps it waits on, from the middle of
-   the upper step's foot (under its measured line) to the middle of this step's top edge, measured on the nodes as drawn, so they
-   follow a pan, a zoom and a resize. The picked step's lines are blue. A step that waits on one lower on the
-   board (a loop back) has no line; its Waits on list in the detail names it. */
-function Lines({ map, picked, boardId, tick }) {
-  const [pts, setPts] = useState({});
-  const rowOf = useMemo(() => Object.fromEntries(map.rows.flatMap((r, i) => r.ids.filter(Boolean).map((id) => [id, i]))), [map]);
+/* The lines between steps (MapLine), routed so none passes through a step, its measured line or a row's name
+   (Elleta, 23 Nov: "lines never pass through a step or its text"). Everything runs in the gaps: a line leaves the
+   foot of its upper step (under the measured line), drops to the foot of that row, and either curves straight
+   to the lower step's column when the rows are neighbours, or curves into the gap between two columns, runs down
+   it and curves back into the lower step's column. A step that waits on one lower on the board has no line; its
+   detail names it. The picked step's lines are blue. scripts/process-line-check.mjs measures this on every map. */
+const HOP = 20; // the height of one curve, inside the gap between rows
+function Lines({ map, rows, picked, boardId, tick }) {
+  const [geo, setGeo] = useState(null);
+  const rowOf = useMemo(() => Object.fromEntries(rows.flatMap((r, i) => r.ids.filter(Boolean).map((id) => [id, i]))), [rows]);
   useLayoutEffect(() => {
     const board = document.getElementById(boardId);
     if (!board) return undefined;
     const measure = () => {
       const b = board.getBoundingClientRect();
       const k = b.width / (board.offsetWidth || b.width) || 1; // Stage scales the frame at Fit
-      const out = {};
-      board.querySelectorAll('[data-step]').forEach((w) => {
-        const el = w.firstElementChild;
-        if (!el) return;
-        const r = el.getBoundingClientRect();
-        out[w.dataset.step] = { top: { x: (r.left + r.width / 2 - b.left) / k, y: (r.top - b.top) / k }, bottom: { x: (r.left + r.width / 2 - b.left) / k, y: (w.getBoundingClientRect().bottom - b.top) / k } };
-      });
-      setPts((was) => (JSON.stringify(was) === JSON.stringify(out) ? was : out));
+      const at = (r) => ({ left: (r.left - b.left) / k, right: (r.right - b.left) / k, top: (r.top - b.top) / k, bottom: (r.bottom - b.top) / k });
+      const steps = {};
+      board.querySelectorAll('[data-step]').forEach((w) => (steps[w.dataset.step] = at(w.getBoundingClientRect())));
+      const rowBox = [];
+      board.querySelectorAll('[data-row]').forEach((r) => (rowBox[Number(r.dataset.row)] = at(r.getBoundingClientRect())));
+      const out = JSON.stringify({ steps, rowBox });
+      setGeo((was) => (was?.key === out ? was : { key: out, steps, rowBox }));
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(board);
     return () => ro.disconnect();
   }, [map, boardId, tick]);
-  const links = Object.values(map.steps).flatMap((s) => (s.deps ?? []).filter((d) => rowOf[d] != null && rowOf[s.id] != null && rowOf[d] < rowOf[s.id]).map((d) => [d, s.id]));
+  if (!geo) return null;
+  const { steps, rowBox } = geo;
+  const cx = (id) => (steps[id].left + steps[id].right) / 2;
+  const edges = Object.values(map.steps).flatMap((s) => (s.deps ?? []).filter((d) => rowOf[d] != null && rowOf[s.id] != null && rowOf[d] < rowOf[s.id] && steps[d] && steps[s.id]).map((d) => [d, s.id]));
+  // the gap between two columns that a long line runs down: the middle of the space between the nearest steps
+  const colX = [...new Set(Object.keys(steps).map((id) => Math.round(cx(id))))].sort((p, q) => p - q);
+  const gaps = colX.slice(1).map((x, i) => Math.round((colX[i] + x) / 2));
+  // which gap a long line runs down, and how many lines share it (they spread evenly about its middle)
+  const gapFor = (d, id) => {
+    const xA = cx(d);
+    const xB = cx(id);
+    if (Math.abs(xA - xB) < 1) return gaps.find((x) => x > xA) ?? gaps.filter((x) => x < xA).pop();
+    return xB > xA ? gaps.filter((x) => x < xB).pop() : gaps.find((x) => x > xB);
+  };
+  const long = (d, id) => rowOf[id] !== rowOf[d] + 1; // not a neighbouring row: it runs down a gap between the columns
+  const share = {};
+  edges.forEach(([d, id]) => long(d, id) && (share[gapFor(d, id)] = (share[gapFor(d, id)] ?? 0) + 1));
+  // lines in one gap spread about its middle, 8 apart, closer if the gap is narrow so none touches a step beside it
+  const spacing = (g) => {
+    const ids = Object.keys(steps);
+    const edgeL = Math.max(...ids.filter((id) => cx(id) < g).map((id) => steps[id].right));
+    const edgeR = Math.min(...ids.filter((id) => cx(id) > g).map((id) => steps[id].left));
+    return Math.min(8, Math.max(2, (edgeR - edgeL - 16) / Math.max(1, (share[g] ?? 1) - 1)));
+  };
+  const lanes = {};
+  const parts = [];
+  const key = (...a) => a.join(':');
+  edges.forEach(([d, id]) => {
+    const i = rowOf[d];
+    const j = rowOf[id];
+    const xA = cx(d);
+    const xB = cx(id);
+    const yFoot = rowBox[i].bottom;
+    const tone = picked === d || picked === id ? 'selected' : 'default';
+    const vert = (x, y0, y1) => y1 - y0 > 0.5 && parts.push(<MapLine key={key(d, id, 'v', Math.round(x), Math.round(y0))} direction="vertical" end="none" tone={tone} style={{ position: 'absolute', left: x - 8, top: y0, height: y1 - y0, minBlockSize: 0 }} />);
+    const bend = (x0, y0, x1, y1) => parts.push(<MapLine key={key(d, id, 'c', Math.round(x0), Math.round(y0))} direction="curve" end="none" tone={tone} from={{ x: x0, y: y0 }} to={{ x: x1, y: y1 }} />);
+    vert(xA, steps[d].bottom, yFoot);
+    if (j === i + 1 || Math.abs(xA - xB) < 1) {
+      // neighbouring rows (or straight below): one curve in the gap, then down into the step
+      if (Math.abs(xA - xB) < 1 && j !== i + 1) {
+        // straight below but rows between: take the gap beside the column
+        const g = gapFor(d, id);
+        const lx = g + ((lanes[g] = (lanes[g] ?? 0) + 1) - 1 - (share[g] - 1) / 2) * spacing(g);
+        bend(xA, yFoot, lx, yFoot + HOP);
+        vert(lx, yFoot + HOP, rowBox[j].top - HOP);
+        bend(lx, rowBox[j].top - HOP, xB, rowBox[j].top);
+        vert(xB, rowBox[j].top, steps[id].top);
+      } else if (Math.abs(xA - xB) < 1) vert(xB, yFoot, steps[id].top);
+      else {
+        bend(xA, yFoot, xB, yFoot + HOP);
+        vert(xB, yFoot + HOP, steps[id].top);
+      }
+    } else {
+      const g = gapFor(d, id) ?? xB;
+      const lx = g + ((lanes[g] = (lanes[g] ?? 0) + 1) - 1 - ((share[g] ?? 1) - 1) / 2) * spacing(g);
+      bend(xA, yFoot, lx, yFoot + HOP);
+      vert(lx, yFoot + HOP, rowBox[j].top - HOP);
+      bend(lx, rowBox[j].top - HOP, xB, rowBox[j].top);
+      vert(xB, rowBox[j].top, steps[id].top);
+    }
+  });
   return (
-    <span aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-      {links.filter(([d, id]) => pts[d] && pts[id]).map(([d, id]) => (
-        <MapLine key={`${d}-${id}`} direction="curve" end="none" tone={picked === d || picked === id ? 'selected' : 'default'} from={pts[d].bottom} to={pts[id].top} />
-      ))}
+    <span aria-hidden="true" data-process-lines="" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+      {parts}
     </span>
   );
 }
 
 // a step column is at least this wide on screen, so its name sits whole at 100%
-const COLUMN = 250;
+const COLUMN = 232; // a node (176) and room for the lines that run beside it
 
 function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
   const pan = usePan();
   // the visible width of the board: the board is four columns, and k of them fill the view exactly, so the
   // first view never cuts a name at its edge; the rest are a pan away
   const [view, setView] = useState(null);
+  const wrap = useRef(null);
   useLayoutEffect(() => {
-    const box = scrollBox(document.getElementById('process-board'));
+    const box = wrap.current;
     if (!box) return undefined;
     const measure = () => setView((v) => (v === box.clientWidth ? v : box.clientWidth));
     measure();
@@ -368,14 +423,17 @@ function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
     ro.observe(box);
     return () => ro.disconnect();
   }, []);
-  // the columns the map's steps use, no empty ones at its sides
-  const rows = useMemo(() => {
-    const used = map.rows.flatMap((r) => r.ids.map((id, j) => (id ? j : null))).filter((j) => j != null);
-    const lo = Math.min(...used);
-    const hi = Math.max(...used);
-    return map.rows.map((r) => ({ ...r, ids: Array.from({ length: hi - lo + 1 }, (_, j) => r.ids[lo + j] ?? null) }));
-  }, [map]);
-  const SL = rows[0]?.ids.length ?? SLOTS;
+  // a map is at most two columns wide, so it fits between the list and the detail at 1440 with no pan: a row of
+  // more steps carries on in an unnamed row under it (the order across and down stays the map's)
+  const rows = useMemo(
+    () =>
+      map.rows.flatMap((r) => {
+        const ids = r.ids.filter(Boolean);
+        return Array.from({ length: Math.max(1, Math.ceil(ids.length / 2)) }, (_, i) => ({ label: i ? '' : r.label, ids: [ids[i * 2] ?? null, ids[i * 2 + 1] ?? null] }));
+      }),
+    [map],
+  );
+  const SL = 2;
   // the whole map fits the view: it is drawn at its size with no Fit and 100% to choose between
   const room = view ? view - 48 : 0; // the frame's own 24 either side
   const fits = Boolean(view) && room >= SL * COLUMN + 18;
@@ -386,21 +444,23 @@ function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
   const start = 0; // rows are named over the first column, where the board opens
   const shown = (id) => id && map.steps[id] && (!filterOnly || map.steps[id].state === 'bad');
   // HOLE zoom-steps: zoom in and out wait on BELLA Stage (it has Fit and 100% only)
-  return (
-    <Stage grid="dots" label={`${label} board`} frameWidth={frame} zoom={fits ? 'fit' : zoom} onZoomChange={fits ? undefined : onZoom}>
+  const content = (
+    <>
       {/* the lines between steps are MapLine curves measured on the nodes (Lines, above) */}
-      <Flow gap={24} inset id="process-board" data-hole="zoom-steps" style={{ position: 'relative' }} {...pan}>
-        <Lines map={map} picked={picked} boardId="process-board" tick={`${frame}-${zoom}-${filterOnly}`} />
+      <Flow gap={24} inset id="process-board" data-hole="zoom-steps" style={{ position: 'relative', width: '100%' }} {...pan}>
+        <Lines map={map} rows={rows} picked={picked} boardId="process-board" tick={`${frame}-${zoom}-${filterOnly}`} />
         {/* the board's top and foot: 24 clear of the frame's edge */}
         <span aria-hidden="true" />
+        {/* a bare span between rows adds a second 24: the gap the lines run in is 48 */}
         {rows.map((row, i) => (
-          // the row's name over the column the view opens on (at Fit, the first), then its four slots
-          <Flow key={`${row.label}-${i}`} gap={8} role="group" aria-label={row.label || `${label}, row ${i + 1}`}>
+          <Fragment key={`${row.label}-${i}`}>
+          {/* the row's name over the first column, then its two slots */}
+          <Flow key={`${row.label}-${i}`} gap={8} role="group" data-row={i} aria-label={row.label || `${label}, row ${i + 1}`}>
             {row.label ? (
               <Flow direction="row" gap={16} equal>
                 {Array.from({ length: SL }, (_, j) => (
                   <Flow key={j} gap={0}>
-                    {j === start ? <TextStack overline={row.label} /> : null}
+                    {j === start ? <div data-row-label=""><TextStack overline={row.label} /></div> : null}
                   </Flow>
                 ))}
               </Flow>
@@ -421,26 +481,42 @@ function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
               ))}
             </Flow>
           </Flow>
+          <span aria-hidden="true" />
+          </Fragment>
         ))}
-        <span aria-hidden="true" />
       </Flow>
-    </Stage>
+    </>
+  );
+  // the whole map fits: a plain stage, no size note or Fit and 100% to float over it; wider, a frame you pan or fit
+  return (
+    <div ref={wrap}>
+      {fits ? (
+        <Stage grid="dots" label={`${label} board`}>
+          {content}
+        </Stage>
+      ) : (
+        <Stage grid="dots" label={`${label} board`} frameWidth={frame} zoom={zoom} onZoomChange={onZoom}>
+          {content}
+        </Stage>
+      )}
+    </div>
   );
 }
+
+// the measured line says nothing new when the detail already carries its numbers (no line printed twice)
+const says = (line, detail) => {
+  const nums = String(line).match(/\d+(?:\.\d+)?/g);
+  return String(detail).includes(line) || Boolean(nums?.length && nums.every((n) => String(detail).includes(n)));
+};
 
 function Detail({ map, mapId, step, onPick }) {
   const said = SAYS[step.state];
   const feeds = Object.values(map.steps).filter((s) => (s.deps ?? []).includes(step.id));
   const waits = (step.deps ?? []).map((id) => map.steps[id]).filter(Boolean);
-  const dotOf = (s) => {
+  // one row a step: its name and its state in the same colour and words the map shows
+  const rowOf = (s) => {
     const x = SAYS[s.state];
-    // the step's name, then its dot with a word, never colour alone; the two wrap apart in a narrow card
-    return (
-      <Flow direction="row" gap={8} align="center" wrap>
-        <TextStack body={s.name} />
-        {x ? <StatusDot tone={s.state === 'bad' ? 'danger' : x[1]} label={x[0]} /> : null}
-      </Flow>
-    );
+    return <ListRow key={s.id} layout="stacked" title={s.name} helperText={x ? <StatusDot tone={x[1]} label={x[0]} /> : undefined} onClick={() => onPick(s.id)} />;
   };
   const blocker = step.blockedBy ? map.steps[step.blockedBy] : null;
   const action = step.run ? (
@@ -472,9 +548,7 @@ function Detail({ map, mapId, step, onPick }) {
     items.length ? (
       <Flow gap={4}>
         <TextStack overline={title} />
-        <Flow as="ul" gap={4} aria-label={`${step.name}: ${title.toLowerCase()}`}>
-          {items.map(render)}
-        </Flow>
+        <ListRowGroup ariaLabel={`${step.name}: ${title.toLowerCase()}`}>{items.map(render)}</ListRowGroup>
       </Flow>
     ) : null;
   return (
@@ -483,7 +557,7 @@ function Detail({ map, mapId, step, onPick }) {
         <Flow gap={8}>
           <SectionHead title={step.name} titleLevel={3} showInfo={false} />
           {said ? <StatusDot tone={said[1]} label={said[0]} /> : null}
-          {step.line ? <TextStack meta={step.line} /> : null}
+          {step.line && !says(step.line, step.detail) ? <TextStack meta={step.line} /> : null}
           <TextStack body={step.detail} />
         </Flow>
         {/* anything that needs you says why, from its source */}
@@ -496,13 +570,9 @@ function Detail({ map, mapId, step, onPick }) {
             <TextStack body={step.more} />
           </Disclosure>
         ) : null}
-        {list('Waits on', waits, (d) => <li key={d.id}>{dotOf(d)}</li>)}
-        {list('Runs at', step.at ?? [], (m) => (
-          <li key={m}>
-            <TextStack body={m} />
-          </li>
-        ))}
-        {list('Feeds', feeds, (d) => <li key={d.id}>{dotOf(d)}</li>)}
+        {list('Waits on', waits, rowOf)}
+        {list('Runs at', step.at ?? [], (m) => <ListRow key={m} layout="stacked" title={m} />)}
+        {list('Feeds', feeds, rowOf)}
       </Flow>
     </Card>
   );

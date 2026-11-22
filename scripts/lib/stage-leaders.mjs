@@ -12,3 +12,12 @@ export const leaderInputsHash = () => {
   for (const f of WATCHED) h.update(existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f)) : '');
   return h.digest('hex');
 };
+
+// the same record for the Processes board's lines (scripts/process-line-check.mjs)
+export const PROCESS_WATCHED = ['app/src/pages/SystemMapContent.jsx'];
+export const PROCESS_RECORD = join(ROOT, 'data', 'process-lines.json');
+export const processInputsHash = () => {
+  const h = createHash('sha1');
+  for (const f of PROCESS_WATCHED) h.update(existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f)) : '');
+  return h.digest('hex');
+};
