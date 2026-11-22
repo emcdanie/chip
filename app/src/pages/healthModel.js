@@ -5,6 +5,7 @@
 import { useMemo } from 'react';
 import { planRun } from '../templates/RunPlan.jsx';
 import useCached from '../templates/useCached.js';
+import { gateRuns } from './gateSlots.js';
 
 /* The six component checks, in Figma's order (Health · content 601:111049),
    with Figma's words for "all pass", "some fail" and the action. */
@@ -54,6 +55,7 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
     gate: gateFrom(checks?.gate, checks),
     contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,
     gateDays: gateDays(checks),
+    gateRuns: gateRuns(checks),
     lowest: lowestPair(pairs),
     fixCount: rows.reduce((s, r) => s + r.missing.length, 0),
   };

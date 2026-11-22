@@ -28,6 +28,8 @@ import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 import { TARGET, handOff } from './healthModel.js';
+import { gateSlots } from './gateSlots.js';
+import BarChart from '@bella/components/BarChart/BarChart';
 import Toast from '@bella/components/Toast/Toast';
 import Toasts from '../templates/Toasts.jsx';
 
@@ -44,6 +46,24 @@ function GateBanner({ run }) {
 
 /* A card CHIP has no data for: no number before a measure, the empty bar, and the footer saying why
    with its action (StatCard chart="empty", 22 Nov 19:08). */
+/* Gate runs: every recorded run in a slot of the range picked (the chart holds its range, we hand it that range's slots). */
+function GateBars({ runs }) {
+  const [range, setRange] = useState('day');
+  const slots = gateSlots(runs, range);
+  return (
+    <BarChart
+      title="Gate runs"
+      showViewToggle={false}
+      range={range}
+      onRangeChange={setRange}
+      slots={slots}
+      label="Passed"
+      unit="Runs"
+      context="GitHub CI and CHIP's own runs · only what was recorded"
+    />
+  );
+}
+
 function NoData({ title, icon, context, caption, button }) {
   return <StatCard title={title} icon={icon} tone="neutral" chart="empty" context={context} caption={caption} button={button} />;
 }
@@ -488,7 +508,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             const runs = days.reduce((t, d) => t + d.runs, 0);
             // what the view reports, each number once
             const line =
-              view === 'gate' ? `${runs} recorded ${runs === 1 ? 'run' : 'runs'} · ${days.length} ${days.length === 1 ? 'day' : 'days'} · GitHub CI and CHIP · target ${TARGET}%`
+              view === 'gate' ? `${runs} recorded ${runs === 1 ? 'run' : 'runs'} · ${days.length} ${days.length === 1 ? 'day' : 'days'} · GitHub CI and CHIP`
               : (
                     // the target said once, in the line, with the blue marker (no legend under the rows)
                     <>
@@ -512,23 +532,9 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
           {view === 'gate' && !model.gateDays.length ? (
             <EmptyState size="lane" mark="🚦" title="No run recorded" line="Neither GitHub CI nor CHIP has a gate run on record yet." />
           ) : view === 'gate' ? (
-            // 24 between check rows, more than anything inside a row, so each row reads as its own group
-            // (READ FIRST [10]: "24 between groups"; audit 3, item 12). The row's own layout is BELLA's Check row.
-            <Flow gap={24}>
-              {model.gateDays
-                .map((d) => ({ id: d.id, missing: d.passed < d.runs ? [1] : [], title: d.title, line: d.line, value: `${d.passed}/${d.runs}`, fill: Math.round((d.passed / d.runs) * 100) }))
-                .map((r, i, all) => (i % 2 ? null : all.slice(i, i + 2)))
-                .filter(Boolean)
-                .map((pair) => (
-                  <Flow key={pair[0].id} direction={narrow ? 'column' : 'row'} gap={24} equal>
-                    {pair.map((r) => (
-                      <CheckRow key={r.id} as="div" status={r.missing.length ? 'fail' : 'pass'} title={r.title} subtitle={r.line} value={r.value} fill={r.fill} target={TARGET} />
-                    ))}
-                    {/* a lone last row keeps its half, as the rows above */}
-                    {pair.length === 1 && !narrow ? <div aria-hidden="true" /> : null}
-                  </Flow>
-                ))}
-            </Flow>
+            // her pick "C · Apple style" (22 Nov): bars per half hour, failures red with a cross, a callout on hover or
+            // the arrow keys, D W M Y; BELLA's BarChart draws it from the runs CHIP and GitHub recorded
+            <GateBars runs={model.gateRuns} />
           ) : (
             // her pick "C · Weather rows" (22 Nov): one row per check, a block per 5 parts against the dashed
             // target, the count at the right; no divider under the last row. Each failing check's fix is in

@@ -103,6 +103,7 @@ function useTalk(onText) {
 
 export default function WorkDock() {
   const [open, setOpen] = useState(false);
+  const [floating, setFloating] = useState(false); // the terminal is detached: the panel steps aside so the page stays usable
   const [tab, setTab] = useState(() => {
     try {
       const t = localStorage.getItem(KEY);
@@ -308,7 +309,7 @@ export default function WorkDock() {
   ) : null;
   return (
     <>
-      <Drawer open={open} onClose={() => setOpen(false)} side={phone ? 'bottom' : 'right'} size="lg" label="Work" status={statusWords} action={action} footer={composer}>
+      <Drawer open={open && !floating} onClose={() => setOpen(false)} side={phone ? 'bottom' : 'right'} size="lg" label="Work" status={statusWords} action={action} footer={composer}>
         <Flow gap={16}>
           <Tabs tabs={tabs} value={tab} onChange={setTab} label="Work panel" idBase="work-dock" />
           <div {...tabPanelProps('work-dock', tab, true)}>{body}</div>
@@ -316,7 +317,7 @@ export default function WorkDock() {
         {/* inside the panel while it is open: a modal panel makes the page around it inert, so Undo works only from in here */}
         {toast}
       </Drawer>
-      <WorkDrawer item={item} onClose={() => setItem(null)} onNotice={(n) => setNotice(n)} onChanged={reload} />
+      <WorkDrawer item={item} onFloat={setFloating} onClose={() => (setItem(null), setFloating(false))} onNotice={(n) => setNotice(n)} onChanged={reload} />
       {open ? null : toast}
     </>
   );

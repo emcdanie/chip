@@ -156,7 +156,7 @@ const needWork = new Set(measured.flat()).size;
 check('health', 'Parts that need work', grab('health', /Parts that need work\n(\d+ of \d+) parts/)?.[1], `${needWork} of ${N}`);
 // Drift comes from BELLA's specs (/drift), the same count the card shows
 const drift = await json('/drift').catch(() => null);
-if (drift?.total) check('health', 'Drift: parts that differ', grab('health', /Drift from BELLA\n+(?:\d+\n+)?(\d+)\n+of (\d+)/)?.slice(1).join(' of '), `${drift.differing} of ${drift.total}`);
+if (drift?.total) check('health', 'Drift: parts that differ', grab('health', /Drift from BELLA\n+(?:\d+\n+)?(\d+)\n+of (\d+)/i)?.slice(1).join(' of '), `${drift.differing} of ${drift.total}`);
 const checks = await json('/checks');
 const behind = (checks.checks ?? []).filter((c) => c.gate === true && c.commit && c.commit !== checks.head);
 for (const c of behind) check('health', `Gate names ${c.name}, behind HEAD`, text.health.includes(`${c.name} last ran ${day(c.ranAt)} on ${c.commit}`) ? 'named' : 'not named', 'named');
@@ -177,12 +177,13 @@ const bump = (iso, ok) => { const k = localDay(iso); const d = perDay.get(k) ?? 
 for (const r of ciAll ?? []) if (r.status === 'completed') bump(r.createdAt, r.conclusion === 'success');
 for (const r of chipRuns.values()) bump(r.ranAt, r.ok);
 const days = [...perDay.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 6);
-for (const [, d] of days) {
-  const m = text['health-gate']?.match(new RegExp(`${WEEKDAY(d.iso)}\\n[^\\n]*\\n(\\d+/\\d+)`));
-  check('health', `Gate runs ${WEEKDAY(d.iso)} (recorded)`, m?.[1], ciAll ? `${d.passed}/${d.runs}` : null);
+// the chart (BarChart, her pick C, 23 Nov) opens on D: the headline is the latest recorded day's passed/runs;
+// a day with no record has no bars, nothing is made up
+{
+  const [, d] = days[0] ?? [];
+  const m = text['health-gate']?.match(/(\d+)\/(\d+)\s*\n?\s*RUNS/i);
+  check('health', `Gate runs chart, latest day ${d ? WEEKDAY(d.iso) : ''} (recorded)`, m ? `${m[1]}/${m[2]}` : undefined, ciAll && d ? `${d.passed}/${d.runs}` : null);
 }
-const shownDays = [...(text['health-gate'] ?? '').matchAll(/\n(\w{3} \d{1,2} \w{3})\n/g)].map((m) => m[1]);
-check('health', 'Gate runs shows only recorded days', [...new Set(shownDays)].filter((t) => !days.some(([, d]) => WEEKDAY(d.iso) === t)).join(', ') || 'none extra', 'none extra');
 
 // ---- System map -------------------------------------------------------------
 const cssVars = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1])).size;

@@ -12,7 +12,9 @@
 //     shell opened in its repo with the command typed, not run.
 // Server calls are the old review sheet's (/review/:check, /runs/:id and
 // their accept, keep and undo), so nothing about what a click does changes.
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import FloatingPanel from '@bella/components/FloatingPanel/FloatingPanel';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Button from '@bella/components/Button/Button';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
@@ -454,17 +456,37 @@ function PushDrawer({ item, onClose }) {
   );
 }
 
-function TermDrawer({ item, onClose }) {
+function TermDrawer({ item, onClose, onFloat }) {
   const [status, setStatus] = useState('connecting');
+  const [floating, setFloating] = useState(false);
   const command = item.command && !NO_TYPE.test(item.command) ? item.command : null;
   const t = { id: `drawer-${item.repo}`, repo: item.repo, kind: 'shell', typed: command };
+  // the shell is drawn once into a host element that moves between the drawer and the floating window, so
+  // detaching and docking never restart it (23 Nov: "watch an agent and still use the page")
+  const host = useMemo(() => document.createElement('div'), []);
+  const mount = (el) => {
+    if (el && host.parentNode !== el) el.appendChild(host);
+  };
+  const line = status === 'open' ? (command ? `${command} is typed, not run. Press Return in the terminal to run it.` : `A shell in ${item.repo}’s folder.`) : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…';
+  const body = (
+    <Flow gap={8}>
+      <TextStack subtitle={line} />
+      <div ref={mount} />
+    </Flow>
+  );
   return (
-    <Drawer open onClose={onClose} side="right" size="lg" label="Terminal" status={`${item.repo} · ${item.title ?? 'a shell'}`}>
-      <Flow gap={8}>
-        <TextStack subtitle={status === 'open' ? (command ? `${command} is typed, not run. Press Return in the terminal to run it.` : `A shell in ${item.repo}’s folder.`) : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…'} />
-        <TermScreen t={t} active onStatus={setStatus} onActivity={() => {}} register={() => {}} />
-      </Flow>
-    </Drawer>
+    <>
+      {createPortal(<TermScreen t={t} active onStatus={setStatus} onActivity={() => {}} register={() => {}} />, host)}
+      {/* the drawer stays mounted and only closes while detached, so docking opens it again the way it first opened */}
+      <Drawer open={!floating} onClose={() => (floating ? undefined : onClose())} side="right" size="lg" label="Terminal" status={`${item.repo} · ${item.title ?? 'a shell'}`} action={<Button variant="secondary" size="sm" onClick={() => (setFloating(true), onFloat?.(true))}>Detach</Button>}>
+        {floating ? null : body}
+      </Drawer>
+      {floating ? (
+        <FloatingPanel title="Terminal" status={status === 'open' ? 'Running' : status === 'closed' ? 'Stopped' : 'Starting'} statusTone={status === 'open' ? 'success' : 'info'} onDock={() => (setFloating(false), onFloat?.(false))} onClose={() => (onFloat?.(false), onClose())}>
+          {body}
+        </FloatingPanel>
+      ) : null}
+    </>
   );
 }
 
@@ -495,10 +517,10 @@ function SessionDrawer({ item, onClose }) {
 }
 
 /** item: { kind: 'session', card } | { kind: 'review', check } | { kind: 'run', id } | { kind: 'terminal', repo, command, title }; null = closed. */
-export default function WorkDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
+export default function WorkDrawer({ item, onClose, onNotice, onChanged, onAccepted, onFloat }) {
   if (!item) return null;
   if (item.kind === 'session') return <SessionDrawer key={item.card.id} item={item} onClose={onClose} />;
   if (item.kind === 'push') return <PushDrawer key={item.repo} item={item} onClose={onClose} />;
-  if (item.kind === 'terminal') return <TermDrawer key={`${item.repo}-${item.command}`} item={item} onClose={onClose} />;
+  if (item.kind === 'terminal') return <TermDrawer key={`${item.repo}-${item.command}`} item={item} onClose={onClose} onFloat={onFloat} />;
   return <FixDrawer key={item.id ?? item.check} item={item} onClose={onClose} onNotice={onNotice} onChanged={onChanged} onAccepted={onAccepted} />;
 }
