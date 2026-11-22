@@ -42,6 +42,8 @@ export function parseReview(html, pageUrl) {
       alt: img.getAttribute('alt') ?? '',
       caption: textOf(img.closest('figure')?.querySelector('figcaption')) || img.getAttribute('alt') || '',
     }));
+  // a card whose own section holds no picture shows the page's pictures (Workbench layout has five img tags, none inside a section)
+  const pageShots = shotsOf(doc);
   const sections = [...doc.querySelectorAll('section.part')].filter((s) => s.dataset.decided !== 'true' && s.querySelector('h2'));
   const cards = sections.map((sec) => {
     const h = sec.querySelector('h2');
@@ -54,7 +56,7 @@ export function parseReview(html, pageUrl) {
       from: sec.dataset.src || src,
       title: name,
       line: oneLine(textOf(sec.querySelector('p.decide, p'))),
-      shots: shotsOf(sec),
+      shots: shotsOf(sec).length ? shotsOf(sec) : pageShots,
       options: options.map((o) => ({ ...o, pick: !!pickLetter && o.label.startsWith(`${pickLetter} `) })),
       change: termValue(sec, /^change\b/i),
     };

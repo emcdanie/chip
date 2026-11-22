@@ -46,7 +46,10 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
 /* the picture: fits the room, a click drops a pin and its comment box, like Figma comments (PicturePins, shared with
    Playground); a comment here is kept for Send all */
-function Picture({ card, shot, pins, onPins }) {
+function Picture({ card, shot, pins, onPins, page }) {
+  // a review whose pictures are drawn by its own script has no img to show: the page itself opens here, inside CHIP
+  // (the storyboard's scene 5: Component quality view); only a card with no page at all says there is no picture
+  if (!shot && page) return <iframe title={`${card.title}, the review page`} src={page} width="100%" height="560" loading="lazy" />;
   if (!shot) return <EmptyState size="lane" mark="🖼" title="No picture on this card" line="The decision is in the side pane." />;
   return (
     <PicturePins
@@ -302,7 +305,7 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
           <TextStack body={shot?.caption} />
         </Flow>
       ) : null}
-      <Picture card={shownCard} shot={shot} pins={pins} onPins={(next) => setState((s) => ({ ...s, pins: typeof next === 'function' ? next(s.pins ?? []) : next }))} />
+      <Picture card={shownCard} shot={shot} page={href} pins={pins} onPins={(next) => setState((s) => ({ ...s, pins: typeof next === 'function' ? next(s.pins ?? []) : next }))} />
     </Flow>
   );
 
