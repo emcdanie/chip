@@ -23,7 +23,8 @@ import { readVisibility, setVisibility, compare } from './lib/atlas-extras.mjs';
 import { specOf, figmaLint, readBaseline, runBaseline } from './lib/spec-lint.mjs';
 import { attachTerminal, repoList } from './lib/term.mjs';
 import { BASE as checksBase, gateLog, listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
-import { accept, fixableChecks, keep, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
+import { accept, fixableChecks, keep, readActions, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
+import { closedLoops, recurring } from './lib/not-again.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
 import { saveBoard, saveIdea, workBoard, workLanes } from './lib/lanes.mjs';
 import { claudeReady, gateReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
@@ -524,6 +525,11 @@ app.get('/checks', (_req, res) => {
   const rerun = refreshIfStale();
   // the gate's recorded runs for Health's Gate runs view: CHIP's logged gate checks and GitHub's CI runs, never re-run
   res.json({ ...listChecks({ waiting: waitingChecks(), fixable: fixableChecks() }), rerun, log: gateLog(), ci: ciRuns(), ciAt: ciReadAt() });
+});
+// Not again: what keeps coming back (14 days, ranked) and the permanent fixes that were kept, from the logs CHIP keeps
+app.get('/not-again/recurring', (_req, res) => {
+  const log = gateLog();
+  res.json({ at: new Date().toISOString(), recurring: recurring(log), loops: closedLoops(log, readActions()) });
 });
 app.post('/checks/:id/run', (req, res) => {
   if (!sameApp(req, res)) return;
