@@ -181,6 +181,19 @@ if (sparkles.length) {
   process.exit(1);
 }
 
+// Nothing sends her out of CHIP (Elleta, 23 Nov, CHIP CLAUDE.md "READ FIRST"): a report, plan, audit or log opens in the
+// drawer on the page, never as a link or new tab to /audits/*, a docs/ path or a raw .md file. fetch() of the report is fine.
+// Not a ratchet: one is enough to fail the commit.
+const LEAVES = /(?:\bhref=|\bwindow\.open\()\s*\{?\s*[`'"]\/?(?:audits\/|docs\/)|\bhref=\{?\s*[`'"][^`'"]*\.md[`'"]/;
+const leaving = files(SRC)
+  .flatMap((f) => noComments(readFileSync(f, 'utf8')).split('\n').map((l, i) => [relative(ROOT, f), i + 1, l]))
+  .filter(([, , l]) => LEAVES.test(l));
+if (leaving.length) {
+  console.log('on-system-guard: a link that leaves CHIP for a report, audit or raw file. Commit blocked (open it in the drawer on the page).');
+  for (const [f, n, l] of leaving) console.log(`  ${f}:${n}  ${l.trim().slice(0, 100)}`);
+  process.exit(1);
+}
+
 // A commit names its paths (CHIP CLAUDE.md "Shared checkouts", 22 Nov: two commits swept in another session's
 // staged files): in scripts, server code and package.json a `git commit` must give `-- <paths>`, or run in its own
 // temporary worktree (`git -C <dir> commit`). Not a ratchet.
