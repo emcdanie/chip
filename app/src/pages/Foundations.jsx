@@ -8,7 +8,7 @@ import FoundationsContent from './FoundationsContent.jsx';
 
 export default function Foundations() {
   return (
-    <Screen place="projects" header={{ title: 'CHIP' }} tabs={projectTabs('foundations')}>
+    <Screen place="projects" header={{ title: 'System' }} tabs={projectTabs('foundations')}>
       <FoundationsContent />
     </Screen>
   );

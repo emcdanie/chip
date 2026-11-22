@@ -7,11 +7,9 @@ import Screen from '../templates/Screen.jsx';
 import { projectTabs } from '../templates/projectViews.js';
 import ComponentsContent from './ComponentsContent.jsx';
 import { useComponents } from './componentsModel.js';
+import { partFromHash } from '../templates/routes.js';
 
-const fromHash = () => {
-  const id = window.location.hash.split('?')[0].split('/')[2];
-  return id ? decodeURIComponent(id) : null;
-};
+const fromHash = () => partFromHash();
 // #/components?filter=needs opens on Needs work (Health's "See all N fixes")
 const filterFromHash = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('filter');
 
@@ -35,10 +33,10 @@ export default function Components({ model: given, filter: startFilter = 'all', 
   }, [given]);
   const pick = (id) => {
     setPartId(id);
-    if (!given) window.history.replaceState(null, '', `#/components/${id}`);
+    if (!given) window.history.replaceState(null, '', `#/system/components/${id}`);
   };
   return (
-    <Screen place="projects" header={{ title: 'CHIP' }} tabs={projectTabs('components')}>
+    <Screen place="projects" header={{ title: 'System' }} tabs={projectTabs('components')}>
       <ComponentsContent model={given ?? live.model} filter={filter} onFilter={setFilter} partId={partId} onPart={pick} onCheckAgain={live.reload} />
     </Screen>
   );

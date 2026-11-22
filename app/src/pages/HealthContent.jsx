@@ -159,7 +159,7 @@ function DriftCard({ components }) {
               title={p.name}
               description={driftLine(p)}
               trailing
-              onClick={() => ((window.location.hash = `#/components/${encodeURIComponent(idOf(p.name))}`), setOpen(false))}
+              onClick={() => ((window.location.hash = `#/system/components/${encodeURIComponent(idOf(p.name))}`), setOpen(false))}
               // Fix opens the same plan-first sheet as every fix; nothing runs until it is approved
               actionButton={
                 p.differ || p.specBehind.length || p.noSpec ? (
@@ -268,7 +268,7 @@ function GateCard({ gate, run, onOpen }) {
       }
       // of what: the checks that didn't pass, by name (one source with System map and Connectors)
       caption={failed ? run.why : gate.failing.length ? `Failing: ${gate.failing.join('; ')}` : gate.notRun.length ? `Not run yet: ${gate.notRun.join('; ')}` : `All ${of} pass`}
-      href={onOpen ? undefined : '#/history'}
+      href={onOpen ? undefined : '#/system/history'}
       onOpen={onOpen}
     />
   );
@@ -296,7 +296,7 @@ function NeedsYouCard({ rows, fixCount, verb, send, sending }) {
           showInfo={false}
           description="Fixes that need a reviewer"
           action={
-            <Button variant="tertiary" size="sm" icon="ArrowUpRight" href="#/components?filter=needs">
+            <Button variant="tertiary" size="sm" icon="ArrowUpRight" href="#/system/components?filter=needs">
               {`See all ${fixCount} ${fixCount === 1 ? 'fix' : 'fixes'}`}
             </Button>
           }
@@ -451,7 +451,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             // the failing checks show once, in Component checks below with their fix (user test 21 Nov, item 6)
             why={`Healthy means ${TARGET}% or more pass (the blue tick). ${health.failing.length ? `${health.failing.reduce((s, r) => s + r.missing.length, 0)} checks still fail; each is in Component checks below.` : 'Every check passes.'}`}
             // the way to the parts themselves: Components on Needs work, the same count it shows there
-            failing={health.needsWork ? [{ name: 'Parts that need work', count: health.needsWork, ofTotal: `of ${n} parts`, href: '#/components?filter=needs' }] : []}
+            failing={health.needsWork ? [{ name: 'Parts that need work', count: health.needsWork, ofTotal: `of ${n} parts`, href: '#/system/components?filter=needs' }] : []}
           />
         ) : (
           <NoData title="System health" icon="Activity" context="Component checks that pass" caption="No components yet: point CHIP at BELLA" />
@@ -488,7 +488,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100) }}
             context={model.lowest.below ? `${model.lowest.below} text pairs below ${model.lowest.bar}:1` : 'Every pair clears the target'}
             caption={`Target ${model.lowest.bar}:1 · ${model.lowest.checked ? `${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''}` : model.lowest.failing ? `the pairs check fails (${model.lowest.failing})` : 'not counted'}`}
-            href="#/foundations"
+            href="#/system/foundations"
           />
         ) : (
           <NoData title="Lowest contrast" icon="HalfMoon" context="The weakest text pair" caption="No pairs measured yet" />

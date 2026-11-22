@@ -45,7 +45,7 @@ export function find(q, parts) {
   const n = squash(t);
   const rank = (name, about = '') => (squash(name).startsWith(n) ? 0 : squash(name).includes(n) ? 1 : about.toLowerCase().includes(t) ? 2 : -1);
   const pages = PAGES.map((p) => ({ key: `page:${p.id}`, title: p.label, where: p.where, href: `#/${p.id}`, r: rank(p.label) }));
-  const comps = parts.map((c) => ({ key: `part:${c.name}`, title: c.name, where: `Part · ${c.category ?? 'BELLA'}`, href: `#/components/${encodeURIComponent(c.id ?? c.name)}`, r: rank(c.name, c.description ?? '') }));
+  const comps = parts.map((c) => ({ key: `part:${c.name}`, title: c.name, where: `Part · ${c.category ?? 'BELLA'}`, href: `#/system/components/${encodeURIComponent(c.id ?? c.name)}`, r: rank(c.name, c.description ?? '') }));
   return [...pages, ...comps].filter((x) => x.r >= 0).sort((a, b) => a.r - b.r || a.title.localeCompare(b.title)).slice(0, MAX);
 }
 

@@ -7,7 +7,6 @@
 // has a way back. A link with a route
 // (#/playground?project=chip&route=%23%2Fnot-again) opens the page view.
 import { useCallback, useState } from 'react';
-import { projectTabs } from '../templates/projectViews.js';
 import Screen from '../templates/Screen.jsx';
 import PlaygroundContent from './PlaygroundContent.jsx';
 import PlaygroundPicks from './PlaygroundPicks.jsx';
@@ -26,7 +25,7 @@ export default function Playground() {
     setRoute(null);
   }, []);
   return (
-    <Screen place="projects" header={{ title: 'CHIP' }} tabs={projectTabs('playground')}>
+    <Screen place="playground" header={{ title: 'Playground' }}>
       {view === 'picks' ? (
         <PlaygroundPicks onTry={() => setView('try')} />
       ) : (

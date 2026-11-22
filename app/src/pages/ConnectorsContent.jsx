@@ -196,7 +196,7 @@ export default function ConnectorsContent() {
                   detail={meta(r, gateNode) || undefined}
                   action={
                     r.id === 'git' ? (
-                      <Button variant="secondary" size="sm" href="#/history">
+                      <Button variant="secondary" size="sm" href="#/system/history">
                         Log
                       </Button>
                     ) : r.id === 'ci' ? undefined : (

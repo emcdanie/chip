@@ -170,7 +170,7 @@ const PAGES = ['not-again', 'work', 'components', 'health', 'history', 'connecto
 const targetOf = (what) => {
   const m = String(what).match(/^(.+) (part|page|stories|screenshots)$/);
   if (!m) return null;
-  if (m[2] !== 'page') return `#/components/${m[1].toLowerCase()}`;
+  if (m[2] !== 'page') return `#/system/components/${m[1].toLowerCase()}`;
   const id = m[1].replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
   return PAGES.includes(id) ? `#/${id}` : null;
 };

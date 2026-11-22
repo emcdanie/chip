@@ -512,7 +512,7 @@ function RolesTable({ rows, total }) {
       numeric: true,
       sortable: true,
       // "parts", not Figma's "components": the shorter word keeps the cell on one line at 1100
-      render: (r) => (r.used ? <Link href={r.firstPart ? `#/components/${r.firstPart}` : '#/components'}>{`${r.used} ${r.used === 1 ? 'part' : 'parts'}`}</Link> : 'Nothing'),
+      render: (r) => (r.used ? <Link href={r.firstPart ? `#/system/components/${r.firstPart}` : '#/system/components'}>{`${r.used} ${r.used === 1 ? 'part' : 'parts'}`}</Link> : 'Nothing'),
     },
   ];
   return (

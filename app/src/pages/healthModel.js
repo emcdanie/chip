@@ -34,13 +34,13 @@ const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric',
 /** components: BELLA's list; gaps: /gaps .gaps ({ story: { Name: … } }); history: BELLA's commits. */
 export function healthModel({ components = [], gaps = {}, history = [], pairs = null, checks = null }) {
   const n = components.length;
-  // a fix opens the first part that needs it on Components (#/components/<id>)
+  // a fix opens the first part that needs it on Components (#/system/components/<id>)
   const idOf = (name) => components.find((c) => c.name === name)?.id ?? name;
   const rows = CHECKS.map((c) => {
     const missing = Object.keys(gaps[c.id] ?? {});
     const pass = n - missing.length;
     // who takes the fix, at the end of the line (nothing made is lost: the Needs you cards said it)
-    return { ...c, pass, missing, href: missing.length ? `#/components/${idOf(missing[0])}` : null, fill: n ? Math.round((pass / n) * 100) : 0, line: missing.length ? `${missing.length} ${c.some}: ${names(missing)}${WHO[c.id] ? ` · ${WHO[c.id]}` : ''}` : c.all(n) };
+    return { ...c, pass, missing, href: missing.length ? `#/system/components/${idOf(missing[0])}` : null, fill: n ? Math.round((pass / n) * 100) : 0, line: missing.length ? `${missing.length} ${c.some}: ${names(missing)}${WHO[c.id] ? ` · ${WHO[c.id]}` : ''}` : c.all(n) };
   });
   const total = n * CHECKS.length;
   const passed = rows.reduce((s, r) => s + r.pass, 0);

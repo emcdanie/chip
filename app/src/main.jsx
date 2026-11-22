@@ -15,12 +15,12 @@ import Foundations from './pages/Foundations.jsx';
 import Team from './pages/Team.jsx';
 import Health from './pages/Health.jsx';
 import Work from './pages/Work.jsx';
-import Home from './pages/Home.jsx';
 import Components from './pages/Components.jsx';
 import { warmPages } from './templates/useCached.js';
 import { openAtTop } from './templates/Screen.jsx';
 import RunPlanHost from './templates/RunPlan.jsx';
 import PageGuard from './templates/PageGuard.jsx';
+import { canon } from './templates/routes.js';
 
 // #/kit shows the shared pieces on their own, outside the app shell.
 // Pages on the new CHIP / Screen template; the old app stays beside them
@@ -42,36 +42,41 @@ const NEW_PAGES = [
 function Page({ hash }) {
   // a new page opens at its top; a part, query or view inside the same page
   // (#/components/Button, #/history?…) keeps its place
-  const page = hash.match(/^#\/([\w-]+)/)?.[1] ?? '';
+  const page = hash.match(/^#\/(health\/work|system\/[\w-]+|[\w-]+)/)?.[1] ?? '';
   useLayoutEffect(openAtTop, [page]);
   if (hash === '#/kit') return <Kit />;
-  // The root opens the new shell on Work (19 Nov audit); the old app's
-  // Overview stays at #/health-old until Elleta has decided on it.
-  if (hash === '' || hash === '#' || hash === '#/') return <Work />;
-  if (hash === '#/home') return <Home />;
+  // Health takes Home's place and holds Work; Components, Foundations and History are one System place
+  // (Elleta, 23 Nov). The old addresses redirect in Root (templates/routes.js), so only new ones arrive here.
+  const at = hash.split('?')[0];
   if (hash === '#/not-again') return <NotAgain />;
-  if (hash.split('?')[0] === '#/playground') return <Playground />;
-  if (hash.split('?')[0] === '#/team') return <Team />;
-  if (hash === '#/health') return <Health />;
-  if (hash.split('?')[0] === '#/history') return <History />;
-  if (hash.split('?')[0] === '#/connectors') return <Connectors />;
+  if (at === '#/playground') return <Playground />;
+  if (at === '#/team') return <Team />;
+  if (at === '#/health') return <Health />;
+  if (at === '#/health/work') return <Work />;
+  if (at === '#/system/history') return <History />;
+  if (at === '#/connectors') return <Connectors />;
   if (hash === '#/system-map') return <SystemMap />;
-  if (hash === '#/foundations') return <Foundations />;
-  if (hash.split('?')[0] === '#/work') return <Work />;
-  if (hash.split('?')[0] === '#/components' || hash.startsWith('#/components/')) return <Components />;
+  if (at === '#/system/foundations') return <Foundations />;
+  if (at === '#/system/components' || at.startsWith('#/system/components/')) return <Components />;
   return <App />;
 }
 
 /* Every page sits in a guard (an error shows in place, never a white app) beside the one
    plan host (any run opens its plan first). The guard resets when the page changes. */
 function Root() {
-  const [hash, setHash] = useState(window.location.hash);
+  // an old address (#/home, #/work, #/components/Button?x) opens its new place, same part and query
+  const settle = () => {
+    const to = canon(window.location.hash);
+    if (to !== window.location.hash) window.history.replaceState(null, '', to);
+    return to;
+  };
+  const [hash, setHash] = useState(settle);
   useEffect(() => {
-    const on = () => setHash(window.location.hash);
+    const on = () => setHash(settle());
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
-  const page = hash.match(/^#\/([\w-]+)/)?.[1] ?? '';
+  const page = hash.match(/^#\/(health\/work|system\/[\w-]+|[\w-]+)/)?.[1] ?? '';
   return (
     <>
       <PageGuard key={page}>

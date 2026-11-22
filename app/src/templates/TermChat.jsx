@@ -242,7 +242,7 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
     if (SEND.test(text) && answers[lastAsked]?.status === 'answer') return startRun({ i: lastAsked, answer: answers[lastAsked] });
     if (STATUS_Q.test(text)) return status(text);
     setTurns((t) => [...t, { text, at: hhmm() }]);
-    asker.ask(text, window.location.hash || '#/work', undefined, undefined, provider);
+    asker.ask(text, window.location.hash || '#/health/work', undefined, undefined, provider);
   };
   // her new message brings the chat to its foot; an answer arriving never pulls her down if she scrolled up
   // braces: newer Chromium returns a Promise from scrollIntoView, and an effect that returns

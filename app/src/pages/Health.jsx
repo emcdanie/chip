@@ -15,7 +15,7 @@ export default function Health({ model: given, run }) {
     <Screen
       place="projects"
       header={{ title: 'CHIP' }}
-      tabs={projectTabs('health')}
+      tabs={projectTabs('overview')}
     >
       {live.error && !given ? (
         <EmptyState size="lane" mark="🔌" title="CHIP's server isn't answering" line={live.error} />

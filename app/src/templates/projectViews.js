@@ -1,25 +1,40 @@
-// A project's views, in the IA map's order: the Tabs under every project
-// page's header (CHIP / Screen). One list, so a view is added or renamed once.
-// Views not yet rebuilt open the old app's page.
-export const PROJECT_VIEWS = [
-  { id: 'work', label: 'Work', href: '#/work' },
-  { id: 'health', label: 'Health', href: '#/health' },
-  { id: 'components', label: 'Components', href: '#/components' },
-  { id: 'foundations', label: 'Foundations', href: '#/foundations' },
-  { id: 'history', label: 'History', href: '#/history' },
-  { id: 'playground', label: 'Playground', href: '#/playground' },
+// The tabs under a page's header (CHIP / Screen), one list so a tab is added or renamed once. Elleta, 23 Nov:
+// Health holds Overview and Work; System holds Components, Foundations and History; Playground is its own
+// item with no tabs. Each page's tab row therefore has only two or three tabs.
+export const VIEW_GROUPS = [
+  {
+    id: 'health',
+    label: 'Health',
+    tabs: [
+      { id: 'overview', label: 'Overview', href: '#/health' },
+      { id: 'work', label: 'Work', href: '#/health/work' },
+    ],
+  },
+  {
+    id: 'system',
+    label: 'System',
+    tabs: [
+      { id: 'components', label: 'Components', href: '#/system/components' },
+      { id: 'foundations', label: 'Foundations', href: '#/system/foundations' },
+      { id: 'history', label: 'History', href: '#/system/history' },
+    ],
+  },
 ];
 
-/** Tabs props for a project page: `current` is the view you are on. */
+/** Every tab with its group, for the breadcrumb and the menu. */
+export const PROJECT_VIEWS = VIEW_GROUPS.flatMap((g) => g.tabs.map((t) => ({ ...t, group: g.id, groupLabel: g.label })));
+
+/** Tabs props for a page: `current` is the tab you are on; the row is that tab's group. */
 export function projectTabs(current) {
+  const group = VIEW_GROUPS.find((g) => g.tabs.some((t) => t.id === current)) ?? VIEW_GROUPS[0];
   return {
-    items: PROJECT_VIEWS.map(({ id, label }) => ({ id, label })),
+    items: group.tabs.map(({ id, label }) => ({ id, label })),
     value: current,
     onChange: (id) => {
-      const v = PROJECT_VIEWS.find((x) => x.id === id);
+      const v = group.tabs.find((x) => x.id === id);
       if (v && id !== current) window.location.hash = v.href;
     },
-    label: 'Project views',
-    idBase: 'project-views',
+    label: `${group.label} views`,
+    idBase: `${group.id}-views`,
   };
 }

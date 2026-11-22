@@ -206,10 +206,10 @@ function Stats() {
       <>
         <Flow span={6} fill>
           {/* none run is a count, measured: 0 shows */}
-          <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={0} context="Saved fixes run since Monday" caption="Nothing run yet this week" href="#/history" />
+          <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={0} context="Saved fixes run since Monday" caption="Nothing run yet this week" href="#/system/history" />
         </Flow>
         <Flow span={6} fill>
-          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Kept" context="Accept a fix and it lands here" caption="Undone runs stay in History" href="#/history" />
+          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Kept" context="Accept a fix and it lands here" caption="Undone runs stay in History" href="#/system/history" />
         </Flow>
       </>
     );
@@ -218,7 +218,7 @@ function Stats() {
   return (
     <>
       <Flow span={6} fill>
-        <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={w.total} context="Saved fixes run since Monday" caption={lastRun(w.last)} href="#/history" />
+        <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={w.total} context="Saved fixes run since Monday" caption={lastRun(w.last)} href="#/system/history" />
       </Flow>
       <Flow span={6} fill>
         <StatCard
@@ -230,7 +230,7 @@ function Stats() {
           meter={{ fill: Math.round((w.kept / w.total) * 100), valueText: `${w.kept} of ${w.total}` }}
           context={`${w.undone} undone · ${besides}`}
           caption="Undone runs stay in History"
-          href="#/history"
+          href="#/system/history"
         />
       </Flow>
     </>
