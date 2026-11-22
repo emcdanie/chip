@@ -338,7 +338,7 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
         </Flow>
         {side}
       </Flow>
-      <SendBar count={touched.length} onSend={sendAll} sending={sending} result={msg?.result} failed={msg?.failed} />
+      <SendBar count={touched.length} onSend={sendAll} sending={sending} result={msg?.result} failed={msg?.failed} onBack={onBack} onDismiss={() => setMsg(null)} />
     </Flow>
   );
 }

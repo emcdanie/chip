@@ -56,6 +56,12 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
   const [open, setOpen] = useState(null); // { id, x, y, text } : a new comment ('new') or a pin you opened
   const [panning, setPanning] = useState(false);
   const [place, setPlace] = useState(null);
+  const [saved, setSaved] = useState(false); // "Saved" for 2 seconds after a comment is saved
+  useEffect(() => {
+    if (!saved) return undefined;
+    const t = setTimeout(() => setSaved(false), 2000);
+    return () => clearTimeout(t);
+  }, [saved]);
   const space = useRef(false);
   const over = useRef(false);
   const quiet = useRef(false); // a drag just ended: its click is not a new pin
@@ -214,6 +220,7 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
     const pin = { id: `p${Date.now()}`, x: open.x, y: open.y, note: text };
     setPins((all) => [...all, pin]);
     setOpen(null);
+    setSaved(true);
     onCommit?.(pin);
   };
   const onKeys = (e) => {
@@ -270,7 +277,10 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
           </div>
         </div>
         <div style={{ position: 'absolute', insetBlockEnd: 'var(--spacing-16)', insetInlineEnd: 'var(--spacing-16)' }}>
-          <Flow direction="row" gap={4} role="toolbar" aria-label="Picture zoom">
+          <Flow direction="row" gap={4} align="center" role="toolbar" aria-label="Picture zoom">
+            <Flow role="status" gap={0}>
+              {saved ? <TextStack body="Saved" /> : null}
+            </Flow>
             <Button variant="secondary" size="sm" iconOnly icon="ZoomOut" ariaLabel="Zoom out" onClick={() => step(-1)} />
             <Button variant="secondary" size="sm" iconOnly icon="ZoomIn" ariaLabel="Zoom in" onClick={() => step(1)} />
             <Button variant="secondary" size="sm" ariaPressed={zoom == null} onClick={() => setZoom(null)}>

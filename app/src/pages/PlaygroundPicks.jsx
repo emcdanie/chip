@@ -375,7 +375,7 @@ export default function PlaygroundPicks({ onTry }) {
       setBatch({ sending: false, result: { n, at: clock(at) }, failed: null });
       again();
     } catch {
-      setBatch({ sending: false, result: null, failed: `Not sent: the progress board doesn’t answer at ${BOARD}. ${plural(n, 'mark')} kept here.` });
+      setBatch({ sending: false, result: null, failed: `Not sent: the progress board doesn’t answer at ${BOARD}. Your marks are kept here.` });
     }
   }
 
@@ -588,7 +588,7 @@ export default function PlaygroundPicks({ onTry }) {
           </Flow>
         </Flow>
       )}
-      <SendBar count={markedPicks.length} onSend={sendAll} sending={batch.sending} result={batch.result} failed={batch.failed} />
+      <SendBar count={markedPicks.length} onSend={sendAll} sending={batch.sending} result={batch.result} failed={batch.failed} onBack={() => (window.location.hash = '#/health/work')} onDismiss={() => setBatch({ sending: false, result: null, failed: null })} />
     </>
   );
 }
