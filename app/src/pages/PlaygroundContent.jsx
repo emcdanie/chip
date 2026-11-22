@@ -249,7 +249,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
     return <Notification tone="danger" title="The CHIP server" message="It isn't answering. Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
 
   if (!part && pages && !pages.length)
-    return <EmptyState size="page" mark="🤷" title="No pages to open here" line="This project has no pages CHIP can load yet. Pick another one." />;
+    return <EmptyState size="page" mark="🤷‍♀️" title="No pages to open here" line="This project has no pages CHIP can load yet. Pick another one." />;
 
   return (
     <>

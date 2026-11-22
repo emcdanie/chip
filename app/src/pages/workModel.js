@@ -152,13 +152,13 @@ const ago = (t, now = Date.now()) => {
   return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`;
 };
 
-/* her Notion lanes on BoardLane's published tints: Now the agent blue, Shipped the ready green, the rest the lane grey */
+/* her Notion lanes on BoardLane's light washes (23 Nov): Ideas ochre, Next navy, Now the agent blue, Shipped the ready green, Not doing pink; no grey lane */
 export const LANES = [
-  { id: 'ideas', name: 'Ideas', kind: 'gate' },
-  { id: 'next', name: 'Next', kind: 'gate' },
+  { id: 'ideas', name: 'Ideas', kind: 'ideas' },
+  { id: 'next', name: 'Next', kind: 'next' },
   { id: 'now', name: 'Now', kind: 'agent' },
   { id: 'shipped', name: 'Shipped', kind: 'ready' },
-  { id: 'not-doing', name: 'Not doing', kind: 'gate' },
+  { id: 'not-doing', name: 'Not doing', kind: 'not-doing' },
 ];
 export const LANE_NAMES = Object.fromEntries(LANES.map((l) => [l.id, l.name]));
 

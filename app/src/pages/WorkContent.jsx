@@ -44,11 +44,12 @@ export const VIEWS = [
 ];
 
 /* the List and Table views show the lane in its own tint's tone */
-const LANE_TONE = { ideas: 'neutral', next: 'neutral', now: 'info', shipped: 'success', 'not-doing': 'neutral' };
+// the lane tags follow the lane washes (23 Nov): Ideas ochre, Next navy, Now blue, Shipped green, Not doing pink
+const LANE_TONE = { ideas: 'ochre', next: 'navy', now: 'info', shipped: 'success', 'not-doing': 'pink' };
 const tagTone = (t) => (t === 'neutral' ? 'default' : t);
 const TABLE_COLUMNS = [
   { key: 'title', label: 'Task', sortable: true },
-  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag variant="line" tone={tagTone(LANE_TONE[r.laneId])}>{r.lane}</Tag> },
+  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag variant="solid" tone={tagTone(LANE_TONE[r.laneId])}>{r.lane}</Tag> },
   { key: 'status', label: 'Status', sortable: true, render: (r) => (r.status ? <Tag variant="line" tone={tagTone(r.tone)}>{r.status}</Tag> : null) },
   { key: 'area', label: 'Area', sortable: true, render: (r) => r.area ?? '' },
   { key: 'who', label: 'Who acts', sortable: true, render: (r) => (r.who ? r.who[0].toUpperCase() + r.who.slice(1) : null) },
@@ -60,7 +61,7 @@ const EMPTY = {
   next: { mark: '⏭️', title: 'Nothing lined up', line: 'Drag ideas here in the order you want them.' },
   now: { mark: '🛋️', title: 'Nothing running', line: 'Drag a card into Now to plan it.' },
   shipped: { mark: '📦', title: 'None shipped', line: 'Finished work lands here.' },
-  'not-doing': { mark: '🙅', title: 'Nothing ruled out', line: 'Drag here what we won’t do.' },
+  'not-doing': { mark: '🙅‍♀️', title: 'Nothing ruled out', line: 'Drag here what we won’t do.' },
 };
 
 const SORTS = [
