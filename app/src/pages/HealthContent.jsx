@@ -433,7 +433,8 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
           </Toast>
         </Toasts>
       ) : null}
-      <Flow span={4} gap={24} fill>
+      {/* System health is two rows tall beside four of the figures and Lowest contrast takes the last row, so every row spans the content width with no empty strip or dead space (Elleta, 23 Nov: "too much space") */}
+      <Flow span={12} gap={24} cards="bento">
         {health ? (
           <SystemHealth
             subtitle="Component checks that pass"
@@ -449,14 +450,10 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
         ) : (
           <NoData title="System health" icon="Activity" context="Component checks that pass" caption="No components yet: point CHIP at BELLA" />
         )}
-      </Flow>
-      <Flow span={4} gap={24} fill>
         {/* ↗ opens the gate's recorded runs in Component checks and brings that card into view (click test 22 Nov: it switched the view out of sight, so it read as doing nothing) */}
         <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => (setView('gate'), requestAnimationFrame(() => [...document.querySelectorAll('[role="heading"], h2, h3')].find((h) => h.textContent === 'Component checks')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))) : undefined} />
         <DriftCard components={model.components ?? []} />
         <GapsCard />
-      </Flow>
-      <Flow span={4} gap={24} fill>
         {contrast ? (
           <StatCard
             title="Contrast coverage"

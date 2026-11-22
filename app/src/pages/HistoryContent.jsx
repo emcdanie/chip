@@ -470,7 +470,7 @@ function Record({ id, fit, landing }) {
     <Card>
       <Flow gap={24} scroll={fit} aria-label="The open record" tabIndex={fit ? 0 : undefined}>
         <Flow gap={8}>
-          <Flow direction="row" justify="between" wrap gap={8} align="center">
+          <Flow direction="row" justify="between" wrap gap={8} align="center" head>
             <Tag tone={STATUS_TONE[rec.status] ?? 'neutral'}>{rec.status}</Tag>
             <TextStack subtitle={[day(rec.date), time(rec.date), roleOf(rec.who), rec.repo.toUpperCase() === 'CHIP' ? 'CHIP' : rec.repo === 'bella' ? 'BELLA' : rec.repo].filter(Boolean).join(' · ')} />
           </Flow>

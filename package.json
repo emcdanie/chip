@@ -18,6 +18,7 @@
     "app:build": "vite build --config app/vite.config.js",
     "checkpoint": "node scripts/checkpoint.mjs",
     "check:leaders": "node scripts/stage-leader-check.mjs",
+    "check:cards": "node scripts/card-align-check.mjs",
     "check:process-lines": "node scripts/process-line-check.mjs",
     "review": "node scripts/second-review.mjs",
     "storybook": "storybook dev -p 6122 --no-open"

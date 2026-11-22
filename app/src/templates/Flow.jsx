@@ -29,7 +29,11 @@ const GAPS = new Set([0, 4, 8, 12, 16, 24]);
  * detail that fills the window from where it starts, on the 12 columns, so the page itself never scrolls
  * (History, Elleta 22 Nov: "I don't want to scroll the whole page"); scroll: a column inside fit (or a card)
  * that scrolls on its own; sticky: stays at the top of the box it scrolls in while the rest moves under it
- * (a walk-through step over the code it explains).
+ * (a walk-through step over the code it explains); cards: its children are cards laid out as one grid of two
+ * columns (one on a phone; cards="bento": three, the first card two rows tall), so a row's cards take the row's height and their titles, numbers, bars, captions and
+ * footers line up across it; an odd last card takes the whole row (Elleta, 23 Nov: cards that don't align and leave
+ * white space); head: a row as tall as a card's head row (28, a title's line), so a card whose first
+ * row is a Tag still has its title row level with the card beside it.
  */
 /* fit: as tall as the page's own scroll box shows, less its padding and a foot where card shadows fade,
    so a list and its detail get the whole height under the tabs once the content scrolls them to the top
@@ -157,11 +161,11 @@ function useMore(ref, on) {
   return [more, step];
 }
 
-export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, fit = false, scroll = false, sticky = false, stretch = false, aside = false, bullets = false, inset = false, children, ...rest }) {
+export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, fit = false, scroll = false, sticky = false, stretch = false, aside = false, bullets = false, inset = false, cards = false, head = false, children, ...rest }) {
   const [boardRef, boardSize] = useToBottom(board);
   const [fitRef, fitSize] = useFull(fit);
   if (!GAPS.has(gap)) throw new Error(`Flow: gap ${gap} is not on the spacing scale (0, 4, 8, 12, 16, 24)`);
-  const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', fit ? 'chip-flow--fit' : '', scroll ? 'chip-flow--scroll' : '', sticky ? 'chip-flow--sticky' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', `chip-span-${span}`]
+  const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', fit ? 'chip-flow--fit' : '', scroll ? 'chip-flow--scroll' : '', sticky ? 'chip-flow--sticky' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', cards ? 'chip-flow--cards' : '', cards === 'bento' ? 'chip-flow--bento' : '', head ? 'chip-flow--head' : '', `chip-span-${span}`]
     .filter(Boolean)
     .join(' ');
   const [more, step] = useMore(boardRef, board);

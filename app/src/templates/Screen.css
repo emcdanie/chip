@@ -249,6 +249,19 @@
 .chip-flow--row { flex-direction: row; }
 .chip-flow--wrap { flex-wrap: wrap; }
 .chip-flow--fill > * { flex: 1 1 auto; }
+/* cards: one grid, so the cards of a row share its height and their parts line up across it (the cards' own
+   bodies start at the top and their footers sit on the bottom edge, BELLA); an odd last card takes the row */
+.chip-flow--cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+.chip-flow--bento { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* the first card is two rows tall and the last takes a whole row, so every row spans the same width */
+.chip-flow--bento > :first-child { grid-row: span 2; }
+.chip-flow--bento > :last-child:nth-child(even) { grid-column: 1 / -1; }
+.chip-flow--head { min-block-size: var(--size-28); }
+.chip-flow--cards > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 /* fit (Flow.jsx): the 12 columns again, filling the window from where it starts (Flow sets the block
    size); each column keeps the window's height and its card scrolls inside it */
 .chip-flow--fit {
@@ -321,6 +334,11 @@
 :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8 + .chip-span-4 { grid-column: span 5; }
 
 @container chip-content (width < 1000px) {
+  .chip-flow--bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chip-flow--bento > :first-child { grid-row: auto; grid-column: 1 / -1; }
+  /* a third-width card beside a card grid (Health: System health | the five figures) shares the row's width, one above the other */
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4:has(+ .chip-span-8),
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 + .chip-span-8 { grid-column: 1 / -1; }
   :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 { grid-column: span 6; }
   /* History's list and record share the row in halves, so the list's titles never break mid-word (1100: "Component s") */
   :is(.chip-screen__content, .chip-tabpanel) > .chip-span-5,
@@ -340,6 +358,7 @@
 }
 
 @container chip-content (width < 640px) {
+  .chip-flow--cards, .chip-flow--bento { grid-template-columns: minmax(0, 1fr); }
   /* the main card and its side column stack only on phones (coordinator, 20 Nov: the bento from 1100 up) */
   :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8:has(+ .chip-span-4),
   :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8 + .chip-span-4 { grid-column: 1 / -1; }

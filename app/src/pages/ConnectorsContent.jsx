@@ -199,7 +199,12 @@ export default function ConnectorsContent() {
                       <Button variant="secondary" size="sm" href="#/system/history">
                         Log
                       </Button>
-                    ) : r.id === 'ci' ? undefined : (
+                    ) : r.id === 'ci' ? (
+                      // the runs it recorded are in Health's Component checks; with no action the tile left a blank under its line (23 Nov)
+                      <Button variant="secondary" size="sm" href="#/health">
+                        Runs
+                      </Button>
+                    ) : (
                       testButton(r.n, 'Test', r.name)
                     )
                   }
