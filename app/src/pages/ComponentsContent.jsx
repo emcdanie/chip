@@ -442,6 +442,20 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   const SCALES = PLAY[part.name] ? [2, 1, 0.5, 0.35, 0.25, 1.5] : [1, 0.5, 0.35, 0.25, 1.5, 2];
   const [scale, setScale] = useState(SCALES[0]);
   const [widths, setWidths] = useState({});
+  // the leaders draw in on a stage's first show (all of them), then only the picked part's, each time another part
+  // is picked (BELLA Stage leaderDraw: map, then pick); the first pick a part opens with is not a pick
+  const [pickedByYou, setPickedByYou] = useState(false);
+  const lastPicked = useRef(null);
+  useEffect(() => {
+    lastPicked.current = null;
+    setPickedByYou(false);
+  }, [part.id]);
+  useEffect(() => {
+    if (picked == null) return;
+    if (lastPicked.current != null && picked !== lastPicked.current) setPickedByYou(true);
+    lastPicked.current = picked;
+  }, [picked]);
+  const legendChanges = useRef(0);
   const [legend, setLegend] = useState(false); // numbered pins and a legend, when no arrangement of labels fits uncut
   const box = useBox(stageId, liveId, [part.id, variant, label, scale, anatomy.length, a?.key], scale);
   // the best arrangement at one size: the usual split of pins above and below, then other splits only if it does not fit
@@ -478,12 +492,13 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   const seen = useRef(new Map()); // size -> how far its labels overflow, measured as drawn
   useEffect(() => {
     changes.current = 0;
+    legendChanges.current = 0;
     seen.current = new Map();
     setLegend(false);
     setScale(SCALES[0]);
   }, [part.id, box?.sw]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (!layout || box?.tag !== scale) return;
+    if (legend || !layout || box?.tag !== scale) return; // in legend mode the pins choose the size
     seen.current.set(scale, solveAt(scale, box).over);
     if (layout.s === scale) return;
     if (changes.current < 6) {
@@ -583,14 +598,14 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     st.querySelectorAll('[data-stage-chip]').forEach((c) => (next[c.getAttribute('data-stage-chip')] = Math.ceil(c.getBoundingClientRect().width)));
     if (Object.keys(next).length && JSON.stringify(next) !== JSON.stringify(widths)) setWidths(next);
   });
-  // legend mode: the biggest size where the part fits the stage and its pins keep 36 apart
+  // legend mode: the biggest size where the part fits the stage, its pins keep 36 apart and the top and bottom pins clear each other
   const pinsAt = useMemo(() => {
     if (!legend || !box?.tag) return null;
     let pick = null;
     for (const s of SCALES) {
       const k = s / box.tag;
       const r = pinsOnly(anatomy, { cx: box.cx * k, cy: box.cy * k, w: box.w * k, h: box.h * k }, s, a?.key);
-      if (box.w * k <= box.sw - 48 && r.tight >= 36) {
+      if (box.w * k <= box.sw - 48 && r.tight >= 36 && box.h * k >= LABEL_H) {
         pick = { ...r, s };
         break;
       }
@@ -598,8 +613,8 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     return pick ?? { ...pinsOnly(anatomy, { cx: 0, cy: 0, w: box.w, h: box.h }, box.tag, a?.key), s: box.tag };
   }, [legend, box, anatomy, a?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (pinsAt && pinsAt.s !== scale && box?.tag === scale && changes.current < 8) {
-      changes.current += 1;
+    if (pinsAt && pinsAt.s !== scale && box?.tag === scale && legendChanges.current < 3) {
+      legendChanges.current += 1; // its own budget: the label search may have used all of the other one
       setScale(pinsAt.s);
     }
   }, [pinsAt, scale, box]);
@@ -614,7 +629,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     <Flow gap={8} id={stageId} grow="first">
       {/* HOLE (BELLA gap): the tool column beside the stage (zoom in, fit, zoom out, light/dark, mark up)
           waits on a BELLA tool-column part; Stage's own Fit and 100% stand in until then. */}
-      <Stage label={`${part.name} on the stage`} leaderVariant="red" markers={markers} scale={scale} onSelect={onPick} activeId={lit} onActiveChange={setLit}>
+      <Stage label={`${part.name} on the stage`} leaderVariant="red" leaderDraw={pickedByYou ? 'pick' : 'map'} markers={markers} scale={scale} onSelect={onPick} activeId={lit} onActiveChange={setLit}>
         <Flow id={liveId} align="center" data-stage-part="">
           <Flow id={shownId} align="center">
             {has ? <LivePart part={part} variant={variant} label={label} state={shown} /> : <EmptyState size="lane" mark="🧩" title="No live sample yet" line={`CHIP has no live sample of ${part.name} to draw yet.`} />}
