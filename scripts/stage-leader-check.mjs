@@ -108,19 +108,23 @@ function judgeLegend(g, n) {
 
 const browser = await chromium.launch();
 const results = [];
+for (const motion of ['normal', 'reduced']) {
 for (const part of parts) {
-  for (const width of WIDTHS) {
-    const page = await browser.newPage({ viewport: { width, height: 1000 }, colorScheme: 'light' });
+  for (const width of motion === 'reduced' ? [1440] : WIDTHS) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 }, colorScheme: 'light', reducedMotion: motion === 'reduced' ? 'reduce' : 'no-preference' });
     await page.goto(`${APP}/#/components/${part.id ?? part.name.toLowerCase()}`, { waitUntil: 'load' });
     await page.waitForSelector('[data-stage-chip]', { timeout: 20000 }).catch(() => {});
     await page.waitForTimeout(1800); // the part settles into the largest size its labels fit
+    // a leader that draws in (BELLA Leader draw map 900ms, pick 250ms) is measured once it has finished
+    await page.waitForFunction(() => document.getAnimations().length === 0, null, { timeout: 5000 }).catch(() => {});
     const g = await page.evaluate(measure);
     const bad = !g ? ['no stage'] : g.legend ? judgeLegend(g, part.parts.length) : g.chips.length === part.parts.length ? judge(g) : [`${g.chips.length} of ${part.parts.length} labels drawn`];
     const mode = g?.legend ? 'legend' : 'labels';
-    await page.locator('[data-bella-component="stage"]').first().screenshot({ path: join(OUT, `${part.name}-${width}.png`) }).catch(() => {});
-    results.push({ part: part.name, width, mode, pins: part.parts.length, leaders: g?.leaders.length ?? 0, ok: !bad.length, bad });
+    await page.locator('[data-bella-component="stage"]').first().screenshot({ path: join(OUT, `${part.name}-${width}${motion === 'reduced' ? '-reduced' : ''}.png`) }).catch(() => {});
+    results.push({ part: part.name, width: motion === 'reduced' ? `${width} reduced` : width, mode, pins: part.parts.length, leaders: g?.leaders.length ?? 0, ok: !bad.length, bad });
     await page.close();
   }
+}
 }
 await browser.close();
 writeFileSync(join(OUT, 'results.json'), JSON.stringify(results, null, 1));
