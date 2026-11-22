@@ -76,3 +76,7 @@ Thumbs.db
 /data/stage-leaders.json
 /data/process-lines.json
 /data/card-align.json
+
+# Projects made in CHIP (New › Project): her paths and notes, local only
+/data/projects.json
+/data/projects/

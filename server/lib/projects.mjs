@@ -13,6 +13,7 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from '
 import { join, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { BELLA_DIR, PORT, ROOT } from './config.mjs';
+import { madeDir, readStore } from './project-read.mjs';
 
 const CONFIG = join(ROOT, 'chip.config.local.json');
 const home = (p) => (typeof p === 'string' ? p.replace(/^~(?=\/|$)/, homedir()) : p);
@@ -35,7 +36,10 @@ function readConfig() {
 
 /** The registry as configured, paths expanded. */
 export function projectList() {
-  const list = Array.isArray(readConfig().projects) ? readConfig().projects : FALLBACK;
+  const configured = Array.isArray(readConfig().projects) ? readConfig().projects : FALLBACK;
+  // projects made by New › Project (data/projects.json): with no folder of their own they sit in the notes folder CHIP made
+  const made = readStore().map((p) => ({ id: p.id, name: p.name, short: p.short, description: p.description, repo: p.repo ?? madeDir(p.id), pages: { kind: 'none' }, made: true }));
+  const list = [...configured, ...made.filter((m) => !configured.some((b) => b.id === m.id))];
   return list
     .filter((p) => p && /^[\w-]+$/.test(p.id ?? '') && p.repo)
     .map((p) => {
@@ -348,7 +352,8 @@ export async function projectDetail(id, { fresh } = {}) {
   const p = projectOf(id);
   if (!p) return null;
   const b = base(p);
-  if (!b.exists) return { ...b, pages: [], bella: null, run: { state: 'none' }, live: null };
+  // a project made by New › Project that has no repo has nothing to read git from (its notes folder sits inside CHIP's own repo)
+  if (!b.exists || p.made) return { ...b, made: !!p.made, pages: [], bella: null, run: { state: 'none' }, live: null };
   const [lv, rs] = await Promise.all([live(p, fresh), runState(p)]);
   const pages = pagesOf(p);
   return {

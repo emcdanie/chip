@@ -55,6 +55,56 @@ for (const width of WIDTHS) {
   }
   await page.close();
 }
+
+// New (23 Nov): its steps measured the same way. A step with a Back button starts its header at the Back button, so the
+// edge to match is the header's left edge, not the title's. Nothing is started or written: the file is a synthetic drop
+// and the check closes at the plan.
+const NEW_BLOCKS = ['card', 'branch-group', 'section-head', 'notification', 'input'];
+for (const width of WIDTHS) {
+  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  await page.goto(`${APP}/#/work`);
+  await page.reload();
+  await page.waitForTimeout(2500);
+  const measure = (name) =>
+    page.evaluate(([blocks, step]) => {
+      const dlg = [...document.querySelectorAll('dialog[open]')].pop();
+      if (!dlg) return null;
+      const r = (e) => e.getBoundingClientRect();
+      const back = dlg.querySelector('button[aria-label="Back"]');
+      const L = back ? r(back).left : r(dlg.querySelector('h1,h2,h3')).left;
+      const R = r(dlg.querySelector('button[aria-label="Close"]')).right;
+      const nodes = [...dlg.querySelectorAll(blocks.map((b) => `[data-bella-component="${b}"]`).join(','))].filter((n) => r(n).width > 0);
+      const top = nodes.filter((n) => !nodes.some((o) => o !== n && o.contains(n)) && !n.closest('[data-bella-component="list-row"]') && !n.closest('[data-bella-component="branch-group"]'));
+      return { step, L: Math.round(L * 10) / 10, R: Math.round(R * 10) / 10, rows: top.map((n) => [n.dataset.bellaComponent, Math.round(r(n).left * 10) / 10, Math.round(r(n).right * 10) / 10]) };
+    }, [NEW_BLOCKS, name]);
+  const report = async (name) => {
+    await page.waitForTimeout(700);
+    const res = await measure(name);
+    if (!res) { console.log(`FAIL ${width} New ${name}: drawer did not open`); bad++; return; }
+    const off = res.rows.filter(([, l, rt]) => Math.abs(l - res.L) > 1 || Math.abs(rt - res.R) > 1);
+    measured += res.rows.length;
+    console.log(`${off.length ? 'FAIL' : 'ok  '} ${width} New ${name}: header left ${res.L}, close right ${res.R}, ${res.rows.length} blocks, ${off.length} off`);
+    for (const [n, l, rt] of off.slice(0, 6)) console.log(`       ${n}: left ${l} right ${rt}`);
+    if (off.length) bad++;
+  };
+  await page.getByRole('button', { name: 'New', exact: true }).click();
+  await report('pick');
+  await page.getByRole('button', { name: /^Task:/ }).click();
+  await page.waitForSelector('[data-bella-component="branch-group"]', { timeout: 15000 });
+  await report('task');
+  await page.getByRole('button', { name: 'Back' }).click();
+  await page.getByRole('button', { name: /^Project:/ }).click();
+  await report('project');
+  const dt = await page.evaluateHandle(() => { const d = new DataTransfer(); d.items.add(new File(['# Harbour\n\nA ferry timetable.\n'], 'h.md')); return d; });
+  await page.getByRole('button', { name: /^Drop an MD file/ }).locator('..').dispatchEvent('drop', { dataTransfer: dt });
+  await page.waitForSelector('text=What CHIP understood');
+  await report('understood');
+  await page.getByRole('button', { name: 'Set up' }).click();
+  await page.waitForSelector('text=things CHIP will make');
+  await report('plan');
+  await page.keyboard.press('Escape');
+  await page.close();
+}
 await browser.close();
 console.log(`drawer-inset-check: ${measured} blocks measured, ${bad} drawers failed`);
 process.exit(bad ? 1 : 0);

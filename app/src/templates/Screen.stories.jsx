@@ -12,7 +12,7 @@ export const Default = {
   render: () => (
     <Screen
       place="projects"
-      header={{ title: 'CHIP', actions: <Button variant="primary" size="sm">New task</Button> }}
+      header={{ title: 'CHIP', actions: <Button variant="primary" size="sm">New</Button> }}
       tabs={{
         items: [
           { id: 'work', label: 'Work' },

@@ -31,7 +31,9 @@ import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
 import { ciRuns, warmCi, systemMap } from './lib/map.mjs';
 import { figmaKeyState, saveFigmaKey } from './lib/figma-key.mjs';
-import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
+import { projectDetail, projectList, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
+import { newRoutes } from './lib/new-routes.mjs';
+import { startJobs } from './lib/starts.mjs';
 import { appOrigins, onlyChip } from './lib/origin.mjs';
 import { createSystemDocs, mountSystemDocs } from './lib/system-docs.mjs';
 import { playMap, playPages, playTarget, startPlayProxy, PROXY } from './lib/play.mjs';
@@ -788,6 +790,19 @@ app.get('/projects', async (req, res) => {
   }
 });
 app.get('/projects/:id', async (req, res) => {
+// New: the jobs she repeats with their targets read live, and the project she starts from a dropped file or a folder.
+// Reads only what is dropped or named; every route that writes refuses other websites (fromChip) and
+// the keptRead cache of /projects is dropped when a record is made or removed.
+app.get('/starts', (_req, res) => {
+  try {
+    const d = readDrift();
+    const g = gapFixes();
+    res.json(startJobs({ gaps: g, drift: d, audits: readAudits(), marks: null, bellaDir: BELLA_DIR, bellaVersion: g?.bellaVersion }));
+  } catch (e) {
+    errorOut(res, e, 500);
+  }
+});
+app.use(newRoutes({ origins: APP_ORIGINS, ids: () => projectList().map((p) => p.id), changed: () => keptRead('projects', READS.projects, { fresh: true }).catch(() => {}) }));
   try {
     const p = await projectDetail(String(req.params.id), { fresh: req.query.fresh === '1' });
     p ? res.json(p) : res.status(404).json({ error: 'No such project' });
@@ -795,7 +810,7 @@ app.get('/projects/:id', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-const fromChip = (req, res) => (req.headers.origin && !APP_ORIGINS.has(req.headers.origin) ? (res.status(403).json({ error: 'Not from CHIP' }), false) : true);
+const fromChip = (req, res, write = false) => ((req.headers.origin ? !APP_ORIGINS.has(req.headers.origin) : write) ? (res.status(403).json({ error: 'Not from CHIP' }), false) : true);
 app.put('/projects/:id/note', (req, res) => {
   if (!fromChip(req, res)) return;
   try {

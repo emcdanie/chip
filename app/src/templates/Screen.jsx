@@ -24,9 +24,8 @@ import Icon from '@bella/components/Icon/Icon';
 import Avatar from '@bella/components/Avatar/Avatar';
 import Progress from '@bella/components/Progress/Progress';
 import TextStack from '@bella/components/TextStack/TextStack';
-import Input from '@bella/components/Input/Input';
-import Notification from '@bella/components/Notification/Notification';
 import Flow from './Flow.jsx';
+import { NewStart as NewTask } from './NewStart.jsx';
 import Search from './Search.jsx';
 import { useHealth } from '../pages/healthModel.js';
 import useNarrow from './useNarrow.js';
@@ -56,15 +55,15 @@ import './Screen.css';
 function useShellData() {
   // the same reads as the Work board (useCached shares them), so the menu's Needs you count is the board's own
   const { data, reload } = useCached(['/needs', '/runs', '/gaps']);
-  const { data: proj } = useCached(['/projects']);
+  const { data: proj, reload: reloadProj } = useCached(['/projects']);
   const { data: extra, reload: reloadExtra } = useCached(['/work/lanes']);
   const { data: board, reload: reloadBoard } = useCached(['/work/board']);
   // a move, a run or an Accept anywhere: the count follows at once
   useEffect(() => {
-    const on = () => (reload(), reloadExtra(), reloadBoard());
+    const on = () => (reload(), reloadExtra(), reloadBoard(), reloadProj());
     window.addEventListener('chip:changed', on);
     return () => window.removeEventListener('chip:changed', on);
-  }, [reload, reloadExtra, reloadBoard]);
+  }, [reload, reloadExtra, reloadBoard, reloadProj]);
   const projects = proj?.[0]?.projects ?? null;
   if (!data) return { projects, needs: null };
   const [n, r, g] = data;
@@ -147,50 +146,8 @@ function menuModel({ place, tab, projects, needs, onSearch }) {
   };
 }
 
-// where a new task goes: the progress board, as Team's replies and Playground's notes
-const BOARD = 'http://localhost:3123';
-
-/* New task (Figma's page header action): a sentence, sent to the progress board. */
-/** variant: white (secondary) where the page's card holds the committing action (her y28 B). */
-export function NewTask({ variant = 'primary' }) {
-  const [open, setOpen] = useState(false);
-  const [text, setText] = useState('');
-  const [said, setSaid] = useState(null); // 'sent' | 'failed'
-  async function send() {
-    try {
-      const r = await fetch(`${BOARD}/answers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'task', text: text.trim(), page: window.location.hash }) });
-      if (!r.ok) throw new Error(String(r.status));
-      setText('');
-      setOpen(false);
-      setSaid('sent');
-    } catch {
-      setSaid('failed');
-    }
-  }
-  return (
-    <>
-      <Button variant={variant} size="sm" onClick={() => (setSaid(null), setOpen(true))}>
-        {said === 'sent' ? 'Task sent' : 'New task'}
-      </Button>
-      <Drawer
-        side="right"
-        open={open}
-        onClose={() => setOpen(false)}
-        label="New task"
-        footer={
-          <Button variant="primary" disabled={!text.trim()} onClick={send}>
-            Send task
-          </Button>
-        }
-      >
-        <Flow gap={16}>
-          <Input label="What needs doing?" multiline value={text} onChange={setText} placeholder="One sentence is enough" />
-          {said === 'failed' ? <Notification tone="danger" title="The progress board" message={`It doesn't answer at ${BOARD}, so your task wasn't sent. It's still in the box.`} /> : null}
-        </Flow>
-      </Drawer>
-    </>
-  );
-}
+/* New (her pick A, 23 Nov): the header's start button, in templates/NewStart.jsx. Exported here under its old name so the pages that place it keep one import. */
+export { NewTask };
 
 /** The selected tab's panel around the content, and an empty hidden panel for each other tab. */
 export function TabPanels({ tabs, children }) {

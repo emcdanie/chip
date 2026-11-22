@@ -216,6 +216,12 @@ function useMove({ open }) {
 
 export default function WorkContent({ model: all, filter: hashFilter = {}, view = 'board', onView, checked, onCheck, loading }) {
   const phone = useNarrow();
+  const { data: proj, reload: reloadProj } = useCached(['/projects']);
+  useEffect(() => {
+    window.addEventListener('chip:changed', reloadProj);
+    return () => window.removeEventListener('chip:changed', reloadProj);
+  }, [reloadProj]);
+  const projects = (proj?.[0]?.projects ?? []).filter((p) => /^[\w &-]{1,40}$/.test(p.name));
   const [briefShut, setBriefShut] = useState(false);
   const [opened, setOpen] = useState(null);
   // the filter starts from the address, so the side menu's "Needs you" opens the board filtered
@@ -353,6 +359,16 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
           <SegmentedControl options={VIEWS} value={view} onChange={onView} label="Work view" />
         </Flow>
       </Flow>}
+      {/* the project filter (New, 23 Nov): one chip per project, read from /projects: CHIP, Site, BELLA and the ones made in New */}
+      {reviewing || !all || (projects?.length ?? 0) < 2 ? null : (
+        <Flow direction="row" gap={8} wrap align="center" role="group" aria-label="Project">
+          {projects.map((p) => (
+            <FilterChip key={p.id} pressed={filter === `area:${p.name}`} onClick={() => setFilter(filter === `area:${p.name}` ? null : `area:${p.name}`)}>
+              {p.name}
+            </FilterChip>
+          ))}
+        </Flow>
+      )}
       {/* what is on, with a way off, and how much of the board it leaves (feedback for Filter, Sort and Search) */}
       {reviewing || !all || !(filter || sort !== 'mine' || q) ? null : (
         <Flow direction="row" gap={8} wrap align="center">
