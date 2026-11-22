@@ -48,6 +48,7 @@ import { handOff } from './healthModel.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
+import { ContractCard } from './DocReader.jsx';
 import { day, usePartDetail, useStudio, studioChecks, studioFixes, studioDocs, studioProps } from './componentsModel.js';
 
 export const FILTERS = ['all', 'needs', 'ready'];
@@ -868,6 +869,7 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
           </Flow>
         </Flow>
       </Card>
+      <ContractCard key={part.name} name={part.name} />
       {docs.dont.length ? (
         <Card>
           <Flow gap={8}>

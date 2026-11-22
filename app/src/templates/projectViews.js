@@ -1,6 +1,6 @@
 // The tabs under a page's header (CHIP / Screen), one list so a tab is added or renamed once. Elleta, 23 Nov:
-// Her pick B, 23 Nov ("Work beside Health"): Work and Health are items with no tab row; System holds Components, Foundations and History; Playground is its own
-// with no tabs. Only System has a tab row, three tabs.
+// Her pick B, 23 Nov ("Work beside Health"): Work and Health are items with no tab row; System holds Components, Foundations, Docs and History; Playground is its own
+// with no tabs. Only System has a tab row, four tabs.
 export const VIEW_GROUPS = [
   {
     id: 'system',
@@ -8,6 +8,7 @@ export const VIEW_GROUPS = [
     tabs: [
       { id: 'components', label: 'Components', href: '#/system/components' },
       { id: 'foundations', label: 'Foundations', href: '#/system/foundations' },
+      { id: 'docs', label: 'Docs', href: '#/system/docs' },
       { id: 'history', label: 'History', href: '#/system/history' },
     ],
   },

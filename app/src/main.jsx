@@ -12,6 +12,7 @@ import History from './pages/History.jsx';
 import Connectors from './pages/Connectors.jsx';
 import SystemMap from './pages/SystemMap.jsx';
 import Foundations from './pages/Foundations.jsx';
+import Docs from './pages/Docs.jsx';
 import Team from './pages/Team.jsx';
 import Health from './pages/Health.jsx';
 import Work from './pages/Work.jsx';
@@ -57,6 +58,7 @@ function Page({ hash }) {
   if (at === '#/connectors') return <Connectors />;
   if (hash === '#/system-map') return <SystemMap />;
   if (at === '#/system/foundations') return <Foundations />;
+  if (at === '#/system/docs') return <Docs />;
   if (at === '#/system/components' || at.startsWith('#/system/components/')) return <Components />;
   return <App />;
 }

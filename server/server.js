@@ -33,6 +33,7 @@ import { ciRuns, warmCi, systemMap } from './lib/map.mjs';
 import { figmaKeyState, saveFigmaKey } from './lib/figma-key.mjs';
 import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
 import { appOrigins, onlyChip } from './lib/origin.mjs';
+import { createSystemDocs, mountSystemDocs } from './lib/system-docs.mjs';
 import { playMap, playPages, playTarget, startPlayProxy, PROXY } from './lib/play.mjs';
 
 const app = express();
@@ -346,6 +347,9 @@ app.get('/docs', (_req, res) => {
   }
   res.json([...seen.values()]);
 });
+
+// System > Docs and each part's Contract: BELLA's docs and specs and CHIP's own docs, read only, from an allow-list of folders.
+mountSystemDocs(app, createSystemDocs({ roots: { theme: join(homedir(), 'DEV', 'bella-chip-theme'), chip: ROOT, chipMain: join(homedir(), 'DEV', 'chip'), parts: BELLA_DIR } }));
 
 // OBI Docs (docs/host.md has the host; this is the notes folder):
 // GET /obi-docs lists, GET /obi-docs/:id reads, POST /obi-docs creates,
