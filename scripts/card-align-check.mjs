@@ -274,8 +274,8 @@ for (const route of routes) {
         await page.waitForTimeout(1800);
         const label = `${route} ${width}${menu ? ` menu-${menu}` : ''}${panel ? ' work-open' : ''}`;
         let cards = await page.evaluate(measure);
-        // a page that drew nothing yet gets up to six more looks before it counts as having no cards
-        for (let again = 0; again < 6 && !cards.length; again += 1) {
+        // a page that drew nothing yet (or only cards not on screen yet: Work at 320 with the menu folded) gets up to six more looks before it counts as having no cards
+        for (let again = 0; again < 6 && !cards.some((c) => c.shown); again += 1) {
           await page.waitForTimeout(2500);
           cards = await page.evaluate(measure);
         }
