@@ -20,7 +20,7 @@
 // - skeleton: the board's loading state (no skeleton part); the empty state stands in.
 // - share link: the page reads ?map=&step=, but the shell's router opens #/system-map only without
 //   a query (main.jsx), so the address is not written yet.
-import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
@@ -317,6 +317,14 @@ function Node({ step, picked, onPick }) {
 const HOP = 20; // the height of one curve, inside the gap between rows
 function Lines({ map, rows, picked, boardId, tick }) {
   const [geo, setGeo] = useState(null);
+  const modes = useRef({});
+  const firstDraw = useRef(true);
+  // the map's first draw lasts 900ms; after it, lines that appear are picked-step lines or plain
+  useEffect(() => {
+    if (!geo) return undefined;
+    const t = setTimeout(() => (firstDraw.current = false), 1000);
+    return () => clearTimeout(t);
+  }, [Boolean(geo)]); // eslint-disable-line react-hooks/exhaustive-deps
   const rowOf = useMemo(() => Object.fromEntries(rows.flatMap((r, i) => r.ids.filter(Boolean).map((id) => [id, i]))), [rows]);
   useLayoutEffect(() => {
     const board = document.getElementById(boardId);
@@ -371,6 +379,9 @@ function Lines({ map, rows, picked, boardId, tick }) {
     return c.x + (c.use.indexOf(`${d}>${id}`) - (n - 1) / 2) * sp;
   };
   const drawn = { picked: [], rest: [] };
+  // how a line first appears is fixed when it is created: the map's own first draw (900ms), or, once that has
+  // played, a line becoming the picked step's draws in over 250ms with one soft pass; the others just appear
+  const modeOf = (key, group) => (modes.current[key] ??= group === 'picked' ? (firstDraw.current ? 'map' : 'pick') : firstDraw.current ? 'map' : 'none');
   edges.forEach(([d, id]) => {
     const i = rowOf[d];
     const j = rowOf[id];
@@ -378,10 +389,17 @@ function Lines({ map, rows, picked, boardId, tick }) {
     const xB = cx(id);
     const yFoot = rowBox[i].bottom;
     const mine = picked === d || picked === id;
+    const group = mine ? 'picked' : 'rest';
     const tone = mine ? 'selected' : 'default';
-    const out = mine ? drawn.picked : drawn.rest;
-    const vert = (x, y0, y1) => y1 - y0 > 0.5 && out.push(<MapLine key={`${d}:${id}:v:${Math.round(x)}:${Math.round(y0)}`} direction="vertical" end="none" tone={tone} style={{ position: 'absolute', left: x - 8, top: y0, height: y1 - y0, minBlockSize: 0 }} />);
-    const bend = (x0, y0, x1, y1) => out.push(<MapLine key={`${d}:${id}:c:${Math.round(x0)}:${Math.round(y0)}`} direction="curve" end="none" tone={tone} from={{ x: x0, y: y0 }} to={{ x: x1, y: y1 }} />);
+    const out = drawn[group];
+    // every piece is a MapLine curve (the part's weight, draw-in and travel are for curves); a straight run is a curve a
+    // pixel wide, so the line keeps one weight from end to end
+    const piece = (x0, y0, x1, y1) => {
+      const key = `${group}:${d}:${id}:${Math.round(x0)}:${Math.round(y0)}`;
+      out.push(<MapLine key={key} direction="curve" end="none" tone={tone} weight={mine ? 'regular' : 'thin'} draw={modeOf(key, group)} travel={mine} from={{ x: x0, y: y0 }} to={{ x: x1, y: y1 }} />);
+    };
+    const vert = (x, y0, y1) => y1 - y0 > 0.5 && piece(x - 0.5, y0, x + 0.5, y1);
+    const bend = piece;
     vert(xA, steps[d].bottom, yFoot);
     if (!long(d, id)) {
       // neighbouring rows: one curve in the gap, then down into the step
@@ -398,10 +416,10 @@ function Lines({ map, rows, picked, boardId, tick }) {
       vert(xB, rowBox[j].top, steps[id].top);
     }
   });
-  // the lines she asks about (the picked step's) are blue and on top; the others sit back, light
+  // the lines she asks about (the picked step's) are blue, regular weight and on top; the others are thin and light
   return (
     <span aria-hidden="true" data-process-lines="" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-      <span style={{ opacity: 0.4 }}>{drawn.rest}</span>
+      <span>{drawn.rest}</span>
       <span>{drawn.picked}</span>
     </span>
   );

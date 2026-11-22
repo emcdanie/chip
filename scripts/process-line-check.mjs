@@ -70,24 +70,26 @@ for (const map of MAPS) {
     await page.waitForTimeout(2500);
     const g = await page.evaluate(measure);
     const bad = [];
+    let runCount = 0;
     if (!g.steps.length) bad.push('no steps drawn');
     g.lines.forEach((l, i) => {
       g.steps.forEach((s) => through(l, s) && bad.push(`a line enters the step ${s.id}`));
       g.labels.forEach((s) => through(l, s, 0) && bad.push(`a line runs through the row name "${s.id}"`));
     });
-    // the long runs down a gap: straight pieces whose x is not a step's column
+    // the long runs down a gap: pieces about a pixel wide and taller than 24 whose x is not a step's column (read from the drawn paths, whatever the weight)
     const centres = g.steps.map((st) => (st.l + st.r) / 2);
-    const runs = g.lines.filter((l) => l.length === 2 && Math.abs(l[0][0] - l[1][0]) < 0.5 && !centres.some((c) => Math.abs(c - l[0][0]) < 2)).map((l) => ({ x: l[0][0], y0: Math.min(l[0][1], l[1][1]), y1: Math.max(l[0][1], l[1][1]) }));
+    const runs = g.lines.map((l) => ({ xs: l.map((q) => q[0]), ys: l.map((q) => q[1]) })).filter((l) => Math.max(...l.xs) - Math.min(...l.xs) < 2.5 && Math.max(...l.ys) - Math.min(...l.ys) > 24 && !centres.some((c) => Math.abs(c - (Math.max(...l.xs) + Math.min(...l.xs)) / 2) < 2)).map((l) => ({ x: (Math.max(...l.xs) + Math.min(...l.xs)) / 2, y0: Math.min(...l.ys), y1: Math.max(...l.ys) }));
+    runCount = runs.length;
     runs.forEach((a, i) => runs.slice(i + 1).forEach((b) => Math.abs(a.x - b.x) < 6 && Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > 2 && bad.push(`two lines run ${Math.abs(a.x - b.x).toFixed(1)}px apart in a gap`)));
     if (width >= 1280 && (g.floatNote || g.fit)) bad.push('a size note or Fit control floats over a map that should fit');
     if (g.sx > 0) bad.push(`sideways page scroll ${g.sx}`);
     await page.screenshot({ path: join(OUT, `${map.replace(/\W+/g, '-')}-${width}.png`), fullPage: true }).catch(() => {});
-    results.push({ map, width, steps: g.steps.length, lines: g.lines.length, ok: !bad.length, bad: [...new Set(bad)] });
+    results.push({ map, width, steps: g.steps.length, lines: g.lines.length, gapRuns: runCount, ok: !bad.length, bad: [...new Set(bad)] });
     await page.close();
   }
 }
 await browser.close();
-for (const r of results) console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${r.map.padEnd(18)} ${String(r.width).padStart(4)}  ${r.steps} steps, ${r.lines} line pieces${r.ok ? '' : `: ${r.bad.join('; ')}`}`);
+for (const r of results) console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${r.map.padEnd(18)} ${String(r.width).padStart(4)}  ${r.steps} steps, ${r.lines} line pieces, ${r.gapRuns} runs down a gap${r.ok ? '' : `: ${r.bad.join('; ')}`}`);
 const failed = results.filter((r) => !r.ok).length;
 console.log(`process-line-check: ${results.length - failed} of ${results.length} map-widths clean · ${OUT}`);
 writeFileSync(join(OUT, 'results.json'), JSON.stringify(results, null, 1));
