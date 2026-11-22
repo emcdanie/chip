@@ -552,14 +552,14 @@ function ShapeAndSpace({ radius }) {
         <Flow as="ul" direction="row" gap={24} wrap aria-label="Corner tokens">
           {radius.map((r) => (
             <li key={r.token}>
-              <RadiusTile radius={r.name} use={useOf(r.name)} />
+              <RadiusTile radius={r.name} use={useOf(r.name)} animated />
             </li>
           ))}
         </Flow>
         <TextStack title="Spacing" />
         <Flow gap={8}>
           {[1, 2, 3, 4, 5, 6, 8, 10, 'touch', 12, 16, 20].map((s) => (
-            <SpacingStep key={s} step={s} />
+            <SpacingStep key={s} step={s} animated />
           ))}
         </Flow>
         <TextStack body="Read from the Foundations variables: border radius (Chip light) and spacing. Each corner names what CHIP's CSS uses at that size." />
@@ -582,17 +582,17 @@ function Motion({ motion }) {
         <SectionHead icon="Clock" iconTone="warning" title="Motion" description="How long things take and how they ease" />
         <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
           <Flow gap={12}>
-            <TextStack title="Duration" />
+            <TextStack title="Duration" body="Select one to play it: the pink dot crosses in that time." />
             {/* BELLA's DurationBar (bd87f14): the token, its job where the token names one, to scale */}
             {motion.durations.map((d) => (
-              <DurationBar key={d.token} duration={d.ms} use={jobOf(d.description) ?? undefined} />
+              <DurationBar key={d.token} duration={d.ms} use={jobOf(d.description) ?? undefined} animated />
             ))}
           </Flow>
           <Flow gap={12}>
-            <TextStack title="Easing" />
+            <TextStack title="Easing" body="Select one to play it: the pink dot rides the curve." />
             {/* BELLA's EasingCurve (bd87f14): the curve, its token and its cubic-bezier */}
             {motion.easings.map((e) => (
-              <EasingCurve key={e.token} easing={e.name} />
+              <EasingCurve key={e.token} easing={e.name} animated />
             ))}
           </Flow>
         </Flow>
