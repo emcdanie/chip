@@ -71,6 +71,13 @@
   padding-inline: var(--layout-container-pad);
 }
 
+.chip-screen__head--plain {
+  /* a page with no tabs: its title meets the scrolling content at a line, so text that scrolls under the title
+     is cut at a visible edge and not mid-letter against bare background (Elleta, 23 Nov) */
+  padding-block-end: var(--spacing-12);
+  border-block-end: var(--border-width-1) solid var(--color-border-default);
+}
+
 .chip-screen__content {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -87,6 +94,9 @@
   scroll-padding-block: var(--spacing-12);
   padding: var(--layout-gutter) var(--layout-container-pad);
   background: var(--color-background-default);
+  /* what scrolls up under the title fades out over its last 12 instead of being cut mid-letter; the content's own
+     top padding is deeper than that, so nothing at rest is touched (Elleta, 23 Nov) */
+  mask-image: linear-gradient(to bottom, transparent, black var(--spacing-12));
 }
 
 :is(.chip-screen__content, .chip-tabpanel) > * {

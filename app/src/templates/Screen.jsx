@@ -255,7 +255,7 @@ export default function Screen({ place, header, tabs, children }) {
           }
         />
         <div className="chip-screen__page">
-          <div className="chip-screen__head">
+          <div className={`chip-screen__head${tabs ? '' : ' chip-screen__head--plain'}`}>
             {/* project pages carry New task, as Figma; the health bar only on the Health tab (Elleta, 20 Nov: "Take it off"); Home carries New task too (Figma Flow 8); other rail pages (Team, Not again) carry neither */}
             {/* on a project's tabs the project name ("CHIP") is PageHeader size project, 28 on 36, so the tab's own
                 subject leads (batch 4, published 22 Nov); every other page keeps size page, 40 on 48 */}
