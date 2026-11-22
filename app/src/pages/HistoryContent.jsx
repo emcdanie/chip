@@ -31,7 +31,8 @@ import TourStep from '@bella/components/TourStep/TourStep';
 import Flow from '../templates/Flow.jsx';
 import { parseDiff } from './WorkDrawer.jsx';
 import useCached from '../templates/useCached.js';
-import useAsk, { AnswerLines, shapeReply } from '../templates/useAsk.jsx';
+import useAsk from '../templates/useAsk.jsx';
+import AskField from '../templates/AskField.jsx';
 import useNarrow from '../templates/useNarrow.js';
 
 /* A commit's why in plain words: git trailers (Co-Authored-By, Signed-off-by,
@@ -439,33 +440,31 @@ function Record({ id, fit, landing }) {
     landing.current = null;
     requestAnimationFrame(() => document.getElementById('history-record')?.scrollIntoView({ block: 'start', behavior: smoothScroll() }));
   }, [rec, id, landing]);
-  const [q, setQ] = useState('');
-  const { answer, ask: send, clear, retry, stop } = useAsk();
-  // the answer rewrites the Why in place (A, "Rewrite in place", /screens/2026-11-21-history-ask-a-b/; B was
-  // too cluttered): plainer words, with Original one click away
-  const [plainer, setPlainer] = useState(true);
+  const asker = useAsk();
   // the touched row whose change is open in place
   const [shown, setShown] = useState(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => (clear(), setShown(null), setPlainer(true)), [id]);
+  useEffect(() => (asker.clear(), setShown(null)), [id]);
   if (!rec) return <Card><EmptyState size="lane" title="Opening the record" line="Reading it from git. Two ticks." /></Card>;
   const files = Array.isArray(rec.files) ? rec.files : [];
-  // the record's own words go as a source, so the answer can come from the commit itself
-  // "explain" or "I don't understand" asks one clear question the model can answer from the commit
-  const plainAsk = (t) => (/\b(explain|understand|what does (this|it) mean|simpler)\b/i.test(t) ? 'In simple words, for someone who wasn’t there: what did this change do, and why?' : t);
-  // an answer appears where it lands, in view: the record goes back to its top, where the Why is rewritten
-  const toTop = () => requestAnimationFrame(() => document.getElementById(`answer-${rec.id}`)?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
-  const ask = () => q.trim() && (setPlainer(true), toTop(), send(`About ${rec.repo} commit ${rec.sha} ("${rec.title}"): ${plainAsk(q.trim())}`, 'history', { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: `${rec.title}\n\n${plainWhy(rec.why)}\n\nFiles: ${files.join(', ') || 'none listed'}` }, q.trim()));
-  const shaped = answer?.status === 'answer' && answer.reply ? shapeReply(answer.reply) : null;
-  const rewritten = shaped && plainer;
-  // the one-line bar above the title while an answer is on: what you see and the way back, on the right
-  const bar = !answer ? null : answer.status === 'thinking' ? (
-    <Notification tone="info" showIcon={false} title="Reading this change" action={{ label: 'Stop', onClick: stop }} />
-  ) : shaped ? (
-    <Notification tone="info" showIcon={false} title={plainer ? 'Plainer words' : 'The commit’s own words'} action={{ label: plainer ? 'Original' : 'Plainer words', onClick: () => setPlainer(!plainer) }} />
-  ) : (
-    <Notification tone="attention" showIcon={false} title={answer.status === 'weak' ? 'The commit doesn’t say' : answer.status === 'stopped' ? 'Stopped before it answered' : 'No answer this time'} action={{ label: 'Try again', onClick: () => retry() }} />
-  );
+  // Ask about this change (her 22 Nov: "too hidden and doesnt come with suggestions"): up under the Why, four questions
+  // built from this record's own data, the first as the grey ghost, the answer right under the field. The record's own
+  // words go as its only source, so the answer comes from the commit itself.
+  const parts = rec.components ?? [];
+  const suggestions = [
+    'Why was this changed?',
+    files.length ? `What did it touch? (${files.length === 1 ? '1 file' : `${files.length} files`})` : null,
+    rec.breaking ? 'This is marked breaking: is it safe to undo?' : 'Is it safe to undo?',
+    parts.length ? `What uses ${parts[0]}?` : 'What uses this?',
+  ].filter(Boolean);
+  // each piece once: a commit whose message is its title is not sent three times (the check that backs each claim
+  // with a line of the source read the repeats as nothing new)
+  const why = plainWhy(rec.why);
+  const body = rec.body ? plainWhy(rec.body) : '';
+  const size = String(rec.stat ?? '').match(/\d+ files? changed.*$/m)?.[0];
+  const record = { id: rec.id, title: `${rec.repo} commit: ${rec.title}`, text: [`${rec.repo} commit ${rec.sha}: ${rec.title}`, why && why !== rec.title ? why : '', body && body !== why && body !== rec.title ? `Commit message: ${body}` : '', size ? `Change size: ${size}.` : '', parts.length ? `Parts: ${parts.join(', ')}.` : '', rec.breaking ? 'Marked breaking.' : '', `Files: ${files.join(', ') || 'none listed'}.`].filter(Boolean).join('\n\n') };
+  // what "Show data" opens: this record's own numbers and files, read from the record
+  const recordData = [{ n: 1, title: 'This record', source: `${rec.repo} git log`, measured: `${day(rec.date)} ${time(rec.date)}`, facts: [{ label: 'Commit', value: rec.sha }, { label: 'Files', value: String(files.length) }, ...(parts.length ? [{ label: 'Parts', value: parts.join(', ') }] : []), { label: 'Status', value: rec.status }], columns: ['File'], rows: files.slice(0, 30).map((f) => ({ File: f })) }];
   return (
     <Card>
       <Flow gap={24} scroll={fit} aria-label="The open record" tabIndex={fit ? 0 : undefined}>
@@ -495,9 +494,7 @@ function Record({ id, fit, landing }) {
           {/* a decision touches no files: no "0 files · 0 lines" line for it */}
           {files.length ? <TextStack subtitle={countLine(files, rec.stat)} /> : null}
         </Flow>
-        {/* the bar sits right on the Why it rewrites, so the two land in view together */}
-        {bar ? <div id={`answer-${rec.id}`}>{bar}</div> : null}
-        {plainWhy(rec.why) || rewritten ? (
+        {plainWhy(rec.why) ? (
           // the commit's own words, its first sentence up front and the rest under Exact words; never a
           // model-written line (audit 21 Nov r2: invented explanations break "Real"). Commit messages
           // open with one plain sentence for someone who wasn't there: that is the source.
@@ -505,18 +502,7 @@ function Record({ id, fit, landing }) {
             tone="info"
             showIcon={false}
             title="Why"
-            message={rewritten ? (
-              // the answer in the Why's place: its verdict with the key phrase and its pin (the pin opens the
-              // commit's own words), the rest folded under Detail
-              <Flow gap={4} as="span">
-                <AnswerLines shaped={{ verdict: shaped.verdict, bullets: [] }} onPin={() => setPlainer(false)} />
-                {shaped.bullets.length ? (
-                  <Disclosure flush title="Detail">
-                    <AnswerLines shaped={{ verdict: shaped.bullets.join(' '), bullets: [] }} onPin={() => setPlainer(false)} />
-                  </Disclosure>
-                ) : null}
-              </Flow>
-            ) : (() => {
+            message={(() => {
               const lines = plainWhy(rec.why).split(/\n(?=-\s)|\n{2,}/).map((l) => plain(l.replace(/^-\s*/, '').replace(/\s*\n\s*/g, ' ').trim())).filter(Boolean);
               const first = firstSentence(lines[0] ?? '');
               const rest = [lines[0].slice(first.length).trim(), ...lines.slice(1)].filter(Boolean);
@@ -548,6 +534,7 @@ function Record({ id, fit, landing }) {
             })()}
           />
         ) : null}
+        <AskField asker={asker} label="Ask about this change" page="history" record={record} suggestions={suggestions} data={recordData} />
         <WhatChanged key={rec.id} diff={rec.diff} rec={rec} />
         <Flow gap={8}>
           <SectionHead title="What it touched" titleLevel={3} />
@@ -578,10 +565,6 @@ function Record({ id, fit, landing }) {
               ))}
             </Flow>
           ) : null}
-        </Flow>
-        <Flow gap={8}>
-          {/* the field keeps what was asked; the answer is up in the Why, in view */}
-          <Input label="Ask about this change" value={q} onChange={setQ} onSend={ask} sendLabel="Ask" />
         </Flow>
       </Flow>
     </Card>

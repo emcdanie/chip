@@ -23,9 +23,9 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Step from '@bella/components/Step/Step';
-import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Flow from './Flow.jsx';
 import { AnswerLines, NotAnswered, Reply, Ticks, briefOf, shapeReply, useCitations } from './useAsk.jsx';
+import { DataAnswer } from './AskField.jsx';
 import { STATUS_Q, workStatus } from '../pages/workModel.js';
 
 // Team draws its replies with the same bubble
@@ -140,50 +140,6 @@ function StatusTurn({ t, last }) {
         </Flow>
       ) : null}
       {a.status === 'error' ? <Reply who="CHIP · no model" disc="C">{`I can’t say what is being worked on: ${a.error}. Nothing is made up, so there is no answer.`}</Reply> : null}
-    </Flow>
-  );
-}
-
-/* What a data answer rests on (her 23 Nov: real data): each source's numbers with its name and when it was
-   measured, then "Show data" with the real rows, as a table. Never the raw document. */
-function DataAnswer({ data }) {
-  return (
-    <Flow gap={12}>
-      {data.map((d) => (
-        <Flow key={d.n} gap={4}>
-          <TextStack subtitle={`${d.title} · ${d.source} · ${d.measured}`} />
-          <Flow as="ul" gap={4} bullets aria-label={`${d.title}: the numbers`}>
-            {d.facts.slice(0, 8).map((f) => (
-              <li key={f.label}>
-                <TextStack body={`${f.label}: ${f.value}`} />
-              </li>
-            ))}
-          </Flow>
-        </Flow>
-      ))}
-      <Disclosure title="Show data">
-        <Flow gap={16}>
-          {data
-            .filter((d) => d.rows?.length)
-            .map((d) => (
-              <Flow key={d.n} gap={8}>
-                <TextStack subtitle={`${d.title} · ${d.rows.length} ${d.rows.length === 1 ? 'row' : 'rows'} · ${d.measured}`} />
-                {/* rows wrap at any width: a table here made the bubble wider than the phone-width panel */}
-                <Flow as="ul" gap={8} aria-label={`${d.title}: the rows`}>
-                  {d.rows.slice(0, 12).map((r, i) => {
-                    const [first, ...rest] = d.columns.map((c) => [c, r[c]]).filter(([, v]) => v !== '' && v != null);
-                    return (
-                      <li key={i}>
-                        <TextStack title={String(first?.[1] ?? '')} subtitle={rest.map(([c, v]) => `${c} ${v}`).join(' · ') || undefined} />
-                      </li>
-                    );
-                  })}
-                </Flow>
-                {d.rows.length > 12 ? <TextStack subtitle={`${d.rows.length - 12} more rows`} /> : null}
-              </Flow>
-            ))}
-        </Flow>
-      </Disclosure>
     </Flow>
   );
 }
