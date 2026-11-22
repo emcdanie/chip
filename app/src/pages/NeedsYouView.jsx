@@ -4,12 +4,11 @@
 // Next and Back through the whole Needs you list, and one Send all that posts every answer to the review
 // server's own POST /answers (the shape decide.js and markup.js send), so nothing sends her out of CHIP.
 //
-// BELLA parts: Stage (frame, Fit and 100%), Button (zoom, thumbs, options), Slider (the side pane's width),
+// BELLA parts: PicturePins (Stage, Pin, Card; the picture and its comment boxes), Button (thumbs, options), Slider (the side pane's width),
 // ListRow, FilterChip (select), SegmentedControl (A / B picture), Input multiline, Card, TextStack, Tag, Pin
-// (through Stage markers), EmptyState, Notification.
+// EmptyState, Notification.
 // BELLA GAPS (named for the coordinator, none drawn here): a checkbox for choosing rows; a Splitter to drag the
-// side pane (Slider stands in, keyboard works); Stage zoom steps with pan (SystemMapContent's HOLE zoom-steps);
-// ToolColumn always draws Light or dark and Compare, which have no job here, so zoom uses three Buttons.
+// side pane (Slider stands in, keyboard works); see PicturePins for the comment popover gap.
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
@@ -20,13 +19,11 @@ import Input from '@bella/components/Input/Input';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Notification from '@bella/components/Notification/Notification';
 import Slider from '@bella/components/Slider/Slider';
-import Stage from '@bella/components/Stage/Stage';
 import Tag from '@bella/components/Tag/Tag';
 import TextStack from '@bella/components/TextStack/TextStack';
-import { ZOOM_STEPS } from '@bella/components/ToolColumn/ToolColumn';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
-import usePan from '../templates/usePan.js';
+import PicturePins from '../templates/PicturePins.jsx';
 import { answersUrl, countAnswers, decisionBody, isPicture, markupBody, parseReview, picturePage } from './needsYouModel.js';
 
 const KEEP = 'chip:needs-you';
@@ -46,61 +43,26 @@ const keep = (v) => {
 };
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
-/* the picture's own size, so the Stage frame is exactly the picture at 100% */
-function useSize(src) {
-  const [size, setSize] = useState(null);
-  useEffect(() => {
-    setSize(null);
-    if (!src) return undefined;
-    const img = new Image();
-    img.onload = () => setSize({ w: img.naturalWidth, h: img.naturalHeight });
-    img.onerror = () => setSize({ w: 0, h: 0 });
-    img.src = src;
-    return undefined;
-  }, [src]);
-  return size;
-}
-
-function Picture({ card, shot, pins, onPins, zoom, setZoom, marking, setMarking }) {
-  const size = useSize(shot?.src);
-  const pan = usePan();
+/* the picture: fits the room, a click drops a pin and its comment box, like Figma comments (PicturePins, shared with
+   Playground); a comment here is kept for Send all */
+function Picture({ card, shot, pins, onPins }) {
   if (!shot) return <EmptyState size="lane" mark="🖼" title="No picture on this card" line="The decision is in the side pane." />;
-  if (!size) return <EmptyState size="lane" mark="⏳" title="Loading the picture" line={shot.caption} />;
-  if (!size.w) return <EmptyState size="lane" mark="🖼" title="The picture didn’t load" line={shot.caption} />;
-  const k = zoom ? zoom / 100 : 1; // frame pixels per picture pixel when it is not fitted
-  const mine = pins.filter((p) => p.shot === shot.src);
-  const markers = mine.map((p) => ({ id: p.id, x: p.x * k, y: p.y * k, label: pins.indexOf(p) + 1 }));
-  const at = (zoom ?? 100) / 100;
-  const stepTo = (dir) => {
-    const next = dir > 0 ? ZOOM_STEPS.find((s) => s > (zoom ?? 100)) : [...ZOOM_STEPS].reverse().find((s) => s < (zoom ?? 100));
-    if (next) setZoom(next);
-  };
   return (
-    <Flow gap={8} onKeyDown={(e) => (e.key === '+' || e.key === '=' ? stepTo(1) : e.key === '-' ? stepTo(-1) : e.shiftKey && e.code === 'Digit1' ? setZoom(null) : null)}>
-      <Flow direction="row" gap={8} align="center" wrap role="toolbar" aria-label="Picture tools">
-        <Button variant="secondary" size="sm" iconOnly icon="ZoomOut" ariaLabel="Zoom out" onClick={() => stepTo(-1)} />
-        <Button variant="secondary" size="sm" iconOnly icon="ZoomIn" ariaLabel="Zoom in" onClick={() => stepTo(1)} />
-        <Button variant="secondary" size="sm" iconOnly icon="Expand" ariaLabel="Fit to the window" ariaPressed={zoom == null} onClick={() => setZoom(null)} />
-        <Tag variant="outline">{zoom ? `${zoom}%` : 'Fit'}</Tag>
-        <Button variant="secondary" size="sm" icon="EditPencil" leadingIcon ariaPressed={marking} onClick={() => setMarking(!marking)}>
-          {marking ? 'Done marking' : 'Mark up'}
-        </Button>
-      </Flow>
-      <Stage
-        grid="none"
-        label={`${shot.caption || card.title}, ${zoom ? `${zoom}%` : 'fitted'}`}
-        frameWidth={Math.round(size.w * at)}
-        frameHeight={Math.round(size.h * at)}
-        zoom={zoom ? 'actual' : 'fit'}
-        markers={markers}
-        picking={marking}
-        onPick={(x, y) => onPins((all) => [...all, { id: `p${Date.now()}`, shot: shot.src, x: Math.round(x / k), y: Math.round(y / k), note: '', on: shot.caption || card.title, section: card.title }])}
-      >
-        <Flow gap={0} {...pan}>
-          <img src={shot.src} alt={shot.alt || shot.caption} draggable={false} />
-        </Flow>
-      </Stage>
-    </Flow>
+    <PicturePins
+      key={shot.src}
+      src={shot.src}
+      alt={shot.alt || shot.caption || card.title}
+      pins={pins.filter((p) => p.shot === shot.src)}
+      numberOf={(p) => (p.isNew ? pins.length + 1 : pins.indexOf(p) + 1)}
+      commitLabel="Add"
+      setPins={(next) =>
+        onPins((all) => {
+          const here = all.filter((p) => p.shot === shot.src);
+          const out = (typeof next === 'function' ? next(here) : next).map((p) => (p.shot ? p : { ...p, shot: shot.src, on: shot.caption || card.title, section: card.title }));
+          return [...all.filter((p) => p.shot !== shot.src), ...out];
+        })
+      }
+    />
   );
 }
 
@@ -139,8 +101,6 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
   const [picked, setPicked] = useState(() => new Set());
   const [shotAt, setShotAt] = useState({}); // card id -> picture index
   const [cardAt, setCardAt] = useState({}); // page path -> which of its cards shows
-  const [zoom, setZoom] = useState(null);
-  const [marking, setMarking] = useState(false);
   const [wide, setWide] = useState(320);
   const [sending, setSending] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -162,7 +122,6 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
     };
   }, [href, links, pages]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => keep(answers), [answers]);
-  useEffect(() => setMarking(false), [at]);
 
   const read = href ? pages[href] : null;
   const page = read?.page;
@@ -336,7 +295,7 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
           <TextStack body={shot?.caption} />
         </Flow>
       ) : null}
-      <Picture card={shownCard} shot={shot} pins={pins} onPins={(next) => setState((s) => ({ ...s, pins: typeof next === 'function' ? next(s.pins ?? []) : next }))} zoom={zoom} setZoom={setZoom} marking={marking} setMarking={setMarking} />
+      <Picture card={shownCard} shot={shot} pins={pins} onPins={(next) => setState((s) => ({ ...s, pins: typeof next === 'function' ? next(s.pins ?? []) : next }))} />
     </Flow>
   );
 
