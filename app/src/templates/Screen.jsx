@@ -76,6 +76,8 @@ function useShellData() {
    page wins over its project, so Components marks Components, the other CHIP tabs mark CHIP. Branches
    filter the board from Work's own control bar, so no branch name sits in the menu. Site and BELLA open
    the old app's project page until theirs are rebuilt. */
+const projectOf = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('project');
+
 function menuModel({ place, tab, projects, needs, filter, onSearch }) {
   const needsHere = tab === 'work' && new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('filter') === 'needs';
   return {
@@ -89,7 +91,8 @@ function menuModel({ place, tab, projects, needs, filter, onSearch }) {
       { label: 'Components', href: '#/components', icon: 'ViewGrid', current: tab === 'components' },
       { label: 'System map', href: '#/system-map', icon: 'Map', current: place === 'map' },
     ],
-    projects: (projects ?? []).map((p) => ({ label: p.name, href: p.id === 'chip' ? '#/work' : `#/projects/${p.id}`, current: p.id === 'chip' && place === 'projects' && tab !== 'components' && !needsHere })),
+    // every project opens the new board (23 Nov: "the old board show when i click projects like site")
+    projects: (projects ?? []).map((p) => ({ label: p.name, href: p.id === 'chip' ? '#/work' : `#/work?project=${p.id}`, current: p.id === (projectOf() ?? 'chip') && place === 'projects' && tab !== 'components' && !needsHere })),
     foot: [
       { label: 'Team', href: '#/team', icon: 'Group', current: place === 'team' },
       { label: 'Settings', href: '#/connectors', icon: 'Settings', current: place === 'settings' },
@@ -229,7 +232,7 @@ export default function Screen({ place, header, tabs, children }) {
       <div className="chip-screen__main">
         {/* On a phone the ⌘ K legend steps out so the field keeps room for its words. */}
         <TopBar
-          placeParent="CHIP"
+          placeParent={(projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP'}
           placeCurrent={here}
           // below 400 the place line, search, the bell and Menu don't fit (335 at 320): the page title and
           // the selected tab say where you are there

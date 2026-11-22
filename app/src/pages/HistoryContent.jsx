@@ -487,7 +487,19 @@ function Record({ id, fit, landing }) {
           </Flow>
           {/* Figma: the record's title at the subsection size, the biggest thing in the record */}
           {/* Figma draws the record title as Text stack Title (20 regular); an h2 for the record (TextStack titleAs, parts 111fc0c) */}
-          <TextStack titleAs="h2" title={<Keyed text={((a) => (a.area ? `${a.area}: ${a.rest}` : a.rest))(areaOf(plain(rec.title)))} names={rec.components} />} />
+          {/* 23 Nov ("the font seems way larger than other places"): the area is the h2 at the part's title size,
+              the sentence is body text at the page's reading size with the marker on its key words, as the list beside it */}
+          {(() => {
+            const t = areaOf(plain(rec.title));
+            return t.area ? (
+              <>
+                <TextStack titleAs="h2" title={t.area} />
+                <TextStack body={<Keyed text={t.rest} names={rec.components} />} />
+              </>
+            ) : (
+              <TextStack titleAs="h2" title={<Keyed text={t.rest} names={rec.components} />} />
+            );
+          })()}
           {/* the counts, once, under the title (her note, 21 Nov: "should these not be at the top").
               Gap: no BELLA part sets numbers in Geist Mono and words in Lexend on one line, so the
               line is TextStack's meta line for now */}
@@ -527,9 +539,11 @@ function Record({ id, fit, landing }) {
                   </span>
                   {rest.length ? (
                     <Disclosure flush title="Exact words">
-                      <Flow gap={4} as="span">
+                      <Flow gap={4} as="ul" bullets aria-label="The rest of the commit's words">
                         {rest.map((l) => (
-                          <span key={l}>{l}</span>
+                          <li key={l}>
+                            <TextStack body={l} />
+                          </li>
                         ))}
                       </Flow>
                     </Disclosure>

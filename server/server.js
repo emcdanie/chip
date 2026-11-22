@@ -30,6 +30,7 @@ import { claudeReady, gateReady, getRun, keepRun, listRuns, startRun, stopRun, u
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
 import { ciRuns, warmCi, systemMap } from './lib/map.mjs';
+import { figmaKeyState, saveFigmaKey } from './lib/figma-key.mjs';
 import { projectDetail, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
 import { appOrigins, onlyChip } from './lib/origin.mjs';
 import { playMap, playPages, playTarget, startPlayProxy, PROXY } from './lib/play.mjs';
@@ -140,6 +141,18 @@ const sameApp = (req, res, { post = true } = {}) => {
   return true;
 };
 const session = (req) => String(req.get('x-chip-session') ?? '').slice(0, 64) || null;
+app.get('/figma-key', (req, res) => {
+  if (!sameApp(req, res, { post: false })) return;
+  res.json(figmaKeyState());
+});
+app.post('/figma-key', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(saveFigmaKey(req.body?.link));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
 app.get('/host', (req, res) => {
   if (!sameApp(req, res, { post: false })) return;
   const servers = host.servers();

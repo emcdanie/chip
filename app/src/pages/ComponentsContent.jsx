@@ -365,7 +365,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   const scale = PLAY[part.name] && !wide ? 2 : 1;
   const box = useBox(stageId, liveId, [part.id, variant, label, scale, anatomy.length, a?.key]);
   useLayoutEffect(() => {
-    if (box && scale === 2 && box.w > box.sw - 64) setWide(true);
+    if (box && scale === 2 && box.w > box.sw - 240) setWide(true);
   }, [box, scale]);
   useEffect(() => setWide(false), [part.id]);
   // the live part's touch target, unscaled: its own box or its hit area, whichever is larger
@@ -433,18 +433,23 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     }
   }, [box, shownId, anatomy, variant, label, themeTick]);
   useEffect(() => onMeasured(measured), [measured, onMeasured]);
-  /* Pins only, numbered by the contract's own order (decided B, 22 Nov): the same numbers and names at
-     every width, and no leader to cross another pin. The legend under the stage names them. */
+  /* Leaders back (Elleta, 23 Nov: "yes i want the leaders otherwise i dont know what it is"; replaces
+     "pins only, decided B"). Each pin has a name chip in a column right of the part and a leader to its
+     dot; the picked one has the 2px ink edge and leader, and clicking one picks it. The values are in
+     the card beside, so the chip is the name only and fits a narrow stage. */
   const markers = useMemo(() => {
     if (!box || !anatomy.length) return [];
+    const n = anatomy.length;
+    // a narrow stage has no room beside the part: the chips stack under it, each reaching its dot
+    const under = box.sw < 420;
+    const right = box.cx + box.w / 2 + 24;
     return anatomy
       .map((x, i) => {
         const pt = pinAt(x.kind, i, box);
-        return { id: x.key, x: Math.round(pt.x / scale), y: Math.round(pt.y / scale), label: x.n ?? i + 1, part: x.title, selected: x.key === a?.key };
+        return { id: x.key, x: Math.round(pt.x / scale), y: Math.round(pt.y / scale), label: x.n ?? i + 1, part: x.title, chipX: under ? Math.round(box.cx - 8) : Math.round(right), chipY: under ? Math.round(box.cy + box.h / 2 + 56 + i * 44) : Math.round(box.cy + (i - (n - 1) / 2) * 44), selected: x.key === a?.key };
       })
       .sort((p, q) => p.label - q.label);
   }, [box, anatomy, a?.key, scale]);
-  const legend = markers.length ? markers.map((m) => `${m.label} ${m.part}`.replace(/ /g, '\u00a0')).join(' · ') : null;
   const has = PLAY[part.name] || SPECIMENS[part.name];
   return (
     <Flow gap={8} id={stageId} grow="first">
@@ -457,7 +462,6 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
           </Flow>
         </Flow>
       </Stage>
-      {legend ? <TextStack subtitle={legend} /> : null}
     </Flow>
   );
 }
@@ -811,10 +815,10 @@ function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, m
               return (
                 <ListRow
                   key={f.id}
-                  layout="stacked"
+                  layout="stacked" selected={on}
                   title={f.area}
                   description={<>{`${f.verb} `}<Marker>{f.key}</Marker>{`: ${f.line}`}</>}
-                  switch={<FilterChip pressed={on} ariaLabel={`Include: ${f.verb} ${f.key}`} onClick={() => setChosen(on ? chosen.filter((x) => x !== f.id) : [...chosen, f.id])}>Include</FilterChip>}
+                  switch={<FilterChip pressed={on} ariaLabel={`Include: ${f.verb} ${f.key}`} onClick={() => setChosen(on ? chosen.filter((x) => x !== f.id) : [...chosen, f.id])}>{on ? 'Included' : 'Include'}</FilterChip>}
                 />
               );
             })}
@@ -873,6 +877,36 @@ function HistoryPanel({ part, detail, names, open, setOpen }) {
   );
 }
 
+/* Add file key (23 Nov: "why do i want to add file keys for figma?? what is a file key"): one drawer, one line
+   on what it is for, a field for the Figma link; CHIP takes the file ID out of it and saves it. No detour. */
+function FigmaKeyDrawer({ open, onClose, onSaved }) {
+  const [link, setLink] = useState('');
+  const [problem, setProblem] = useState('');
+  const [done, setDone] = useState(null);
+  const save = async () => {
+    setProblem('');
+    try {
+      const r = await fetch('/figma-key', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ link }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error ?? 'Could not save it');
+      setDone(j);
+      onSaved?.();
+    } catch (e) {
+      setProblem(e.message);
+    }
+  };
+  return (
+    <Drawer open={open} onClose={onClose} side="right" size="sm" label="Connect Figma" subtitle="CHIP reads your BELLA library in Figma to compare it with the code. Paste the library's link and CHIP takes the file ID from it." footer={<Button variant="primary" disabled={!link.trim() || Boolean(done)} onClick={save}>Save</Button>}>
+      <Flow gap={16}>
+        <Input label="Figma link" type="url" value={link} onChange={setLink} placeholder="https://www.figma.com/design/…" error={problem || undefined} hint="Open the BELLA library in Figma, copy the address from the browser bar." />
+        {done ? (
+          <Notification tone={done.token ? 'success' : 'attention'} message={done.token ? 'Saved. CHIP reads Figma from the next check.' : 'Saved. Figma also needs a read-only token before CHIP can read it: Figma › Settings › Security › Personal access tokens, then add it to server/.env as FIGMA_ACCESS_TOKEN.'} />
+        ) : null}
+      </Flow>
+    </Drawer>
+  );
+}
+
 export default function ComponentsContent({ model, filter = 'all', onFilter, partId, onPart, onCheckAgain }) {
   const phone = useNarrow();
   const narrowHead = useNarrow(420);
@@ -887,6 +921,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const [open, setOpen] = useState(null);
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState(null);
+  const [keyOpen, setKeyOpen] = useState(false);
   const [touch, setTouch] = useState(null);
   const [measured, setMeasured] = useState({});
   const [variant, setVariant] = useState(null);
@@ -1031,7 +1066,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         {variants.length > 1 ? variants.length > 3 || phone ? <Select label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: cap(v) }))} /> : <SegmentedControl label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: v }))} /> : null}
       </Flow>
       <Flow gap={16} grow="first">
-      <StudioStage part={part} detail={detail} variant={variant} label={label} shown={shown} picked={picked} onPick={setPicked} onMeasured={setMeasured} onTouch={setTouch} />
+      <StudioStage part={part} detail={detail} variant={variant} label={label} shown={shown} picked={picked} onPick={(k) => { setPicked(k); setTab('inspect'); setOpen('tokens'); }} onMeasured={setMeasured} onTouch={setTouch} />
       {states.length ? (
         <Strip
           title={`${part.name} · states`}
@@ -1094,7 +1129,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   return (
     <>
       {header}
-      {detail?.figmaBlind ? <Notification tone="attention" message="Figma can’t see it: no file key in CHIP’s settings." action={{ label: 'Add file key', href: '#/connectors' }} /> : null}
+      {detail?.figmaBlind ? <Notification tone="attention" message="Figma can’t see it: no file key in CHIP’s settings." action={{ label: 'Add file key', onClick: () => setKeyOpen(true) }} /> : null}
+      <FigmaKeyDrawer open={keyOpen} onClose={() => setKeyOpen(false)} onSaved={onCheckAgain} />
       {thread}
       {said ? (
         <Toasts>
