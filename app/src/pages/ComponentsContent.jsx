@@ -693,39 +693,42 @@ function Strip({ title, label, items, current, onPick, render }) {
 }
 
 /* The component list (left): BELLA's TreeItem, the component-list row (16 on a 44 row, a chevron group
-   with its count, a "needs work" dot that is spoken, the current row in light blue), Needs work first,
-   then All. TreeItem marks needs work with its end dot, not the mock's bar: that is the part's own design
+   with its count, a "needs work" dot that is spoken, the current row in light blue), one list of every
+   component A to Z under a find field and the All, Needs work and Ready chips. TreeItem marks needs work with its end dot, not the mock's bar: that is the part's own design
    (Figma TreeItem "Needs work"). No Pinned group: CHIP keeps no pinned parts (the side menu pins pages,
    not parts). The list sits on the page, not in a Card: inside a Card's 24 padding, TreeItem's icon and
    dot leave about 90 for the name and long names broke mid-word; on the page 14 characters fit. */
-function PartList({ model, query, filter, current, onPick, onHide, onAll }) {
-  const [shut, setShut] = useState({});
+function PartList({ model, query, setQuery, filter, current, onPick, onHide, onFilter }) {
   const q = query.trim().toLowerCase();
   const match = (p) => !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
-  const needs = model.parts.filter((p) => !p.ready && match(p));
-  const all = model.parts.filter((p) => match(p) && (filter !== 'ready' || p.ready));
+  const total = model.parts.length;
+  const needsN = model.parts.filter((p) => !p.ready).length;
+  // one list of every component, A to Z; the chips narrow it (Elleta, 23 Nov: "how come i cant see all the components")
+  const shown = model.parts
+    .filter((p) => match(p) && (filter === 'needs' ? !p.ready : filter === 'ready' ? p.ready : true))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  // the selected component is in view when the list opens or the selection changes
+  useEffect(() => {
+    document.getElementById('part-list')?.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest' });
+  }, [current, filter]);
   // 14 characters fit the row beside TreeItem's icon and dot; a longer name is cut, its full name on hover
   // (TreeItem takes no accessible name or tooltip of its own: a BELLA gap, so a screen reader hears the cut name)
   const row = (p) => <TreeItem key={p.id} kind="item" label={p.name.length > 14 ? <span title={p.name}>{`${p.name.slice(0, 13)}…`}</span> : p.name} needsWork={!p.ready} current={p.id === current} onClick={() => onPick(p.id)} />;
-  const group = (id, title, list) => (
-    <Flow gap={4} key={id}>
-      <TreeItem kind="group" label={title} count={list.length} open={!shut[id]} onClick={() => setShut({ ...shut, [id]: !shut[id] })} />
-      {shut[id] ? null : <Flow gap={4}>{list.map(row)}</Flow>}
-    </Flow>
-  );
   return (
     <Flow gap={16}>
-        <SectionHead title="Components" titleLevel={2} action={onHide ? <Button variant="tertiary" iconOnly icon="SidebarCollapse" ariaLabel="Hide the component list" ariaExpanded onClick={onHide} /> : undefined} />
-        {!needs.length && !all.length ? <EmptyState size="lane" mark="🤷" title="Nothing matches" line="No component has that name. Ask BELLA instead: press Return." /> : null}
-        <Flow as="nav" aria-label="Components" gap={8}>
-          {filter !== 'ready' && needs.length ? group('needs', 'Needs work', needs) : null}
-          {filter !== 'needs' && all.length ? group('all', filter === 'ready' ? 'Ready' : 'All', all) : null}
+      {/* search and the chips stay at the top while the rows scroll under them */}
+      <Flow gap={16} sticky style={{ background: 'var(--color-background-default)', paddingBlockEnd: 'var(--spacing-8)' }}>
+        <SectionHead title={`${total} components`} titleLevel={2} action={onHide ? <Button variant="tertiary" iconOnly icon="SidebarCollapse" ariaLabel="Hide the component list" ariaExpanded onClick={onHide} /> : undefined} />
+        <Input label="Find a component" value={query} onChange={setQuery} />
+        <Flow direction="row" gap={8} wrap aria-label="Show">
+          <FilterChip size="compact" pressed={filter === 'all'} onClick={() => onFilter('all')}>{`All ${total}`}</FilterChip>
+          <FilterChip size="compact" pressed={filter === 'needs'} onClick={() => onFilter(filter === 'needs' ? 'all' : 'needs')}>{`Needs work ${needsN}`}</FilterChip>
         </Flow>
-        {filter === 'needs' ? (
-          <Flow direction="row">
-            <Button variant="tertiary" size="sm" onClick={onAll}>{`Show all ${model.parts.length}`}</Button>
-          </Flow>
-        ) : null}
+      </Flow>
+      {!shown.length ? <EmptyState size="lane" mark="🤷" title="Nothing matches" line="No component has that name. Clear the search or pick All." /> : null}
+      <Flow as="nav" aria-label={`${shown.length} components`} gap={4} id="part-list">
+        {shown.map(row)}
+      </Flow>
     </Flow>
   );
 }
@@ -1102,6 +1105,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const [sharedVariant, setSharedVariant] = useState(() => shared.get('variant'));
   const [open, setOpen] = useState(null);
   const [query, setQuery] = useState('');
+  const [askText, setAskText] = useState('');
   const [picked, setPicked] = useState(null);
   const [keyOpen, setKeyOpen] = useState(false);
   const [touch, setTouch] = useState(null);
@@ -1233,12 +1237,12 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
       </Flow>
       <Flow direction="row" gap={8} wrap align="end" grow={phone ? 'last' : undefined}>
         {part.storyUrl ? <Button variant="secondary" icon="ArrowUpRight" href={part.storyUrl}>Story</Button> : null}
-        <Input label="Find a component or ask BELLA" value={query} onChange={setQuery} onSend={onSearch} sendLabel="Find or ask" suggestion={detail ? questions(part, detail)[0] : undefined} />
+        <Input label="Ask BELLA" value={askText} onChange={setAskText} onSend={(t) => (onSearch(t), setAskText(''))} sendLabel="Ask" suggestion={detail ? questions(part, detail)[0] : undefined} />
       </Flow>
     </Flow>
   );
 
-  const list = <PartList model={model} query={query} filter={filter} current={part.id} onPick={pick} onAll={() => onFilter('all')} onHide={listOut ? undefined : () => setListHidden(true)} />;
+  const list = <PartList model={model} query={query} setQuery={setQuery} filter={filter} current={part.id} onPick={pick} onFilter={onFilter} onHide={listOut ? undefined : () => setListHidden(true)} />;
   const listInline = !listOut && !listHidden;
   // the stage takes the column's spare height, so the part sits big in the middle (the strip keeps its own)
   const centre = (
