@@ -172,6 +172,8 @@ const endGaps = () => {
     for (const e of sc.querySelectorAll('*')) {
       const st = getComputedStyle(e);
       if (st.position === 'fixed' || st.position === 'absolute' || st.display === 'none' || st.visibility === 'hidden' || e.closest('svg') && e.tagName !== 'svg') continue;
+      // what a closed disclosure holds is not drawn (its body keeps a box the browser skips): it takes no space
+      if (e.closest('details:not([open])') && !e.matches('details, summary') && !e.closest('summary')) continue;
       if (e.children.length && st.backgroundColor === 'rgba(0, 0, 0, 0)' && !e.matches('button, a, [role]') && !(e.textContent || '').trim()) continue;
       // what a box inside a scroller or a clip holds is that box's own business: only the box itself counts here
       let inner = false;
