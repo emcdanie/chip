@@ -277,7 +277,7 @@ export function ContractCard({ name }) {
     <Card>
       <Flow gap={8}>
         <SectionHead title="Contract" titleLevel={3} words={c?.found ? 'read from BELLA now' : undefined} />
-        {error ? <TextStack body="CHIP could not read BELLA's contract." /> : null}
+        {error ? <TextStack body="CHIP could not read BELLA's contract. The server may have no contract route yet: restart it, then reload." /> : null}
         {c && !c.contract ? (
           <>
             <TextStack body={c.spec ? 'No contract yet. Only the spec describes this part.' : 'No contract yet.'} />
