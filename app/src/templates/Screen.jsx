@@ -101,10 +101,10 @@ function Crumb({ parent, href, current, linked }) {
           </span>
         </Tooltip>
       ) : (
-        <TextStack body={parent} />
+        <TextStack meta={parent} />
       )}
-      <TextStack body="›" aria-hidden="true" />
-      <TextStack body={current} aria-current="page" />
+      <TextStack meta="›" aria-hidden="true" />
+      <TextStack meta={current} aria-current="page" />
     </Flow>
   );
 }
