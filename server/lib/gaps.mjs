@@ -14,6 +14,18 @@ import { lastLint } from './spec-lint.mjs';
 import { bellaPairs, declaredLists } from '../../scripts/lib/bella-pairs.mjs';
 
 const read = (rel) => readFileSync(join(BELLA, rel), 'utf8');
+// A file another session is writing right now reads as half a JSON for a moment (23 Nov: Health said "CHIP's server isn't
+// answering, /gaps 500" for under a minute): read it again a few times before giving up.
+function readJson(file) {
+  for (let i = 0; ; i += 1) {
+    try {
+      return JSON.parse(readFileSync(file, 'utf8'));
+    } catch (e) {
+      if (i >= 4) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 80);
+    }
+  }
+}
 const lineOf = (text, re) => text.split('\n').findIndex((l) => re.test(l)) + 1;
 const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 
@@ -86,8 +98,8 @@ function measure(T, fg, bg) {
 function load() {
   // a moved BELLA HEAD re-syncs the snapshot in the background (data check, 22 Nov)
   keepBellaFresh();
-  const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
-  const contracts = JSON.parse(read('tokens/contracts.json')).component;
+  const bella = readJson(join(ROOT, 'data/bella.json'));
+  const contracts = readJson(join(BELLA, 'tokens/contracts.json')).component;
   const pairSrc = read('scripts/contrast-pairs.mjs');
   // BELLA builds its pairs in code: evaluated, never scraped (scripts/lib/bella-pairs.mjs)
   const { pairs } = declaredLists(BELLA);
@@ -455,7 +467,7 @@ const GAP_TITLE = { story: 'Story', docs: 'Docs page', contract: 'Token contract
 /** pairs: [[gap, Name], …] -> one item per pair, with evidence, the fix and who can make it. */
 export function gapReport(pairs) {
   const all = gapFixes();
-  const ctx = { bella: JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8')) };
+  const ctx = { bella: readJson(join(ROOT, 'data/bella.json')) };
   const decisions = readDecisions();
   const items = pairs.slice(0, 60).map(([gap, name]) => {
     const item = all.gaps[gap]?.[name];
