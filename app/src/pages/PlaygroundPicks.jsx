@@ -4,8 +4,8 @@
 // by the stat cards above (presets on a phone), the option on the Stage in the
 // middle with your 👍 or 👎 beside its question and the options strip under it
 // (the MediSync strip: titled row, ← and → at its right; arrows, keys and swipe
-// move it, the stage follows), Comments on the option on the right with a
-// field, Post and Ask BELLA.
+// move it, the stage follows), Comments on the option on the right with one
+// field and one Send.
 //
 // Real data only: the progress board (localhost:3123) serves the items waiting
 // on you (progress.json), the decision cards on each linked review page
@@ -15,9 +15,9 @@
 // them; when the board is down the last reading shows with its time, never
 // sample cards. Her notes show with obvious typos corrected (TYPOS), the stored words untouched.
 //
-// Sending: Post opens the sheet that shows what goes to the board, and only its
-// Send writes; Ask BELLA opens the run's plan (planRun), nothing runs until you
-// approve it. A pick has its own link: #/playground?pick=<id>&option=<n>.
+// Sending: one comment box and one Send (23 Nov); it writes the answer and the
+// comment to the board in one step and the pane says Saved. Asking an agent for
+// a change is the Ask panel's job, not this pane's. A pick has its own link: #/playground?pick=<id>&option=<n>.
 //
 // HOLES (BELLA has no part yet, not invented here):
 // - the tool column beside the stage (zoom in, fit, zoom out, light/dark,
@@ -36,7 +36,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
-import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Heading from '@bella/components/Heading/Heading';
@@ -54,7 +53,6 @@ import TextStack from '@bella/components/TextStack/TextStack';
 import VariantTile from '@bella/components/VariantTile/VariantTile';
 import { ZOOM_STEPS } from '@bella/components/ToolColumn/ToolColumn';
 import Flow from '../templates/Flow.jsx';
-import { planRun } from '../templates/RunPlan.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import usePan from '../templates/usePan.js';
 
@@ -384,9 +382,7 @@ export default function PlaygroundPicks({ onTry }) {
       } catch {}
       return n;
     });
-  const [confirm, setConfirm] = useState(false);
   const [sent, setSent] = useState(null);
-  const [ask, setAsk] = useState('');
   const [say, setSay] = useState('');
   const strip = useRef(null);
   const stageBox = useRef(null);
@@ -526,27 +522,12 @@ export default function PlaygroundPicks({ onTry }) {
       if (!r.ok) throw new Error(String(r.status));
       setDrafts((all) => ({ ...all, [pick.id]: { thumb: {}, pins: [] } }));
       setSay('');
-      setConfirm(false);
-      setSent('sent');
+      setSent('saved');
       again();
     } catch {
       setSent('failed');
     }
   }
-  // the likely next question, never her own note played back: the newest pin to act on, else a plain ask
-  const lastPin = [...pick.comments].reverse().find((c) => c.n);
-  const other = pick.options.find((o) => o.letter && o.letter !== mark)?.letter;
-  const suggestion = lastPin ? `Can you fix pin ${lastPin.n} on ${pick.thumbs ? 'this' : mark}?` : other ? `What would make ${mark} better than ${other}?` : 'What would make this look right?';
-  const askBella = (t) => {
-    const q = (t || suggestion).trim();
-    if (!q) return;
-    setAsk('');
-    planRun({
-      title: `Change ${clean(pick.title)}`,
-      from: 'Playground',
-      brief: `On the review card “${pick.title}” (${pick.page}), option ${mark} · ${option.short}: ${q}\n- Make the change on the review page’s picture source\n- Show it on the progress board as a new card with before and after`,
-    }).catch(() => {});
-  };
   const pickFilter = (id) => {
     setFilter((x) => (x === id ? null : id));
     setAt(null);
@@ -737,7 +718,7 @@ export default function PlaygroundPicks({ onTry }) {
     </Flow>
   );
 
-  // Comments on the option: her notes scroll inside the card; the field, Post and Ask BELLA stay at its foot
+  // Comments on the option: her notes scroll inside the card; the comment box and Send stay at its foot
   const right = pane.hidden ? null : (
     <Card>
       <Flow direction="row" gap={8} align="center" justify="between" wrap>
@@ -781,15 +762,24 @@ export default function PlaygroundPicks({ onTry }) {
             <TextStack subtitle={marking ? 'Click the picture to drop a pin.' : 'No comments yet. Write one below, or mark up the picture.'} />
           )}
         </Flow>
-        <Flow gap={12}>
-          <Input label={pick.thumbs ? 'Your comment' : `Your comment on ${mark}`} value={say} onChange={setSay} placeholder="What should change?" />
-          {/* Post never writes by itself: it opens the sheet that shows what goes to the board */}
-          <Flow direction="row" justify="end">
-            <Button variant="primary" size="sm" disabled={!ready} ariaHaspopup="dialog" onClick={() => setConfirm(true)}>
-              Post
+        {/* one box and one Send (23 Nov): Enter sends, Shift+Enter is a new line; the answer and the comment go to the board in one step */}
+        <Flow
+          gap={12}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey && e.target.tagName === 'TEXTAREA') {
+              e.preventDefault();
+              if (ready) send();
+            }
+          }}
+        >
+          <Input label={pick.thumbs ? 'Your comment' : `Your comment on ${mark}`} multiline value={say} onChange={(v) => (setSay(v), setSent(null))} placeholder="What should change?" hint="Enter sends, Shift+Enter is a new line" />
+          <Flow direction="row" gap={12} align="center" justify="end" wrap>
+            <Flow role="status" gap={0}>{sent === 'saved' ? <TextStack body="Saved" /> : null}</Flow>
+            {sent === 'failed' ? <Flow role="alert" gap={0}><TextStack body={`Not sent: the progress board doesn’t answer at ${BOARD}. Your answer is still here.`} /></Flow> : null}
+            <Button variant="primary" size="sm" disabled={!ready} onClick={send}>
+              Send
             </Button>
           </Flow>
-          <Input label="Ask BELLA for a change" value={ask} onChange={setAsk} suggestion={suggestion} onSend={askBella} sendLabel="Ask BELLA" />
         </Flow>
       </Flow>
     </Card>
@@ -797,7 +787,6 @@ export default function PlaygroundPicks({ onTry }) {
 
   return (
     <>
-      {sent === 'sent' ? <Notification tone="success" title="Your answer" message="Sent: it is on the progress board for the team." onClose={() => setSent(null)} /> : null}
       {presets && !phone ? (
         <Flow direction="row" gap={16} justify="between" align="center" wrap>
           {highlights}
@@ -856,32 +845,6 @@ export default function PlaygroundPicks({ onTry }) {
         </Flow>
       )}
 
-      <Drawer
-        open={confirm}
-        onClose={() => setConfirm(false)}
-        side="right"
-        label="Send to the progress board"
-        subtitle={clean(pick.title)}
-        footer={
-          <Flow direction="row" gap={8} justify="end">
-            <Button variant="secondary" size="sm" onClick={() => setConfirm(false)}>
-              Close
-            </Button>
-            <Button variant="primary" size="sm" onClick={send}>
-              Send
-            </Button>
-          </Flow>
-        }
-      >
-        <Flow gap={16} inset>
-          <TextStack body="This goes to the progress board, where the team picks it up. Nothing runs." />
-          <Flow as="ul" gap={0} aria-label="What will be sent">
-            <ListRow layout="stacked" title="Answer" description={answerOf() ?? 'No pick, notes only'} />
-            <ListRow layout="stacked" title="Notes" description={noteOf() ?? 'None'} />
-          </Flow>
-          {sent === 'failed' ? <Notification tone="danger" title="The progress board" message={`It doesn’t answer at ${BOARD}, so nothing was sent. Your answer is still here.`} /> : null}
-        </Flow>
-      </Drawer>
     </>
   );
 }
