@@ -127,8 +127,8 @@ function whyEmpty(x) {
 export function filterFromHash(hash = window.location.hash) {
   const q = new URLSearchParams(hash.split('?')[1] ?? '');
   // filter: the board's Filter from the address (#/work?filter=needs), so a link can open the board filtered
-  const f = q.get('filter');
-  const ok = f && (['needs', 'components'].includes(f) || /^(area|lane):[\w &-]{1,40}$/.test(f));
+  const f = q.get('filter') ?? (q.get('project') ? `project:${q.get('project')}` : null);
+  const ok = f && (['needs', 'components'].includes(f) || /^(area|lane|project):[\w &-]{1,40}$/.test(f));
   return { branch: q.get('branch'), lane: q.get('lane'), filter: ok ? f : null };
 }
 export function filtered(model, { branch, lane }) {
@@ -230,6 +230,7 @@ function bSession(s, now) {
     startedAt: s.startedAt,
     who: 'agent',
     area: s.project,
+    project: s.project,
   };
 }
 
@@ -255,10 +256,11 @@ function bRun(r, base) {
     runBrief: r.status === 'failed' ? (r.brief ?? null) : null,
     who: needs ? 'reviewer' : 'agent',
     area: 'Tooling & gate',
+    project: 'BELLA', // CHIP's runs change BELLA, in its own checkout
   };
 }
 
-const bNeed = (n) => ({ ...needCard(n), kind: 'need', line: ['CHIP check', needCard(n).line].filter(Boolean).join(' · '), needs: true, home: 'now', area: 'Tooling & gate' });
+const bNeed = (n) => ({ ...needCard(n), kind: 'need', line: ['CHIP check', needCard(n).line].filter(Boolean).join(' · '), needs: true, home: 'now', area: 'Tooling & gate', project: 'CHIP' });
 
 const bPr = (p) => ({
   id: p.id,
@@ -274,6 +276,7 @@ const bPr = (p) => ({
   who: p.lane === 'gate' ? 'gate' : 'maintainer',
   open: { kind: 'link', href: p.url },
   area: 'Tooling & gate',
+  project: p.project,
 });
 
 /* The progress board's items: a review page waiting on her opens in full (her pick B, 22 Nov). */
@@ -285,7 +288,7 @@ function bItem(i) {
   if (i.stage === 'To do') return { id: i.id, kind: 'idea', title: i.title, line: `Idea · ${area}`, status: 'Idea', tone: 'neutral', home: 'ideas', open: page, brief: [i.title, i.detail].filter(Boolean).join('. '), area, n: i.n };
   return null; // Building and Checking are the sessions' own words for work Now already reads from the session
 }
-const bTask = (t) => ({ id: t.id, kind: 'idea', title: t.title, line: 'Idea · from you', status: 'Idea', tone: 'neutral', home: 'ideas', brief: t.title, area: 'Your call' });
+const bTask = (t) => ({ id: t.id, kind: 'idea', title: t.title, line: 'Idea · from you', status: 'Idea', tone: 'neutral', home: 'ideas', brief: t.title, area: 'Your call', project: 'CHIP' });
 /* Components that need work, from CHIP's gap checks (/gaps), the count Health and Components show */
 const GAP_WORDS = { story: 'story', docs: 'doc page description', contract: 'contract', dsds: 'spec', contrast: 'contrast pair', a11y: 'accessibility notes' };
 function componentsOf(gaps = {}) {
@@ -306,6 +309,7 @@ const bComponent = (c) => ({
   brief: `BELLA's ${c.name} has no ${c.missing.join(', ')}. Add ${c.missing.length === 1 ? 'it' : 'them'} from the component's Figma part and spec, following BELLA's rules, then run the gate.`,
   area: c.missing.length === 1 && c.missing[0] === 'accessibility notes' ? 'Accessibility' : 'Components',
   who: 'agent',
+  project: 'BELLA',
 });
 
 export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra = null, board = null, gaps = null, now = Date.now() }) {
@@ -424,7 +428,7 @@ export function shown(model, { filter = null, sort = 'mine', q = '', branch = nu
   const keep = (c) =>
     (!branch || c.branch === branch) &&
     (!words || `${c.title} ${c.line}`.toLowerCase().includes(words)) &&
-    (!filter || filter.startsWith('lane:') || (filter === 'needs' ? c.needs : filter === 'components' ? c.component : filter.startsWith('area:') ? c.area === filter.slice(5) : true));
+    (!filter || filter.startsWith('lane:') || (filter === 'needs' ? c.needs : filter === 'components' ? c.component : filter.startsWith('area:') ? c.area === filter.slice(5) : filter.startsWith('project:') ? String(c.project ?? 'CHIP').toLowerCase() === filter.slice(8).toLowerCase() : true));
   const by = { updated: (a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0), started: (a, b) => (a.startedAt ?? Infinity) - (b.startedAt ?? Infinity) }[sort];
   const lanes = model.lanes
     .filter((l) => !filter?.startsWith('lane:') || l.id === filter.slice(5))

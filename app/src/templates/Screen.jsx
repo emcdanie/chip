@@ -138,8 +138,9 @@ function menuModel({ place, tab, projects, needs, onSearch }) {
     ],
     pinned: [{ label: 'Processes', href: '#/system-map', icon: 'Map', current: place === 'map' }],
     // every project opens the new board (23 Nov: "the old board show when i click projects like site")
-    // the Site opens its pages in the Playground, where you mark them up (Elleta, 23 Nov); the others open their board
-    projects: (projects ?? []).map((p) => (p.id === 'site' ? { label: p.name, href: '#/playground?view=pages&project=site', current: place === 'playground' && project === 'site' } : { label: p.name, href: p.id === 'chip' ? '#/work' : `#/work?project=${p.id}`, current: place === 'work' && !needsHere && !!project && p.id === project })),
+    // the side menu's Projects set the Work board's project filter and put the project in the breadcrumb (picked A, 22 Nov:
+    // one board with a project filter, no board per project)
+    projects: (projects ?? []).map((p) => ({ label: p.name, href: `#/work?project=${p.id}`, current: place === 'work' && !needsHere && p.id === project })),
     foot: [
       { label: 'Team', href: '#/team', icon: 'Group', current: place === 'team' },
       { label: 'Settings', href: '#/connectors', icon: 'Settings', current: place === 'settings' },
@@ -285,7 +286,7 @@ export default function Screen({ place, header, tabs, children }) {
             {/* project pages carry New task, as Figma; the health bar only on the Health tab (Elleta, 20 Nov: "Take it off"); the Playground too; other rail pages (Team, Not again) carry neither */}
             {/* on a project's tabs the project name ("CHIP") is PageHeader size project, 28 on 36, so the tab's own
                 subject leads (batch 4, published 22 Nov); every other page keeps size page, 40 on 48 */}
-            <PageHeader {...(['projects', 'work', 'health', 'playground'].includes(place) ? { size: 'project', ...(place === 'health' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header } : header)} meta={<Crumb trail={trail} href={projectOf() ? `#/work?project=${projectOf()}` : '#/work'} linked={place !== 'work'} />} />
+            <PageHeader {...(['projects', 'work', 'health', 'playground'].includes(place) ? { size: 'project', ...(place === 'health' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header, ...(place === 'work' && projectOf() ? { title: projectName } : {}) } : header)} meta={<Crumb trail={trail} href={projectOf() ? `#/work?project=${projectOf()}` : '#/work'} linked={place !== 'work'} />} />
             {tabs ? (
               <Tabs className="chip-screen__tabs" tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}

@@ -301,7 +301,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
   const working = now.filter((c) => !c.needs).length;
   const waiting = now.filter((c) => c.needs).length;
   const everything = (all?.lanes ?? []).reduce((n, l) => n + l.cards.length, 0);
-  const filterLabel = filter === 'needs' ? 'Needs you' : filter === 'components' ? 'Components that need work' : filter?.startsWith('area:') ? filter.slice(5) : filter?.startsWith('lane:') ? `Lane: ${LANE_NAMES[filter.slice(5)]}` : null;
+  const filterLabel = filter === 'needs' ? 'Needs you' : filter === 'components' ? 'Components that need work' : filter?.startsWith('area:') ? filter.slice(5) : filter?.startsWith('project:') ? (projects.find((p) => p.id === filter.slice(8) || p.name.toLowerCase() === filter.slice(8).toLowerCase())?.name ?? filter.slice(8)) : filter?.startsWith('lane:') ? `Lane: ${LANE_NAMES[filter.slice(5)]}` : null;
   return (
     <>
       {/* Tools row, full width (23 Nov: "i want this to span so the numerical values are on the right"): Filter, Sort,
@@ -363,8 +363,11 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
       {/* the project filter (New, 23 Nov): one chip per project, read from /projects: CHIP, Site, BELLA and the ones made in New */}
       {reviewing || !all || (projects?.length ?? 0) < 2 ? null : (
         <Flow direction="row" gap={8} wrap align="center" role="group" aria-label="Project">
+          <FilterChip pressed={!filter?.startsWith('project:')} onClick={() => filter?.startsWith('project:') && setFilter(null)}>
+            All
+          </FilterChip>
           {projects.map((p) => (
-            <FilterChip key={p.id} pressed={filter === `area:${p.name}`} onClick={() => setFilter(filter === `area:${p.name}` ? null : `area:${p.name}`)}>
+            <FilterChip key={p.id} pressed={filter?.toLowerCase() === `project:${p.name}`.toLowerCase() || filter?.toLowerCase() === `project:${p.id}`.toLowerCase()} onClick={() => setFilter(filter?.toLowerCase() === `project:${p.name}`.toLowerCase() || filter?.toLowerCase() === `project:${p.id}`.toLowerCase() ? null : `project:${p.name}`)}>
               {p.name}
             </FilterChip>
           ))}

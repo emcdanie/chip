@@ -15,7 +15,7 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Step from '@bella/components/Step/Step';
 import Tag from '@bella/components/Tag/Tag';
-import ListRow from '@bella/components/ListRow/ListRow';
+import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import StatCard from '@bella/components/StatCard/StatCard';
@@ -274,6 +274,73 @@ function Library({ data, busy, act }) {
 }
 
 /** state: forces one of Figma's states (stories); the page reads it from the fix's run. */
+/* A, the page (Elleta, 22 Nov): what keeps coming back, ranked, last 14 days: how many times, when it last happened, which
+   way it is going, and one next step. C, Closed loops, beside it as the proof: each permanent fix that was kept, when it
+   landed, what changed, and how often it came back before and after. Read from the logs CHIP keeps
+   (/not-again/recurring); "Too early" or "Not recorded" where nothing is kept, never a made-up number. */
+const dayOf = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const TREND = { up: 'more often than the week before', down: 'less often than the week before', same: 'as often as the week before' };
+function Recurring() {
+  const { data } = useCached(['/not-again/recurring'], { live: true });
+  const d = data?.[0];
+  if (!d) return null;
+  const rows = d.recurring ?? [];
+  const loops = d.loops ?? [];
+  return (
+    <>
+      <Flow span={12} fill>
+        <Card>
+          <Flow gap={16}>
+            <SectionHead icon="Book" iconTone="info" title="What keeps coming back" description="The gate's failures in the last 14 days, most often first" number={rows.length || undefined} words={rows.length ? 'checks' : undefined} showInfo={Boolean(rows.length)} />
+            {rows.length ? (
+              <ListRowGroup ariaLabel="What keeps coming back">
+                {rows.map((r) => (
+                  <ListRow
+                    key={r.id}
+                    layout="stacked"
+                    statusBar={r.trend === 'up' ? 'danger' : 'attention'}
+                    title={r.name}
+                    description={`${r.count} ${r.count === 1 ? 'time' : 'times'} · last ${dayOf(r.last)} · ${TREND[r.trend]}`}
+                    actionButton={
+                      <Button variant="secondary" size="sm" onClick={() => (window.location.hash = '#/work?filter=needs')}>
+                        Make it permanent
+                      </Button>
+                    }
+                  />
+                ))}
+              </ListRowGroup>
+            ) : (
+              <EmptyState size="lane" mark="✅" title="Nothing came back" line="No gate check failed in the last 14 days." />
+            )}
+          </Flow>
+        </Card>
+      </Flow>
+      <Flow span={12} fill>
+        <Card>
+          <Flow gap={16}>
+            <SectionHead icon="CheckCircle" iconTone="success" title="Closed loops" description="Permanent fixes that were kept, and what changed after" number={loops.length || undefined} words={loops.length ? 'kept' : undefined} showInfo={Boolean(loops.length)} />
+            {loops.length ? (
+              <ListRowGroup ariaLabel="Closed loops">
+                {loops.slice(0, 8).map((l, i) => (
+                  <ListRow
+                    key={`${l.landed}-${i}`}
+                    layout="stacked"
+                    statusBar="success"
+                    title={l.kind}
+                    description={`Landed ${dayOf(l.landed)} · ${l.changed ?? 'Not recorded'} · ${!l.measured ? 'before and after: Not recorded' : l.after == null ? `${l.before} before · Too early to say after` : `${l.before} before, ${l.after} after`}`}
+                  />
+                ))}
+              </ListRowGroup>
+            ) : (
+              <EmptyState size="lane" mark="🕰️" title="Nothing kept yet" line="Accept a fix and it lands here with its before and after." />
+            )}
+          </Flow>
+        </Card>
+      </Flow>
+    </>
+  );
+}
+
 export default function NotAgainContent({ state: forced, tab = 'flow' }) {
   const data = useNotAgain();
   const { busy, act, toast } = useAct(data.reload);
@@ -289,6 +356,7 @@ export default function NotAgainContent({ state: forced, tab = 'flow' }) {
   return (
     <>
       <Banner state={state} data={data} busy={busy} act={act} />
+      <Recurring />
       <FixCard state={state} data={data} busy={busy} act={act} />
       <Stats />
       {toast}
