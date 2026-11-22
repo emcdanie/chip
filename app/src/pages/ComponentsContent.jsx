@@ -441,7 +441,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     if (!box || !anatomy.length) return [];
     const n = anatomy.length;
     // a narrow stage has no room beside the part: the chips stack under it, each reaching its dot
-    const under = box.sw < 420;
+    const under = box.sw < box.w + 320; // the longest chip (Focus ring) needs about 130 beside the part
     const right = box.cx + box.w / 2 + 24;
     return anatomy
       .map((x, i) => {
@@ -455,7 +455,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     <Flow gap={8} id={stageId} grow="first">
       {/* HOLE (BELLA gap): the tool column beside the stage (zoom in, fit, zoom out, light/dark, mark up)
           waits on a BELLA tool-column part; Stage's own Fit and 100% stand in until then. */}
-      <Stage label={`${part.name} on the stage`} markers={markers} scale={scale} onSelect={onPick} activeId={lit} onActiveChange={setLit}>
+      <Stage label={`${part.name} on the stage`} leaderVariant="red" markers={markers} scale={scale} onSelect={onPick} activeId={lit} onActiveChange={setLit}>
         <Flow id={liveId} align="center">
           <Flow id={shownId} align="center">
             {has ? <LivePart part={part} variant={variant} label={label} state={shown} /> : <EmptyState size="lane" mark="🧩" title="No live sample yet" line={`CHIP has no live sample of ${part.name} to draw yet.`} />}
