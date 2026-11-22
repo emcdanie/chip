@@ -88,6 +88,14 @@
   gap: var(--spacing-4);
 }
 
+.chip-screen__tabs {
+  /* the tabs' own line runs the whole width of the page column and meets the frame at both edges: the part's root
+     reaches out over the header's side padding and takes it back as its own (Elleta, 23 Nov: "broken lines") */
+  margin-inline: calc(-1 * var(--layout-container-pad));
+  padding-inline: var(--layout-container-pad);
+  max-inline-size: none;
+}
+
 .chip-screen__head--plain {
   /* a page with no tabs: its title meets the scrolling content at a line, so text that scrolls under the title
      is cut at a visible edge and not mid-letter against bare background (Elleta, 23 Nov) */
@@ -111,9 +119,6 @@
   scroll-padding-block: var(--spacing-12);
   padding: var(--layout-gutter) var(--layout-container-pad);
   background: var(--color-background-default);
-  /* what scrolls up under the title fades out over its last 12 instead of being cut mid-letter; the content's own
-     top padding is deeper than that, so nothing at rest is touched (Elleta, 23 Nov) */
-  mask-image: linear-gradient(to bottom, transparent, black var(--spacing-12));
 }
 
 :is(.chip-screen__content, .chip-tabpanel) > * {

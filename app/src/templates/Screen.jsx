@@ -319,7 +319,7 @@ export default function Screen({ place, header, tabs, children }) {
                 subject leads (batch 4, published 22 Nov); every other page keeps size page, 40 on 48 */}
             <PageHeader {...(place === 'projects' ? { size: 'project', ...(tabs?.value === 'health' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header } : place === 'home' ? { actions: <NewTask />, ...header } : header)} meta={<Crumb parent={(projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP'} href={projectOf() ? `#/work?project=${projectOf()}` : '#/work'} current={here} linked={!(place === 'projects' && tab === 'work')} />} />
             {tabs ? (
-              <Tabs tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
+              <Tabs className="chip-screen__tabs" tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}
           </div>
           <main className="chip-screen__content" id="main">
