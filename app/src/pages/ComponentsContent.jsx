@@ -10,7 +10,7 @@
 //   the Stage's own Fit and 100% stand in.
 // - the progress rings on the Checks tab and on Sending: BELLA has no circle loader / progress ring.
 // - the floating Terminal window: BELLA has no floating window (shell work, not this page).
-import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
@@ -125,25 +125,80 @@ function StateThumb({ part, variant, label, state, selected, onPick }) {
   );
 }
 
-/* Where each anatomy part's leader lands on the live part, in stage pixels
-   from the centre: always on the part's drawn edge, on its straight runs
-   (the middle of an edge or the middle third of the top and bottom), never a
-   corner a pill rounds off and never over its text (stage-pin-check). Two
-   parts of one kind step along the edge. */
-function pinAt(kind, i, box) {
-  const { cx, cy, w, h } = box;
-  const top = cy - h / 2;
-  const bottom = cy + h / 2;
-  const at = {
-    fill: [cx + w / 4, top],
-    content: [cx - w / 4, top],
-    box: [cx, bottom],
-    border: [cx - w / 2, cy],
-    ring: [cx - w / 4, bottom],
-    shadow: [cx + w / 4, bottom],
-  }[kind] ?? [cx + w / 2, cy];
-  const step = kind in { fill: 1, content: 1, box: 1, border: 1, ring: 1, shadow: 1 } ? 0 : i * 8;
-  return { x: Math.round(at[0]), y: Math.round(at[1] + step) };
+/* The anatomy pins and their labels, spread around the part on the whole stage (Elleta, 23 Nov: "the leaders are
+   crossing and a mess.. we have the full bg to use"). Each pin sits on the part's top or bottom edge by what it
+   is (fill, text and edge above; box, ring and shadow below). Its label sits above or below the part, on the
+   left of its pin or the right of it, at a row of its own; BELLA's Leader runs level from the label to the pin's
+   column, then straight to the pin. For each side of the part the layout tries the pins' orders, spreads,
+   run lengths, which side of its pin each label takes and which row each gets, and keeps the arrangement where
+   no label leaves the stage, no two labels overlap and no line meets another line or a label. The part then
+   takes the size where that works. scripts/stage-leader-check.mjs measures the result on every part with an
+   anatomy at 320, 768, 1024 and 1440. */
+const BELOW = new Set(['box', 'ring', 'shadow', 'state', 'edge']);
+const LEVEL = 48; // one label's row: its height and the space to the next
+const LABEL_H = 40;
+const perms = (n) => (n <= 1 ? [[0]] : perms(n - 1).flatMap((p) => Array.from({ length: n }, (_, i) => [...p.slice(0, i), n - 1, ...p.slice(i)])));
+const PERMS = [0, 1, 2, 3, 4].map((n) => (n ? perms(n) : [[]]));
+// do two axis-aligned boxes (or a segment, as a thin box) touch, with a little air
+const touch = (a, b, air = 2) => a.x0 - air < b.x1 && b.x0 - air < a.x1 && a.y0 - air < b.y1 && b.y0 - air < a.y1;
+// topKeys: the pins that sit above the part; missing = by what each is, kept within two of even and four a side
+function anatomyMarkers(anatomy, box, scale, picked, widths, topKeys) {
+  const top = [];
+  const bottom = [];
+  anatomy.forEach((x, i) => ((topKeys ? topKeys.has(x.key) : !BELOW.has(x.kind)) ? top : bottom).push({ x, i }));
+  if (!topKeys) {
+    while (top.length > bottom.length + 2 || top.length > 4) bottom.unshift(top.pop());
+    while (bottom.length > top.length + 2 || bottom.length > 4) top.push(bottom.shift());
+  }
+  const half = box.sw / 2 - 6; // a label keeps 6 clear of the stage's edge
+  const out = [];
+  let over = 0;
+  for (const [zone, pins] of [['top', top], ['bottom', bottom]]) {
+    const m = pins.length;
+    if (!m) continue;
+    const dir = zone === 'top' ? -1 : 1;
+    const edge = zone === 'top' ? box.cy - box.h / 2 : box.cy + box.h / 2;
+    const wOf = (pin) => widths[pin.x.key] ?? 150;
+    const spreads = [Math.max(0.5 * box.w, Math.min(0.8 * box.w, 60)), 0.8 * box.w];
+    const orders = [pins, [...pins].sort((p, q) => wOf(p) - wOf(q)), [...pins].sort((p, q) => wOf(q) - wOf(p))];
+    let best = null;
+    orders.forEach((order, oi) => spreads.forEach((spread, si) => {
+      const gapX = m > 1 ? spread / (m - 1) : 0;
+      const px = order.map((_, j) => Math.round(box.cx + (m > 1 ? -spread / 2 + j * gapX : 0)));
+      for (const g of [14, 8, 4]) {
+        for (let mask = 0; mask < 1 << m; mask += 1) {
+          // chips: left of the pin when its bit is set
+          const chipsX = order.map((pin, j) => (mask >> j) & 1 ? [px[j] - g - wOf(pin), px[j] - g] : [px[j] + g, px[j] + g + wOf(pin)]);
+          const cut = chipsX.reduce((t, [x0, x1]) => t + Math.max(0, -half - x0) + Math.max(0, x1 - half), 0);
+          for (const lv of PERMS[m]) {
+            const y = lv.map((k) => edge + dir * (28 + LEVEL * k));
+            const rects = chipsX.map(([x0, x1], j) => ({ x0, x1, y0: y[j] - LABEL_H / 2, y1: y[j] + LABEL_H / 2 }));
+            // each leader: level run from its label to the pin's column, then straight to the pin
+            const lines = order.map((_, j) => {
+              const edgeX = (mask >> j) & 1 ? chipsX[j][1] : chipsX[j][0];
+              return [{ x0: Math.min(edgeX, px[j]), x1: Math.max(edgeX, px[j]), y0: y[j], y1: y[j] }, { x0: px[j], x1: px[j], y0: Math.min(y[j], edge), y1: Math.max(y[j], edge) }];
+            });
+            let bad = 0;
+            for (let i = 0; i < m && bad < 3; i += 1)
+              for (let j = 0; j < m; j += 1) {
+                if (i === j) continue;
+                if (j > i && touch(rects[i], rects[j])) bad += 1; // two labels overlap
+                if (lines[i].some((seg) => touch(seg, rects[j], 1))) bad += 1; // a line through another label
+                if (j > i && lines[i].some((a) => lines[j].some((b) => touch(a, b, 2)))) bad += 1; // two lines meet
+              }
+            const score = [cut + bad * 1000, oi ? 1 : 0, si, -g, mask];
+            if (!best || score.some((v, q) => v < best.score[q] && score.slice(0, q).every((w, r) => w === best.score[r]))) best = { g, order, px, mask, lv, score };
+          }
+        }
+      }
+    }));
+    over += best.score[0];
+    best.order.forEach(({ x, i }, j) => {
+      const left = (best.mask >> j) & 1;
+      out.push({ id: x.key, x: Math.round(best.px[j] / scale), y: Math.round(edge / scale), label: x.n ?? i + 1, part: x.title, chipX: left ? best.px[j] - best.g : best.px[j] + best.g, chipY: Math.round(edge + dir * (28 + LEVEL * best.lv[j])), selected: x.key === picked });
+    });
+  }
+  return { markers: out.sort((p, q) => p.label - q.label), over };
 }
 
 /* An element's width, kept current. */
@@ -161,7 +216,7 @@ function useWidth(id) {
 
 /* The live part's box against the stage's centre, measured after layout and
    again when the stage resizes. */
-function useBox(stageWrapId, partId, deps) {
+function useBox(stageWrapId, partId, deps, tag) {
   const [box, setBox] = useState(null);
   useLayoutEffect(() => {
     const wrap = document.getElementById(stageWrapId);
@@ -171,7 +226,7 @@ function useBox(stageWrapId, partId, deps) {
       if (!content || !live) return;
       const c = content.getBoundingClientRect();
       const p = live.getBoundingClientRect();
-      const next = { cx: Math.round(p.left + p.width / 2 - (c.left + c.width / 2)), cy: Math.round(p.top + p.height / 2 - (c.top + c.height / 2)), w: Math.round(p.width), h: Math.round(p.height), sw: Math.round(c.width) };
+      const next = { cx: Math.round(p.left + p.width / 2 - (c.left + c.width / 2)), cy: Math.round(p.top + p.height / 2 - (c.top + c.height / 2)), w: Math.round(p.width), h: Math.round(p.height), sw: Math.round(c.width), tag };
       setBox((was) => (was && Object.keys(next).every((k) => was[k] === next[k]) ? was : next));
     };
     measure();
@@ -361,13 +416,53 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   useEffect(() => installForcedStates(), []);
   const anatomy = detail?.anatomy ?? [];
   const a = anatomy.find((x) => x.key === picked) ?? anatomy[0] ?? null;
-  const [wide, setWide] = useState(false);
-  const scale = PLAY[part.name] && !wide ? 2 : 1;
-  const box = useBox(stageId, liveId, [part.id, variant, label, scale, anatomy.length, a?.key]);
-  useLayoutEffect(() => {
-    if (box && scale === 2 && box.w > box.sw - 240) setWide(true);
-  }, [box, scale]);
-  useEffect(() => setWide(false), [part.id]);
+  // the part is drawn at the size where every label fits the stage: its own size first, then smaller, then larger
+  // (a wide label reaches across the middle to a pin on the far side, so a bigger part can hold it where a
+  // small one cannot). The unscaled box is read from the part as drawn, so no size is tried on screen.
+  const SCALES = PLAY[part.name] ? [2, 1, 0.5, 0.35, 0.25, 1.5] : [1, 0.5, 0.35, 0.25, 1.5, 2];
+  const [scale, setScale] = useState(SCALES[0]);
+  const [widths, setWidths] = useState({});
+  const box = useBox(stageId, liveId, [part.id, variant, label, scale, anatomy.length, a?.key], scale);
+  const layout = useMemo(() => {
+    if (!box?.tag || !anatomy.length) return null;
+    const keys = anatomy.map((x) => x.key);
+    // the usual split first; only when no size makes it fit, other splits of the pins above and below
+    const splits = [null];
+    const sized = (set) => keys.length - set.size <= 4 && set.size <= 4 && Math.abs(set.size - (keys.length - set.size)) <= 2;
+    const all = Array.from({ length: 1 << keys.length }, (_, m) => new Set(keys.filter((_, i) => (m >> i) & 1))).filter(sized);
+    let best = null;
+    for (const split of splits.concat(all)) {
+      for (const s of SCALES) {
+        const k = s / box.tag;
+        const r = anatomyMarkers(anatomy, { cx: box.cx * k, cy: box.cy * k, w: box.w * k, h: box.h * k, sw: box.sw }, s, a?.key, widths, split);
+        if (!best || r.over < best.over) best = { ...r, s };
+        if (!r.over) return best;
+      }
+    }
+    return best;
+  }, [box, anatomy, a?.key, widths]); // eslint-disable-line react-hooks/exhaustive-deps
+  // a part that does not scale evenly (CodeBlock fills the stage) could swing between two sizes: after a few
+  // changes the size stays where it is
+  const changes = useRef(0);
+  const seen = useRef(new Map()); // size -> how far its labels overflow, measured as drawn
+  useEffect(() => {
+    changes.current = 0;
+    seen.current = new Map();
+    setScale(SCALES[0]);
+  }, [part.id, box?.sw]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!layout || box?.tag !== scale) return;
+    seen.current.set(scale, anatomyMarkers(anatomy, box, scale, a?.key, widths).over);
+    if (layout.s === scale) return;
+    if (changes.current < 6) {
+      changes.current += 1;
+      setScale(layout.s);
+    } else {
+      // it will not settle: stay at the size that fitted best when drawn
+      const [fit] = [...seen.current.entries()].sort((p, q) => p[1] - q[1])[0];
+      if (fit !== scale) setScale(fit);
+    }
+  }, [layout, scale, box]); // eslint-disable-line react-hooks/exhaustive-deps
   // the live part's touch target, unscaled: its own box or its hit area, whichever is larger
   useLayoutEffect(() => {
     const el = document.getElementById(shownId)?.querySelector('button, a, input, [role]');
@@ -437,26 +532,28 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
      "pins only, decided B"). Each pin has a name chip in a column right of the part and a leader to its
      dot; the picked one has the 2px ink edge and leader, and clicking one picks it. The values are in
      the card beside, so the chip is the name only and fits a narrow stage. */
+  // each label's own width, read once drawn, so the layout can tell which side of a pin it fits on
+  useLayoutEffect(() => {
+    const st = document.getElementById(stageId)?.querySelector('[data-bella-component="stage"]');
+    if (!st) return;
+    const next = {};
+    st.querySelectorAll('[data-stage-chip]').forEach((c) => (next[c.getAttribute('data-stage-chip')] = Math.ceil(c.getBoundingClientRect().width)));
+    if (Object.keys(next).length && JSON.stringify(next) !== JSON.stringify(widths)) setWidths(next);
+  });
   const markers = useMemo(() => {
-    if (!box || !anatomy.length) return [];
-    const n = anatomy.length;
-    // a narrow stage has no room beside the part: the chips stack under it, each reaching its dot
-    const under = box.sw < box.w + 320; // the longest chip (Focus ring) needs about 130 beside the part
-    const right = box.cx + box.w / 2 + 24;
-    return anatomy
-      .map((x, i) => {
-        const pt = pinAt(x.kind, i, box);
-        return { id: x.key, x: Math.round(pt.x / scale), y: Math.round(pt.y / scale), label: x.n ?? i + 1, part: x.title, chipX: under ? Math.round(box.cx - 8) : Math.round(right), chipY: under ? Math.round(box.cy + box.h / 2 + 56 + i * 44) : Math.round(box.cy + (i - (n - 1) / 2) * 44), selected: x.key === a?.key };
-      })
-      .sort((p, q) => p.label - q.label);
-  }, [box, anatomy, a?.key, scale]);
+    if (!layout) return [];
+    if (layout.s === scale || !box?.tag) return layout.markers;
+    // the size could not move to the layout's: label the part as drawn
+    const k = scale / box.tag;
+    return anatomyMarkers(anatomy, { cx: box.cx * k, cy: box.cy * k, w: box.w * k, h: box.h * k, sw: box.sw }, scale, a?.key, widths).markers;
+  }, [layout, scale, box, anatomy, a?.key, widths]);
   const has = PLAY[part.name] || SPECIMENS[part.name];
   return (
     <Flow gap={8} id={stageId} grow="first">
       {/* HOLE (BELLA gap): the tool column beside the stage (zoom in, fit, zoom out, light/dark, mark up)
           waits on a BELLA tool-column part; Stage's own Fit and 100% stand in until then. */}
       <Stage label={`${part.name} on the stage`} leaderVariant="red" markers={markers} scale={scale} onSelect={onPick} activeId={lit} onActiveChange={setLit}>
-        <Flow id={liveId} align="center">
+        <Flow id={liveId} align="center" data-stage-part="">
           <Flow id={shownId} align="center">
             {has ? <LivePart part={part} variant={variant} label={label} state={shown} /> : <EmptyState size="lane" mark="🧩" title="No live sample yet" line={`CHIP has no live sample of ${part.name} to draw yet.`} />}
           </Flow>
