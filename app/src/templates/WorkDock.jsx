@@ -119,7 +119,8 @@ export default function WorkDock() {
   const [draft, setDraft] = useState('');
   // one chat (her 20 Nov "i just want one please"; audit 4, item 1): BELLA and the agent in
   // one ChatThread, one empty state, one Send
-  const asker = useAsk({ thread: true });
+  // scope 'data': CHIP's measured data first; no document is ever quoted here (her 23 Nov)
+  const asker = useAsk({ thread: true, scope: 'data' });
   // the chat collapses without ending (her reading, 22 Nov): it is kept while CHIP is open, so closing
   // the panel or moving to another page and back finds it as it was; New chat is what ends it
   const [turns, setTurns] = useState(() => kept.turns);

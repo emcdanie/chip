@@ -8,7 +8,7 @@ import { join, resolve, relative } from 'node:path';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { ROOT, PORT, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL, NOTES_DIR } from './lib/config.mjs';
-import { ask, askStream, WEAK_SCORE } from './lib/ask.mjs';
+import { ask, askStream, setChipDataDeps, WEAK_SCORE } from './lib/ask.mjs';
 import { warm } from './lib/llm.js';
 import { loadIndex, buildIndex, searchDocs } from './lib/index.mjs';
 import { listDocs, readDoc, saveDoc, STATUSES } from './lib/docs.mjs';
@@ -74,6 +74,8 @@ app.post('/ask', async (req, res) => {
   const route = typeof req.body?.route === 'string' ? req.body.route.slice(0, 160) : null;
   const auto = req.body?.auto === true;
   const includePrivate = req.body?.includePrivate === true;
+  // scope 'data': the Work panel's Ask BELLA answers from CHIP's measured data, never from documents
+  const scope = req.body?.scope === 'data' ? 'data' : undefined;
   const override = req.body?.override;
   if (override && typeof override.autoChose === 'string' && typeof override.chose === 'string') {
     logUsage({ type: 'override', autoChose: override.autoChose.slice(0, 80), chose: override.chose.slice(0, 80), page });
@@ -89,7 +91,7 @@ app.post('/ask', async (req, res) => {
       // record: what the page is asking about, used as a source ({ id, title, text }, capped)
       const r = req.body?.record;
       const record = r && typeof r.text === 'string' ? { id: String(r.id ?? '').slice(0, 80), title: String(r.title ?? 'This record').slice(0, 200), text: r.text.slice(0, 4000) } : null;
-      for await (const ev of askStream(message.trim(), sessionId, page, { provider: providerId, includePrivate, record })) {
+      for await (const ev of askStream(message.trim(), sessionId, page, { provider: providerId, includePrivate, record, scope })) {
         res.write(JSON.stringify(ev) + '\n');
         // route: where the answer was made; why: the router's reason
         if (ev.type === 'done') logUsage({ type: 'ask', route: ev.place === 'cloud' ? 'cloud' : 'local', provider: ev.provider, model: ev.model, prompt: ev.tokens.prompt, output: ev.tokens.output, ms: Date.now() - t0, asked: providerId ?? 'local', why: route, auto, page });
@@ -634,6 +636,14 @@ function keptRead(key, fn, { fresh = false } = {}) {
 }
 const READS = { needs: () => needsYou(), projects: async () => ({ projects: await projectsSummary() }), map: () => systemMap() };
 const isFresh = (req) => req.query.fresh === '1';
+// what the Work panel's Ask BELLA may read (server/lib/chipdata.mjs): the same reads the pages use, never a write
+setChipDataDeps({
+  drift: readDrift,
+  gaps: readGaps,
+  checks: () => listChecks({ waiting: waitingChecks() }),
+  audits: readAudits,
+  needs: () => Promise.race([keptRead('needs', READS.needs), new Promise((r) => setTimeout(() => r(null), 8000))]),
+});
 app.get('/needs', async (req, res) => {
   try {
     res.json(await keptRead('needs', READS.needs, { fresh: isFresh(req) }));

@@ -9,7 +9,8 @@ import { resolve, providers } from '../providers/index.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { listChecks } from './checks.mjs';
 import { reviewCard, waitingChecks } from './review.mjs';
-import { BELLA_JSON, CHIP_CONTEXT_WORDS, CONTEXT_PACK } from './config.mjs';
+import { BELLA_JSON, CHIP_CONTEXT_WORDS, CONTEXT_PACK, CHIP_MODEL } from './config.mjs';
+import { defaultCtx, gather, dataPrompt, shapeData, numbersHeld, plainReply, DATA_SYSTEM, NO_DATA } from './chipdata.mjs';
 
 // The Cowork context pack opens every local-model prompt (background on
 // BELLA, CHIP and how Elleta works). Read fresh each time: it is small and
@@ -490,7 +491,55 @@ export function dataAnswer(message) {
   return { reply: [verdict, ...bullets].join('\n'), sources: [source(findings, `${parts.length} parts in BELLA ${d.source?.version ?? ''} (${d.source?.commit ?? ''}). ${check.key}: ${having.length} true, ${lacking.length} false.`, countLine)], next: others };
 }
 
+// The Work panel's Ask BELLA (her 23 Nov: "how come i cant talk to the agents here and get real data??"):
+// CHIP's measured data first, the local model only to say it in words, never a document and never a paid run.
+// deps: readers the server hands in (drift, gaps, checks, audits, needs); tests pass fixtures through opts.ctx.
+let dataDeps = {};
+export const setChipDataDeps = (d) => { dataDeps = d; };
+// a question that is about code or design, not about what CHIP measures: only an agent can read it
+const AGENT_WORK = /\b(built|written|implemented|coded) (correctly|right|properly)\b|\bfrom the (stories|story|figma|design)\b|\b(matches?|follows?|same as) (the )?(figma|design|stories|story)\b/i;
+const AGENT_LINE = 'Whether the code is built that way is not something CHIP measures: an agent has to read it.';
+export async function* dataStream(message, sessionId, opts = {}) {
+  const id = sessionId || randomUUID();
+  const ctx = opts.ctx ?? defaultCtx(dataDeps);
+  const pick = opts.pick ?? (async (prompt) => chat([{ role: 'user', content: prompt }]));
+  const { results } = await gather(message, ctx, { pick });
+  const toAgent = AGENT_WORK.test(message);
+  const model = String(opts.provider ?? '').startsWith('local:') ? opts.provider.slice('local:'.length) : undefined;
+  const modelName = model || (await providers.local.list().catch(() => [])).find((x) => x.isDefault)?.label || CHIP_MODEL;
+  if (!results.length) {
+    yield { type: 'provider', id: 'data', place: 'data', model: 'CHIP’s data' };
+    yield { type: 'done', reply: toAgent ? AGENT_LINE : NO_DATA, sessionId: id, sources: [], data: [], needsAgent: true, next: [], provider: 'data', place: 'data', model: 'CHIP’s data', tokens: { prompt: 0, output: 0 } };
+    return;
+  }
+  const shaped = shapeData(results);
+  yield { type: 'sources', sources: shaped.sources, sessionId: id };
+  yield { type: 'provider', id: 'local', place: 'data', model: modelName };
+  const stats = {};
+  let reply = '';
+  try {
+    for await (const t of providers.local.ask({ system: DATA_SYSTEM, messages: [{ role: 'user', content: dataPrompt(message, results) }], model, stats })) {
+      reply += t;
+      yield { type: 'token', text: t };
+    }
+  } catch {
+    reply = '';
+  }
+  reply = reply.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  // a model that is off, empty, or wrote a number the data does not hold: the same answer from the facts alone
+  if (!reply || !numbersHeld(reply, results)) reply = plainReply(results);
+  if (toAgent) reply = `${reply}\n${AGENT_LINE}`;
+  yield { type: 'done', reply, sessionId: id, sources: shaped.sources, data: shaped.data, needsAgent: toAgent, next: [], provider: 'local', place: 'data', model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
+}
+
 export async function* askStream(message, sessionId, page, opts = {}) {
+  if (opts.scope === 'data') {
+    const hit = dataAnswer(message);
+    if (!hit) {
+      yield* dataStream(message, sessionId, opts);
+      return;
+    }
+  }
   // CHIP's data first: a question it answers never reaches a model (no record question: that is about one change)
   const fromData = opts.record ? null : dataAnswer(message);
   if (fromData) {

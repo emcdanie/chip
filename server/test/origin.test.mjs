@@ -65,3 +65,17 @@ test('a site rebound to 127.0.0.1 under another Host is refused', async () => {
   });
   assert.equal(status, 403);
 });
+
+test("the Work panel's data question (scope: data) is refused from a foreign site, and the real server mounts the guard before /ask", async () => {
+  const before = calls;
+  const r = await fetch(`http://127.0.0.1:${port}/ask`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'https://evil.example' },
+    body: JSON.stringify({ message: 'is chip on system', scope: 'data' }),
+  });
+  assert.equal(r.status, 403);
+  assert.equal(calls, before);
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../server.js', import.meta.url), 'utf8');
+  assert.ok(src.indexOf('app.use(onlyChip(') > 0 && src.indexOf('app.use(onlyChip(') < src.indexOf("app.post('/ask'"));
+});

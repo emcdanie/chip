@@ -23,6 +23,7 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Step from '@bella/components/Step/Step';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Flow from './Flow.jsx';
 import { AnswerLines, NotAnswered, Reply, Ticks, briefOf, shapeReply, useCitations } from './useAsk.jsx';
 import { STATUS_Q, workStatus } from '../pages/workModel.js';
@@ -143,6 +144,50 @@ function StatusTurn({ t, last }) {
   );
 }
 
+/* What a data answer rests on (her 23 Nov: real data): each source's numbers with its name and when it was
+   measured, then "Show data" with the real rows, as a table. Never the raw document. */
+function DataAnswer({ data }) {
+  return (
+    <Flow gap={12}>
+      {data.map((d) => (
+        <Flow key={d.n} gap={4}>
+          <TextStack subtitle={`${d.title} · ${d.source} · ${d.measured}`} />
+          <Flow as="ul" gap={4} bullets aria-label={`${d.title}: the numbers`}>
+            {d.facts.slice(0, 5).map((f) => (
+              <li key={f.label}>
+                <TextStack body={`${f.label}: ${f.value}`} />
+              </li>
+            ))}
+          </Flow>
+        </Flow>
+      ))}
+      <Disclosure title="Show data">
+        <Flow gap={16}>
+          {data
+            .filter((d) => d.rows?.length)
+            .map((d) => (
+              <Flow key={d.n} gap={8}>
+                <TextStack subtitle={`${d.title} · ${d.rows.length} ${d.rows.length === 1 ? 'row' : 'rows'} · ${d.measured}`} />
+                {/* rows wrap at any width: a table here made the bubble wider than the phone-width panel */}
+                <Flow as="ul" gap={8} aria-label={`${d.title}: the rows`}>
+                  {d.rows.slice(0, 12).map((r, i) => {
+                    const [first, ...rest] = d.columns.map((c) => [c, r[c]]).filter(([, v]) => v !== '' && v != null);
+                    return (
+                      <li key={i}>
+                        <TextStack title={String(first?.[1] ?? '')} subtitle={rest.map(([c, v]) => `${c} ${v}`).join(' · ') || undefined} />
+                      </li>
+                    );
+                  })}
+                </Flow>
+                {d.rows.length > 12 ? <TextStack subtitle={`${d.rows.length - 12} more rows`} /> : null}
+              </Flow>
+            ))}
+        </Flow>
+      </Disclosure>
+    </Flow>
+  );
+}
+
 /* One turn: her message, then BELLA's reply (or what it's doing), then the agent's run if she sent it on. */
 function Turn({ turn, last, sent, onAgent, onRetry }) {
   const a = turn.answer;
@@ -164,12 +209,15 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
         </Flow>
       ) : null}
       {a?.status === 'answer' ? (
-        <Reply who={a.model ? `BELLA · ${a.model}` : 'BELLA'} disc="B" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>Send it to the agent</ActionChip> : null}>
-          <AnswerLines shaped={shaped} onPin={openPin} />
+        <Reply who={a.model ? `BELLA · ${a.model}` : 'BELLA'} disc="B" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>{a.needsAgent ? 'Ask an agent' : 'Send it to the agent'}</ActionChip> : null}>
+          <Flow gap={12}>
+            <AnswerLines shaped={shaped} onPin={openPin} />
+            {a.data?.length ? <DataAnswer data={a.data} /> : null}
+          </Flow>
         </Reply>
       ) : null}
-      {a?.status === 'answer' ? citation : null}
-      {a?.status === 'answer' ? sourcesFold : null}
+      {a?.status === 'answer' && !a.data?.length ? citation : null}
+      {a?.status === 'answer' && !a.data?.length ? sourcesFold : null}
       {a?.status === 'weak' || a?.status === 'error' || a?.status === 'stopped' ? <NotAnswered a={a} onRetry={onRetry} /> : null}
     </Flow>
   );
@@ -242,7 +290,7 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
     if (SEND.test(text) && answers[lastAsked]?.status === 'answer') return startRun({ i: lastAsked, answer: answers[lastAsked] });
     if (STATUS_Q.test(text)) return status(text);
     setTurns((t) => [...t, { text, at: hhmm() }]);
-    asker.ask(text, window.location.hash || '#/health/work', undefined, undefined, provider);
+    asker.ask(text, window.location.hash || '#/work', undefined, undefined, provider);
   };
   // her new message brings the chat to its foot; an answer arriving never pulls her down if she scrolled up
   // braces: newer Chromium returns a Promise from scrollIntoView, and an effect that returns

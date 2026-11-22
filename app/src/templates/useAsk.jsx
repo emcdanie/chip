@@ -66,7 +66,7 @@ function plainError(message = '') {
  * ask(message, page, record?, question?) streams an answer; setLocal(answer) shows one CHIP already knows.
  * thread: keep the earlier turns (past) when a new question starts, for a chat (the Work panel).
  */
-export default function useAsk({ thread = false } = {}) {
+export default function useAsk({ thread = false, scope } = {}) {
   const [answer, setAnswer] = useState(null);
   const [past, setPast] = useState([]);
   const current = useRef(null);
@@ -80,7 +80,7 @@ export default function useAsk({ thread = false } = {}) {
     const set = (patch) => mine === turn.current && setAnswer((a) => ({ ...a, ...patch }));
     const q = question ?? message;
     const at = hhmm();
-    const reading = record ? 'Reading this change' : "Reading BELLA's docs";
+    const reading = record ? 'Reading this change' : scope === 'data' ? "Reading CHIP's data" : "Reading BELLA's docs";
     // the turn before goes up the thread, unless it is still working (then the new one replaces it)
     if (thread && current.current && current.current.status !== 'thinking') setPast((p) => [...p, current.current]);
     const started = Date.now();
@@ -108,6 +108,7 @@ export default function useAsk({ thread = false } = {}) {
           provider,
           stream: true,
           record,
+          scope,
         }),
         signal: ctrl.signal,
       });
@@ -164,6 +165,9 @@ export default function useAsk({ thread = false } = {}) {
             set({
               status: 'answer',
               next: ev.next ?? [],
+              // CHIP's own measured data, with the real rows behind it, and whether only an agent can go on
+              data: ev.data ?? null,
+              needsAgent: ev.needsAgent === true,
               reply: noFallback(ev.reply || reply),
               sources: all,
               model: ev.model ?? null,
@@ -288,7 +292,7 @@ export function AnswerLines({ shaped, onPin, extra }) {
 const plainClaim = (t) => String(t ?? '').replace(/\*\*|\[\d+\]/g, ' ').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 /* A source opened in place (her mock's Citation open): its pin and title, "n of N · date", previous
-   and next, ✕; the findings first, each with its status mark; the exact line folded; where to open it.
+   and next, ✕; the findings first, each with its status mark; where to open it. No raw markdown dump (23 Nov).
    ✕ or Esc closes it and puts focus back on the pin that opened it. */
 function Citation({ sources, at, claim, onMove, onClose }) {
   const s = sources[at];
@@ -299,7 +303,7 @@ function Citation({ sources, at, claim, onMove, onClose }) {
   const match = mine ? (s.backsFor ?? []).find((b) => { const c = plainClaim(b.claim); return c && (mine.includes(c) || c.includes(mine)); }) : null;
   // the claim's own line first (with its mark when the data gives one); else the source's findings, else its first line
   const findings = match ? [{ text: match.line, ok: match.ok }] : s.findings ?? (s.backs ? [{ text: s.backs }] : s.passage ? [{ text: String(s.passage).split(/(?<=[.!?])\s/)[0] }] : []);
-  // the title without its file path in brackets (it broke alone at 320); the path is under Exact line
+  // the title without its file path in brackets (it broke alone at 320)
   const title = String(s.title).replace(/\s*\([^()]*[/.][^()]*\)\s*$/, '') || s.title;
   // focus moves into the source as it opens (so Tab reads it next), and Esc closes it from anywhere
   useEffect(() => {
@@ -342,11 +346,6 @@ function Citation({ sources, at, claim, onMove, onClose }) {
               </Flow>
             ))}
           </Flow>
-        ) : null}
-        {(s.exact ?? s.passage) ? (
-          <Disclosure title="Exact line">
-            <TextStack subtitle={s.path ?? s.url} body={s.exact ?? s.passage} />
-          </Disclosure>
         ) : null}
         {s.open ? <ListRow layout="inline" title={s.open.label} trailing href={s.open.href} /> : null}
       </Flow>
