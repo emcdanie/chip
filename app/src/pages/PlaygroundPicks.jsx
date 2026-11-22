@@ -1,7 +1,7 @@
 // Playground · Your picks: the A/B questions waiting on you, in the studio
 // layout (Elleta picked B · studio and "Where the A/B opens: A, the Playground
 // tab", 22 Nov; /screens/2026-11-22-playground/). Picks on the left, filtered
-// by the stat cards above (presets on a phone), the option on the Stage in the
+// by the FilterChip row above (All first), the option on the Stage in the
 // middle with your 👍 or 👎 beside its question and the options strip under it
 // (the MediSync strip: titled row, ← and → at its right; arrows, keys and swipe
 // move it, the stage follows), Comments on the option on the right with one
@@ -24,10 +24,6 @@
 //   mark up, compare): ToolColumn always draws Light or dark and Compare, so
 //   zoom, Fit and 100% are Buttons, as in the Needs you view. The picture pans
 //   by dragging (usePan, shared with Needs you).
-// - StatCard has no selected state and only a strip inside it opens; a filter
-//   card is a ListRow (the whole row is the one target, with hover, pressed,
-//   focus and selected). BELLA gap for the coordinator: StatCard `selected` +
-//   whole-card onOpen.
 // - no Splitter part: the comments pane's width is a Slider (keyboard works),
 //   and Hide comments / Show comments hides it; both are remembered.
 // - no Skeleton part: loading says what it is reading, in words, no spinner.
@@ -39,7 +35,6 @@ import Card from '@bella/components/Card/Card';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Heading from '@bella/components/Heading/Heading';
-import IconWell from '@bella/components/IconWell/IconWell';
 import Input from '@bella/components/Input/Input';
 import Link from '@bella/components/Link/Link';
 import ListRow from '@bella/components/ListRow/ListRow';
@@ -290,9 +285,9 @@ function useSize(src) {
 const HOLD = { position: 'relative' };
 
 const FILTERS = [
-  { id: 'open', title: 'Not answered', chip: 'Open', icon: 'Clock', test: (p) => !p.answer },
-  { id: 'answered', title: 'Answered', chip: 'Answered', icon: 'CheckCircle', test: (p) => !!p.answer },
-  { id: 'notes', title: 'With your notes', chip: 'Notes', icon: 'ChatBubbleEmpty', test: (p) => p.comments.length > 0 },
+  { id: 'open', title: 'Not answered', test: (p) => !p.answer },
+  { id: 'answered', title: 'Answered', test: (p) => !!p.answer },
+  { id: 'notes', title: 'With your notes', test: (p) => p.comments.length > 0 },
 ];
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -352,15 +347,6 @@ export default function PlaygroundPicks({ onTry }) {
   // 45 characters or more; list beside the stage from 800; a phone stacks them
   const wide = !useNarrow(1280);
   const phone = useNarrow(800);
-  // the stat cards (160 tall) only where the window is tall enough to keep the question, the stage and the strip
-  // in the first view under them; on a laptop-height or phone window the same filters are presets in one row
-  const [tall, setTall] = useState(() => window.innerHeight >= 1000);
-  useEffect(() => {
-    const on = () => setTall(window.innerHeight >= 1000);
-    window.addEventListener('resize', on);
-    return () => window.removeEventListener('resize', on);
-  }, []);
-  const presets = phone || !tall;
   // opens on what waits on you: the picks not answered yet, unless a link names a pick
   const [filter, setFilter] = useState(() => (asked().get('pick') ? null : 'open'));
   const [at, setAt] = useState(() => asked().get('pick'));
@@ -528,10 +514,6 @@ export default function PlaygroundPicks({ onTry }) {
       setSent('failed');
     }
   }
-  const pickFilter = (id) => {
-    setFilter((x) => (x === id ? null : id));
-    setAt(null);
-  };
 
   /* ---------- the parts ---------- */
 
@@ -555,29 +537,17 @@ export default function PlaygroundPicks({ onTry }) {
     </Flow>
   );
 
-  // filters: the stat cards (approved), presets in one row on a phone so they never fill the first screen
-  const filters = presets ? (
+  // filters: the FilterChip row History and Work use (23 Nov: "just use the filter chips like we have already"):
+  // All first, one filter on at a time, counts beside the name
+  const filters = (
     <Flow direction="row" gap={8} wrap role="group" aria-label="Filter your picks">
+      <FilterChip size="compact" pressed={!filter} onClick={() => (setFilter(null), setAt(null))}>
+        {`All ${picks.length}`}
+      </FilterChip>
       {FILTERS.map((f) => (
-        <FilterChip key={f.id} pressed={filter === f.id} onClick={() => pickFilter(f.id)} size="compact">
-          {`${phone ? f.chip : f.title} · ${counts[f.id]}`}
+        <FilterChip key={f.id} size="compact" pressed={filter === f.id} onClick={() => (setFilter(f.id), setAt(null))}>
+          {`${f.title} ${counts[f.id]}`}
         </FilterChip>
-      ))}
-    </Flow>
-  ) : (
-    <Flow direction="row" gap={24} equal role="group" aria-label="Filter your picks">
-      {FILTERS.map((f) => (
-        <ListRow
-            key={f.id}
-            as="div"
-            layout="stacked"
-            selected={filter === f.id}
-            iconWell={<IconWell icon={f.icon} tone="neutral" />}
-            title={f.title}
-            value={counts[f.id]}
-            description={f.id === 'open' ? `of ${plural(picks.length, 'pick')} on ${plural(items, 'board item')}` : f.id === 'answered' ? 'on the board, to be picked up' : 'notes and pins you left'}
-            onClick={() => pickFilter(f.id)}
-          />
       ))}
     </Flow>
   );
@@ -587,13 +557,6 @@ export default function PlaygroundPicks({ onTry }) {
       <Flow gap={8} scroll style={HOLD} aria-label="Picks, scrolls on its own" tabIndex={0}>
         <SectionHead title="Picks" number={shown.length} titleLevel={2} />
         {freshness}
-        {filter ? (
-          <Flow direction="row">
-            <Button variant="tertiary" onClick={() => pickFilter(filter)}>
-              Show everything
-            </Button>
-          </Flow>
-        ) : null}
         {shown.length ? (
           // one short line a row, its status a Tag; the full question is the stage's heading
           <Flow as="ul" gap={0} aria-label={`Your picks, ${shown.indexOf(pick) + 1} of ${shown.length} selected`}>
@@ -610,7 +573,7 @@ export default function PlaygroundPicks({ onTry }) {
             ))}
           </Flow>
         ) : (
-          <EmptyState size="lane" mark="🙌" title="None here" line="Nothing matches this filter. Show everything to see the rest." />
+          <EmptyState size="lane" mark="🙌" title="None here" line="Nothing matches this filter. Pick All to see the rest." />
         )}
         {/* Parts and pages: the mock's flow has no second tab, so trying a part or a page is the list's last row */}
         {onTry ? (
@@ -787,17 +750,8 @@ export default function PlaygroundPicks({ onTry }) {
 
   return (
     <>
-      {presets && !phone ? (
-        <Flow direction="row" gap={16} justify="between" align="center" wrap>
-          {highlights}
-          {filters}
-        </Flow>
-      ) : (
-        <>
-          {highlights}
-          {filters}
-        </>
-      )}
+      {highlights}
+      {filters}
       {wide ? (
         // the list, then the stage and the comments in halves; each column runs to the window's foot and scrolls
         // on its own, so the question, the stage, the strip, the field and Post are all in the first view
