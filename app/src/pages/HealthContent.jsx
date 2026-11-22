@@ -19,9 +19,9 @@ import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import TextStack from '@bella/components/TextStack/TextStack';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
-import Drawer from '@bella/components/Drawer/Drawer';
 import { planRun } from '../templates/RunPlan.jsx';
 import AuditReading from './AuditReading.jsx';
+import ReadingDrawer, { Inset, ReadingSection } from '../templates/ReadingDrawer.jsx';
 import Marker from '@bella/components/Marker/Marker';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
@@ -127,10 +127,11 @@ function DriftCard({ components }) {
         caption={day ? `Specs from ${day} · ${d.total - d.compared} not read from Figma` : `${d.total - d.compared} not read from Figma`}
         onOpen={() => setOpen(true)}
       />
-      <Drawer open={open} onClose={closed} side="right" size="lg" label="Drift from BELLA" status={`${d.differing} of ${d.total} parts differ · most first`}>
-        <Flow gap={24}>
+      <ReadingDrawer open={open} onClose={closed} label="Drift from BELLA" status={`${d.differing} of ${d.total} parts differ · most first`}>
+        <>
           {/* since the last check: the trend arrow and the mini chart from the snapshots CHIP keeps (/drift history);
               with one snapshot there is no change to show yet */}
+          <Inset gap={24}>
           <Stat
             label="Parts that differ"
             value={d.differing}
@@ -148,6 +149,7 @@ function DriftCard({ components }) {
               </li>
             ))}
           </Flow>
+          </Inset>
         <ListRowGroup ariaLabel="Every part and what differs">
           {d.parts.map((p) => (
             <ListRow
@@ -169,8 +171,8 @@ function DriftCard({ components }) {
             />
           ))}
         </ListRowGroup>
-        </Flow>
-      </Drawer>
+        </>
+      </ReadingDrawer>
     </>
   );
 }
@@ -207,30 +209,32 @@ function GapsCard() {
         caption="What BELLA can't do yet"
         onOpen={() => setOpen(true)}
       />
-      <Drawer
+      <ReadingDrawer
         open={open}
         onClose={closed}
-        side="right"
-        size="lg"
         label="Gaps"
         status={`${plural(total, 'part')} BELLA can't give yet`}
         footer={g.notInCode.length ? <Button variant="primary" onClick={plan}>Plan the build</Button> : undefined}
       >
-        <Flow gap={24}>
-          <Flow gap={8}>
-            <SectionHead title="Specified, not in code" description={`${g.notInCode.length} parts have a spec from Figma and no code part yet`} showInfo={false} />
+        <ReadingSection
+          title="Specified, not in code"
+          description={`${g.notInCode.length} parts have a spec from Figma and no code part yet`}
+          rows={
             <ListRowGroup ariaLabel="Specified, not in code">
               {g.notInCode.map((n) => <ListRow key={n} layout="inline" statusBar="attention" title={n} />)}
             </ListRowGroup>
-          </Flow>
-          <Flow gap={8}>
-            <SectionHead title="Not in BELLA yet" description="Listed in BELLA's AGENTS.md: ask before building" showInfo={false} />
+          }
+        />
+        <ReadingSection
+          title="Not in BELLA yet"
+          description="Listed in BELLA's AGENTS.md: ask before building"
+          rows={
             <ListRowGroup ariaLabel="Not in BELLA yet">
               {g.notInBella.map((n) => <ListRow key={n} layout="inline" statusBar="neutral" title={n} />)}
             </ListRowGroup>
-          </Flow>
-        </Flow>
-      </Drawer>
+          }
+        />
+      </ReadingDrawer>
     </>
   );
 }
@@ -346,9 +350,9 @@ function AuditCard({ a }) {
         caption={`Ran ${dayOf(a.ran)}${was}`}
         onOpen={() => setOpen(true)}
       />
-      <Drawer open={open} onClose={() => setOpen(false)} side="right" size="lg" label={`${a.title} audit`} status={`Ran ${dayOf(a.ran)} · ${lights}`}>
+      <ReadingDrawer open={open} onClose={() => setOpen(false)} label={`${a.title} audit`} status={`Ran ${dayOf(a.ran)} · ${lights}`}>
         <AuditReading a={a} day={dayOf(a.ran)} />
-      </Drawer>
+      </ReadingDrawer>
     </>
   );
 }

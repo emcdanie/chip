@@ -12,6 +12,7 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import Notification from '@bella/components/Notification/Notification';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Flow from '../templates/Flow.jsx';
+import { Inset, ReadingSection } from '../templates/ReadingDrawer.jsx';
 import Keyed from '../templates/Keyed.jsx';
 import { greenFrom, parseReport } from './auditReport.js';
 
@@ -34,8 +35,8 @@ export default function AuditReading({ a, day }) {
     };
   }, [a.id]);
 
-  if (state.error) return <Notification tone="danger" title="The saved report did not open" message="CHIP could not read this audit's report file. The card still shows its last numbers." />;
-  if (!state.r) return <Notification tone="info" title="Reading the report" message="Opening this audit's saved report." />;
+  if (state.error) return <Inset><Notification tone="danger" title="The saved report did not open" message="CHIP could not read this audit's report file. The card still shows its last numbers." /></Inset>;
+  if (!state.r) return <Inset><Notification tone="info" title="Reading the report" message="Opening this audit's saved report." /></Inset>;
   const { r } = state;
   const first = r.orders[0];
   const top = r.orders.slice(0, 3);
@@ -48,13 +49,13 @@ export default function AuditReading({ a, day }) {
 
   return (
     <Flow gap={24}>
-      <Flow gap={8}>
+      <Inset gap={8}>
         <SectionHead icon="Page" iconTone="info" title={r.title || `${a.title} audit`} description={`Ran ${day}`} showInfo={false} />
         {r.meaning ? <TextStack body={<Keyed text={r.meaning} />} /> : null}
-      </Flow>
+      </Inset>
 
       {fill != null ? (
-        <Flow gap={12}>
+        <Inset gap={12}>
           <SectionHead icon="Activity" iconTone="info" title="Score" description={lightWords ?? 'From the saved report'} showInfo={false} />
           <Progress
             label={`${a.title} score`}
@@ -87,23 +88,23 @@ export default function AuditReading({ a, day }) {
               ))}
             </Flow>
           ) : null}
-        </Flow>
+        </Inset>
       ) : null}
 
       {top.length ? (
-        <Flow gap={12}>
-          <SectionHead icon="WarningCircle" iconTone="warning" title="Top work orders" description="Most important first, from the saved report" showInfo={false} />
+        <ReadingSection icon="WarningCircle" iconTone="warning" title="Top work orders" description="Most important first, from the saved report" rows={
           <ListRowGroup ariaLabel={`${a.title}: top work orders`}>
             {top.map((o) => (
-              <ListRow key={o.n} layout="stacked" title={<Keyed text={o.title} />} description={o.why ? <Keyed text={oneSentence(o.why)} /> : undefined} />
+              <ListRow key={o.n} layout="stacked" statusBar="attention" title={<Keyed text={o.title} />} description={o.why ? <Keyed text={oneSentence(o.why)} /> : undefined} />
             ))}
           </ListRowGroup>
-        </Flow>
+        } />
       ) : null}
 
-      {first ? <Notification tone="info" title="Do this first" message={<Keyed text={first.move ? `${first.title}: ${up(first.move)}` : first.title} />} /> : null}
+      {first ? <Inset><Notification tone="info" title="Do this first" message={<Keyed text={first.move ? `${first.title}: ${up(first.move)}` : first.title} />} /></Inset> : null}
 
       {r.orders.length > top.length ? (
+        <Inset>
         <Disclosure title="Every work order" summary={`${r.orders.length} in all`}>
           <Flow gap={12}>
             {r.orders.slice(top.length).map((o) => (
@@ -111,10 +112,11 @@ export default function AuditReading({ a, day }) {
             ))}
           </Flow>
         </Disclosure>
+        </Inset>
       ) : null}
 
       {r.stations.some((s) => s.evidence.length) ? (
-        <Flow gap={0}>
+        <Inset gap={0}>
           {r.stations.map((s) =>
             s.evidence.length ? (
               <Disclosure key={s.n} title={s.name} summary={s.light ? `${WORD[s.light]}${s.score != null ? ` · ${s.score}/${s.max}` : ''}` : `${s.line}`}>
@@ -126,7 +128,7 @@ export default function AuditReading({ a, day }) {
               </Disclosure>
             ) : null,
           )}
-        </Flow>
+        </Inset>
       ) : null}
     </Flow>
   );

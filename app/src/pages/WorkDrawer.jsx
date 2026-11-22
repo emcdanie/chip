@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import FloatingPanel from '@bella/components/FloatingPanel/FloatingPanel';
 import Drawer from '@bella/components/Drawer/Drawer';
+import ReadingDrawer from '../templates/ReadingDrawer.jsx';
 import Button from '@bella/components/Button/Button';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
@@ -274,10 +275,10 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
     return () => clearInterval(t);
   }, [going]);
   const shell = (label, status, body, footer) => (
-    <Drawer open onClose={onClose} side="right" size="lg" label={label} status={status} footer={footer}>
+    <ReadingDrawer open onClose={onClose} label={label} status={status} footer={footer}>
       {/* one left edge with the sheet's title (audit 4, item 5) */}
       <Flow inset>{body}</Flow>
-    </Drawer>
+    </ReadingDrawer>
   );
   if (error) return shell('Fix', undefined, <EmptyState size="lane" title="Couldn’t open this one" line="CHIP didn’t answer just now. Close it and try again." />);
   if (!data) return shell('Fix', undefined, <EmptyState size="lane" title="Opening it" line="Reading the fix from CHIP." />);
@@ -414,11 +415,9 @@ function PushDrawer({ item, onClose }) {
   }, [item.repo]);
   const n = p?.commits.length ?? 0;
   return (
-    <Drawer
+    <ReadingDrawer
       open
       onClose={onClose}
-      side="right"
-      size="lg"
       label={p ? `Push ${p.branch}?` : 'Push'}
       status={p ? `${p.name} · ${n} ${n === 1 ? 'commit' : 'commits'} to ${p.upstream ?? 'nowhere yet'}` : undefined}
       footer={
@@ -462,7 +461,7 @@ function PushDrawer({ item, onClose }) {
           </>
         ) : null}
       </Flow>
-    </Drawer>
+    </ReadingDrawer>
   );
 }
 
@@ -508,7 +507,7 @@ function SessionDrawer({ item, onClose }) {
   const steps = c.steps ?? [];
   const p = c.progress;
   return (
-    <Drawer open onClose={onClose} side="right" size="lg" label={c.title} status={c.line}>
+    <ReadingDrawer open onClose={onClose} label={c.title} status={c.line}>
       <Flow gap={16} inset>
         {p?.total ? <Progress label={`${p.done} of ${p.total} steps done`} fill={Math.round((100 * p.done) / p.total)} tone={p.state === 'done' ? 'success' : 'info'} /> : null}
         {steps.length ? (
@@ -522,7 +521,7 @@ function SessionDrawer({ item, onClose }) {
         )}
         <TextStack subtitle="Read from the session’s own plan in the Claude app. CHIP shows it; it can’t stop or steer the session." />
       </Flow>
-    </Drawer>
+    </ReadingDrawer>
   );
 }
 

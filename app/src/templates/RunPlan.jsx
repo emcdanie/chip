@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
-import Drawer from '@bella/components/Drawer/Drawer';
+import ReadingDrawer from './ReadingDrawer.jsx';
 import ListRow from '@bella/components/ListRow/ListRow';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Tag from '@bella/components/Tag/Tag';
@@ -51,7 +51,7 @@ function RunPlan({ plan, onDone }) {
     }
   };
   return (
-    <Drawer
+    <ReadingDrawer
       open
       onClose={() => (busy ? undefined : onDone({ closed: true }))}
       side="right"
@@ -88,7 +88,7 @@ function RunPlan({ plan, onDone }) {
           </Flow>
         )}
       </Flow>
-    </Drawer>
+    </ReadingDrawer>
   );
 }
 
