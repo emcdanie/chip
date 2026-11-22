@@ -2,15 +2,17 @@
 // embeddings; nothing leaves the machine. Settings come from config.mjs.
 import { OLLAMA_URL, CHIP_MODEL, CHIP_EMBED_MODEL, CHIP_KEEP_ALIVE, CHIP_NUM_CTX } from './config.mjs';
 
-async function request(path, body) {
+async function request(path, body, signal) {
   let res;
   try {
     res = await fetch(OLLAMA_URL + path, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ keep_alive: CHIP_KEEP_ALIVE, ...body }),
+      signal,
     });
-  } catch {
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e;
     throw new Error(`Ollama not reachable at ${OLLAMA_URL} (is it running? \`ollama serve\`)`);
   }
   if (!res.ok) throw new Error(`Ollama ${path} ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -31,8 +33,8 @@ export async function chat(messages) {
 // Yields text pieces as the model generates them (Ollama streams NDJSON).
 // model: any installed Ollama model (the picker's choice); CHIP_MODEL by default
 // stats: filled from Ollama's last line, { prompt, output } tokens
-export async function* chatStream(messages, model, stats = {}) {
-  const res = await request('/api/chat', chatBody(messages, true, model));
+export async function* chatStream(messages, model, stats = {}, signal) {
+  const res = await request('/api/chat', chatBody(messages, true, model), signal);
   const decoder = new TextDecoder();
   let buf = '';
   for await (const part of res.body) {
@@ -76,3 +78,9 @@ export async function listModels() {
 }
 
 export { CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL };
+
+// Load a model without asking it anything, so the next answer finds it ready (a model that was too slow to
+// start in time is warmed after the answer that was made without it). Fire and forget; errors are ignored.
+export function warmModel(model) {
+  fetch(`${OLLAMA_URL}/api/generate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, keep_alive: CHIP_KEEP_ALIVE }) }).catch(() => {});
+}

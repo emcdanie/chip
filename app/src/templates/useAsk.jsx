@@ -96,6 +96,9 @@ export default function useAsk({ thread = false, scope } = {}) {
     });
     const ctrl = new AbortController();
     stopper.current = ctrl;
+    // every question ends in an answer or a plain error inside a minute; the server stops at 60 s, this is the net
+    let late = false;
+    const clock = setTimeout(() => ((late = true), ctrl.abort()), 70_000);
     let reply = '';
     let sources = [];
     try {
@@ -140,6 +143,9 @@ export default function useAsk({ thread = false, scope } = {}) {
               ],
             });
           } else if (ev.type === 'provider') set({ model: ev.model });
+          // what it is doing now, in words ("Asking qwen3.8:27b, loading it can take 30 seconds")
+          else if (ev.type === 'progress') set({ steps: [{ title: reading, detail: `${sources.length} ${sources.length === 1 ? 'source' : 'sources'}`, state: 'done' }, { title: ev.text, state: 'current' }] });
+          else if (ev.type === 'slow') set({ steps: [{ title: reading, state: 'done' }, { title: `${ev.from} did not start in time, so ${ev.to} is answering`, state: 'current' }] });
           else if (ev.type === 'token') {
             reply += ev.text;
             set({
@@ -195,8 +201,11 @@ export default function useAsk({ thread = false, scope } = {}) {
         }
       }
     } catch (e) {
-      if (e.name === 'AbortError') set({ status: 'stopped' });
+      if (e.name === 'AbortError' && late) set({ status: 'error', plain: { what: 'That took too long.', why: 'no answer came back in a minute', can: ['try-again'] }, error: 'That took too long.' });
+      else if (e.name === 'AbortError') set({ status: 'stopped' });
       else set({ status: 'error', plain: e.plain ?? plainOf(e.message), error: (e.plain ?? plainOf(e.message)).text });
+    } finally {
+      clearTimeout(clock);
     }
   };
   return {

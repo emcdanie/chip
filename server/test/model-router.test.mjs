@@ -141,3 +141,52 @@ test('a review question in the data panel gets the data and a one-click Claude o
   assert.equal(done.route.alt.id, 'claude:sonnet');
   assert.match(done.route.why, /Claude is one click away \(3 of 20 today\)/);
 });
+
+/* ---- every question ends inside a minute (22 Nov) ---- */
+const hang = () => new Promise(() => {});
+async function dataRun(askImpl, provider, env = {}) {
+  const { defaultCtx } = await import('../lib/chipdata.mjs');
+  const wasAsk = providers.local.ask;
+  const wasList = providers.local.list;
+  providers.local.ask = askImpl;
+  providers.local.list = async () => models.filter((m) => m.place === 'local');
+  env = { CHIP_NO_WARM: '1', ...env };
+  Object.assign(process.env, env);
+  const ctx = { ...defaultCtx(), guard: async () => ({ at: Date.now(), ok: true }), baseline: () => ({ files: { a: { x: 1 } } }), partsUsed: () => ['Button'], bella: () => ({ components: [{ name: 'Button' }] }) };
+  const events = [];
+  const t0 = Date.now();
+  try {
+    for await (const e of askStream('are we on system', 's9', undefined, { scope: 'data', provider, models, budget, ctx })) events.push(e);
+  } finally {
+    providers.local.ask = wasAsk;
+    providers.local.list = wasList;
+    for (const k of Object.keys(env)) delete process.env[k];
+  }
+  return { events, ms: Date.now() - t0 };
+}
+test('a 27b that does not start in time is dropped for the 8b, and the answer says so', async () => {
+  const { events, ms } = await dataRun(async function* ({ model }) {
+    if (/27b/.test(model)) await hang();
+    yield 'On system is clean.';
+  }, 'local:qwen3.8:27b', { CHIP_FIRST_TOKEN_MS: '150' });
+  assert.ok(ms < 2000);
+  assert.match(events.find((e) => e.type === 'progress').text, /^Asking qwen3\.8:27b, loading it can take 30 seconds/);
+  const slow = events.find((e) => e.type === 'slow');
+  assert.deepEqual([slow.from, slow.to], ['qwen3.8:27b', 'qwen3:8b']);
+  const done = events.find((e) => e.type === 'done');
+  assert.equal(done.model, 'qwen3:8b');
+  assert.match(done.route.why, /qwen3\.8:27b did not start in 0 seconds, so qwen3:8b answered/);
+});
+test('a model that starts and then stalls ends in the facts alone inside the time limit', async () => {
+  const { events, ms } = await dataRun(async function* () {
+    yield 'On ';
+    await hang();
+  }, undefined, { CHIP_ANSWER_MS: '250' });
+  assert.ok(ms < 2500);
+  const done = events.find((e) => e.type === 'done');
+  assert.match(done.reply, /^On system: /);
+});
+test('with no model at all the facts alone still answer', async () => {
+  const { events } = await dataRun(async function* () { throw new Error('ECONNREFUSED'); }, undefined);
+  assert.match(events.find((e) => e.type === 'done').reply, /^On system: /);
+});

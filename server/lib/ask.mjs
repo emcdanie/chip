@@ -4,7 +4,7 @@
 // Notion is now synced into the index, so retrieval replaces tool calls.
 import { randomUUID } from 'node:crypto';
 import { search } from './index.mjs';
-import { chat } from './llm.js';
+import { chat, warmModel } from './llm.js';
 import { resolve, providers, listAll } from '../providers/index.mjs';
 import { claudeLabel } from '../providers/claude.js';
 import { routeModel } from './model-router.mjs';
@@ -495,6 +495,54 @@ export function dataAnswer(message) {
   return { reply: [verdict, ...bullets].join('\n'), sources: [source(findings, `${parts.length} parts in BELLA ${d.source?.version ?? ''} (${d.source?.commit ?? ''}). ${check.key}: ${having.length} true, ${lacking.length} false.`, countLine)], next: others };
 }
 
+// A question ends in an answer or a plain error inside a minute (coordinator, 22 Nov: "no answer text after about
+// 40 seconds"). The local model gets 20 s to start; a model that does not (the 27b loading) is dropped for the
+// default 8b and the answer says so; the whole answer gets 60 s. Both are env-tunable for tests.
+const FIRST_MS = () => Number(process.env.CHIP_FIRST_TOKEN_MS || 20_000);
+const TOTAL_MS = () => Number(process.env.CHIP_ANSWER_MS || 60_000);
+const timedOut = (what) => Object.assign(new Error(`timed out ${what}`), { code: 'TIMEOUT' });
+async function within(promise, ms, what) {
+  let t;
+  const clock = new Promise((_, rej) => (t = setTimeout(() => rej(timedOut(what)), Math.max(1, ms))));
+  try {
+    return await Promise.race([promise, clock]);
+  } finally {
+    clearTimeout(t);
+  }
+}
+const defaultLocal = async () => (await providers.local.list().catch(() => [])).find((x) => x.isDefault)?.label;
+/** Start a local answer: { gen, first, model, from } where `from` is the model that did not start in time (answered by the default instead). */
+async function startLocal(args, defaultModel) {
+  const open = async (m) => {
+    // one that does not start is cancelled, so Ollama is not left loading it in front of the 8b
+    const ctrl = new AbortController();
+    const gen = providers.local.ask({ ...args, model: m, signal: ctrl.signal });
+    try {
+      return { gen, first: await within(gen.next(), FIRST_MS(), 'waiting for the model to start'), model: m };
+    } catch (e) {
+      ctrl.abort();
+      throw e;
+    }
+  };
+  try {
+    return { ...(await open(args.model)), from: null };
+  } catch (e) {
+    if (e.code !== 'TIMEOUT' || !args.model || !defaultModel || args.model === defaultModel) throw e;
+    return { ...(await open(defaultModel)), from: args.model };
+  }
+}
+/** The rest of an answer, within the total time left. */
+async function drain(first, gen, deadline) {
+  let text = '';
+  if (first.done) return text;
+  text += first.value;
+  for (;;) {
+    const n = await within(gen.next(), deadline - Date.now(), 'while the model was answering');
+    if (n.done) return text;
+    text += n.value;
+  }
+}
+
 // The Work panel's Ask BELLA (her 23 Nov: "how come i cant talk to the agents here and get real data??"):
 // CHIP's measured data first, the local model only to say it in words, never a document and never a paid run.
 // deps: readers the server hands in (drift, gaps, checks, audits, needs); tests pass fixtures through opts.ctx.
@@ -525,9 +573,18 @@ export async function* dataStream(message, sessionId, opts = {}) {
   yield { type: 'provider', id: own ? 'data' : 'local', place: 'data', model: own ? 'CHIP’s data' : modelName };
   const stats = {};
   let reply = '';
+  let slow = null;
+  const deadline = Date.now() + TOTAL_MS();
   try {
-    if (!own) for await (const t of providers.local.ask({ system: DATA_SYSTEM, messages: [{ role: 'user', content: dataPrompt(message, results) }], model, stats })) {
-      reply += t; // held until the numbers are checked: the page shows one answer, never one that is then replaced
+    if (!own) {
+      const def = await defaultLocal();
+      if (model && model !== def) yield { type: 'progress', text: `Asking ${model}, loading it can take 30 seconds` };
+      const run = await startLocal({ system: DATA_SYSTEM, messages: [{ role: 'user', content: dataPrompt(message, results) }], stats, model }, def);
+      slow = run.from ? { from: run.from, to: run.model } : null;
+      if (slow) yield { type: 'slow', ...slow };
+      // held until the numbers are checked: the page shows one answer, never one that is then replaced
+      reply = await drain(run.first, run.gen, deadline);
+      if (slow && !process.env.CHIP_NO_WARM) warmModel(slow.from);
     }
   } catch {
     reply = '';
@@ -537,7 +594,7 @@ export async function* dataStream(message, sessionId, opts = {}) {
   if (own) reply = own;
   else if (!reply || !numbersHeld(reply, results)) reply = plainReply(results);
   if (toAgent) reply = `${reply}\n${AGENT_LINE}`;
-  yield { type: 'done', reply, sessionId: id, sources: shaped.sources, data: shaped.data, needsAgent: toAgent, next: [], provider: own ? 'data' : 'local', place: 'data', model: own ? 'CHIP’s data' : modelName, route: own ? { why: 'Answered from the record, no model, free' } : opts.routed ? { why: opts.routed.why, id: opts.routed.id, alt: opts.routed.alt ?? null } : { why: `Local ${modelName} says it from CHIP’s data, free` }, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
+  yield { type: 'done', reply, sessionId: id, sources: shaped.sources, data: shaped.data, needsAgent: toAgent, next: [], provider: own ? 'data' : 'local', place: 'data', model: own ? 'CHIP’s data' : slow?.to ?? modelName, route: own ? { why: 'Answered from the record, no model, free' } : opts.routed ? { why: slow ? `${opts.routed.why}; ${slow.from} did not start in ${Math.round(FIRST_MS() / 1000)} seconds, so ${slow.to} answered` : opts.routed.why, id: opts.routed.id, alt: opts.routed.alt ?? null } : { why: `Local ${modelName} says it from CHIP’s data, free` }, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }
 
 // questions the data router answers in any scope: how it was built, where the gaps are and how to improve
@@ -608,32 +665,48 @@ async function* askStreamInner(message, sessionId, page, opts = {}) {
     for await (const text of p.ask({ system: p.place === 'local' ? withPack(SYSTEM) : SYSTEM, messages: turns, model: m, stats })) yield text;
   };
   let reply = '';
-  let gen = run(provider, model);
+  const deadline = Date.now() + TOTAL_MS();
+  let slow = null;
+  let gen;
   let first;
-  try {
-    first = await gen.next();
-  } catch (err) {
-    if (provider.place !== 'cloud') throw err;
-    yield { type: 'fallback', reason: err.message };
-    provider = providers.local;
-    model = undefined;
-    // a local answer may read every source again, private ones included
-    const again = await prepare(message, id, page, { record: opts.record });
-    if (!again.weak) {
-      ({ turns, sources, texts, remember } = again);
-      yield { type: 'sources', sources, sessionId: id, top: again.top };
+  if (provider.place === 'local') {
+    const def = await defaultLocal();
+    if (model && model !== def) yield { type: 'progress', text: `Asking ${model}, loading it can take 30 seconds` };
+    try {
+      const r = await startLocal({ system: withPack(SYSTEM), messages: turns, stats, model }, def);
+      ({ gen, first } = r);
+      if (r.from) {
+        slow = { from: r.from, to: r.model };
+        model = r.model;
+        yield { type: 'slow', ...slow };
+      }
+    } catch (err) {
+      throw err;
     }
+  } else {
     gen = run(provider, model);
-    first = await gen.next();
+    try {
+      first = await within(gen.next(), TOTAL_MS(), 'waiting for Claude');
+    } catch (err) {
+      yield { type: 'fallback', reason: err.message };
+      provider = providers.local;
+      model = undefined;
+      // a local answer may read every source again, private ones included
+      const again = await prepare(message, id, page, { record: opts.record });
+      if (!again.weak) {
+        ({ turns, sources, texts, remember } = again);
+        yield { type: 'sources', sources, sessionId: id, top: again.top };
+      }
+      const r = await startLocal({ system: withPack(SYSTEM), messages: turns, stats, model }, await defaultLocal());
+      ({ gen, first } = r);
+    }
   }
   const modelName = provider.id === 'claude' ? claudeLabel(model) : model || (await providers.local.list()).find((x) => x.isDefault)?.label || 'local';
   yield { type: 'provider', id: provider.id, place: provider.place, model: modelName };
   // the text is held until its claims are checked: what she reads while it works and in the end is one answer
   // (22 Nov: the stream said one thing and the done event "Nothing in my sources covers that.")
-  if (!first.done) {
-    reply += first.value;
-    for await (const text of gen) reply += text;
-  }
+  reply = await drain(first, gen, deadline);
+  if (slow && !process.env.CHIP_NO_WARM) warmModel(slow.from);
   remember(reply.trim(), provider.place);
   // asked about one record, the answer is that record's only: a "General knowledge" line goes,
   // and with it anything after it (audit 21 Nov: "General knowledge, not your sources: The commit doesn't say.")
@@ -663,5 +736,5 @@ async function* askStreamInner(message, sessionId, page, opts = {}) {
   reply = checked.reply;
   reply = verdictFirst(reply);
   sources = sources.map((x) => (checked.backs.has(x.n) ? { ...x, backs: checked.backs.get(x.n)[0].line, backsFor: checked.backs.get(x.n) } : x));
-  yield { type: 'done', next, reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, route: { why: routed.why, id: routed.id, alt: routed.alt ?? null }, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
+  yield { type: 'done', next, reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, route: { why: slow ? `${routed.why}; ${slow.from} did not start in ${Math.round(FIRST_MS() / 1000)} seconds, so ${slow.to} answered` : routed.why, id: routed.id, alt: routed.alt ?? null }, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }

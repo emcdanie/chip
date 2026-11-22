@@ -189,7 +189,7 @@ function DataAnswer({ data }) {
 }
 
 /* One turn: her message, then BELLA's reply (or what it's doing), then the agent's run if she sent it on. */
-function Turn({ turn, last, sent, onAgent, onRetry }) {
+function Turn({ turn, last, sent, onAgent, onRetry, onStop }) {
   const a = turn.answer;
   // the same sources as Ask: a pin opens its source under the reply, the sources fold under it
   const { openPin, citation, sourcesFold } = useCitations(a?.status === 'answer' ? a : null);
@@ -204,7 +204,14 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
       </Flow>
       {a?.status === 'thinking' ? (
         <Flow gap={8}>
-          <TypingDots name="BELLA" />
+          <Flow direction="row" justify="between" align="center" gap={8}>
+            <TypingDots name="BELLA" />
+            {onStop ? (
+              <Button variant="tertiary" size="sm" onClick={onStop}>
+                Stop
+              </Button>
+            ) : null}
+          </Flow>
           <Ticks steps={a.steps ?? []} />
         </Flow>
       ) : null}
@@ -325,7 +332,7 @@ export default function TermChat({ asker, turns, setTurns, provider, onOpen, say
         {t.local ? (
           <StatusTurn t={t} last={n === rows.length - 1} />
         ) : t.agentFor == null ? (
-          <Turn turn={t} last={n === rows.length - 1} sent={rows.some((x) => x.agentFor === t.i)} onAgent={startRun} onRetry={n === rows.length - 1 ? (p) => asker.retry(p ?? provider) : undefined} />
+          <Turn turn={t} last={n === rows.length - 1} sent={rows.some((x) => x.agentFor === t.i)} onAgent={startRun} onRetry={n === rows.length - 1 ? (p) => asker.retry(p ?? provider) : undefined} onStop={n === rows.length - 1 ? asker.stop : undefined} />
         ) : (
           <Flow gap={12}>
             <Flow gap={4}>
