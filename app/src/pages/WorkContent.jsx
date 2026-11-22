@@ -69,16 +69,12 @@ const SORTS = [
   { value: 'started', label: 'When it started' },
 ];
 
-/* The short card's progress (section 4, her pick still open; my pick built): one bar with "n of m" beside it
-   in Geist Mono, then the step running now after the circle. Every card with work carries c.progress
-   ({ state: blank | working | waiting | done | error, done, total, now }) and c.what (the line without
-   the count), read live (sessions every 15 s, runs every 3 s while one goes).
-   TaskCard has no body prop. It draws progress itself from `progress`, `progressDone`, `progressTotal`, `stepNow`
-   and `paused` (its story, 23 Nov). To switch to the short card: set SHORT_CARD = true and pass those props from
-   c.progress ({ done, total, now }); nothing is drawn here.
-   Until then the count and the step stay in the card's line, so nothing is lost. */
-const SHORT_CARD = false;
-const cardLine = (c) => (SHORT_CARD && c.progress && c.progress.state !== 'blank' && c.what ? c.what : c.line);
+/* The short card (section 4, 23 Nov: "i like these and i dont see them in the board yet"): TaskCard draws
+   one bar with "n of m" beside it and the step running now from its progress props; every card with work
+   carries c.progress ({ state, done, total, now }) and c.what (the line without the count). A card with no
+   steps keeps its one line. A picture thumbnail in the card is a named gap: TaskCard has no picture part. */
+const hasProgress = (c) => !!c.progress && c.progress.state !== 'blank' && c.progress.total > 0 && !!c.what;
+const cardLine = (c) => (hasProgress(c) ? c.what : c.line);
 
 /* the label on the blue drop space: what the drop does */
 function dropLabel(card, from, to) {
@@ -101,6 +97,11 @@ function Lane({ lane, move, why }) {
         <TaskCard
           title={c.title}
           line={cardLine(c)}
+          progress={hasProgress(c)}
+          progressDone={c.progress?.done}
+          progressTotal={c.progress?.total}
+          stepNow={hasProgress(c) && c.progress.state !== 'done' ? c.progress.now ?? undefined : undefined}
+          paused={!!c.paused}
           status={c.status}
           statusTone={c.tone}
           onOpen={c.open || c.kind === 'session' ? () => move.open(c) : undefined}
@@ -230,7 +231,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
     if (f) q.set('filter', f);
     else q.delete('filter');
-    const next = `#/work${q.toString() ? `?${q}` : ''}`;
+    const next = `#/health/work${q.toString() ? `?${q}` : ''}`;
     if (window.location.hash !== next) window.history.replaceState(null, '', next);
   };
   const [sort, setSort] = useState('mine');
@@ -242,6 +243,17 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
   useEffect(() => {
     if (tool === 'search') searchRef.current?.querySelector('input')?.focus();
   }, [tool]);
+  // Esc takes the filter, the sort and the search off (nothing open: the menus and the search field keep their own Esc)
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || tool || e.defaultPrevented || (e.target.closest?.('input, textarea, [role="dialog"], [role="menu"]'))) return;
+      setSort('mine');
+      setQ('');
+      setFilter(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
   const model = shown(all, { filter, sort, q, branch: hashFilter.branch });
   // a review page that needs her opens inside CHIP over the board (her pick A, 23 Nov); a pull request on GitHub; a component on its page; the rest in the drawer
   const [reviewing, setReviewing] = useState(null);
@@ -281,29 +293,16 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
   const now = all?.lanes.find((l) => l.id === 'now')?.cards ?? [];
   const working = now.filter((c) => !c.needs).length;
   const waiting = now.filter((c) => c.needs).length;
+  const everything = (all?.lanes ?? []).reduce((n, l) => n + l.cards.length, 0);
   const filterLabel = filter === 'needs' ? 'Needs you' : filter === 'components' ? 'Components that need work' : filter?.startsWith('area:') ? filter.slice(5) : filter?.startsWith('lane:') ? `Lane: ${LANE_NAMES[filter.slice(5)]}` : null;
   return (
     <>
-      {/* Tools row: what the board shows and the last check on the left; Filter, Sort, Search, Branch and the views on the right */}
-      {reviewing ? null : <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'} grow={phone ? undefined : 'first'}>
-        <Flow direction="row" gap={16} wrap align="center">
-          {filterLabel ? (
-            <FilterChip pressed onClick={() => setFilter(null)} ariaLabel={`${filterLabel}, ${model?.total ?? 0} cards. Clear the filter`}>
-              {`${filterLabel} · ${model?.total ?? 0}`}
-            </FilterChip>
-          ) : (
-            <TextStack title={all ? `${working} at work · ${waiting} wait on you` : 'Reading the board'} />
-          )}
-          <Flow direction="row" gap={8} align="center">
-            {checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
-            <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={() => ((checkAsked.current = true), onCheck?.())}>
-              {loading ? 'Checking…' : 'Check again'}
-            </Button>
-          </Flow>
-        </Flow>
-        <Flow direction="row" gap={8} align="center" justify="end" wrap stretch={phone}>
+      {/* Tools row, full width (23 Nov: "i want this to span so the numerical values are on the right"): Filter, Sort,
+          Search and Branch on the left; the count, the last check and the views on the right. */}
+      {reviewing ? null : <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'}>
+        <Flow direction="row" gap={8} align="center" wrap stretch={phone}>
           <div className="chip-pop" style={phone ? { position: 'static' } : undefined}>
-            <Button variant="tertiary" size="sm" iconOnly icon="FilterList" ariaLabel="Filter" ariaExpanded={tool === 'filter'} onClick={() => setTool((t) => (t === 'filter' ? null : 'filter'))} />
+            <Button variant="tertiary" size="sm" iconOnly icon="FilterList" ariaLabel="Filter" ariaPressed={!!filter} ariaExpanded={tool === 'filter'} onClick={() => setTool((t) => (t === 'filter' ? null : 'filter'))} />
             {tool === 'filter' ? (
               <div className="chip-pop__menu" style={phone ? { marginInlineStart: 'var(--spacing-16)' } : undefined}>
                 <Menu label="Filter" onClose={() => setTool(null)}>
@@ -323,7 +322,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
             ) : null}
           </div>
           <div className="chip-pop" style={phone ? { position: 'static' } : undefined}>
-            <Button variant="tertiary" size="sm" iconOnly icon="NavArrowUpDown" ariaLabel={`Sort: ${SORTS.find((s) => s.value === sort).label}`} ariaExpanded={tool === 'sort'} onClick={() => setTool((t) => (t === 'sort' ? null : 'sort'))} />
+            <Button variant="tertiary" size="sm" iconOnly icon="NavArrowUpDown" ariaLabel={`Sort: ${SORTS.find((s) => s.value === sort).label}`} ariaPressed={sort !== 'mine'} ariaExpanded={tool === 'sort'} onClick={() => setTool((t) => (t === 'sort' ? null : 'sort'))} />
             {tool === 'sort' ? (
               <div className="chip-pop__menu" style={phone ? { marginInlineStart: 'var(--spacing-16)' } : undefined}>
                 <Menu label="Sort" onClose={() => setTool(null)}>
@@ -339,12 +338,43 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
               <SearchField label="Search the board" placeholder="Search cards" value={q} onChange={setQ} />
             </div>
           ) : (
-            <Button variant="tertiary" size="sm" iconOnly icon="Search" ariaLabel="Search the board" onClick={() => setTool('search')} />
+            <Button variant="tertiary" size="sm" iconOnly icon="Search" ariaPressed={!!q} ariaLabel="Search the board" onClick={() => setTool('search')} />
           )}
           <BranchPicker branch={hashFilter.branch} />
+        </Flow>
+        <Flow direction="row" gap={16} wrap align="center" justify={phone ? 'start' : 'end'}>
+          <TextStack title={all ? `${working} at work · ${waiting} wait on you` : 'Reading the board'} />
+          <Flow direction="row" gap={8} align="center">
+            {checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
+            <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={() => ((checkAsked.current = true), onCheck?.())}>
+              {loading ? 'Checking…' : 'Check again'}
+            </Button>
+          </Flow>
           <SegmentedControl options={VIEWS} value={view} onChange={onView} label="Work view" />
         </Flow>
       </Flow>}
+      {/* what is on, with a way off, and how much of the board it leaves (feedback for Filter, Sort and Search) */}
+      {reviewing || !all || !(filter || sort !== 'mine' || q) ? null : (
+        <Flow direction="row" gap={8} wrap align="center">
+          {filter ? (
+            <FilterChip pressed onClick={() => setFilter(null)} ariaLabel={`Filtered by ${filterLabel}. Clear the filter`}>
+              {`Filtered by: ${filterLabel}`}
+            </FilterChip>
+          ) : null}
+          {sort !== 'mine' ? (
+            <FilterChip pressed onClick={() => setSort('mine')} ariaLabel={`Sorted by ${SORTS.find((x) => x.value === sort).label.toLowerCase()}. Back to your order`}>
+              {`Sorted by: ${SORTS.find((x) => x.value === sort).label.toLowerCase()}`}
+            </FilterChip>
+          ) : null}
+          {q ? (
+            <FilterChip pressed onClick={() => setQ('')} ariaLabel={`Searching for ${q}. Clear the search`}>
+              {`Search: ${q}`}
+            </FilterChip>
+          ) : null}
+          <Button variant="tertiary" size="sm" onClick={() => (setSort('mine'), setQ(''), setFilter(null))}>Clear</Button>
+          {model ? <TextStack subtitle={`Showing ${model.total} of ${everything}`} /> : null}
+        </Flow>
+      )}
       {!model ? (
         <EmptyState size="lane" mark="⏳" title="Reading the board" line="Fetching the sessions, what needs you and the ideas." />
       ) : (
@@ -413,7 +443,7 @@ function BranchPicker({ branch }) {
   if (!names.length) return null;
   const pick = (name) => {
     setOpen(false);
-    window.location.hash = name ? `#/work?branch=${encodeURIComponent(name)}` : '#/work';
+    window.location.hash = name ? `#/health/work?branch=${encodeURIComponent(name)}` : '#/health/work';
   };
   return (
     <div className="chip-pop">
