@@ -39,6 +39,8 @@ import DataTable from '@bella/components/DataTable/DataTable';
 import Tag from '@bella/components/Tag/Tag';
 import Link from '@bella/components/Link/Link';
 import SearchField from '@bella/components/SearchField/SearchField';
+import Icon from '@bella/components/Icon/Icon';
+import Step from '@bella/components/Step/Step';
 import Flow from '../templates/Flow.jsx';
 import Toasts from '../templates/Toasts.jsx';
 import Toast from '@bella/components/Toast/Toast';
@@ -303,57 +305,143 @@ function words(t) {
 const START = '--nav-list-current-background'; // Figma's picked token
 // a group path may break after its slashes, never mid-word: a <wbr>, which a screen reader skips
 const slashBreaks = (t) => t.split('/').flatMap((w, i) => (i ? ['/', <wbr key={i} />, w] : [w]));
-const TIER_ORDER = { definitions: 0, theme: 1, component: 2 };
+const PART_ROWS = 5;
 
-/* Tiers (Figma 612:62034): three columns of tokens; picking one marks the chain it sits in,
-   from its definition through its theme role to the part that uses it.
-   Gaps (named for the library): ListRow has no colour-dot lead, and no part draws the
-   curved line from row to row across columns, so the chain shows as selected rows. */
-function Tiers() {
-  // three columns only where each keeps "color/background" on one line (a 1200 window); below, they stack
+/* A token's live colour as hex in the page's theme, read through a probe so var() chains resolve. */
+function liveHex(name) {
+  const probe = document.createElement('span');
+  probe.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') || 'chip-light');
+  probe.style.position = 'absolute';
+  probe.style.visibility = 'hidden';
+  document.body.appendChild(probe);
+  probe.style.color = `var(${name})`;
+  const c = channels(getComputedStyle(probe).color);
+  probe.remove();
+  return c ? (c.a < 1 ? `${hex(c)} ${Math.round(c.a * 100)}%` : hex(c)) : null;
+}
+
+/* Tiers (Figma 612:62034, rebuilt 23 Nov after "i dont understand the tiers thing at all"): the three Figma
+   columns of four tokens become a picker (search and the three tier names as FilterChips, as History does)
+   and the picked token's chain: plain colour, what it is for, where it is used, in three numbered steps.
+   Rows keep Figma's look: the colour sample, the token's name, its group underneath, the light-blue selected row.
+   Gap (named for the library): Figma draws a curved blue line from row to row across columns; the picker has
+   one list, so the chain's steps stand in for it, and Step draws a line, not an arrow, between them. */
+function Tiers({ bella }) {
+  // picker beside the chain only where each keeps a readable width (1200 and up); below, they stack
   const narrow = useNarrow(1200);
   const data = useTokenTiers();
   const [picked, setPicked] = useState(START);
+  const [tier, setTier] = useState('component');
+  const [q, setQ] = useState('');
+  const [allParts, setAllParts] = useState(false);
   if (!data) return null;
   const { tokens, byName } = data;
-  const pick = byName.has(picked) ? picked : tokens.find((t) => t.tier === 'component')?.name;
-  // the chain: up through what it points at, down to the first token that points at it
-  const chain = new Set();
-  for (let t = byName.get(pick); t && !chain.has(t.name); t = t.to ? byName.get(t.to) : null) chain.add(t.name);
-  for (let name = pick; ; ) {
-    const down = tokens.find((t) => t.to === name && !chain.has(t.name));
-    if (!down) break;
-    chain.add(down.name);
-    name = down.name;
-  }
+  const pick = byName.get(picked) ?? tokens.find((t) => t.tier === 'component');
   const count = (k) => tokens.filter((t) => t.tier === k).length;
   const total = TIERS.reduce((n, [k]) => n + count(k), 0);
-  // each column: its chain token, then three of the same group
-  const rows = (k) => {
-    const mine = tokens.filter((t) => t.tier === k);
-    const hit = mine.find((t) => chain.has(t.name));
-    const group = hit ? words(hit).sub : null;
-    const others = mine.filter((t) => t !== hit && (!group || words(t).sub === group));
-    return [...(hit ? [hit] : []), ...others, ...mine.filter((t) => t !== hit && !others.includes(t))].slice(0, 4);
-  };
+  const plain = (t) => t.name.replace(/^--color-/, '').replace(/-/g, ' ');
+  const roleName = (t) => `color/${t.name.replace(/^--color-/, '').replace('-', '/')}`;
+
+  // the chain, up through what the token points at and down to the first token that points at it
+  let def = null;
+  let role = null;
+  let comps = [];
+  if (pick.tier === 'component') {
+    role = byName.get(pick.to) ?? null;
+    comps = [pick];
+  } else if (pick.tier === 'theme') {
+    role = pick;
+    comps = tokens.filter((t) => t.tier === 'component' && t.to === pick.name);
+  } else {
+    def = pick;
+    role = tokens.find((t) => t.tier === 'theme' && t.to === pick.name) ?? null;
+    comps = role ? tokens.filter((t) => t.tier === 'component' && t.to === role.name) : [];
+  }
+  if (!def && role) def = byName.get(role.to) ?? null;
+  const rolesOfDef = def ? tokens.filter((t) => t.tier === 'theme' && t.to === def.name).length : 0;
+  // parts: those whose CSS reaches the role (measured by sync-bella), or the one part that owns a component token
+  const owner = pick.tier === 'component' ? (bella.components ?? []).filter((c) => pick.name.startsWith(`--${c.id}-`)).sort((a, b) => b.id.length - a.id.length)[0] : null;
+  const parts = role ? (bella.tokenUsage?.[role.name] ?? []) : [];
+  const partList = owner && !parts.includes(owner.name) ? [owner.name, ...parts] : parts;
+  const also = role ? (bella.tokenUsageOther?.[role.name] ?? []) : [];
+  const idOf = (n) => (bella.components ?? []).find((c) => c.name === n)?.id;
+  const shown = allParts ? partList : partList.slice(0, PART_ROWS);
+  const list = (items, max = 3) => (items.length > max ? `${items.slice(0, max).join(', ')} and ${items.length - max} more` : items.join(', '));
+
+  // the picker: search and tier, six rows at most
+  const words1 = q.trim().toLowerCase().replace(/[\s/]+/g, '-');
+  // the picked token leads its own tier, so the selected row is always in view
+  const matches = tokens.filter((t) => t.tier === tier && (!words1 || t.name.includes(words1))).sort((a, b) => (b.name === pick.name) - (a.name === pick.name));
+  const rows = matches.slice(0, 6);
+  const tierJob = TIERS.find(([k]) => k === tier)?.[2];
+
   return (
     <Card>
       <Flow gap={24}>
         <SectionHead icon="ViewGrid" iconTone="info" title="Tiers" description="Pick a token to see where it comes from and where it goes" number={total} words="colour tokens · 3 tiers" />
-        <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
-          {TIERS.map(([k, name, job]) => (
-            <Flow key={k} gap={8}>
-              <SectionHead title={name} titleLevel={3} description={job} number={count(k)} />
-              <Flow as="ul" gap={4} aria-label={`${name} tokens`}>
-                {rows(k).map((t) => (
+        <Flow direction={narrow ? 'column' : 'row'} gap={24} equal align={narrow ? undefined : 'start'}>
+          <Flow gap={16}>
+            <SearchField label="Find a colour token" placeholder="Find a colour token…" showShortcut={false} value={q} onChange={setQ} />
+            <Flow direction="row" gap={8} wrap align="center" aria-label="Which tier">
+              {TIERS.map(([k, name]) => (
+                <FilterChip key={k} pressed={tier === k} onClick={() => setTier(k)}>{`${name} ${count(k)}`}</FilterChip>
+              ))}
+            </Flow>
+            <TextStack body={tierJob} />
+            {rows.length ? (
+              <Flow as="ul" gap={4} aria-label={`${tier} tokens`}>
+                {rows.map((t) => (
                   // a long group may break after a slash, never mid-word (320)
-                  <ListRow key={t.name} layout="stacked" title={words(t).title} description={slashBreaks(words(t).sub)} selected={chain.has(t.name)} trailing onClick={() => setPicked(t.name)} />
+                  <ListRow key={t.name} layout="stacked" swatch={`var(${t.name})`} title={words(t).title} description={slashBreaks(words(t).sub)} selected={t.name === pick.name} trailing onClick={() => setPicked(t.name)} />
                 ))}
               </Flow>
+            ) : (
+              <EmptyState size="lane" mark="🔎" title="No token matches" line="Nothing by that name in this tier. Try fewer letters, or another tier." />
+            )}
+            {matches.length > rows.length ? <TextStack body={`Showing ${rows.length} of ${matches.length}. Type to narrow it down.`} /> : null}
+          </Flow>
+          <Flow gap={16}>
+            <TextStack title={words(pick).title} subtitle={pick.name.replace(/^--/, '')} />
+            <Flow as="ol" gap={0} aria-label="Where this token comes from and where it goes">
+              <Step
+                state="pending" showConnector={false}
+                icon="Palette"
+                title={def ? `Plain colour: ${plain(def)}` : 'Plain colour: none found'}
+                detail="The plain scale every colour starts from"
+                tag={def && liveHex(def.name) ? <Tag tone="neutral" count={liveHex(def.name)} /> : undefined}
+              />
+              <li aria-hidden="true"><Flow direction="row" justify="start"><Icon name="NavArrowDown" size="md" /></Flow></li>
+              <Step
+                state="pending" showConnector={false}
+                icon="ViewGrid"
+                title={role ? `What it is for: ${roleName(role)}` : 'What it is for: nothing yet'}
+                detail={role ? `A job: where this colour goes${rolesOfDef > 1 ? `. ${rolesOfDef} roles share this colour` : ''}` : 'No role points at this colour yet'}
+              />
+              <li aria-hidden="true"><Flow direction="row" justify="start"><Icon name="NavArrowDown" size="md" /></Flow></li>
+              <Step
+                state="pending" showConnector={false}
+                icon="Code"
+                title={partList.length ? `Where it is used: ${list(partList)}` : 'Where it is used: no part yet'}
+                detail={partList.length ? "Parts whose CSS reads it, directly or through the part's own token" : `Defined, no part uses it yet${also.length ? '' : '.'}`}
+                tag={partList.length ? <Tag tone="info" count={`${partList.length} ${partList.length === 1 ? 'part' : 'parts'}`} /> : undefined}
+              />
             </Flow>
-          ))}
+            {shown.length ? (
+              <Flow as="ul" gap={4} aria-label="Parts that use it">
+                {shown.map((n) => (
+                  <ListRow key={n} layout="stacked" title={n} trailing href={idOf(n) ? `#/system/components/${idOf(n)}` : undefined} />
+                ))}
+              </Flow>
+            ) : null}
+            {partList.length > PART_ROWS ? (
+              <Flow direction="row" justify="end">
+                <Button variant="tertiary" size="sm" onClick={() => setAllParts(!allParts)}>{allParts ? 'Show fewer' : `Show all ${partList.length}`}</Button>
+              </Flow>
+            ) : null}
+            {also.length ? <TextStack body={`Also read by ${also.map((u) => (u.kind === 'foundation' ? `${u.name} (a BELLA foundation)` : u.name)).join(', ')}.`} /> : null}
+          </Flow>
         </Flow>
-        <TextStack subtitle={[...chain].sort((a, b) => TIER_ORDER[byName.get(a).tier] - TIER_ORDER[byName.get(b).tier]).map((n) => n.replace(/^--/, '')).join(' → ')} />
+        <TextStack body={`Read from BELLA's CSS in the ${document.documentElement.getAttribute('data-theme') === 'chip-dark' ? 'dark' : 'light'} Chip theme; parts from each part's own CSS.`} />
       </Flow>
     </Card>
   );
@@ -452,6 +540,8 @@ function useAllRoles(bella) {
         const d = read(dark, t);
         if (!l || !d || !surface) return null;
         const used = bella.tokenUsage?.[t] ?? [];
+        // readers that are not parts (a BELLA foundation, CHIP's own app): measured by sync-bella
+        const other = bella.tokenUsageOther?.[t] ?? [];
         return {
           token: t,
           role: t.replace(/^--color-/, ''),
@@ -460,6 +550,8 @@ function useAllRoles(bella) {
           contrast: /^--color-background-/.test(t) ? 'Base' : `${ratio(over(l, groundOf(t)), groundOf(t)).toFixed(1)}:1${ON[t] ? ` on ${ON[t][1]}` : ''}`,
           ratio: /^--color-background-/.test(t) ? 0 : ratio(over(l, groundOf(t)), groundOf(t)),
           used: used.length,
+          other,
+          inUse: used.length + other.length,
           firstPart: used[0] ? nameOf[used[0]] ?? null : null,
         };
       })
@@ -476,7 +568,14 @@ const VIEWS = [
   { value: 'table', label: 'Table' },
 ];
 
+/* A colour no part reads: the plan opens first (templates/RunPlan.jsx); Approve sends it. */
+function wireIt(r) {
+  const brief = [`${r.token} is defined in BELLA's tokens and no part, foundation or CHIP page reads it (measured by sync-bella across src/components, src/foundations and CHIP's app).`, 'Either remove the token from BELLA, or wire it into the part that should use it. Ask before removing a public token.', `- ${r.token}: light ${r.light}, dark ${r.dark}`].join('\n');
+  planRun({ brief, title: `Remove or wire ${r.role}`, from: 'Foundations', steps: [{ id: 'a', title: `Find who should use ${r.role}`, line: r.token }, { id: 'b', title: 'Remove it, or wire it into that part' }] }).catch(() => {});
+}
+
 function RolesTable({ rows, total }) {
+  const onWire = (r) => wireIt(r);
   const columns = [
     // role names in Geist Mono (TextStack's subtext face), as Figma and the type rule
     { key: 'role', label: 'Role', sortable: true, render: (r) => <TextStack subtitle={r.role} /> },
@@ -512,7 +611,19 @@ function RolesTable({ rows, total }) {
       numeric: true,
       sortable: true,
       // "parts", not Figma's "components": the shorter word keeps the cell on one line at 1100
-      render: (r) => (r.used ? <Link href={r.firstPart ? `#/system/components/${r.firstPart}` : '#/system/components'}>{`${r.used} ${r.used === 1 ? 'part' : 'parts'}`}</Link> : 'Nothing'),
+      // sortValue counts every reader, so Used by sorts the way the chips count
+      sortValue: (r) => r.inUse,
+      render: (r) => {
+        if (r.used) return <Link href={r.firstPart ? `#/system/components/${r.firstPart}` : '#/system/components'}>{`${r.used} ${r.used === 1 ? 'part' : 'parts'}`}</Link>;
+        // no part reads it, but BELLA's own foundations or CHIP's app do (measured, not typed)
+        if (r.other.length) return r.other.map((u) => (u.kind === 'foundation' ? `${u.name} (foundation)` : u.name)).join(', ');
+        return (
+          <Flow gap={4}>
+            <TextStack body="Defined, no part uses it yet" />
+            <Button variant="tertiary" size="sm" onClick={() => onWire(r)}>Remove or wire it</Button>
+          </Flow>
+        );
+      },
     },
   ];
   return (
@@ -606,8 +717,9 @@ function Motion({ motion }) {
 function WhoUsesWhat({ bella }) {
   const usage = bella.tokenUsage ?? {};
   const roles = Object.keys(bella.palette ?? {}).filter((t) => t.startsWith('--color-'));
+  const otherOf = bella.tokenUsageOther ?? {};
   const rows = roles
-    .map((t) => ({ token: t, role: t.replace(/^--color-/, ''), used: (usage[t] ?? []).length, parts: [...(usage[t] ?? [])].sort().join(', ') }))
+    .map((t) => ({ token: t, role: t.replace(/^--color-/, ''), used: (usage[t] ?? []).length + (otherOf[t] ?? []).length, parts: [...(usage[t] ?? []).slice().sort(), ...(otherOf[t] ?? []).map((u) => (u.kind === 'foundation' ? `${u.name} (foundation)` : u.name))].join(', ') }))
     .filter((r) => r.used)
     .sort((a, b) => b.used - a.used || a.role.localeCompare(b.role));
   const unused = roles.length - rows.length;
@@ -641,13 +753,14 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
   if (!data || !roles || !all) return <EmptyState size="page" title="Reading BELLA's tokens" line="Colours, type and steps. Two ticks." />;
   const f = data[0];
   const usage = data[1].tokenUsage ?? {};
+  const otherUse = data[1].tokenUsageOther ?? {};
   const words = q.trim().toLowerCase();
-  const keep = (token, name = '') => (!words || token.includes(words) || name.toLowerCase().includes(words)) && (used === 'all' || (used === 'used') === (usage[token]?.length ?? 0) > 0);
+  const keep = (token, name = '') => (!words || token.includes(words) || name.toLowerCase().includes(words)) && (used === 'all' || (used === 'used') === ((usage[token]?.length ?? 0) + (otherUse[token]?.length ?? 0) > 0));
   // a role's name finds its colours in the table too (the ↗ on each role group opens them there)
   const groupOf = Object.fromEntries(roles.flatMap((g) => g.items.map((i) => [i.token, g.name])));
   const tableRows = all.filter((r) => keep(r.token, groupOf[r.token] ?? ''));
   const cardRoles = roles.map((g) => ({ ...g, items: g.items.filter((i) => keep(i.token, `${g.name} ${i.name}`)) }));
-  const usedN = all.filter((r) => r.used).length;
+  const usedN = all.filter((r) => r.inUse).length;
   return (
     <>
       {/* Control bar on the page ground: what you look at on the left (filter, chips), the view switch on the right */}
@@ -695,7 +808,7 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
       </Flow>
       <ShapeAndSpace radius={f.radius} />
       {f.motion ? <Motion motion={f.motion} /> : null}
-      <Tiers />
+      <Tiers bella={data[1]} />
       <Problems rows={f.tokenized.rows} />
     </>
   );

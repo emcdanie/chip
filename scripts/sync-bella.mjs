@@ -254,6 +254,29 @@ for (const m of parityRun.stderr.matchAll(/^\s{2}([a-z-]+): (.+)$/gm)) (parityFa
 const tokenUsage = {};
 for (const c of components) for (const t of c._closure) (tokenUsage[t] ??= []).push(c.name);
 
+// Readers that are not parts (23 Nov: Highlight.module.css reads --color-content-highlight and the page said
+// "Nothing"): BELLA's foundations (src/foundations, styles and code, not stories or the token sheet) and CHIP's
+// own app (CSS and JSX). Each follows var() chains the same way as a part. Kept apart from tokenUsage, which
+// stays parts only, so the blast radius and the "n parts" count keep their meaning.
+const tokenUsageOther = {};
+function scanReaders(dir, kind, nameOf) {
+  if (!existsSync(dir)) return;
+  for (const f of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, f.name);
+    if (f.isDirectory()) { scanReaders(p, kind, nameOf); continue; }
+    if (!/\.(css|tsx|ts|jsx|js)$/.test(f.name) || /\.stories\.|TokenSheet/.test(f.name)) continue;
+    const reached = new Set();
+    for (const m of readFileSync(p, 'utf8').matchAll(/var\((--[\w-]+)/g)) closure(m[1], reached);
+    const name = nameOf(f.name);
+    for (const t of reached) {
+      const list = (tokenUsageOther[t] ??= []);
+      if (!list.some((u) => u.kind === kind && u.name === name)) list.push({ kind, name, file: p.replace(kind === 'app' ? ROOT + '/' : BELLA + '/', '') });
+    }
+  }
+}
+scanReaders(join(BELLA, 'src/foundations'), 'foundation', (n) => n.replace(/\.(module\.css|tsx|ts)$/, ''));
+scanReaders(join(ROOT, 'app/src'), 'app', () => 'CHIP app');
+
 for (const c of components) {
   const covering = pairs.filter((p) => pairTokens(p).some((t) => c._closure.has(t)));
   const failing = covering.filter((p) => failedLabels.has(p.label));
@@ -389,6 +412,7 @@ const out = {
     ground: themed('--color-background-default'),
   },
   tokenUsage,
+  tokenUsageOther,
   components,
 };
 

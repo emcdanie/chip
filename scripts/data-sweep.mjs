@@ -231,7 +231,20 @@ check('history', 'All covers every commit', all >= commits ? 'yes' : `${all} < $
 // ---- Foundations ------------------------------------------------------------
 const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
 const roles = Object.keys(bella.palette ?? {}).filter((t) => t.startsWith('--color-'));
-const used = roles.filter((t) => comps.some((c) => tokensOf[c].has(t))).length;
+// Readers that are not parts: BELLA's foundations (src/foundations) and CHIP's own app (app/src), read here on their
+// own (23 Nov: Highlight.module.css reads --color-content-highlight and the page said "Nothing").
+const nonPart = new Set();
+const readAll = (dir) => {
+  if (!existsSync(dir)) return;
+  for (const f of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, f.name);
+    if (f.isDirectory()) readAll(p);
+    else if (/\.(css|tsx?|jsx?)$/.test(f.name) && !/\.stories\.|TokenSheet/.test(f.name)) for (const m of readFileSync(p, 'utf8').matchAll(/var\((--[\w-]+)/g)) closure(m[1], nonPart);
+  }
+};
+readAll(join(B, 'src/foundations'));
+readAll(join(ROOT, 'app/src'));
+const used = roles.filter((t) => nonPart.has(t) || comps.some((c) => tokensOf[c].has(t))).length;
 check('foundations', 'Used', grab('foundations', /Used (\d+)/)?.[1], used);
 check('foundations', 'Used by nothing', grab('foundations', /Used by nothing (\d+)/)?.[1], roles.length - used);
 check('foundations', 'on action, measured on the action fill', grab('foundations', /on action\n#[0-9A-F]{6}\n([\d.]+):1 on action/)?.[1], ratios['on action']);
