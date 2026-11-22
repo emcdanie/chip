@@ -40,7 +40,7 @@ import useNarrow from '../templates/useNarrow.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import usePan from '../templates/usePan.js';
 
-const SLOTS = 4;
+const SLOTS = 4; // the widest a map is; a map draws only the columns its steps use
 const FIGMA_PATHS = ['figma', 'figma-console', 'figma-rest'];
 // a step's state in words and tone; a step with no entry is a role in the workflow, nothing to measure
 const SAYS = {
@@ -51,6 +51,10 @@ const SAYS = {
   unknown: ['Not known', 'neutral'],
   you: ['Your click', 'attention'],
   unmeasured: ['Not measured', 'neutral'],
+  // a saved audit report: its lights decide (docs/reference/audit/<date>/)
+  red: ['Red items', 'danger'],
+  yellow: ['Yellow items', 'attention'],
+  green: ['Passed', 'success'],
 };
 
 /* ---------------------------------------------------------------- BELLA pipeline (/map) */
@@ -212,37 +216,46 @@ const AUDIT_RUNS = {
 };
 const MOMENTS = ['Every Figma write', 'Before every report', 'Before a commit', 'Before merge or push', 'Before a publish', 'Weekly'];
 
-function staticMaps() {
+// the audits that leave a saved report (server/lib/audits.mjs reads docs/reference/audit/<date>/)
+const REPORT_OF = { tokarch: 'tokens', prodinsp: 'product', dsinsp: 'ds' };
+const dayOf = (d) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+function staticMaps(reports) {
   const agents = Object.fromEntries(
     AGENT_STEPS.map(([id, name, state, detail, deps]) => [
       id,
-      { id, name, state, line: null, detail, more: state === 'unmeasured' ? 'Its state is not measured: CHIP keeps no record of this step yet.' : null, deps, run: AGENT_RUNS[id] },
+      { id, name, state, line: null, detail, more: null, deps, run: AGENT_RUNS[id] },
     ]),
   );
   const audits = Object.fromEntries(
-    AUDIT_STEPS.map(([id, name, detail, at, skill]) => [
-      id,
-      {
+    AUDIT_STEPS.map(([id, name, detail, at, skill]) => {
+      // a step with a saved report says its score, its date and its lights; one without says Not measured
+      const r = (reports ?? []).find((x) => x.id === REPORT_OF[id] && x.ran);
+      const light = r ? (r.red ? 'red' : r.yellow ? 'yellow' : 'green') : 'unmeasured';
+      return [
         id,
-        name,
-        // HOLE audit-reports: CHIP reads no audit result yet (no read route for the audit folder), so every check says so
-        state: 'unmeasured',
-        line: null,
-        detail,
-        more: skill ? 'Its last report is not measured: reports save in the audit folder, which CHIP does not read yet.' : 'Its last result is not measured: CHIP keeps no record of this check yet.',
-        at,
-        run: skill ? { label: 'Run it', brief: `Run the ${name} skill, read-only, and save its report to docs/reference/audit/<today>/${name}.md. Compare its scores with the last report.` } : AUDIT_RUNS[id],
-      },
-    ]),
+        {
+          id,
+          name,
+          state: light,
+          line: r ? `${r.value} ${r.unit} · ran ${dayOf(r.ran)}` : null,
+          detail,
+          more: r ? `${r.red} red, ${r.yellow} yellow${r.prev ? `; was ${r.prev.value} on ${dayOf(r.prev.day)}` : ''}.${r.orders?.length ? ` First work orders: ${r.orders.join('; ')}.` : ''}` : null,
+          at,
+          run: skill ? { label: 'Run it', brief: `Run the ${name} skill, read-only, and save its report to docs/reference/audit/<today>/${name}.md. Compare its scores with the last report.` } : AUDIT_RUNS[id],
+        },
+      ];
+    }),
   );
   return {
     agents: { steps: agents, rows: AGENT_ROWS },
     audits: {
       steps: audits,
       // a row per moment: the checks it runs sit in its row, so the link reads without a line
-      rows: MOMENTS.map((m) => {
+      // a moment with more than two checks carries on in an unnamed row under it, so the board stays two wide
+      rows: MOMENTS.flatMap((m) => {
         const ids = AUDIT_STEPS.filter((s) => s[3].includes(m)).map((s) => s[0]);
-        return { label: m, ids: [...ids, ...Array(SLOTS - ids.length).fill(null)] };
+        return Array.from({ length: Math.ceil(ids.length / 2) }, (_, i) => ({ label: i ? '' : m, ids: ids.slice(i * 2, i * 2 + 2) }));
       }),
     },
   };
@@ -274,7 +287,7 @@ const MAPS = [
 ];
 
 // each map's one line: what needs you on it, counted from its steps' measured states
-const needing = (map) => Object.values(map.steps).filter((s) => s.state === 'bad' || s.state === 'you');
+const needing = (map) => Object.values(map.steps).filter((s) => s.state === 'bad' || s.state === 'you' || s.state === 'red');
 function metaOfMap(map) {
   if (!map) return 'Reading the map';
   const n = needing(map).length;
@@ -295,10 +308,10 @@ function scrollBox(el) {
 }
 
 // a step is BELLA's MapNode: its name and its state word; the count line is in the detail beside the board
-const NODE_TONE = { bad: 'attention', you: 'attention', warn: 'attention', blocked: 'blocked' };
+const NODE_TONE = { bad: 'attention', you: 'attention', warn: 'attention', red: 'attention', yellow: 'attention', blocked: 'blocked' };
 function Node({ step, picked, onPick }) {
   const said = SAYS[step.state];
-  return <MapNode title={step.name} status={said ? said[0] : 'Not known'} tone={NODE_TONE[step.state] ?? 'default'} statusTone={said ? (said[1] === 'attention' ? 'attention' : said[1] === 'success' ? 'success' : 'neutral') : 'neutral'} selected={picked} onSelect={() => onPick(step.id)} />;
+  return <MapNode title={step.name} status={said ? said[0] : 'Not known'} tone={NODE_TONE[step.state] ?? 'default'} statusTone={said ? said[1] : 'neutral'} selected={picked} onSelect={() => onPick(step.id)} />;
 }
 
 /* The lines between steps (MapLine curve): each step is joined to the steps it waits on, from the middle of
@@ -355,44 +368,39 @@ function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
     ro.observe(box);
     return () => ro.disconnect();
   }, []);
-  const k = view ? Math.max(1, Math.min(SLOTS, Math.floor(view / COLUMN))) : SLOTS;
-  const pitch = view ? view / k : COLUMN;
+  // the columns the map's steps use, no empty ones at its sides
+  const rows = useMemo(() => {
+    const used = map.rows.flatMap((r) => r.ids.map((id, j) => (id ? j : null))).filter((j) => j != null);
+    const lo = Math.min(...used);
+    const hi = Math.max(...used);
+    return map.rows.map((r) => ({ ...r, ids: Array.from({ length: hi - lo + 1 }, (_, j) => r.ids[lo + j] ?? null) }));
+  }, [map]);
+  const SL = rows[0]?.ids.length ?? SLOTS;
+  // the whole map fits the view: it is drawn at its size with no Fit and 100% to choose between
+  const room = view ? view - 48 : 0; // the frame's own 24 either side
+  const fits = Boolean(view) && room >= SL * COLUMN + 18;
+  const k = view ? Math.max(1, Math.min(SL, Math.floor(view / COLUMN))) : SL;
+  const pitch = fits ? (room - 18) / SL : view ? view / k : COLUMN;
   // equal slots 16 apart, inside the board's 16 sides and the frame's 1px edge: a column and its gap are one pitch
-  const frame = Math.round(SLOTS * pitch + 18);
-  // the column the view opens on: the row names sit over it, so they are in view at 100%
-  const [start, setStart] = useState(0);
-  // open on whole columns that hold the picked step, lined up on the view's left edge
-  useLayoutEffect(() => {
-    if (!view || zoom !== 'actual') return;
-    const box = scrollBox(document.getElementById('process-board'));
-    const row = document.querySelector('#process-board [data-slots]');
-    if (!box || !row) return;
-    const x0 = row.getBoundingClientRect().left - box.getBoundingClientRect().left + box.scrollLeft;
-    const col = Math.max(0, map.rows.reduce((c, r) => (r.ids.includes(picked) ? r.ids.indexOf(picked) : c), 0));
-    // of the views that hold the picked step, the one that shows the most steps
-    const count = (c) => map.rows.reduce((n, r) => n + r.ids.slice(c, c + k).filter(Boolean).length, 0);
-    let best = Math.min(col, SLOTS - k);
-    for (let c = Math.max(0, col - k + 1); c <= Math.min(col, SLOTS - k); c += 1) if (count(c) > count(best)) best = c;
-    box.scrollLeft = x0 + best * pitch;
-    setStart(best);
-  }, [map, zoom, view, k]); // eslint-disable-line react-hooks/exhaustive-deps
+  const frame = fits ? room : Math.round(SL * pitch + 18);
+  const start = 0; // rows are named over the first column, where the board opens
   const shown = (id) => id && map.steps[id] && (!filterOnly || map.steps[id].state === 'bad');
   // HOLE zoom-steps: zoom in and out wait on BELLA Stage (it has Fit and 100% only)
   return (
-    <Stage grid="dots" label={`${label} board`} frameWidth={frame} zoom={zoom} onZoomChange={onZoom}>
+    <Stage grid="dots" label={`${label} board`} frameWidth={frame} zoom={fits ? 'fit' : zoom} onZoomChange={fits ? undefined : onZoom}>
       {/* the lines between steps are MapLine curves measured on the nodes (Lines, above) */}
       <Flow gap={24} inset id="process-board" data-hole="zoom-steps" style={{ position: 'relative' }} {...pan}>
-        <Lines map={map} picked={picked} boardId="process-board" tick={`${frame}-${zoom}-${start}-${filterOnly}`} />
+        <Lines map={map} picked={picked} boardId="process-board" tick={`${frame}-${zoom}-${filterOnly}`} />
         {/* the board's top and foot: 24 clear of the frame's edge */}
         <span aria-hidden="true" />
-        {map.rows.map((row, i) => (
+        {rows.map((row, i) => (
           // the row's name over the column the view opens on (at Fit, the first), then its four slots
           <Flow key={`${row.label}-${i}`} gap={8} role="group" aria-label={row.label || `${label}, row ${i + 1}`}>
             {row.label ? (
               <Flow direction="row" gap={16} equal>
-                {Array.from({ length: SLOTS }, (_, j) => (
+                {Array.from({ length: SL }, (_, j) => (
                   <Flow key={j} gap={0}>
-                    {j === (zoom === 'actual' ? start : 0) ? <TextStack overline={row.label} /> : null}
+                    {j === start ? <TextStack overline={row.label} /> : null}
                   </Flow>
                 ))}
               </Flow>
@@ -512,7 +520,8 @@ const timeOf = (t) => (t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-di
 
 export default function SystemMapContent() {
   const pipeline = usePipeline();
-  const [statics] = useState(staticMaps);
+  const reports = useCached(['/audits']);
+  const statics = useMemo(() => staticMaps(reports.data?.[0]), [reports.data]);
   const pushes = useCached(['/push/bella', '/push/chip']);
   const agents = withPush(statics.agents, pushes.data);
   const audits = statics.audits;

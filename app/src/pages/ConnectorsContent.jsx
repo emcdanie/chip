@@ -106,6 +106,8 @@ export default function ConnectorsContent() {
   // Figma's four tiles in one row need about 1200 of window; below that two by two
   const four = !useNarrow(1200);
   const phone = useNarrow(800);
+  // on a phone the row's own arrow wrapped under its button; the whole row opens the setup anyway
+  const arrow = useNarrow(480) ? undefined : 'ArrowUpRight';
   const [map, reload] = useMap();
   const gateNode = map?.nodes?.find((x) => x.id === 'gate');
   const [busy, setBusy] = useState(null);
@@ -216,7 +218,7 @@ export default function ConnectorsContent() {
               const act = p.n.state === 'bad' ? <Button variant="secondary" size="sm" onClick={() => setSetup(p.n)}>Set up</Button> : testButton(p.n);
               // ListRow moves its button under the words on a narrow row by itself (parts-dev b69a5de)
               // ↗ opens the path's detail, the button tests it (READ FIRST [12]: arrows go, buttons do; Figma Flow 2, screen 7)
-              return <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} status={<StateTag state={p.n.state} />} actionButton={act} trailing="ArrowUpRight" onClick={() => setSetup(p.n)} />;
+              return <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} status={<StateTag state={p.n.state} />} actionButton={act} trailing={arrow} onClick={() => setSetup(p.n)} />;
             })}
           </Flow>
           {compare ? (
@@ -235,7 +237,7 @@ export default function ConnectorsContent() {
             {/* one List item for every row, no card inside a card (20 Nov rule) */}
             <Flow gap={8} as="ul" aria-label="Need setup">
               {needs.map((n) => (
-                <ListRow key={n.id} title={nameOf(n)} description={why(n)} actionButton={<Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} trailing="ArrowUpRight" onClick={() => setSetup(n)} />
+                <ListRow key={n.id} title={nameOf(n)} description={why(n)} actionButton={<Button variant="secondary" size="sm" onClick={() => setSetup(n)}>Set up</Button>} trailing={arrow} onClick={() => setSetup(n)} />
               ))}
             </Flow>
           </Flow>
