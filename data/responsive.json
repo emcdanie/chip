@@ -1,5 +1,5 @@
 {
- "at": "2026-11-22T17:56:02.938Z",
+ "at": "2026-11-22T18:10:21.403Z",
  "files": {
   "app/src/templates/Flow.jsx": "dae039073c0163f8d3d7d8b8c59f462b1ca6a3be",
   "app/src/templates/Screen.jsx": "976a300d00cbde3936248ee69fdd59257997ad55",
@@ -12,7 +12,7 @@
   "app/src/pages/HistoryContent.jsx": "2f9015f542460961ae379924a54a833e45ed5ef8",
   "app/src/pages/NotAgainContent.jsx": "c79d895873a6e749ca7c120c719c24757d946ffe",
   "app/src/pages/PlaygroundContent.jsx": "03bd8c0da904a8a7689f12b5a2ed0d6e1826e464",
-  "app/src/pages/SystemMapContent.jsx": "6f7a98438a9171ee14ce8377a8df497eed5e92aa",
+  "app/src/pages/SystemMapContent.jsx": "1cc552923e7bbd93c81d16dcaedfc922f0d54066",
   "app/src/pages/TeamContent.jsx": "c1642a1a11e5f30da4b92add5c2df9c8aedc909d",
   "app/src/pages/WorkContent.jsx": "b88f2b6f74ad77f4c551fc41003144b32ddced33"
  },
@@ -21,15 +21,15 @@
   "#/health": true,
   "#/system/components": true,
   "#/system/foundations": true,
-  "#/system/history": false,
+  "#/system/history": true,
   "#/playground": true,
-  "#/system-map": false,
+  "#/system-map": true,
   "#/connectors": true,
   "#/team": true,
   "#/not-again": true
  },
- "ok": false,
- "clean": 66,
+ "ok": true,
+ "clean": 80,
  "total": 80,
- "texts": 13244
+ "texts": 13118
 }

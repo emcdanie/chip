@@ -56,10 +56,12 @@ const measure = () => {
     }
     return o.right - o.left > 1 && o.bottom - o.top > 1 ? o : null;
   };
+  // the inside of a closed <details> is not drawn, though the browser still reports boxes for it
+  const closed = (el) => { for (let d = el.closest('details'); d; d = d.parentElement?.closest('details')) if (!d.open && !el.closest('summary')) return true; return false; };
   const W = innerWidth;
   // (a) sideways scroll
   if (document.documentElement.scrollWidth > W + 1) bad.push(`a) the page scrolls sideways: ${document.documentElement.scrollWidth}px in a ${W}px window`);
-  const leaves = [...document.querySelectorAll('body *')].filter((el) => el.children.length === 0 && el.textContent.trim() && visible(el) && !el.closest('script,style,svg,[aria-hidden="true"]') && el.getBoundingClientRect().width > 2 && seenRect(el));
+  const leaves = [...document.querySelectorAll('body *')].filter((el) => el.children.length === 0 && el.textContent.trim() && visible(el) && !el.closest('script,style,svg,[aria-hidden="true"]') && el.getBoundingClientRect().width > 2 && !closed(el) && seenRect(el));
   for (const el of leaves) {
     const r = el.getBoundingClientRect();
     if (r.right > W + 1 && !inScroller(el)) { bad.push(`a) ${label(el)} reaches ${Math.round(r.right - W)}px past the window`); if (bad.length > 12) break; }
@@ -109,18 +111,26 @@ const measure = () => {
   return { bad: [...new Set(bad)].slice(0, 12), texts: leaves.length };
 };
 
+console.log(`${'page'.padEnd(26)}${WIDTHS.map((w) => String(w).padEnd(14)).join('')}`);
 const browser = await chromium.launch();
 const results = [];
+// one browser, one page per width reused for every route and both themes (five sessions share this machine)
+const pages = {};
+for (const w of WIDTHS) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
+  pages[w] = await ctx.newPage();
+  await pages[w].goto(`${APP}/#/work`, { waitUntil: 'load' });
+}
 for (const route of ROUTES) {
+  const row = [];
   for (const w of WIDTHS) {
+    const p = pages[w];
+    await p.evaluate((r) => { location.hash = r; }, route);
+    await p.waitForTimeout(1200);
+    const cell = [];
     for (const theme of THEMES) {
-      const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
-      const p = await ctx.newPage();
-      await p.goto(`${APP}/${route}`, { waitUntil: 'load' });
-      await p.waitForTimeout(1800);
-      if (theme === 'dark') await p.evaluate(() => document.documentElement.setAttribute('data-theme', 'chip-dark'));
-      await p.waitForTimeout(300);
-      // the page scrolls inside its own box: measure the whole content, not the first screen
+      await p.evaluate((t) => document.documentElement.setAttribute('data-theme', t === 'dark' ? 'chip-dark' : 'chip-light'), theme);
+      await p.waitForTimeout(150);
       const m = { bad: [], texts: 0 };
       const scroller = '.chip-screen__content';
       const room = await p.evaluate((sel) => { const e = document.querySelector(sel); return e ? { h: e.scrollHeight, c: e.clientHeight } : { h: 0, c: 0 }; }, scroller);
@@ -131,22 +141,19 @@ for (const route of ROUTES) {
         m.texts += one.texts;
         if (y + room.c >= room.h - 1) break;
       }
-      const label = `${route} ${w} ${theme}`;
-      results.push({ label, route, w, theme, bad: m.bad, texts: m.texts });
+      results.push({ label: `${route} ${w} ${theme}`, route, w, theme, bad: m.bad, texts: m.texts });
       if (m.bad.length) await p.screenshot({ path: join(OUT, `${route.replace(/\W+/g, '-')}-${w}-${theme}.png`) }).catch(() => {});
-      await ctx.close();
+      cell.push(m.bad.length ? 'FAIL' : 'ok');
     }
+    row.push(cell.join('/').padEnd(14));
   }
+  // each page prints as soon as it is measured
+  console.log(`${route.padEnd(26)}${row.join('')}`);
 }
 await browser.close();
 writeFileSync(join(OUT, 'results.json'), JSON.stringify(results, null, 1));
 
 // the matrix: one row per page, one column per width, light/dark each marked ok or FAIL
-console.log(`${'page'.padEnd(26)}${WIDTHS.map((w) => String(w).padEnd(14)).join('')}`);
-for (const route of ROUTES) {
-  const cells = WIDTHS.map((w) => THEMES.map((t) => (results.find((r) => r.route === route && r.w === w && r.theme === t)?.bad.length ? 'FAIL' : 'ok')).join('/').padEnd(14));
-  console.log(`${route.padEnd(26)}${cells.join('')}`);
-}
 for (const r of results.filter((x) => x.bad.length)) { console.log(`FAIL ${r.label}`); for (const b of r.bad) console.log(`   ${b}`); }
 const failed = results.filter((r) => r.bad.length).length;
 const texts = results.reduce((t, r) => t + r.texts, 0);
