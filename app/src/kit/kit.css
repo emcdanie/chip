@@ -103,7 +103,7 @@
 .k-chk input:checked { background: var(--action); border-color: var(--action); }
 .k-chk input:checked::before { opacity: 1; }
 
-.k-dt { max-height: min(640px, 70vh); overflow: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); overscroll-behavior: contain; }
+.k-dt { max-height: min(640px, 70vh); overflow: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); overscroll-behavior: auto; }
 .k-dt table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--fs-14); line-height: var(--lh-body); }
 .k-dt th { position: sticky; top: 0; z-index: 1; padding: 0; border-bottom: 1px solid var(--line); background: var(--card); text-align: left; white-space: nowrap; }
 .k-dt th > span, .k-dt th button { display: flex; align-items: center; gap: var(--s-8); width: 100%; min-height: var(--h-control); padding: 0 var(--s-16); border: 0; background: none; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); text-align: left; }

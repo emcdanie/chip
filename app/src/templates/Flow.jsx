@@ -189,12 +189,13 @@ export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, 
     );
   if (fit)
     return (
-      <Tag className={cls} ref={fitRef} style={fitSize} {...rest}>
+      <Tag className={cls} ref={fitRef} style={fitSize} tabIndex={scroll ? 0 : undefined} {...rest}>
         {children}
       </Tag>
     );
+  // a box that scrolls on its own is reachable by keyboard (WCAG 2.1.1): focusable, unless the page gave it its own tabIndex
   return (
-    <Tag className={cls} {...rest}>
+    <Tag className={cls} tabIndex={scroll ? 0 : undefined} {...rest}>
       {children}
     </Tag>
   );

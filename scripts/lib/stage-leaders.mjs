@@ -54,6 +54,16 @@ export const PAGE_ROUTES = [
 ];
 export const fileHashes = () => Object.fromEntries(cardWatched().map((f) => [f, createHash('sha1').update(existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f)) : '').digest('hex')]));
 
+// A scroll box passes its scroll to the page at its end (scripts/scroll-chain-check.mjs; her bug, 22 Nov: "you scroll
+// inside and get to the bottom then it just stops")
+export const SCROLL_WATCHED = ['app/src/templates/Screen.css', 'app/src/templates/Flow.jsx', 'app/src/kit/kit.css', 'app/src/atlas.css'];
+export const SCROLL_RECORD = join(ROOT, 'data', 'scroll-chain.json');
+export const scrollInputsHash = () => {
+  const h = createHash('sha1');
+  for (const f of SCROLL_WATCHED) h.update(existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f)) : '');
+  return h.digest('hex');
+};
+
 // The strip under the stage shows the part's own states, never other components (scripts/states-strip-check.mjs; her
 // bug, 22 Nov: "its meant to be states not take you to other components")
 export const STRIP_WATCHED = ['app/src/pages/ComponentsContent.jsx', 'app/src/pages/componentsModel.js', 'app/src/specimens.jsx'];

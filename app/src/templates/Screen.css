@@ -292,7 +292,9 @@
   block-size: 0;
   min-block-size: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* auto, not contain (Elleta, 22 Nov: scrolling a card to its end stopped and the page would not move): at its end the
+     scroll passes to the page, as the web's own rule for a scroll box inside a page; only drawers and the Work panel contain */
+  overscroll-behavior: auto;
   scroll-padding-block: var(--spacing-12);
   /* 8 for focus rings, then 64 of room after the last content (Elleta, 22 Nov) */
   padding: var(--spacing-8);

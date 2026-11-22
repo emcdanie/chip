@@ -259,7 +259,7 @@
 /* a label stays with its control when the row wraps */
 
 /* inspector */
-.atlas .dm-insp { display: grid; align-content: start; min-width: 0; max-height: var(--dm-h); overflow-y: auto; overscroll-behavior: contain; background: var(--card); }
+.atlas .dm-insp { display: grid; align-content: start; min-width: 0; max-height: var(--dm-h); overflow-y: auto; overscroll-behavior: auto; background: var(--card); }
 .atlas .dm-insp > section { padding: var(--s-16); border-bottom: 1px solid var(--line); display: grid; gap: var(--s-12); min-width: 0; }
 .atlas .dm-insp > section:last-child { border-bottom: 0; }
 .atlas .dm-insp h3 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8); }
