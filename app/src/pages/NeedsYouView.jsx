@@ -5,7 +5,7 @@
 // server's own POST /answers (the shape decide.js and markup.js send), so nothing sends her out of CHIP.
 //
 // BELLA parts: PicturePins (Stage, Pin, Card; the picture and its comment boxes), Button (thumbs, options), Slider (the side pane's width),
-// ListRow, FilterChip (select), SegmentedControl (A / B picture), Input multiline, Card, TextStack, Tag, Pin
+// PickList (TaskCard, as the board), FilterChip (select), SegmentedControl (A / B picture), Input multiline, Card, TextStack, Tag, Pin
 // EmptyState, Notification.
 // BELLA GAPS (named for the coordinator, none drawn here): a checkbox for choosing rows; a Splitter to drag the
 // side pane (Slider stands in, keyboard works); see PicturePins for the comment popover gap.
@@ -16,12 +16,12 @@ import Disclosure from '@bella/components/Disclosure/Disclosure';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Input from '@bella/components/Input/Input';
-import ListRow from '@bella/components/ListRow/ListRow';
 import Notification from '@bella/components/Notification/Notification';
 import Slider from '@bella/components/Slider/Slider';
 import Tag from '@bella/components/Tag/Tag';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
+import PickList from '../templates/PickList.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import PicturePins from '../templates/PicturePins.jsx';
 import { answersUrl, countAnswers, decisionBody, isPicture, markupBody, parseReview, picturePage } from './needsYouModel.js';
@@ -200,31 +200,16 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
   }
 
   const list = (
-    <Flow as="ul" gap={8} aria-label="Everything that needs you">
-      {cards.map((c, i) => {
+    <PickList
+      label="Everything that needs you"
+      currentId={current?.id}
+      onPick={(id) => setAt(Math.max(0, cards.findIndex((c) => c.id === id)))}
+      items={cards.map((c) => {
         const p = pageOf(c);
         const n = p ? countAnswers(answers[p.src]) : 0;
-        return (
-          <ListRow
-            key={c.id}
-            as="li"
-            layout="stacked"
-            divider
-            selected={i === at}
-            title={c.title}
-            description={c.open?.kind === 'page' ? (n ? plural(n, 'answer') : 'Review page') : c.line}
-            actionButton={
-              c.open?.kind === 'page' ? (
-                <FilterChip pressed={picked.has(c.id)} ariaLabel={`Choose ${c.title}`} onClick={() => setPicked((s) => (s.has(c.id) ? new Set([...s].filter((x) => x !== c.id)) : new Set([...s, c.id])))}>
-                  {picked.has(c.id) ? 'Chosen' : 'Choose'}
-                </FilterChip>
-              ) : undefined
-            }
-            onClick={() => setAt(i)}
-          />
-        );
+        return c.open?.kind === 'page' ? { id: c.id, title: c.title, line: picked.has(c.id) ? 'Chosen for mark-up' : 'Review page', status: n ? plural(n, 'answer') : 'Not answered', tone: n ? 'success' : 'attention' } : { id: c.id, title: c.title, line: c.line, status: c.status ?? 'Needs you', tone: c.tone };
       })}
-    </Flow>
+    />
   );
 
   if (!current) return <EmptyState size="page" mark="✅" title="Nothing needs you" line="Every review is answered." actions={<Button variant="secondary" onClick={onBack}>Back to the board</Button>} />;
@@ -246,6 +231,9 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
               </Flow>
             </Flow>
           ) : null}
+          <FilterChip pressed={picked.has(current.id)} onClick={() => setPicked((x) => (x.has(current.id) ? new Set([...x].filter((y) => y !== current.id)) : new Set([...x, current.id])))}>
+            {picked.has(current.id) ? 'Chosen for mark-up' : 'Choose for mark-up'}
+          </FilterChip>
           {shownCard ? <Decision card={shownCard} state={state} set={setState} /> : null}
           {pins.length ? (
             <Flow gap={12} aria-label="Mark-up notes">

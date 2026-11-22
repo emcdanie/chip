@@ -30,9 +30,9 @@ import Notification from '@bella/components/Notification/Notification';
 import Pin from '@bella/components/Pin/Pin';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
-import Tag from '@bella/components/Tag/Tag';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
+import PickList from '../templates/PickList.jsx';
 import PicturePins from '../templates/PicturePins.jsx';
 import useNarrow from '../templates/useNarrow.js';
 
@@ -405,20 +405,13 @@ export default function PlaygroundPicks({ onTry }) {
         <SectionHead title="Picks" number={shown.length} titleLevel={2} />
         {freshness}
         {shown.length ? (
-          // one short line a row, its status a Tag; the full question is the stage's heading
-          <Flow as="ul" gap={0} aria-label={`Your picks, ${shown.indexOf(pick) + 1} of ${shown.length} selected`}>
-            {shown.map((p) => (
-              <ListRow
-                key={p.id}
-                layout="stacked"
-                divider
-                selected={p.id === pick?.id}
-                title={shortName(p.title)}
-                tag={p.answer ? <Tag tone="success" showDot>Answered</Tag> : <Tag variant="outline">Open</Tag>}
-                onClick={() => choose(p.id)}
-              />
-            ))}
-          </Flow>
+          // the Work board's cards: the item's name, where it comes from, its status; the whole card is the button
+          <PickList
+            label={`Your picks, ${shown.indexOf(pick) + 1} of ${shown.length} selected`}
+            currentId={pick?.id}
+            onPick={choose}
+            items={shown.map((p) => ({ id: p.id, title: shortName(p.title), line: p.from, status: p.answer ? 'Answered' : 'Not answered', tone: p.answer ? 'success' : 'attention' }))}
+          />
         ) : (
           <EmptyState size="lane" mark="🙌" title="None here" line="Nothing matches this filter. Pick All to see the rest." />
         )}
