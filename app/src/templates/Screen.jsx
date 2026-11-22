@@ -18,6 +18,7 @@ import PageHeader from '@bella/components/PageHeader/PageHeader';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Button from '@bella/components/Button/Button';
+import Tooltip from '@bella/components/Tooltip/Tooltip';
 import Avatar from '@bella/components/Avatar/Avatar';
 import Progress from '@bella/components/Progress/Progress';
 import TextStack from '@bella/components/TextStack/TextStack';
@@ -69,6 +70,35 @@ function useShellData() {
   // what waits on her: the cards in Now that need her, the number the board's Needs you filter shows
   const needs = (model.lanes.find((l) => l.id === 'now')?.cards ?? []).filter((c) => c.needs).length;
   return { projects, needs };
+}
+
+/* Back and Forward, from the app's own history (the hash routes), also Alt+Left and Alt+Right (CHIP rule "Minimal
+   chrome": small icon buttons in the top bar). Disabled when there is nowhere to go; the browser's Navigation API
+   says so where it exists, elsewhere both stay available and do nothing at the ends. */
+function useHistoryState() {
+  const nav = typeof window !== 'undefined' ? window.navigation : null;
+  const read = () => ({ back: nav ? nav.canGoBack : true, forward: nav ? nav.canGoForward : true });
+  const [state, setState] = useState(read);
+  useEffect(() => {
+    if (!nav) return undefined;
+    const on = () => setState(read());
+    nav.addEventListener('currententrychange', on);
+    on();
+    return () => nav.removeEventListener('currententrychange', on);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!e.altKey || e.metaKey || e.ctrlKey || e.shiftKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+      const t = e.target;
+      if (t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return; // a field keeps its own word-jump
+      e.preventDefault();
+      if (e.key === 'ArrowLeft') window.history.back();
+      else window.history.forward();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  return state;
 }
 
 /* The one side menu (her nav C pick, 22 Nov), in her words: where you go, what is pinned, the projects,
@@ -186,6 +216,7 @@ export default function Screen({ place, header, tabs, children }) {
   const { projects, needs } = useShellData();
   // below 1024 the side menu steps out behind the top bar's Menu button; on a phone it rises as a sheet
   const menuOut = useNarrow(1024);
+  const hist = useHistoryState();
   const phone = useNarrow();
   // below 400 the field would read "Sea": a search button that opens the field across the bar
   const tiny = useNarrow(400);
@@ -235,15 +266,25 @@ export default function Screen({ place, header, tabs, children }) {
             open or closed (Elleta, 23 Nov). BELLA's TopBar has no leading slot yet (gap for the parts session), so it sits
             over the bar's own padding and comes first in the tab order. */}
         <div className="chip-screen__topbar">
-          {menuOut ? (
-            <span className="chip-screen__menu-toggle">
-              <Button variant="tertiary" iconOnly icon="SidebarExpand" ariaLabel="Menu" ariaExpanded={menuOpen} ariaHaspopup="dialog" onClick={() => setMenuOpen(true)} />
-            </span>
-          ) : null}
+          <span className="chip-screen__lead">
+            <Tooltip label="Back">
+              <Button variant="tertiary" iconOnly icon="NavArrowLeft" ariaLabel="Back" disabled={!hist.back} onClick={() => window.history.back()} />
+            </Tooltip>
+            <Tooltip label="Forward">
+              <Button variant="tertiary" iconOnly icon="NavArrowRight" ariaLabel="Forward" disabled={!hist.forward} onClick={() => window.history.forward()} />
+            </Tooltip>
+            {menuOut ? (
+              <Tooltip label="Menu">
+                <Button variant="tertiary" iconOnly icon="SidebarExpand" ariaLabel="Menu" ariaExpanded={menuOpen} ariaHaspopup="dialog" onClick={() => setMenuOpen(true)} />
+              </Tooltip>
+            ) : null}
+          </span>
         <TopBar
           // room at the left for the menu button (below)
-          style={menuOut ? { paddingInlineStart: 'calc(var(--spacing-8) + var(--h-control) + var(--spacing-4))' } : undefined}
+          style={{ paddingInlineStart: `calc(var(--spacing-8) + var(--h-control) * ${menuOut ? 3 : 2} + var(--spacing-4) * ${menuOut ? 2 : 1} + var(--spacing-8))` }}
           placeParent={(projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP'}
+          // the way out of any page: the project's Work page
+          placeParentHref={projectOf() ? `#/work?project=${projectOf()}` : '#/work'}
           placeCurrent={here}
           // below 400 the place line, search, the bell and Menu don't fit (335 at 320): the page title and
           // the selected tab say where you are there
