@@ -60,8 +60,19 @@ if (existsSync(manifestFile))
     if (m) manBy[m[1]] = e;
   }
 const css = read('tokens/bella.css');
+// What the Chip theme resolves, as the app shows it: :root (BELLA's own light), then the chip-light overrides, and for
+// dark the chip-dark overrides on top. A token BELLA's own light theme defines but Chip overrides is not used by
+// what Chip draws (23 Nov: Button's transparent background is bella-light's; Chip gives it a surface fill).
+const blockVars = (pick) => {
+  const out = {};
+  for (const b of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) if (pick(b[1])) for (const m of b[2].matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2];
+  return out;
+};
+const rootV = blockVars((sel) => /:root/.test(sel));
+const lightV = { ...rootV, ...blockVars((sel) => /chip-light/.test(sel)) };
+const darkV = { ...lightV, ...blockVars((sel) => /chip-dark/.test(sel)) };
 const defs = {};
-for (const m of css.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) (defs[m[1]] ??= []).push(m[2]);
+for (const t of new Set([...Object.keys(lightV), ...Object.keys(darkV)])) defs[t] = [...new Set([lightV[t], darkV[t]].filter(Boolean))];
 const closure = (t, s = new Set()) => {
   if (s.has(t)) return s;
   s.add(t);
