@@ -156,7 +156,7 @@ const needWork = new Set(measured.flat()).size;
 check('health', 'Parts that need work', grab('health', /Parts that need work\n(\d+ of \d+) parts/)?.[1], `${needWork} of ${N}`);
 // Drift comes from BELLA's specs (/drift), the same count the card shows
 const drift = await json('/drift').catch(() => null);
-if (drift?.compared) check('health', 'Drift: parts that differ', grab('health', /Drift from BELLA\n+(?:\d+\n+)?(\d+)\n+of (\d+)/)?.slice(1).join(' of '), `${drift.drifting} of ${drift.compared}`);
+if (drift?.total) check('health', 'Drift: parts that differ', grab('health', /Drift from BELLA\n+(?:\d+\n+)?(\d+)\n+of (\d+)/)?.slice(1).join(' of '), `${drift.differing} of ${drift.total}`);
 const checks = await json('/checks');
 const behind = (checks.checks ?? []).filter((c) => c.gate === true && c.commit && c.commit !== checks.head);
 for (const c of behind) check('health', `Gate names ${c.name}, behind HEAD`, text.health.includes(`${c.name} last ran ${day(c.ranAt)} on ${c.commit}`) ? 'named' : 'not named', 'named');
