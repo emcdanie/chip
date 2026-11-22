@@ -231,7 +231,18 @@ export default function Screen({ place, header, tabs, children }) {
       )}
       <div className="chip-screen__main">
         {/* On a phone the ⌘ K legend steps out so the field keeps room for its words. */}
+        {/* The side-menu button is the first thing in the top bar, at its left end, and stays there whether the menu is
+            open or closed (Elleta, 23 Nov). BELLA's TopBar has no leading slot yet (gap for the parts session), so it sits
+            over the bar's own padding and comes first in the tab order. */}
+        <div className="chip-screen__topbar">
+          {menuOut ? (
+            <span className="chip-screen__menu-toggle">
+              <Button variant="tertiary" iconOnly icon="SidebarExpand" ariaLabel="Menu" ariaExpanded={menuOpen} ariaHaspopup="dialog" onClick={() => setMenuOpen(true)} />
+            </span>
+          ) : null}
         <TopBar
+          // room at the left for the menu button (below)
+          style={menuOut ? { paddingInlineStart: 'calc(var(--spacing-8) + var(--h-control) + var(--spacing-4))' } : undefined}
           placeParent={(projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP'}
           placeCurrent={here}
           // below 400 the place line, search, the bell and Menu don't fit (335 at 320): the page title and
@@ -247,13 +258,13 @@ export default function Screen({ place, header, tabs, children }) {
               <>
                 {/* the bell opens what needs you, in the Work panel (Figma Flow 12, screen 1); ⌘J opens it too */}
                 <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you` : 'What needs you'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
-                {menuOut ? <Button variant="tertiary" iconOnly icon="SidebarExpand" ariaLabel="Menu" ariaExpanded={menuOpen} ariaHaspopup="dialog" onClick={() => setMenuOpen(true)} /> : null}
                 {/* on a phone the place line needs the room: the avatar steps out (minimal chrome) */}
                 {phone ? null : <Avatar name="Elleta McDaniel" size="sm" />}
               </>
             )
           }
         />
+        </div>
         <div className="chip-screen__page">
           <div className={`chip-screen__head${tabs ? '' : ' chip-screen__head--plain'}`}>
             {/* project pages carry New task, as Figma; the health bar only on the Health tab (Elleta, 20 Nov: "Take it off"); Home carries New task too (Figma Flow 8); other rail pages (Team, Not again) carry neither */}

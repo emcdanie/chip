@@ -71,6 +71,17 @@
   padding-inline: var(--layout-container-pad);
 }
 
+.chip-screen__topbar {
+  position: relative;
+}
+
+.chip-screen__menu-toggle {
+  position: absolute;
+  inset-block-start: var(--spacing-12);
+  inset-inline-start: var(--spacing-8);
+  z-index: 1;
+}
+
 .chip-screen__head--plain {
   /* a page with no tabs: its title meets the scrolling content at a line, so text that scrolls under the title
      is cut at a visible edge and not mid-letter against bare background (Elleta, 23 Nov) */
