@@ -12,8 +12,8 @@
 // them; when the board is down the last reading shows with its time, never
 // sample cards. Her notes show with obvious typos corrected (TYPOS), the stored words untouched.
 //
-// Sending: one Send (23 Nov); it writes the answer and the comments not yet sent to the board in one step and the
-// row says Saved; a comment's own Enter sends it with the answer. Asking an agent for a change is the Ask panel's job. A pick has its own link: #/playground?pick=<id>&option=<n>.
+// Sending: marks and comments are drafts kept in this browser; one "n marked · Send all" bar posts every marked pick in ONE
+// request (23 Nov), then the cards read Sent. A comment's Enter saves it as a draft. Asking an agent for a change is the Ask panel's job. A pick has its own link: #/playground?pick=<id>&option=<n>.
 //
 // HOLES (BELLA has no part yet, not invented here): a Comment popover that sits at a pin (PicturePins places a
 // Card); a ToolColumn without Light or dark and Compare (three Buttons stand in); no Skeleton part, so loading says
@@ -32,6 +32,7 @@ import SegmentedControl from '@bella/components/SegmentedControl/SegmentedContro
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
+import SendBar from '../templates/SendBar.jsx';
 import PickList from '../templates/PickList.jsx';
 import PicturePins from '../templates/PicturePins.jsx';
 import useNarrow from '../templates/useNarrow.js';
@@ -41,6 +42,7 @@ import useNarrow from '../templates/useNarrow.js';
 export const BOARD = 'http://localhost:3123';
 const BASE = `${BOARD}/screens/progress/`;
 const CACHE = 'chip.playground.picks';
+const DRAFTS = 'chip.playground.drafts';
 const PICTURE = /\.(png|jpe?g|gif|webp|svg)$/i;
 const LETTER = /^([A-E])\s*·\s*(.+)$/;
 
@@ -289,8 +291,20 @@ export default function PlaygroundPicks({ onTry }) {
     const n = Number(asked().get('option'));
     return id && n > 0 ? { [id]: n - 1 } : {};
   });
-  const [drafts, setDrafts] = useState({}); // your answer, pins and notes, per pick, until sent
-  const [sent, setSent] = useState(null);
+  // your answer, pins and notes per pick are drafts kept in this browser (they survive a reload) until Send all
+  const [drafts, setDrafts] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(DRAFTS) ?? '{}') || {};
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFTS, JSON.stringify(drafts));
+    } catch {}
+  }, [drafts]);
+  const [batch, setBatch] = useState({ sending: false, result: null, failed: null });
   const [notes, setNotes] = useState(false); // the thin comments panel, opened from the comment count
     const shown = useMemo(() => (picks ?? []).filter((p) => !filter || FILTERS.find((f) => f.id === filter).test(p)), [picks, filter]);
   const pick = shown.find((p) => p.id === at) ?? shown[0] ?? null;
@@ -309,7 +323,6 @@ export default function PlaygroundPicks({ onTry }) {
 
   const choose = (id) => {
     setAt(id);
-    setSent(null);
     if (phone) requestAnimationFrame(() => document.getElementById('pg-stage')?.scrollIntoView({ block: 'start' }));
   };
 
@@ -328,37 +341,41 @@ export default function PlaygroundPicks({ onTry }) {
   const thumb = draft.thumb[mark] ?? null;
   const setThumb = (v) => setDraft((d) => ({ ...d, thumb: { ...d.thumb, [mark]: d.thumb[mark] === v ? null : v } }));
   const pinsHere = draft.pins.filter((p) => p.option === mark);
-  const savedPins = pick.comments.filter((c) => c.n).length;
   // a new pin carries on from the pins already on the card, the same number on the picture, the panel and the note sent
-  const pinNoIn = (d, p) => (p.isNew ? d.pins.length + 1 : d.pins.indexOf(p) + 1) + savedPins;
-  const pinNo = (p) => pinNoIn(draft, p);
+  const pinNoIn = (pk, d, p) => (p.isNew ? d.pins.length + 1 : d.pins.indexOf(p) + 1) + pk.comments.filter((c) => c.n).length;
+  const pinNo = (p) => pinNoIn(pick, draft, p);
   const unsent = (d) => d.pins.filter((p) => !p.sent && p.note.trim());
-  const ready = Object.values(draft.thumb).some(Boolean) || unsent(draft).length > 0;
+  const marked = (d) => !!d && (Object.values(d.thumb ?? {}).some(Boolean) || unsent(d).length > 0);
 
   // what goes to the board, in decide.js's shape: one card answer, notes beside it
-  const answerOf = (d = draft) => {
+  const answerOf = (pk, d) => {
     const ups = Object.entries(d.thumb).filter(([, v]) => v === 'up').map(([k]) => k);
     const downs = Object.entries(d.thumb).filter(([, v]) => v === 'down').map(([k]) => k);
-    if (pick.thumbs) return ups.length && !downs.length ? '👍 Looks right' : downs.length ? '👎 Change it' : null;
-    const o = pick.options.find((x) => x.letter === ups[ups.length - 1]);
+    if (pk.thumbs) return ups.length && !downs.length ? '👍 Looks right' : downs.length ? '👎 Change it' : null;
+    const o = pk.options.find((x) => x.letter === ups[ups.length - 1]);
     return o ? o.answer : null;
   };
-  const noteOf = (d = draft) => {
-    const downs = Object.entries(d.thumb).filter(([, v]) => v === 'down').map(([k]) => (pick.thumbs ? null : `👎 ${k}`)).filter(Boolean);
-    const pins = unsent(d).map((p) => `${pick.thumbs ? '' : `${p.option} · `}pin ${pinNoIn(d, p)}: ${p.note.trim()}`);
+  const noteOf = (pk, d) => {
+    const downs = Object.entries(d.thumb).filter(([, v]) => v === 'down').map(([k]) => (pk.thumbs ? null : `👎 ${k}`)).filter(Boolean);
+    const pins = unsent(d).map((p) => `${pk.thumbs ? '' : `${p.option} · `}pin ${pinNoIn(pk, d, p)}: ${p.note.trim()}`);
     return [...downs, ...pins].join(' · ') || null;
   };
-  // one Send: the answer and every comment not yet sent, in one POST; a comment's own Enter sends it with the answer
-  async function send(d = draft) {
-    const body = { page: `Playground · ${pick.from}`, url: pathOf(pick.page), cards: [{ from: pathOf(pick.page), title: pick.title, answer: answerOf(d), note: noteOf(d) }] };
+  // ONE Send all: every marked pick's answer and notes in one POST (one message to the agent, not one per pick)
+  const markedPicks = picks.filter((p) => marked(drafts[p.id]));
+  async function sendAll() {
+    if (!markedPicks.length || batch.sending) return;
+    setBatch({ sending: true, result: null, failed: null });
+    const n = markedPicks.length;
+    const body = { type: 'batch', page: `Playground · ${n} answers`, url: '/playground', cards: markedPicks.map((p) => ({ from: pathOf(p.page), title: p.title, answer: answerOf(p, drafts[p.id]), note: noteOf(p, drafts[p.id]) })) };
     try {
       const r = await fetch(`${BOARD}/answers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error(String(r.status));
-      setDrafts((all) => ({ ...all, [pick.id]: { thumb: {}, pins: d.pins.map((p) => ({ ...p, sent: true })) } }));
-      setSent('saved');
+      const at = new Date().toISOString();
+      setDrafts((all) => Object.fromEntries(Object.entries(all).map(([id, d]) => (markedPicks.some((p) => p.id === id) ? [id, { thumb: {}, pins: d.pins.map((x) => ({ ...x, sent: true })), sentAt: at }] : [id, d]))));
+      setBatch({ sending: false, result: { n, at: clock(at) }, failed: null });
       again();
     } catch {
-      setSent('failed');
+      setBatch({ sending: false, result: null, failed: `Not sent: the progress board doesn’t answer at ${BOARD}. ${plural(n, 'mark')} kept here.` });
     }
   }
 
@@ -410,7 +427,18 @@ export default function PlaygroundPicks({ onTry }) {
             label={`Your picks, ${shown.indexOf(pick) + 1} of ${shown.length} selected`}
             currentId={pick?.id}
             onPick={choose}
-            items={shown.map((p) => ({ id: p.id, title: shortName(p.title), line: p.from, status: p.answer ? 'Answered' : 'Not answered', tone: p.answer ? 'success' : 'attention' }))}
+            items={shown.map((p) => {
+              const d = drafts[p.id];
+              const mine = marked(d);
+              const count = p.comments.length + (d?.pins.filter((x) => !x.sent).length ?? 0);
+              return {
+                id: p.id,
+                title: shortName(p.title),
+                line: [p.from, count ? plural(count, 'comment') : null].filter(Boolean).join(' · '),
+                status: mine ? 'Marked' : d?.sentAt ? 'Sent' : p.answer ? 'Answered' : 'Not answered',
+                tone: mine ? 'attention' : d?.sentAt || p.answer ? 'success' : 'neutral',
+              };
+            })}
           />
         ) : (
           <EmptyState size="lane" mark="🙌" title="None here" line="Nothing matches this filter. Pick All to see the rest." />
@@ -448,17 +476,9 @@ export default function PlaygroundPicks({ onTry }) {
         <FilterChip pressed={thumb === 'down'} onClick={() => setThumb('down')} ariaLabel="Thumbs down">
           👎
         </FilterChip>
-        <Button variant="primary" size="sm" disabled={!ready} onClick={() => send()}>
-          Send
-        </Button>
         <Flow role="status" gap={0}>
-          {sent === 'saved' ? <TextStack body="Saved" /> : null}
+          {marked(draft) ? <TextStack body="Saved · not sent yet" /> : draft.sentAt ? <TextStack body="Sent" /> : null}
         </Flow>
-        {sent === 'failed' ? (
-          <Flow role="alert" gap={0}>
-            <TextStack body={`Not sent: the progress board doesn’t answer at ${BOARD}. Your answer is still here.`} />
-          </Flow>
-        ) : null}
         <Button variant="tertiary" size="sm" ariaExpanded={notes} onClick={() => setNotes((n) => !n)}>
           {plural(total, 'comment')}
         </Button>
@@ -478,9 +498,8 @@ export default function PlaygroundPicks({ onTry }) {
             return { ...d, pins: [...d.pins.filter((p) => p.option !== mark), ...out] };
           })
         }
-        onCommit={(pin) => send({ ...draft, pins: [...draft.pins, { ...pin, option: mark }] })}
         numberOf={pinNo}
-        commitLabel="Send"
+        commitLabel="Save"
       />
     </Flow>
   );
@@ -569,6 +588,7 @@ export default function PlaygroundPicks({ onTry }) {
           </Flow>
         </Flow>
       )}
+      <SendBar count={markedPicks.length} onSend={sendAll} sending={batch.sending} result={batch.result} failed={batch.failed} />
     </>
   );
 }

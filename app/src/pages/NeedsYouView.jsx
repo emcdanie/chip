@@ -21,6 +21,7 @@ import Slider from '@bella/components/Slider/Slider';
 import Tag from '@bella/components/Tag/Tag';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
+import SendBar from '../templates/SendBar.jsx';
 import PickList from '../templates/PickList.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import PicturePins from '../templates/PicturePins.jsx';
@@ -54,7 +55,7 @@ function Picture({ card, shot, pins, onPins }) {
       alt={shot.alt || shot.caption || card.title}
       pins={pins.filter((p) => p.shot === shot.src)}
       numberOf={(p) => (p.isNew ? pins.length + 1 : pins.indexOf(p) + 1)}
-      commitLabel="Add"
+      commitLabel="Save"
       setPins={(next) =>
         onPins((all) => {
           const here = all.filter((p) => p.shot === shot.src);
@@ -104,6 +105,18 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
   const [wide, setWide] = useState(320);
   const [sending, setSending] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [sentAt, setSentAt] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`${KEEP}:sent`) || '{}');
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${KEEP}:sent`, JSON.stringify(sentAt));
+    } catch {}
+  }, [sentAt]);
 
   const current = cards[Math.min(at, cards.length - 1)];
   const href = current?.open?.kind === 'page' ? current.open.href : null;
@@ -174,27 +187,33 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
     </Card>
   ) : null;
 
+  // ONE Send all: every answer and pin note on every page goes in one POST, so the agent gets one message
   async function sendAll() {
     if (sending || !touched.length) return;
     setSending(true);
     setMsg(null);
     const byPath = new Map(Object.values(pages).filter((p) => p.page).map((p) => [p.page.src, p]));
-    const origin = (p) => answersUrl(reviewCards.find((c) => pageOf(c)?.src === p.page.src)?.open.href);
+    const first = reviewCards.find((c) => touched.some(([src]) => pageOf(c)?.src === src));
+    const cardsOut = [];
+    const markups = [];
+    for (const [src, s] of touched) {
+      const p = byPath.get(src);
+      if (!p) continue;
+      if (Object.keys({ ...s.A, ...s.T }).length || Object.values(s.N ?? {}).some((n) => (n ?? '').trim())) cardsOut.push(...decisionBody(p.page, s).cards.filter((c) => c.answer || c.thumb || c.note));
+      if ((s.pins ?? []).some((x) => x.note.trim())) markups.push(markupBody(p.page, s.pins.filter((x) => x.note.trim()), `${window.innerWidth}x${window.innerHeight}`));
+    }
+    const n = total;
     try {
-      const post = (p, body) =>
-        fetch(origin(p), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => (r.ok ? true : Promise.reject(new Error('refused'))));
-      for (const [src, s] of touched) {
-        const p = byPath.get(src);
-        if (!p) continue;
-        if (Object.keys({ ...s.A, ...s.T }).length || Object.values(s.N ?? {}).some((n) => (n ?? '').trim())) await post(p, decisionBody(p.page, s));
-        if ((s.pins ?? []).some((x) => x.note.trim())) await post(p, markupBody(p.page, s.pins.filter((x) => x.note.trim()), `${window.innerWidth}x${window.innerHeight}`));
-      }
+      const r = await fetch(answersUrl(first.open.href), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'batch', page: `Needs you · ${plural(n, 'answer')}`, url: '/needs-you', cards: cardsOut, markups }) });
+      if (!r.ok) throw new Error('refused');
+      const at = new Date();
+      setSentAt((m) => ({ ...m, ...Object.fromEntries(touched.map(([src]) => [src, true])) }));
       setAnswers({});
       setPicked(new Set());
-      setMsg({ tone: 'success', text: `Sent ${plural(total, 'answer')} on ${plural(touched.length, 'page')}.` });
-      onNotice?.({ tone: 'success', title: 'Sent', message: `${plural(total, 'answer')} on ${plural(touched.length, 'page')} reached the coordinator.` });
+      setMsg({ result: { n, at: at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) } });
+      onNotice?.({ tone: 'success', title: 'Sent', message: `${plural(n, 'answer')} on ${plural(touched.length, 'page')} reached the coordinator in one message.` });
     } catch {
-      setMsg({ tone: 'danger', text: 'Could not send. The review server on localhost:3123 did not answer; your answers are kept here.' });
+      setMsg({ failed: 'Not sent: the review server on localhost:3123 did not answer. Your marks are kept here.' });
     }
     setSending(false);
   }
@@ -207,7 +226,7 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
       items={cards.map((c) => {
         const p = pageOf(c);
         const n = p ? countAnswers(answers[p.src]) : 0;
-        return c.open?.kind === 'page' ? { id: c.id, title: c.title, line: picked.has(c.id) ? 'Chosen for mark-up' : 'Review page', status: n ? plural(n, 'answer') : 'Not answered', tone: n ? 'success' : 'attention' } : { id: c.id, title: c.title, line: c.line, status: c.status ?? 'Needs you', tone: c.tone };
+        return c.open?.kind === 'page' ? { id: c.id, title: c.title, line: [picked.has(c.id) ? 'Chosen for mark-up' : 'Review page', n ? plural(n, 'mark') : null].filter(Boolean).join(' · '), status: n ? 'Marked' : p && sentAt[p.src] ? 'Sent' : 'Not answered', tone: n ? 'attention' : p && sentAt[p.src] ? 'success' : 'neutral' } : { id: c.id, title: c.title, line: c.line, status: c.status ?? 'Needs you', tone: c.tone };
       })}
     />
   );
@@ -304,7 +323,6 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
           <Button variant="secondary" size="sm" iconOnly icon="NavArrowRight" ariaLabel="Next" disabled={at >= cards.length - 1} onClick={() => go(1)} />
         </Flow>
       </Flow>
-      {msg ? <Notification tone={msg.tone} message={msg.text} onClose={() => setMsg(null)} /> : null}
       <Flow direction={narrow ? 'column' : 'row'} gap={24} align={narrow ? undefined : 'start'}>
         {narrow ? (
           <Disclosure title="Everything that needs you" summary={`${at + 1} of ${cards.length}`}>
@@ -320,12 +338,7 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
         </Flow>
         {side}
       </Flow>
-      <Flow direction="row" gap={12} align="center" justify="end" wrap role="group" aria-label="Send all">
-        <TextStack body={total ? `${plural(total, 'answer')} on ${plural(touched.length, 'page')}, ready to send` : 'Answer a card, then send everything in one go.'} />
-        <Button variant="primary" busy={sending} disabled={!total} onClick={sendAll}>
-          {total ? `Send all (${total})` : 'Send all'}
-        </Button>
-      </Flow>
+      <SendBar count={touched.length} onSend={sendAll} sending={sending} result={msg?.result} failed={msg?.failed} />
     </Flow>
   );
 }
