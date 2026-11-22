@@ -257,14 +257,8 @@ export default function App() {
   useEffect(() => {
     function onKey(e) {
       const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        if (searchShown) document.getElementById('find')?.focus();
-        else {
-          setWork({ open: true, tab: 'ask' });
-          requestAnimationFrame(() => document.getElementById('wp-ask')?.focus());
-        }
-      } else if (mod && e.key.toLowerCase() === 'j') {
+      // ⌘K belongs to the top-bar Search (templates/Search.jsx)
+      if (mod && e.key.toLowerCase() === 'j') {
         e.preventDefault();
         setOpen(!work.open);
       } else if (e.altKey && WS_KEYS[e.code]) {

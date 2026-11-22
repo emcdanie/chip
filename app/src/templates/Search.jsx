@@ -66,6 +66,21 @@ export default function Search({ showShortcut, autoFocus }) {
   useEffect(() => {
     if (autoFocus) document.querySelector('.chip-screen__search input')?.focus();
   }, [autoFocus]);
+  // ⌘K (Ctrl K) focuses the top-bar search wherever it is shown (23 Nov demo test: the old handler looked for an
+  // element that no longer exists, and under 1101 it opened the Work panel instead)
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'k') {
+        const input = document.querySelector('.chip-screen__search input');
+        if (!input) return;
+        e.preventDefault();
+        input.focus();
+        input.select?.();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const results = useMemo(() => find(shown, parts), [shown, parts]);
   useEffect(() => setSel(0), [shown]);
   const go = (r) => {
