@@ -341,66 +341,68 @@ function Lines({ map, rows, picked, boardId, tick }) {
   const { steps, rowBox } = geo;
   const cx = (id) => (steps[id].left + steps[id].right) / 2;
   const edges = Object.values(map.steps).flatMap((s) => (s.deps ?? []).filter((d) => rowOf[d] != null && rowOf[s.id] != null && rowOf[d] < rowOf[s.id] && steps[d] && steps[s.id]).map((d) => [d, s.id]));
-  // the gap between two columns that a long line runs down: the middle of the space between the nearest steps
-  const colX = [...new Set(Object.keys(steps).map((id) => Math.round(cx(id))))].sort((p, q) => p - q);
-  const gaps = colX.slice(1).map((x, i) => Math.round((colX[i] + x) / 2));
-  // which gap a long line runs down, and how many lines share it (they spread evenly about its middle)
-  const gapFor = (d, id) => {
-    const xA = cx(d);
-    const xB = cx(id);
-    if (Math.abs(xA - xB) < 1) return gaps.find((x) => x > xA) ?? gaps.filter((x) => x < xA).pop();
-    return xB > xA ? gaps.filter((x) => x < xB).pop() : gaps.find((x) => x > xB);
+  // The channels a long line can run down: the gap between the columns and the space outside the right column (the
+  // left side carries the row names, which no line may cross).
+  // Lines spread across a channel at least 6 apart (8 where there is room); a long line takes the channel with the
+  // most room left, nearest its lower step on a tie.
+  const ids = Object.keys(steps);
+  const minL = Math.min(...ids.map((id) => steps[id].left));
+  const maxR = Math.max(...ids.map((id) => steps[id].right));
+  const boardR = Math.max(...rowBox.filter(Boolean).map((r) => r.right));
+  const colX = [...new Set(ids.map((id) => Math.round(cx(id))))].sort((p, q) => p - q);
+  const channels = [
+    ...colX.slice(1).map((x, i) => {
+      const l = Math.max(...ids.filter((id) => cx(id) < (colX[i] + x) / 2).map((id) => steps[id].right));
+      const r = Math.min(...ids.filter((id) => cx(id) > (colX[i] + x) / 2).map((id) => steps[id].left));
+      return { x: (l + r) / 2, w: r - l };
+    }),
+    { x: (maxR + boardR) / 2, w: boardR - maxR },
+  ].map((c) => ({ ...c, use: [] }));
+  const room = (c) => Math.max(1, Math.floor((c.w - 12) / 8) + 1);
+  const long = (d, id) => rowOf[id] !== rowOf[d] + 1; // not a neighbouring row
+  edges.filter(([d, id]) => long(d, id)).forEach(([d, id]) => {
+    const best = [...channels].sort((p, q) => p.use.length / room(p) - q.use.length / room(q) || Math.abs(p.x - cx(id)) - Math.abs(q.x - cx(id)))[0];
+    best.use.push(`${d}>${id}`);
+  });
+  const laneX = (d, id) => {
+    const c = channels.find((ch) => ch.use.includes(`${d}>${id}`));
+    const n = c.use.length;
+    const sp = n > 1 ? Math.max(6, Math.min(10, (c.w - 12) / (n - 1))) : 0;
+    return c.x + (c.use.indexOf(`${d}>${id}`) - (n - 1) / 2) * sp;
   };
-  const long = (d, id) => rowOf[id] !== rowOf[d] + 1; // not a neighbouring row: it runs down a gap between the columns
-  const share = {};
-  edges.forEach(([d, id]) => long(d, id) && (share[gapFor(d, id)] = (share[gapFor(d, id)] ?? 0) + 1));
-  // lines in one gap spread about its middle, 8 apart, closer if the gap is narrow so none touches a step beside it
-  const spacing = (g) => {
-    const ids = Object.keys(steps);
-    const edgeL = Math.max(...ids.filter((id) => cx(id) < g).map((id) => steps[id].right));
-    const edgeR = Math.min(...ids.filter((id) => cx(id) > g).map((id) => steps[id].left));
-    return Math.min(8, Math.max(2, (edgeR - edgeL - 16) / Math.max(1, (share[g] ?? 1) - 1)));
-  };
-  const lanes = {};
-  const parts = [];
-  const key = (...a) => a.join(':');
+  const drawn = { picked: [], rest: [] };
   edges.forEach(([d, id]) => {
     const i = rowOf[d];
     const j = rowOf[id];
     const xA = cx(d);
     const xB = cx(id);
     const yFoot = rowBox[i].bottom;
-    const tone = picked === d || picked === id ? 'selected' : 'default';
-    const vert = (x, y0, y1) => y1 - y0 > 0.5 && parts.push(<MapLine key={key(d, id, 'v', Math.round(x), Math.round(y0))} direction="vertical" end="none" tone={tone} style={{ position: 'absolute', left: x - 8, top: y0, height: y1 - y0, minBlockSize: 0 }} />);
-    const bend = (x0, y0, x1, y1) => parts.push(<MapLine key={key(d, id, 'c', Math.round(x0), Math.round(y0))} direction="curve" end="none" tone={tone} from={{ x: x0, y: y0 }} to={{ x: x1, y: y1 }} />);
+    const mine = picked === d || picked === id;
+    const tone = mine ? 'selected' : 'default';
+    const out = mine ? drawn.picked : drawn.rest;
+    const vert = (x, y0, y1) => y1 - y0 > 0.5 && out.push(<MapLine key={`${d}:${id}:v:${Math.round(x)}:${Math.round(y0)}`} direction="vertical" end="none" tone={tone} style={{ position: 'absolute', left: x - 8, top: y0, height: y1 - y0, minBlockSize: 0 }} />);
+    const bend = (x0, y0, x1, y1) => out.push(<MapLine key={`${d}:${id}:c:${Math.round(x0)}:${Math.round(y0)}`} direction="curve" end="none" tone={tone} from={{ x: x0, y: y0 }} to={{ x: x1, y: y1 }} />);
     vert(xA, steps[d].bottom, yFoot);
-    if (j === i + 1 || Math.abs(xA - xB) < 1) {
-      // neighbouring rows (or straight below): one curve in the gap, then down into the step
-      if (Math.abs(xA - xB) < 1 && j !== i + 1) {
-        // straight below but rows between: take the gap beside the column
-        const g = gapFor(d, id);
-        const lx = g + ((lanes[g] = (lanes[g] ?? 0) + 1) - 1 - (share[g] - 1) / 2) * spacing(g);
-        bend(xA, yFoot, lx, yFoot + HOP);
-        vert(lx, yFoot + HOP, rowBox[j].top - HOP);
-        bend(lx, rowBox[j].top - HOP, xB, rowBox[j].top);
-        vert(xB, rowBox[j].top, steps[id].top);
-      } else if (Math.abs(xA - xB) < 1) vert(xB, yFoot, steps[id].top);
+    if (!long(d, id)) {
+      // neighbouring rows: one curve in the gap, then down into the step
+      if (Math.abs(xA - xB) < 1) vert(xB, yFoot, steps[id].top);
       else {
         bend(xA, yFoot, xB, yFoot + HOP);
         vert(xB, yFoot + HOP, steps[id].top);
       }
     } else {
-      const g = gapFor(d, id) ?? xB;
-      const lx = g + ((lanes[g] = (lanes[g] ?? 0) + 1) - 1 - ((share[g] ?? 1) - 1) / 2) * spacing(g);
+      const lx = laneX(d, id);
       bend(xA, yFoot, lx, yFoot + HOP);
       vert(lx, yFoot + HOP, rowBox[j].top - HOP);
       bend(lx, rowBox[j].top - HOP, xB, rowBox[j].top);
       vert(xB, rowBox[j].top, steps[id].top);
     }
   });
+  // the lines she asks about (the picked step's) are blue and on top; the others sit back, light
   return (
     <span aria-hidden="true" data-process-lines="" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-      {parts}
+      <span style={{ opacity: 0.4 }}>{drawn.rest}</span>
+      <span>{drawn.picked}</span>
     </span>
   );
 }

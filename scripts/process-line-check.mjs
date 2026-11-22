@@ -3,6 +3,7 @@
 // board actually draws and fails when
 //   - a line enters a step's box or the measured line under it,
 //   - a line runs through a row's name,
+//   - two lines running down a gap closer than 6px (they would read as one strand),
 //   - a map that should fit (1280 and up) still floats a size note or a Fit control over its board.
 // Usage: node scripts/process-line-check.mjs [--app http://localhost:3160] [--out dir]
 // Needs a CHIP server and Playwright in BELLA_DIR (as stage-leader-check.mjs). Exit 1 on any failure; a full run
@@ -74,6 +75,10 @@ for (const map of MAPS) {
       g.steps.forEach((s) => through(l, s) && bad.push(`a line enters the step ${s.id}`));
       g.labels.forEach((s) => through(l, s, 0) && bad.push(`a line runs through the row name "${s.id}"`));
     });
+    // the long runs down a gap: straight pieces whose x is not a step's column
+    const centres = g.steps.map((st) => (st.l + st.r) / 2);
+    const runs = g.lines.filter((l) => l.length === 2 && Math.abs(l[0][0] - l[1][0]) < 0.5 && !centres.some((c) => Math.abs(c - l[0][0]) < 2)).map((l) => ({ x: l[0][0], y0: Math.min(l[0][1], l[1][1]), y1: Math.max(l[0][1], l[1][1]) }));
+    runs.forEach((a, i) => runs.slice(i + 1).forEach((b) => Math.abs(a.x - b.x) < 6 && Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > 2 && bad.push(`two lines run ${Math.abs(a.x - b.x).toFixed(1)}px apart in a gap`)));
     if (width >= 1280 && (g.floatNote || g.fit)) bad.push('a size note or Fit control floats over a map that should fit');
     if (g.sx > 0) bad.push(`sideways page scroll ${g.sx}`);
     await page.screenshot({ path: join(OUT, `${map.replace(/\W+/g, '-')}-${width}.png`), fullPage: true }).catch(() => {});
