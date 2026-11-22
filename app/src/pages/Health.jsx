@@ -18,7 +18,7 @@ export default function Health({ model: given, run }) {
       {live.error && !given ? (
         <EmptyState size="lane" mark="🔌" title="CHIP's server isn't answering" line={live.error} />
       ) : (
-        <HealthContent model={model} run={run} checked={given ? '10:29' : live.checked} onCheck={live.reload} loading={!given && live.loading} />
+        <HealthContent model={model} run={run} checked={given ? '10:29' : live.checked} stale={given ? null : live.stale} onCheck={live.reload} loading={!given && live.loading} />
       )}
     </Screen>
   );

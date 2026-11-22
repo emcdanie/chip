@@ -21,18 +21,22 @@ export function fetchCached(url, { fresh = false } = {}) {
   return p;
 }
 
-/** urls: the endpoints a view reads. Returns { data: [..] or null, error, at, loading, reload }. */
-export default function useCached(urls) {
+/** urls: the endpoints a view reads. Returns { data: [..] or null, error, at, loading, reload }.
+ * live: read again in the background (Elleta, 23 Nov: "the data is not continuously updated it is behind"): when the
+ * window gets focus, on the 'chip:changed' event, and every 60 seconds while the page is visible. A background read
+ * never blanks or flickers: the old numbers stay until the new ones arrive, and when it fails they stay and `stale`
+ * says "Couldn't refresh, showing 16:41". `at` is when the shown data was read. */
+export default function useCached(urls, { live = false } = {}) {
   const key = urls.join('|');
   const now = () => (urls.every((u) => cache.has(u)) ? urls.map((u) => cache.get(u).data) : null);
-  const [state, setState] = useState(() => ({ key, data: now(), error: null, at:urls.every((u) => cache.has(u)) ? Math.min(...urls.map((u) => cache.get(u).at)) : null }));
+  const [state, setState] = useState(() => ({ key, data: now(), error: null, stale: null, at:urls.every((u) => cache.has(u)) ? Math.min(...urls.map((u) => cache.get(u).at)) : null }));
   const load = useCallback((fresh = false) => {
     let live = true;
     // a new address shows its own cached answer (or nothing), never the last one's
     // loading: a fresh read (Check again) is on its way, so its button can say busy
     setState((s) => ({ ...s, data: now() ?? (s.key === key ? s.data : null), key, loading: fresh === true }));
     Promise.all(urls.map((u) => fetchCached(u, { fresh: fresh === true })))
-      .then((data) => live && setState({ data, error: null, at: Date.now(), key, loading: false }))
+      .then((data) => live && setState({ data, error: null, stale: null, at: Date.now(), key, loading: false }))
       .catch((e) => live && setState((s) => ({ ...s, error: e.message, loading: false })));
     return () => {
       live = false;
@@ -41,8 +45,34 @@ export default function useCached(urls) {
   }, [key]);
   useEffect(() => load(), [load]);
   const reload = useCallback(() => load(true), [load]);
+  // background reads: no loading flag, the shown data kept; a failure only sets `stale`
+  const quiet = useCallback(() => {
+    if (!urls.length || document.hidden) return;
+    // the server's own read is at most 30 seconds old; ?fresh=1 is for the Check again button only
+    Promise.all(urls.map((u) => fetchCached(u)))
+      .then((data) => setState((s) => (s.key === key ? { ...s, data, error: null, stale: null, at: Date.now() } : s)))
+      .catch(() => setState((s) => (s.key === key && s.data ? { ...s, stale: `Couldn’t refresh, showing ${clock(s.at)}` } : s)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  useEffect(() => {
+    if (!live) return undefined;
+    const timer = setInterval(quiet, 60_000);
+    const onVisible = () => !document.hidden && quiet();
+    window.addEventListener('focus', quiet);
+    window.addEventListener('chip:changed', quiet);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', quiet);
+      window.removeEventListener('chip:changed', quiet);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [live, quiet]);
   return { ...state, reload };
 }
+
+/** "16:58" for a time in ms. */
+export const clock = (t) => (t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '');
 
 /* Every new page's data, read once when CHIP opens, so the first visit to a
    page shows its answer instead of a loading state. */

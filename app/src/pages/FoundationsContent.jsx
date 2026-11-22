@@ -823,7 +823,7 @@ function WhoUsesWhat({ bella }) {
 
 export default function FoundationsContent({ view: startView = 'cards' }) {
   const roles = useRoles();
-  const { data, error } = useCached(['/data/foundations.json', '/data/bella.json']);
+  const { data, error } = useCached(['/data/foundations.json', '/data/bella.json'], { live: true });
   const all = useAllRoles(data?.[1] ?? null);
   const [view, setView] = useState(startView);
   // below 800 the bar stacks: the filter and chips, then the switch on its own row at the right

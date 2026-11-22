@@ -29,7 +29,7 @@ import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 import { TARGET, handOff } from './healthModel.js';
-import { gateSlots } from './gateSlots.js';
+import { explainRun, gateAnswer, gateSlots } from './gateSlots.js';
 import BarChart from '@bella/components/BarChart/BarChart';
 import Toast from '@bella/components/Toast/Toast';
 import Toasts from '../templates/Toasts.jsx';
@@ -47,21 +47,94 @@ function GateBanner({ run }) {
 
 /* A card CHIP has no data for: no number before a measure, the empty bar, and the footer saying why
    with its action (StatCard chart="empty", 22 Nov 19:08). */
-/* Gate runs: every recorded run in a slot of the range picked (the chart holds its range, we hand it that range's slots). */
-function GateBars({ runs }) {
+/* Gate runs: every recorded run in a slot of the range picked (the chart holds its range, we hand it that range's slots).
+   Under the title, the question the card answers and its answer from the recorded runs (Elleta, 23 Nov: "explain to me
+   why it helps"); nothing else under the chart: a red bar (click or Enter) opens the drawer with its failures in plain
+   words ("remove all this under the chart its too much": a long list under a chart lives in a drawer). */
+const PER = { day: 'half hour', week: 'day', month: 'day', year: 'month' };
+const WHEN = { day: 'today', week: 'this week', month: 'this month', year: 'this year' };
+const gDay = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const clockOf = (d) => d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const firstLine = (t) => String(t ?? '').split(/(?<=[.!?])\s/)[0].trim();
+function GateBars({ runs, readAt }) {
   const [range, setRange] = useState('day');
+  const [open, setOpen] = useState(null);
   const slots = gateSlots(runs, range);
+  const a = gateAnswer(runs);
+  const trend = a?.trend == null ? null : `${a.trend > 0 ? '↑' : a.trend < 0 ? '↓' : '→'} ${Math.abs(a.trend)} points against the 30 days before`;
   return (
-    <BarChart
-      title="Gate runs"
-      showViewToggle={false}
-      range={range}
-      onRangeChange={setRange}
-      slots={slots}
-      label="Passed"
-      unit="Runs"
-      context="GitHub CI and CHIP's own runs · only what was recorded"
-    />
+    <Flow gap={16}>
+      {a ? (
+        <Flow gap={4}>
+          <TextStack title="Can you trust a green gate?" />
+          <TextStack
+            body={
+              <>
+                <Marker>{`${a.passed} of ${a.total}`}</Marker> {`CI runs passed since ${gDay(a.since)}.`}
+                {a.last ? ` The last failure was ${gDay(a.last.at)}: ${firstLine(a.last.title) || a.last.cause}.` : ' None has failed.'}
+                {trend ? ` ${trend}.` : ''}
+              </>
+            }
+          />
+          {a.most ? <TextStack subtitle={`Failing most often: ${a.most.name} (${a.most.n})`} /> : null}
+        </Flow>
+      ) : null}
+      <BarChart
+        title="Gate runs"
+        showViewToggle={false}
+        range={range}
+        onRangeChange={setRange}
+        slots={slots}
+        label="Passed"
+        unit="Runs"
+        axisUnit={`Runs per ${PER[range]}`}
+        calloutText={(slot) => `${slot.passed + slot.failed} runs · ${slot.failed} failed · ${slot.passed} passed`}
+        onSlotSelect={(slot) => slot.failedRuns?.length && setOpen(slot.failedRuns)}
+        context="GitHub CI and CHIP's own runs · only what was recorded"
+        summary={(() => {
+          const n = slots.reduce((t, x) => t + x.passed + x.failed, 0);
+          const f = slots.reduce((t, x) => t + x.failed, 0);
+          return `${f} of ${n} runs failed ${WHEN[range]}. Each bar is the runs in that ${PER[range]}; a red cross means at least one failed. Press a bar with a cross to see what failed.`;
+        })()}
+      />
+      <TextStack subtitle={`GitHub CI and CHIP's own runs${readAt ? ` · read ${clockOf(new Date(readAt))}` : ''}`} />
+      <ReadingDrawer
+        open={Boolean(open?.length)}
+        onClose={() => setOpen(null)}
+        label={open?.length > 1 ? `${open.length} failed runs` : 'A failed run'}
+        subtitle={open?.length ? `${gDay(open[0].at)} ${clockOf(open[0].at)}${open.length > 1 ? ` · ${open.length} runs` : ` · ${open[0].source === 'ci' ? 'GitHub CI' : 'CHIP'}`}` : undefined}
+        footer={
+          <Button variant="primary" onClick={() => (setOpen(null), (window.location.hash = '#/system/history'))}>
+            Open the commit in History
+          </Button>
+        }
+      >
+        {(open ?? []).map((run, k) => {
+          const why = explainRun(run, runs);
+          return (
+            <Inset key={`${+run.at}-${k}`} gap={16}>
+              <TextStack title={`${clockOf(run.at)} · What failed`} />
+              <TextStack body={`${why.what[0].toUpperCase()}${why.what.slice(1)}.`} />
+              {why.why ? (
+                <Flow gap={4}>
+                  <TextStack title="Why it matters" />
+                  <TextStack body={`${why.why[0].toUpperCase()}${why.why.slice(1)}.`} />
+                </Flow>
+              ) : null}
+              <Flow gap={4}>
+                <TextStack title="What caused it" />
+                <TextStack body={why.cause ?? 'Cause not recorded'} />
+              </Flow>
+              <Flow gap={4}>
+                <TextStack title="What fixed it" />
+                <TextStack body={why.fixed ? `Fixed ${why.fixed}.` : 'No later run has passed yet.'} />
+              </Flow>
+              {run.sha ? <TextStack subtitle={`Commit ${run.sha}`} /> : null}
+            </Inset>
+          );
+        })}
+      </ReadingDrawer>
+    </Flow>
   );
 }
 
@@ -111,7 +184,7 @@ function driftPoints(hist) {
 }
 
 function DriftCard({ components }) {
-  const { data } = useCached(['/drift']);
+  const { data } = useCached(['/drift'], { live: true });
   const [open, setOpen] = useState(false);
   // a Fix asks for its plan once this drawer has closed, so the plan opens on top, never under it
   const pending = useRef(null);
@@ -138,7 +211,12 @@ function DriftCard({ components }) {
         value={d.differing}
         unit={`of ${d.total}`}
         context="Parts that differ from Figma, their spec or their code"
-        caption={day ? `Specs from ${day} · ${d.total - d.compared} not read from Figma` : `${d.total - d.compared} not read from Figma`}
+        caption={
+          <>
+            {day ? `Specs from ${day} · ` : ''}
+            <Marker>{`${d.total - d.compared} not read from Figma`}</Marker>
+          </>
+        }
         onOpen={() => setOpen(true)}
       />
       <ReadingDrawer open={open} onClose={closed} label="Drift from BELLA" status={`${d.differing} of ${d.total} parts differ · most first`}>
@@ -205,7 +283,7 @@ function DriftCard({ components }) {
    and specified that have no code yet, and the parts AGENTS.md lists as not in BELLA. ↗ opens both lists; the
    specified ones can be built: Plan the build opens the plan, and nothing runs until it is approved. */
 function GapsCard() {
-  const { data } = useCached(['/bella-gaps']);
+  const { data } = useCached(['/bella-gaps'], { live: true });
   const [open, setOpen] = useState(false);
   // the plan opens once this drawer has closed, so it sits on top
   const planNext = useRef(false);
@@ -229,7 +307,7 @@ function GapsCard() {
         chart="none"
         value={total}
         unit={total === 1 ? 'part' : 'parts'}
-        context={`${g.notInCode.length} specified, not in code · ${g.notInBella.length} not in BELLA yet`}
+        context={<><Marker>{`${g.notInCode.length} specified, not in code`}</Marker>{` · ${g.notInBella.length} not in BELLA yet`}</>}
         caption="What BELLA can't do yet"
         onOpen={() => setOpen(true)}
       />
@@ -285,7 +363,7 @@ function GateCard({ gate, run, onOpen }) {
               : 'Gate checks'
       }
       // of what: the checks that didn't pass, by name (one source with System map and Connectors)
-      caption={failed ? run.why : gate.failing.length ? `Failing: ${gate.failing.join('; ')}` : gate.notRun.length ? `Not run yet: ${gate.notRun.join('; ')}` : `All ${of} pass`}
+      caption={failed ? run.why : gate.failing.length ? <><Marker>{`Failing: ${gate.failing.join('; ')}`}</Marker></> : gate.notRun.length ? `Not run yet: ${gate.notRun.join('; ')}` : `All ${of} pass`}
       href={onOpen ? undefined : '#/system/history'}
       onOpen={onOpen}
     />
@@ -347,13 +425,13 @@ function NeedsYouCard({ rows, fixCount, verb, send, sending }) {
 
 /* Audits, all in one place (CHIP rule 22 Nov): one card per audit, read from the report it saved in
    docs/reference/audit/<date>/ (/audits). An audit with no saved report says Not run. The card: score and trend,
-   the day it ran, red and yellow; ↗ opens the report read in the drawer, explained (AuditReading.jsx). Run all opens a plan first. */
+   the day it ran, failing and needs work; ↗ opens the report read in the drawer, explained (AuditReading.jsx). Run all opens a plan first. */
 const dayOf = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const AUDIT_ICON = { product: 'ViewGrid', figma: 'Palette', ds: 'ShieldCheck', tokens: 'Key', a11y: 'Eye', agents: 'Brain' };
 function AuditCard({ a }) {
   const [open, setOpen] = useState(false);
   if (!a.ran) return <NoData title={a.title} icon={AUDIT_ICON[a.id] ?? 'Activity'} context={`${a.skill}`} caption="Not run: no saved report yet" />;
-  const lights = a.red == null ? 'Red and yellow not counted' : `${a.red} red · ${a.yellow} yellow`;
+  const lights = a.red == null ? 'Failing and needs-work not counted' : `${a.red} failing · ${a.yellow} need work`;
   const was = a.prev ? ` · was ${a.prev.value} on ${dayOf(a.prev.day)}` : '';
   return (
     <>
@@ -376,7 +454,7 @@ function AuditCard({ a }) {
 }
 
 function AuditsSection() {
-  const { data } = useCached(['/audits']);
+  const { data } = useCached(['/audits'], { live: true });
   const audits = data?.[0] ?? null;
   if (!audits) return <EmptyState size="lane" mark="⏳" title="Reading the audits" line="Looking for each audit's saved report." />;
   const runAll = () =>
@@ -413,7 +491,7 @@ function AuditsSection() {
   );
 }
 
-export default function HealthContent({ model, run, checked, onCheck, loading, view: startView = 'coverage' }) {
+export default function HealthContent({ model, run, checked, stale, onCheck, loading, view: startView = 'coverage' }) {
   const narrow = useNarrow();
   const [view, setView] = useState(startView);
   // handing a check's gaps to the agent: the button says Sending…, then a toast
@@ -444,7 +522,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
     <>
       {/* Control bar, as on Work: the last check and Check again, one group on the left. */}
       <Flow direction="row" gap={8} align="center">
-        {checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
+        {stale ? <TextStack subtitle={stale} /> : checked ? <TextStack subtitle={`Updated ${checked}`} /> : null}
         {/* busy while the check runs: the icon turns and clicks wait (Button busy, parts-dev 99a021d) */}
         <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={onCheck}>
           {loading ? 'Checking…' : 'Check again'}
@@ -468,7 +546,19 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             target={TARGET}
             passed={`${health.passed} of ${health.total} pass`}
             // the failing checks show once, in Component checks below with their fix (user test 21 Nov, item 6)
-            why={`Healthy means ${TARGET}% or more pass (the blue tick). ${health.failing.length ? `${health.failing.reduce((s, r) => s + r.missing.length, 0)} checks still fail; each is in Component checks below.` : 'Every check passes.'}`}
+            why={
+              <>
+                {`Healthy means ${TARGET}% or more pass (the blue tick). `}
+                {health.failing.length ? (
+                  <>
+                    <Marker>{`${health.failing.reduce((s, r) => s + r.missing.length, 0)} checks still fail`}</Marker>
+                    {'; each is in Component checks below.'}
+                  </>
+                ) : (
+                  <Marker>Every check passes.</Marker>
+                )}
+              </>
+            }
             // the way to the parts themselves: Components on Needs work, the same count it shows there
             failing={health.needsWork ? [{ name: 'Parts that need work', count: health.needsWork, ofTotal: `of ${n} parts`, href: '#/system/components?filter=needs' }] : []}
           />
@@ -501,7 +591,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
             unit=":1"
             chart="bar"
             meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100) }}
-            context={model.lowest.below ? `${model.lowest.below} text pairs below ${model.lowest.bar}:1` : 'Every pair clears the target'}
+            context={model.lowest.below ? <Marker>{`${model.lowest.below} text pairs below ${model.lowest.bar}:1`}</Marker> : <Marker>Every pair clears the target</Marker>}
             caption={`Target ${model.lowest.bar}:1 · ${model.lowest.checked ? `${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''}` : model.lowest.failing ? `the pairs check fails (${model.lowest.failing})` : 'not counted'}`}
             href="#/system/foundations"
           />
@@ -512,11 +602,12 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
       <Card>
         <Flow gap={24}>
           {(() => {
-            const days = model.gateDays;
-            const runs = days.reduce((t, d) => t + d.runs, 0);
+            const all = model.gateRuns;
+            const runs = all.length;
+            const first = all[0]?.at;
             // what the view reports, each number once
             const line =
-              view === 'gate' ? `${runs} recorded ${runs === 1 ? 'run' : 'runs'} · ${days.length} ${days.length === 1 ? 'day' : 'days'} · GitHub CI and CHIP`
+              view === 'gate' ? `${runs} recorded ${runs === 1 ? 'run' : 'runs'}${first ? ` · since ${gDay(first)}` : ''} · GitHub CI and CHIP`
               : (
                     // the target said once, in the line, with the blue marker (no legend under the rows)
                     <>
@@ -542,7 +633,7 @@ export default function HealthContent({ model, run, checked, onCheck, loading, v
           ) : view === 'gate' ? (
             // her pick "C · Apple style" (22 Nov): bars per half hour, failures red with a cross, a callout on hover or
             // the arrow keys, D W M Y; BELLA's BarChart draws it from the runs CHIP and GitHub recorded
-            <GateBars runs={model.gateRuns} />
+            <GateBars runs={model.gateRuns} readAt={model.gateReadAt} />
           ) : (
             // her pick "C · Weather rows" (22 Nov): one row per check, a block per 5 parts against the dashed
             // target, the count at the right; no divider under the last row. Each failing check's fix is in
