@@ -4,7 +4,6 @@
 // that Figma doesn't ("Nothing made is lost").
 import { useState } from 'react';
 import Screen from '../templates/Screen.jsx';
-import { projectTabs } from '../templates/projectViews.js';
 import WorkContent from './WorkContent.jsx';
 import { filterFromHash, useWork } from './workModel.js';
 
@@ -14,11 +13,10 @@ export default function Work({ model: given, view: startView = 'board' }) {
   const [view, setView] = useState(startView);
   return (
     <Screen
-      place="projects"
+      place="work"
       // Figma's main action is "New task"; CHIP has no new-task flow yet, so
       // it waits rather than pointing somewhere it doesn't do.
       header={{ title: 'CHIP' }}
-      tabs={projectTabs('work')}
     >
       <WorkContent model={given ?? live.model} filter={given ? {} : filterFromHash()} view={view} onView={setView} checked={given ? '10:29' : live.checked} onCheck={live.reload} loading={!given && live.loading} />
     </Screen>

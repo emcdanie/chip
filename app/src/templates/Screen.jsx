@@ -76,7 +76,7 @@ function useShellData() {
 
 /* The breadcrumb, in the page header's meta line under the top bar (BELLA has no Breadcrumb part yet: Link, an icon and
    plain text). Its first part is the way back (Elleta, 23 Nov: "just a back from the breadcrumb"): a link with a back
-   arrow and the tooltip "Back" to the project's Health page, or one step back in the browser when the page before
+   arrow and the tooltip "Back" to the project's Work page, or one step back in the browser when the page before
    this one was inside CHIP. */
 function Crumb({ trail, href, linked }) {
   const [parent, ...rest] = trail;
@@ -123,23 +123,23 @@ const projectOf = () => new URLSearchParams(window.location.hash.split('?')[1] ?
 
 function menuModel({ place, tab, projects, needs, onSearch }) {
   const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
-  const needsHere = tab === 'work' && q.get('filter') === 'needs';
-  const group = PROJECT_VIEWS.find((v) => v.id === tab)?.group;
+  const needsHere = place === 'work' && q.get('filter') === 'needs';
   const project = projectOf();
-  // one current item (Elleta, 23 Nov): Needs you wins over Health, a named project over Health
-  const healthHere = group === 'health' && !needsHere && !project;
+  // one current item (Elleta, 23 Nov): Needs you wins over Work, a named project over Work
+  const workHere = place === 'work' && !needsHere && !project;
   return {
     items: [
       { label: 'Search', icon: 'Search', onClick: onSearch },
-      { label: 'Health', href: '#/health', icon: 'Activity', current: healthHere },
-      { label: 'System', href: '#/system/components', icon: 'ViewGrid', current: group === 'system' },
+      { label: 'Work', href: '#/work', icon: 'CheckCircle', current: workHere },
+      { label: 'Health', href: '#/health', icon: 'Activity', current: place === 'health' },
+      { label: 'System', href: '#/system/components', icon: 'ViewGrid', current: !!tab },
       { label: 'Playground', href: '#/playground', icon: 'Play', current: place === 'playground' },
-      { label: 'Needs you', href: '#/health/work?filter=needs', icon: 'Bell', badge: needs || undefined, current: needsHere },
+      { label: 'Needs you', href: '#/work?filter=needs', icon: 'Bell', badge: needs || undefined, current: needsHere },
       { label: 'Not again', href: '#/not-again', icon: 'Book', current: place === 'not-again' },
     ],
     pinned: [{ label: 'Processes', href: '#/system-map', icon: 'Map', current: place === 'map' }],
     // every project opens the new board (23 Nov: "the old board show when i click projects like site")
-    projects: (projects ?? []).map((p) => ({ label: p.name, href: p.id === 'chip' ? '#/health/work' : `#/health/work?project=${p.id}`, current: group === 'health' && !needsHere && p.id === (project ?? 'chip') && !!project })),
+    projects: (projects ?? []).map((p) => ({ label: p.name, href: p.id === 'chip' ? '#/work' : `#/work?project=${p.id}`, current: place === 'work' && !needsHere && !!project && p.id === project })),
     foot: [
       { label: 'Team', href: '#/team', icon: 'Group', current: place === 'team' },
       { label: 'Settings', href: '#/connectors', icon: 'Settings', current: place === 'settings' },
@@ -272,8 +272,8 @@ export default function Screen({ place, header, tabs, children }) {
   const tab = place === 'projects' ? tabs?.value : null;
   const view = PROJECT_VIEWS.find((v) => v.id === tab);
   const projectName = (projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP';
-  // the top bar says where you are: "CHIP › Health › Work", "CHIP › System › Components", "CHIP › Team"
-  const trail = view ? [projectName, view.groupLabel, view.label] : [projectName, header?.title];
+  // the top bar says where you are: "CHIP › Work", "CHIP › System › Components", "CHIP › Team"
+  const trail = view ? [projectName, view.groupLabel, view.label] : [projectName, place === 'work' ? 'Work' : place === 'health' ? 'Health' : header?.title];
   const onSearch = () => {
     setMenuOpen(false);
     if (tiny) setSearching(true);
@@ -327,7 +327,7 @@ export default function Screen({ place, header, tabs, children }) {
             {/* project pages carry New task, as Figma; the health bar only on the Health tab (Elleta, 20 Nov: "Take it off"); the Playground too; other rail pages (Team, Not again) carry neither */}
             {/* on a project's tabs the project name ("CHIP") is PageHeader size project, 28 on 36, so the tab's own
                 subject leads (batch 4, published 22 Nov); every other page keeps size page, 40 on 48 */}
-            <PageHeader {...(place === 'projects' || place === 'playground' ? { size: 'project', ...(tabs?.value === 'overview' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header } : header)} meta={<Crumb trail={trail} href={projectOf() ? `#/health?project=${projectOf()}` : '#/health'} linked={!(tab === 'overview')} />} />
+            <PageHeader {...(['projects', 'work', 'health', 'playground'].includes(place) ? { size: 'project', ...(place === 'health' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header } : header)} meta={<Crumb trail={trail} href={projectOf() ? `#/work?project=${projectOf()}` : '#/work'} linked={place !== 'work'} />} />
             {tabs ? (
               <Tabs className="chip-screen__tabs" tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}

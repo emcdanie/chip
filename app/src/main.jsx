@@ -42,17 +42,17 @@ const NEW_PAGES = [
 function Page({ hash }) {
   // a new page opens at its top; a part, query or view inside the same page
   // (#/components/Button, #/history?…) keeps its place
-  const page = hash.match(/^#\/(health\/work|system\/[\w-]+|[\w-]+)/)?.[1] ?? '';
+  const page = hash.match(/^#\/(system\/[\w-]+|[\w-]+)/)?.[1] ?? '';
   useLayoutEffect(openAtTop, [page]);
   if (hash === '#/kit') return <Kit />;
-  // Health takes Home's place and holds Work; Components, Foundations and History are one System place
+  // Work and Health are their own items (her pick B, 23 Nov); Components, Foundations and History are one System place
   // (Elleta, 23 Nov). The old addresses redirect in Root (templates/routes.js), so only new ones arrive here.
   const at = hash.split('?')[0];
   if (hash === '#/not-again') return <NotAgain />;
   if (at === '#/playground') return <Playground />;
   if (at === '#/team') return <Team />;
   if (at === '#/health') return <Health />;
-  if (at === '#/health/work') return <Work />;
+  if (at === '#/work') return <Work />;
   if (at === '#/system/history') return <History />;
   if (at === '#/connectors') return <Connectors />;
   if (hash === '#/system-map') return <SystemMap />;
@@ -76,7 +76,7 @@ function Root() {
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
-  const page = hash.match(/^#\/(health\/work|system\/[\w-]+|[\w-]+)/)?.[1] ?? '';
+  const page = hash.match(/^#\/(system\/[\w-]+|[\w-]+)/)?.[1] ?? '';
   return (
     <>
       <PageGuard key={page}>

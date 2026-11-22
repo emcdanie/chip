@@ -122,11 +122,11 @@ function whyEmpty(x) {
 }
 
 /* The sidebar's filters (her rule "branches filter the board"; the Status rows
-   filter by lane): #/health/work?branch=<name> keeps the cards on that branch,
-   #/health/work?lane=<id> keeps that lane. Read from the address, so a sidebar row is a link. */
+   filter by lane): #/work?branch=<name> keeps the cards on that branch,
+   #/work?lane=<id> keeps that lane. Read from the address, so a sidebar row is a link. */
 export function filterFromHash(hash = window.location.hash) {
   const q = new URLSearchParams(hash.split('?')[1] ?? '');
-  // filter: the board's Filter from the address (#/health/work?filter=needs), so a link can open the board filtered
+  // filter: the board's Filter from the address (#/work?filter=needs), so a link can open the board filtered
   const f = q.get('filter');
   const ok = f && (['needs', 'components'].includes(f) || /^(area|lane):[\w &-]{1,40}$/.test(f));
   return { branch: q.get('branch'), lane: q.get('lane'), filter: ok ? f : null };

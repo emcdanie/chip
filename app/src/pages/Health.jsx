@@ -2,7 +2,6 @@
 // on CHIP's live data. The old Overview stays at #/health-old until Elleta
 // has seen what it has that Figma doesn't ("Nothing made is lost").
 import Screen from '../templates/Screen.jsx';
-import { projectTabs } from '../templates/projectViews.js';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import HealthContent from './HealthContent.jsx';
 import { useHealth } from './healthModel.js';
@@ -13,9 +12,8 @@ export default function Health({ model: given, run }) {
   const model = given ?? live.model;
   return (
     <Screen
-      place="projects"
+      place="health"
       header={{ title: 'CHIP' }}
-      tabs={projectTabs('overview')}
     >
       {live.error && !given ? (
         <EmptyState size="lane" mark="🔌" title="CHIP's server isn't answering" line={live.error} />

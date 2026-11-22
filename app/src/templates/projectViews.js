@@ -1,15 +1,7 @@
 // The tabs under a page's header (CHIP / Screen), one list so a tab is added or renamed once. Elleta, 23 Nov:
-// Health holds Overview and Work; System holds Components, Foundations and History; Playground is its own
-// item with no tabs. Each page's tab row therefore has only two or three tabs.
+// Her pick B, 23 Nov ("Work beside Health"): Work and Health are items with no tab row; System holds Components, Foundations and History; Playground is its own
+// with no tabs. Only System has a tab row, three tabs.
 export const VIEW_GROUPS = [
-  {
-    id: 'health',
-    label: 'Health',
-    tabs: [
-      { id: 'overview', label: 'Overview', href: '#/health' },
-      { id: 'work', label: 'Work', href: '#/health/work' },
-    ],
-  },
   {
     id: 'system',
     label: 'System',

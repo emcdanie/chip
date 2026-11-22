@@ -1,21 +1,24 @@
 // CHIP's routes in one place (Elleta, 23 Nov: Health takes Home's place and holds Work; Components, Foundations and
 // History are one System place; Playground is its own). The old addresses keep working: canon() turns each into its
 // new place, keeping the part and the query (#/work?filter=needs becomes #/health/work?filter=needs).
-//   #/health            Health, Overview tab        #/system/components[/<id>]   System, Components tab
-//   #/health/work       Health, Work tab            #/system/foundations         System, Foundations tab
+// Her pick B (23 Nov, "Work beside Health"): Work is its own item and stays #/work.
+//   #/work              Work                        #/system/components[/<id>]   System, Components tab
+//   #/health            Health (#/home goes here)   #/system/foundations         System, Foundations tab
 //   #/playground        Playground                  #/system/history             System, History tab
 const MOVED = {
-  '': 'health',
+  '': 'work',
   home: 'health',
-  work: 'health/work',
   components: 'system/components',
   foundations: 'system/foundations',
   history: 'system/history',
   system: 'system/components',
 };
+// the short-lived Health > Work address (23 Nov, before her pick) opens Work
+const WORK_UNDER_HEALTH = /^#\/health\/work(?=[?]|$)/;
 
 /** The address in its new form, or the same address when it is already new. */
 export function canon(hash) {
+  if (WORK_UNDER_HEALTH.test(hash)) return String(hash).replace('#/health/work', '#/work');
   const m = String(hash || '').match(/^#?\/?([\w-]*)(\/[^?]*)?(\?.*)?$/);
   if (!m) return hash;
   const [, head, rest = '', query = ''] = m;

@@ -560,7 +560,7 @@ function Detail({ map, mapId, step, onPick }) {
       Open Connectors
     </Button>
   ) : mapId === 'agents' && step.id === 'review' ? (
-    <Button variant="secondary" size="sm" href="#/health/work?filter=needs">
+    <Button variant="secondary" size="sm" href="#/work?filter=needs">
       Open review pages
     </Button>
   ) : null;

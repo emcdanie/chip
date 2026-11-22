@@ -231,7 +231,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
     if (f) q.set('filter', f);
     else q.delete('filter');
-    const next = `#/health/work${q.toString() ? `?${q}` : ''}`;
+    const next = `#/work${q.toString() ? `?${q}` : ''}`;
     if (window.location.hash !== next) window.history.replaceState(null, '', next);
   };
   const [sort, setSort] = useState('mine');
@@ -443,7 +443,7 @@ function BranchPicker({ branch }) {
   if (!names.length) return null;
   const pick = (name) => {
     setOpen(false);
-    window.location.hash = name ? `#/health/work?branch=${encodeURIComponent(name)}` : '#/health/work';
+    window.location.hash = name ? `#/work?branch=${encodeURIComponent(name)}` : '#/work';
   };
   return (
     <div className="chip-pop">
