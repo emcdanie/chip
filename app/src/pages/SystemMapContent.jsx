@@ -12,18 +12,15 @@
 // dragging the board.
 //
 // Marked holes (BELLA has no part for these yet; the board's spot carries data-hole):
-// - connector: curved lines between steps that follow them, the picked step's lines in blue
-//   (MapLine is straight pieces and a 24 turn; no part joins two nodes by their measured places).
-//   Until it lands, a step's links are its Waits on and Feeds in the detail. Lines that skip a
-//   step: A (every line, round the side) is the pick on the review page, still waiting on hers.
+// - lines that skip a step: they run behind the steps in between (the review page's A, round the side,
+//   is still waiting on her pick); a loop back up the board has no line, the detail's Waits on names it.
 // - zoom-steps: zoom in and zoom out beside Fit and 100% (Stage has Fit and 100% only).
-// - node-box: a flat bordered node; the steps are ListRows (selected = light blue), no box.
 // - audit-reports: the last result of each audit and check; CHIP has no read route for
 //   docs/reference/audit/<date>/ yet, so each says Not measured.
 // - skeleton: the board's loading state (no skeleton part); the empty state stands in.
 // - share link: the page reads ?map=&step=, but the shell's router opens #/system-map only without
 //   a query (main.jsx), so the address is not written yet.
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
@@ -31,6 +28,8 @@ import StatusDot from '@bella/components/StatusDot/StatusDot';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Button from '@bella/components/Button/Button';
 import ListRow from '@bella/components/ListRow/ListRow';
+import MapNode from '@bella/components/MapNode/MapNode';
+import MapLine from '@bella/components/MapLine/MapLine';
 import Select from '@bella/components/Select/Select';
 import Stage from '@bella/components/Stage/Stage';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
@@ -295,18 +294,47 @@ function scrollBox(el) {
   return null;
 }
 
+// a step is BELLA's MapNode: its name and its state word; the count line is in the detail beside the board
+const NODE_TONE = { bad: 'attention', you: 'attention', warn: 'attention', blocked: 'blocked' };
 function Node({ step, picked, onPick }) {
   const said = SAYS[step.state];
+  return <MapNode title={step.name} status={said ? said[0] : 'Not known'} tone={NODE_TONE[step.state] ?? 'default'} statusTone={said ? (said[1] === 'attention' ? 'attention' : said[1] === 'success' ? 'success' : 'neutral') : 'neutral'} selected={picked} onSelect={() => onPick(step.id)} />;
+}
+
+/* The lines between steps (MapLine curve): each step is joined to the steps it waits on, from the middle of
+   the upper step's foot (under its measured line) to the middle of this step's top edge, measured on the nodes as drawn, so they
+   follow a pan, a zoom and a resize. The picked step's lines are blue. A step that waits on one lower on the
+   board (a loop back) has no line; its Waits on list in the detail names it. */
+function Lines({ map, picked, boardId, tick }) {
+  const [pts, setPts] = useState({});
+  const rowOf = useMemo(() => Object.fromEntries(map.rows.flatMap((r, i) => r.ids.filter(Boolean).map((id) => [id, i]))), [map]);
+  useLayoutEffect(() => {
+    const board = document.getElementById(boardId);
+    if (!board) return undefined;
+    const measure = () => {
+      const b = board.getBoundingClientRect();
+      const k = b.width / (board.offsetWidth || b.width) || 1; // Stage scales the frame at Fit
+      const out = {};
+      board.querySelectorAll('[data-step]').forEach((w) => {
+        const el = w.firstElementChild;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        out[w.dataset.step] = { top: { x: (r.left + r.width / 2 - b.left) / k, y: (r.top - b.top) / k }, bottom: { x: (r.left + r.width / 2 - b.left) / k, y: (w.getBoundingClientRect().bottom - b.top) / k } };
+      });
+      setPts((was) => (JSON.stringify(was) === JSON.stringify(out) ? was : out));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(board);
+    return () => ro.disconnect();
+  }, [map, boardId, tick]);
+  const links = Object.values(map.steps).flatMap((s) => (s.deps ?? []).filter((d) => rowOf[d] != null && rowOf[s.id] != null && rowOf[d] < rowOf[s.id]).map((d) => [d, s.id]));
   return (
-    <ListRow
-      as="div"
-      layout="stacked"
-      title={step.name}
-      description={step.line ?? undefined}
-      helperText={said ? <StatusDot tone={said[1]} label={said[0]} /> : undefined}
-      selected={picked}
-      onClick={() => onPick(step.id)}
-    />
+    <span aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+      {links.filter(([d, id]) => pts[d] && pts[id]).map(([d, id]) => (
+        <MapLine key={`${d}-${id}`} direction="curve" end="none" tone={picked === d || picked === id ? 'selected' : 'default'} from={pts[d].bottom} to={pts[id].top} />
+      ))}
+    </span>
   );
 }
 
@@ -352,9 +380,9 @@ function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
   // HOLE zoom-steps: zoom in and out wait on BELLA Stage (it has Fit and 100% only)
   return (
     <Stage grid="dots" label={`${label} board`} frameWidth={frame} zoom={zoom} onZoomChange={onZoom}>
-      {/* HOLE connector: the curved lines between steps (the picked step's in blue) wait on a BELLA part that
-          joins two nodes by their measured places; the gutters between rows are where they draw */}
-      <Flow gap={24} inset id="process-board" data-hole="connector zoom-steps node-box" {...pan}>
+      {/* the lines between steps are MapLine curves measured on the nodes (Lines, above) */}
+      <Flow gap={24} inset id="process-board" data-hole="zoom-steps" style={{ position: 'relative' }} {...pan}>
+        <Lines map={map} picked={picked} boardId="process-board" tick={`${frame}-${zoom}-${start}-${filterOnly}`} />
         {/* the board's top and foot: 24 clear of the frame's edge */}
         <span aria-hidden="true" />
         {map.rows.map((row, i) => (
@@ -372,8 +400,15 @@ function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
             <Flow direction="row" gap={16} equal data-slots>
               {/* each slot is its own box, so a step's padding never widens its column */}
               {row.ids.map((id, j) => (
-                <Flow key={id ?? `gap-${j}`} gap={0}>
-                  {shown(id) ? <Node step={map.steps[id]} picked={picked === id} onPick={onPick} /> : null}
+                <Flow key={id ?? `gap-${j}`} gap={0} align="center">
+                  {shown(id) ? (
+                    <div data-step={id} style={{ position: 'relative', zIndex: 1, maxWidth: 'calc(var(--spacing-80) * 2 + var(--spacing-16))' }}>
+                      <Node step={map.steps[id]} picked={picked === id} onPick={onPick} />
+                      {/* the step's measured line ("91 of 93 have a contract") stays on the board under its node:
+                          MapNode carries a name and a state word only */}
+                      {map.steps[id].line ? <TextStack meta={map.steps[id].line} /> : null}
+                    </div>
+                  ) : null}
                 </Flow>
               ))}
             </Flow>
