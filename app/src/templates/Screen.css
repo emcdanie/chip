@@ -75,6 +75,10 @@
   position: relative;
 }
 
+.chip-screen__menu { order: -1; }
+
+.chip-screen--collapsed { grid-template-columns: minmax(0, 1fr); }
+
 .chip-screen__lead {
   position: absolute;
   inset-block-start: var(--spacing-12);

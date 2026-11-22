@@ -19,6 +19,8 @@ import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Button from '@bella/components/Button/Button';
 import Tooltip from '@bella/components/Tooltip/Tooltip';
+import Link from '@bella/components/Link/Link';
+import Icon from '@bella/components/Icon/Icon';
 import Avatar from '@bella/components/Avatar/Avatar';
 import Progress from '@bella/components/Progress/Progress';
 import TextStack from '@bella/components/TextStack/TextStack';
@@ -72,33 +74,39 @@ function useShellData() {
   return { projects, needs };
 }
 
-/* Back and Forward, from the app's own history (the hash routes), also Alt+Left and Alt+Right (CHIP rule "Minimal
-   chrome": small icon buttons in the top bar). Disabled when there is nowhere to go; the browser's Navigation API
-   says so where it exists, elsewhere both stay available and do nothing at the ends. */
-function useHistoryState() {
-  const nav = typeof window !== 'undefined' ? window.navigation : null;
-  const read = () => ({ back: nav ? nav.canGoBack : true, forward: nav ? nav.canGoForward : true });
-  const [state, setState] = useState(read);
-  useEffect(() => {
-    if (!nav) return undefined;
-    const on = () => setState(read());
-    nav.addEventListener('currententrychange', on);
-    on();
-    return () => nav.removeEventListener('currententrychange', on);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const onKey = (e) => {
-      if (!e.altKey || e.metaKey || e.ctrlKey || e.shiftKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
-      const t = e.target;
-      if (t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return; // a field keeps its own word-jump
+/* The breadcrumb, in the page header's meta line under the top bar (BELLA has no Breadcrumb part yet: Link, an icon and
+   plain text). Its first part is the way back (Elleta, 23 Nov: "just a back from the breadcrumb"): a link with a back
+   arrow and the tooltip "Back" to the project's Work page, or one step back in the browser when the page before
+   this one was inside CHIP. */
+function Crumb({ parent, href, current, linked }) {
+  const back = (e) => {
+    const nav = window.navigation;
+    const prev = nav?.canGoBack ? nav.entries()[nav.currentEntry.index - 1] : null;
+    if (prev?.url && new URL(prev.url).origin === window.location.origin) {
       e.preventDefault();
-      if (e.key === 'ArrowLeft') window.history.back();
-      else window.history.forward();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-  return state;
+      window.history.back();
+    }
+  };
+  return (
+    <Flow as="nav" aria-label="Breadcrumb" direction="row" gap={8} align="center">
+      {linked ? (
+        <Tooltip label="Back">
+          <span onClick={back}>
+            <Link href={href}>
+              <Flow as="span" direction="row" gap={4} align="center">
+                <Icon name="NavArrowLeft" size="sm" />
+                {parent}
+              </Flow>
+            </Link>
+          </span>
+        </Tooltip>
+      ) : (
+        <TextStack body={parent} />
+      )}
+      <TextStack body="›" aria-hidden="true" />
+      <TextStack body={current} aria-current="page" />
+    </Flow>
+  );
 }
 
 /* The one side menu (her nav C pick, 22 Nov), in her words: where you go, what is pinned, the projects,
@@ -216,8 +224,37 @@ export default function Screen({ place, header, tabs, children }) {
   const { projects, needs } = useShellData();
   // below 1024 the side menu steps out behind the top bar's Menu button; on a phone it rises as a sheet
   const menuOut = useNarrow(1024);
-  const hist = useHistoryState();
-  const phone = useNarrow();
+  // the menu can be hidden at every width (23 Nov): remembered in this browser; on a phone the same button raises the sheet
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem('chip.menu.collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggleMenu = () => {
+    if (menuOut) return setMenuOpen((o) => !o);
+    setCollapsed((c) => {
+      try {
+        window.localStorage.setItem('chip.menu.collapsed', c ? '0' : '1');
+      } catch {
+        /* private window: it just is not remembered */
+      }
+      return !c;
+    });
+    return undefined;
+  };
+  // Cmd+\\ (Ctrl+\\) shows and hides the menu
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key === '\\') {
+        e.preventDefault();
+        toggleMenu();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });  const phone = useNarrow();
   // below 400 the field would read "Sea": a search button that opens the field across the bar
   const tiny = useNarrow(400);
   const [searching, setSearching] = useState(false);
@@ -242,24 +279,7 @@ export default function Screen({ place, header, tabs, children }) {
     { items: menu.foot.map(strip) },
   ];
   return (
-    <div className="chip-screen">
-      {menuOut ? (
-        <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} label="Menu" side={phone ? 'bottom' : 'left'}>
-          <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />
-        </Drawer>
-      ) : (
-        <div className="chip-screen__menu">
-          <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
-          {/* CHIP has one client, so its list says so */}
-          {clientsOpen ? (
-            <div className="chip-pop__menu">
-              <Menu label="Clients" onClose={() => setClientsOpen(false)}>
-                <MenuItem label="BELLA · the only client CHIP has" icon="Check" onSelect={() => setClientsOpen(false)} />
-              </Menu>
-            </div>
-          ) : null}
-        </div>
-      )}
+    <div className={`chip-screen${!menuOut && collapsed ? ' chip-screen--collapsed' : ''}`}>
       <div className="chip-screen__main">
         {/* On a phone the ⌘ K legend steps out so the field keeps room for its words. */}
         {/* The side-menu button is the first thing in the top bar, at its left end, and stays there whether the menu is
@@ -267,28 +287,14 @@ export default function Screen({ place, header, tabs, children }) {
             over the bar's own padding and comes first in the tab order. */}
         <div className="chip-screen__topbar">
           <span className="chip-screen__lead">
-            <Tooltip label="Back">
-              <Button variant="tertiary" iconOnly icon="NavArrowLeft" ariaLabel="Back" disabled={!hist.back} onClick={() => window.history.back()} />
+            <Tooltip label={menuOut || collapsed ? 'Show menu' : 'Hide menu'}>
+              <Button variant="tertiary" iconOnly icon={menuOut || collapsed ? 'SidebarExpand' : 'SidebarCollapse'} ariaLabel={menuOut || collapsed ? 'Show menu' : 'Hide menu'} ariaExpanded={menuOut ? menuOpen : !collapsed} ariaHaspopup={menuOut ? 'dialog' : undefined} onClick={toggleMenu} />
             </Tooltip>
-            <Tooltip label="Forward">
-              <Button variant="tertiary" iconOnly icon="NavArrowRight" ariaLabel="Forward" disabled={!hist.forward} onClick={() => window.history.forward()} />
-            </Tooltip>
-            {menuOut ? (
-              <Tooltip label="Menu">
-                <Button variant="tertiary" iconOnly icon="SidebarExpand" ariaLabel="Menu" ariaExpanded={menuOpen} ariaHaspopup="dialog" onClick={() => setMenuOpen(true)} />
-              </Tooltip>
-            ) : null}
           </span>
         <TopBar
           // room at the left for the menu button (below)
-          style={{ paddingInlineStart: `calc(var(--spacing-8) + var(--h-control) * ${menuOut ? 3 : 2} + var(--spacing-4) * ${menuOut ? 2 : 1} + var(--spacing-8))` }}
-          placeParent={(projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP'}
-          // the way out of any page: the project's Work page
-          placeParentHref={projectOf() ? `#/work?project=${projectOf()}` : '#/work'}
-          placeCurrent={here}
-          // below 400 the place line, search, the bell and Menu don't fit (335 at 320): the page title and
-          // the selected tab say where you are there
-          showPlace={!tiny}
+          style={{ paddingInlineStart: 'calc(var(--spacing-8) + var(--h-control) + var(--spacing-8))' }}
+          showPlace={false}
           search={tiny && !searching ? <Button variant="tertiary" iconOnly icon="Search" ariaLabel="Search" onClick={() => setSearching(true)} /> : <Search showShortcut={!phone} autoFocus={tiny && searching} />}
           right={
             tiny && searching ? (
@@ -298,7 +304,7 @@ export default function Screen({ place, header, tabs, children }) {
               // its buttons past the edge at 320
               <>
                 {/* the bell opens what needs you, in the Work panel (Figma Flow 12, screen 1); ⌘J opens it too */}
-                <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you` : 'What needs you'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
+                <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you, open the Work panel` : 'Nothing needs you, open the Work panel'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
                 {/* on a phone the place line needs the room: the avatar steps out (minimal chrome) */}
                 {phone ? null : <Avatar name="Elleta McDaniel" size="sm" />}
               </>
@@ -311,7 +317,7 @@ export default function Screen({ place, header, tabs, children }) {
             {/* project pages carry New task, as Figma; the health bar only on the Health tab (Elleta, 20 Nov: "Take it off"); Home carries New task too (Figma Flow 8); other rail pages (Team, Not again) carry neither */}
             {/* on a project's tabs the project name ("CHIP") is PageHeader size project, 28 on 36, so the tab's own
                 subject leads (batch 4, published 22 Nov); every other page keeps size page, 40 on 48 */}
-            <PageHeader {...(place === 'projects' ? { size: 'project', ...(tabs?.value === 'health' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header } : place === 'home' ? { actions: <NewTask />, ...header } : header)} />
+            <PageHeader {...(place === 'projects' ? { size: 'project', ...(tabs?.value === 'health' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header } : place === 'home' ? { actions: <NewTask />, ...header } : header)} meta={<Crumb parent={(projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP'} href={projectOf() ? `#/work?project=${projectOf()}` : '#/work'} current={here} linked={!(place === 'projects' && tab === 'work')} />} />
             {tabs ? (
               <Tabs tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}
@@ -323,6 +329,24 @@ export default function Screen({ place, header, tabs, children }) {
           </main>
         </div>
       </div>
+      {/* after the page in the source so the menu button, which is in the page, is the first stop for the keyboard; the grid puts the menu back on the left */}
+      {menuOut ? (
+        <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} label="Menu" side={phone ? 'bottom' : 'left'}>
+          <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />
+        </Drawer>
+      ) : collapsed ? null : (
+        <div className="chip-screen__menu">
+          <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
+          {/* CHIP has one client, so its list says so */}
+          {clientsOpen ? (
+            <div className="chip-pop__menu">
+              <Menu label="Clients" onClose={() => setClientsOpen(false)}>
+                <MenuItem label="BELLA · the only client CHIP has" icon="Check" onSelect={() => setClientsOpen(false)} />
+              </Menu>
+            </div>
+          ) : null}
+        </div>
+      )}
       <WorkDock />
     </div>
   );
