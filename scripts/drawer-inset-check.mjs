@@ -56,6 +56,72 @@ for (const width of WIDTHS) {
   await page.close();
 }
 
+// Every group opened and read to the end (23 Nov, her drawers: after opening "Green" only a sliver of its first item showed,
+// cut at the top edge, with white space below, and texts ended in "..." with no way to read on). For every drawer with
+// groups, at each width, each group is opened in turn and the drawer's body is scrolled to the end. FAILS when
+//   (a) an opened group's header is not in view after it opens (the old scroll position cut its first item),
+//   (b) more than 160px (the phone sheet's own bottom padding is about 150) of empty body sits under the last content at the end, or content is cut off at the bottom,
+//   (c) any text ends in an ellipsis or is clipped by a line clamp or overflow, so a sentence cannot be read.
+const GROUPED = [
+  { name: 'Drift', card: /^Drift from BELLA/ },
+  { name: 'Gaps', card: /^Gaps/ },
+  { name: 'CHIP app audit', card: /^CHIP app/ },
+  { name: 'BELLA system audit', card: /^BELLA system/ },
+  { name: 'Figma screens audit', card: /^CHIP Figma screens/ },
+  { name: 'BELLA tokens audit', card: /^BELLA tokens/ },
+];
+for (const width of WIDTHS) {
+  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  for (const d of GROUPED) {
+    await page.goto(`${APP}/#/health`);
+    await page.reload();
+    await page.waitForTimeout(2500);
+    const card = page.locator('button', { hasText: d.card }).first();
+    if (!(await card.count())) { console.log(`FAIL ${width} ${d.name} groups: card not found`); bad++; continue; }
+    await card.click();
+    await page.waitForTimeout(1200);
+    const groups = await page.evaluate(() => [...document.querySelectorAll('dialog [role="group"] > details')].map((x) => x.querySelector('summary')?.textContent.trim().slice(0, 24)));
+    if (!groups.length) { console.log(`FAIL ${width} ${d.name} groups: no groups found, nothing measured`); bad++; continue; }
+    const problems = [];
+    for (let i = 0; i < groups.length; i++) {
+      const sum = page.locator('dialog [role="group"] > details').nth(i).locator('summary');
+      const wasOpen = await sum.evaluate((x) => x.parentElement.open);
+      if (!wasOpen) await sum.click();
+      await page.waitForTimeout(700);
+      const res = await page.evaluate((idx) => {
+        const dlg = [...document.querySelectorAll('dialog')].find((x) => x.getBoundingClientRect().width > 0);
+        const det = dlg.querySelectorAll('[role="group"] > details')[idx];
+        let sc = det;
+        for (; sc && sc !== dlg; sc = sc.parentElement) { const s = getComputedStyle(sc); if (/auto|scroll/.test(s.overflowY) && sc.scrollHeight > sc.clientHeight) break; }
+        const out = { header: null, empty: null, cut: [], clipped: [] };
+        const box = (sc && sc !== dlg ? sc : dlg).getBoundingClientRect();
+        const hs = det.querySelector('summary').getBoundingClientRect();
+        out.header = hs.top >= box.top - 1 && hs.bottom <= box.bottom + 1;
+        if (sc && sc !== dlg) sc.scrollTop = sc.scrollHeight;
+        // text a reader can see: not the inside of a closed <details>, not visually hidden (1px) text
+        const leaves = [...dlg.querySelectorAll('*')].filter((k) => k.children.length === 0 && k.textContent.trim() && k.getBoundingClientRect().height > 2 && k.getBoundingClientRect().width > 2 && !k.closest('button, footer, [class*="footer"]') && ![...(function* () { for (let e = k.closest('details'); e; e = e.parentElement?.closest('details')) yield e; })()].some((e) => !e.open && !k.closest('summary')));
+        const last = Math.max(...leaves.map((k) => k.getBoundingClientRect().bottom));
+        out.empty = Math.round(box.bottom - last);
+        // a body whose content fits has room below it by nature; only a body that scrolls must end on its content
+        out.scrolls = !!(sc && sc !== dlg);
+        out.cut = leaves.filter((k) => /(…|\.\.\.)$/.test(k.textContent.trim())).map((k) => k.textContent.trim().slice(-30));
+        out.clipped = leaves.filter((k) => { const s = getComputedStyle(k); return (s.webkitLineClamp && s.webkitLineClamp !== 'none') || (k.scrollHeight > k.clientHeight + 2 && /hidden|clip/.test(s.overflowY) && !k.closest('summary,button')); }).map((k) => k.textContent.trim().slice(0, 30));
+        return out;
+      }, i);
+      if (!wasOpen && !res.header) problems.push(`${groups[i]}: its header is out of view after opening`);
+      if ((res.scrolls && res.empty > 160) || res.empty < -2) problems.push(`${groups[i]}: ${res.empty}px between the last content and the body's end`);
+      for (const c of res.cut.slice(0, 2)) problems.push(`${groups[i]}: text ends in an ellipsis ("${c}")`);
+      for (const c of res.clipped.slice(0, 2)) problems.push(`${groups[i]}: text is clipped ("${c}")`);
+    }
+    measured += groups.length;
+    console.log(`${problems.length ? 'FAIL' : 'ok  '} ${width} ${d.name}: ${groups.length} groups opened and scrolled to the end, ${problems.length} problems`);
+    for (const m of [...new Set(problems)].slice(0, 6)) console.log(`       ${m}`);
+    if (problems.length) bad++;
+    await page.keyboard.press('Escape');
+  }
+  await page.close();
+}
+
 // New (23 Nov): its steps measured the same way. A step with a Back button starts its header at the Back button, so the
 // edge to match is the header's left edge, not the title's. Nothing is started or written: the file is a synthetic drop
 // and the check closes at the plan.

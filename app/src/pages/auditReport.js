@@ -31,7 +31,8 @@ const sentences = (s, n = 1) => {
   return out.join(' ');
 };
 
-const cut = (s, max) => (s.length <= max ? s : `${s.slice(0, max).replace(/\s+\S*$/, '')}…`);
+// nothing is cut here any more (her 22 Nov: lines ended in "…" mid-sentence); the drawer shows a first sentence and Read more
+const cut = (s) => s;
 const LIGHT = /\b(red|yellow|green)\b/i;
 const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
 const isRule = (l) => /^\|?\s*:?-{2,}/.test(l.trim());

@@ -1,6 +1,6 @@
 // An audit's saved report, read inside the Health drawer (CHIP rule 23 Nov: "Nothing sends her out of CHIP"; a drawer is a
 // reading surface): what it means in one line, the score as a bar with its number, the stations as rows that say their
-// light in a word as well as a colour, the top work orders with the key words marked, what to do first, then the rest
+// state in a word as well as a colour, the top work orders with the key words marked, what to do first, then the rest
 // behind Disclosures. Every number comes from the report (auditReport.js). BELLA parts only: SectionHead, TextStack,
 // Progress, ListRow, StatusPill, Notification, Disclosure; the marker is History's (templates/Keyed.jsx).
 import { useEffect, useState } from 'react';
@@ -11,16 +11,36 @@ import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import Notification from '@bella/components/Notification/Notification';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
+import Button from '@bella/components/Button/Button';
 import Flow from '../templates/Flow.jsx';
 import { Inset, ReadingGroups, ReadingSection } from '../templates/ReadingDrawer.jsx';
 import Keyed from '../templates/Keyed.jsx';
 import { greenFrom, parseReport } from './auditReport.js';
 
-const WORD = { red: 'Red', yellow: 'Yellow', green: 'Green' };
+// the state words CHIP uses everywhere, never the colour's name (her 22 Nov: "why are we naming them colors"); the colour and shape stay as the signal
+const WORD = { red: 'Failing', yellow: 'Needs work', green: 'Healthy' };
 const TONE = { red: 'danger', yellow: 'attention', green: 'success' };
 const PILL = { red: 'danger', yellow: 'attention', green: 'success' };
 const up = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 const oneSentence = (s) => (s.match(/^.+?[.!?](?=\s|$)/)?.[0] ?? s).replace(/\.$/, '');
+
+/* A long line shows its first sentence, and Read more opens the rest where it is: nothing is cut with an ellipsis
+   (her 22 Nov: "The cost is real all the…" with no way to read the rest). */
+function ReadMore({ text }) {
+  const [open, setOpen] = useState(false);
+  const first = oneSentence(text);
+  const more = first.length < text.replace(/\.$/, '').length;
+  return (
+    <Flow gap={4}>
+      <TextStack body={<Keyed text={open || !more ? text : `${first}.`} />} />
+      {more ? (
+        <Flow direction="row" justify="start">
+          <Button variant="tertiary" size="sm" ariaExpanded={open} onClick={() => setOpen(!open)}>{open ? 'Show less' : 'Read more'}</Button>
+        </Flow>
+      ) : null}
+    </Flow>
+  );
+}
 
 export default function AuditReading({ a, day }) {
   const [state, setState] = useState({ r: null, error: false });
@@ -44,12 +64,11 @@ export default function AuditReading({ a, day }) {
   const outOf100 = a.unit === 'of 100';
   const fill = a.value == null ? null : a.checks && !outOf100 && /checks green/.test(a.unit ?? '') ? (a.value / a.checks) * 100 : a.value;
   const tone = a.red ? 'danger' : a.yellow ? 'attention' : 'success';
-  const lightWords = a.red == null ? null : `${a.red} red · ${a.yellow} yellow · ${a.green} green`;
+  const lightWords = a.red == null ? null : `${a.red} failing · ${a.yellow} need work · ${a.green} healthy`;
   const item = (s) => ({
     key: s.n,
     title: s.name,
-    state: s.light ? WORD[s.light] : 'Not rated',
-    body: s.evidence.length ? <Flow gap={8}>{s.evidence.map((e, i) => <TextStack key={i} body={<Keyed text={e} />} />)}</Flow> : undefined,
+    body: s.evidence.length ? <Flow gap={8}>{s.evidence.map((e, i) => <ReadMore key={i} text={e} />)}</Flow> : undefined,
     line: [s.score != null ? `${s.score}${s.max === 100 ? ' of 100' : `/${s.max}`}` : null, s.line || null].filter(Boolean).join(' · ') || undefined,
   });
   const scored = r.stations.some((s) => s.score != null);
@@ -75,7 +94,7 @@ export default function AuditReading({ a, day }) {
             callout
           />
           {r.stations.length ? (
-            <Flow gap={12} as="ul" aria-label={`${a.title}: each ${scored && r.stations[0].max === 100 ? 'flow' : 'check'} and its light`}>
+            <Flow gap={12} as="ul" aria-label={`${a.title}: each ${scored && r.stations[0].max === 100 ? 'flow' : 'check'} and its state`}>
               {r.stations.map((s) => (
                 <li key={s.n}>
                   {s.score != null ? (
@@ -102,7 +121,7 @@ export default function AuditReading({ a, day }) {
         <ReadingSection icon="WarningCircle" iconTone="warning" title="Top work orders" description="Most important first, from the saved report" rows={
           <ListRowGroup ariaLabel={`${a.title}: top work orders`}>
             {top.map((o) => (
-              <ListRow key={o.n} layout="stacked" statusBar="attention" title={<Keyed text={o.title} />} description={o.why ? <Keyed text={oneSentence(o.why)} /> : undefined} />
+              <ListRow key={o.n} layout="stacked" statusBar="attention" title={<Keyed text={o.title} />} description={o.why ? <ReadMore text={o.why} /> : undefined} />
             ))}
           </ListRowGroup>
         } />
@@ -115,7 +134,7 @@ export default function AuditReading({ a, day }) {
         <Disclosure title="Every work order" summary={`${r.orders.length} in all`}>
           <Flow gap={12}>
             {r.orders.slice(top.length).map((o) => (
-              <TextStack key={o.n} title={o.title} body={o.move || o.why ? <Keyed text={o.move ? up(o.move) : o.why} /> : undefined} />
+              <TextStack key={o.n} title={o.title} body={o.move || o.why ? <ReadMore text={o.move ? up(o.move) : o.why} /> : undefined} />
             ))}
           </Flow>
         </Disclosure>
@@ -125,12 +144,12 @@ export default function AuditReading({ a, day }) {
       {r.stations.length ? (
         <Flow gap={12}>
           <Inset>
-            <SectionHead icon="Activity" iconTone="info" title="Every station" description="Grouped by light, with the evidence behind each" showInfo={false} />
+            <SectionHead icon="Activity" iconTone="info" title="Every station" description="Grouped by state, with the evidence behind each" showInfo={false} />
           </Inset>
           <ReadingGroups
             single
             openFirst
-            label={`${a.title}: stations by light`}
+            label={`${a.title}: stations by state`}
             groups={[
               ...['red', 'yellow', 'green'].map((l) => ({ name: WORD[l], tone: TONE[l], items: r.stations.filter((s) => s.light === l).map((s) => item(s)) })),
               { name: 'Not rated', tone: 'neutral', items: r.stations.filter((s) => !s.light).map((s) => item(s)) },

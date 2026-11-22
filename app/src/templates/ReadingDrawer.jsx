@@ -9,11 +9,10 @@
 //   picture  the chart or bars first
 //   children bullets, sections and rows, in the page's own order (ReadingSection for a headed group of rows)
 //   footer   the action at the right edge (BELLA's Drawer footer)
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
-import Tag from '@bella/components/Tag/Tag';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
@@ -45,7 +44,7 @@ export function Inset({ gap = 16, children }) {
    BELLA GAP, named: no part is a colour-barred expandable group row (proposal: GroupRow, or a Disclosure `tone` that
    draws the bar and a plus/minus instead of the chevron). Nearest look from BELLA parts only: a Disclosure per group
    (native details: Enter and Space toggle, the browser sets expanded) holding ListRows whose statusBar is the group's
-   tone. Colour names the group only; each item's state is a word in a neutral line Tag, never colour alone.
+   tone. Colour names the group only; the group's name is the state in a word (Failing, Needs work, Healthy), so an item repeats nothing: no per-row tag.
    Tones (same meaning everywhere, five at most): attention = differs from what it should be; info = the spec side;
    danger = failed; success = clear; neutral = not yet decided or measured.
    groups: [{ name, tone, items: [{ key, title, state, line, body, onClick, action }] }]; the count is items.length, never
@@ -54,7 +53,19 @@ export function ReadingGroups({ groups, single = false, openFirst = false, label
   const shown = groups.filter((g) => g.items.length);
   const [open, setOpen] = useState(() => (openFirst && shown[0] ? [shown[0].name] : []));
   const toggle = (name, on) => setOpen((was) => (single ? (on ? [name] : []) : on ? [...was, name] : was.filter((n) => n !== name)));
+  // opening a group brings it to the top of the drawer's body: closing another above or below it shrinks the page, and
+  // the old scroll position would land at the end of the new group with its first item cut at the top edge (her 22 Nov)
+  const box = useRef(null);
+  const asked = useRef(null);
+  useEffect(() => {
+    if (!asked.current) return;
+    const at = shown.findIndex((g) => g.name === asked.current);
+    asked.current = null;
+    if (at < 0) return;
+    requestAnimationFrame(() => box.current?.querySelectorAll('[role="group"] > details')[at]?.scrollIntoView({ block: 'start' }));
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
+    <div ref={box}>
     <Flow inset gap={8} as="div" role="group" aria-label={label}>
       {shown.map((g) => (
         <Disclosure
@@ -62,7 +73,7 @@ export function ReadingGroups({ groups, single = false, openFirst = false, label
           title={g.name}
           summary={String(g.items.length)}
           open={open.includes(g.name)}
-          onToggle={(on) => toggle(g.name, on)}
+          onToggle={(on) => ((asked.current = on ? g.name : null), toggle(g.name, on))}
         >
           <ListRowGroup ariaLabel={`${g.name}: ${g.items.length}`}>
             {g.items.map((it) => (
@@ -73,7 +84,6 @@ export function ReadingGroups({ groups, single = false, openFirst = false, label
                 title={it.title}
                 description={it.line}
                 body={it.body}
-                rightTag={it.state ? <Tag variant="line">{it.state}</Tag> : undefined}
                 trailing={it.onClick && !it.action ? true : undefined}
                 onClick={it.onClick}
                 actionButton={it.action}
@@ -83,6 +93,7 @@ export function ReadingGroups({ groups, single = false, openFirst = false, label
         </Disclosure>
       ))}
     </Flow>
+    </div>
   );
 }
 
