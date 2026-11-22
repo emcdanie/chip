@@ -1,26 +1,23 @@
-// Processes · content (approved layout, /screens/2026-11-22-processes/): the list of maps on the
-// left, the picked map in the middle as a board you pan and zoom, the picked step's detail on
-// the right. Three maps from real sources:
+// Processes · content: the mind maps she picked (23 Nov, A · Mind map, /screens/2026-11-23-mindmap/). The list of
+// maps on the left, the picked map in the middle as a mind map, the picked step's detail on the right. Three maps
+// from real sources:
 // - BELLA pipeline: CHIP's own /map (each check's state, detail, what it waits on and feeds).
 // - Agent workflow: the Relay rules in CHIP's CLAUDE.md (who does what, where you answer).
 // - Audits and skills: the "Course skills run without being asked" rules, the gate and the
 //   pre-commit hook in CHIP's CLAUDE.md and BELLA's READ FIRST block.
-// BELLA parts and the template's Flow only; no page CSS.
+// BELLA parts and the template's Flow only: MapLabel, Branch, MapLeaf, BranchGroup. The inline styles only place
+// the parts at the points the page measures (the parts draw the look).
 //
-// The board is a board at every width (22 Nov: it never collapses into a list): its rows stay
-// side by side at full size in Stage's frame with Fit / 100%; at 100% you pan by scrolling or by
-// dragging the board.
-//
-// Marked holes (BELLA has no part for these yet; the board's spot carries data-hole):
-// - lines that skip a step: they run behind the steps in between (the review page's A, round the side,
-//   is still waiting on her pick); a loop back up the board has no line, the detail's Waits on names it.
-// - zoom-steps: zoom in and zoom out beside Fit and 100% (Stage has Fit and 100% only).
+// Marked holes (BELLA has no part for these yet; the spot carries a HOLE comment):
+// - branch-loop: a link between two steps leaves one step's right edge and reaches the other's. Branch is an S-curve
+//   between two points and cannot loop out and back on one side, and has no arrowhead or end dot, so each link is two
+//   Branch curves (out, down a lane in the gutter, back); direction is the highlight's pass, and the detail names it.
 // - audit-reports: the last result of each audit and check; CHIP has no read route for
 //   docs/reference/audit/<date>/ yet, so each says Not measured.
 // - skeleton: the board's loading state (no skeleton part); the empty state stands in.
 // - share link: the page reads ?map=&step=, but the shell's router opens #/system-map only without
 //   a query (main.jsx), so the address is not written yet.
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
@@ -28,9 +25,10 @@ import StatusDot from '@bella/components/StatusDot/StatusDot';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Button from '@bella/components/Button/Button';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
-import MapNode from '@bella/components/MapNode/MapNode';
-import MapLine from '@bella/components/MapLine/MapLine';
-import Select from '@bella/components/Select/Select';
+import Branch from '@bella/components/Branch/Branch';
+import BranchGroup from '@bella/components/BranchGroup/BranchGroup';
+import MapLabel from '@bella/components/MapLabel/MapLabel';
+import MapLeaf from '@bella/components/MapLeaf/MapLeaf';
 import Stage from '@bella/components/Stage/Stage';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
@@ -38,9 +36,7 @@ import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 import { planRun } from '../templates/RunPlan.jsx';
-import usePan from '../templates/usePan.js';
 
-const SLOTS = 4; // the widest a map is; a map draws only the columns its steps use
 const FIGMA_PATHS = ['figma', 'figma-console', 'figma-rest'];
 // a step's state in words and tone; a step with no entry is a role in the workflow, nothing to measure
 const SAYS = {
@@ -101,14 +97,12 @@ const SHORT = {
 };
 const lineOf = (n) => n.meta ?? (n.blockedBy ? `Waits on ${plain(n.blockedBy.name)}` : null) ?? SHORT[n.id]?.(String(n.detail ?? ''), n) ?? plain(first(n.detail)).split(/[;(,:]/)[0].trim();
 
-// the approved rows: sources, what builds on tokens, the checks, the gate, ship
-const PIPELINE_ROWS = [
-  { label: 'Sources', ids: [null, 'tokens', 'figma', null] },
-  { label: '', ids: [null, 'contracts', 'components', null] },
-  { label: 'Checks', ids: ['contrast', 'stories', 'agents', 'compare'] },
-  { label: 'Gate', ids: [null, 'gate', 'bench', null] },
-  { label: 'Ship', ids: [null, 'review', 'ci', null] },
-  { label: '', ids: [null, 'ship', null, null] },
+// the stages, in the picked order; a stage's hue is the same on every map where the stage repeats (Checks is navy)
+const PIPELINE_GROUPS = [
+  { label: 'Sources', hue: 'pink', ids: ['tokens', 'figma', 'contracts', 'components'] },
+  { label: 'Checks', hue: 'navy', ids: ['contrast', 'stories', 'agents', 'compare'] },
+  { label: 'Gate', hue: 'ochre', ids: ['gate', 'bench'] },
+  { label: 'Ship', hue: 'stone', ids: ['review', 'ci', 'ship'] },
 ];
 // runs a step can start: each opens its plan first, nothing runs from here
 const PIPELINE_RUNS = {
@@ -137,7 +131,7 @@ function usePipeline() {
     href: '#/connectors',
   };
   const steps = {};
-  for (const row of PIPELINE_ROWS)
+  for (const row of PIPELINE_GROUPS)
     for (const id of row.ids) {
       if (!id) continue;
       const n = id === 'figma' ? figma : byId[id];
@@ -155,9 +149,9 @@ function usePipeline() {
         run: PIPELINE_RUNS[id] ?? (n.action?.type === 'run' ? { label: n.action.label, brief: `${n.action.label} in BELLA and report the result.` } : undefined),
       };
     }
-  // a missing id means /map no longer sends it: its slot stays empty
-  const rows = PIPELINE_ROWS.map((r) => ({ ...r, ids: r.ids.map((id) => (id && steps[id] ? id : null)) }));
-  return { steps, rows, at, reload, loading };
+  // a missing id means /map no longer sends it: it is not drawn
+  const groups = PIPELINE_GROUPS.map((g) => ({ ...g, ids: g.ids.filter((id) => steps[id]) })).filter((g) => g.ids.length);
+  return { steps, groups, at, reload, loading };
 }
 
 /* ------------------------------------------------- Agent workflow (CHIP CLAUDE.md, Relay) */
@@ -182,13 +176,11 @@ const AGENT_RUNS = {
   fresh: { label: 'Run a fresh review', brief: 'As a session that did not build it, review the latest CHIP change against the rules at 320, 768, 1024 and 1440, read-only, and report what fails.' },
   click: { label: 'Run the click test', brief: 'Click every designed feature in docs/reference/designed-features.md on a test CHIP server, read-only, never pressing anything that starts a paid run, and report what works and what does not.' },
 };
-const AGENT_ROWS = [
-  { label: 'You ask', ids: [null, 'ask', null, null] },
-  { label: 'Coordinator', ids: [null, 'coord', null, null] },
-  { label: 'Sessions', ids: ['figma', 'code', 'pics', null] },
-  { label: 'Check', ids: [null, 'fresh', 'click', null] },
-  { label: 'You answer', ids: [null, 'review', 'answers', null] },
-  { label: 'Lands', ids: [null, 'publish', 'push', null] },
+const AGENT_GROUPS = [
+  { label: 'You ask', hue: 'pink', ids: ['ask', 'coord'] },
+  { label: 'Sessions', hue: 'blue', ids: ['figma', 'code', 'pics'] },
+  { label: 'Check', hue: 'navy', ids: ['fresh', 'click'] },
+  { label: 'You answer and land', hue: 'stone', ids: ['review', 'answers', 'publish', 'push'] },
 ];
 
 /* ------------------------------------- Audits and skills (CHIP CLAUDE.md, BELLA READ FIRST) */
@@ -214,7 +206,13 @@ const AUDIT_RUNS = {
   sec: { label: 'Run it', brief: 'Run the security-review skill on CHIP, read-only, and report each finding with its route.' },
   copilot: { label: 'Run it', brief: 'Run npm run review on the latest CHIP commits, measure each finding, and report only the real ones.' },
 };
-const MOMENTS = ['Every Figma write', 'Before every report', 'Before a commit', 'Before merge or push', 'Before a publish', 'Weekly'];
+// a stage a check; the moments it runs at stay in its detail ("Runs at") and link the checks that run together
+const AUDIT_GROUPS = [
+  { label: 'Every write or report', hue: 'pink', ids: ['craft', 'pixel', 'sweep'] },
+  { label: 'Before a commit', hue: 'navy', ids: ['hook', 'audit'] },
+  { label: 'Before merge, push or publish', hue: 'ochre', ids: ['sec', 'copilot', 'decided'] },
+  { label: 'Weekly', hue: 'stone', ids: ['tokarch', 'prodinsp', 'dsinsp'] },
+];
 
 // the audits that leave a saved report (server/lib/audits.mjs reads docs/reference/audit/<date>/)
 const REPORT_OF = { tokarch: 'tokens', prodinsp: 'product', dsinsp: 'ds' };
@@ -248,16 +246,8 @@ function staticMaps(reports) {
     }),
   );
   return {
-    agents: { steps: agents, rows: AGENT_ROWS },
-    audits: {
-      steps: audits,
-      // a row per moment: the checks it runs sit in its row, so the link reads without a line
-      // a moment with more than two checks carries on in an unnamed row under it, so the board stays two wide
-      rows: MOMENTS.flatMap((m) => {
-        const ids = AUDIT_STEPS.filter((s) => s[3].includes(m)).map((s) => s[0]);
-        return Array.from({ length: Math.ceil(ids.length / 2) }, (_, i) => ({ label: i ? '' : m, ids: ids.slice(i * 2, i * 2 + 2) }));
-      }),
-    },
+    agents: { steps: agents, groups: AGENT_GROUPS },
+    audits: { steps: audits, groups: AUDIT_GROUPS, shared: true },
   };
 }
 
@@ -287,13 +277,8 @@ const MAPS = [
 ];
 
 // each map's one line: what needs you on it, counted from its steps' measured states
-const needing = (map) => Object.values(map.steps).filter((s) => s.state === 'bad' || s.state === 'you' || s.state === 'red');
-function metaOfMap(map) {
-  if (!map) return 'Reading the map';
-  const n = needing(map).length;
-  if (n) return `${n} ${n === 1 ? 'needs' : 'need'} you`;
-  return Object.values(map.steps).every((s) => s.state === 'unmeasured') ? 'Not measured' : 'Nothing needs you';
-}
+const needsYou = (s) => s.state === 'bad' || s.state === 'you' || s.state === 'red';
+const needing = (map) => Object.values(map.steps).filter(needsYou);
 function summaryOf(map) {
   const n = needing(map);
   if (n.length) return `${n.map((s) => s.name).join(', ').replace(/, ([^,]*)$/, ' and $1')} ${n.length === 1 ? 'needs' : 'need'} you.`;
@@ -301,225 +286,191 @@ function summaryOf(map) {
   return 'Nothing needs you.';
 }
 
-// a step is BELLA's MapNode: its name and its state word; the count line is in the detail beside the board
-const NODE_TONE = { bad: 'attention', you: 'attention', warn: 'attention', red: 'attention', yellow: 'attention', blocked: 'blocked' };
-function Node({ step, picked, onPick }) {
+/* A step as BELLA's MapLeaf: its name, a shape and its state word, then its measured line. State is the shape and the
+   word, never the stage's colour. */
+const LEAF_STATE = { ok: 'ok', green: 'ok', bad: 'attention', you: 'attention', warn: 'attention', yellow: 'attention', red: 'failed', blocked: 'blocked', unknown: 'unmeasured', unmeasured: 'unmeasured' };
+function Leaf({ step, picked, related, onPick }) {
   const said = SAYS[step.state];
-  return <MapNode title={step.name} status={said ? said[0] : 'Not known'} tone={NODE_TONE[step.state] ?? 'default'} statusTone={said ? said[1] : 'neutral'} selected={picked} onSelect={() => onPick(step.id)} />;
+  return <MapLeaf name={step.name} state={LEAF_STATE[step.state] ?? 'unmeasured'} status={said ? said[0] : 'Not known'} detail={step.line ?? undefined} selected={picked} related={related} onSelect={() => onPick(step.id)} />;
 }
 
-/* The lines between steps (MapLine), routed so none passes through a step, its measured line or a row's name
-   (Elleta, 23 Nov: "lines never pass through a step or its text"). Everything runs in the gaps: a line leaves the
-   foot of its upper step (under the measured line), drops to the foot of that row, and either curves straight
-   to the lower step's column when the rows are neighbours, or curves into the gap between two columns, runs down
-   it and curves back into the lower step's column. A step that waits on one lower on the board has no line; its
-   detail names it. The picked step's lines are blue. scripts/process-line-check.mjs measures this on every map. */
-const HOP = 20; // the height of one curve, inside the gap between rows
-function Lines({ map, rows, picked, boardId, tick }) {
+// what a step is linked to: what it waits on and feeds; on the audits map, the checks that run at the same moment
+function linksOf(map, id) {
+  const s = map.steps[id];
+  if (!s) return { waits: [], feeds: [], peers: [] };
+  const all = Object.values(map.steps);
+  if (map.shared) return { waits: [], feeds: [], peers: all.filter((o) => o.id !== id && (o.at ?? []).some((a) => (s.at ?? []).includes(a))).map((o) => o.id) };
+  const waits = [...new Set([...(s.deps ?? []), ...(s.blockedBy ? [s.blockedBy] : [])])].filter((d) => map.steps[d] && d !== id);
+  const feeds = all.filter((o) => (o.deps ?? []).includes(id) || o.blockedBy === id).map((o) => o.id);
+  return { waits, feeds, peers: [] };
+}
+
+/* The mind map (Elleta picked A · Mind map, 23 Nov: /screens/2026-11-23-mindmap/): the map's name at the left, a
+   Branch to each stage's name, a thin Branch from the name to each of its steps, one hue a stage. Steps stand
+   in one column in the map's order, so no branch crosses another. A picked step draws its links in the gutter to
+   the right of the steps: each a pair of Branch curves that leave one step's right edge and reach the other's, over
+   the tree (draw-in 250ms, one soft pass of light, then rest). scripts/process-line-check.mjs measures all of it. */
+const PHONE_BELOW = 520; // a map narrower than this is a BranchGroup a stage, one open at a time
+const params = (w) => {
+  const rootW = Math.round(Math.min(170, Math.max(100, w * 0.15)));
+  const catW = Math.round(Math.min(150, Math.max(100, w * 0.22)));
+  const catX = rootW + 28;
+  const leafX = catX + catW + 28;
+  const R = Math.round(Math.min(110, Math.max(48, w * 0.1)));
+  return { rootW, catW, catX, leafX, R, leafW: w - R - leafX };
+};
+const GAP = 12; // between steps
+const GROUP_GAP = 40; // between stages: room for a stage name to sit level with its steps' middle
+
+function MindMap({ map, name, filterOnly, picked, onPick, w }) {
+  const ref = useRef(null);
   const [geo, setGeo] = useState(null);
-  const modes = useRef({});
-  const firstDraw = useRef(true);
-  // the map's first draw lasts 900ms; after it, lines that appear are picked-step lines or plain
-  useEffect(() => {
-    if (!geo) return undefined;
-    const t = setTimeout(() => (firstDraw.current = false), 1000);
-    return () => clearTimeout(t);
-  }, [Boolean(geo)]); // eslint-disable-line react-hooks/exhaustive-deps
-  const rowOf = useMemo(() => Object.fromEntries(rows.flatMap((r, i) => r.ids.filter(Boolean).map((id) => [id, i]))), [rows]);
+  const p = params(w);
+  const groups = useMemo(() => map.groups.map((g) => ({ ...g, ids: g.ids.filter((id) => map.steps[id] && (!filterOnly || needsYou(map.steps[id]))) })).filter((g) => g.ids.length), [map, filterOnly]);
+  const links = picked ? linksOf(map, picked) : { waits: [], feeds: [], peers: [] };
+  const related = new Set([...links.waits, ...links.feeds, ...links.peers]);
   useLayoutEffect(() => {
-    const board = document.getElementById(boardId);
-    if (!board) return undefined;
+    const el = ref.current;
+    if (!el) return undefined;
     const measure = () => {
-      const b = board.getBoundingClientRect();
-      const k = b.width / (board.offsetWidth || b.width) || 1; // Stage scales the frame at Fit
-      const at = (r) => ({ left: (r.left - b.left) / k, right: (r.right - b.left) / k, top: (r.top - b.top) / k, bottom: (r.bottom - b.top) / k });
-      const steps = {};
-      board.querySelectorAll('[data-step]').forEach((w) => (steps[w.dataset.step] = at(w.getBoundingClientRect())));
-      const rowBox = [];
-      board.querySelectorAll('[data-row]').forEach((r) => (rowBox[Number(r.dataset.row)] = at(r.getBoundingClientRect())));
-      const out = JSON.stringify({ steps, rowBox });
-      setGeo((was) => (was?.key === out ? was : { key: out, steps, rowBox }));
+      const b = el.getBoundingClientRect();
+      const leaves = {};
+      el.querySelectorAll('[data-leaf]').forEach((n) => {
+        const r = n.getBoundingClientRect();
+        leaves[n.dataset.leaf] = { r: r.right - b.left, y: (r.top + r.bottom) / 2 - b.top, t: r.top - b.top, b: r.bottom - b.top };
+      });
+      const cats = [];
+      el.querySelectorAll('[data-stage-label]').forEach((n, i) => (cats[i] = n.getBoundingClientRect().width));
+      const key = JSON.stringify({ leaves, cats, h: el.offsetHeight });
+      setGeo((was) => (was?.key === key ? was : { key, leaves, cats }));
     };
     measure();
     const ro = new ResizeObserver(measure);
-    ro.observe(board);
+    ro.observe(el);
+    document.fonts?.ready?.then(measure);
     return () => ro.disconnect();
-  }, [map, boardId, tick]);
-  if (!geo) return null;
-  const { steps, rowBox } = geo;
-  const cx = (id) => (steps[id].left + steps[id].right) / 2;
-  const edges = Object.values(map.steps).flatMap((s) => (s.deps ?? []).filter((d) => rowOf[d] != null && rowOf[s.id] != null && rowOf[d] < rowOf[s.id] && steps[d] && steps[s.id]).map((d) => [d, s.id]));
-  // The channels a long line can run down: the gap between the columns and the space outside the right column (the
-  // left side carries the row names, which no line may cross).
-  // Lines spread across a channel at least 6 apart (8 where there is room); a long line takes the channel with the
-  // most room left, nearest its lower step on a tie.
-  const ids = Object.keys(steps);
-  const minL = Math.min(...ids.map((id) => steps[id].left));
-  const maxR = Math.max(...ids.map((id) => steps[id].right));
-  const boardR = Math.max(...rowBox.filter(Boolean).map((r) => r.right));
-  const colX = [...new Set(ids.map((id) => Math.round(cx(id))))].sort((p, q) => p - q);
-  const channels = [
-    ...colX.slice(1).map((x, i) => {
-      const l = Math.max(...ids.filter((id) => cx(id) < (colX[i] + x) / 2).map((id) => steps[id].right));
-      const r = Math.min(...ids.filter((id) => cx(id) > (colX[i] + x) / 2).map((id) => steps[id].left));
-      return { x: (l + r) / 2, w: r - l };
-    }),
-    { x: (maxR + boardR) / 2, w: boardR - maxR },
-  ].map((c) => ({ ...c, use: [] }));
-  const room = (c) => Math.max(1, Math.floor((c.w - 12) / 8) + 1);
-  const long = (d, id) => rowOf[id] !== rowOf[d] + 1; // not a neighbouring row
-  edges.filter(([d, id]) => long(d, id)).forEach(([d, id]) => {
-    const best = [...channels].sort((p, q) => p.use.length / room(p) - q.use.length / room(q) || Math.abs(p.x - cx(id)) - Math.abs(q.x - cx(id)))[0];
-    best.use.push(`${d}>${id}`);
-  });
-  const laneX = (d, id) => {
-    const c = channels.find((ch) => ch.use.includes(`${d}>${id}`));
-    const n = c.use.length;
-    const sp = n > 1 ? Math.max(6, Math.min(10, (c.w - 12) / (n - 1))) : 0;
-    return c.x + (c.use.indexOf(`${d}>${id}`) - (n - 1) / 2) * sp;
-  };
-  const drawn = { picked: [], rest: [] };
-  // how a line first appears is fixed when it is created: the map's own first draw (900ms), or, once that has
-  // played, a line becoming the picked step's draws in over 250ms with one soft pass; the others just appear
-  const modeOf = (key, group) => (modes.current[key] ??= group === 'picked' ? (firstDraw.current ? 'map' : 'pick') : firstDraw.current ? 'map' : 'none');
-  edges.forEach(([d, id]) => {
-    const i = rowOf[d];
-    const j = rowOf[id];
-    const xA = cx(d);
-    const xB = cx(id);
-    const yFoot = rowBox[i].bottom;
-    const mine = picked === d || picked === id;
-    const group = mine ? 'picked' : 'rest';
-    const tone = mine ? 'selected' : 'default';
-    const out = drawn[group];
-    // every piece is a MapLine curve (the part's weight, draw-in and travel are for curves); a straight run is a curve a
-    // pixel wide, so the line keeps one weight from end to end
-    const piece = (x0, y0, x1, y1) => {
-      const key = `${group}:${d}:${id}:${Math.round(x0)}:${Math.round(y0)}`;
-      out.push(<MapLine key={key} direction="curve" end="none" tone={tone} weight={mine ? 'regular' : 'thin'} draw={modeOf(key, group)} travel={mine} from={{ x: x0, y: y0 }} to={{ x: x1, y: y1 }} />);
-    };
-    const vert = (x, y0, y1) => y1 - y0 > 0.5 && piece(x - 0.5, y0, x + 0.5, y1);
-    const bend = piece;
-    vert(xA, steps[d].bottom, yFoot);
-    if (!long(d, id)) {
-      // neighbouring rows: one curve in the gap, then down into the step
-      if (Math.abs(xA - xB) < 1) vert(xB, yFoot, steps[id].top);
-      else {
-        bend(xA, yFoot, xB, yFoot + HOP);
-        vert(xB, yFoot + HOP, steps[id].top);
-      }
-    } else {
-      const lx = laneX(d, id);
-      bend(xA, yFoot, lx, yFoot + HOP);
-      vert(lx, yFoot + HOP, rowBox[j].top - HOP);
-      bend(lx, rowBox[j].top - HOP, xB, rowBox[j].top);
-      vert(xB, rowBox[j].top, steps[id].top);
-    }
-  });
-  // the lines she asks about (the picked step's) are blue, regular weight and on top; the others are thin and light
+  }, [map, groups, w]);
+  const first = useRef(true);
+  useEffect(() => {
+    if (!geo) return undefined;
+    const t = setTimeout(() => (first.current = false), 1000);
+    return () => clearTimeout(t);
+  }, [Boolean(geo)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cy = (g) => (geo.leaves[g.ids[0]].y + geo.leaves[g.ids[g.ids.length - 1]].y) / 2;
+  const rootY = geo && groups.length ? (cy(groups[0]) + cy(groups[groups.length - 1])) / 2 : 0;
+  const drawn = [];
+  const over = [];
+  if (geo) {
+    groups.forEach((g, i) => {
+      const y = cy(g);
+      drawn.push(<Branch key={`root-${g.label}`} hue={g.hue} weight="regular" draw={first.current ? 'map' : 'none'} from={{ x: p.rootW + 4, y: rootY }} to={{ x: p.catX - 8, y }} />);
+      g.ids.forEach((id) => drawn.push(<Branch key={`leaf-${id}`} hue={g.hue} weight="thin" draw={first.current ? 'map' : 'none'} from={{ x: p.catX + (geo.cats[i] ?? p.catW) + 8, y }} to={{ x: p.leafX - 2, y: geo.leaves[id].y }} />));
+    });
+    // HOLE branch-loop: BELLA's Branch has no loop that leaves and returns on one side, so a link is three curves
+    // the links leave the picked step at their own height along its right edge, so none starts on another's point.
+    // Arcs nest and never cross: from the top down, the steps above it nearest first, then the steps below it
+    // farthest first (the farthest arc is the outer one, so it starts furthest from the middle of the edge)
+    const all = [...links.waits.map((o) => ['w', o]), ...links.feeds.map((o) => ['f', o]), ...links.peers.map((o) => ['p', o])].filter(([, o]) => geo.leaves[o] && geo.leaves[picked]);
+    const dist = ([, o]) => Math.abs(geo.leaves[o].y - geo.leaves[picked].y);
+    const aboveMe = ([, o]) => geo.leaves[o].y < geo.leaves[picked].y;
+    const specs = [...all.filter(aboveMe).sort((x, y) => dist(x) - dist(y)), ...all.filter((x) => !aboveMe(x)).sort((x, y) => dist(y) - dist(x))];
+    const me = geo.leaves[picked];
+    const nBelow = specs.filter((x) => !aboveMe(x)).length;
+    const LANE = 8; // lanes in the gutter are this far apart
+    specs.forEach(([k, o], i) => {
+      const above = aboveMe([k, o]);
+      // 12 apart at least, centred on the step's edge (a step's edge is 60 tall, so five links reach a little past it)
+      const span = Math.max(me.b - me.t - 24, (specs.length - 1) * 12);
+      const ay = specs.length === 1 ? me.y : me.y - span / 2 + (i * span) / (specs.length - 1);
+      const O = geo.leaves[o];
+      // the arc nests: the farther the other step, the farther out its lane
+      const rank = above ? i : nBelow - 1 - (i - (specs.length - nBelow));
+      const lane = Math.max(me.r, O.r) + 6 + 10 + rank * LANE;
+      const P = { x: me.r + 6, y: ay };
+      const Q = { x: O.r + 6, y: O.y };
+      const sg = Q.y > P.y ? 1 : -1;
+      const out = { from: P, to: { x: lane, y: P.y + sg * 14 } };
+      const run = { from: { x: lane - 0.5, y: P.y + sg * 14 }, to: { x: lane + 0.5, y: Q.y - sg * 14 } };
+      const back = { from: { x: lane, y: Q.y - sg * 14 }, to: Q };
+      const flip = ({ from, to }) => ({ from: to, to: from });
+      // a link runs the way the work does: a step it waits on, then the picked step; the picked step, then what it feeds
+      const pieces = k === 'w' ? [flip(back), flip(run), flip(out)] : [out, run, back];
+      pieces.forEach((pc, n) => over.push(<Branch key={`${picked}:${k}:${o}:${n}`} hue="blue" weight="regular" draw="pick" travel {...pc} />));
+    });
+  }
   return (
-    <span aria-hidden="true" data-process-lines="" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
-      <span>{drawn.rest}</span>
-      <span>{drawn.picked}</span>
-    </span>
+    <div ref={ref} data-mindmap="" style={{ position: 'relative', inlineSize: '100%' }}>
+      <div style={{ position: 'relative', zIndex: 1, marginInlineStart: p.leafX, inlineSize: p.leafW, display: 'flex', flexDirection: 'column', gap: GROUP_GAP }}>
+        {groups.map((g) => (
+          <div key={g.label} role="group" aria-label={g.label} style={{ display: 'flex', flexDirection: 'column', gap: GAP }}>
+            {g.ids.map((id) => (
+              <div key={id} data-leaf={id}>
+                <Leaf step={map.steps[id]} picked={picked === id} related={related.has(id)} onPick={onPick} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <MapLabel kind="root" as="h3" style={{ position: 'absolute', insetInlineStart: 0, insetBlockStart: rootY, transform: 'translateY(-50%)', inlineSize: p.rootW, visibility: geo ? undefined : 'hidden' }}>
+        {name}
+      </MapLabel>
+      {groups.map((g, i) => (
+        <MapLabel key={g.label} kind="stage" style={{ position: 'absolute', insetInlineStart: p.catX, insetBlockStart: geo ? cy(g) : 0, transform: 'translateY(-50%)', inlineSize: 'max-content', maxInlineSize: p.catW, visibility: geo ? undefined : 'hidden' }}>
+          <span data-stage-label={i}>{g.label}</span>
+        </MapLabel>
+      ))}
+      <span aria-hidden="true" data-process-lines="" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+        {drawn}
+      </span>
+      <span aria-hidden="true" data-process-links="" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2 }}>
+        {over}
+      </span>
+    </div>
   );
 }
 
-// a step column is at least this wide on screen, so its name sits whole at 100%
-const COLUMN = 232; // a node (176) and room for the lines that run beside it
+/* Phone: each stage is a BranchGroup, one open at a time, its steps inside; the detail sits under them. */
+function PhoneMap({ map, name, filterOnly, picked, onPick }) {
+  const groups = map.groups.map((g) => ({ ...g, ids: g.ids.filter((id) => map.steps[id] && (!filterOnly || needsYou(map.steps[id]))) })).filter((g) => g.ids.length);
+  const [open, setOpen] = useState(null);
+  const links = picked ? linksOf(map, picked) : { waits: [], feeds: [], peers: [] };
+  const related = new Set([...links.waits, ...links.feeds, ...links.peers]);
+  const shown = open ?? Math.max(0, groups.findIndex((g) => g.ids.includes(picked)));
+  return (
+    <Flow gap={8}>
+      <MapLabel kind="root" as="h3">
+        {name}
+      </MapLabel>
+      {groups.map((g, i) => (
+        <BranchGroup key={g.label} name={g.label} count={g.ids.length} hue={g.hue} open={shown === i} onToggle={() => setOpen(shown === i ? -1 : i)}>
+          {g.ids.map((id) => (
+            <Leaf key={id} step={map.steps[id]} picked={picked === id} related={related.has(id)} onPick={onPick} />
+          ))}
+        </BranchGroup>
+      ))}
+    </Flow>
+  );
+}
 
-function Board({ map, filterOnly, picked, onPick, zoom, onZoom, label }) {
-  const pan = usePan();
-  // the visible width of the board: the board is four columns, and k of them fill the view exactly, so the
-  // first view never cuts a name at its edge; the rest are a pan away
-  const [view, setView] = useState(null);
+function Board({ map, name, filterOnly, picked, onPick, label }) {
   const wrap = useRef(null);
+  const [w, setW] = useState(0);
   useLayoutEffect(() => {
     const box = wrap.current;
     if (!box) return undefined;
-    const measure = () => setView((v) => (v === box.clientWidth ? v : box.clientWidth));
+    const measure = () => setW((v) => (v === box.clientWidth ? v : box.clientWidth));
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(box);
     return () => ro.disconnect();
   }, []);
-  // a map is at most two columns wide, so it fits between the list and the detail at 1440 with no pan: a row of
-  // more steps carries on in an unnamed row under it (the order across and down stays the map's)
-  const rows = useMemo(
-    () =>
-      map.rows.flatMap((r) => {
-        const ids = r.ids.filter(Boolean);
-        return Array.from({ length: Math.max(1, Math.ceil(ids.length / 2)) }, (_, i) => ({ label: i ? '' : r.label, ids: [ids[i * 2] ?? null, ids[i * 2 + 1] ?? null] }));
-      }),
-    [map],
-  );
-  const SL = 2;
-  // the whole map fits the view: it is drawn at its size with no Fit and 100% to choose between
-  const room = view ? view - 48 : 0; // the frame's own 24 either side
-  const fits = Boolean(view) && room >= SL * COLUMN + 18;
-  const k = view ? Math.max(1, Math.min(SL, Math.floor(view / COLUMN))) : SL;
-  const pitch = fits ? (room - 18) / SL : view ? view / k : COLUMN;
-  // equal slots 16 apart, inside the board's 16 sides and the frame's 1px edge: a column and its gap are one pitch
-  const frame = fits ? room : Math.round(SL * pitch + 18);
-  const start = 0; // rows are named over the first column, where the board opens
-  const shown = (id) => id && map.steps[id] && (!filterOnly || map.steps[id].state === 'bad');
-  // HOLE zoom-steps: zoom in and out wait on BELLA Stage (it has Fit and 100% only)
-  const content = (
-    <>
-      {/* the lines between steps are MapLine curves measured on the nodes (Lines, above) */}
-      <Flow gap={24} inset id="process-board" data-hole="zoom-steps" style={{ position: 'relative', width: '100%' }} {...pan}>
-        <Lines map={map} rows={rows} picked={picked} boardId="process-board" tick={`${frame}-${zoom}-${filterOnly}`} />
-        {/* the board's top and foot: 24 clear of the frame's edge */}
-        <span aria-hidden="true" />
-        {/* a bare span between rows adds a second 24: the gap the lines run in is 48 */}
-        {rows.map((row, i) => (
-          <Fragment key={`${row.label}-${i}`}>
-          {/* the row's name over the first column, then its two slots */}
-          <Flow key={`${row.label}-${i}`} gap={8} role="group" data-row={i} aria-label={row.label || `${label}, row ${i + 1}`}>
-            {row.label ? (
-              <Flow direction="row" gap={16} equal>
-                {Array.from({ length: SL }, (_, j) => (
-                  <Flow key={j} gap={0}>
-                    {j === start ? <div data-row-label=""><TextStack overline={row.label} /></div> : null}
-                  </Flow>
-                ))}
-              </Flow>
-            ) : null}
-            <Flow direction="row" gap={16} equal data-slots>
-              {/* each slot is its own box, so a step's padding never widens its column */}
-              {row.ids.map((id, j) => (
-                <Flow key={id ?? `gap-${j}`} gap={0} align="center">
-                  {shown(id) ? (
-                    <div data-step={id} style={{ position: 'relative', zIndex: 1, maxWidth: 'calc(var(--spacing-80) * 2 + var(--spacing-16))' }}>
-                      <Node step={map.steps[id]} picked={picked === id} onPick={onPick} />
-                      {/* the step's measured line ("91 of 93 have a contract") stays on the board under its node:
-                          MapNode carries a name and a state word only */}
-                      {map.steps[id].line ? <TextStack meta={map.steps[id].line} /> : null}
-                    </div>
-                  ) : null}
-                </Flow>
-              ))}
-            </Flow>
-          </Flow>
-          <span aria-hidden="true" />
-          </Fragment>
-        ))}
-      </Flow>
-    </>
-  );
-  // the whole map fits: a plain stage, no size note or Fit and 100% to float over it; wider, a frame you pan or fit
   return (
-    <div ref={wrap}>
-      {fits ? (
-        <Stage grid="dots" label={`${label} board`}>
-          {content}
-        </Stage>
-      ) : (
-        <Stage grid="dots" label={`${label} board`} frameWidth={frame} zoom={zoom} onZoomChange={onZoom}>
-          {content}
-        </Stage>
-      )}
-    </div>
+    <Stage grid="dots" label={`${label} map`}>
+      {/* Esc clears the pick */}
+      <div ref={wrap} style={{ inlineSize: '100%', minInlineSize: 0 }} onKeyDown={(e) => e.key === 'Escape' && picked && (e.stopPropagation(), onPick(null))}>
+        {w ? (w >= PHONE_BELOW ? <MindMap map={map} name={name} filterOnly={filterOnly} picked={picked} onPick={onPick} w={w} /> : <PhoneMap map={map} name={name} filterOnly={filterOnly} picked={picked} onPick={onPick} />) : null}
+      </div>
+    </Stage>
   );
 }
 
@@ -530,9 +481,23 @@ const says = (line, detail) => {
 };
 
 function Detail({ map, mapId, step, onPick }) {
+  // a closed Disclosure still lays its text out under the rows below it, so its words are only drawn while it is open
+  const [more, setMore] = useState(false);
+  if (!map || !step)
+    return (
+      <Card>
+        <Flow gap={8} aria-live="polite">
+          <SectionHead title="Pick a step" titleLevel={3} showInfo={false} />
+          <TextStack body="Its links to what it feeds and what it waits on draw in over the map." />
+        </Flow>
+      </Card>
+    );
   const said = SAYS[step.state];
-  const feeds = Object.values(map.steps).filter((s) => (s.deps ?? []).includes(step.id));
-  const waits = (step.deps ?? []).map((id) => map.steps[id]).filter(Boolean);
+  // the same links the map draws over the tree for this step
+  const lk = linksOf(map, step.id);
+  const feeds = lk.feeds.map((id) => map.steps[id]);
+  const waits = lk.waits.map((id) => map.steps[id]);
+  const peers = lk.peers.map((id) => map.steps[id]);
   // one row a step: its name and its state in the same colour and words the map shows
   const rowOf = (s) => {
     const x = SAYS[s.state];
@@ -582,16 +547,17 @@ function Detail({ map, mapId, step, onPick }) {
         </Flow>
         {/* anything that needs you says why, from its source */}
         {step.state === 'bad' || step.state === 'you' ? (
-          <Disclosure title="Why this?">
-            <TextStack body={step.why ?? `Its own check reports it: ${step.more ?? step.detail} Read from CHIP's map of BELLA's checks.`} />
+          <Disclosure title="Why this?" open={more} onToggle={setMore}>
+            {more ? <TextStack body={step.why ?? `Its own check reports it: ${step.more ?? step.detail} Read from CHIP's map of BELLA's checks.`} /> : null}
           </Disclosure>
         ) : step.more ? (
-          <Disclosure title="More">
-            <TextStack body={step.more} />
+          <Disclosure title="More" open={more} onToggle={setMore}>
+            {more ? <TextStack body={step.more} /> : null}
           </Disclosure>
         ) : null}
         {list('Waits on', waits, rowOf)}
         {list('Runs at', step.at ?? [], (m) => <ListRow key={m} layout="stacked" title={m} />)}
+        {list('Runs with', peers, rowOf)}
         {list('Feeds', feeds, rowOf)}
       </Flow>
     </Card>
@@ -600,7 +566,7 @@ function Detail({ map, mapId, step, onPick }) {
 
 // opens on the step that needs you: one that needs you, then one waiting on your click, then the first
 const firstPick = (map) => {
-  const all = map.rows.flatMap((r) => r.ids).filter(Boolean).map((id) => map.steps[id]);
+  const all = map.groups.flatMap((g) => g.ids).map((id) => map.steps[id]);
   return (all.find((s) => s.state === 'bad') ?? all.find((s) => s.state === 'you') ?? all[0])?.id;
 };
 
@@ -619,32 +585,34 @@ export default function SystemMapContent() {
   const [mapId, setMapId] = useState(MAPS.some((m) => m.id === start.map) ? start.map : 'pipeline');
   const [picks, setPicks] = useState(start.step ? { [start.map ?? 'pipeline']: start.step } : {});
   const [only, setOnly] = useState(false);
-  const [zoom, setZoom] = useState(null);
-  // below 1200 the map list becomes a Select over the board; below 720 the detail sits under it
-  const listOut = useNarrow(1200);
-  const stack = useNarrow(720);
+  // the detail sits beside the map while the map keeps room to draw as a tree (900 for the map and the detail);
+  // narrower, it goes under the map. Measured on the page, not the screen, because the menu takes room too.
+  const page = useRef(null);
+  const [pageW, setPageW] = useState(0);
+  useLayoutEffect(() => {
+    const el = page.current;
+    if (!el) return undefined;
+    const measure = () => setPageW(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const phone = useNarrow(640);
+  const stack = phone || (pageW > 0 && pageW < 900);
 
   const maps = { pipeline: pipeline && !pipeline.error ? pipeline : null, agents, audits };
   const meta = MAPS.find((m) => m.id === mapId);
   const map = maps[mapId];
-  const pickId = map ? (map.steps[picks[mapId]] ? picks[mapId] : firstPick(map)) : null;
+  // a pick of null (Esc, or the same step again) clears it; a map never picked opens on the step that needs you
+  const pickId = map ? (picks[mapId] === null ? null : map.steps[picks[mapId]] ? picks[mapId] : firstPick(map)) : null;
   const step = map && pickId ? map.steps[pickId] : null;
   const pick = (id) => {
-    setPicks((p) => ({ ...p, [mapId]: id }));
-    if (stack) requestAnimationFrame(() => document.getElementById('process-step')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    setPicks((p) => ({ ...p, [mapId]: id === pickId ? null : id }));
+    if (id && id !== pickId && stack) requestAnimationFrame(() => document.getElementById('process-step')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
   // HOLE share link: the page reads ?map=&step=, but the shell's router (main.jsx) opens #/system-map only
   // without a query, so writing the address would break a reload; it is written once the router accepts it
-
-  const list = listOut ? (
-    <Select label="Map" value={mapId} onChange={setMapId} options={MAPS.map((m) => ({ value: m.id, label: m.name }))} />
-  ) : (
-    <Flow as="ul" gap={4} aria-label="Maps">
-      {MAPS.map((m) => (
-        <ListRow key={m.id} layout="stacked" title={m.name} description={metaOfMap(maps[m.id])} selected={m.id === mapId} onClick={() => setMapId(m.id)} />
-      ))}
-    </Flow>
-  );
 
   // HOLE skeleton: BELLA has no skeleton part yet, so the board's loading state is the empty state
   const board = !map ? (
@@ -654,45 +622,60 @@ export default function SystemMapContent() {
       <EmptyState size="page" title="Drawing the map" line="Asking every check how it's doing. Two ticks." />
     )
   ) : (
-    <Board key={mapId} map={map} filterOnly={mapId === 'pipeline' && only} picked={pickId} onPick={pick} zoom={zoom ?? 'actual'} onZoom={setZoom} label={meta.name} />
+    <Board key={mapId} map={map} name={meta.name} filterOnly={only} picked={pickId} onPick={pick} label={meta.name} />
   );
 
-  // how fresh it is: the read's time and Refresh, or the rules it is drawn from
+  // the tools row the other pages use (23 Nov: "not following the pattern we already have for how to filter, sort
+  // and select"): the maps as FilterChips with their counts, one on at a time, a Needs you chip that filters the
+  // picked map, and on the right 'Updated 17:46 · Refresh' as Work's 'Checked 16:03 · Check again'
   const live = mapId === 'pipeline' ? pipeline : mapId === 'agents' ? pushes : null;
-  const fresh = live ? (
-    <Flow direction="row" gap={8} align="center" wrap>
-      <TextStack meta={live.at ? `Updated ${timeOf(live.at)} · ${meta.source}` : `Not read yet · ${meta.source}`} />
-      <Button variant="tertiary" size="sm" onClick={live.reload} busy={Boolean(live.loading)}>
-        Refresh
-      </Button>
+  const owed = map ? needing(map).length : 0;
+  const total = map ? Object.keys(map.steps).length : 0;
+  const tools = (
+    <Flow direction={phone ? 'column' : 'row'} gap={8} align={phone ? undefined : 'center'} grow={phone ? undefined : 'first'}>
+      <Flow direction="row" gap={8} align="center" role="group" aria-label="Maps" data-tools-chips="" style={{ overflowX: 'auto', minInlineSize: 0, maxInlineSize: '100%', whiteSpace: 'nowrap' }}>
+        {MAPS.map((m) => (
+          <FilterChip key={m.id} size="compact" pressed={m.id === mapId} onClick={() => setMapId(m.id)}>
+            {maps[m.id] ? `${m.name} ${needing(maps[m.id]).length}` : m.name}
+          </FilterChip>
+        ))}
+        <FilterChip size="compact" pressed={only} onClick={() => setOnly(!only)}>
+          {`Needs you ${owed}`}
+        </FilterChip>
+      </Flow>
+      <Flow direction="row" gap={8} align="center" data-tools-fresh="" style={{ whiteSpace: 'nowrap', flexShrink: 0, justifySelf: 'end' }}>
+        {live ? (
+          <>
+            <TextStack subtitle={live.at ? `Updated ${timeOf(live.at)}` : 'Not read yet'} />
+            <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={Boolean(live.loading)} onClick={live.reload}>
+              {live.loading ? 'Refreshing…' : 'Refresh'}
+            </Button>
+          </>
+        ) : (
+          <TextStack subtitle="Drawn from the rules" />
+        )}
+      </Flow>
     </Flow>
-  ) : (
-    <TextStack meta={`Drawn from ${meta.source}`} />
   );
 
   const center = (
     <Flow gap={16}>
+      {tools}
       <Flow gap={8}>
-        {/* the map's name, then its one-line summary: what needs you */}
+        {/* the map's name, then its one-line summary: what needs you, then what is on screen in words */}
         <SectionHead title={meta.name} description={map ? summaryOf(map) : meta.sub} showDescription showInfo={false} />
-        {fresh}
+        <TextStack subtitle={`Showing: ${only ? 'Needs you' : 'Everything'} · ${only ? owed : total} of ${total} steps`} />
       </Flow>
-      {mapId === 'pipeline' ? (
-        <Flow direction="row" gap={8} wrap>
-          <FilterChip pressed={only} onClick={() => setOnly(!only)}>
-            Show only what needs you
-          </FilterChip>
-        </Flow>
-      ) : null}
       {board}
     </Flow>
   );
 
-  const detail = step ? (
+  // the detail card stands from the first paint (a Pick a step card while the map is still being read)
+  const detail = (
     <Flow id="process-step" gap={16} aside={!stack}>
-      <Detail map={map} mapId={mapId} step={step} onPick={pick} />
+      <Detail key={`${mapId}:${pickId}`} map={map} mapId={mapId} step={step} onPick={pick} />
     </Flow>
-  ) : null;
+  );
 
   const work = (
     <Flow direction={stack ? 'column' : 'row'} gap={24} grow={stack ? undefined : 'first'} align={stack ? undefined : 'start'}>
@@ -702,18 +685,10 @@ export default function SystemMapContent() {
   );
 
   return (
-    <Flow gap={24} span={12}>
-      {listOut ? (
-        <>
-          {list}
-          {work}
-        </>
-      ) : (
-        <Flow direction="row" gap={24} grow="last" align="start">
-          <Flow aside>{list}</Flow>
-          {work}
-        </Flow>
-      )}
-    </Flow>
+    <div ref={page} style={{ minInlineSize: 0 }}>
+      <Flow gap={24} span={12}>
+        {work}
+      </Flow>
+    </div>
   );
 }
