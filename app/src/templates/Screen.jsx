@@ -138,7 +138,8 @@ function menuModel({ place, tab, projects, needs, onSearch }) {
     ],
     pinned: [{ label: 'Processes', href: '#/system-map', icon: 'Map', current: place === 'map' }],
     // every project opens the new board (23 Nov: "the old board show when i click projects like site")
-    projects: (projects ?? []).map((p) => ({ label: p.name, href: p.id === 'chip' ? '#/work' : `#/work?project=${p.id}`, current: place === 'work' && !needsHere && !!project && p.id === project })),
+    // the Site opens its pages in the Playground, where you mark them up (Elleta, 23 Nov); the others open their board
+    projects: (projects ?? []).map((p) => (p.id === 'site' ? { label: p.name, href: '#/playground?view=pages&project=site', current: place === 'playground' && project === 'site' } : { label: p.name, href: p.id === 'chip' ? '#/work' : `#/work?project=${p.id}`, current: place === 'work' && !needsHere && !!project && p.id === project })),
     foot: [
       { label: 'Team', href: '#/team', icon: 'Group', current: place === 'team' },
       { label: 'Settings', href: '#/connectors', icon: 'Settings', current: place === 'settings' },

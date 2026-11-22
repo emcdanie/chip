@@ -37,6 +37,7 @@ import { startJobs } from './lib/starts.mjs';
 import { appOrigins, onlyChip } from './lib/origin.mjs';
 import { createSystemDocs, mountSystemDocs } from './lib/system-docs.mjs';
 import { playMap, playPages, playTarget, startPlayProxy, PROXY } from './lib/play.mjs';
+import { playShot, shotUrl, shotWidth } from './lib/play-shot.mjs';
 
 const app = express();
 // Only CHIP's own page may read this server, /ask included (product inspection
@@ -789,7 +790,6 @@ app.get('/projects', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
-app.get('/projects/:id', async (req, res) => {
 // New: the jobs she repeats with their targets read live, and the project she starts from a dropped file or a folder.
 // Reads only what is dropped or named; every route that writes refuses other websites (fromChip) and
 // the keptRead cache of /projects is dropped when a record is made or removed.
@@ -803,6 +803,7 @@ app.get('/starts', (_req, res) => {
   }
 });
 app.use(newRoutes({ origins: APP_ORIGINS, ids: () => projectList().map((p) => p.id), changed: () => keptRead('projects', READS.projects, { fresh: true }).catch(() => {}) }));
+app.get('/projects/:id', async (req, res) => {
   try {
     const p = await projectDetail(String(req.params.id), { fresh: req.query.fresh === '1' });
     p ? res.json(p) : res.status(404).json({ error: 'No such project' });
@@ -834,6 +835,18 @@ app.post('/projects/:id/dev', async (req, res) => {
 app.get('/play/pages', (req, res) => {
   const id = String(req.query.project || 'site');
   res.json({ project: id, proxy: PROXY, pages: playPages(id) });
+});
+// A page as a picture for the Pages tab's mark-up (a picture is what Your picks marks up too).
+app.get('/play/shot', async (req, res) => {
+  try {
+    const run = await playTarget(String(req.query.project || 'site'));
+    if (!run) return res.status(404).json({ error: 'No such project' });
+    if (run.state !== 'running' || !run.url) return res.status(409).json({ error: `${run.name ?? 'The project'} isn't running`, run });
+    const png = await playShot(shotUrl(run.url, req.query.route), shotWidth(req.query.width));
+    res.set({ 'content-type': 'image/png', 'cache-control': 'no-store' }).send(png);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 app.get('/play/map', async (req, res) => {
   try {

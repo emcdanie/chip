@@ -277,7 +277,7 @@ const shortName = (t) => clean(t).replace(/\s*[:·-]\s*(A or B|A, B or C|yes or 
 const asked = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '');
 const linkTo = (id, n) => `#/playground?pick=${encodeURIComponent(id)}${n ? `&option=${n + 1}` : ''}`;
 
-export default function PlaygroundPicks({ onTry }) {
+export default function PlaygroundPicks() {
   const { picks, items, down, at: readAt, lastAnswer, cached, again } = usePicks();
   // three columns from a 1280 window: the list, then the stage and the comments in halves, so comments read at
   // 45 characters or more; list beside the stage from 800; a phone stacks them
@@ -443,12 +443,6 @@ export default function PlaygroundPicks({ onTry }) {
         ) : (
           <EmptyState size="lane" mark="🙌" title="None here" line="Nothing matches this filter. Pick All to see the rest." />
         )}
-        {/* Parts and pages: the mock's flow has no second tab, so trying a part or a page is the list's last row */}
-        {onTry ? (
-          <Flow as="ul" gap={0} aria-label="More to try">
-            <ListRow layout="stacked" title="Parts and pages" description="Try a BELLA part, or mark up a page" trailing onClick={onTry} />
-          </Flow>
-        ) : null}
       </Flow>
     </Card>
   );

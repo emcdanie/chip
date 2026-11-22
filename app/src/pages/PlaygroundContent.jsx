@@ -5,22 +5,16 @@
 // to you easily without having to copy paste screenshot which is the point of
 // chip"). Built from BELLA parts and the template's Flow only; no page CSS.
 //
-// Mark up has no Figma screen yet (board card: the design session draws it).
-// The page arrives through CHIP's own proxy (server/lib/play.mjs), the same
-// one the old Playground uses.
-//
-// STAGE SLOT: BELLA's Stage part (Figma Stage{grid=dots}) holds the live page
-// at its design width: Fit / 100% float in its top-right corner, notes are
-// pink Pins on the page, and while marking a click asks the page what sits
-// there (chip:pick, answered by the proxy's probe). Frame, zoom and Mark up:
-// her card y22, "A · Yes" (19 Nov).
-import { useCallback, useEffect, useRef, useState } from 'react';
+// Pages tab (23 Nov, her: "i still want to be able to mark up the site in chip"): a page of any project is a
+// picture of it at the chosen width (server/lib/play-shot.mjs), marked up in the same PicturePins as Your picks:
+// a click drops a numbered pin and a small comment box, pins stay as drafts in this browser, and one "n marked ·
+// Send all" bar posts every note on every page as one message. Parts stay live on BELLA's Stage.
+import { useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
-import Input from '@bella/components/Input/Input';
 import Notification from '@bella/components/Notification/Notification';
-import Pin from '@bella/components/Pin/Pin';
+import TextStack from '@bella/components/TextStack/TextStack';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import Select from '@bella/components/Select/Select';
 import Combobox from '@bella/components/Combobox/Combobox';
@@ -30,6 +24,8 @@ import { useComponents } from './componentsModel.js';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
+import PicturePins from '../templates/PicturePins.jsx';
+import SendBar from '../templates/SendBar.jsx';
 
 // The progress board server takes the notes (screens/progress/server.py).
 export const BOARD = 'http://localhost:3123';
@@ -77,16 +73,6 @@ function usePlayData(project, route) {
   return { projects, pages, map, down, again: () => setTick((t) => t + 1) };
 }
 
-// what a note is on, short: the probe's text can repeat itself ("Review the fix Review the fix")
-function shortName(text) {
-  const t = text.replace(/\s+/g, ' ').trim();
-  const half = t.slice(0, Math.floor(t.length / 2)).trim();
-  const once = half && t === `${half} ${half}` ? half : t;
-  return once.length > 24 ? `${once.slice(0, 23).trimEnd()}…` : once;
-}
-
-// the frame's design height: one laptop screen; the page scrolls inside it
-const FRAME_HEIGHT = 900;
 // Figma opens on a part (Show · Parts › DataTable)
 const PARTS = Object.keys(SPECIMENS).sort();
 
@@ -113,63 +99,23 @@ function PartSlot({ name, width, values }) {
     </div>
   );
 }
-// a click asks for what sits in this box around it, in page px
-const PICK = { w: 240, h: 64 };
-
-/**
- * The live page on the Stage at its design width. Notes are page px; the page
- * scrolls inside its frame, so pins move with it. While marking, a click asks
- * the page (through the proxy's probe) what sits there.
- */
-function StageSlot({ src, proxy, sections, title, width, notes, picking, onPicked }) {
-  const frame = useRef(null);
-  const [zoom, setZoom] = useState('fit');
-  const [scrollY, setScrollY] = useState(0);
-  const origin = proxy ? new URL(proxy).origin : null;
-
-  const toPage = useCallback(
-    (m) => {
-      const w = frame.current?.contentWindow;
-      if (w && origin) w.postMessage(m, origin);
-    },
-    [origin],
-  );
-  const hello = useCallback(() => toPage({ type: 'chip:hello', sections }), [toPage, sections]);
-
-  useEffect(() => {
-    const on = (e) => {
-      if (e.origin !== origin) return;
-      const m = e.data || {};
-      if (m.type === 'chip:probe' || m.type === 'chip:scroll') setScrollY(m.scrollY ?? 0);
-      else if (m.type === 'chip:picked') onPicked(m);
-    };
-    window.addEventListener('message', on);
-    return () => window.removeEventListener('message', on);
-  }, [origin, onPicked]);
-
-  function pick(x, y) {
-    const py = y + scrollY;
-    toPage({ type: 'chip:pick', id: `${x},${py}`, x: x - PICK.w / 2, y: py - PICK.h / 2, w: PICK.w, h: PICK.h });
+const DRAFTS = 'chip.playground.pages.drafts';
+const readDrafts = () => {
+  try {
+    return JSON.parse(localStorage.getItem(DRAFTS) ?? '{}') || {};
+  } catch {
+    return {};
   }
+};
+const unsent = (d) => (d?.pins ?? []).filter((p) => p.note.trim() && !p.sent);
+const clock = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-  const markers = notes
-    .map((n, i) => ({ n, i }))
-    .filter(({ n }) => n.x != null && n.y - scrollY >= 0 && n.y - scrollY <= FRAME_HEIGHT)
-    .map(({ n, i }) => ({ id: String(n.id), x: n.x, y: n.y - scrollY, label: i + 1 }));
-
-  return (
-    <Stage frameWidth={Number(width)} frameHeight={FRAME_HEIGHT} zoom={zoom} onZoomChange={setZoom} markers={markers} picking={picking} onPick={pick} label={title}>
-      <iframe ref={frame} title={title} src={src} width={width} height={FRAME_HEIGHT} onLoad={hello} />
-    </Stage>
-  );
-}
-
-export default function PlaygroundContent({ project, onProject, route, onRoute, onBack }) {
+export default function PlaygroundContent({ project, onProject, route, onRoute, openFirst = false }) {
   const narrow = useNarrow();
   // what is on the canvas: nothing yet (Figma Screen 1 "Nothing picked yet", audit 10), a part or a page;
   // a link with a route opens the page
   const [part, setPart] = useState(null);
-  const [none, setNone] = useState(() => !route);
+  const [none, setNone] = useState(() => !route && !openFirst);
   const { projects, pages, map, down, again } = usePlayData(project, route);
   // a phone opens at phone width (Figma "375 wide"), so the part is readable, not 15%
   // open at the widest preset that shows near full size: a 1440 frame at her ~1100 window shrank to 45%
@@ -179,10 +125,14 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
   // choice is a Select and the bar stays on one row
   const tight = useNarrow(1140);
   const [width, setWidth] = useState(() => (narrow ? '375' : roomy ? '1440' : '768'));
-  const [marking, setMarking] = useState(false);
-  const [notes, setNotes] = useState([]);
-  const [open, setOpen] = useState(false);
-  const [sent, setSent] = useState(null); // 'sent' | 'failed'
+  // notes are drafts per page and width, kept in this browser until Send all (one POST for every page)
+  const [drafts, setDrafts] = useState(readDrafts);
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFTS, JSON.stringify(drafts));
+    } catch {}
+  }, [drafts]);
+  const [batch, setBatch] = useState({ sending: false, result: null, failed: null });
   const [starting, setStarting] = useState(false);
   const [controls, setControls] = useState(false);
   // each part's control values, kept while you switch parts
@@ -190,7 +140,6 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
   const partValues = part ? { theme: 'Light', ...CONTROLS[part]?.start, ...values[part] } : {};
   const setValue = (key, v) => setValues((all) => ({ ...all, [part]: { ...all[part], [key]: v } }));
   const controlRows = part ? [...(CONTROLS[part]?.rows ?? []), THEME] : [];
-  const nextId = useRef(1);
 
   // a page view opens the project's first page unless one was asked for
   useEffect(() => {
@@ -246,36 +195,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
 
   const page = pages?.find((p) => p.route === route);
   const running = map?.run?.state === 'running';
-  const src = running && map.proxy ? `${map.proxy}/${route ?? ''}` : null;
-
-  const addNote = useCallback((spot = {}) => {
-    const id = nextId.current++;
-    setNotes((ns) => [...ns, { id, note: '', on: spot.on ?? 'the page', section: spot.section ?? null, x: spot.x ?? null, y: spot.y ?? null }]);
-    setSent(null);
-    setOpen(true);
-  }, []);
-
-  async function send() {
-    const body = {
-      type: 'markup',
-      page: `${map?.name ?? project} · ${page?.label ?? route}`,
-      url: route,
-      viewport: `${width}`,
-      notes: notes
-        .filter((n) => n.note.trim())
-        .map((n, i) => ({ n: i + 1, note: n.note.trim(), on: n.on, section: n.section, x: n.x, y: n.y })),
-    };
-    try {
-      const r = await fetch(`${BOARD}/answers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (!r.ok) throw new Error(String(r.status));
-      setNotes([]);
-      setMarking(false);
-      setOpen(false);
-      setSent('sent');
-    } catch {
-      setSent('failed');
-    }
-  }
+  const shot = running && route != null ? `/play/shot?project=${encodeURIComponent(project)}&route=${encodeURIComponent(route)}&width=${width}` : null;
 
   async function start() {
     setStarting(true);
@@ -287,16 +207,43 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
     }
   }
 
-  const onPicked = useCallback(
-    (m) => {
-      const [x, y] = String(m.id).split(',').map(Number);
-      const first = m.picked?.[0];
-      addNote({ on: first ? `“${shortName(first.text)}”` : 'the page', section: m.section ?? null, x, y });
-    },
-    [addNote],
-  );
-
-  const written = notes.filter((n) => n.note.trim()).length;
+  const draftKey = `${project}|${route ?? ''}|${width}`;
+  const pins = drafts[draftKey]?.pins ?? [];
+  const setPins = (next) =>
+    setDrafts((all) => {
+      const was = all[draftKey]?.pins ?? [];
+      return { ...all, [draftKey]: { project, route: route ?? '', width, name: page?.label ?? route, pins: typeof next === 'function' ? next(was) : next } };
+    });
+  const projectName = (id) => projects?.find((x) => x.id === id)?.name ?? id;
+  const waiting = Object.values(drafts).filter((d) => unsent(d).length);
+  const count = waiting.reduce((n, d) => n + unsent(d).length, 0);
+  // ONE Send all: every note on every page in one POST, one message to the agent
+  async function sendAll() {
+    if (!count || batch.sending) return;
+    setBatch({ sending: true, result: null, failed: null });
+    const body = {
+      type: 'batch',
+      page: `Playground · ${count} ${count === 1 ? 'note' : 'notes'} on ${waiting.length} ${waiting.length === 1 ? 'page' : 'pages'}`,
+      url: '/playground',
+      cards: [],
+      markups: waiting.map((d) => ({
+        type: 'markup',
+        page: `${projectName(d.project)} · ${d.name}`,
+        url: d.route,
+        viewport: String(d.width),
+        notes: unsent(d).map((p, i) => ({ n: i + 1, note: p.note.trim(), on: 'the page', section: null, x: p.x, y: p.y })),
+      })),
+    };
+    try {
+      const r = await fetch(`${BOARD}/answers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(String(r.status));
+      const at = Date.now();
+      setDrafts((all) => Object.fromEntries(Object.entries(all).map(([k, d]) => [k, { ...d, pins: d.pins.map((x) => (x.note.trim() ? { ...x, sent: true } : x)) }])));
+      setBatch({ sending: false, result: { n: count, at: clock(at) }, failed: null });
+    } catch {
+      setBatch({ sending: false, result: null, failed: `Not sent: the progress board doesn’t answer at ${BOARD}. Your notes are kept here.` });
+    }
+  }
 
   if (down)
     return <Notification tone="danger" title="The CHIP server" message="It isn't answering. Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
@@ -306,16 +253,6 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
 
   return (
     <>
-      {/* the way back to Your picks, where the Playground opens */}
-      {onBack ? (
-        <Flow direction="row">
-          <Button variant="tertiary" size="sm" icon="NavArrowLeft" leadingIcon onClick={onBack}>
-            Your picks
-          </Button>
-        </Flow>
-      ) : null}
-      {sent === 'sent' ? <Notification tone="success" title="Your notes" message="Sent: they are on the progress board for the team." onClose={() => setSent(null)} /> : null}
-
       {/* Control bar: what you look at on the left, switches on the right */}
       <Flow direction={narrow ? 'column' : 'row'} gap={16} wrap={!narrow} justify={narrow ? 'start' : 'between'} align={narrow ? undefined : 'center'}>
         <Flow direction="row" gap={12} wrap>
@@ -340,15 +277,6 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
           {part || none ? (
             <Button variant="secondary" ariaHaspopup="dialog" ariaExpanded={controls} disabled={none} onClick={() => setControls(true)}>
               Controls
-            </Button>
-          ) : (
-            <Button variant="secondary" ariaExpanded={marking} onClick={() => (marking ? setMarking(false) : (setMarking(true), notes.length ? setOpen(true) : null))}>
-              {marking ? 'Done marking' : 'Mark up'}
-            </Button>
-          )}
-          {!part && notes.length ? (
-            <Button variant="secondary" ariaHaspopup="dialog" onClick={() => setOpen(true)}>
-              {`Notes · ${notes.length}`}
             </Button>
           ) : null}
         </Flow>
@@ -378,24 +306,23 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
         />
       ) : null}
 
-      {part || none ? null : src ? (
-        // the stage fills the window from where it starts and the page scrolls inside it, so the control bar
-        // never scrolls away (her note, 22 Nov: "I can scroll the whole page")
-        <Flow fit="rest">
-          <Flow span={12}>
-            <StageSlot
-              src={src}
-              proxy={map.proxy}
-              sections={(map.sections ?? []).map((sec) => sec.id)}
-              title={`${map.name} · ${page?.label ?? route}, live`}
-              width={width}
-              notes={notes}
-              picking={marking}
-              onPicked={onPicked}
-            />
-          </Flow>
+      {/* the page as a picture, marked up like Figma comments: click it, a numbered pin and a small comment box */}
+      {part || none || !running ? null : (
+        <Flow gap={8}>
+          <TextStack subtitle="Click anywhere on the page to leave a comment. Pins stay here until you press Send all." />
+          <PicturePins
+            key={draftKey}
+            src={shot}
+            alt={`${page?.label ?? route} at ${width} wide`}
+            summary={`${map?.name ?? project} · ${page?.label ?? route}, ${width} wide`}
+            pins={pins}
+            setPins={setPins}
+            commitLabel="Save"
+          />
         </Flow>
-      ) : !map ? <EmptyState size="lane" title="Loading the page" /> : null}
+      )}
+      {!part && !none && map && running && !shot ? <EmptyState size="lane" title="Loading the page" /> : null}
+      <SendBar count={count} onSend={sendAll} sending={batch.sending} result={batch.result} failed={batch.failed} onDismiss={() => setBatch({ sending: false, result: null, failed: null })} />
 
       {/* Figma "controls open": the part's props as rows, value on the right; a click moves to the next value */}
       <Drawer open={controls && !!part} onClose={() => setControls(false)} label="Controls" side="right" size="sm">
@@ -416,48 +343,6 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
         </Flow>
       </Drawer>
 
-      <Drawer
-        open={open}
-        onClose={() => setOpen(false)}
-        label="Your notes on this page"
-        side="right"
-        footer={
-          <Button variant="primary" disabled={!written} onClick={send}>
-            Send notes
-          </Button>
-        }
-      >
-        {/* plain content in a Drawer body lands on the title's edge with Flow inset (Flow.jsx) */}
-        <Flow gap={16} inset>
-        <Flow as="ol" gap={16} aria-label="Notes">
-          {notes.map((n, i) => (
-            <Flow as="li" key={n.id} gap={8}>
-              {/* wraps rather than squeezing the pin's label onto two lines */}
-              <Flow direction="row" gap={8} wrap align="center">
-                <Pin number={i + 1} label={`on ${n.on}`} />
-                <Button variant="tertiary" size="sm" onClick={() => setNotes((ns) => ns.filter((x) => x.id !== n.id))} ariaLabel={`Remove note ${i + 1}`}>
-                  Remove
-                </Button>
-              </Flow>
-              <Input
-                label={`Note ${i + 1}`}
-                multiline
-                value={n.note}
-                placeholder="What should change?"
-                onChange={(v) => setNotes((ns) => ns.map((x) => (x.id === n.id ? { ...x, note: v } : x)))}
-              />
-            </Flow>
-          ))}
-        </Flow>
-        {/* a note on the page as a whole; a note on a spot comes from clicking the page while marking */}
-        <Flow direction="row" gap={8}>
-          <Button variant="secondary" size="sm" onClick={() => addNote()}>
-            Add a note
-          </Button>
-        </Flow>
-        </Flow>
-        {sent === 'failed' ? <Notification tone="danger" title="The progress board" message={`It doesn't answer at ${BOARD}, so your notes weren't sent. They are still here.`} /> : null}
-      </Drawer>
     </>
   );
 }
