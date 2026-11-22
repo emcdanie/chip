@@ -130,7 +130,8 @@ export default function App() {
   const collapsed = sidePref === 'col' || cramped || (sidePref !== 'open' && winW < 1180);
   const navW = !wide ? 0 : collapsed ? 104 : 256;
   const wpW = clampW(work.w, winW, navW);
-  const wpH = clampH(work.h, win.h);
+  // a phone's bottom sheet opens tall (70% of the screen, the most it may take; 55% on a tablet): the answer and the field need the room
+  const wpH = clampH(work.h ?? (winW <= 480 ? win.h * 0.7 : winW <= 960 ? win.h * 0.55 : null), win.h);
   const [navOn, setNavOn] = useState(false);
   const workToggle = useRef(null);
   const setOpen = (open) => {

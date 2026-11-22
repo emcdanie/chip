@@ -153,7 +153,7 @@ html.wp-dragging .xterm { pointer-events: none; }
 .wp-bottom .wp-what { padding-bottom: var(--s-8); }
 .wp-empty { margin: 0; padding: var(--s-8) var(--s-4); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
 /* along the bottom, Needs you and Sessions flow into columns */
-.wp-bottom .nylist { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); align-items: start; }
+.wp-bottom .nylist { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); align-items: start; }
 
 .nylist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-8); }
 .ny { border: 1px solid var(--line); border-radius: var(--r); background: var(--card); min-width: 0; }
@@ -285,6 +285,14 @@ html.wp-dragging .xterm { pointer-events: none; }
   .top { gap: var(--s-12); padding-inline: var(--s-16); }
   .wtoggle { margin-left: auto; }
   .wtoggle kbd { display: none; }
+  /* the Work sheet at 320: the tabs name each part, so the one-line intro steps aside and the conversation gets the height */
+  .wp-bottom .wp-what { display: none; }
+  .wp-bottom .wp-head { padding-top: var(--s-24); gap: var(--s-4) var(--s-8); }
+  /* four tabs are wider than 320: two by two, so Ask OBI is never off the edge */
+  /* the page is in view above the sheet, so "Looking at …" steps aside; the model stays */
+  .wp-bottom .wp-ask .obi-head > :first-child { display: none; }
+  .wp-bottom .wp-ask .obi-head { padding-block: var(--s-8); }
+  .wp-bottom .wp-head > .k-seg { display: grid; grid-template-columns: 1fr 1fr; flex: 1 1 100%; order: 3; }
 }
 
 /* ==== Overview ==== */
