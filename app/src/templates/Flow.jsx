@@ -46,12 +46,24 @@ function useFull(on) {
     if (!sc) return undefined;
     const measure = () => {
       const cs = getComputedStyle(sc);
+      // a scroll column reaches 8 past its box (room for focus rings), so a rest box stops 8 short of the padding
+      const eight = on === 'rest' ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--spacing-8')) || 8 : 0;
       const foot = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--spacing-16')) || 16;
       const v =
         on === 'rest'
-          ? Math.max(0, Math.round(sc.clientHeight - parseFloat(cs.paddingBottom) - (ref.current.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop)))
+          ? Math.max(0, Math.round(sc.clientHeight - parseFloat(cs.paddingBottom) - eight - (ref.current.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop)))
           : Math.max(0, Math.round(sc.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - foot));
-      setH((was) => (was === v ? was : v));
+      // rest: never shorter than its content needs, so a short window scrolls the page and the padding below holds
+      // (bottom gap 24, Elleta 23 Nov); read at the window's height so it can shrink again
+      let need = 0;
+      if (on === 'rest') {
+        const was = ref.current.style.blockSize;
+        ref.current.style.blockSize = `${v}px`;
+        need = ref.current.scrollHeight;
+        ref.current.style.blockSize = was;
+      }
+      const next = Math.max(v, need - eight); // the 8 a scroll column reaches past is not content
+      setH((was) => (was === next ? was : next));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -60,7 +72,7 @@ function useFull(on) {
     window.addEventListener('resize', measure);
     return () => (ro.disconnect(), window.removeEventListener('resize', measure));
   }, [on]);
-  return [ref, on && h != null ? { blockSize: `${h}px` } : undefined];
+  return [ref, on && h != null ? { blockSize: `${h}px`, ...(on === 'rest' ? { marginBlockEnd: 'var(--spacing-8)' } : {}) } : undefined];
 }
 
 /* board: the Work board's frame (Elleta, 19 Nov: "the work board needs to stay
