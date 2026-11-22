@@ -1,8 +1,8 @@
 {
   "source": {
     "repo": "bella",
-    "commit": "35effc1",
-    "committedAt": "2026-11-21T20:43:06+01:00"
+    "commit": "dfdd34a",
+    "committedAt": "2026-11-22T21:59:02+01:00"
   },
   "refs": {},
   "type": {
@@ -455,13 +455,13 @@
     ]
   },
   "tokenized": {
-    "files": 88,
+    "files": 98,
     "rows": [
       {
         "p": "Border",
         "tokens": "11 widths + colour roles",
-        "decl": 151,
-        "ok": 142,
+        "decl": 170,
+        "ok": 161,
         "not": [
           {
             "component": "AnatomyHighlight",
@@ -484,13 +484,13 @@
           {
             "component": "MapLine",
             "file": "src/components/MapLine/MapLine.module.css",
-            "line": 90,
+            "line": 131,
             "decl": "border: 0 solid currentColor"
           },
           {
             "component": "MapLine",
             "file": "src/components/MapLine/MapLine.module.css",
-            "line": 94,
+            "line": 135,
             "decl": "border-style: dashed"
           },
           {
@@ -522,8 +522,8 @@
       {
         "p": "Radius",
         "tokens": 8,
-        "decl": 156,
-        "ok": 155,
+        "decl": 179,
+        "ok": 178,
         "not": [
           {
             "component": "StatusPill",
@@ -536,29 +536,29 @@
       {
         "p": "Padding",
         "tokens": 12,
-        "decl": 134,
-        "ok": 134,
+        "decl": 149,
+        "ok": 149,
         "not": []
       },
       {
         "p": "Gap",
         "tokens": 12,
-        "decl": 183,
-        "ok": 183,
+        "decl": 209,
+        "ok": 209,
         "not": []
       },
       {
         "p": "Font size",
         "tokens": 10,
-        "decl": 182,
-        "ok": 182,
+        "decl": 217,
+        "ok": 217,
         "not": []
       },
       {
         "p": "Line height",
         "tokens": 5,
-        "decl": 133,
-        "ok": 129,
+        "decl": 165,
+        "ok": 161,
         "not": [
           {
             "component": "Avatar",
@@ -575,7 +575,7 @@
           {
             "component": "ChatBubble",
             "file": "src/components/ChatBubble/ChatBubble.module.css",
-            "line": 298,
+            "line": 257,
             "decl": "line-height: 1"
           },
           {
@@ -589,26 +589,26 @@
       {
         "p": "Shadow",
         "tokens": 1,
-        "decl": 42,
-        "ok": 42,
+        "decl": 50,
+        "ok": 50,
         "not": []
       },
       {
         "p": "Motion",
         "tokens": 14,
-        "decl": 80,
-        "ok": 70,
+        "decl": 115,
+        "ok": 100,
         "not": [
           {
             "component": "BoardLane",
             "file": "src/components/BoardLane/BoardLane.module.css",
-            "line": 110,
+            "line": 122,
             "decl": "animation: laneFade linear both"
           },
           {
             "component": "BoardLane",
             "file": "src/components/BoardLane/BoardLane.module.css",
-            "line": 111,
+            "line": 123,
             "decl": "animation-timeline: scroll(self block)"
           },
           {
@@ -652,6 +652,36 @@
             "file": "src/components/Drawer/Drawer.module.css",
             "line": 94,
             "decl": "animation-name: drawerOutBottom"
+          },
+          {
+            "component": "EasingCurve",
+            "file": "src/components/EasingCurve/EasingCurve.module.css",
+            "line": 189,
+            "decl": "animation: cross linear both"
+          },
+          {
+            "component": "RadiusTile",
+            "file": "src/components/RadiusTile/RadiusTile.module.css",
+            "line": 58,
+            "decl": "animation-timeline: view()"
+          },
+          {
+            "component": "RadiusTile",
+            "file": "src/components/RadiusTile/RadiusTile.module.css",
+            "line": 59,
+            "decl": "animation-range: entry 0% entry 70%"
+          },
+          {
+            "component": "SpacingStep",
+            "file": "src/components/SpacingStep/SpacingStep.module.css",
+            "line": 61,
+            "decl": "animation-timeline: view()"
+          },
+          {
+            "component": "SpacingStep",
+            "file": "src/components/SpacingStep/SpacingStep.module.css",
+            "line": 62,
+            "decl": "animation-range: entry 0% entry 70%"
           },
           {
             "component": "TypingDots",

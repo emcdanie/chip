@@ -2,15 +2,15 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "20737b9",
-    "committedAt": "2026-11-22T17:21:59+01:00",
+    "commit": "dfdd34a",
+    "committedAt": "2026-11-22T21:59:02+01:00",
     "version": "0.3.0"
   },
   "counts": {
-    "components": 97,
-    "withStory": 95,
-    "withDocs": 90,
-    "withContract": 95,
+    "components": 98,
+    "withStory": 96,
+    "withDocs": 91,
+    "withContract": 96,
     "semanticTokenGroups": {
       "light": [
         "border",
@@ -33,9 +33,9 @@ window.BELLA = {
   "gates": {
     "contrastPairs": {
       "ok": true,
-      "checked": 429,
-      "pairs": 105,
-      "summary": "contrast pairs: 429 checked across 4 themes (text 7:1, marks 3:1), OK; inset rule: 23 exempt, every consumer classified"
+      "checked": 465,
+      "pairs": 114,
+      "summary": "contrast pairs: 465 checked across 4 themes (text 7:1, marks 3:1), OK; inset rule: 23 exempt, every consumer classified"
     },
     "contractParity": {
       "ok": true,
@@ -134,6 +134,7 @@ window.BELLA = {
         "map-leaf",
         "map-label",
         "branch-group",
+        "line-chart",
         "map-node"
       ],
       "exemptContracts": [
@@ -167,7 +168,7 @@ window.BELLA = {
       "name": "A11y",
       "score": 68,
       "assessment": "measured",
-      "basis": "66/97 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
+      "basis": "67/98 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -195,21 +196,21 @@ window.BELLA = {
       "name": "Governance",
       "score": 98,
       "assessment": "measured",
-      "basis": "95/97 components: Tier 3 contract checked by contract-parity and passing"
+      "basis": "96/98 components: Tier 3 contract checked by contract-parity and passing"
     },
     {
       "id": "docs",
       "name": "Docs",
       "score": 92,
       "assessment": "measured",
-      "basis": "89/97 components: Storybook story and a docs description in the manifest"
+      "basis": "90/98 components: Storybook story and a docs description in the manifest"
     },
     {
       "id": "machine-readable",
       "name": "Machine-readable",
       "score": 97,
       "assessment": "measured",
-      "basis": "94/97 components: DSDS component entry and react-docgen props in the manifest"
+      "basis": "95/98 components: DSDS component entry and react-docgen props in the manifest"
     },
     {
       "id": "agent-access",
@@ -220,71 +221,6 @@ window.BELLA = {
     }
   ],
   "history": [
-    {
-      "commit": "c38d75a",
-      "committedAt": "2026-11-20T18:22:29+01:00",
-      "components": 85,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "b46996b",
-      "committedAt": "2026-11-20T20:57:40+01:00",
-      "components": 85,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "1c43ad5",
-      "committedAt": "2026-11-20T21:08:33+01:00",
-      "components": 85,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "cb5bacc",
-      "committedAt": "2026-11-20T21:41:24+01:00",
-      "components": 85,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "72a47ed",
-      "committedAt": "2026-11-20T23:07:36+01:00",
-      "components": 86,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
     {
       "commit": "3b5080c",
       "committedAt": "2026-11-20T23:35:31+01:00",
@@ -601,6 +537,71 @@ window.BELLA = {
       "commit": "20737b9",
       "committedAt": "2026-11-22T17:21:59+01:00",
       "components": 97,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "377a33c",
+      "committedAt": "2026-11-22T17:58:34+01:00",
+      "components": 98,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "fcc5b96",
+      "committedAt": "2026-11-22T18:05:54+01:00",
+      "components": 98,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "ccb8ff0",
+      "committedAt": "2026-11-22T19:30:16+01:00",
+      "components": 98,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "fde70e1",
+      "committedAt": "2026-11-22T21:15:54+01:00",
+      "components": 98,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "dfdd34a",
+      "committedAt": "2026-11-22T21:59:02+01:00",
+      "components": 98,
       "storyCoverage": 98,
       "contractCoverage": 98,
       "gate": {
@@ -1196,6 +1197,7 @@ window.BELLA = {
       "DataTable",
       "FloatingPanel",
       "Input",
+      "LineChart",
       "Menu",
       "NavItem",
       "NavList",
@@ -1232,6 +1234,7 @@ window.BELLA = {
       "Input",
       "Kbd",
       "Leader",
+      "LineChart",
       "Link",
       "ListRow",
       "MapLabel",
@@ -1314,6 +1317,7 @@ window.BELLA = {
       "Input",
       "Kbd",
       "Leader",
+      "LineChart",
       "Link",
       "ListRow",
       "MapLabel",
@@ -1405,6 +1409,7 @@ window.BELLA = {
       "Drawer",
       "IconRail",
       "Kbd",
+      "LineChart",
       "ListRow",
       "MapLine",
       "Menu",
@@ -1428,6 +1433,7 @@ window.BELLA = {
       "Drawer",
       "IconRail",
       "Kbd",
+      "LineChart",
       "ListRow",
       "MapLine",
       "Menu",
@@ -1466,6 +1472,7 @@ window.BELLA = {
       "IconRail",
       "Input",
       "Kbd",
+      "LineChart",
       "ListRow",
       "MapLeaf",
       "MapLine",
@@ -1531,6 +1538,7 @@ window.BELLA = {
       "FilterChip",
       "FloatingPanel",
       "Input",
+      "LineChart",
       "Link",
       "ListRow",
       "MapLeaf",
@@ -1579,6 +1587,7 @@ window.BELLA = {
       "FilterChip",
       "FloatingPanel",
       "Input",
+      "LineChart",
       "Link",
       "ListRow",
       "MapLeaf",
@@ -1629,6 +1638,7 @@ window.BELLA = {
       "FilterChip",
       "FloatingPanel",
       "Input",
+      "LineChart",
       "Link",
       "ListRow",
       "MapLeaf",
@@ -1710,6 +1720,7 @@ window.BELLA = {
       "IconWell",
       "Input",
       "Leader",
+      "LineChart",
       "Link",
       "ListRow",
       "MapLabel",
@@ -1843,6 +1854,7 @@ window.BELLA = {
       "ConnectorTile",
       "FilterChip",
       "FloatingPanel",
+      "LineChart",
       "ListRow",
       "PageOutline",
       "Progress",
@@ -1945,6 +1957,7 @@ window.BELLA = {
       "FloatingPanel",
       "Input",
       "Kbd",
+      "LineChart",
       "ListRow",
       "MapLeaf",
       "MapLine",
@@ -2080,6 +2093,7 @@ window.BELLA = {
       "FilterChip",
       "FloatingPanel",
       "Input",
+      "LineChart",
       "Link",
       "ListRow",
       "MapLeaf",
@@ -2127,6 +2141,7 @@ window.BELLA = {
       "FilterChip",
       "FloatingPanel",
       "Input",
+      "LineChart",
       "Link",
       "ListRow",
       "MapLeaf",
@@ -2166,6 +2181,7 @@ window.BELLA = {
       "ClientSwitcher",
       "Disclosure",
       "FilterChip",
+      "LineChart",
       "Link",
       "MapLeaf",
       "MapNode",
@@ -2190,6 +2206,7 @@ window.BELLA = {
       "EasingCurve",
       "EmptyState",
       "Leader",
+      "LineChart",
       "ListRow",
       "MapLine",
       "Progress",
@@ -2249,6 +2266,7 @@ window.BELLA = {
       "EmptyState",
       "FilterChip",
       "Input",
+      "LineChart",
       "ListRow",
       "MapLabel",
       "MapLine",
@@ -2400,6 +2418,7 @@ window.BELLA = {
       "GroupHead",
       "IconRail",
       "Input",
+      "LineChart",
       "ListRow",
       "MapLeaf",
       "MapNode",
@@ -2466,6 +2485,7 @@ window.BELLA = {
       "FloatingPanel",
       "GroupHead",
       "Input",
+      "LineChart",
       "ListRow",
       "MapLabel",
       "MapLeaf",
@@ -2534,6 +2554,7 @@ window.BELLA = {
       "GroupHead",
       "Heading",
       "Input",
+      "LineChart",
       "ListRow",
       "MapLabel",
       "MapLeaf",
@@ -2623,6 +2644,7 @@ window.BELLA = {
       "GroupHead",
       "Input",
       "Kbd",
+      "LineChart",
       "ListRow",
       "MapLeaf",
       "MapNode",
@@ -2690,6 +2712,7 @@ window.BELLA = {
       "EmptyState",
       "FloatingPanel",
       "GroupHead",
+      "LineChart",
       "ListRow",
       "MapLabel",
       "MapNode",
@@ -2753,6 +2776,7 @@ window.BELLA = {
       "FloatingPanel",
       "Input",
       "Kbd",
+      "LineChart",
       "ListRow",
       "NavList",
       "PageHeader",
@@ -2783,6 +2807,7 @@ window.BELLA = {
       "EmptyState",
       "FilterChip",
       "IconWell",
+      "LineChart",
       "ListRow",
       "Pin",
       "PinLabel",
@@ -2815,6 +2840,7 @@ window.BELLA = {
       "EasingCurve",
       "EmptyState",
       "Leader",
+      "LineChart",
       "Link",
       "MapLeaf",
       "MapLine",
@@ -2889,6 +2915,7 @@ window.BELLA = {
       "FilterChip",
       "FloatingPanel",
       "Kbd",
+      "LineChart",
       "Link",
       "ListRow",
       "MapLeaf",
@@ -3007,6 +3034,7 @@ window.BELLA = {
       "ConnectorTile",
       "EasingCurve",
       "Kbd",
+      "LineChart",
       "ListRow",
       "NavItem",
       "PageHeader",
@@ -3132,6 +3160,7 @@ window.BELLA = {
     ],
     "--color-background-knockout": [
       "AppTile",
+      "LineChart",
       "ResourceCard",
       "Tooltip"
     ],
@@ -3164,6 +3193,7 @@ window.BELLA = {
       "IconRail",
       "Input",
       "Kbd",
+      "LineChart",
       "MapLabel",
       "MapLeaf",
       "MapNode",
@@ -3209,6 +3239,7 @@ window.BELLA = {
       "IconRail",
       "Input",
       "Kbd",
+      "LineChart",
       "MapLabel",
       "MapLeaf",
       "MapNode",
@@ -3262,6 +3293,7 @@ window.BELLA = {
       "IconWell",
       "Input",
       "Kbd",
+      "LineChart",
       "ListRow",
       "MapLabel",
       "MapLeaf",
@@ -3299,6 +3331,7 @@ window.BELLA = {
     "--color-content-knockout": [
       "AppTile",
       "IconWell",
+      "LineChart",
       "ProgressRing",
       "StatusSquare",
       "Step",
@@ -3306,8 +3339,10 @@ window.BELLA = {
     ],
     "--size-24": [
       "AppTile",
+      "BarChart",
       "Icon",
       "IconWell",
+      "LineChart",
       "ListRow",
       "MapLine",
       "StatusDot",
@@ -3344,6 +3379,7 @@ window.BELLA = {
       "Drawer",
       "EasingCurve",
       "EmptyState",
+      "LineChart",
       "PageHeader",
       "ResourceCard",
       "Section",
@@ -3402,6 +3438,7 @@ window.BELLA = {
       "BoardLane",
       "BrandWordmark",
       "ChatBubble",
+      "LineChart",
       "SpacingStep",
       "Stage",
       "TourStep"
@@ -3474,6 +3511,7 @@ window.BELLA = {
       "ChatThread",
       "CheckRow",
       "EasingCurve",
+      "LineChart",
       "ListRow",
       "NavItem",
       "Pin",
@@ -3554,6 +3592,7 @@ window.BELLA = {
       "BarChart",
       "ChatBubble",
       "Input",
+      "LineChart",
       "ListRow",
       "MapLine",
       "Notification",
@@ -3573,6 +3612,7 @@ window.BELLA = {
       "ChatBubble",
       "Input",
       "Leader",
+      "LineChart",
       "ListRow",
       "MapLine",
       "Notification",
@@ -3591,6 +3631,7 @@ window.BELLA = {
       "BarChart",
       "ChatBubble",
       "Input",
+      "LineChart",
       "ListRow",
       "MapLine",
       "Notification",
@@ -3607,6 +3648,7 @@ window.BELLA = {
     "--color-border-utility-success": [
       "BarChart",
       "CheckRow",
+      "LineChart",
       "ListRow",
       "Notification",
       "Pin",
@@ -3623,6 +3665,7 @@ window.BELLA = {
     "--color-utility-green-600": [
       "BarChart",
       "CheckRow",
+      "LineChart",
       "ListRow",
       "Notification",
       "Pin",
@@ -3640,6 +3683,7 @@ window.BELLA = {
       "BarChart",
       "CheckRow",
       "CodeBlock",
+      "LineChart",
       "ListRow",
       "MapLeaf",
       "Notification",
@@ -3662,6 +3706,7 @@ window.BELLA = {
       "BarChart",
       "ChatBubble",
       "Drawer",
+      "LineChart",
       "Progress",
       "RadiusTile",
       "SpacingStep",
@@ -3676,6 +3721,7 @@ window.BELLA = {
       "Drawer",
       "FloatingPanel",
       "Leader",
+      "LineChart",
       "MapLine",
       "Progress",
       "ProgressRing",
@@ -3726,6 +3772,7 @@ window.BELLA = {
       "ChatThread",
       "CheckRow",
       "Icon",
+      "LineChart",
       "ListRow",
       "PageHeader",
       "ProgressRing",
@@ -3792,6 +3839,7 @@ window.BELLA = {
       "ClientSwitcher",
       "EasingCurve",
       "EmptyState",
+      "LineChart",
       "MapLabel",
       "Progress",
       "Section",
@@ -3803,6 +3851,7 @@ window.BELLA = {
     ],
     "--typography-font-size-14": [
       "BarChart",
+      "LineChart",
       "ListRow",
       "PageHeader",
       "ProgressRing",
@@ -3984,11 +4033,42 @@ window.BELLA = {
       "StatusDot",
       "Tag"
     ],
+    "--color-background-wash-navy": [
+      "BoardLane"
+    ],
+    "--color-brand-navy-100": [
+      "BoardLane"
+    ],
+    "--color-brand-navy-alpha-8": [
+      "BoardLane"
+    ],
+    "--color-background-wash-ochre": [
+      "BoardLane"
+    ],
+    "--color-brand-ochre-100": [
+      "BoardLane"
+    ],
+    "--color-brand-ochre-alpha-8": [
+      "BoardLane"
+    ],
+    "--color-background-wash-pink": [
+      "BoardLane",
+      "ChatBubble"
+    ],
+    "--color-brand-pink-100": [
+      "BoardLane",
+      "ChatBubble"
+    ],
+    "--color-brand-pink-alpha-8": [
+      "BoardLane",
+      "ChatBubble"
+    ],
     "--color-border-brand": [
       "BoardLane",
       "ChatBubble",
       "CheckRow",
       "FilterChip",
+      "LineChart",
       "MapLeaf",
       "MapLine",
       "MapNode",
@@ -4019,6 +4099,7 @@ window.BELLA = {
       "Drawer",
       "FloatingPanel",
       "Leader",
+      "LineChart",
       "MapLine",
       "Pin",
       "PinLabel",
@@ -4063,6 +4144,7 @@ window.BELLA = {
     "--color-brand-stone-500": [
       "Branch",
       "BranchGroup",
+      "LineChart",
       "ListRow",
       "StatusDot",
       "Tag",
@@ -4315,15 +4397,6 @@ window.BELLA = {
       "Step",
       "Tag"
     ],
-    "--color-background-wash-pink": [
-      "ChatBubble"
-    ],
-    "--color-brand-pink-100": [
-      "ChatBubble"
-    ],
-    "--color-brand-pink-alpha-8": [
-      "ChatBubble"
-    ],
     "--color-border-accent-1": [
       "ChatBubble",
       "Leader",
@@ -4333,6 +4406,7 @@ window.BELLA = {
     "--color-border-utility-warning": [
       "ChatBubble",
       "CheckRow",
+      "LineChart",
       "ListRow",
       "MapNode",
       "Notification",
@@ -4347,6 +4421,7 @@ window.BELLA = {
     "--color-utility-yellow-500": [
       "ChatBubble",
       "CheckRow",
+      "LineChart",
       "ListRow",
       "MapNode",
       "Notification",
@@ -4361,6 +4436,7 @@ window.BELLA = {
     "--color-brand-ochre-300": [
       "ChatBubble",
       "CheckRow",
+      "LineChart",
       "ListRow",
       "MapNode",
       "Notification",
@@ -4513,7 +4589,8 @@ window.BELLA = {
     "--color-brand-navy-200": [
       "CodeBlock",
       "IconWell",
-      "Step"
+      "Step",
+      "Tag"
     ],
     "--color-content-syntax-foreground": [
       "CodeBlock"
@@ -4523,6 +4600,7 @@ window.BELLA = {
     ],
     "--color-utility-blue-300": [
       "CodeBlock",
+      "LineChart",
       "ListRow",
       "Notification",
       "Pin",
@@ -4544,7 +4622,8 @@ window.BELLA = {
     ],
     "--color-brand-pink-200": [
       "CodeBlock",
-      "RadiusTile"
+      "RadiusTile",
+      "Tag"
     ],
     "--color-content-syntax-line-number": [
       "CodeBlock"
@@ -4555,7 +4634,8 @@ window.BELLA = {
     "--color-brand-ochre-200": [
       "CodeBlock",
       "IconWell",
-      "Step"
+      "Step",
+      "Tag"
     ],
     "--color-content-syntax-punct": [
       "CodeBlock"
@@ -4720,19 +4800,23 @@ window.BELLA = {
     ],
     "--color-background-wash-navy-strong": [
       "IconWell",
-      "Step"
+      "Step",
+      "Tag"
     ],
     "--color-brand-navy-alpha-22": [
       "IconWell",
-      "Step"
+      "Step",
+      "Tag"
     ],
     "--color-background-wash-ochre-strong": [
       "IconWell",
-      "Step"
+      "Step",
+      "Tag"
     ],
     "--color-brand-ochre-alpha-22": [
       "IconWell",
-      "Step"
+      "Step",
+      "Tag"
     ],
     "--color-background-wash-red-strong": [
       "IconWell",
@@ -4801,10 +4885,8 @@ window.BELLA = {
     "--leader-pop": [
       "Leader"
     ],
-    "--color-content-link": [
-      "Link"
-    ],
     "--color-border-utility-info": [
+      "LineChart",
       "ListRow",
       "Notification",
       "Pin",
@@ -4819,6 +4901,7 @@ window.BELLA = {
       "Toast"
     ],
     "--color-utility-blue-500": [
+      "LineChart",
       "ListRow",
       "Notification",
       "Pin",
@@ -4833,16 +4916,30 @@ window.BELLA = {
       "Toast"
     ],
     "--color-border-utility-neutral": [
+      "LineChart",
       "ListRow",
       "StatusDot",
       "Tag",
       "TaskCard"
     ],
     "--color-neutral-400": [
+      "LineChart",
       "ListRow",
       "StatusDot",
       "Tag",
       "TaskCard"
+    ],
+    "--inset": [
+      "LineChart"
+    ],
+    "--plot-h": [
+      "LineChart"
+    ],
+    "--tone": [
+      "LineChart"
+    ],
+    "--color-content-link": [
+      "Link"
     ],
     "--typography-title-default-font-family": [
       "ListRow",
@@ -4976,10 +5073,12 @@ window.BELLA = {
       "RadiusTile"
     ],
     "--color-background-wash-pink-strong": [
-      "RadiusTile"
+      "RadiusTile",
+      "Tag"
     ],
     "--color-brand-pink-alpha-22": [
-      "RadiusTile"
+      "RadiusTile",
+      "Tag"
     ],
     "--layout-search-max-width": [
       "SearchField",
@@ -5591,6 +5690,11 @@ window.BELLA = {
         "kind": "foundation",
         "name": "Motion",
         "file": "src/foundations/Motion.module.css"
+      },
+      {
+        "kind": "app",
+        "name": "CHIP app",
+        "file": "app/src/pages/DocReader.jsx"
       }
     ],
     "--spacing-40": [
@@ -6527,11 +6631,25 @@ window.BELLA = {
         "file": "app/src/kit/tokens.css"
       }
     ],
+    "--color-content-danger": [
+      {
+        "kind": "app",
+        "name": "CHIP app",
+        "file": "app/src/pages/A11yViews.jsx"
+      }
+    ],
+    "--color-border-brand": [
+      {
+        "kind": "app",
+        "name": "CHIP app",
+        "file": "app/src/pages/A11yViews.jsx"
+      }
+    ],
     "--spacing-80": [
       {
         "kind": "app",
         "name": "CHIP app",
-        "file": "app/src/pages/FoundationsContent.jsx"
+        "file": "app/src/pages/DocReader.jsx"
       }
     ],
     "--frame-nav": [
@@ -6633,6 +6751,13 @@ window.BELLA = {
       }
     ],
     "--spacing-32": [
+      {
+        "kind": "app",
+        "name": "CHIP app",
+        "file": "app/src/templates/Screen.css"
+      }
+    ],
+    "--size-28": [
       {
         "kind": "app",
         "name": "CHIP app",
@@ -6741,7 +6866,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 37,
+          "pairs": 43,
           "failing": []
         },
         "contract": {
@@ -6921,7 +7046,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 50,
+          "pairs": 56,
           "failing": []
         },
         "contract": {
@@ -7018,7 +7143,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 37,
+          "pairs": 43,
           "failing": []
         },
         "contract": {
@@ -7105,7 +7230,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 51,
+          "pairs": 54,
           "failing": []
         },
         "contract": {
@@ -7129,15 +7254,19 @@ window.BELLA = {
       "hasContract": true,
       "hasA11yNotes": true,
       "props": [
+        "axisUnit",
+        "calloutText",
         "className",
         "context",
         "defaultRange",
         "failedLabel",
         "label",
         "onRangeChange",
+        "onSlotSelect",
         "onViewChange",
         "range",
         "showViewToggle",
+        "slotActionLabel",
         "slots",
         "style",
         "summary",
@@ -7184,7 +7313,7 @@ window.BELLA = {
         "SegmentedControl"
       ],
       "tokens": {
-        "count": 48,
+        "count": 49,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -7214,6 +7343,7 @@ window.BELLA = {
           "--size-12",
           "--size-16",
           "--size-20",
+          "--size-24",
           "--size-28",
           "--size-4",
           "--spacing-12",
@@ -7243,7 +7373,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 62,
+          "pairs": 68,
           "failing": []
         },
         "contract": {
@@ -7285,6 +7415,9 @@ window.BELLA = {
         "agent",
         "gate",
         "ready",
+        "ideas",
+        "next",
+        "not-doing",
         "drop-target",
         "empty"
       ],
@@ -7318,7 +7451,7 @@ window.BELLA = {
         "Tag"
       ],
       "tokens": {
-        "count": 33,
+        "count": 36,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -7330,6 +7463,9 @@ window.BELLA = {
           "--color-background-utility-info",
           "--color-background-utility-success",
           "--color-background-utility-warning",
+          "--color-background-wash-navy",
+          "--color-background-wash-ochre",
+          "--color-background-wash-pink",
           "--color-border-brand",
           "--color-border-strong",
           "--color-content-brand",
@@ -7362,7 +7498,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 40,
+          "pairs": 49,
           "failing": []
         },
         "contract": {
@@ -7556,7 +7692,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 50,
+          "pairs": 56,
           "failing": []
         },
         "contract": {
@@ -7648,7 +7784,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 16,
+          "pairs": 22,
           "failing": []
         },
         "contract": {
@@ -7906,6 +8042,7 @@ window.BELLA = {
         "Drawer",
         "FloatingPanel",
         "Input",
+        "LineChart",
         "Swatch",
         "Tabs",
         "Toast",
@@ -7915,7 +8052,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 66,
+          "pairs": 72,
           "failing": []
         },
         "contract": {
@@ -8164,7 +8301,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 42,
+          "pairs": 45,
           "failing": []
         },
         "contract": {
@@ -8306,7 +8443,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 83,
+          "pairs": 92,
           "failing": []
         },
         "contract": {
@@ -8396,7 +8533,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 27,
+          "pairs": 33,
           "failing": []
         },
         "contract": {
@@ -8513,7 +8650,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 23,
+          "pairs": 29,
           "failing": []
         },
         "contract": {
@@ -8620,7 +8757,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 51,
+          "pairs": 57,
           "failing": []
         },
         "contract": {
@@ -8974,7 +9111,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 56,
+          "pairs": 62,
           "failing": []
         },
         "contract": {
@@ -9068,7 +9205,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 48,
+          "pairs": 54,
           "failing": []
         },
         "contract": {
@@ -9177,12 +9314,13 @@ window.BELLA = {
       },
       "compositionDepth": 2,
       "composesInto": [
-        "BarChart"
+        "BarChart",
+        "LineChart"
       ],
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 50,
+          "pairs": 56,
           "failing": []
         },
         "contract": {
@@ -9287,7 +9425,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 23,
+          "pairs": 29,
           "failing": []
         },
         "contract": {
@@ -9408,7 +9546,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 53,
+          "pairs": 59,
           "failing": []
         },
         "contract": {
@@ -9509,7 +9647,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 35,
+          "pairs": 41,
           "failing": []
         },
         "contract": {
@@ -9537,6 +9675,9 @@ window.BELLA = {
         "className",
         "line",
         "mark",
+        "markLabel",
+        "markSrc",
+        "markStill",
         "showMark",
         "size",
         "style",
@@ -9603,7 +9744,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 19,
+          "pairs": 25,
           "failing": []
         },
         "contract": {
@@ -9689,7 +9830,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 20,
+          "pairs": 26,
           "failing": []
         },
         "contract": {
@@ -9917,7 +10058,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 36,
+          "pairs": 42,
           "failing": []
         },
         "contract": {
@@ -10025,7 +10166,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 53,
+          "pairs": 59,
           "failing": []
         },
         "contract": {
@@ -10106,7 +10247,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 16,
+          "pairs": 22,
           "failing": []
         },
         "contract": {
@@ -10202,7 +10343,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 20,
+          "pairs": 26,
           "failing": []
         },
         "contract": {
@@ -10398,7 +10539,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 37,
+          "pairs": 40,
           "failing": []
         },
         "contract": {
@@ -10497,7 +10638,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 32,
+          "pairs": 38,
           "failing": []
         },
         "contract": {
@@ -10752,7 +10893,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 65,
+          "pairs": 71,
           "failing": []
         },
         "contract": {
@@ -10840,7 +10981,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 39,
+          "pairs": 42,
           "failing": []
         },
         "contract": {
@@ -10941,6 +11082,144 @@ window.BELLA = {
         "contrast": {
           "status": "pass",
           "pairs": 7,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "line-chart",
+      "name": "LineChart",
+      "category": "Data",
+      "description": "A trend over time: a thin round-capped line over a soft gradient of its\ntone, on dashed gridlines. Hover, touch drag or the arrow keys stand a\nrounded scrubber on the line; above it a dark pill says the value, the\nlabel and the change against the previous point (or a reference). The\npill's words are also spoken through a live region, and the same data is\nin a visually hidden table. The scale starts at zero unless told why not.\nThe compact variant is a sparkline. Reduced motion shows the end state.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "area",
+        "baseline",
+        "baselineReason",
+        "callout",
+        "className",
+        "defaultSelectedIndex",
+        "draw",
+        "grid",
+        "label",
+        "onSelectedIndexChange",
+        "onViewChange",
+        "points",
+        "reference",
+        "scrubber",
+        "selectedIndex",
+        "showViewToggle",
+        "style",
+        "summary",
+        "tone",
+        "unit",
+        "variant",
+        "view"
+      ],
+      "variants": [
+        "full",
+        "compact"
+      ],
+      "states": [
+        "default",
+        "picked",
+        "focus"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Trends on Health, the audit score, Gate runs as an alternative view, History activity, and the Drift drawer headline as a compact sparkline (23 Nov 2026)"
+      ],
+      "dont": [
+        "Not runs with passes and failures per slot (BarChart)",
+        "Not a single figure with a tiny trend line (Stat)",
+        "Not for comparing categories (bars); never a pie"
+      ],
+      "restNote": null,
+      "a11y": "The plot is a slider (arrow keys, Home, End, Escape) with aria-valuetext in words; the callout's words are in a polite live region; a visually hidden table holds the same data and a one-line summary is always present. Direction is a triangle and a word, never colour alone. Line 3:1 on the ground, pill 7:1. Reduced motion: drawn at once, nothing slides.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.line-chart.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-linechart--docs",
+      "composedFrom": [
+        "Button",
+        "DataTable"
+      ],
+      "tokens": {
+        "count": 40,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-8",
+          "--border-radius-round",
+          "--border-width-1",
+          "--border-width-2",
+          "--color-background-knockout",
+          "--color-background-surface",
+          "--color-border-brand",
+          "--color-border-default",
+          "--color-border-focus",
+          "--color-border-subtle",
+          "--color-border-utility-error",
+          "--color-border-utility-info",
+          "--color-border-utility-neutral",
+          "--color-border-utility-success",
+          "--color-border-utility-warning",
+          "--color-content-knockout",
+          "--color-content-subtle",
+          "--focus-ring-width",
+          "--inset",
+          "--motion-duration-150",
+          "--motion-duration-250",
+          "--motion-duration-450",
+          "--motion-duration-900",
+          "--motion-easing-out",
+          "--plot-h",
+          "--size-20",
+          "--size-24",
+          "--spacing-12",
+          "--spacing-4",
+          "--spacing-40",
+          "--spacing-48",
+          "--spacing-64",
+          "--spacing-8",
+          "--tone",
+          "--typography-body-default-font-family",
+          "--typography-font-size-14",
+          "--typography-font-size-16",
+          "--typography-font-weight-600",
+          "--typography-line-height-150",
+          "--typography-number-font-family"
+        ]
+      },
+      "compositionDepth": 3,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 51,
           "failing": []
         },
         "contract": {
@@ -11268,7 +11547,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 47,
+          "pairs": 53,
           "failing": []
         },
         "contract": {
@@ -11354,7 +11633,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 48,
+          "pairs": 54,
           "failing": []
         },
         "contract": {
@@ -11459,7 +11738,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 57,
+          "pairs": 63,
           "failing": []
         },
         "contract": {
@@ -11668,7 +11947,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 58,
+          "pairs": 64,
           "failing": []
         },
         "contract": {
@@ -11841,7 +12120,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 51,
+          "pairs": 57,
           "failing": []
         },
         "contract": {
@@ -11944,7 +12223,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 25,
+          "pairs": 31,
           "failing": []
         },
         "contract": {
@@ -12048,7 +12327,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 24,
+          "pairs": 30,
           "failing": []
         },
         "contract": {
@@ -12151,7 +12430,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 37,
+          "pairs": 43,
           "failing": []
         },
         "contract": {
@@ -12258,7 +12537,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 29,
+          "pairs": 35,
           "failing": []
         },
         "contract": {
@@ -12356,7 +12635,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 57,
+          "pairs": 63,
           "failing": []
         },
         "contract": {
@@ -12453,7 +12732,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 25,
+          "pairs": 31,
           "failing": []
         },
         "contract": {
@@ -12654,7 +12933,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 55,
+          "pairs": 61,
           "failing": []
         },
         "contract": {
@@ -12764,7 +13043,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 51,
+          "pairs": 57,
           "failing": []
         },
         "contract": {
@@ -12876,7 +13155,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 51,
+          "pairs": 57,
           "failing": []
         },
         "contract": {
@@ -12984,7 +13263,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 24,
+          "pairs": 30,
           "failing": []
         },
         "contract": {
@@ -13070,7 +13349,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 40,
+          "pairs": 43,
           "failing": []
         },
         "contract": {
@@ -13157,7 +13436,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 45,
+          "pairs": 51,
           "failing": []
         },
         "contract": {
@@ -13257,7 +13536,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 32,
+          "pairs": 38,
           "failing": []
         },
         "contract": {
@@ -13370,7 +13649,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 53,
+          "pairs": 59,
           "failing": []
         },
         "contract": {
@@ -13535,7 +13814,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 28,
+          "pairs": 34,
           "failing": []
         },
         "contract": {
@@ -13627,7 +13906,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 19,
+          "pairs": 25,
           "failing": []
         },
         "contract": {
@@ -13722,7 +14001,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 19,
+          "pairs": 25,
           "failing": []
         },
         "contract": {
@@ -13899,7 +14178,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 24,
+          "pairs": 30,
           "failing": []
         },
         "contract": {
@@ -14004,7 +14283,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 62,
+          "pairs": 68,
           "failing": []
         },
         "contract": {
@@ -14101,7 +14380,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 56,
+          "pairs": 62,
           "failing": []
         },
         "contract": {
@@ -14205,7 +14484,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 39,
+          "pairs": 42,
           "failing": []
         },
         "contract": {
@@ -14480,7 +14759,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 55,
+          "pairs": 61,
           "failing": []
         },
         "contract": {
@@ -14582,7 +14861,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 23,
+          "pairs": 29,
           "failing": []
         },
         "contract": {
@@ -14695,7 +14974,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 60,
+          "pairs": 69,
           "failing": []
         },
         "contract": {
@@ -14907,7 +15186,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 36,
+          "pairs": 42,
           "failing": []
         },
         "contract": {
@@ -15027,7 +15306,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 52,
+          "pairs": 58,
           "failing": []
         },
         "contract": {
@@ -15461,7 +15740,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 38,
+          "pairs": 44,
           "failing": []
         },
         "contract": {
@@ -15554,7 +15833,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 47,
+          "pairs": 53,
           "failing": []
         },
         "contract": {
@@ -15676,7 +15955,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 57,
+          "pairs": 63,
           "failing": []
         },
         "contract": {
@@ -15768,7 +16047,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 20,
+          "pairs": 26,
           "failing": []
         },
         "contract": {
@@ -16034,7 +16313,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 28,
+          "pairs": 34,
           "failing": []
         },
         "contract": {
@@ -16108,7 +16387,7 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-tag--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 46,
+        "count": 49,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -16127,6 +16406,9 @@ window.BELLA = {
           "--color-background-utility-warning",
           "--color-background-utility-warning-knockout",
           "--color-background-utility-warning-mark",
+          "--color-background-wash-navy-strong",
+          "--color-background-wash-ochre-strong",
+          "--color-background-wash-pink-strong",
           "--color-border-strong",
           "--color-border-utility-error",
           "--color-border-utility-info",
@@ -16175,7 +16457,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 64,
+          "pairs": 70,
           "failing": []
         },
         "contract": {
@@ -16316,7 +16598,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 52,
+          "pairs": 58,
           "failing": []
         },
         "contract": {
@@ -16404,7 +16686,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 19,
+          "pairs": 25,
           "failing": []
         },
         "contract": {
@@ -16506,7 +16788,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 50,
+          "pairs": 56,
           "failing": []
         },
         "contract": {
@@ -16604,7 +16886,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 39,
+          "pairs": 42,
           "failing": []
         },
         "contract": {
@@ -16704,7 +16986,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 49,
+          "pairs": 55,
           "failing": []
         },
         "contract": {
@@ -16804,7 +17086,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 51,
+          "pairs": 57,
           "failing": []
         },
         "contract": {
@@ -16894,7 +17176,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 47,
+          "pairs": 53,
           "failing": []
         },
         "contract": {
@@ -17085,7 +17367,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 29,
+          "pairs": 35,
           "failing": []
         },
         "contract": {
@@ -17175,7 +17457,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 19,
+          "pairs": 25,
           "failing": []
         },
         "contract": {
@@ -17356,7 +17638,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 59,
+          "pairs": 65,
           "failing": []
         },
         "contract": {
