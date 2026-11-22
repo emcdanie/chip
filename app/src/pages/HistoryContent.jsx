@@ -207,10 +207,14 @@ function Activity({ records, total, open, onOpen, fit }) {
       <Flow gap={8} scroll={fit}>
         <SectionHead title="Activity" words={`${list.length} of ${total} ${total === 1 ? 'record' : 'records'}`} />
         {/* flush rows, each Step's line meeting the next one's, through the day breaks (BELLA's own Step list) */}
+        {/* the first day's heading is plain text above the list: BELLA's StepDay always draws the line through its
+            heading, and the line must start at the first record, not above it (23 Nov). Later day breaks are
+            StepDay, where the line does run through. Gap for the parts session: StepDay has no way to start the line. */}
+        {list.length ? <TextStack subtitle={day(list[0].date)} /> : null}
         <Flow gap={0} as="ol" aria-label="Records, newest first">
           {list.map((r, i) => {
             const d = day(r.date);
-            const head = d !== last ? d : null;
+            const head = d !== last && i > 0 ? d : null;
             last = d;
             // Step is its own <li>; a day break is BELLA's StepDay, never an <li> around a Step (audit 21 Nov)
             return (
@@ -228,7 +232,7 @@ function Activity({ records, total, open, onOpen, fit }) {
                   kind={STEP_KIND[r.type]}
                   icon={STEP_KIND[r.type] ? undefined : 'Clock'}
                   state="done"
-                  showLineAbove
+                  showLineAbove={i > 0}
                   showConnector={i < list.length - 1}
                   selected={r.id === open}
                   onSelect={() => onOpen(r.id)}
