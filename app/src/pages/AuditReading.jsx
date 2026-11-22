@@ -12,7 +12,7 @@ import StatusPill from '@bella/components/StatusPill/StatusPill';
 import Notification from '@bella/components/Notification/Notification';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Flow from '../templates/Flow.jsx';
-import { Inset, ReadingSection } from '../templates/ReadingDrawer.jsx';
+import { Inset, ReadingGroups, ReadingSection } from '../templates/ReadingDrawer.jsx';
 import Keyed from '../templates/Keyed.jsx';
 import { greenFrom, parseReport } from './auditReport.js';
 
@@ -45,6 +45,13 @@ export default function AuditReading({ a, day }) {
   const fill = a.value == null ? null : a.checks && !outOf100 && /checks green/.test(a.unit ?? '') ? (a.value / a.checks) * 100 : a.value;
   const tone = a.red ? 'danger' : a.yellow ? 'attention' : 'success';
   const lightWords = a.red == null ? null : `${a.red} red · ${a.yellow} yellow · ${a.green} green`;
+  const item = (s) => ({
+    key: s.n,
+    title: s.name,
+    state: s.light ? WORD[s.light] : 'Not rated',
+    body: s.evidence.length ? <Flow gap={8}>{s.evidence.map((e, i) => <TextStack key={i} body={<Keyed text={e} />} />)}</Flow> : undefined,
+    line: [s.score != null ? `${s.score}${s.max === 100 ? ' of 100' : `/${s.max}`}` : null, s.line || null].filter(Boolean).join(' · ') || undefined,
+  });
   const scored = r.stations.some((s) => s.score != null);
 
   return (
@@ -115,19 +122,18 @@ export default function AuditReading({ a, day }) {
         </Inset>
       ) : null}
 
-      {r.stations.some((s) => s.evidence.length) ? (
-        <Inset gap={0}>
-          {r.stations.map((s) =>
-            s.evidence.length ? (
-              <Disclosure key={s.n} title={s.name} summary={s.light ? `${WORD[s.light]}${s.score != null ? ` · ${s.score}/${s.max}` : ''}` : `${s.line}`}>
-                <Flow gap={8}>
-                  {s.evidence.map((e, i) => (
-                    <TextStack key={i} body={<Keyed text={e} />} />
-                  ))}
-                </Flow>
-              </Disclosure>
-            ) : null,
-          )}
+      {r.stations.length ? (
+        <Inset gap={12}>
+          <SectionHead icon="Activity" iconTone="info" title="Every station" description="Grouped by light, with the evidence behind each" showInfo={false} />
+          <ReadingGroups
+            single
+            openFirst
+            label={`${a.title}: stations by light`}
+            groups={[
+              ...['red', 'yellow', 'green'].map((l) => ({ name: WORD[l], tone: TONE[l], items: r.stations.filter((s) => s.light === l).map((s) => item(s)) })),
+              { name: 'Not rated', tone: 'neutral', items: r.stations.filter((s) => !s.light).map((s) => item(s)) },
+            ]}
+          />
         </Inset>
       ) : null}
     </Flow>

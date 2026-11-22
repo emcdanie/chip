@@ -16,7 +16,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import FloatingPanel from '@bella/components/FloatingPanel/FloatingPanel';
 import Drawer from '@bella/components/Drawer/Drawer';
-import ReadingDrawer from '../templates/ReadingDrawer.jsx';
+import ReadingDrawer, { ReadingGroups } from '../templates/ReadingDrawer.jsx';
 import Button from '@bella/components/Button/Button';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
@@ -400,6 +400,24 @@ function FixBody({ s, onAnswer }) {
 // CHIP never types a push: a push is outward-facing, so she types it herself (click test, 22 Nov)
 const NO_TYPE = /\bgit\s+push\b/;
 
+/* area = the words before the first colon of the subject; commits with none go under "Other" */
+const TONES = ['info', 'attention', 'success', 'strong'];
+function commitGroups(commits) {
+  const by = new Map();
+  for (const c of commits) {
+    const m = c.subject.match(/^([^:]{2,40}):\s/);
+    const area = m ? m[1] : 'Other';
+    if (!by.has(area)) by.set(area, []);
+    by.get(area).push(c);
+  }
+  return [...by.entries()].sort((x, y) => (x[0] === 'Other') - (y[0] === 'Other') || y[1].length - x[1].length).map(([name, cs], i) => ({
+    name,
+    tone: name === 'Other' ? 'neutral' : TONES[i % TONES.length],
+    items: cs.map((c) => ({ key: c.sha, title: m_rest(c.subject, name), state: 'Waiting', line: `${c.sha} · ${when(c.date)}` })),
+  }));
+}
+const m_rest = (subject, area) => (area === 'Other' ? subject : subject.slice(area.length + 1).trim());
+
 /* What a push would send (Needs you's push card): the branch, where it goes, each commit GitHub
    hasn't seen and the files. Open a shell gives a plain shell in that repo with nothing typed. */
 function PushDrawer({ item, onClose }) {
@@ -451,13 +469,8 @@ function PushDrawer({ item, onClose }) {
               }}
               onPin={() => {}}
             />
-            <Disclosure title={`The newest ${Math.min(n, 10)}`} summary={n > 10 ? `of ${n}` : undefined}>
-              <Flow as="ul" gap={0} aria-label="Commits a push would send">
-                {p.commits.slice(0, 10).map((c, i) => (
-                  <ListRow key={c.sha} layout="stacked" title={c.subject} description={`${c.sha} · ${when(c.date)}`} divider={i < Math.min(n, 10) - 1} />
-                ))}
-              </Flow>
-            </Disclosure>
+            {/* commits grouped by the area their subject names ("Side menu: ..."), from the commits themselves */}
+            <ReadingGroups single openFirst label="Commits a push would send, by area" groups={commitGroups(p.commits)} />
           </>
         ) : null}
       </Flow>

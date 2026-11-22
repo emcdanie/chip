@@ -21,7 +21,7 @@ import TextStack from '@bella/components/TextStack/TextStack';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import { planRun } from '../templates/RunPlan.jsx';
 import AuditReading from './AuditReading.jsx';
-import ReadingDrawer, { Inset, ReadingSection } from '../templates/ReadingDrawer.jsx';
+import ReadingDrawer, { Inset, ReadingGroups } from '../templates/ReadingDrawer.jsx';
 import Marker from '@bella/components/Marker/Marker';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
@@ -150,27 +150,29 @@ function DriftCard({ components }) {
             ))}
           </Flow>
           </Inset>
-        <ListRowGroup ariaLabel="Every part and what differs">
-          {d.parts.map((p) => (
-            <ListRow
-              key={p.name}
-              layout="stacked"
-              statusBar={p.differ || p.specBehind.length || p.noSpec ? 'attention' : 'success'}
-              title={p.name}
-              description={driftLine(p)}
-              trailing
-              onClick={() => ((window.location.hash = `#/system/components/${encodeURIComponent(idOf(p.name))}`), setOpen(false))}
-              // Fix opens the same plan-first sheet as every fix; nothing runs until it is approved
-              actionButton={
-                p.differ || p.specBehind.length || p.noSpec ? (
-                  <Button variant="tertiary" size="sm" onClick={() => ((pending.current = p), setOpen(false))}>
-                    Fix
-                  </Button>
-                ) : undefined
-              }
+        {(() => {
+          const open = (p) => () => ((window.location.hash = `#/system/components/${encodeURIComponent(idOf(p.name))}`), setOpen(false));
+          // Fix opens the same plan-first sheet as every fix; nothing runs until it is approved
+          const fix = (p) => (
+            <Button variant="tertiary" size="sm" onClick={() => ((pending.current = p), setOpen(false))}>
+              Fix
+            </Button>
+          );
+          const item = (p, state, line) => ({ key: p.name, title: p.name, state, line, onClick: open(p), action: fix(p) });
+          return (
+            <ReadingGroups
+              single
+              openFirst
+              label="Parts by kind of drift"
+              groups={[
+                { name: 'Figma differs', tone: 'attention', items: d.parts.filter((p) => !p.noSpec && p.differ).map((p) => item(p, 'Differs', plural(p.differ, 'Figma difference'))) },
+                { name: 'Spec behind the code', tone: 'info', items: d.parts.filter((p) => !p.noSpec && p.specBehind.length).map((p) => item(p, 'Behind', `Spec behind on ${plural(p.specBehind.length, 'prop')}`)) },
+                { name: 'No spec', tone: 'neutral', items: d.parts.filter((p) => p.noSpec).map((p) => item(p, 'No spec', 'No spec yet')) },
+                { name: 'Matches', tone: 'success', items: d.parts.filter((p) => !p.noSpec && !p.differ && !p.specBehind.length).map((p) => ({ key: p.name, title: p.name, state: 'Matches', line: p.compared ? 'Matches Figma' : 'Not read from Figma', onClick: open(p) })) },
+              ]}
             />
-          ))}
-        </ListRowGroup>
+          );
+        })()}
         </>
       </ReadingDrawer>
     </>
@@ -216,23 +218,14 @@ function GapsCard() {
         status={`${plural(total, 'part')} BELLA can't give yet`}
         footer={g.notInCode.length ? <Button variant="primary" onClick={plan}>Plan the build</Button> : undefined}
       >
-        <ReadingSection
-          title="Specified, not in code"
-          description={`${g.notInCode.length} parts have a spec from Figma and no code part yet`}
-          rows={
-            <ListRowGroup ariaLabel="Specified, not in code">
-              {g.notInCode.map((n) => <ListRow key={n} layout="inline" statusBar="attention" title={n} />)}
-            </ListRowGroup>
-          }
-        />
-        <ReadingSection
-          title="Not in BELLA yet"
-          description="Listed in BELLA's AGENTS.md: ask before building"
-          rows={
-            <ListRowGroup ariaLabel="Not in BELLA yet">
-              {g.notInBella.map((n) => <ListRow key={n} layout="inline" statusBar="neutral" title={n} />)}
-            </ListRowGroup>
-          }
+        <ReadingGroups
+          single
+          openFirst
+          label="Gaps by kind"
+          groups={[
+            { name: 'Specified, not in code', tone: 'info', items: g.notInCode.map((n) => ({ key: n, title: n, state: 'Specified', line: 'Has a spec from Figma, no code part yet' })) },
+            { name: 'Not in BELLA yet', tone: 'neutral', items: g.notInBella.map((n) => ({ key: n, title: n, state: 'Listed', line: "In BELLA's AGENTS.md: ask before building" })) },
+          ]}
         />
       </ReadingDrawer>
     </>

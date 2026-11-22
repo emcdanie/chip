@@ -9,7 +9,11 @@
 //   picture  the chart or bars first
 //   children bullets, sections and rows, in the page's own order (ReadingSection for a headed group of rows)
 //   footer   the action at the right edge (BELLA's Drawer footer)
+import { useState } from 'react';
 import Drawer from '@bella/components/Drawer/Drawer';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
+import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
+import Tag from '@bella/components/Tag/Tag';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
@@ -31,6 +35,53 @@ export function Inset({ gap = 16, children }) {
   return (
     <Flow inset gap={gap}>
       {children}
+    </Flow>
+  );
+}
+
+/* Grouped content (Elleta, 23 Nov: "i really like the styling on this ... we could do that with some of the content in
+   the drawers"). The mind-map page's branch rows: a group row with a colour bar, its name, a count and an open/close mark (BELLA's chevron stands in for the plus/minus),
+   opening to items that each carry a state and a status line.
+   BELLA GAP, named: no part is a colour-barred expandable group row (proposal: GroupRow, or a Disclosure `tone` that
+   draws the bar and a plus/minus instead of the chevron). Nearest look from BELLA parts only: a Disclosure per group
+   (native details: Enter and Space toggle, the browser sets expanded) holding ListRows whose statusBar is the group's
+   tone. Colour names the group only; each item's state is a word in a neutral line Tag, never colour alone.
+   Tones (same meaning everywhere, five at most): attention = differs from what it should be; info = the spec side;
+   danger = failed; success = clear; neutral = not yet decided or measured.
+   groups: [{ name, tone, items: [{ key, title, state, line, body, onClick, action }] }]; the count is items.length, never
+   typed. single: opening one closes the others. openFirst: the first group with items starts open. */
+export function ReadingGroups({ groups, single = false, openFirst = false, label }) {
+  const shown = groups.filter((g) => g.items.length);
+  const [open, setOpen] = useState(() => (openFirst && shown[0] ? [shown[0].name] : []));
+  const toggle = (name, on) => setOpen((was) => (single ? (on ? [name] : []) : on ? [...was, name] : was.filter((n) => n !== name)));
+  return (
+    <Flow gap={8} as="div" role="group" aria-label={label}>
+      {shown.map((g) => (
+        <Disclosure
+          key={g.name}
+          title={g.name}
+          summary={String(g.items.length)}
+          open={open.includes(g.name)}
+          onToggle={(on) => toggle(g.name, on)}
+        >
+          <ListRowGroup ariaLabel={`${g.name}: ${g.items.length}`}>
+            {g.items.map((it) => (
+              <ListRow
+                key={it.key ?? it.title}
+                layout="stacked"
+                statusBar={g.tone ?? 'neutral'}
+                title={it.title}
+                description={it.line}
+                body={it.body}
+                rightTag={it.state ? <Tag variant="line">{it.state}</Tag> : undefined}
+                trailing={it.onClick && !it.action ? true : undefined}
+                onClick={it.onClick}
+                actionButton={it.action}
+              />
+            ))}
+          </ListRowGroup>
+        </Disclosure>
+      ))}
     </Flow>
   );
 }
