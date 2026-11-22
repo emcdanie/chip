@@ -21,10 +21,15 @@
 //
 // HOLES (BELLA has no part yet, not invented here):
 // - the tool column beside the stage (zoom in, fit, zoom out, light/dark,
-//   mark up, compare): Mark up stands in; while marking, the Stage shows its
-//   frame with Fit / 100%.
-// - StatCard has no pressed (selected) state; the "Showing" line says which
-//   filter is on.
+//   mark up, compare): ToolColumn always draws Light or dark and Compare, so
+//   zoom, Fit and 100% are Buttons, as in the Needs you view. The picture pans
+//   by dragging (usePan, shared with Needs you).
+// - StatCard has no selected state and only a strip inside it opens; a filter
+//   card is a ListRow (the whole row is the one target, with hover, pressed,
+//   focus and selected). BELLA gap for the coordinator: StatCard `selected` +
+//   whole-card onOpen.
+// - no Splitter part: the comments pane's width is a Slider (keyboard works),
+//   and Hide comments / Show comments hides it; both are remembered.
 // - no Skeleton part: loading says what it is reading, in words, no spinner.
 // - VariantTile is the strip's card: its preview corner is 12 and its resting
 //   card grey, where the MediSync strip draws white cards at corner 20.
@@ -35,20 +40,23 @@ import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Heading from '@bella/components/Heading/Heading';
+import IconWell from '@bella/components/IconWell/IconWell';
 import Input from '@bella/components/Input/Input';
 import Link from '@bella/components/Link/Link';
 import ListRow from '@bella/components/ListRow/ListRow';
-import NavList from '@bella/components/NavList/NavList';
 import Notification from '@bella/components/Notification/Notification';
 import Pin from '@bella/components/Pin/Pin';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
+import Slider from '@bella/components/Slider/Slider';
 import Stage from '@bella/components/Stage/Stage';
-import StatCard from '@bella/components/StatCard/StatCard';
+import Tag from '@bella/components/Tag/Tag';
 import TextStack from '@bella/components/TextStack/TextStack';
 import VariantTile from '@bella/components/VariantTile/VariantTile';
+import { ZOOM_STEPS } from '@bella/components/ToolColumn/ToolColumn';
 import Flow from '../templates/Flow.jsx';
 import { planRun } from '../templates/RunPlan.jsx';
 import useNarrow from '../templates/useNarrow.js';
+import usePan from '../templates/usePan.js';
 
 // The progress board. The server knows it as CHIP_REVIEW_URL (lanes.mjs) but no route hands it to the page,
 // so this is the same origin the shell's Mark up and Team already post to (Screen.jsx, TeamContent.jsx).
@@ -301,9 +309,8 @@ const age = (ms) => {
   return h >= 48 ? `${Math.floor(h / 24)} days` : h >= 1 ? plural(h, 'hour') : 'under an hour';
 };
 
-// NavList has no second line and its badge is set in the number face, so the row carries only a ✓ once answered;
-// the kind of answer is the stage's "Decide: …" line and the pin count heads Comments
-const kindOf = (p) => (p.answer ? '✓' : undefined);
+// the item's name: the card's title without its trailing ": A or B?"
+const shortName = (t) => clean(t).replace(/\s*[:·-]\s*(A or B|A, B or C|yes or no)\??$/i, '');
 
 /** How many rows sit below the fold of a scrolling box, so a cut row always says there is more. */
 function useBelow(ref, rows, deps) {
@@ -327,6 +334,16 @@ function useBelow(ref, rows, deps) {
   }, deps);
   return n;
 }
+
+const PANE = 'chip.playground.pane';
+const readPane = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(PANE) ?? '{}');
+    return { hidden: !!v.hidden, w: Math.min(640, Math.max(280, Number(v.w) || 360)) };
+  } catch {
+    return { hidden: false, w: 360 };
+  }
+};
 
 const asked = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '');
 const linkTo = (id, n) => `#/playground?pick=${encodeURIComponent(id)}${n ? `&option=${n + 1}` : ''}`;
@@ -356,7 +373,17 @@ export default function PlaygroundPicks({ onTry }) {
   });
   const [drafts, setDrafts] = useState({}); // your answer, pins and notes, per pick, until sent
   const [marking, setMarking] = useState(false);
-  const [zoom, setZoom] = useState('fit');
+  const [zoom, setZoom] = useState(null); // null = fitted, else percent
+  const pan = usePan();
+  const [pane, setPane] = useState(readPane);
+  const setPaneKeep = (fn) =>
+    setPane((p) => {
+      const n = typeof fn === 'function' ? fn(p) : fn;
+      try {
+        localStorage.setItem(PANE, JSON.stringify(n));
+      } catch {}
+      return n;
+    });
   const [confirm, setConfirm] = useState(false);
   const [sent, setSent] = useState(null);
   const [ask, setAsk] = useState('');
@@ -367,7 +394,6 @@ export default function PlaygroundPicks({ onTry }) {
   const headBox = useRef(null);
   const touch = useRef(null);
   const [room, setRoom] = useState(null);
-  const listBox = useRef(null);
   const notesBox = useRef(null); // the stage's room: width, and height in the wide layout
 
   const shown = useMemo(() => (picks ?? []).filter((p) => !filter || FILTERS.find((f) => f.id === filter).test(p)), [picks, filter]);
@@ -379,7 +405,6 @@ export default function PlaygroundPicks({ onTry }) {
   const setDraft = (fn) => pick && setDrafts((all) => ({ ...all, [pick.id]: fn(all[pick.id] ?? { thumb: {}, pins: [] }) }));
   const mark = option?.letter ?? `${i + 1}`;
 
-  const pickMore = useBelow(listBox, 'nav a', [picks, filter, wide, phone]);
   const notesMore = useBelow(notesBox, 'ol[aria-label="Comments"] > li', [picks, at, filter, wide, phone, opt]);
 
   // the selected pick has its own link, so a view can be shared
@@ -446,6 +471,7 @@ export default function PlaygroundPicks({ onTry }) {
   };
   const choose = (id) => {
     setAt(id);
+    setZoom(null);
     setMarking(false);
     setSay('');
     if (phone) requestAnimationFrame(() => document.getElementById('pg-stage')?.scrollIntoView({ block: 'start' }));
@@ -468,7 +494,15 @@ export default function PlaygroundPicks({ onTry }) {
   const pinsHere = draft.pins.filter((p) => p.option === mark);
   // a new pin carries on from the pins already on the card, the same number on the stage, the comment and the note sent
   const pinNo = (p) => draft.pins.indexOf(p) + 1 + pick.comments.filter((c) => c.n).length;
-  const markers = pinsHere.map((p) => ({ id: p.id, x: p.x, y: p.y, label: pinNo(p) }));
+  // a zoomed or marked picture is drawn as a frame in its own pixels (k frame pixels per picture pixel); pins are kept in picture pixels
+  const framed = marking || zoom != null;
+  const k = zoom ? zoom / 100 : 1;
+  const markers = pinsHere.map((p) => ({ id: p.id, x: framed ? p.x * k : p.x, y: framed ? p.y * k : p.y, label: pinNo(p) }));
+  const stepTo = (dir) => {
+    const cur = zoom ?? Math.round(scale * 100);
+    const next = dir > 0 ? ZOOM_STEPS.find((z) => z > cur) : [...ZOOM_STEPS].reverse().find((z) => z < cur);
+    if (next) setZoom(next);
+  };
   const ready = Object.values(draft.thumb).some(Boolean) || draft.pins.some((p) => p.note.trim()) || !!say.trim();
 
   // what goes to the board, in decide.js's shape: one card answer, notes beside it
@@ -521,15 +555,19 @@ export default function PlaygroundPicks({ onTry }) {
   /* ---------- the parts ---------- */
 
   // highlights, top left: what changed and what to do, from the board's dates and her last answer
+  const showing = filter ? FILTERS.find((f) => f.id === filter).title : 'Everything';
   const highlights = (
-    <TextStack
-      title={[fresh != null ? `${plural(fresh, 'pick')} new since your last answer` : null, oldest ? `oldest waiting ${oldest}` : null, `${counts.open} to answer`].filter(Boolean).join(' · ')}
-    />
+    <Flow gap={4}>
+      <TextStack
+        title={[fresh != null ? `${plural(fresh, 'pick')} new since your last answer` : null, oldest ? `oldest waiting ${oldest}` : null, `${counts.open} to answer`].filter(Boolean).join(' · ')}
+      />
+      <TextStack subtitle={`Showing: ${showing} · ${plural(shown.length, 'pick')}`} />
+    </Flow>
   );
   // how fresh it is: the time it was read, and Refresh; the last reading with its time when the board is down
   const freshness = (
     <Flow direction="row" gap={8} align="center" justify="between" wrap>
-      <TextStack subtitle={`${filter === 'open' ? 'Waiting on you' : filter ? FILTERS.find((f) => f.id === filter).title : 'Everything'} · ${cached ? `board down, read ${clock(readAt)}` : `read ${clock(readAt)}`}`} />
+      <TextStack subtitle={cached ? `board down, read ${clock(readAt)}` : `read ${clock(readAt)}`} />
       <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon onClick={again}>
         Refresh
       </Button>
@@ -548,43 +586,48 @@ export default function PlaygroundPicks({ onTry }) {
   ) : (
     <Flow direction="row" gap={24} equal role="group" aria-label="Filter your picks">
       {FILTERS.map((f) => (
-        <StatCard
-          key={f.id}
-          title={f.title}
-          icon={f.icon}
-          chart="none"
-          value={counts[f.id]}
-          context={f.id === 'open' ? `of ${plural(picks.length, 'pick')} on ${plural(items, 'board item')}` : f.id === 'answered' ? 'on the board, to be picked up' : 'notes and pins you left'}
-          onOpen={() => pickFilter(f.id)}
-          drawIn={false}
-        />
+        <ListRow
+            key={f.id}
+            as="div"
+            layout="stacked"
+            selected={filter === f.id}
+            iconWell={<IconWell icon={f.icon} tone="neutral" />}
+            title={f.title}
+            value={counts[f.id]}
+            description={f.id === 'open' ? `of ${plural(picks.length, 'pick')} on ${plural(items, 'board item')}` : f.id === 'answered' ? 'on the board, to be picked up' : 'notes and pins you left'}
+            onClick={() => pickFilter(f.id)}
+          />
       ))}
     </Flow>
   );
 
   const list = (
     <Card>
-      <Flow gap={8} scroll style={HOLD} ref={listBox}>
-        <SectionHead title="Picks" number={shown.length} showInfo titleLevel={2} />
+      <Flow gap={8} scroll style={HOLD} aria-label="Picks, scrolls on its own" tabIndex={0}>
+        <SectionHead title="Picks" number={shown.length} titleLevel={2} />
         {freshness}
         {filter ? (
           <Flow direction="row">
-            <Button variant="tertiary" size="sm" onClick={() => pickFilter(filter)}>
+            <Button variant="tertiary" onClick={() => pickFilter(filter)}>
               Show everything
             </Button>
           </Flow>
         ) : null}
-        {pickMore ? <TextStack subtitle={`${pickMore} more below: scroll the list`} /> : null}
         {shown.length ? (
-          // one line a row at reading size; the full question is the stage's heading
-          <NavList
-            label="Your picks"
-            groups={[{ items: shown.map((p) => ({ href: linkTo(p.id), label: clean(p.title), badge: kindOf(p), current: p.id === pick?.id })) }]}
-            onNavigate={(href, e) => {
-              e.preventDefault();
-              choose(decodeURIComponent(new URLSearchParams(href.split('?')[1]).get('pick')));
-            }}
-          />
+          // one short line a row, its status a Tag; the full question is the stage's heading
+          <Flow as="ul" gap={0} aria-label={`Your picks, ${shown.indexOf(pick) + 1} of ${shown.length} selected`}>
+            {shown.map((p) => (
+              <ListRow
+                key={p.id}
+                layout="stacked"
+                divider
+                selected={p.id === pick?.id}
+                title={shortName(p.title)}
+                tag={p.answer ? <Tag tone="success" showDot>Answered</Tag> : <Tag variant="outline">Open</Tag>}
+                onClick={() => choose(p.id)}
+              />
+            ))}
+          </Flow>
         ) : (
           <EmptyState size="lane" mark="🙌" title="None here" line="Nothing matches this filter. Show everything to see the rest." />
         )}
@@ -615,9 +658,8 @@ export default function PlaygroundPicks({ onTry }) {
           <FilterChip pressed={thumb === 'down'} onClick={() => setThumb('down')} ariaLabel="Thumbs down">
             👎
           </FilterChip>
-          {/* HOLE: BELLA's tool column (zoom, fit, light/dark, mark up, compare) has no part yet; Mark up stands in */}
-          <Button variant="secondary" size="sm" ariaExpanded={marking} onClick={() => setMarking((m) => !m)}>
-            {marking ? 'Done marking' : 'Mark up'}
+          <Button variant="secondary" size="sm" ariaExpanded={!pane.hidden} onClick={() => setPaneKeep((p) => ({ ...p, hidden: !p.hidden }))}>
+            {pane.hidden ? `Show comments${pick.comments.length + pinsHere.length ? ` · ${pick.comments.length + pinsHere.length}` : ''}` : 'Hide comments'}
           </Button>
           <Link href={pick.page} external>
             Review page
@@ -627,25 +669,44 @@ export default function PlaygroundPicks({ onTry }) {
       </div>
       <div ref={stageBox} {...swipe}>
         {option?.img && size?.w ? (
-          marking ? (
-            // marking needs the frame: a click lands in the picture's own pixels
-            <Stage
-              frameWidth={size.w}
-              frameHeight={size.h}
-              zoom={zoom}
-              onZoomChange={setZoom}
-              markers={markers}
-              picking
-              onPick={(x, y) => setDraft((d) => ({ ...d, pins: [...d.pins, { id: `p${Date.now()}`, x, y, note: '', option: mark }] }))}
-              label={stageLabel}
-            >
-              <img src={option.img} alt={`${pick.title}: ${option.short}`} width={size.w} height={size.h} />
-            </Stage>
-          ) : (
-            <Stage scale={scale} markers={markers} label={stageLabel}>
-              <img src={option.img} alt={`${pick.title}: ${option.short}`} width={size.w} height={size.h} />
-            </Stage>
-          )
+          <Flow gap={8} onKeyDown={(e) => (e.key === '+' || e.key === '=' ? stepTo(1) : e.key === '-' ? stepTo(-1) : null)}>
+            <Flow direction="row" gap={8} align="center" wrap role="toolbar" aria-label="Picture tools">
+              <Button variant="secondary" size="sm" iconOnly icon="ZoomOut" ariaLabel="Zoom out" onClick={() => stepTo(-1)} />
+              <Button variant="secondary" size="sm" iconOnly icon="ZoomIn" ariaLabel="Zoom in" onClick={() => stepTo(1)} />
+              <Button variant="secondary" size="sm" ariaPressed={zoom == null && !marking} onClick={() => setZoom(null)}>
+                Fit
+              </Button>
+              <Button variant="secondary" size="sm" ariaPressed={zoom === 100} onClick={() => setZoom(100)}>
+                100%
+              </Button>
+              <Tag variant="outline">{zoom ? `${zoom}%` : 'Fit'}</Tag>
+              {/* HOLD: BELLA's tool column (light/dark, compare) has no job here; Mark up stands in */}
+              <Button variant="secondary" size="sm" icon="EditPencil" leadingIcon ariaPressed={marking} onClick={() => setMarking((m) => !m)}>
+                {marking ? 'Done marking' : 'Mark up'}
+              </Button>
+            </Flow>
+            {framed ? (
+              // marking and zoom need the frame: a click lands in the picture's own pixels, and a drag pans it
+              <Stage
+                grid="none"
+                frameWidth={Math.round(size.w * k)}
+                frameHeight={Math.round(size.h * k)}
+                zoom={zoom ? 'actual' : 'fit'}
+                markers={markers}
+                picking={marking}
+                onPick={(x, y) => setDraft((d) => ({ ...d, pins: [...d.pins, { id: `p${Date.now()}`, x: Math.round(x / k), y: Math.round(y / k), note: '', option: mark }] }))}
+                label={`${stageLabel}, ${zoom ? `${zoom}%` : 'fitted'}`}
+              >
+                <Flow gap={0} {...pan}>
+                  <img src={option.img} alt={`${pick.title}: ${option.short}`} width={size.w} height={size.h} draggable={false} />
+                </Flow>
+              </Stage>
+            ) : (
+              <Stage scale={scale} markers={markers} label={stageLabel}>
+                <img src={option.img} alt={`${pick.title}: ${option.short}`} width={size.w} height={size.h} />
+              </Stage>
+            )}
+          </Flow>
         ) : (
           <Stage label="No picture">
             <EmptyState size="lane" mark="🖼️" title={size ? 'The picture didn’t load' : 'Loading the picture'} line={size ? 'Open the review page to see it.' : undefined} />
@@ -677,9 +738,15 @@ export default function PlaygroundPicks({ onTry }) {
   );
 
   // Comments on the option: her notes scroll inside the card; the field, Post and Ask BELLA stay at its foot
-  const right = (
+  const right = pane.hidden ? null : (
     <Card>
-      <SectionHead title={pick.thumbs ? 'Comments' : `Comments on ${mark}`} number={pick.comments.length + pinsHere.length || undefined} titleLevel={2} />
+      <Flow direction="row" gap={8} align="center" justify="between" wrap>
+        <SectionHead title={pick.thumbs ? 'Comments' : `Comments on ${mark}`} number={pick.comments.length + pinsHere.length || undefined} titleLevel={2} />
+        <Button variant="tertiary" size="sm" ariaExpanded onClick={() => setPaneKeep((p) => ({ ...p, hidden: true }))}>
+          Hide
+        </Button>
+      </Flow>
+      {wide ? <Slider label="Comments width" value={pane.w} onChange={(w) => setPaneKeep((p) => ({ ...p, w }))} min={280} max={640} step={20} unit="px" hint="Drag, or use the arrow keys" /> : null}
       <Flow gap={16} scroll={wide} style={HOLD}>
         {notesMore ? <TextStack subtitle={`${notesMore} more below: scroll the comments`} /> : null}
         <Flow gap={8} scroll={wide} style={HOLD} aria-label="Comments, scrolls on its own" tabIndex={wide ? 0 : undefined} ref={notesBox}>
@@ -751,13 +818,15 @@ export default function PlaygroundPicks({ onTry }) {
               <Flow span={12}>{list}</Flow>
             </Flow>
           </Flow>
-          <Flow direction="row" gap={24} equal>
+          <Flow direction="row" gap={24} grow="first">
             <Flow fit="rest">
               <Flow span={12}>{centre}</Flow>
             </Flow>
-            <Flow fit="rest">
-              <Flow span={12}>{right}</Flow>
-            </Flow>
+            {right ? (
+              <Flow fit="rest" style={{ inlineSize: `calc(var(--spacing-4) * ${pane.w / 4})`, flexShrink: 0 }}>
+                <Flow span={12}>{right}</Flow>
+              </Flow>
+            ) : null}
           </Flow>
         </Flow>
       ) : phone ? (
