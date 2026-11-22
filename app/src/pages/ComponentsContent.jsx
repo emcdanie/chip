@@ -49,11 +49,14 @@ import { planRun } from '../templates/RunPlan.jsx';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
 import { ContractCard } from './DocReader.jsx';
+import QualityPanel, { QualityCentre, useQuality, visiblePins } from './QualityPanel.jsx';
 import { day, usePartDetail, useStudio, studioChecks, studioFixes, studioDocs, studioProps } from './componentsModel.js';
 
+const noop = () => {};
 export const FILTERS = ['all', 'needs', 'ready'];
 const TABS = [
   { id: 'inspect', label: 'Inspect' },
+  { id: 'quality', label: 'Quality' },
   { id: 'fix', label: 'Fix' },
   { id: 'checks', label: 'Checks' },
   { id: 'history', label: 'History' },
@@ -1130,6 +1133,10 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const part = parts.find((p) => p.id.toLowerCase() === want || p.name.toLowerCase() === want) ?? parts.find((p) => p.name === 'Button') ?? parts[0] ?? null;
   const detail = usePartDetail(part);
   const studio = useStudio(part);
+  const q = useQuality({ part, detail, studio, touch });
+  const [qMode, setQMode] = useState('all');
+  const [qPick, setQPick] = useState(null);
+  useEffect(() => { setQMode('all'); setQPick(null); }, [part?.id]);
   const variants = part && PLAY[part.name] ? part.variants : [];
   const label = part ? SAMPLE_LABEL[part.name] ?? '' : '';
   useEffect(() => {
@@ -1253,6 +1260,11 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         {listInline ? null : <Button variant="secondary" icon="SidebarExpand" leadingIcon ariaExpanded={listOut ? listOpen : false} onClick={() => (listOut ? setListOpen(true) : setListHidden(false))}>Components</Button>}
         {variants.length > 1 ? variants.length > 3 || phone ? <Select label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: cap(v) }))} /> : <SegmentedControl label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: v }))} /> : null}
       </Flow>
+      {tab === 'quality' ? (
+        <QualityCentre q={q} part={part} mode={qMode} setMode={setQMode}>
+          <StudioStage part={part} detail={{ anatomy: visiblePins(q, qMode) }} variant={variant} label={label} shown={qMode === 'focus' ? 'focus' : 'default'} picked={qPick ?? visiblePins(q, qMode)[0]?.key} onPick={setQPick} onMeasured={noop} onTouch={setTouch} />
+        </QualityCentre>
+      ) : (
       <Flow gap={16} grow="first">
       <StudioStage part={part} detail={detail} variant={variant} label={label} shown={shown} picked={picked} onPick={(k) => { setPicked(k); setTab('inspect'); setOpen('tokens'); }} onMeasured={setMeasured} onTouch={setTouch} />
       {states.length ? (
@@ -1279,10 +1291,13 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         />
       ) : null}
       </Flow>
+      )}
     </Flow>
   );
   const panel =
-    tab === 'inspect' ? (
+    tab === 'quality' ? (
+      <QualityPanel q={q} part={part} mode={qMode} pick={qPick} />
+    ) : tab === 'inspect' ? (
       <InspectPanel part={part} detail={detail} docs={docs} props={props} measured={measured} picked={picked} onPick={setPicked} variant={variant} label={label} touch={touch} open={open} setOpen={setOpen} onFix={() => send([`finding-${picked}`])} onPart={pick} model={model} />
     ) : tab === 'fix' ? (
       <FixPanel part={part} fixes={fixes} chosen={chosen} setChosen={setChosen} target={target} setTarget={setTarget} onSend={() => send()} model={model} onPart={pick} open={open} setOpen={setOpen} />
@@ -1306,7 +1321,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const right = (
     <Flow gap={16}>
       {highlights}
-      <Tabs label={`${part.name}: inspect, fix, checks, history`} idBase="studio-view" value={tab} onChange={(t) => (setTab(t), setOpen(null))} tabs={TABS} />
+      <Tabs label={`${part.name}: inspect, quality, fix, checks, history`} idBase="studio-view" value={tab} onChange={(t) => (setTab(t), setOpen(null))} tabs={TABS} />
       <TabPanels tabs={{ idBase: 'studio-view', value: tab, items: TABS }}>
         <Flow gap={16} scroll={!phone}>
           {!detail || !studio.ready ? <EmptyState size="lane" mark="⏳" title={`Reading ${part.name}`} line="Fetching its checks, history and contrast pairs." /> : panel}

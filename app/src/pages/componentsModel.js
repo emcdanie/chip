@@ -49,6 +49,7 @@ export function componentsModel({ components = [], gaps = {}, version, checkedAt
           dont: c.dont ?? [],
           a11y: c.a11y ?? null,
           minTarget: c.minTarget ?? null,
+          rendersAs: c.rendersAs ?? null,
           tokens: c.tokens?.list ?? [],
           usedIn: c.composesInto ?? [],
           madeOf: c.composedFrom ?? [],
