@@ -85,8 +85,9 @@ test('the answer paths agree: no token is streamed before the checked reply, the
   for await (const e of askStream('are we on system', 's2', undefined, { scope: 'data', models, budget, ctx })) events.push(e);
   providers.local.ask = wasAsk;
   providers.local.list = wasList;
-  assert.equal(events.filter((e) => e.type === 'token').length, 0);
+  const toks = events.filter((e) => e.type === 'token');
   const done = events.find((e) => e.type === 'done');
+  assert.equal(toks.map((t) => t.text).join(''), done.reply, 'the one token is the checked reply');
   assert.ok(!/9999/.test(done.reply), 'a number the data does not hold never reaches the page');
   assert.match(done.route.why, /^Auto: local 8b because it is a lookup/);
   assert.equal(done.model, 'qwen3:8b');
@@ -112,8 +113,8 @@ test('"how did elleta build this" answers from the record: three blocks, no mode
   for await (const e of askStream('how did elleta build this', 's4', undefined, { models, budget, ctx: { ...defaultCtx(), builtInfo } })) events.push(e);
   providers.local.ask = wasAsk;
   assert.equal(ran, 0);
-  assert.equal(events.filter((e) => e.type === 'token').length, 0);
   const done = events.find((e) => e.type === 'done');
+  assert.equal(events.filter((e) => e.type === 'token').map((t) => t.text).join(''), done.reply, 'older Ask builds its text from tokens');
   assert.equal(done.model, 'CHIP’s data');
   assert.match(done.reply, /9 of 10 commits\*\* carry a Claude co-author line: an agent built it from Elleta's rules/);
   assert.match(done.reply, /- Order: first commits CHIP 2026-04-26/);

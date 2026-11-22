@@ -543,7 +543,18 @@ export async function* dataStream(message, sessionId, opts = {}) {
 // questions the data router answers in any scope: how it was built, where the gaps are and how to improve
 const OVERVIEW = /\bhow (did|was|were|has)\b.*\b(build|built|made|make|create[d]?)\b|\bwho (built|made|wrote)\b|\bhow it was (built|made)\b|\bwhere (is|are) it documented\b|\bgaps?\b.*\bimprov\w*|\bhow can we improve\b|\bwhat should (we|i) (fix|improve)\b/i;
 
+// The older Ask (Obi.jsx) builds its text only from token events, so the checked reply goes out as one token
+// just before done when nothing was streamed (the held text and the final text are the same, 22 Nov).
 export async function* askStream(message, sessionId, page, opts = {}) {
+  let sent = false;
+  for await (const ev of askStreamInner(message, sessionId, page, opts)) {
+    if (ev.type === 'token') sent = true;
+    if (ev.type === 'done' && !sent && ev.reply) yield { type: 'token', text: ev.reply };
+    yield ev;
+  }
+}
+
+async function* askStreamInner(message, sessionId, page, opts = {}) {
   const dataScope = opts.scope === 'data' || (!opts.record && OVERVIEW.test(message));
   // Auto picks by the question and says why; a model she picked is used as picked (one line says so)
   let routed = null;
