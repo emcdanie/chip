@@ -27,7 +27,7 @@ import Input from '@bella/components/Input/Input';
 import Stage from '@bella/components/Stage/Stage';
 import Stat from '@bella/components/Stat/Stat';
 import Progress from '@bella/components/Progress/Progress';
-import ListRow from '@bella/components/ListRow/ListRow';
+import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import Step, { StepDay } from '@bella/components/Step/Step';
 import VariantTile from '@bella/components/VariantTile/VariantTile';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
@@ -137,9 +137,26 @@ function StateThumb({ part, variant, label, state, selected, onPick }) {
 const BELOW = new Set(['box', 'ring', 'shadow', 'state', 'edge']);
 const LEVEL = 48; // one label's row: its height and the space to the next
 const LABEL_H = 40;
-// Where a stage is too narrow for a part's labels in full, they read shorter (the number still names the row
-// in the list beside it; 23 Nov: shorter names before a narrower inspector)
-const SHORT_LABEL = { 'Hover shadow': 'Hover', 'Rest shadow': 'Rest', 'Focus ring': 'Ring', 'Title bar': 'Title', 'Copy button': 'Copy', 'Line numbers': 'Numbers', 'Code line': 'Code' };
+// Pins only, for a stage too narrow to hold every label uncut: numbered pins on the part's top and bottom edges,
+// spread evenly, with the names in a legend under the stage (same numbers and names as at wide widths)
+function pinsOnly(anatomy, box, scale, picked) {
+  const top = [];
+  const bottom = [];
+  anatomy.forEach((x, i) => (BELOW.has(x.kind) ? bottom : top).push({ x, i }));
+  while (top.length > bottom.length + 2) bottom.unshift(top.pop());
+  while (bottom.length > top.length + 2) top.push(bottom.shift());
+  const out = [];
+  let tight = Infinity; // the least room between two pins on one edge
+  for (const [zone, pins] of [['top', top], ['bottom', bottom]]) {
+    const m = pins.length;
+    const spread = 0.8 * box.w;
+    const step = m > 1 ? spread / (m - 1) : Infinity;
+    tight = Math.min(tight, step);
+    const edge = zone === 'top' ? box.cy - box.h / 2 : box.cy + box.h / 2;
+    pins.forEach(({ x, i }, j) => out.push({ id: x.key, x: Math.round((box.cx + (m > 1 ? -spread / 2 + j * step : 0)) / scale), y: Math.round(edge / scale), label: x.n ?? i + 1, selected: x.key === picked }));
+  }
+  return { markers: out.sort((p, q) => p.label - q.label), tight };
+}
 const perms = (n) => (n <= 1 ? [[0]] : perms(n - 1).flatMap((p) => Array.from({ length: n }, (_, i) => [...p.slice(0, i), n - 1, ...p.slice(i)])));
 const PERMS = [0, 1, 2, 3, 4].map((n) => (n ? perms(n) : [[]]));
 // do two axis-aligned boxes (or a segment, as a thin box) touch, with a little air
@@ -425,10 +442,10 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   const SCALES = PLAY[part.name] ? [2, 1, 0.5, 0.35, 0.25, 1.5] : [1, 0.5, 0.35, 0.25, 1.5, 2];
   const [scale, setScale] = useState(SCALES[0]);
   const [widths, setWidths] = useState({});
-  const [short, setShort] = useState(false);
+  const [legend, setLegend] = useState(false); // numbered pins and a legend, when no arrangement of labels fits uncut
   const box = useBox(stageId, liveId, [part.id, variant, label, scale, anatomy.length, a?.key], scale);
   // the best arrangement at one size: the usual split of pins above and below, then other splits only if it does not fit
-  const named = useMemo(() => (short ? anatomy.map((x) => ({ ...x, title: SHORT_LABEL[x.title] ?? x.title })) : anatomy), [anatomy, short]);
+  const named = anatomy;
   const solveAt = (s, b) => {
     const k = s / b.tag;
     const scaled = { cx: b.cx * k, cy: b.cy * k, w: b.w * k, h: b.h * k, sw: b.sw };
@@ -454,7 +471,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
       if (!r.over) return best;
     }
     return best;
-  }, [box, anatomy, a?.key, widths, short]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [box, anatomy, a?.key, widths]); // eslint-disable-line react-hooks/exhaustive-deps
   // a part that does not scale evenly (CodeBlock fills the stage) could swing between two sizes: after a few
   // changes the size stays where it is
   const changes = useRef(0);
@@ -462,7 +479,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   useEffect(() => {
     changes.current = 0;
     seen.current = new Map();
-    setShort(false);
+    setLegend(false);
     setScale(SCALES[0]);
   }, [part.id, box?.sw]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -477,17 +494,17 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
       const [fit] = [...seen.current.entries()].sort((p, q) => p[1] - q[1])[0];
       if (fit !== scale) setScale(fit);
     }
-  }, [layout, scale, box, short]); // eslint-disable-line react-hooks/exhaustive-deps
-  // a label still cut by the stage's edge once the part has taken its size: the labels read shorter
+  }, [layout, scale, box, legend]); // eslint-disable-line react-hooks/exhaustive-deps
+  // a label still cut by the stage's edge once the part has taken its size: numbered pins and a legend instead
   useEffect(() => {
-    if (!layout || box?.tag !== scale || short) return;
+    if (!layout || box?.tag !== scale || legend) return;
     const st = document.getElementById(stageId)?.querySelector('[data-bella-component="stage"]');
     const r = st?.getBoundingClientRect();
     const cut = r && [...st.querySelectorAll('[data-stage-chip]')].some((c) => {
       const q = c.getBoundingClientRect();
       return q.left < r.left - 0.5 || q.right > r.right + 0.5;
     });
-    if (cut && (changes.current >= 6 || layout.s === scale)) setShort(true);
+    if ((layout.over && layout.s === scale) || (cut && changes.current >= 6)) setLegend(true);
   });
   // the live part's touch target, unscaled: its own box or its hit area, whichever is larger
   useLayoutEffect(() => {
@@ -566,11 +583,32 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     st.querySelectorAll('[data-stage-chip]').forEach((c) => (next[c.getAttribute('data-stage-chip')] = Math.ceil(c.getBoundingClientRect().width)));
     if (Object.keys(next).length && JSON.stringify(next) !== JSON.stringify(widths)) setWidths(next);
   });
+  // legend mode: the biggest size where the part fits the stage and its pins keep 36 apart
+  const pinsAt = useMemo(() => {
+    if (!legend || !box?.tag) return null;
+    let pick = null;
+    for (const s of SCALES) {
+      const k = s / box.tag;
+      const r = pinsOnly(anatomy, { cx: box.cx * k, cy: box.cy * k, w: box.w * k, h: box.h * k }, s, a?.key);
+      if (box.w * k <= box.sw - 48 && r.tight >= 36) {
+        pick = { ...r, s };
+        break;
+      }
+    }
+    return pick ?? { ...pinsOnly(anatomy, { cx: 0, cy: 0, w: box.w, h: box.h }, box.tag, a?.key), s: box.tag };
+  }, [legend, box, anatomy, a?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (pinsAt && pinsAt.s !== scale && box?.tag === scale && changes.current < 8) {
+      changes.current += 1;
+      setScale(pinsAt.s);
+    }
+  }, [pinsAt, scale, box]);
   const markers = useMemo(() => {
+    if (legend) return pinsAt && pinsAt.s === scale ? pinsAt.markers : box?.tag ? pinsOnly(anatomy, box, scale, a?.key).markers : [];
     if (!layout) return [];
     if (layout.s === scale || !box?.tag) return layout.markers;
     return solveAt(scale, box).markers; // the size could not move to the layout's: label the part as drawn
-  }, [layout, scale, box, anatomy, a?.key, widths, short]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [legend, pinsAt, layout, scale, box, anatomy, a?.key, widths]); // eslint-disable-line react-hooks/exhaustive-deps
   const has = PLAY[part.name] || SPECIMENS[part.name];
   return (
     <Flow gap={8} id={stageId} grow="first">
@@ -583,6 +621,14 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
           </Flow>
         </Flow>
       </Stage>
+      {/* the legend: one row a part, the same number and name as the pin, a click picks it */}
+      {legend ? (
+        <ListRowGroup ariaLabel={`${part.name}'s parts on the stage`} data-stage-legend="">
+          {anatomy.map((x, i) => (
+            <ListRow key={x.key} layout="inline" pin={<Pin number={String(x.n ?? i + 1)} variant="red" pinStyle="solid" />} title={x.title} selected={x.key === a?.key} onClick={() => onPick(x.key)} showDivider={i < anatomy.length - 1} />
+          ))}
+        </ListRowGroup>
+      ) : null}
     </Flow>
   );
 }

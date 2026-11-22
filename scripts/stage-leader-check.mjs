@@ -4,6 +4,8 @@
 //   - two leaders cross,
 //   - a leader passes through another label or through the part,
 //   - two labels overlap, or a label is cut by the stage's edge.
+// A part-width also passes in legend mode (numbered pins and a legend under the stage, no leaders), when every pin
+// is drawn inside the stage, no two pins overlap, and every name in the legend is whole and on screen.
 // Usage: node scripts/stage-leader-check.mjs [--app http://localhost:3160] [--out dir] [--part Button]
 // Needs a CHIP server and Playwright in BELLA_DIR (as data-sweep.mjs). Exit 1 on any failure.
 import { createRequire } from 'node:module';
@@ -47,7 +49,10 @@ const measure = () => {
       });
       return { label: p.closest('[data-bella-component="leader"]')?.getAttribute('aria-label') ?? '', pts };
     });
-  return { stage: box(stage), part: box(live), chips: [...stage.querySelectorAll('[data-stage-chip]')].map((c) => ({ name: c.textContent.trim(), ...box(c) })), leaders };
+  const rows = [...document.querySelectorAll('ul[aria-label$="parts on the stage"] > li')];
+  const pins = [...stage.querySelectorAll('[data-stage-pin]')].map((p) => box(p.firstElementChild ?? p));
+  const legend = rows.length ? { rows: rows.map((r) => { const t = r.querySelector('[class*="title"], span, p') ?? r; const q = box(r); return { text: r.textContent.trim(), ...q, clipped: [...r.querySelectorAll('*')].some((e) => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow !== 'visible') || q.r > innerWidth + 0.5 || q.l < -0.5 }; }), pins } : null;
+  return { legend, stage: box(stage), part: box(live), chips: [...stage.querySelectorAll('[data-stage-chip]')].map((c) => ({ name: c.textContent.trim(), ...box(c) })), leaders };
 };
 
 const cross = (p, q, r, s) => {
@@ -87,6 +92,20 @@ function judge(g) {
   return bad;
 }
 
+function judgeLegend(g, n) {
+  const bad = [];
+  const { legend, stage } = g;
+  if (legend.rows.length !== n) bad.push(`legend names ${legend.rows.length} of ${n} parts`);
+  legend.rows.forEach((r) => r.clipped && bad.push(`legend row "${r.text}" is clipped`));
+  if (legend.pins.length !== n) bad.push(`${legend.pins.length} of ${n} pins drawn`);
+  legend.pins.forEach((p, i) => {
+    if (p.l < stage.l - 0.5 || p.r > stage.r + 0.5 || p.t < stage.t - 0.5 || p.b > stage.b + 0.5) bad.push(`pin ${i + 1} is outside the stage`);
+    legend.pins.slice(i + 1).forEach((q, j) => p.l < q.r && q.l < p.r && p.t < q.b && q.t < p.b && bad.push(`pins ${i + 1} and ${i + j + 2} overlap`));
+  });
+  if (g.chips.length || g.leaders.length) bad.push('legend mode still draws labels or leaders');
+  return bad;
+}
+
 const browser = await chromium.launch();
 const results = [];
 for (const part of parts) {
@@ -96,15 +115,16 @@ for (const part of parts) {
     await page.waitForSelector('[data-stage-chip]', { timeout: 20000 }).catch(() => {});
     await page.waitForTimeout(1800); // the part settles into the largest size its labels fit
     const g = await page.evaluate(measure);
-    const bad = g ? (g.chips.length === part.parts.length ? judge(g) : [`${g.chips.length} of ${part.parts.length} labels drawn`]) : ['no stage'];
+    const bad = !g ? ['no stage'] : g.legend ? judgeLegend(g, part.parts.length) : g.chips.length === part.parts.length ? judge(g) : [`${g.chips.length} of ${part.parts.length} labels drawn`];
+    const mode = g?.legend ? 'legend' : 'labels';
     await page.locator('[data-bella-component="stage"]').first().screenshot({ path: join(OUT, `${part.name}-${width}.png`) }).catch(() => {});
-    results.push({ part: part.name, width, pins: part.parts.length, leaders: g?.leaders.length ?? 0, ok: !bad.length, bad });
+    results.push({ part: part.name, width, mode, pins: part.parts.length, leaders: g?.leaders.length ?? 0, ok: !bad.length, bad });
     await page.close();
   }
 }
 await browser.close();
 writeFileSync(join(OUT, 'results.json'), JSON.stringify(results, null, 1));
-for (const r of results) console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${r.part.padEnd(10)} ${String(r.width).padStart(4)}  ${r.pins} pins${r.ok ? '' : `: ${[...new Set(r.bad)].join('; ')}`}`);
+for (const r of results) console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${r.part.padEnd(10)} ${String(r.width).padStart(4)}  ${r.pins} pins · ${r.mode}${r.ok ? '' : `: ${[...new Set(r.bad)].join('; ')}`}`);
 const failed = results.filter((r) => !r.ok).length;
 // the record the guard reads: only a full run counts (every part, every width)
 writeFileSync(RECORD, JSON.stringify({ at: new Date().toISOString(), hash: leaderInputsHash(), full: !ONLY, ok: !failed, clean: results.length - failed, total: results.length }, null, 1));
