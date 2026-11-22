@@ -21,6 +21,7 @@ import TextStack from '@bella/components/TextStack/TextStack';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import Drawer from '@bella/components/Drawer/Drawer';
 import { planRun } from '../templates/RunPlan.jsx';
+import AuditReading from './AuditReading.jsx';
 import Marker from '@bella/components/Marker/Marker';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
@@ -324,7 +325,7 @@ function NeedsYouCard({ rows, fixCount, verb, send, sending }) {
 
 /* Audits, all in one place (CHIP rule 22 Nov): one card per audit, read from the report it saved in
    docs/reference/audit/<date>/ (/audits). An audit with no saved report says Not run. The card: score and trend,
-   the day it ran, red and yellow; ↗ opens its top three work orders and its full report. Run all opens a plan first. */
+   the day it ran, red and yellow; ↗ opens the report read in the drawer, explained (AuditReading.jsx). Run all opens a plan first. */
 const dayOf = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const AUDIT_ICON = { product: 'ViewGrid', figma: 'Palette', ds: 'ShieldCheck', tokens: 'Key', a11y: 'Eye', agents: 'Brain' };
 function AuditCard({ a }) {
@@ -346,19 +347,7 @@ function AuditCard({ a }) {
         onOpen={() => setOpen(true)}
       />
       <Drawer open={open} onClose={() => setOpen(false)} side="right" size="lg" label={`${a.title} audit`} status={`Ran ${dayOf(a.ran)} · ${lights}`}>
-        <Flow gap={24}>
-          <SectionHead icon="WarningCircle" iconTone="warning" title="Top work orders" showInfo={false} description={a.orders.length ? 'Most important first, from the saved report' : 'The report lists none'} />
-          {a.orders.length ? (
-            <ListRowGroup ariaLabel={`${a.title}: top work orders`}>
-              {a.orders.map((o, i) => (
-                <ListRow key={o} layout="stacked" title={o} subtitle={`Work order ${i + 1}`} />
-              ))}
-            </ListRowGroup>
-          ) : null}
-          <Button variant="secondary" size="sm" icon="ArrowUpRight" href={`/audits/${a.id}/report`}>
-            Read the full report
-          </Button>
-        </Flow>
+        <AuditReading a={a} day={dayOf(a.ran)} />
       </Drawer>
     </>
   );

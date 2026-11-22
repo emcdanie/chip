@@ -9,8 +9,7 @@
 // Ask uses Input's own Send button.
 // Actions that run the agent (Ask) wait for the Menu part for the model menu
 // (Auto, local first).
-import Marker from '@bella/components/Marker/Marker';
-import { keyPhrases } from '../templates/keyPhrase.js';
+import Keyed from '../templates/Keyed.jsx';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
@@ -296,20 +295,6 @@ function areaOf(t) {
   const m = String(t ?? '').match(/^([^:]{2,32}):\s+([\s\S]+)$/);
   // the sentence stands on its own under the area, so it starts with a capital
   return m ? { area: plainArea(m[1], PART_NAMES), rest: m[2].charAt(0).toUpperCase() + m[2].slice(1) } : { area: null, rest: String(t ?? '') };
-}
-
-function Keyed({ text, names }) {
-  const t = String(text ?? '');
-  const marks = keyPhrases(t, { names });
-  if (!marks.length) return t;
-  const out = [];
-  let from = 0;
-  marks.forEach((m, i) => {
-    out.push(t.slice(from, m.at), <Marker key={i}>{m.text}</Marker>);
-    from = m.at + m.text.length;
-  });
-  out.push(t.slice(from));
-  return <>{out}</>;
 }
 
 /* "Help me understand" for one file of the change (her 19 Nov mock; READ FIRST "Code as proof"): a step
