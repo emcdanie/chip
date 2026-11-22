@@ -7,6 +7,8 @@
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import { RECORD, WATCHED, leaderInputsHash } from './lib/stage-leaders.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(ROOT, 'data/on-system-baseline.json');
@@ -235,6 +237,20 @@ if (bareCommits.length) {
   console.log('on-system-guard: a git commit without paths. Commit blocked (use git commit -- <paths>, or git -C <its own worktree>).');
   for (const [f, n, l] of bareCommits) console.log(`  ${f}:${n}  ${l.trim().slice(0, 100)}`);
   process.exit(1);
+}
+
+// The stage's labels and leaders: a commit that changes the files drawing them needs a clean full run of
+// `npm run check:leaders` on exactly these files (23 Nov: leaders crossing, a label through another).
+{
+  const staged = spawnSync('git', ['diff', '--cached', '--name-only'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n');
+  if (WATCHED.some((f) => staged.includes(f))) {
+    const rec = existsSync(RECORD) ? JSON.parse(readFileSync(RECORD, 'utf8')) : null;
+    const why = !rec ? 'it has not been run' : rec.hash !== leaderInputsHash() ? 'it ran on other files than these' : !rec.full ? 'its last run was one part only' : !rec.ok ? `it found ${rec.total - rec.clean} of ${rec.total} part-widths not clean` : null;
+    if (why) {
+      console.log(`on-system-guard: the stage's labels changed and the leader check is not clean (${why}). Run npm run check:leaders. Commit blocked.`);
+      process.exit(1);
+    }
+  }
 }
 
 const now = count();

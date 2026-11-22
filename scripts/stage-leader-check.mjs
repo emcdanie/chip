@@ -11,6 +11,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { bellaDir } from './lib/bella-dir.mjs';
+import { RECORD, leaderInputsHash } from './lib/stage-leaders.mjs';
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -105,5 +106,7 @@ await browser.close();
 writeFileSync(join(OUT, 'results.json'), JSON.stringify(results, null, 1));
 for (const r of results) console.log(`${r.ok ? 'ok  ' : 'FAIL'} ${r.part.padEnd(10)} ${String(r.width).padStart(4)}  ${r.pins} pins${r.ok ? '' : `: ${[...new Set(r.bad)].join('; ')}`}`);
 const failed = results.filter((r) => !r.ok).length;
+// the record the guard reads: only a full run counts (every part, every width)
+writeFileSync(RECORD, JSON.stringify({ at: new Date().toISOString(), hash: leaderInputsHash(), full: !ONLY, ok: !failed, clean: results.length - failed, total: results.length }, null, 1));
 console.log(`stage-leader-check: ${results.length - failed} of ${results.length} part-widths clean · ${OUT}`);
 process.exit(failed ? 1 : 0);

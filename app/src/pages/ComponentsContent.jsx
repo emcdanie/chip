@@ -137,6 +137,9 @@ function StateThumb({ part, variant, label, state, selected, onPick }) {
 const BELOW = new Set(['box', 'ring', 'shadow', 'state', 'edge']);
 const LEVEL = 48; // one label's row: its height and the space to the next
 const LABEL_H = 40;
+// Where a stage is too narrow for a part's labels in full, they read shorter (the number still names the row
+// in the list beside it; 23 Nov: shorter names before a narrower inspector)
+const SHORT_LABEL = { 'Hover shadow': 'Hover', 'Rest shadow': 'Rest', 'Focus ring': 'Ring', 'Title bar': 'Title', 'Copy button': 'Copy', 'Line numbers': 'Numbers', 'Code line': 'Code' };
 const perms = (n) => (n <= 1 ? [[0]] : perms(n - 1).flatMap((p) => Array.from({ length: n }, (_, i) => [...p.slice(0, i), n - 1, ...p.slice(i)])));
 const PERMS = [0, 1, 2, 3, 4].map((n) => (n ? perms(n) : [[]]));
 // do two axis-aligned boxes (or a segment, as a thin box) touch, with a little air
@@ -422,25 +425,36 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   const SCALES = PLAY[part.name] ? [2, 1, 0.5, 0.35, 0.25, 1.5] : [1, 0.5, 0.35, 0.25, 1.5, 2];
   const [scale, setScale] = useState(SCALES[0]);
   const [widths, setWidths] = useState({});
+  const [short, setShort] = useState(false);
   const box = useBox(stageId, liveId, [part.id, variant, label, scale, anatomy.length, a?.key], scale);
-  const layout = useMemo(() => {
-    if (!box?.tag || !anatomy.length) return null;
+  // the best arrangement at one size: the usual split of pins above and below, then other splits only if it does not fit
+  const named = useMemo(() => (short ? anatomy.map((x) => ({ ...x, title: SHORT_LABEL[x.title] ?? x.title })) : anatomy), [anatomy, short]);
+  const solveAt = (s, b) => {
+    const k = s / b.tag;
+    const scaled = { cx: b.cx * k, cy: b.cy * k, w: b.w * k, h: b.h * k, sw: b.sw };
     const keys = anatomy.map((x) => x.key);
-    // the usual split first; only when no size makes it fit, other splits of the pins above and below
-    const splits = [null];
+    let best = anatomyMarkers(named, scaled, s, a?.key, widths);
+    if (!best.over) return best;
     const sized = (set) => keys.length - set.size <= 4 && set.size <= 4 && Math.abs(set.size - (keys.length - set.size)) <= 2;
-    const all = Array.from({ length: 1 << keys.length }, (_, m) => new Set(keys.filter((_, i) => (m >> i) & 1))).filter(sized);
-    let best = null;
-    for (const split of splits.concat(all)) {
-      for (const s of SCALES) {
-        const k = s / box.tag;
-        const r = anatomyMarkers(anatomy, { cx: box.cx * k, cy: box.cy * k, w: box.w * k, h: box.h * k, sw: box.sw }, s, a?.key, widths, split);
-        if (!best || r.over < best.over) best = { ...r, s };
-        if (!r.over) return best;
-      }
+    for (let m = 0; m < 1 << keys.length; m += 1) {
+      const set = new Set(keys.filter((_, i) => (m >> i) & 1));
+      if (!sized(set)) continue;
+      const r = anatomyMarkers(named, scaled, s, a?.key, widths, set);
+      if (r.over < best.over) best = r;
+      if (!best.over) break;
     }
     return best;
-  }, [box, anatomy, a?.key, widths]); // eslint-disable-line react-hooks/exhaustive-deps
+  };
+  const layout = useMemo(() => {
+    if (!box?.tag || !anatomy.length) return null;
+    let best = null;
+    for (const s of SCALES) {
+      const r = solveAt(s, box);
+      if (!best || r.over < best.over) best = { ...r, s };
+      if (!r.over) return best;
+    }
+    return best;
+  }, [box, anatomy, a?.key, widths, short]); // eslint-disable-line react-hooks/exhaustive-deps
   // a part that does not scale evenly (CodeBlock fills the stage) could swing between two sizes: after a few
   // changes the size stays where it is
   const changes = useRef(0);
@@ -448,11 +462,12 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   useEffect(() => {
     changes.current = 0;
     seen.current = new Map();
+    setShort(false);
     setScale(SCALES[0]);
   }, [part.id, box?.sw]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!layout || box?.tag !== scale) return;
-    seen.current.set(scale, anatomyMarkers(anatomy, box, scale, a?.key, widths).over);
+    seen.current.set(scale, solveAt(scale, box).over);
     if (layout.s === scale) return;
     if (changes.current < 6) {
       changes.current += 1;
@@ -462,7 +477,18 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
       const [fit] = [...seen.current.entries()].sort((p, q) => p[1] - q[1])[0];
       if (fit !== scale) setScale(fit);
     }
-  }, [layout, scale, box]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [layout, scale, box, short]); // eslint-disable-line react-hooks/exhaustive-deps
+  // a label still cut by the stage's edge once the part has taken its size: the labels read shorter
+  useEffect(() => {
+    if (!layout || box?.tag !== scale || short) return;
+    const st = document.getElementById(stageId)?.querySelector('[data-bella-component="stage"]');
+    const r = st?.getBoundingClientRect();
+    const cut = r && [...st.querySelectorAll('[data-stage-chip]')].some((c) => {
+      const q = c.getBoundingClientRect();
+      return q.left < r.left - 0.5 || q.right > r.right + 0.5;
+    });
+    if (cut && (changes.current >= 6 || layout.s === scale)) setShort(true);
+  });
   // the live part's touch target, unscaled: its own box or its hit area, whichever is larger
   useLayoutEffect(() => {
     const el = document.getElementById(shownId)?.querySelector('button, a, input, [role]');
@@ -543,10 +569,8 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   const markers = useMemo(() => {
     if (!layout) return [];
     if (layout.s === scale || !box?.tag) return layout.markers;
-    // the size could not move to the layout's: label the part as drawn
-    const k = scale / box.tag;
-    return anatomyMarkers(anatomy, { cx: box.cx * k, cy: box.cy * k, w: box.w * k, h: box.h * k, sw: box.sw }, scale, a?.key, widths).markers;
-  }, [layout, scale, box, anatomy, a?.key, widths]);
+    return solveAt(scale, box).markers; // the size could not move to the layout's: label the part as drawn
+  }, [layout, scale, box, anatomy, a?.key, widths, short]); // eslint-disable-line react-hooks/exhaustive-deps
   const has = PLAY[part.name] || SPECIMENS[part.name];
   return (
     <Flow gap={8} id={stageId} grow="first">
