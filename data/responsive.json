@@ -1,0 +1,35 @@
+{
+ "at": "2026-11-22T17:56:02.938Z",
+ "files": {
+  "app/src/templates/Flow.jsx": "dae039073c0163f8d3d7d8b8c59f462b1ca6a3be",
+  "app/src/templates/Screen.jsx": "976a300d00cbde3936248ee69fdd59257997ad55",
+  "app/src/templates/Screen.css": "220d565cce7d50b781eb945b86213ae46a82a719",
+  "app/src/pages/ComponentsContent.jsx": "7029f2b56c4cb57e38cd03c60ef607554e4947aa",
+  "app/src/pages/ConnectorsContent.jsx": "146aa04e9c12d87bab0351d2d4e84a2956535a79",
+  "app/src/pages/DocsContent.jsx": "3a97c3fd370d0c1127ffddc5bfc70bf9e0702c1e",
+  "app/src/pages/FoundationsContent.jsx": "893c1effb4fd7955d545892724fa0765591a7c14",
+  "app/src/pages/HealthContent.jsx": "08a6b784d8e91635b4d9f2b757e0999ae1d1ff52",
+  "app/src/pages/HistoryContent.jsx": "2f9015f542460961ae379924a54a833e45ed5ef8",
+  "app/src/pages/NotAgainContent.jsx": "c79d895873a6e749ca7c120c719c24757d946ffe",
+  "app/src/pages/PlaygroundContent.jsx": "03bd8c0da904a8a7689f12b5a2ed0d6e1826e464",
+  "app/src/pages/SystemMapContent.jsx": "6f7a98438a9171ee14ce8377a8df497eed5e92aa",
+  "app/src/pages/TeamContent.jsx": "c1642a1a11e5f30da4b92add5c2df9c8aedc909d",
+  "app/src/pages/WorkContent.jsx": "b88f2b6f74ad77f4c551fc41003144b32ddced33"
+ },
+ "routes": {
+  "#/work": true,
+  "#/health": true,
+  "#/system/components": true,
+  "#/system/foundations": true,
+  "#/system/history": false,
+  "#/playground": true,
+  "#/system-map": false,
+  "#/connectors": true,
+  "#/team": true,
+  "#/not-again": true
+ },
+ "ok": false,
+ "clean": 66,
+ "total": 80,
+ "texts": 13244
+}

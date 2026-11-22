@@ -24,6 +24,8 @@ export const processInputsHash = () => {
 
 // the same record for card alignment (scripts/card-align-check.mjs): the shared templates and every page
 export const CARD_RECORD = join(ROOT, 'data', 'card-align.json');
+// and for the responsive check (scripts/responsive-check.mjs): the same watched files, its own record
+export const RESPONSIVE_RECORD = join(ROOT, 'data', 'responsive.json');
 export const cardWatched = () => {
   const out = ['app/src/templates/Flow.jsx', 'app/src/templates/Screen.jsx', 'app/src/templates/Screen.css'];
   const pages = join(ROOT, 'app/src/pages');
@@ -35,3 +37,19 @@ export const cardInputsHash = () => {
   for (const f of cardWatched()) h.update(existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f)) : '');
   return h.digest('hex');
 };
+
+// responsive record, per page (scripts/responsive-check.mjs): a commit needs a clean run of the routes its own files draw,
+// on exactly those files; a shared template draws them all
+export const PAGE_ROUTES = [
+  [/WorkContent|WorkDrawer|WorkPanel/, '#/work'],
+  [/HealthContent/, '#/health'],
+  [/ComponentsContent|componentsModel/, '#/system/components'],
+  [/FoundationsContent/, '#/system/foundations'],
+  [/HistoryContent/, '#/system/history'],
+  [/Playground/, '#/playground'],
+  [/SystemMapContent/, '#/system-map'],
+  [/Connectors/, '#/connectors'],
+  [/Team/, '#/team'],
+  [/NotAgain/, '#/not-again'],
+];
+export const fileHashes = () => Object.fromEntries(cardWatched().map((f) => [f, createHash('sha1').update(existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f)) : '').digest('hex')]));

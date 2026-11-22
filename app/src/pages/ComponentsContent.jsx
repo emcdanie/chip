@@ -1306,22 +1306,16 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     ) : (
       <HistoryPanel part={part} detail={detail} names={names} open={open} setOpen={setOpen} />
     );
-  // highlights (her second reading, 22 Nov): what changed last and what to do, before the tabs
-  const latest = detail?.history[0];
-  const highlights = detail && studio.ready ? (
-    <TextStack
-      body={
-        <>
-          {latest ? <>{`Changed ${day(latest.date)}: `}<Keyed text={latest.title} names={names} />{'. '}</> : null}
-          {fixes.length ? <>{'To do: '}<Marker>{`${fixes.length} ${fixes.length === 1 ? 'fix' : 'fixes'}`}</Marker>{' in Fix.'}</> : 'Nothing to fix.'}
-        </>
-      }
-    />
+  // one notice under the tabs (her 23 Nov): what changed for THIS part, from its own History record, with See History
+  // at the right edge. A record that never names the part is about something else, so it is not shown.
+  const mine = detail?.history.find((h) => new RegExp(`\\b${part.name}\\b`, 'i').test(`${h.title ?? ''}`));
+  const highlights = detail && studio.ready && mine ? (
+    <Notification tone="info" message={<>{`Changed ${day(mine.date)}: `}<Keyed text={mine.title} names={names} />{'.'}</>} action={{ label: 'See History', onClick: () => (setTab('history'), setOpen(null)) }} />
   ) : null;
   const right = (
     <Flow gap={16}>
-      {highlights}
       <Tabs label={`${part.name}: inspect, quality, fix, checks, history`} idBase="studio-view" value={tab} onChange={(t) => (setTab(t), setOpen(null))} tabs={TABS} />
+      {highlights}
       <TabPanels tabs={{ idBase: 'studio-view', value: tab, items: TABS }}>
         <Flow gap={16} scroll={!phone}>
           {!detail || !studio.ready ? <EmptyState size="lane" mark="⏳" title={`Reading ${part.name}`} line="Fetching its checks, history and contrast pairs." /> : panel}

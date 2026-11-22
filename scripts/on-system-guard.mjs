@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from '
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { RECORD, WATCHED, leaderInputsHash, PROCESS_RECORD, PROCESS_WATCHED, processInputsHash, CARD_RECORD, cardWatched, cardInputsHash } from './lib/stage-leaders.mjs';
+import { RECORD, WATCHED, leaderInputsHash, PROCESS_RECORD, PROCESS_WATCHED, processInputsHash, CARD_RECORD, RESPONSIVE_RECORD, PAGE_ROUTES, fileHashes, cardWatched, cardInputsHash } from './lib/stage-leaders.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(ROOT, 'data/on-system-baseline.json');
@@ -276,6 +276,30 @@ if (bareCommits.length) {
     const why = !rec ? 'it has not been run' : rec.hash !== cardInputsHash() ? 'it ran on other files than these' : !rec.ok ? `it found ${rec.total - rec.clean} of ${rec.total} page-widths not clean` : null;
     if (why) {
       console.log(`on-system-guard: a page or the templates changed and the card check is not clean (${why}). Run npm run check:cards. Commit blocked.`);
+      process.exit(1);
+    }
+  }
+}
+
+// Responsive: a commit that changes a page needs a clean full run of `npm run check:responsive` for that page, on
+// exactly its file; a shared template needs every page clean (23 Nov: "you didnt check it in responsive screen..
+// you should just do that every time"): 1440, 1024, 768 and 320, light and dark.
+{
+  const staged = spawnSync('git', ['diff', '--cached', '--name-only'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n');
+  const mine = cardWatched().filter((f) => staged.includes(f));
+  if (mine.length) {
+    const rec = existsSync(RESPONSIVE_RECORD) ? JSON.parse(readFileSync(RESPONSIVE_RECORD, 'utf8')) : null;
+    const now = fileHashes();
+    let why = !rec ? 'it has not been run' : null;
+    for (const f of mine) {
+      if (why) break;
+      if (rec.files?.[f] !== now[f]) { why = `it ran on another version of ${f}`; break; }
+      const routes = f.includes('/templates/') ? Object.keys(rec.routes ?? {}) : PAGE_ROUTES.filter(([re]) => re.test(f)).map(([, r]) => r);
+      const bad = (routes.length ? routes : Object.keys(rec.routes ?? {})).filter((r) => rec.routes?.[r] !== true);
+      if (bad.length) why = `${f} is not clean on ${bad.join(', ')}`;
+    }
+    if (why) {
+      console.log(`on-system-guard: a page or the templates changed and the responsive check is not clean (${why}). Run npm run check:responsive. Commit blocked.`);
       process.exit(1);
     }
   }

@@ -20,7 +20,7 @@
 // Figma states sent to Claude / checking / tested / check failed wait on a
 // fix route for token problems (CHIP has none yet).
 import { planRun } from '../templates/RunPlan.jsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
@@ -28,7 +28,7 @@ import Swatch from '@bella/components/Swatch/Swatch';
 import TypeSpecimen from '@bella/components/TypeSpecimen/TypeSpecimen';
 import SpacingStep from '@bella/components/SpacingStep/SpacingStep';
 import RadiusTile from '@bella/components/RadiusTile/RadiusTile';
-import EasingCurve, { DurationBar } from '@bella/components/EasingCurve/EasingCurve';
+import EasingCurve, { DurationBar, EASING_POINTS } from '@bella/components/EasingCurve/EasingCurve';
 import Progress from '@bella/components/Progress/Progress';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Button from '@bella/components/Button/Button';
@@ -39,7 +39,8 @@ import DataTable from '@bella/components/DataTable/DataTable';
 import Tag from '@bella/components/Tag/Tag';
 import Link from '@bella/components/Link/Link';
 import SearchField from '@bella/components/SearchField/SearchField';
-import Icon from '@bella/components/Icon/Icon';
+import Marker from '@bella/components/Marker/Marker';
+import Notification from '@bella/components/Notification/Notification';
 import Step from '@bella/components/Step/Step';
 import Flow from '../templates/Flow.jsx';
 import Toasts from '../templates/Toasts.jsx';
@@ -326,6 +327,12 @@ function liveHex(name) {
    Rows keep Figma's look: the colour sample, the token's name, its group underneath, the light-blue selected row.
    Gap (named for the library): Figma draws a curved blue line from row to row across columns; the picker has
    one list, so the chain's steps stand in for it, and Step draws a line, not an arrow, between them. */
+/* A change to the picked colour: the plan opens first (templates/RunPlan.jsx); Approve sends it. */
+function sendChange(pick, role, parts) {
+  const brief = [`Change ${role ? role.name : pick.name} (picked on Foundations). It reaches ${parts.length} parts, listed here:`, ...parts.map((n) => `- ${n}`), 'Say which parts change and what each looks like before editing. Ask before changing a public token.'].join('\n');
+  planRun({ brief, title: `Change ${(role ?? pick).name.replace(/^--/, '')}`, from: 'Foundations', steps: parts.slice(0, 8).map((n, i) => ({ id: `p${i}`, title: `Check ${n}` })) }).catch(() => {});
+}
+
 function Tiers({ bella }) {
   // picker beside the chain only where each keeps a readable width (1200 and up); below, they stack
   const narrow = useNarrow(1200);
@@ -378,7 +385,15 @@ function Tiers({ bella }) {
   return (
     <Card>
       <Flow gap={24}>
-        <SectionHead icon="ViewGrid" iconTone="info" title="Tiers" description="Pick a token to see where it comes from and where it goes" number={total} words="colour tokens · 3 tiers" />
+        <SectionHead icon="ViewGrid" iconTone="info" title="Tiers" description="Where does this colour come from, and what breaks if I change it?" number={total} words="colour tokens · 3 tiers" />
+        {/* the answer for the picked token: how many parts a change reaches, and the next step (her 23 Nov, "what value is it adding") */}
+        <Flow direction={narrow ? 'column' : 'row'} gap={12} justify="between" align={narrow ? undefined : 'center'} grow={narrow ? undefined : 'first'}>
+          <TextStack body={role ? <>{`Changing ${words(pick).title} reaches `}<Marker>{`${partList.length} ${partList.length === 1 ? 'part' : 'parts'}`}</Marker>{`${also.length ? ` and ${also.length} more ${also.length === 1 ? 'reader' : 'readers'}` : ''}.`}</> : 'Pick a token to see how many parts a change would reach.'} />
+          <Flow direction="row" gap={8} wrap justify="end">
+            {partList[0] && idOf(partList[0]) ? <Button variant="secondary" size="sm" onClick={() => { window.location.hash = `#/system/components/${idOf(partList[0])}`; }}>Open the parts</Button> : null}
+            {partList.length ? <Button variant="secondary" size="sm" onClick={() => sendChange(pick, role, partList)}>Send a change</Button> : null}
+          </Flow>
+        </Flow>
         <Flow direction={narrow ? 'column' : 'row'} gap={24} equal align={narrow ? undefined : 'start'}>
           <Flow gap={16}>
             <SearchField label="Find a colour token" placeholder="Find a colour token…" showShortcut={false} value={q} onChange={setQ} />
@@ -410,14 +425,12 @@ function Tiers({ bella }) {
                 detail="The plain scale every colour starts from"
                 tag={def && liveHex(def.name) ? <Tag tone="neutral" count={liveHex(def.name)} /> : undefined}
               />
-              <li aria-hidden="true"><Flow direction="row" justify="start"><Icon name="NavArrowDown" size="md" /></Flow></li>
               <Step
                 state="pending" showConnector={false}
                 icon="ViewGrid"
                 title={role ? `What it is for: ${roleName(role)}` : 'What it is for: nothing yet'}
                 detail={role ? `A job: where this colour goes${rolesOfDef > 1 ? `. ${rolesOfDef} roles share this colour` : ''}` : 'No role points at this colour yet'}
               />
-              <li aria-hidden="true"><Flow direction="row" justify="start"><Icon name="NavArrowDown" size="md" /></Flow></li>
               <Step
                 state="pending" showConnector={false}
                 icon="Code"
@@ -467,6 +480,7 @@ function Problems({ rows }) {
       setBusy(null);
     }
   };
+  if (!problems.length) return null;
   return (
     <Card>
       <Flow gap={16}>
@@ -493,9 +507,7 @@ function Problems({ rows }) {
               );
             })}
           </Flow>
-        ) : (
-          <EmptyState size="lane" mark="👌" title="No token problems" line="Every value in the parts’ CSS reads a token." />
-        )}
+        ) : null}
         {said ? (
           <Toasts>
             <Toast tone={said.tone} onClose={() => setSaid(null)}>
@@ -682,32 +694,101 @@ function ShapeAndSpace({ radius }) {
 /* A duration's job in a word or two, from its token description ("Hover lift on interactive cards (ms)" → "hover lift"); none for a bare value. */
 const jobOf = (d) => (/^Value:/.test(d ?? '') ? null : String(d ?? '').replace(/\s*\(ms\)\.?$/, '').split(/ on | of /)[0].replace(/\.$/, '').toLowerCase() || null);
 
-/* Motion (Figma 810:82446): how long things take, to scale, and how they ease. */
+/* The states a part moves through (her 23 Nov: "its not even showing any state hover etc"): a real BELLA Button
+   and a real Card in rest, hover, pressed, focus and disabled, the Button's and the Card's own transition read
+   from the browser (computed style), named by the token that matches. Hover and pressed are the real thing: point
+   at it, press it. Gap (named for the library): Button and Card have no forced-state prop, so a state cannot be
+   frozen next to the others; "Show focus" moves the real focus ring onto the Button. */
+const STATES = [
+  ['rest', 'Rest', 'Nothing moves.'],
+  ['hover', 'Hover', 'Point at it.'],
+  ['pressed', 'Pressed', 'Press and hold.'],
+  ['focus', 'Focus', 'Tab to it.'],
+  ['disabled', 'Disabled', 'No response.'],
+];
+const msOf = (t) => Math.round(parseFloat(t) * (/ms$/.test(t) ? 1 : 1000));
+const easeName = (css) => {
+  const m = String(css).match(/cubic-bezier\(([^)]+)\)/);
+  if (!m) return String(css).split(',')[0].trim() || 'linear';
+  const n = m[1].split(',').map(Number);
+  return Object.entries(EASING_POINTS).find(([, pts]) => pts.every((v, i) => Math.abs(v - n[i]) < 0.01))?.[0] ?? `cubic-bezier(${m[1]})`;
+};
+function MotionStates() {
+  const narrow = useNarrow(1200);
+  const wrap = useRef(null);
+  const [read, setRead] = useState(null);
+  useEffect(() => {
+    const first = (el) => {
+      const cs = getComputedStyle(el);
+      return `${msOf(cs.transitionDuration.split(',')[0].trim())}ms · ${easeName(cs.transitionTimingFunction.split(/,(?![^(]*\))/)[0])}`;
+    };
+    const b = wrap.current?.querySelector('[data-spec="button"] button');
+    const c = wrap.current?.querySelector('[data-spec="card"] button, [data-spec="card"] a');
+    if (b && c) setRead({ button: first(b), card: first(c) });
+  }, []);
+  return (
+    <Flow gap={12}>
+      <TextStack title="States" body="A real Button and a real Card. Point at one, press it, tab to it." />
+      <div ref={wrap}>
+        <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
+          {STATES.map(([k, name, line]) => (
+            <Flow key={k} gap={8}>
+              <TextStack title={name} body={line} />
+              <div data-spec="button" data-state={k}>
+                <Button variant="secondary" disabled={k === 'disabled'}>Button</Button>
+              </div>
+              {k === 'disabled' ? (
+                <TextStack body="A Card has no disabled state." />
+              ) : (
+                <div data-spec="card">
+                  <Card onClick={() => {}}>
+                    <TextStack title="Card" />
+                  </Card>
+                </div>
+              )}
+              <TextStack subtitle={k === 'rest' || k === 'disabled' ? 'no motion' : k === 'focus' ? 'pink ring, no move' : read ? `${read.button} · Button` : '…'} />
+              {k === 'hover' || k === 'pressed' ? <TextStack subtitle={read ? `${read.card} · Card` : '…'} /> : null}
+              {k === 'focus' ? <Button variant="tertiary" size="sm" onClick={() => wrap.current?.querySelector('[data-state="focus"] button')?.focus({ focusVisible: true })}>Show focus</Button> : null}
+            </Flow>
+          ))}
+        </Flow>
+      </div>
+    </Flow>
+  );
+}
+
+/* Motion (Figma 810:82446): how long things take, to scale, and how they ease; then the states a part moves through. */
 function Motion({ motion }) {
   // durations beside easings only where a DurationBar keeps about 480 (a 1440 window); narrower, its token runs under its bar, so they stack
   const narrow = useNarrow(1440);
   const longest = Math.max(...motion.durations.map((d) => d.ms));
+  // her own setting decides first; the switch shows the still version (the dot sits at its end) without changing the system
+  const [still, setStill] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
   return (
     <Card>
       <Flow gap={16}>
         <SectionHead icon="Clock" iconTone="warning" title="Motion" description="How long things take and how they ease" />
+        <Flow direction="row" justify="end">
+          <SegmentedControl options={[{ value: 'live', label: 'Live' }, { value: 'still', label: 'Still (reduced motion)' }]} value={still ? 'still' : 'live'} onChange={(v) => setStill(v === 'still')} label="Show motion as" />
+        </Flow>
         <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
           <Flow gap={12}>
-            <TextStack title="Duration" body="Select one to play it: the pink dot crosses in that time." />
+            <TextStack title="Duration" body={still ? 'Still: each bar shows its finished length.' : 'Select one to play it: the pink dot crosses in that time.'} />
             {/* BELLA's DurationBar (bd87f14): the token, its job where the token names one, to scale */}
             {motion.durations.map((d) => (
-              <DurationBar key={d.token} duration={d.ms} use={jobOf(d.description) ?? undefined} animated />
+              <DurationBar key={d.token} duration={d.ms} use={jobOf(d.description) ?? undefined} animated={!still} />
             ))}
           </Flow>
           <Flow gap={12}>
-            <TextStack title="Easing" body="Select one to play it: the pink dot rides the curve." />
+            <TextStack title="Easing" body={still ? 'Still: each curve shows its shape.' : 'Select one to play it: the pink dot rides the curve.'} />
             {/* BELLA's EasingCurve (bd87f14): the curve, its token and its cubic-bezier */}
             {motion.easings.map((e) => (
-              <EasingCurve key={e.token} easing={e.name} animated />
+              <EasingCurve key={e.token} easing={e.name} animated={!still} />
             ))}
           </Flow>
         </Flow>
-        <TextStack body={`Read from the Foundations variables: motion duration and easing. Bars are to scale, ${longest}ms full.`} />
+        <MotionStates />
+        <TextStack body={`Read from the Foundations variables: motion duration and easing. Bars are to scale, ${longest}ms full. State timings are read from the Button's and Card's own CSS.`} />
       </Flow>
     </Card>
   );
@@ -752,6 +833,7 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
   if (error) return <EmptyState size="page" title="Foundations isn't answering" line="CHIP couldn't read BELLA's token files. Run the sync and refresh." />;
   if (!data || !roles || !all) return <EmptyState size="page" title="Reading BELLA's tokens" line="Colours, type and steps. Two ticks." />;
   const f = data[0];
+  const openProblems = f.tokenized.rows.filter((r) => r.not.length).length;
   const usage = data[1].tokenUsage ?? {};
   const otherUse = data[1].tokenUsageOther ?? {};
   const words = q.trim().toLowerCase();
@@ -763,6 +845,14 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
   const usedN = all.filter((r) => r.inUse).length;
   return (
     <>
+      {/* Token problems first (her 23 Nov: "if there are problems we should be notified?? that is the point no"): a one-line notice under
+          the tabs, the card straight below it; none, and one quiet line */}
+      {openProblems ? (
+        <Notification tone="attention" message={`Foundations: ${openProblems} token ${openProblems === 1 ? 'problem' : 'problems'}`} action={{ label: 'See them', onClick: () => document.querySelector('[aria-label="Token problems"]')?.scrollIntoView({ block: 'center' }) }} />
+      ) : (
+        <TextStack body="No token problems." />
+      )}
+      <Problems rows={f.tokenized.rows} />
       {/* Control bar on the page ground: what you look at on the left (filter, chips), the view switch on the right */}
       {/* the switch keeps the right end at every width: the left group wraps (filter, then chips), never the bar (audit 9 at 1024 and 1100) */}
       <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align="start" grow={phone ? undefined : 'first'}>
@@ -809,7 +899,6 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
       <ShapeAndSpace radius={f.radius} />
       {f.motion ? <Motion motion={f.motion} /> : null}
       <Tiers bella={data[1]} />
-      <Problems rows={f.tokenized.rows} />
     </>
   );
 }
