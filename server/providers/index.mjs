@@ -8,6 +8,7 @@ export const providers = { local, claude, jev };
 /** 'local:qwen3:8b' -> { provider: local, model: 'qwen3:8b' }; 'claude' -> { provider: claude } */
 export function resolve(id) {
   if (id?.startsWith('local:')) return { provider: local, model: id.slice('local:'.length) };
+  if (id?.startsWith('claude:')) return { provider: claude, model: id.slice('claude:'.length) };
   if (id === 'claude') return { provider: claude };
   return { provider: local, model: undefined };
 }

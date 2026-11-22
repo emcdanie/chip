@@ -153,7 +153,7 @@ function DataAnswer({ data }) {
         <Flow key={d.n} gap={4}>
           <TextStack subtitle={`${d.title} · ${d.source} · ${d.measured}`} />
           <Flow as="ul" gap={4} bullets aria-label={`${d.title}: the numbers`}>
-            {d.facts.slice(0, 5).map((f) => (
+            {d.facts.slice(0, 8).map((f) => (
               <li key={f.label}>
                 <TextStack body={`${f.label}: ${f.value}`} />
               </li>
@@ -209,16 +209,28 @@ function Turn({ turn, last, sent, onAgent, onRetry }) {
         </Flow>
       ) : null}
       {a?.status === 'answer' ? (
-        <Reply who={a.model ? `BELLA · ${a.model}` : 'BELLA'} disc="B" extra={!sent ? <ActionChip onClick={() => onAgent(turn)}>{a.needsAgent ? 'Ask an agent' : 'Send it to the agent'}</ActionChip> : null}>
+        <Reply who={a.model ? `BELLA · ${a.model}` : 'BELLA'} disc="B" extra={!sent && !a.needsConfirm ? <ActionChip onClick={() => onAgent(turn)}>{a.needsAgent ? 'Ask an agent' : 'Send it to the agent'}</ActionChip> : null}>
           <Flow gap={12}>
             <AnswerLines shaped={shaped} onPin={openPin} />
             {a.data?.length ? <DataAnswer data={a.data} /> : null}
           </Flow>
         </Reply>
       ) : null}
+      {/* who answered and why, in one line; one click answers it again on the next model (the override CHIP logs).
+          Auto never runs a cloud model by itself: it says what it would use and waits for this click. */}
+      {a?.status === 'answer' && a.route?.why ? (
+        <Flow direction="row" gap={8} align="center" wrap>
+          <TextStack subtitle={`${a.route.why}.`} />
+          {!onRetry ? null : a.needsConfirm ? (
+            <ActionChip onClick={() => onRetry(a.needsConfirm.provider)}>{`Run on ${a.needsConfirm.label}`}</ActionChip>
+          ) : a.route.alt ? (
+            <ActionChip onClick={() => onRetry(a.route.alt.id)}>{`Ask again on ${a.route.alt.label}${a.route.alt.cost === 'free' ? '' : ' (uses your plan)'}`}</ActionChip>
+          ) : null}
+        </Flow>
+      ) : null}
       {a?.status === 'answer' && !a.data?.length ? citation : null}
       {a?.status === 'answer' && !a.data?.length ? sourcesFold : null}
-      {a?.status === 'weak' || a?.status === 'error' || a?.status === 'stopped' ? <NotAnswered a={a} onRetry={onRetry} /> : null}
+      {a?.status === 'weak' || a?.status === 'error' || a?.status === 'stopped' ? <NotAnswered a={a} onRetry={onRetry} onAgent={a.plain ? () => onAgent({ ...turn, answer: { ...a, reply: `Look into this error: ${a.plain.what} ${a.plain.why}.${a.plain.file ? ` File: ${a.plain.file}.` : ''}` } }) : undefined} /> : null}
     </Flow>
   );
 }

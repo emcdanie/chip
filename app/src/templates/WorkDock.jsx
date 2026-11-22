@@ -25,6 +25,7 @@ import ListRow from '@bella/components/ListRow/ListRow';
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
 import Select from '@bella/components/Select/Select';
+import TextStack from '@bella/components/TextStack/TextStack';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Toast from '@bella/components/Toast/Toast';
 import Flow from './Flow.jsx';
@@ -48,14 +49,17 @@ const kept = { turns: [], past: [], answer: null };
 /** Open the dock from anywhere: openWork('needs'). */
 export const openWork = (tab) => window.dispatchEvent(new CustomEvent('chip:work', { detail: { tab } }));
 
-/* The model for every action (ask-bella-and-chat.md, 19 Nov: "let Obi select it"): Auto (local first) is the default. */
-export const MODELS = [
-  { value: 'auto', label: 'Auto · local first' },
-  { value: 'local', label: 'Local model' },
-  { value: 'claude', label: 'Claude' },
-];
+/* The model router's menu (her 22 Nov: "its still missing the other models and the model router"): Auto first,
+   then every model by where it runs, each with its cost note, and one that cannot be used says why in words.
+   BELLA's Select has no option groups or disabled options, so the label carries the group and an unavailable
+   model reads "not available: ..." and keeps Auto (gap named in the report). */
+const WHERE = { 'On this machine': 'This Mac', Cloud: 'Cloud' };
+function modelOptions(menu) {
+  const auto = { value: 'auto', label: menu ? `Auto · ${menu.auto.note}` : 'Auto · picks by the question' };
+  return [auto, ...(menu?.models ?? []).map((m) => ({ value: m.id, label: `${WHERE[m.group] ?? m.group} · ${m.label} · ${m.note}` }))];
+}
 // what /ask takes: no provider = Auto
-export const providerOf = (m) => (m === 'auto' ? undefined : m === 'local' ? 'local' : 'claude');
+export const providerOf = (m) => (m === 'auto' ? undefined : m);
 
 /* An agent run, as a session row: where it is, in a word, and its tone. */
 const RUN = {
@@ -116,6 +120,20 @@ export default function WorkDock() {
   const [item, setItem] = useState(null); // what a row opens (WorkDrawer)
   const [notice, setNotice] = useState(null);
   const [model, setModel] = useState('auto');
+  const [menu, setMenu] = useState(null);
+  const [modelNote, setModelNote] = useState(null);
+  useEffect(() => {
+    let on = true;
+    // refreshed when the panel opens, so "Claude x of 20 today" is today's
+    fetch('/models').then((r) => (r.ok ? r.json() : null)).then((d) => on && setMenu(d?.menu ?? null)).catch(() => {});
+    return () => { on = false; };
+  }, [open]);
+  const pickModel = (v) => {
+    const m = menu?.models.find((x) => x.id === v);
+    if (m && !m.available) { setModel('auto'); setModelNote(`${m.label} is ${m.note}. Auto stays on.`); return; }
+    setModelNote(null);
+    setModel(v);
+  };
   const [draft, setDraft] = useState('');
   // one chat (her 20 Nov "i just want one please"; audit 4, item 1): BELLA and the agent in
   // one ChatThread, one empty state, one Send
@@ -238,8 +256,9 @@ export default function WorkDock() {
   const suggestion = (asker.answer?.next ?? []).find((q) => !asked.has(q)) ?? (asked.has(EXAMPLE) ? undefined : EXAMPLE);
 
   const composer = (
+    <Flow gap={8}>
     <Flow direction="row" gap={8} align="end" wrap grow="last">
-      <Select label="Model" value={model} onChange={setModel} options={MODELS} />
+      <Select label="Model" value={model} onChange={pickModel} options={modelOptions(menu)} />
       <Flow direction="row" gap={8} align="end" grow="first">
         <Input label="Ask about BELLA" placeholder={tiny ? 'Your question' : 'Ask about BELLA'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" suggestion={suggestion} />
         {talk.can ? (
@@ -248,6 +267,8 @@ export default function WorkDock() {
           </Button>
         ) : null}
       </Flow>
+    </Flow>
+    {modelNote ? <TextStack subtitle={modelNote} /> : null}
     </Flow>
   );
 

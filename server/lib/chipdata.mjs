@@ -185,11 +185,80 @@ async function designed(ctx) {
   };
 }
 
-export const SOURCES = { onSystem, drift, gaps, health, audits, history, needs, contrast, sweep, designed };
+// How it was built: what the record says, never what sounds likely. Order from the git logs, rules from the
+// dated CLAUDE.md / maintaining.md headings, where it is written down from the files' own dates. "Who" is the
+// co-author line on commits; where that is the record it says an agent built it from Elleta's rules.
+async function built(ctx) {
+  const b = ctx.builtInfo();
+  if (!b) return null;
+  const day = (d) => (d ? String(d).slice(0, 10) : 'unknown date');
+  const facts = [];
+  for (const r of b.repos ?? []) facts.push({ label: `Order made: ${r.name}`, value: `first commit ${day(r.first?.date)} ("${r.first?.subject ?? ''}"), ${r.count} commits since, latest ${day(r.last?.date)}` });
+  const all = (b.repos ?? []).reduce((a, r) => a + r.count, 0);
+  const co = (b.repos ?? []).reduce((a, r) => a + r.coAuthored, 0);
+  if (all) facts.push({ label: 'Who made it', value: `${co} of ${all} commits carry a Claude co-author line: an agent built it from Elleta's rules` });
+  for (const r of b.rules ?? []) facts.push({ label: `Rules that shaped it: ${r.file}`, value: `${r.count} ${r.kind}${r.latest ? `, latest "${r.latest.title}" (${r.latest.date})` : ''}` });
+  for (const d of b.docs ?? []) facts.push({ label: `Documented in ${d.name}`, value: `${d.what}, updated ${day(d.at)}` });
+  if (!facts.length) return null;
+  // three short blocks, written from the facts (no model: the record is the answer)
+  const first = (b.repos ?? []).map((r) => `${r.name} ${day(r.first?.date)}`).join(', ');
+  const latest = (b.repos ?? []).map((r) => day(r.last?.date)).sort().at(-1);
+  const rulesLine = (b.rules ?? []).map((r) => `${r.file} (${r.count} ${r.kind}${r.latest ? `, latest ${r.latest.date}` : ''})`).join('; ');
+  const docsLine = (b.docs ?? []).map((d) => d.name).join(', ');
+  const reply = [
+    all ? `**${co} of ${all} commits** carry a Claude co-author line: an agent built it from Elleta's rules.` : "The record doesn't say who made it.",
+    `- Order: first commits ${first}; the latest is ${latest}.`,
+    `- Rules: ${rulesLine || 'none found'}.`,
+    `- Documented: ${docsLine || 'nowhere I can read'}.`,
+  ].join('\n');
+  return {
+    reply, id: 'built', title: 'How it was built', source: 'git logs, CLAUDE.md, maintaining.md, decisions-while-away.md, handoff.md, docs/plans',
+    at: ctx.now(), facts,
+    columns: ['Block', 'Source', 'Date', 'What'],
+    rows: [
+      ...(b.repos ?? []).flatMap((r) => [{ Block: 'Order', Source: `${r.name} git log`, Date: day(r.first?.date), What: `first: ${r.first?.subject ?? ''}` }, { Block: 'Order', Source: `${r.name} git log`, Date: day(r.last?.date), What: `latest: ${r.last?.subject ?? ''}` }]),
+      ...(b.rules ?? []).flatMap((r) => (r.recent ?? []).map((x) => ({ Block: 'Rules', Source: r.file, Date: x.date, What: x.title }))),
+      ...(b.docs ?? []).map((d) => ({ Block: 'Documented', Source: d.name, Date: day(d.at), What: d.what })),
+    ],
+  };
+}
+
+// Where the gaps are and how to improve, as a short ranked list from what CHIP already measures
+async function improve(ctx) {
+  const items = [];
+  const rep = ctx.onSystemReport();
+  for (const t of rep?.red ?? []) items.push({ item: t, source: 'on-system report (Red)' });
+  for (const a of (ctx.audits() ?? []).filter((x) => x.ran && x.orders?.length).sort((x, y) => (x.value ?? 100) - (y.value ?? 100)).slice(0, 2)) items.push({ item: `${a.title} (${a.value ?? '?'} ${a.unit ?? ''}): ${a.orders[0]}`, source: `${a.title} audit, ${a.ran}` });
+  const d = ctx.drift();
+  if (d?.drifting) items.push({ item: `${d.drifting} of ${d.compared} compared parts drift from Figma`, source: 'Drift' });
+  const g = ctx.gaps();
+  if (g?.notInCode?.length) items.push({ item: `${g.notInCode.length} specified parts have no code part yet`, source: 'Gaps' });
+  const t = ctx.designedText();
+  if (t) {
+    const lines = t.text.split('\n').filter((l) => /^- \*\*/.test(l));
+    const n = (re) => lines.filter((l) => re.test(l.slice(-90))).length;
+    const open = n(/\bmissing\b/i) + n(/\bbroken\b/i) + n(/\bpartly\b/i);
+    if (open) items.push({ item: `${open} designed features are partly built, missing or broken`, source: 'designed-features.md' });
+  }
+  const board = ctx.board();
+  if (board?.waiting) items.push({ item: `${board.waiting} board items wait on Elleta${board.todo ? `, ${board.todo} still to do` : ''}`, source: 'project board' });
+  if (!items.length) return null;
+  const top = items.slice(0, 6);
+  const reply = `**${items.length} things to improve**, most valuable first: ${items[0].item}.\n${items.slice(1, 3).map((x, i) => `- ${i + 2}: ${x.item}.`).join('\n')}\n- The rest is listed below, each with its source.`;
+  return {
+    reply, id: 'improve', title: 'Gaps and how to improve', source: 'on-system report, audits, drift, gaps, designed-features.md, project board',
+    at: ctx.now(), facts: top.map((x, i) => ({ label: `${i + 1}`, value: `${x.item} (${x.source})` })),
+    columns: ['Rank', 'Item', 'Source'], rows: items.map((x, i) => ({ Rank: i + 1, Item: x.item, Source: x.source })),
+  };
+}
+
+export const SOURCES = { onSystem, drift, gaps, health, audits, history, needs, contrast, sweep, designed, built, improve };
 
 /* ---------- the router ---------- */
 
 const TOPICS = [
+  ['built', /\bhow (did|was|were|has)\b.*\b(build|built|made|make|create[d]?)\b|\bwho (built|made|wrote)\b|\bhow it was (built|made)\b|\bhow elleta (built|made)\b|\bwhere (is|are) it documented\b/i],
+  ['improve', /\bgaps?\b.*\bimprov\w*|\bimprov\w*\b|\bwhat should (we|i) (fix|do|improve)\b|\bwhat'?s (missing|next)\b|\bhow can we (get better|improve)\b/i],
   ['onSystem', /\bon[- ]system\b|\boff[- ]system\b|\bbella[- ]only\b|\busing (its|the|bella'?s?) (own )?(components|parts)\b|\bguard\b|\bbaseline\b|\bbuilt from bella\b|\bcomponents? (is|are) (it|chip) using\b|\bparts? (used|in use)\b/i],
   ['drift', /\bdrift\w*\b|\bout of sync\b|\bspec (is )?behind\b/i],
   ['gaps', /\bgaps?\b|\bnot (built|in bella)\b|\bcan'?t do yet\b/i],
@@ -207,10 +276,13 @@ const MAX_SOURCES = 3;
 /** The source ids a question needs, by keywords; the part named in it, if any. */
 export function classify(question, partNames = []) {
   const q = String(question ?? '');
-  const ids = TOPICS.filter(([, re]) => re.test(q)).map(([id]) => id);
+  let ids = TOPICS.filter(([, re]) => re.test(q)).map(([id]) => id);
+  // the two overview questions carry their own parts: no second source repeats what they already list
+  if (ids.includes('built')) ids = ['built'];
+  else if (ids.includes('improve')) ids = ids.filter((x) => !['gaps', 'drift', 'audits', 'designed'].includes(x));
   const part = partNames.find((n) => new RegExp(`\\b${n}\\b`, 'i').test(q)) ?? null;
   // a part named in the question is its own source, unless the question is about the whole app
-  if (part && !ids.includes('onSystem')) ids.unshift('component');
+  if (part && !ids.includes('onSystem') && !ids.includes('built')) ids.unshift('component');
   return { ids: ids.slice(0, MAX_SOURCES), part };
 }
 
@@ -280,6 +352,7 @@ export function numbersHeld(reply, results) {
 
 // no model: the same answer from the facts alone (a model that is off, or one that wrote an unknown number)
 export function plainReply(results) {
+  if (results.length === 1 && results[0].reply) return results[0].reply;
   return results.map((r) => `${r.title}: ${r.facts.slice(0, 3).map((f) => `${f.label.toLowerCase()} ${f.value}`).join('; ')}.`).join(' ');
 }
 
@@ -323,6 +396,71 @@ function importedParts(src) {
   return [...found].sort();
 }
 
+
+const DOCS = join(homedir(), 'DEV/chip/docs/reference');
+// the dated rules in a markdown file: "## Title (Elleta, 12 Nov 2026 ...)" -> { title, date }
+const MONTHS = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
+export function datedHeadings(text) {
+  const out = [];
+  for (const l of String(text).split('\n')) {
+    const h = l.match(/^#{2,3}\s+(.+?)\s*\(([^)]*?(\d{1,2}) ([A-Z][a-z]{2})[a-z]* (20\d\d)[^)]*)\)\s*$/);
+    if (h) out.push({ title: h[1].replace(/\*\*/g, ''), date: `${h[5]}-${MONTHS[h[4].toLowerCase()] ?? '00'}-${h[3].padStart(2, '0')}` });
+  }
+  return out;
+}
+const sections = (text) => String(text).split('\n').filter((l) => /^#{2,3}\s/.test(l)).length;
+function gitRepo(name, dir) {
+  try {
+    const out = execFileSync('git', ['-C', dir, 'log', '--no-merges', '--format=%ad\t%s\t%b%x00', '--date=short'], { encoding: 'utf8', timeout: 15_000, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+    const commits = out.split('\0').map((c) => c.replace(/^\n/, '')).filter(Boolean).map((c) => { const [date, subject, ...b] = c.split('\t'); return { date, subject: subject.slice(0, 90), co: /Co-Authored-By:\s*Claude/i.test(b.join('\t')) }; });
+    if (!commits.length) return null;
+    return { name, count: commits.length, coAuthored: commits.filter((c) => c.co).length, first: commits.at(-1), last: commits[0] };
+  } catch {
+    return null;
+  }
+}
+function builtInfo() {
+  const read = (f) => (existsSync(f) ? readFileSync(f, 'utf8') : null);
+  const repos = [['CHIP', ROOT], ['BELLA', BELLA_DIR]].map(([n, d]) => (existsSync(d) ? gitRepo(n, d) : null)).filter(Boolean);
+  const rules = [];
+  const chipRules = read(join(ROOT, 'CLAUDE.md'));
+  if (chipRules) { const h = datedHeadings(chipRules); rules.push({ file: 'CHIP CLAUDE.md', kind: 'dated rules', count: h.length, latest: h.sort((a, b) => b.date.localeCompare(a.date))[0], recent: h.slice(0, 4) }); }
+  const maint = read(join(BELLA_DIR, 'docs/agents/maintaining.md'));
+  if (maint) { const h = datedHeadings(maint); rules.push({ file: 'BELLA maintaining.md', kind: `sections, ${h.length} dated`, count: sections(maint), latest: h.sort((a, b) => b.date.localeCompare(a.date))[0], recent: h.slice(0, 3) }); }
+  const agents = read(join(BELLA_DIR, 'AGENTS.md'));
+  if (agents) rules.push({ file: 'BELLA AGENTS.md', kind: 'sections', count: sections(agents), recent: [] });
+  const docs = [];
+  const add = (name, f, what) => { const at = mtime(f); if (at) docs.push({ name, at: iso(at), what }); };
+  const dec = read(join(DOCS, 'decisions-while-away.md'));
+  if (dec) docs.push({ name: 'decisions-while-away.md', at: iso(mtime(join(DOCS, 'decisions-while-away.md'))), what: `${(dec.match(/^- 20\d\d-/gm) ?? []).length} decisions, one line each: what, why, how to undo` });
+  add('handoff.md', join(DOCS, 'inbox/handoff.md'), 'done, next, blockers, files, branch');
+  const plans = join(homedir(), 'DEV/chip/docs/plans');
+  if (existsSync(plans)) add('docs/plans', plans, `${readdirSync(plans).filter((f) => f.endsWith('.md')).length} plan files`);
+  add('designed-features.md', join(DOCS, 'designed-features.md'), 'every approved feature, with its source and state');
+  const specs = join(BELLA_DIR, 'specs/components');
+  if (existsSync(specs)) add('specs/components', specs, `${readdirSync(specs).filter((f) => f.endsWith('.spec.yaml')).length} component specs`);
+  return { repos, rules, docs };
+}
+// the newest saved on-system report: its Red findings, first sentence each
+function onSystemReport() {
+  const base = process.env.CHIP_AUDIT_DIR || join(DOCS, 'audit');
+  if (!existsSync(base)) return null;
+  for (const day of readdirSync(base).filter((d) => /^\d{4}-/.test(d)).sort().reverse()) {
+    const f = join(base, day, 'chip-on-system.md');
+    if (!existsSync(f)) continue;
+    const text = readFileSync(f, 'utf8');
+    const red = text.split(/^### Red\s*$/m)[1]?.split(/^### /m)[0] ?? '';
+    return { day, red: red.split('\n').filter((l) => /^- /.test(l)).map((l) => l.replace(/^- \*\*(.+?)\*\*.*$/, '$1').replace(/\.$/, '')).slice(0, 3) };
+  }
+  return null;
+}
+function boardCounts() {
+  const j = readJson(join(DOCS, 'screens/progress/progress.json'));
+  if (!j?.items) return null;
+  const n = (st) => j.items.filter((i) => i.stage === st).length;
+  return { waiting: n('Waiting on you'), todo: n('To do'), building: n('Building') };
+}
+
 export function defaultCtx(deps = {}) {
   const midnight = () => {
     const d = new Date();
@@ -350,6 +488,9 @@ export function defaultCtx(deps = {}) {
       const results = readJson(f);
       return Array.isArray(results) ? { results, at: mtime(f) } : results ? { ...results, at: mtime(f) } : null;
     },
+    builtInfo,
+    onSystemReport,
+    board: boardCounts,
     designedText: () => {
       const f = join(homedir(), 'DEV/chip/docs/reference/designed-features.md');
       return existsSync(f) ? { text: readFileSync(f, 'utf8'), at: mtime(f) } : null;

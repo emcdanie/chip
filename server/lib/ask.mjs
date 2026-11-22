@@ -5,11 +5,15 @@
 import { randomUUID } from 'node:crypto';
 import { search } from './index.mjs';
 import { chat } from './llm.js';
-import { resolve, providers } from '../providers/index.mjs';
+import { resolve, providers, listAll } from '../providers/index.mjs';
+import { claudeLabel } from '../providers/claude.js';
+import { routeModel } from './model-router.mjs';
+import { claudeToday } from './usage.mjs';
+import { plainError } from './plain-error.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { listChecks } from './checks.mjs';
 import { reviewCard, waitingChecks } from './review.mjs';
-import { BELLA_JSON, CHIP_CONTEXT_WORDS, CONTEXT_PACK, CHIP_MODEL } from './config.mjs';
+import { BELLA_JSON, CHIP_CONTEXT_WORDS, CONTEXT_PACK, CHIP_MODEL, CHIP_CLAUDE_DAILY } from './config.mjs';
 import { defaultCtx, gather, dataPrompt, shapeData, numbersHeld, plainReply, DATA_SYSTEM, NO_DATA } from './chipdata.mjs';
 
 // The Cowork context pack opens every local-model prompt (background on
@@ -505,41 +509,71 @@ export async function* dataStream(message, sessionId, opts = {}) {
   const pick = opts.pick ?? (async (prompt) => chat([{ role: 'user', content: prompt }]));
   const { results } = await gather(message, ctx, { pick });
   const toAgent = AGENT_WORK.test(message);
-  const model = String(opts.provider ?? '').startsWith('local:') ? opts.provider.slice('local:'.length) : undefined;
+  // data lookups stay on a local model (free); a picked local model is used, a cloud pick is never sent CHIP's data without a plan
+  const pickedId = opts.routed?.place === 'local' ? opts.routed.id : opts.provider;
+  const model = String(pickedId ?? '').startsWith('local:') ? pickedId.slice('local:'.length) : undefined;
   const modelName = model || (await providers.local.list().catch(() => [])).find((x) => x.isDefault)?.label || CHIP_MODEL;
   if (!results.length) {
     yield { type: 'provider', id: 'data', place: 'data', model: 'CHIP’s data' };
-    yield { type: 'done', reply: toAgent ? AGENT_LINE : NO_DATA, sessionId: id, sources: [], data: [], needsAgent: true, next: [], provider: 'data', place: 'data', model: 'CHIP’s data', tokens: { prompt: 0, output: 0 } };
+    yield { type: 'done', reply: toAgent ? AGENT_LINE : NO_DATA, sessionId: id, sources: [], data: [], needsAgent: true, next: [], provider: 'data', place: 'data', model: 'CHIP’s data', route: opts.routed ? { why: opts.routed.why } : { why: 'Answered from CHIP’s data, no model' }, tokens: { prompt: 0, output: 0 } };
     return;
   }
+  // the record answers itself (how it was built, where to improve): written from the facts, no model, so it can't drift
+  const own = results.length === 1 && results[0].reply ? results[0].reply : null;
   const shaped = shapeData(results);
   yield { type: 'sources', sources: shaped.sources, sessionId: id };
-  yield { type: 'provider', id: 'local', place: 'data', model: modelName };
+  yield { type: 'provider', id: own ? 'data' : 'local', place: 'data', model: own ? 'CHIP’s data' : modelName };
   const stats = {};
   let reply = '';
   try {
-    for await (const t of providers.local.ask({ system: DATA_SYSTEM, messages: [{ role: 'user', content: dataPrompt(message, results) }], model, stats })) {
-      reply += t;
-      yield { type: 'token', text: t };
+    if (!own) for await (const t of providers.local.ask({ system: DATA_SYSTEM, messages: [{ role: 'user', content: dataPrompt(message, results) }], model, stats })) {
+      reply += t; // held until the numbers are checked: the page shows one answer, never one that is then replaced
     }
   } catch {
     reply = '';
   }
   reply = reply.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   // a model that is off, empty, or wrote a number the data does not hold: the same answer from the facts alone
-  if (!reply || !numbersHeld(reply, results)) reply = plainReply(results);
+  if (own) reply = own;
+  else if (!reply || !numbersHeld(reply, results)) reply = plainReply(results);
   if (toAgent) reply = `${reply}\n${AGENT_LINE}`;
-  yield { type: 'done', reply, sessionId: id, sources: shaped.sources, data: shaped.data, needsAgent: toAgent, next: [], provider: 'local', place: 'data', model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
+  yield { type: 'done', reply, sessionId: id, sources: shaped.sources, data: shaped.data, needsAgent: toAgent, next: [], provider: own ? 'data' : 'local', place: 'data', model: own ? 'CHIP’s data' : modelName, route: own ? { why: 'Answered from the record, no model, free' } : opts.routed ? { why: opts.routed.why, id: opts.routed.id, alt: opts.routed.alt ?? null } : { why: `Local ${modelName} says it from CHIP’s data, free` }, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }
 
+// questions the data router answers in any scope: how it was built, where the gaps are and how to improve
+const OVERVIEW = /\bhow (did|was|were|has)\b.*\b(build|built|made|make|create[d]?)\b|\bwho (built|made|wrote)\b|\bhow it was (built|made)\b|\bwhere (is|are) it documented\b|\bgaps?\b.*\bimprov\w*|\bhow can we improve\b|\bwhat should (we|i) (fix|improve)\b/i;
+
 export async function* askStream(message, sessionId, page, opts = {}) {
-  if (opts.scope === 'data') {
-    const hit = dataAnswer(message);
+  const dataScope = opts.scope === 'data' || (!opts.record && OVERVIEW.test(message));
+  // Auto picks by the question and says why; a model she picked is used as picked (one line says so)
+  let routed = null;
+  if (!opts.provider) {
+    const models = opts.models ?? (await listAll().catch(() => []));
+    // a question CHIP's data answers, or one about a record, never needs a cloud model
+    const known = dataScope || !!opts.record || !!dataAnswer(message);
+    const budget = opts.budget ?? { used: claudeToday(), limit: CHIP_CLAUDE_DAILY };
+    routed = routeModel(message, { models, budget, data: known });
+    // a review or code question in the data panel still gets CHIP's data; Claude is one click away, never started
+    const review = known && !opts.record ? routeModel(message, { models, budget, data: false }) : null;
+    if (review?.confirm) routed = { ...routed, alt: { id: review.id, label: review.label, cost: review.cost }, why: `${routed.why}; for a review Claude is one click away (${budget.used} of ${budget.limit} today)` };
+  } else {
+    const label = opts.provider.startsWith('claude') ? claudeLabel(opts.provider.split(':')[1]) : opts.provider.replace(/^local:/, '');
+    routed = { id: opts.provider, label, place: opts.provider.startsWith('claude') ? 'cloud' : 'local', why: `You picked ${label}` };
+  }
+  // Auto never starts a cloud model by itself: it says what it would use and why, and waits for her click
+  if (routed.confirm) {
+    yield { type: 'provider', id: 'auto', place: 'data', model: 'Auto' };
+    yield { type: 'done', reply: `${routed.why}.`, sessionId: sessionId || randomUUID(), sources: [], data: [], next: [], needsConfirm: { provider: routed.id, label: routed.label, cost: routed.cost, budget: routed.budget }, route: { why: routed.why }, provider: 'auto', place: 'data', model: 'Auto', tokens: { prompt: 0, output: 0 } };
+    return;
+  }
+  if (dataScope) {
+    const hit = opts.scope === 'data' ? dataAnswer(message) : null;
     if (!hit) {
-      yield* dataStream(message, sessionId, opts);
+      yield* dataStream(message, sessionId, { ...opts, routed });
       return;
     }
   }
+  opts = { ...opts, routed };
   // CHIP's data first: a question it answers never reaches a model (no record question: that is about one change)
   const fromData = opts.record ? null : dataAnswer(message);
   if (fromData) {
@@ -548,7 +582,7 @@ export async function* askStream(message, sessionId, page, opts = {}) {
     yield { type: 'done', next: fromData.next, reply: fromData.reply, sessionId, sources: fromData.sources, provider: 'data', place: 'data', model: 'CHIP’s data', tokens: { prompt: 0, output: 0 } };
     return;
   }
-  let { provider, model } = resolve(opts.provider);
+  let { provider, model } = resolve(routed.id ?? undefined);
   const prep = await prepare(message, sessionId, page, { cloud: provider.place === 'cloud', includePrivate: opts.includePrivate, record: opts.record });
   if (prep.heldBack) yield { type: 'private', heldBack: prep.heldBack };
   if (prep.keptLocal) yield { type: 'kept', count: prep.keptLocal };
@@ -581,15 +615,13 @@ export async function* askStream(message, sessionId, page, opts = {}) {
     gen = run(provider, model);
     first = await gen.next();
   }
-  const modelName = provider.id === 'claude' ? (await providers.claude.list())[0].label : model || (await providers.local.list()).find((x) => x.isDefault)?.label || 'local';
+  const modelName = provider.id === 'claude' ? claudeLabel(model) : model || (await providers.local.list()).find((x) => x.isDefault)?.label || 'local';
   yield { type: 'provider', id: provider.id, place: provider.place, model: modelName };
+  // the text is held until its claims are checked: what she reads while it works and in the end is one answer
+  // (22 Nov: the stream said one thing and the done event "Nothing in my sources covers that.")
   if (!first.done) {
     reply += first.value;
-    yield { type: 'token', text: first.value };
-    for await (const text of gen) {
-      reply += text;
-      yield { type: 'token', text };
-    }
+    for await (const text of gen) reply += text;
   }
   remember(reply.trim(), provider.place);
   // asked about one record, the answer is that record's only: a "General knowledge" line goes,
@@ -620,5 +652,5 @@ export async function* askStream(message, sessionId, page, opts = {}) {
   reply = checked.reply;
   reply = verdictFirst(reply);
   sources = sources.map((x) => (checked.backs.has(x.n) ? { ...x, backs: checked.backs.get(x.n)[0].line, backsFor: checked.backs.get(x.n) } : x));
-  yield { type: 'done', next, reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
+  yield { type: 'done', next, reply: reply.trim(), sessionId: id, sources, provider: provider.id, place: provider.place, model: modelName, route: { why: routed.why, id: routed.id, alt: routed.alt ?? null }, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }

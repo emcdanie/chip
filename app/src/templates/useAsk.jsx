@@ -54,12 +54,13 @@ const day = (t) =>
       })
     : null;
 
-/* The server's error, in words a reader can act on. */
-function plainError(message = '') {
-  if (/no index/i.test(message)) return "BELLA's docs aren't indexed on this Mac yet, so there's nothing to answer from.";
-  if (/ECONNREFUSED|fetch failed|11434|ollama/i.test(message)) return "The local model isn't running.";
-  if (/not signed in|login/i.test(message)) return 'Claude Code is not signed in on this Mac.';
-  return 'It stopped before it answered.';
+/* An error the server did not word (it never reached the server, or it answered with a bare status): three plain
+   lines like the server's own (server/lib/plain-error.mjs). The raw text is never shown. */
+function plainOf(message = '') {
+  const gone = /Failed to fetch|NetworkError|Load failed|^\d{3}$/i.test(message);
+  const what = gone ? "CHIP's server didn't answer." : "That didn't work.";
+  const why = gone ? 'it may have restarted or stopped' : 'CHIP hit a problem it has no plain word for; the details are in the server log';
+  return { what, why, can: gone ? ['try-again'] : ['try-again', 'ask-agent'], file: null, text: `${what} Why: ${why}.` };
 }
 
 /**
@@ -74,7 +75,7 @@ export default function useAsk({ thread = false, scope } = {}) {
   const turn = useRef(0);
   const stopper = useRef(null);
   const last = useRef(null);
-  const ask = async (message, page, record, question, provider) => {
+  const ask = async (message, page, record, question, provider, override) => {
     last.current = { message, page, record, question };
     const mine = ++turn.current;
     const set = (patch) => mine === turn.current && setAnswer((a) => ({ ...a, ...patch }));
@@ -106,6 +107,7 @@ export default function useAsk({ thread = false, scope } = {}) {
           page,
           auto: !provider,
           provider,
+          override,
           stream: true,
           record,
           scope,
@@ -168,6 +170,9 @@ export default function useAsk({ thread = false, scope } = {}) {
               // CHIP's own measured data, with the real rows behind it, and whether only an agent can go on
               data: ev.data ?? null,
               needsAgent: ev.needsAgent === true,
+              // who answered and why, in one line; Auto never runs a cloud model by itself, it asks first
+              route: ev.route ?? null,
+              needsConfirm: ev.needsConfirm ?? null,
               reply: noFallback(ev.reply || reply),
               sources: all,
               model: ev.model ?? null,
@@ -186,18 +191,19 @@ export default function useAsk({ thread = false, scope } = {}) {
               ],
             });
           } else if (ev.type === 'weak') set({ status: 'weak', closest: ev.closest ?? [] });
-          else if (ev.type === 'error') throw new Error(ev.error);
+          else if (ev.type === 'error') throw Object.assign(new Error(ev.error), { plain: ev.plain });
         }
       }
     } catch (e) {
       if (e.name === 'AbortError') set({ status: 'stopped' });
-      else set({ status: 'error', error: plainError(e.message) });
+      else set({ status: 'error', plain: e.plain ?? plainOf(e.message), error: (e.plain ?? plainOf(e.message)).text });
     }
   };
   return {
     answer,
     ask,
-    retry: (provider) => last.current && ask(last.current.message, last.current.page, last.current.record, last.current.question, provider),
+    // retry on another model is the one-click override: CHIP logs what Auto chose and what she chose
+    retry: (provider) => last.current && ask(last.current.message, last.current.page, last.current.record, last.current.question, provider, provider && current.current?.route?.id ? { autoChose: current.current.route.id, chose: provider } : undefined),
     stop: () => stopper.current?.abort(),
     setLocal: (a) => (turn.current++, setAnswer({ at: hhmm(), status: 'answer', ...a })),
     clear: () => (turn.current++, setAnswer(null), setPast([])),
@@ -413,9 +419,12 @@ export function Reply({ who, disc, tail = true, extra, children }) {
  * next step as chips: the bigger model (the model menu's other choice, never "Ask Claude"),
  * and Try again; a weak answer lists the closest sources under it.
  */
-export function NotAnswered({ a, onRetry }) {
-  const words = a.status === 'weak' ? 'No source in BELLA says that.' : a.status === 'stopped' ? 'Stopped. Your question is kept.' : `${a.error ?? 'It stopped before it answered.'} Your question is kept.`;
-  const bigger = onRetry && a.model !== 'claude' && !/claude/i.test(a.model ?? '');
+export function NotAnswered({ a, onRetry, onAgent }) {
+  // an error is three plain lines: what failed, why, and what she can do (22 Nov: "it just says yaml.. i dont get it")
+  const p = a.status === 'error' ? a.plain : null;
+  const words = a.status === 'weak' ? 'No source in BELLA says that.' : a.status === 'stopped' ? 'Stopped. Your question is kept.' : p ? `${p.what} Why: ${p.why}.${p.file ? ` The file is ${p.file}.` : ''} Your question is kept.` : `${a.error ?? 'It stopped before it answered.'} Your question is kept.`;
+  // a bigger model cannot fix a file it cannot read
+  const bigger = onRetry && a.model !== 'claude' && !/claude/i.test(a.model ?? '') && !['yaml', 'missing', 'json'].includes(p?.id);
   return (
     <Flow gap={12}>
       <Reply
@@ -426,6 +435,7 @@ export function NotAnswered({ a, onRetry }) {
             <>
               {bigger ? <ActionChip onClick={() => onRetry('claude')}>Try the bigger model</ActionChip> : null}
               <ActionChip onClick={() => onRetry()}>Try again</ActionChip>
+              {p?.can?.includes('ask-agent') && onAgent ? <ActionChip onClick={onAgent}>Ask an agent</ActionChip> : null}
             </>
           ) : null
         }

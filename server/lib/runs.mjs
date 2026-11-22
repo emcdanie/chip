@@ -6,6 +6,7 @@
 // verdict, then Accept (keep the branch to merge) or Undo (delete it). Claude
 // may edit and run the build in that worktree only; it never commits, pushes
 // or merges, and her BELLA checkout is never touched.
+import { plainError } from './plain-error.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
@@ -199,7 +200,7 @@ export async function startRun({ brief, title, from, approved, dryRun = false })
     Object.assign(run, { status: 'failed', step: null, error: 'Port 6006 is in use (a Storybook is running). The gate needs it; stop that Storybook, then run again.' });
     return public_(run);
   }
-  go(run).catch((e) => Object.assign(run, { status: 'failed', step: null, error: e.message }));
+  go(run).catch((e) => Object.assign(run, { status: 'failed', step: null, error: plainError(e, { where: 'run' }).text }));
   return public_(run);
 }
 
@@ -265,7 +266,7 @@ async function go(run) {
   } catch (e) {
     step(run, null);
     run.status = 'failed';
-    run.error = run.stopped ? 'Stopped by a maintainer' : e.message;
+    run.error = run.stopped ? 'Stopped by a maintainer' : plainError(e, { where: 'run' }).text;
     logAction({ kind: 'run-failed', title: run.title, branch: run.branch, error: e.message });
   } finally {
     // the end state goes to disk too, or a restart reads a finished run as cut off

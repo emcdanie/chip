@@ -130,3 +130,36 @@ test('the real readers: a baseline file and imports counted from disk', async ()
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'x'), '');
 });
+
+/* ---- how it was built, gaps and how to improve (22 Nov) ---- */
+const built = () => ({
+  repos: [{ name: 'CHIP', count: 10, coAuthored: 9, first: { date: '2026-04-26', subject: 'CHIP v0' }, last: { date: '2026-11-22', subject: 'Work panel' } }, { name: 'BELLA', count: 5, coAuthored: 1, first: { date: '2026-04-19', subject: 'AAA gap closure' }, last: { date: '2026-11-21', subject: 'Pin' } }],
+  rules: [{ file: 'CHIP CLAUDE.md', kind: 'dated rules', count: 8, latest: { title: 'Before building', date: '2026-11-12' }, recent: [{ title: 'Before building', date: '2026-11-12' }] }],
+  docs: [{ name: 'handoff.md', at: '2026-11-22T18:50:00Z', what: 'done, next, blockers' }],
+});
+test('how it was built: order, who, rules and where it is documented, from the record only', async () => {
+  const r = await SOURCES.built(fixture({ builtInfo: built }));
+  assert.match(r.facts.find((f) => f.label === 'Order made: CHIP').value, /first commit 2026-04-26.*10 commits/);
+  assert.equal(r.facts.find((f) => f.label === 'Who made it').value, "10 of 15 commits carry a Claude co-author line: an agent built it from Elleta's rules");
+  assert.match(r.facts.find((f) => /CHIP CLAUDE\.md/.test(f.label)).value, /8 dated rules, latest "Before building" \(2026-11-12\)/);
+  assert.ok(r.rows.some((x) => x.Block === 'Documented' && x.Source === 'handoff.md'));
+  assert.equal(await SOURCES.built(fixture({ builtInfo: () => null })), null);
+});
+test('gaps and how to improve: a short ranked list from the report, audits, drift, gaps, features and board', async () => {
+  const r = await SOURCES.improve(fixture({ onSystemReport: () => ({ red: ['Old app holds the debt'] }), board: () => ({ waiting: 10, todo: 6 }) }));
+  assert.equal(r.facts[0].value, 'Old app holds the debt (on-system report (Red))');
+  assert.ok(r.facts.length <= 6);
+  assert.ok(r.rows.some((x) => /drift from Figma/.test(x.Item)));
+  assert.ok(r.rows.some((x) => /10 board items wait on Elleta, 6 still to do/.test(x.Item)));
+  assert.equal(await SOURCES.improve(fixture({ onSystemReport: () => null, audits: () => [], drift: () => null, gaps: () => null, designedText: () => null, board: () => null })), null);
+});
+test('the router sends the two overview questions to their own source', () => {
+  assert.deepEqual(classify('how did elleta build this').ids, ['built']);
+  assert.deepEqual(classify('how did Elleta build this?').ids, ['built']);
+  assert.deepEqual(classify("i want to know where the gaps are and how we can improve").ids, ['improve']);
+  assert.deepEqual(classify('who built the Button?', ['Button']).ids, ['built']);
+});
+test('dated headings read the rule title and its date', async () => {
+  const { datedHeadings } = await import('../lib/chipdata.mjs');
+  assert.deepEqual(datedHeadings('## Before writing any UI (Elleta, 9 Nov 2026)\n## Plain heading\n### Show me first (Elleta, 11 Nov 2026: "x")'), [{ title: 'Before writing any UI', date: '2026-11-09' }, { title: 'Show me first', date: '2026-11-11' }]);
+});

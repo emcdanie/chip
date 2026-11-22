@@ -35,6 +35,8 @@ import { projectDetail, projectList, projectsSummary, saveNote, startDev, stopDe
 import { newRoutes } from './lib/new-routes.mjs';
 import { startJobs } from './lib/starts.mjs';
 import { appOrigins, onlyChip } from './lib/origin.mjs';
+import { plainError } from './lib/plain-error.mjs';
+import { menuOf } from './lib/model-router.mjs';
 import { createSystemDocs, mountSystemDocs } from './lib/system-docs.mjs';
 import { playMap, playPages, playTarget, startPlayProxy, PROXY } from './lib/play.mjs';
 import { playShot, shotUrl, shotWidth } from './lib/play-shot.mjs';
@@ -102,16 +104,17 @@ app.post('/ask', async (req, res) => {
         if (ev.type === 'weak') logUsage({ type: 'ask', route: 'local', provider: 'none', model: null, prompt: 0, output: 0, ms: Date.now() - t0, asked: providerId ?? 'local', why: route, auto, page, weak: true });
       }
     } catch (err) {
-      console.error('[CHIP server]', err.message);
-      res.write(JSON.stringify({ type: 'error', error: err.message }) + '\n');
+      // three plain lines for the page; the raw error stays in this log (server/lib/plain-error.mjs)
+      const plain = plainError(err, { where: 'ask' });
+      res.write(JSON.stringify({ type: 'error', error: plain.text, plain }) + '\n');
     }
     return res.end();
   }
   try {
     res.json(await ask(message.trim(), sessionId, page));
   } catch (err) {
-    console.error('[CHIP server]', err.message);
-    res.status(502).json({ error: err.message });
+    const plain = plainError(err, { where: 'ask' });
+    res.status(502).json({ error: plain.text, plain });
   }
 });
 
@@ -129,7 +132,10 @@ app.post('/usage', (req, res) => {
 
 // GET /models: what OBI can pick, and today's Claude budget for Auto.
 app.get('/models', async (_req, res) => {
-  res.json({ models: await listAll(), budget: { used: claudeToday(), limit: CHIP_CLAUDE_DAILY } });
+  const models = await listAll();
+  const budget = { used: claudeToday(), limit: CHIP_CLAUDE_DAILY };
+  // `models` and `budget` as before; `menu` is what the Work panel's model picker shows (groups, cost notes, availability in words)
+  res.json({ models, budget, menu: menuOf(models, budget) });
 });
 
 // The host: MCP servers and CLI tools behind one registry (docs/host.md).
@@ -272,6 +278,11 @@ app.get('/figma-lint/:id', async (req, res) => {
 });
 // Compare with Figma for every component: the baseline the Connectors page shows
 const propsOf = (c) => specOf(c).props?.map((p) => p.name) ?? c.props ?? [];
+// a page that reads again (focus, every minute) must never get a browser-cached answer, so no read is kept by the browser
+app.use((req, res, next) => {
+  if (req.method === 'GET') res.set('Cache-Control', 'no-store');
+  next();
+});
 app.get('/figma-baseline', (_req, res) => res.json(readBaseline()));
 // Drift from Figma read from BELLA's specs (each lists its own Figma vs code mismatches): no Figma key needed
 app.get('/drift', (_req, res) => {
@@ -336,7 +347,7 @@ app.get('/search', async (req, res) => {
       results: hits.map((c) => ({ title: c.title, ...(c.url ? { url: c.url } : {}), path: c.path, passage: passageFor(c.text, query), score: +c.score.toFixed(3), strength: strengthOf(c.score, top) })),
     });
   } catch (err) {
-    res.status(502).json({ error: err.message });
+    errorOut(res, err, 502);
   }
 });
 
@@ -488,7 +499,10 @@ app.post('/cmd', (req, res) => {
 // Checks, review cards, Needs you, History and the system map (phase 6 G, H,
 // I, 3 Nov late). Reads are open to the page; anything that writes to BELLA
 // (run a check, Accept, Undo) must come from CHIP's own page.
-const errorOut = (res, e, code = 400) => res.status(code).json({ error: e.message });
+const errorOut = (res, e, code = 400) => {
+  const plain = plainError(e, { where: res.req?.path });
+  res.status(code).json({ error: plain.text, plain });
+};
 app.get('/checks', (_req, res) => {
   const rerun = refreshIfStale();
   // the gate's recorded runs for Health's Gate runs view: CHIP's logged gate checks and GitHub's CI runs, never re-run
@@ -614,7 +628,7 @@ app.get('/review-img/:dir/:file', (req, res) => {
 // Reads that walk git across the repos (/needs, /projects, /map) take 0.3 to
 // 0.9 s, and /needs blocks the server while it runs. A page gets the last
 // answer at once; a fresh read follows 2 s later, after the page's own burst
-// of requests, at most once a minute. ?fresh=1 ("Check again") waits for a new one.
+// of requests, at most every 30 seconds. ?fresh=1 ("Check again") waits for a new one.
 // Each is read once at start, so no page opens on a loading state (19 Nov
 // audit: 1 to 5 s of loading on Work, Components, Connectors and History).
 const kept = new Map(); // key -> { value, at, running }
@@ -633,7 +647,7 @@ function keptRead(key, fn, { fresh = false } = {}) {
         k.running = null;
       }));
   if (fresh || !('value' in k)) return refresh();
-  if (Date.now() - k.at > 60_000 && !k.queued) {
+  if (Date.now() - k.at > 30_000 && !k.queued) {
     k.queued = setTimeout(() => {
       k.queued = null;
       refresh().catch(() => {});
@@ -787,7 +801,7 @@ app.get('/projects', async (req, res) => {
   try {
     res.json(await keptRead('projects', READS.projects, { fresh: isFresh(req) }));
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    errorOut(res, e, 500);
   }
 });
 // New: the jobs she repeats with their targets read live, and the project she starts from a dropped file or a folder.
@@ -808,7 +822,7 @@ app.get('/projects/:id', async (req, res) => {
     const p = await projectDetail(String(req.params.id), { fresh: req.query.fresh === '1' });
     p ? res.json(p) : res.status(404).json({ error: 'No such project' });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    errorOut(res, e, 500);
   }
 });
 const fromChip = (req, res, write = false) => ((req.headers.origin ? !APP_ORIGINS.has(req.headers.origin) : write) ? (res.status(403).json({ error: 'Not from CHIP' }), false) : true);
@@ -845,7 +859,7 @@ app.get('/play/shot', async (req, res) => {
     const png = await playShot(shotUrl(run.url, req.query.route), shotWidth(req.query.width));
     res.set({ 'content-type': 'image/png', 'cache-control': 'no-store' }).send(png);
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    errorOut(res, e, 500);
   }
 });
 app.get('/play/map', async (req, res) => {
@@ -856,7 +870,7 @@ app.get('/play/map', async (req, res) => {
     const map = playMap(id, String(req.query.route || ''));
     map ? res.json({ ...map, run }) : res.status(404).json({ error: 'No such page', run });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    errorOut(res, e, 500);
   }
 });
 

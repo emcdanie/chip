@@ -20,6 +20,14 @@ function check() {
   return checked;
 }
 
+// the three Claude models Auto and the menu can name (CLI aliases); 'claude' alone is the configured default
+export const CLAUDE_MODELS = [
+  { alias: 'haiku', label: 'Claude Haiku 5.5', hint: 'quick' },
+  { alias: 'sonnet', label: 'Claude Sonnet 5.5', hint: 'balanced' },
+  { alias: 'opus', label: 'Claude Opus 5.5', hint: 'deepest' },
+];
+export const claudeLabel = (alias) => CLAUDE_MODELS.find((m) => m.alias === (alias || CHIP_CLAUDE_MODEL))?.label ?? `Claude ${alias || CHIP_CLAUDE_MODEL}`;
+
 export const claude = {
   id: 'claude',
   kind: 'text',
@@ -28,21 +36,21 @@ export const claude = {
 
   async list() {
     const c = check();
-    return [{ id: 'claude', label: `Claude · ${CHIP_CLAUDE_MODEL}`, group: 'Cloud', place: 'cloud', available: c.available, note: c.note }];
+    return CLAUDE_MODELS.map((m) => ({ id: `claude:${m.alias}`, alias: m.alias, label: m.label, group: 'Cloud', place: 'cloud', available: c.available, note: c.available ? `${m.hint} · uses your plan · sent to Anthropic` : c.note }));
   },
 
   /** Streams Claude's answer. Throws before the first piece if Claude cannot answer
    *  (not installed, not logged in), so the caller can fall back to local. */
   // stats: filled from the result event, { prompt, output } tokens (cached
   // prompt tokens count as prompt)
-  async *ask({ system, messages, stats = {} }) {
+  async *ask({ system, messages, stats = {}, model }) {
     if (!check().available) throw new Error(check().note);
     // earlier turns go in as plain text: the CLI takes one prompt
     const prompt = messages.map((m) => (m.role === 'user' ? m.content : `(Your earlier answer)\n${m.content}`)).join('\n\n---\n\n');
     const dir = mkdtempSync(join(tmpdir(), 'chip-claude-'));
     const child = spawn(
       CHIP_CLAUDE_BIN,
-      ['-p', '--model', CHIP_CLAUDE_MODEL, '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--tools', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--disable-slash-commands', '--no-session-persistence', '--setting-sources', '', '--system-prompt', system],
+      ['-p', '--model', model || CHIP_CLAUDE_MODEL, '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--tools', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--disable-slash-commands', '--no-session-persistence', '--setting-sources', '', '--system-prompt', system],
       { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'] }
     );
     // a failed spawn or an early exit (EPIPE on stdin) must reach the caller,
