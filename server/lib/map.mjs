@@ -61,25 +61,46 @@ let ciCache = (() => {
   }
 })();
 let ciReading = null;
+// every run GitHub recorded for the repo, not a recent slice (Elleta, 23 Nov: Gate runs "should have more data"): pages of
+// 100 from gh api, newest first, until 1000 runs or the runs are older than 1 Jan of last year
+const CI_PAGES = 10;
+const ghPage = (page) =>
+  new Promise((resolve, reject) =>
+    execFile('gh', ['api', `repos/{owner}/{repo}/actions/runs?per_page=100&page=${page}`], { cwd: BELLA, encoding: 'utf8', timeout: 20000, maxBuffer: 16 << 20 }, (err, out) => {
+      if (err) return reject(err);
+      try {
+        resolve(JSON.parse(out).workflow_runs ?? []);
+      } catch (e) {
+        reject(e);
+      }
+    }),
+  );
+export const ciShape = (r) => ({ id: r.id, conclusion: r.conclusion, status: r.status, createdAt: r.created_at, headSha: r.head_sha, branch: r.head_branch, workflowName: r.name, title: r.display_title ?? null, url: r.html_url ?? null });
+async function readAllCi() {
+  const since = new Date(new Date().getFullYear() - 1, 0, 1).getTime();
+  const out = [];
+  for (let page = 1; page <= CI_PAGES; page += 1) {
+    const runs = await ghPage(page);
+    out.push(...runs.map(ciShape));
+    if (runs.length < 100 || Date.parse(runs[runs.length - 1].created_at) < since) break;
+  }
+  return out;
+}
 function readCi() {
   if (ciReading) return ciReading;
-  ciReading = new Promise((done) =>
-    execFile('gh', ['run', 'list', '--branch', BASE, '--limit', '200', '--json', 'conclusion,status,createdAt,headSha,workflowName'], { cwd: BELLA, encoding: 'utf8', timeout: 15000, maxBuffer: 8 << 20 }, (err, out) => {
-      let value = null;
-      try {
-        value = err ? null : JSON.parse(out);
-      } catch {}
+  ciReading = readAllCi()
+    .catch(() => null)
+    .then((value) => {
       // a failed read keeps the last good one
-      if (value || !ciCache.value) {
+      if (value?.length || !ciCache.value) {
         ciCache = { at: Date.now(), base: BASE, value };
         try {
           writeFileSync(CI_FILE, JSON.stringify(ciCache));
         } catch {}
       }
       ciReading = null;
-      done(ciCache.value);
-    }),
-  );
+      return ciCache.value;
+    });
   return ciReading;
 }
 export function ciRuns() {
@@ -88,7 +109,10 @@ export function ciRuns() {
 }
 /** Read once at start, so the first Health load has it. */
 export const warmCi = () => readCi();
-const ciRun = () => ciRuns()?.[0] ?? null;
+/** When the shown CI runs were read (ms), for the card's source line. */
+export const ciReadAt = () => ciCache.at;
+// the newest run of the base branch (the list holds every branch's runs)
+const ciRun = () => ciRuns()?.find((r) => !r.branch || r.branch === BASE) ?? null;
 function ciNode() {
   const run = ciRun();
   const unpushed = Number(git(['rev-list', '--count', `${BASE}@{upstream}..${BASE}`]) ?? NaN);

@@ -177,7 +177,9 @@ for (const c of behind) check('health', `Gate names ${c.name}, behind HEAD`, tex
 // must not be shown.
 const localDay = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const WEEKDAY = (iso) => new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace(',', '');
-const ciAll = JSON.parse(sh('gh', ['run', 'list', '--branch', checks.base, '--limit', '200', '--json', 'conclusion,status,createdAt']) ?? 'null');
+// every run of the repo, as Gate runs shows them (all branches, a cancelled or skipped run is neither pass nor failure)
+const ciRaw = sh('gh', ['api', '--paginate', 'repos/{owner}/{repo}/actions/runs?per_page=100', '--jq', '.workflow_runs[] | {conclusion, status, createdAt: .created_at}']);
+const ciAll = ciRaw ? ciRaw.split('\n').filter(Boolean).map((l) => JSON.parse(l)).filter((r) => r.conclusion !== 'cancelled' && r.conclusion !== 'skipped') : null;
 const GATE_IDS = ['contrast', 'contract', 'agents-md', 'tokens-built', 'visual'];
 const chipRuns = new Map();
 const addRun = (e) => e?.ranAt && GATE_IDS.includes(e.id) && chipRuns.set(`${e.id}@${e.ranAt}`, e);
@@ -194,6 +196,12 @@ const days = [...perDay.entries()].sort((a, b) => b[0].localeCompare(a[0])).slic
   const [, d] = days[0] ?? [];
   const m = text['health-gate']?.match(/(\d+)\/(\d+)\s*\n?\s*RUNS/i);
   check('health', `Gate runs chart, latest day ${d ? WEEKDAY(d.iso) : ''} (recorded)`, m ? `${m[1]}/${m[2]}` : undefined, ciAll && d ? `${d.passed}/${d.runs}` : null);
+}
+
+{
+  const m = text['health-gate']?.match(/(\d+) of (\d+) CI runs passed since/);
+  const done = (ciAll ?? []).filter((r) => r.status === 'completed');
+  check('health', 'Gate runs: CI runs passed of recorded', m ? `${m[1]} of ${m[2]}` : undefined, ciAll ? `${done.filter((r) => r.conclusion === 'success').length} of ${done.length}` : null);
 }
 
 // ---- System map -------------------------------------------------------------

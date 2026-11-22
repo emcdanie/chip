@@ -364,11 +364,11 @@ export function runCheck(id) {
 /** GET /checks: every check with its last result and one status word. */
 /* Contrast: one source, one number (coordinator, 21 Nov). BELLA's own pairs check, run now on the
    BELLA CHIP reads, the same reading Health's Lowest contrast and the System map show; never the
-   result file a past run left behind. Read again at most once a minute. */
+   result file a past run left behind. Read again at most every 30 seconds. */
 let pairsAt = 0;
 let pairsNow = null;
 function livePairs() {
-  if (Date.now() - pairsAt > 60_000) {
+  if (Date.now() - pairsAt > 30_000) {
     try {
       const r = bellaPairs(BELLA);
       pairsNow = { ok: r.ok, summary: r.summary ?? 'The pairs check printed no summary', failures: r.ok ? [] : [r.summary].filter(Boolean), ranAt: new Date().toISOString(), commit: null };
