@@ -73,20 +73,11 @@ const SORTS = [
    in Geist Mono, then the step running now after the circle. Every card with work carries c.progress
    ({ state: blank | working | waiting | done | error, done, total, now }) and c.what (the line without
    the count), read live (sessions every 15 s, runs every 3 s while one goes).
-   ── HOLE ── BELLA's TaskCard body zone and ProgressRing aren't in bella-parts yet (parts-her-notes adds them
-   after her publish, 23 Nov). When they land:
-     1. import ProgressRing from '@bella/components/ProgressRing/ProgressRing';
-     2. set SHORT_CARD = true;
-     3. fill progressBody() with the parts, e.g. Progress (bar, fill from done/total, tone success when done)
-        plus the count, and ProgressRing (state → its kind) beside p.now; use the props the published parts
-        name, and nothing drawn here.
+   TaskCard has no body prop. It draws progress itself from `progress`, `progressDone`, `progressTotal`, `stepNow`
+   and `paused` (its story, 23 Nov). To switch to the short card: set SHORT_CARD = true and pass those props from
+   c.progress ({ done, total, now }); nothing is drawn here.
    Until then the count and the step stay in the card's line, so nothing is lost. */
 const SHORT_CARD = false;
-function progressBody(c) {
-  const p = c.progress;
-  if (!SHORT_CARD || !p || p.state === 'blank') return undefined;
-  return undefined; // ── HOLE ── the TaskCard body content goes here (see above)
-}
 const cardLine = (c) => (SHORT_CARD && c.progress && c.progress.state !== 'blank' && c.what ? c.what : c.line);
 
 /* the label on the blue drop space: what the drop does */
@@ -110,7 +101,6 @@ function Lane({ lane, move, why }) {
         <TaskCard
           title={c.title}
           line={cardLine(c)}
-          body={progressBody(c)}
           status={c.status}
           statusTone={c.tone}
           onOpen={c.open || c.kind === 'session' ? () => move.open(c) : undefined}
@@ -259,7 +249,8 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     const o = c.open;
     if (c.kind === 'session') return setOpen({ kind: 'session', card: c });
     if (c.kind === 'review' && c.needs && o?.kind === 'page') return setReviewing(c.id);
-    if (o.kind === 'page' || o.kind === 'link') return window.open(o.href, '_blank', 'noopener');
+    if (o.kind === 'page') return setReviewing(c.id); // a review page opens inside CHIP, needs her or not
+    if (o.kind === 'link') return window.open(o.href, '_blank', 'noopener');
     if (o.kind === 'hash') return (window.location.hash = o.href);
     setOpen(o);
   };
@@ -371,7 +362,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
           <WorkDrawer item={opened} onClose={() => setOpen(null)} onNotice={(n) => move.setNotice({ tone: n.tone, message: `${n.title}. ${n.message}` })} onChanged={() => window.dispatchEvent(new Event('chip:changed'))} onAccepted={() => (setOpen(null), window.dispatchEvent(new Event('chip:changed')))} />
           {reviewing ? (
             <NeedsYouView
-              cards={model.lanes.flatMap((l) => l.cards).filter((c) => c.needs)}
+              cards={model.lanes.flatMap((l) => l.cards).filter((c) => c.needs || c.id === reviewing)}
               startId={reviewing}
               onBack={() => setReviewing(null)}
               onOpenOther={(c) => (setReviewing(null), open(c))}

@@ -443,7 +443,7 @@ function PushDrawer({ item, onClose }) {
         {p ? (
           <>
             {/* the amount first, then short bullets with the few key words marked, then the commits on request (Elleta, 23 Nov: a drawer is a reading surface) */}
-            <StatCard icon="GitBranch" tone="attention" title="Waiting to push" value={n} unit={n === 1 ? 'commit' : 'commits'} context={`${p.files} ${p.files === 1 ? 'file' : 'files'} · ${p.branch}`} chart="none" />
+            <StatCard icon="GitBranch" tone="warning" title="Waiting to push" value={n} unit={n === 1 ? 'commit' : 'commits'} context={`${p.files} ${p.files === 1 ? 'file' : 'files'} · ${p.branch}`} chart="none" />
             <AnswerLines
               shaped={{
                 verdict: `**GitHub** would get ${n === 1 ? 'this commit' : `these ${n} commits`}.`,

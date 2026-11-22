@@ -194,6 +194,25 @@ if (leaving.length) {
   process.exit(1);
 }
 
+// Nor does a page or template open another tab or address (23 Nov): window.open, target="_blank" and a literal
+// http(s) href in app/src/pages and app/src/templates fail the commit. A link out that is deliberate or still waiting
+// for its page's owner goes on this list with its reason; anything else opens in the drawer or an in-app route.
+const OUT = /\bwindow\.open\(|\btarget=\{?[`'"]_blank|\bhref=\{?\s*[`'"]https?:\/\/|\bhref:\s*[`'"]https?:\/\//;
+const OUT_ALLOWED = [
+  ['pages/WorkContent.jsx', "kind === 'link'", 'a pull request card opens the pull request on GitHub'],
+  ['pages/ComponentsContent.jsx', 'part.storyUrl', 'the part\'s Storybook story, a design tool; for the coordinator to confirm it stays external'],
+  ['pages/ComponentsContent.jsx', 'github.com', 'the commit on GitHub; to open in CHIP once Components is free to edit'],
+];
+const out = files(join(SRC, 'pages'))
+  .concat(files(join(SRC, 'templates')))
+  .flatMap((f) => noComments(readFileSync(f, 'utf8')).split('\n').map((l, i) => [relative(ROOT, f), i + 1, l]))
+  .filter(([f, , l]) => OUT.test(l) && !OUT_ALLOWED.some(([file, text]) => f.endsWith(file) && l.includes(text)));
+if (out.length) {
+  console.log('on-system-guard: a link that opens a new tab or leaves CHIP in a page or template. Commit blocked (open it inside CHIP, or list it in OUT_ALLOWED with its reason).');
+  for (const [f, n, l] of out) console.log(`  ${f}:${n}  ${l.trim().slice(0, 100)}`);
+  process.exit(1);
+}
+
 // A commit names its paths (CHIP CLAUDE.md "Shared checkouts", 22 Nov: two commits swept in another session's
 // staged files): in scripts, server code and package.json a `git commit` must give `-- <paths>`, or run in its own
 // temporary worktree (`git -C <dir> commit`). Not a ratchet.
