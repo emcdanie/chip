@@ -51,6 +51,7 @@ import { forceAttr, installForcedStates } from '../forcedStates.js';
 import { ContractCard, StoryDrawer } from './DocReader.jsx';
 import A11yStage from './A11yViews.jsx';
 import QualityPanel, { AccessMini, QualityCentre, useQuality, visiblePins } from './QualityPanel.jsx';
+import FigmaSetup, { useFigma } from '../templates/FigmaSetup.jsx';
 import { day, usePartDetail, useStudio, studioChecks, studioFixes, studioDocs, studioProps } from './componentsModel.js';
 
 const noop = () => {};
@@ -730,7 +731,7 @@ function PartList({ model, query, setQuery, filter, current, onPick, onHide, onF
           <FilterChip size="compact" pressed={filter === 'needs'} onClick={() => onFilter(filter === 'needs' ? 'all' : 'needs')}>{`Needs work ${needsN}`}</FilterChip>
         </Flow>
       </Flow>
-      {!shown.length ? <EmptyState size="lane" mark="🤷" title="Nothing matches" line="No component has that name. Clear the search or pick All." /> : null}
+      {!shown.length ? <EmptyState size="lane" mark="🤷‍♀️" title="Nothing matches" line="No component has that name. Clear the search or pick All." /> : null}
       <Flow as="nav" aria-label={`${shown.length} components`} gap={4} id="part-list">
         {shown.map(row)}
       </Flow>
@@ -978,7 +979,7 @@ function ChecksPanel({ part, rows, open, setOpen, onStory }) {
 }
 
 /* Fix: the suggested fixes, where they go, and ONE primary that opens the plan first (never runs). */
-function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, model, onPart, open, setOpen }) {
+function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, model, onPart, open, setOpen, figmaSays, onConnect }) {
   const usedIn = part.doc.usedIn.filter((n) => model.parts.some((p) => p.name === n));
   if (open === 'reach')
     return (
@@ -994,10 +995,25 @@ function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, m
         </Flow>
       </Card>
     );
-  if (!fixes.length) return <EmptyState size="lane" mark="✅" title="Nothing to fix" line={`Every check ${part.name} answers to passes or isn't measured yet.`} />;
+  const quiet = figmaSays ? (
+    <Flow direction="row" gap={8} align="center" wrap>
+      <TextStack subtitle={figmaSays} />
+      <Button variant="tertiary" size="sm" onClick={onConnect}>
+        Connect Figma
+      </Button>
+    </Flow>
+  ) : null;
+  if (!fixes.length)
+    return (
+      <>
+        {quiet}
+        <EmptyState size="lane" mark="✅" title="Nothing to fix" line={`Every check ${part.name} answers to passes or isn't measured yet.`} />
+      </>
+    );
   const n = fixes.filter((f) => chosen.includes(f.id)).length;
   return (
     <>
+      {quiet}
       <Card>
         <Flow gap={8}>
           <SectionHead title="Fixes" titleLevel={3} number={n} words={`of ${fixes.length} picked`} />
@@ -1069,32 +1085,12 @@ function HistoryPanel({ part, detail, names, open, setOpen }) {
   );
 }
 
-/* Add file key (23 Nov: "why do i want to add file keys for figma?? what is a file key"): one drawer, one line
-   on what it is for, a field for the Figma link; CHIP takes the file ID out of it and saves it. No detour. */
+/* Add file key / Connect Figma: the shared steps (templates/FigmaSetup.jsx), the same form the Connectors "Set up
+   figma-rest" drawer opens, so there is one way in. */
 function FigmaKeyDrawer({ open, onClose, onSaved }) {
-  const [link, setLink] = useState('');
-  const [problem, setProblem] = useState('');
-  const [done, setDone] = useState(null);
-  const save = async () => {
-    setProblem('');
-    try {
-      const r = await fetch('/figma-key', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ link }) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error ?? 'Could not save it');
-      setDone(j);
-      onSaved?.();
-    } catch (e) {
-      setProblem(e.message);
-    }
-  };
   return (
-    <Drawer open={open} onClose={onClose} side="right" size="sm" label="Connect Figma" subtitle="CHIP reads your BELLA library in Figma to compare it with the code. Paste the library's link and CHIP takes the file ID from it." footer={<Button variant="primary" disabled={!link.trim() || Boolean(done)} onClick={save}>Save</Button>}>
-      <Flow gap={16}>
-        <Input label="Figma link" type="url" value={link} onChange={setLink} placeholder="https://www.figma.com/design/…" error={problem || undefined} hint="Open the BELLA library in Figma, copy the address from the browser bar." />
-        {done ? (
-          <Notification tone={done.token ? 'success' : 'attention'} message={done.token ? 'Saved. CHIP reads Figma from the next check.' : 'Saved. Figma also needs a read-only token before CHIP can read it: Figma › Settings › Security › Personal access tokens, then add it to server/.env as FIGMA_ACCESS_TOKEN.'} />
-        ) : null}
-      </Flow>
+    <Drawer open={open} onClose={onClose} side="right" size="sm" label="Connect Figma" subtitle="CHIP reads your BELLA library in Figma to compare it with the code. Read-only.">
+      <FigmaSetup onChanged={onSaved} />
     </Drawer>
   );
 }
@@ -1116,6 +1112,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const [picked, setPicked] = useState(null);
   const [keyOpen, setKeyOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(null); // 'story' | 'docs': the part's story shown inside CHIP
+  const [figma, readFigma] = useFigma();
   const [touch, setTouch] = useState(null);
   const [measured, setMeasured] = useState({});
   const [variant, setVariant] = useState(null);
@@ -1176,7 +1173,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const props = studioProps(studio.spec, { variant, label });
   const names = useMemo(() => parts.map((p) => p.name), [parts]);
   if (!model) return <EmptyState size="lane" mark="⏳" title="Reading BELLA" line="Fetching every part and its checks." />;
-  if (!part) return <EmptyState size="lane" mark="🤷" title="Nothing matches" line="No part fits that filter. Try All." />;
+  if (!part) return <EmptyState size="lane" mark="🤷‍♀️" title="Nothing matches" line="No part fits that filter. Try All." />;
 
   const ask = (text) => {
     setAsked({ q: text });
@@ -1221,6 +1218,10 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   // a StatusDot's words keep one line: on the smallest phones "in its spec" moves to the line under it
   const tinyHead = narrowHead;
   const failing = rows.filter((r) => r.tone === 'danger');
+  // what Figma is missing, in words (23 Nov: "it should work"): shown once in the Fix tab as a quiet line; everywhere else the
+  // last Figma data and its age, never an alert on every page
+  const figmaSays = !detail?.figmaBlind || !figma ? null : !figma.key ? 'Figma file key needed to read the BELLA library' : !figma.token ? `Figma token needed to read ${figma.lastRead?.name ?? 'the BELLA library'}` : 'Figma did not answer on the last read';
+  const figmaAge = detail?.figmaBlind && figma ? (figma.lastRead?.at ? `Figma data from ${day(figma.lastRead.at)}` : 'Figma not read yet') : null;
   const checkedAt = studio.gaps?.at ? `${day(studio.gaps.at)}, ${new Date(studio.gaps.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : model.checked;
   const toFix = failing.reduce((n, r) => n + (r.count ?? 1), 0) + (detail?.anatomy ?? []).filter((x) => x.status === 'finding').length;
   const status = !detail || !studio.ready
@@ -1241,7 +1242,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         </Flow>
         {/* how fresh it is: when CHIP last checked, with refresh (her reading, 22 Nov) */}
         <Flow direction="row" gap={8} align="center" wrap>
-          <TextStack subtitle={[tinyHead && status.spec ? 'in its spec' : null, model.version, detail?.updated ? `updated ${detail.updated}` : null, checkedAt ? `checked ${checkedAt}` : null].filter(Boolean).join(' · ')} />
+          <TextStack subtitle={[tinyHead && status.spec ? 'in its spec' : null, model.version, detail?.updated ? `updated ${detail.updated}` : null, figmaAge, checkedAt ? `checked ${checkedAt}` : null].filter(Boolean).join(' · ')} />
           <Button variant="tertiary" size="sm" iconOnly icon="RefreshDouble" ariaLabel="Check again" onClick={onCheckAgain} />
         </Flow>
       </Flow>
@@ -1307,7 +1308,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     ) : tab === 'inspect' ? (
       <InspectPanel part={part} detail={detail} docs={docs} props={props} measured={measured} picked={picked} onPick={setPicked} variant={variant} label={label} touch={touch} open={open} setOpen={setOpen} onFix={() => send([`finding-${picked}`])} onPart={pick} model={model} q={q} onQuality={() => (setTab('quality'), setOpen(null))} />
     ) : tab === 'fix' ? (
-      <FixPanel part={part} fixes={fixes} chosen={chosen} setChosen={setChosen} target={target} setTarget={setTarget} onSend={() => send()} model={model} onPart={pick} open={open} setOpen={setOpen} />
+      <FixPanel part={part} fixes={fixes} chosen={chosen} setChosen={setChosen} target={target} setTarget={setTarget} onSend={() => send()} model={model} onPart={pick} open={open} setOpen={setOpen} figmaSays={figmaSays} onConnect={() => setKeyOpen(true)} />
     ) : tab === 'checks' ? (
       <ChecksPanel part={part} rows={rows} open={open} setOpen={setOpen} onStory={setStoryOpen} />
     ) : (
@@ -1334,8 +1335,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     <>
       {header}
       {storyOpen ? <StoryDrawer name={part.name} view={storyOpen} onClose={() => setStoryOpen(null)} /> : null}
-      {detail?.figmaBlind ? <Notification tone="attention" message="Figma can’t see it: no file key in CHIP’s settings." action={{ label: 'Add file key', onClick: () => setKeyOpen(true) }} /> : null}
-      <FigmaKeyDrawer open={keyOpen} onClose={() => setKeyOpen(false)} onSaved={onCheckAgain} />
+      <FigmaKeyDrawer open={keyOpen} onClose={() => setKeyOpen(false)} onSaved={() => (readFigma(), onCheckAgain?.())} />
       {thread}
       {said ? (
         <Toasts>

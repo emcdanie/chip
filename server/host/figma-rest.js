@@ -16,12 +16,13 @@ export class FigmaRestServer {
     this.cfg = cfg;
   }
 
+  // read when used, so a token or key saved from the Connect Figma drawer works at once, without a restart
   get token() {
-    return this.cfg.env?.FIGMA_ACCESS_TOKEN || '';
+    return process.env.FIGMA_ACCESS_TOKEN || this.cfg.env?.FIGMA_ACCESS_TOKEN || '';
   }
 
   get fileKey() {
-    return this.cfg.env?.FIGMA_FILE_KEY || '';
+    return process.env.FIGMA_FILE_KEY || this.cfg.env?.FIGMA_FILE_KEY || '';
   }
 
   async get(path) {

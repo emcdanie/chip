@@ -29,8 +29,8 @@ import { saveBoard, saveIdea, workBoard, workLanes } from './lib/lanes.mjs';
 import { claudeReady, gateReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
-import { ciRuns, warmCi, systemMap } from './lib/map.mjs';
-import { figmaKeyState, saveFigmaKey } from './lib/figma-key.mjs';
+import { ciReadAt, ciRuns, warmCi, systemMap } from './lib/map.mjs';
+import { figmaKeyState, saveFigmaKey, saveFigmaToken, testFigma } from './lib/figma-key.mjs';
 import { projectDetail, projectList, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
 import { newRoutes } from './lib/new-routes.mjs';
 import { startJobs } from './lib/starts.mjs';
@@ -163,6 +163,23 @@ app.post('/figma-key', (req, res) => {
     res.json(saveFigmaKey(req.body?.link));
   } catch (e) {
     res.status(400).json({ error: e.message });
+  }
+});
+// The token goes in server/.env and nowhere else: never echoed back, logged or put in an address
+app.post('/figma-token', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(saveFigmaToken(req.body?.token));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+app.post('/figma-test', async (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(await testFigma());
+  } catch {
+    res.status(502).json({ ok: false, says: 'CHIP could not reach Figma. Check the connection and try again.' });
   }
 });
 app.get('/host', (req, res) => {
@@ -506,7 +523,7 @@ const errorOut = (res, e, code = 400) => {
 app.get('/checks', (_req, res) => {
   const rerun = refreshIfStale();
   // the gate's recorded runs for Health's Gate runs view: CHIP's logged gate checks and GitHub's CI runs, never re-run
-  res.json({ ...listChecks({ waiting: waitingChecks(), fixable: fixableChecks() }), rerun, log: gateLog(), ci: ciRuns() });
+  res.json({ ...listChecks({ waiting: waitingChecks(), fixable: fixableChecks() }), rerun, log: gateLog(), ci: ciRuns(), ciAt: ciReadAt() });
 });
 app.post('/checks/:id/run', (req, res) => {
   if (!sameApp(req, res)) return;

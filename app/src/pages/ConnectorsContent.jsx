@@ -28,6 +28,7 @@ import Toasts from '../templates/Toasts.jsx';
 import Toast from '@bella/components/Toast/Toast';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
+import FigmaSetup from '../templates/FigmaSetup.jsx';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 // map state → the words and tone Figma uses on a tile
@@ -255,9 +256,12 @@ export default function ConnectorsContent() {
         onClose={() => setSetup(null)}
         // a path that works opens under its own name; one that needs setup says so
         label={setup ? (setup.state === 'ok' ? nameOf(setup) : `Set up ${nameOf(setup)}`) : 'Set up'}
-        footer={setup ? <Flow direction="row" justify="end">{testButton(setup, 'Test it')}</Flow> : null}
+        footer={setup && setup.id !== 'figma-rest' ? <Flow direction="row" justify="end">{testButton(setup, 'Test it')}</Flow> : null}
       >
-        {setup ? (
+        {setup?.id === 'figma-rest' ? (
+          // the token setup is three plain steps, the same form Components' Add file key opens (templates/FigmaSetup.jsx)
+          <FigmaSetup onChanged={reload} />
+        ) : setup ? (
           // the drawer's title already names it, so the body opens with what to do; groups 24 apart (rule 10)
           <Flow gap={24} inset>
             <TextStack body={plainWords(setup.detail)} />

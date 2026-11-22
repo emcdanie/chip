@@ -66,7 +66,7 @@ export function componentsModel({ components = [], gaps = {}, version, checkedAt
 
 /** Reads CHIP's data (kept between pages, shared with Health). */
 export function useComponents() {
-  const { data, error, reload } = useCached(['/data/bella.json', '/gaps']);
+  const { data, error, reload } = useCached(['/data/bella.json', '/gaps'], { live: true });
   const model = useMemo(
     () => (data ? componentsModel({ components: data[0].components, gaps: data[1].gaps, version: data[0].source?.version, checkedAt: data[1].at }) : null),
     [data],
@@ -264,7 +264,7 @@ export function studioProps(spec, shown) {
 
 /** What the studio reads for one part, each on its own so one slow or missing answer never blanks the rest. */
 export function useStudio(part) {
-  const shared = useCached(['/drift', '/checks', '/gaps', '/stories']).data;
+  const shared = useCached(['/drift', '/checks', '/gaps', '/stories'], { live: true }).data;
   const lint = useCached(part ? [`/figma-lint/${part.id}`] : []).data;
   const spec = useCached(part ? [`/bella-spec/${part.id}`] : []).data;
   return {
