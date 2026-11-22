@@ -32,6 +32,7 @@ import Toasts from '../templates/Toasts.jsx';
 import { planRun } from '../templates/RunPlan.jsx';
 import Flow from '../templates/Flow.jsx';
 import WorkDrawer from './WorkDrawer.jsx';
+import NeedsYouView from './NeedsYouView.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import useCached from '../templates/useCached.js';
 import { AREAS, LANES, LANE_NAMES, filterFromHash, going, runnable, saveMove, shown } from './workModel.js';
@@ -252,10 +253,12 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     if (tool === 'search') searchRef.current?.querySelector('input')?.focus();
   }, [tool]);
   const model = shown(all, { filter, sort, q, branch: hashFilter.branch });
-  // a review page opens in full outside CHIP's frame (her pick B); a pull request on GitHub; a component on its page; the rest in the drawer
+  // a review page that needs her opens inside CHIP over the board (her pick A, 23 Nov); a pull request on GitHub; a component on its page; the rest in the drawer
+  const [reviewing, setReviewing] = useState(null);
   const open = (c) => {
     const o = c.open;
     if (c.kind === 'session') return setOpen({ kind: 'session', card: c });
+    if (c.kind === 'review' && c.needs && o?.kind === 'page') return setReviewing(c.id);
     if (o.kind === 'page' || o.kind === 'link') return window.open(o.href, '_blank', 'noopener');
     if (o.kind === 'hash') return (window.location.hash = o.href);
     setOpen(o);
@@ -291,7 +294,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
   return (
     <>
       {/* Tools row: what the board shows and the last check on the left; Filter, Sort, Search, Branch and the views on the right */}
-      <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'} grow={phone ? undefined : 'first'}>
+      {reviewing ? null : <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'} grow={phone ? undefined : 'first'}>
         <Flow direction="row" gap={16} wrap align="center">
           {filterLabel ? (
             <FilterChip pressed onClick={() => setFilter(null)} ariaLabel={`${filterLabel}, ${model?.total ?? 0} cards. Clear the filter`}>
@@ -350,12 +353,12 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
           <BranchPicker branch={hashFilter.branch} />
           <SegmentedControl options={VIEWS} value={view} onChange={onView} label="Work view" />
         </Flow>
-      </Flow>
+      </Flow>}
       {!model ? (
         <EmptyState size="lane" mark="⏳" title="Reading the board" line="Fetching the sessions, what needs you and the ideas." />
       ) : (
         <>
-          {model.brief && !briefShut ? (
+          {model.brief && !briefShut && !reviewing ? (
             <Notification tone="info" title="Brief · from CHIP’s checks" message={model.brief.message} action={model.brief.action && model.brief.open ? { label: model.brief.action, onClick: () => open({ open: model.brief.open }) } : undefined} onClose={() => setBriefShut(true)} closeLabel="Hide the brief" />
           ) : null}
           {move.notice ? (
@@ -366,7 +369,15 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
             </Toasts>
           ) : null}
           <WorkDrawer item={opened} onClose={() => setOpen(null)} onNotice={(n) => move.setNotice({ tone: n.tone, message: `${n.title}. ${n.message}` })} onChanged={() => window.dispatchEvent(new Event('chip:changed'))} onAccepted={() => (setOpen(null), window.dispatchEvent(new Event('chip:changed')))} />
-          {view === 'table' ? (
+          {reviewing ? (
+            <NeedsYouView
+              cards={model.lanes.flatMap((l) => l.cards).filter((c) => c.needs)}
+              startId={reviewing}
+              onBack={() => setReviewing(null)}
+              onOpenOther={(c) => (setReviewing(null), open(c))}
+              onNotice={(n) => move.setNotice({ tone: n.tone, message: `${n.title}. ${n.message}` })}
+            />
+          ) : view === 'table' ? (
             model.total ? (
               <DataTable caption="Every card on the board" columns={TABLE_COLUMNS} rows={model.lanes.flatMap((l) => l.cards.map((c) => ({ ...c, lane: l.name, laneId: l.id })))} rowKey="id" />
             ) : (

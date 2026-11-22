@@ -26,6 +26,7 @@ import ListRow from '@bella/components/ListRow/ListRow';
 import TourStep from '@bella/components/TourStep/TourStep';
 import Step from '@bella/components/Step/Step';
 import Tag from '@bella/components/Tag/Tag';
+import StatCard from '@bella/components/StatCard/StatCard';
 import Progress from '@bella/components/Progress/Progress';
 import Flow from '../templates/Flow.jsx';
 import { afterSteps } from './workModel.js';
@@ -442,13 +443,22 @@ function PushDrawer({ item, onClose }) {
         {!p && !error ? <EmptyState size="lane" title="Reading it" line="Asking git what a push would send." /> : null}
         {p ? (
           <>
-            <TextStack body={`A push sends these ${n} ${n === 1 ? 'commit' : 'commits'} (${p.files} ${p.files === 1 ? 'file' : 'files'}) to GitHub, where other people see ${n === 1 ? 'it' : 'them'} and CI runs. CHIP doesn’t push: if you want it, type git push in a shell yourself.`} />
-            <Flow as="ul" gap={0} aria-label="Commits a push would send">
-              {p.commits.slice(0, 10).map((c, i) => (
-                <ListRow key={c.sha} layout="stacked" title={c.subject} description={`${c.sha} · ${when(c.date)}`} divider={i < Math.min(n, 10) - 1} />
-              ))}
-            </Flow>
-            {n > 10 ? <TextStack subtitle={`The newest 10 of ${n}; git log ${p.upstream}..${p.branch} lists them all.`} /> : null}
+            {/* the amount first, then short bullets with the few key words marked, then the commits on request (Elleta, 23 Nov: a drawer is a reading surface) */}
+            <StatCard icon="GitBranch" tone="attention" title="Waiting to push" value={n} unit={n === 1 ? 'commit' : 'commits'} context={`${p.files} ${p.files === 1 ? 'file' : 'files'} · ${p.branch}`} chart="none" />
+            <AnswerLines
+              shaped={{
+                verdict: `**GitHub** would get ${n === 1 ? 'this commit' : `these ${n} commits`}.`,
+                bullets: [`**Other people** see ${n === 1 ? 'it' : 'them'} and **CI** runs.`, '**You** type git push: CHIP never pushes.'],
+              }}
+              onPin={() => {}}
+            />
+            <Disclosure title={`The newest ${Math.min(n, 10)}`} summary={n > 10 ? `of ${n}` : undefined}>
+              <Flow as="ul" gap={0} aria-label="Commits a push would send">
+                {p.commits.slice(0, 10).map((c, i) => (
+                  <ListRow key={c.sha} layout="stacked" title={c.subject} description={`${c.sha} · ${when(c.date)}`} divider={i < Math.min(n, 10) - 1} />
+                ))}
+              </Flow>
+            </Disclosure>
           </>
         ) : null}
       </Flow>

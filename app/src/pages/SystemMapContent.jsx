@@ -39,6 +39,7 @@ import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 import { planRun } from '../templates/RunPlan.jsx';
+import usePan from '../templates/usePan.js';
 
 const SLOTS = 4;
 const FIGMA_PATHS = ['figma', 'figma-console', 'figma-rest'];
@@ -288,41 +289,10 @@ function summaryOf(map) {
   return 'Nothing needs you.';
 }
 
-// the nearest box that scrolls around an element (Stage's frame at 100%)
-function scroller(el) {
-  for (let e = el; e && e !== document.body; e = e.parentElement) {
-    const s = getComputedStyle(e);
-    if (/(auto|scroll)/.test(s.overflowX + s.overflowY) && (e.scrollWidth > e.clientWidth || e.scrollHeight > e.clientHeight)) return e;
-  }
-  return null;
-}
-
 // the box the stage scrolls in, overflowing or not
 function scrollBox(el) {
   for (let e = el; e && !e.matches('[data-bella-component="stage"]'); e = e.parentElement) if (/(auto|scroll)/.test(getComputedStyle(e).overflowX)) return e;
   return null;
-}
-
-/* Drag the board to pan: moves whatever box scrolls around it. */
-function usePan() {
-  const drag = useRef(null);
-  return {
-    onPointerDown: (e) => {
-      if (e.button !== 0 || e.target.closest('button, a, input, select')) return;
-      const box = scroller(e.currentTarget);
-      if (!box) return;
-      drag.current = { box, x: e.clientX, y: e.clientY, left: box.scrollLeft, top: box.scrollTop };
-      e.currentTarget.setPointerCapture?.(e.pointerId);
-    },
-    onPointerMove: (e) => {
-      const d = drag.current;
-      if (!d) return;
-      d.box.scrollLeft = d.left - (e.clientX - d.x);
-      d.box.scrollTop = d.top - (e.clientY - d.y);
-    },
-    onPointerUp: () => (drag.current = null),
-    onPointerCancel: () => (drag.current = null),
-  };
 }
 
 function Node({ step, picked, onPick }) {

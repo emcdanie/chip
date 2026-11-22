@@ -1,0 +1,384 @@
+// The Needs you view: a card that needs her opens its review page inside CHIP, over the board (Elleta, 23 Nov
+// 2026, picked A: "i thought we were going to be able to select in needs you and mark up from the work board..
+// also be able to select all and mark up in bulk"). Picture large, A and B, thumbs, a comment and Mark up, then
+// Next and Back through the whole Needs you list, and one Send all that posts every answer to the review
+// server's own POST /answers (the shape decide.js and markup.js send), so nothing sends her out of CHIP.
+//
+// BELLA parts: Stage (frame, Fit and 100%), Button (zoom, thumbs, options), Slider (the side pane's width),
+// ListRow, FilterChip (select), SegmentedControl (A / B picture), Input multiline, Card, TextStack, Tag, Pin
+// (through Stage markers), EmptyState, Notification.
+// BELLA GAPS (named for the coordinator, none drawn here): a checkbox for choosing rows; a Splitter to drag the
+// side pane (Slider stands in, keyboard works); Stage zoom steps with pan (SystemMapContent's HOLE zoom-steps);
+// ToolColumn always draws Light or dark and Compare, which have no job here, so zoom uses three Buttons.
+import { useEffect, useMemo, useState } from 'react';
+import Button from '@bella/components/Button/Button';
+import Card from '@bella/components/Card/Card';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
+import EmptyState from '@bella/components/EmptyState/EmptyState';
+import FilterChip from '@bella/components/FilterChip/FilterChip';
+import Input from '@bella/components/Input/Input';
+import ListRow from '@bella/components/ListRow/ListRow';
+import Notification from '@bella/components/Notification/Notification';
+import Slider from '@bella/components/Slider/Slider';
+import Stage from '@bella/components/Stage/Stage';
+import Tag from '@bella/components/Tag/Tag';
+import TextStack from '@bella/components/TextStack/TextStack';
+import { ZOOM_STEPS } from '@bella/components/ToolColumn/ToolColumn';
+import Flow from '../templates/Flow.jsx';
+import useNarrow from '../templates/useNarrow.js';
+import usePan from '../templates/usePan.js';
+import { answersUrl, countAnswers, decisionBody, isPicture, markupBody, parseReview, picturePage } from './needsYouModel.js';
+
+const KEEP = 'chip:needs-you';
+const load = () => {
+  try {
+    return JSON.parse(localStorage.getItem(KEEP) || '{}');
+  } catch {
+    return {};
+  }
+};
+const keep = (v) => {
+  try {
+    localStorage.setItem(KEEP, JSON.stringify(v));
+  } catch {
+    /* a private window keeps nothing: the answers still send */
+  }
+};
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+/* the picture's own size, so the Stage frame is exactly the picture at 100% */
+function useSize(src) {
+  const [size, setSize] = useState(null);
+  useEffect(() => {
+    setSize(null);
+    if (!src) return undefined;
+    const img = new Image();
+    img.onload = () => setSize({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => setSize({ w: 0, h: 0 });
+    img.src = src;
+    return undefined;
+  }, [src]);
+  return size;
+}
+
+function Picture({ card, shot, pins, onPins, zoom, setZoom, marking, setMarking }) {
+  const size = useSize(shot?.src);
+  const pan = usePan();
+  if (!shot) return <EmptyState size="lane" mark="🖼" title="No picture on this card" line="The decision is in the side pane." />;
+  if (!size) return <EmptyState size="lane" mark="⏳" title="Loading the picture" line={shot.caption} />;
+  if (!size.w) return <EmptyState size="lane" mark="🖼" title="The picture didn’t load" line={shot.caption} />;
+  const k = zoom ? zoom / 100 : 1; // frame pixels per picture pixel when it is not fitted
+  const mine = pins.filter((p) => p.shot === shot.src);
+  const markers = mine.map((p) => ({ id: p.id, x: p.x * k, y: p.y * k, label: pins.indexOf(p) + 1 }));
+  const at = (zoom ?? 100) / 100;
+  const stepTo = (dir) => {
+    const next = dir > 0 ? ZOOM_STEPS.find((s) => s > (zoom ?? 100)) : [...ZOOM_STEPS].reverse().find((s) => s < (zoom ?? 100));
+    if (next) setZoom(next);
+  };
+  return (
+    <Flow gap={8} onKeyDown={(e) => (e.key === '+' || e.key === '=' ? stepTo(1) : e.key === '-' ? stepTo(-1) : e.shiftKey && e.code === 'Digit1' ? setZoom(null) : null)}>
+      <Flow direction="row" gap={8} align="center" wrap role="toolbar" aria-label="Picture tools">
+        <Button variant="secondary" size="sm" iconOnly icon="ZoomOut" ariaLabel="Zoom out" onClick={() => stepTo(-1)} />
+        <Button variant="secondary" size="sm" iconOnly icon="ZoomIn" ariaLabel="Zoom in" onClick={() => stepTo(1)} />
+        <Button variant="secondary" size="sm" iconOnly icon="Expand" ariaLabel="Fit to the window" ariaPressed={zoom == null} onClick={() => setZoom(null)} />
+        <Tag variant="outline">{zoom ? `${zoom}%` : 'Fit'}</Tag>
+        <Button variant="secondary" size="sm" icon="EditPencil" leadingIcon ariaPressed={marking} onClick={() => setMarking(!marking)}>
+          {marking ? 'Done marking' : 'Mark up'}
+        </Button>
+      </Flow>
+      <Stage
+        grid="none"
+        label={`${shot.caption || card.title}, ${zoom ? `${zoom}%` : 'fitted'}`}
+        frameWidth={Math.round(size.w * at)}
+        frameHeight={Math.round(size.h * at)}
+        zoom={zoom ? 'actual' : 'fit'}
+        markers={markers}
+        picking={marking}
+        onPick={(x, y) => onPins((all) => [...all, { id: `p${Date.now()}`, shot: shot.src, x: Math.round(x / k), y: Math.round(y / k), note: '', on: shot.caption || card.title, section: card.title }])}
+      >
+        <Flow gap={0} {...pan}>
+          <img src={shot.src} alt={shot.alt || shot.caption} draggable={false} />
+        </Flow>
+      </Stage>
+    </Flow>
+  );
+}
+
+/* one card: its decision in the side pane */
+function Decision({ card, state, set, bulk }) {
+  const { A = {}, T = {}, N = {} } = state;
+  const toggle = (map, key, v) => set((s) => ({ ...s, [map]: { ...s[map], [key]: s[map]?.[key] === v ? undefined : v } }));
+  return (
+    <Flow gap={16}>
+      <TextStack title={card.title} titleAs="h3" subtitle={card.line || undefined} />
+      <Flow gap={8} role="group" aria-label={`Options for ${card.title}`}>
+        {card.options.map((o) => (
+          <Flow key={o.label} gap={4}>
+            <Button variant="secondary" ariaPressed={A[card.id] === o.label} onClick={() => toggle('A', card.id, o.label)}>
+              {o.pick ? `${o.label} · recommended` : o.label}
+            </Button>
+          </Flow>
+        ))}
+      </Flow>
+      {card.change ? <TextStack overline="What changes" body={card.change} /> : null}
+      <Flow direction="row" gap={8} justify="end" role="group" aria-label={`Thumbs for ${card.title}`}>
+        <Button variant="secondary" iconOnly icon="ThumbsDown" ariaLabel="Thumbs down" ariaPressed={T[card.id] === 'down'} onClick={() => toggle('T', card.id, 'down')} />
+        <Button variant="secondary" iconOnly icon="ThumbsUp" ariaLabel="Thumbs up" ariaPressed={T[card.id] === 'up'} onClick={() => toggle('T', card.id, 'up')} />
+      </Flow>
+      <Input label="Comment" multiline value={N[card.id] ?? ''} onChange={(v) => set((s) => ({ ...s, N: { ...s.N, [card.id]: v } }))} placeholder="What should change?" />
+      {bulk}
+    </Flow>
+  );
+}
+
+export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNotice }) {
+  const narrow = useNarrow(1100);
+  const [at, setAt] = useState(Math.max(0, cards.findIndex((c) => c.id === startId)));
+  const [pages, setPages] = useState({}); // href -> { page } | { error }
+  const [answers, setAnswers] = useState(() => load()); // page path -> { A, T, N, pins }
+  const [picked, setPicked] = useState(() => new Set());
+  const [shotAt, setShotAt] = useState({}); // card id -> picture index
+  const [cardAt, setCardAt] = useState({}); // page path -> which of its cards shows
+  const [zoom, setZoom] = useState(null);
+  const [marking, setMarking] = useState(false);
+  const [wide, setWide] = useState(320);
+  const [sending, setSending] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  const current = cards[Math.min(at, cards.length - 1)];
+  const href = current?.open?.kind === 'page' ? current.open.href : null;
+  // read this card's page, then the rest quietly so a Next is instant
+  const links = cards.map((c) => (c.open?.kind === 'page' ? `${c.id}=${c.open.href}` : '')).join('\n'); // the board refreshes: only a changed list reads again
+  useEffect(() => {
+    const todo = [href, ...cards.map((c) => (c.open?.kind === 'page' ? c.open.href : null))].filter((h, i, all) => h && all.indexOf(h) === i && !pages[h]);
+    let live = true;
+    todo.forEach((h) =>
+      (isPicture(h) ? Promise.resolve(null) : fetch(h).then((r) => (r.ok ? r.text() : Promise.reject(new Error(`${r.status}`)))))
+        .then((html) => live && setPages((p) => ({ ...p, [h]: { page: html == null ? picturePage(h, cards.find((c) => c.open?.href === h)?.title ?? h) : parseReview(html, h) } })))
+        .catch(() => live && setPages((p) => ({ ...p, [h]: { error: true } }))),
+    );
+    return () => {
+      live = false;
+    };
+  }, [href, links, pages]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => keep(answers), [answers]);
+  useEffect(() => setMarking(false), [at]);
+
+  const read = href ? pages[href] : null;
+  const page = read?.page;
+  const state = (page && answers[page.src]) || {};
+  const setState = (next) => setAnswers((a) => ({ ...a, [page.src]: typeof next === 'function' ? next(a[page.src] ?? {}) : next }));
+  const shownCard = page ? page.cards[Math.min(cardAt[page.src] ?? 0, page.cards.length - 1)] : null;
+  const shots = shownCard?.shots ?? [];
+  const shot = shots[Math.min(shotAt[shownCard?.id] ?? 0, shots.length - 1)];
+  const pins = state.pins ?? [];
+
+  const pageOf = (c) => (c.open?.kind === 'page' ? pages[c.open.href]?.page : null);
+  const touched = useMemo(() => Object.entries(answers).filter(([, s]) => countAnswers(s) > 0), [answers]);
+  const total = touched.reduce((n, [, s]) => n + countAnswers(s), 0);
+  const go = (d) => setAt((i) => Math.min(cards.length - 1, Math.max(0, i + d)));
+
+  // one pass for the ones she chose: a thumb, or one comment, on every card of every chosen page
+  const reviewCards = cards.filter((c) => c.open?.kind === 'page');
+  const chosen = reviewCards.filter((c) => picked.has(c.id) && pageOf(c));
+  const allIn = reviewCards.length > 0 && reviewCards.every((c) => picked.has(c.id));
+  const bulkSet = (patch) =>
+    setAnswers((a) => {
+      const out = { ...a };
+      chosen.forEach((c) => {
+        const p = pageOf(c);
+        const s = out[p.src] ?? {};
+        out[p.src] = { ...s, ...Object.fromEntries(Object.entries(patch).map(([m, v]) => [m, { ...s[m], ...Object.fromEntries(p.cards.map((k) => [k.id, v])) }])) };
+      });
+      return out;
+    });
+  const [bulkNote, setBulkNote] = useState('');
+  const bulk = chosen.length ? (
+    <Card>
+      <Flow gap={12} role="group" aria-label="Mark up the chosen cards in one pass">
+        <TextStack overline={plural(chosen.length, 'card') + ' chosen'} title="Mark up all at once" subtitle="Applies to every picture on each chosen card" titleAs="h3" />
+        <Flow direction="row" gap={8} wrap>
+          <Button variant="secondary" icon="ThumbsUp" leadingIcon onClick={() => bulkSet({ T: 'up' })}>
+            Thumbs up all
+          </Button>
+          <Button variant="secondary" icon="ThumbsDown" leadingIcon onClick={() => bulkSet({ T: 'down' })}>
+            Thumbs down all
+          </Button>
+        </Flow>
+        <Input label="One comment for all" multiline value={bulkNote} onChange={setBulkNote} />
+        <Flow direction="row" justify="end">
+          <Button variant="secondary" disabled={!bulkNote.trim()} onClick={() => (bulkSet({ N: bulkNote.trim() }), setBulkNote(''))}>
+            Add the comment to all
+          </Button>
+        </Flow>
+      </Flow>
+    </Card>
+  ) : null;
+
+  async function sendAll() {
+    if (sending || !touched.length) return;
+    setSending(true);
+    setMsg(null);
+    const byPath = new Map(Object.values(pages).filter((p) => p.page).map((p) => [p.page.src, p]));
+    const origin = (p) => answersUrl(reviewCards.find((c) => pageOf(c)?.src === p.page.src)?.open.href);
+    try {
+      const post = (p, body) =>
+        fetch(origin(p), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((r) => (r.ok ? true : Promise.reject(new Error('refused'))));
+      for (const [src, s] of touched) {
+        const p = byPath.get(src);
+        if (!p) continue;
+        if (Object.keys({ ...s.A, ...s.T }).length || Object.values(s.N ?? {}).some((n) => (n ?? '').trim())) await post(p, decisionBody(p.page, s));
+        if ((s.pins ?? []).some((x) => x.note.trim())) await post(p, markupBody(p.page, s.pins.filter((x) => x.note.trim()), `${window.innerWidth}x${window.innerHeight}`));
+      }
+      setAnswers({});
+      setPicked(new Set());
+      setMsg({ tone: 'success', text: `Sent ${plural(total, 'answer')} on ${plural(touched.length, 'page')}.` });
+      onNotice?.({ tone: 'success', title: 'Sent', message: `${plural(total, 'answer')} on ${plural(touched.length, 'page')} reached the coordinator.` });
+    } catch {
+      setMsg({ tone: 'danger', text: 'Could not send. The review server on localhost:3123 did not answer; your answers are kept here.' });
+    }
+    setSending(false);
+  }
+
+  const list = (
+    <Flow as="ul" gap={8} aria-label="Everything that needs you">
+      {cards.map((c, i) => {
+        const p = pageOf(c);
+        const n = p ? countAnswers(answers[p.src]) : 0;
+        return (
+          <ListRow
+            key={c.id}
+            as="li"
+            layout="stacked"
+            divider
+            selected={i === at}
+            title={c.title}
+            description={c.open?.kind === 'page' ? (n ? plural(n, 'answer') : 'Review page') : c.line}
+            actionButton={
+              c.open?.kind === 'page' ? (
+                <FilterChip pressed={picked.has(c.id)} ariaLabel={`Choose ${c.title}`} onClick={() => setPicked((s) => (s.has(c.id) ? new Set([...s].filter((x) => x !== c.id)) : new Set([...s, c.id])))}>
+                  {picked.has(c.id) ? 'Chosen' : 'Choose'}
+                </FilterChip>
+              ) : undefined
+            }
+            onClick={() => setAt(i)}
+          />
+        );
+      })}
+    </Flow>
+  );
+
+  if (!current) return <EmptyState size="page" mark="✅" title="Nothing needs you" line="Every review is answered." actions={<Button variant="secondary" onClick={onBack}>Back to the board</Button>} />;
+
+  const isReview = !!href;
+  const side = (
+    <Flow gap={16} style={narrow ? undefined : { inlineSize: `calc(var(--spacing-4) * ${wide / 4})`, flexShrink: 0 }}>
+      {isReview && page ? (
+        <>
+          {page.cards.length > 1 ? (
+            <Flow gap={8}>
+              <TextStack overline={`${Math.min(cardAt[page.src] ?? 0, page.cards.length - 1) + 1} of ${page.cards.length} on this page`} />
+              <Flow direction="row" gap={8} wrap role="group" aria-label="Cards on this page">
+                {page.cards.map((k, i) => (
+                  <FilterChip key={k.id} pressed={k === shownCard} onClick={() => setCardAt((m) => ({ ...m, [page.src]: i }))}>
+                    {String(i + 1)}
+                  </FilterChip>
+                ))}
+              </Flow>
+            </Flow>
+          ) : null}
+          {shownCard ? <Decision card={shownCard} state={state} set={setState} /> : null}
+          {pins.length ? (
+            <Flow gap={12} aria-label="Mark-up notes">
+              <TextStack overline="Mark-up notes" subtitle="Numbered as the pins on the picture" />
+              {pins.map((p, i) => (
+                <Flow key={p.id} direction="row" gap={8} align="start">
+                  <Tag variant="index">{i + 1}</Tag>
+                  <Flow grow="first" gap={4}>
+                    <Input label={`Note ${i + 1}`} multiline value={p.note} onChange={(v) => setState((s) => ({ ...s, pins: s.pins.map((x) => (x.id === p.id ? { ...x, note: v } : x)) }))} />
+                  </Flow>
+                  <Button variant="tertiary" size="sm" iconOnly icon="Xmark" ariaLabel={`Remove note ${i + 1}`} onClick={() => setState((s) => ({ ...s, pins: s.pins.filter((x) => x.id !== p.id) }))} />
+                </Flow>
+              ))}
+            </Flow>
+          ) : null}
+          {bulk}
+        </>
+      ) : null}
+      {!narrow ? <Slider label="Side pane width" value={wide} onChange={setWide} min={280} max={640} step={20} unit="px" hint="Drag, or use the arrow keys" /> : null}
+    </Flow>
+  );
+
+  const centre = !isReview ? (
+    <Card>
+      <Flow gap={16}>
+        <TextStack overline={current.status} title={current.title} titleAs="h3" subtitle={current.line} />
+        <Flow direction="row" justify="end">
+          <Button variant="primary" onClick={() => onOpenOther(current)}>Open it</Button>
+        </Flow>
+      </Flow>
+    </Card>
+  ) : read?.error ? (
+    <Notification tone="danger" title="The review page didn’t load" message="The review server on localhost:3123 did not answer." />
+  ) : !page ? (
+    <EmptyState size="lane" mark="⏳" title="Reading the review page" line={current.title} />
+  ) : (
+    <Flow gap={12}>
+      {shots.length > 1 ? (
+        <Flow gap={8}>
+          <Flow direction="row" gap={8} wrap role="group" aria-label="Pictures on this card">
+            {shots.map((sh, i) => (
+              <FilterChip key={sh.src} pressed={sh === shot} ariaLabel={`Picture ${i + 1}${sh.caption ? `: ${sh.caption}` : ''}`} onClick={() => setShotAt((m) => ({ ...m, [shownCard.id]: i }))}>
+                {shots.length <= 3 ? sh.caption.split('·')[0].trim().slice(0, 24) || String(i + 1) : String(i + 1)}
+              </FilterChip>
+            ))}
+          </Flow>
+          <TextStack body={shot?.caption} />
+        </Flow>
+      ) : null}
+      <Picture card={shownCard} shot={shot} pins={pins} onPins={(next) => setState((s) => ({ ...s, pins: typeof next === 'function' ? next(s.pins ?? []) : next }))} zoom={zoom} setZoom={setZoom} marking={marking} setMarking={setMarking} />
+    </Flow>
+  );
+
+  return (
+    <Flow gap={16}>
+      <Flow direction="row" gap={8} align="center" justify="between" wrap>
+        <Flow direction="row" gap={8} align="center" wrap>
+          <Button variant="tertiary" icon="NavArrowLeft" leadingIcon onClick={onBack}>
+            Work board
+          </Button>
+          <TextStack title="Needs you" titleAs="h2" subtitle={`${at + 1} of ${cards.length}`} />
+        </Flow>
+        <Flow direction="row" gap={8} align="center" wrap>
+          <FilterChip pressed={allIn} onClick={() => setPicked(allIn ? new Set() : new Set(reviewCards.map((c) => c.id)))}>
+            {allIn ? 'All chosen' : `Choose all ${reviewCards.length}`}
+          </FilterChip>
+          <Button variant="secondary" size="sm" iconOnly icon="NavArrowLeft" ariaLabel="Previous" disabled={at === 0} onClick={() => go(-1)} />
+          <Button variant="secondary" size="sm" iconOnly icon="NavArrowRight" ariaLabel="Next" disabled={at >= cards.length - 1} onClick={() => go(1)} />
+        </Flow>
+      </Flow>
+      {msg ? <Notification tone={msg.tone} message={msg.text} onClose={() => setMsg(null)} /> : null}
+      <Flow direction={narrow ? 'column' : 'row'} gap={24} align={narrow ? undefined : 'start'}>
+        {narrow ? (
+          <Disclosure title="Everything that needs you" summary={`${at + 1} of ${cards.length}`}>
+            {list}
+          </Disclosure>
+        ) : (
+          <Flow gap={12} style={{ inlineSize: 'calc(var(--spacing-4) * 56)', flexShrink: 0 }}>
+            {list}
+          </Flow>
+        )}
+        <Flow gap={12} grow="first">
+          {centre}
+        </Flow>
+        {side}
+      </Flow>
+      <Flow direction="row" gap={12} align="center" justify="end" wrap role="group" aria-label="Send all">
+        <TextStack body={total ? `${plural(total, 'answer')} on ${plural(touched.length, 'page')}, ready to send` : 'Answer a card, then send everything in one go.'} />
+        <Button variant="primary" busy={sending} disabled={!total} onClick={sendAll}>
+          {total ? `Send all (${total})` : 'Send all'}
+        </Button>
+      </Flow>
+    </Flow>
+  );
+}
