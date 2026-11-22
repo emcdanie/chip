@@ -123,8 +123,10 @@ export default function AuditReading({ a, day }) {
       ) : null}
 
       {r.stations.length ? (
-        <Inset gap={12}>
-          <SectionHead icon="Activity" iconTone="info" title="Every station" description="Grouped by light, with the evidence behind each" showInfo={false} />
+        <Flow gap={12}>
+          <Inset>
+            <SectionHead icon="Activity" iconTone="info" title="Every station" description="Grouped by light, with the evidence behind each" showInfo={false} />
+          </Inset>
           <ReadingGroups
             single
             openFirst
@@ -134,7 +136,7 @@ export default function AuditReading({ a, day }) {
               { name: 'Not rated', tone: 'neutral', items: r.stations.filter((s) => !s.light).map((s) => item(s)) },
             ]}
           />
-        </Inset>
+        </Flow>
       ) : null}
     </Flow>
   );

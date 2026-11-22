@@ -55,7 +55,7 @@ export function ReadingGroups({ groups, single = false, openFirst = false, label
   const [open, setOpen] = useState(() => (openFirst && shown[0] ? [shown[0].name] : []));
   const toggle = (name, on) => setOpen((was) => (single ? (on ? [name] : []) : on ? [...was, name] : was.filter((n) => n !== name)));
   return (
-    <Flow gap={8} as="div" role="group" aria-label={label}>
+    <Flow inset gap={8} as="div" role="group" aria-label={label}>
       {shown.map((g) => (
         <Disclosure
           key={g.name}

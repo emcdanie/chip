@@ -11,12 +11,12 @@ import Notification from '@bella/components/Notification/Notification';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import StatCard from '@bella/components/StatCard/StatCard';
-import Stat from '@bella/components/Stat/Stat';
 import Progress from '@bella/components/Progress/Progress';
 import SystemHealth from '@bella/components/SystemHealth/SystemHealth';
 import CheckRow from '@bella/components/CheckRow/CheckRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
+import LineChart from '@bella/components/LineChart/LineChart';
 import TextStack from '@bella/components/TextStack/TextStack';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import { planRun } from '../templates/RunPlan.jsx';
@@ -96,6 +96,20 @@ function driftPlan(p) {
   return { title: `Fix ${p.name}'s drift`, from: 'Health · Drift', brief, steps };
 }
 
+/* The recorded checks that changed the count (the first, each change, the last), labelled short: the day where the day
+   starts, the time after it, so a 640 drawer and a phone both keep their axis readable. */
+function driftPoints(hist) {
+  const keep = hist.filter((x, i) => i === 0 || i === hist.length - 1 || x.differing !== hist[i - 1].differing);
+  let lastDay = null;
+  return keep.map((x) => {
+    const t = new Date(x.at);
+    const day = t.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const label = day === lastDay ? t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : day;
+    lastDay = day;
+    return { label, value: x.differing };
+  });
+}
+
 function DriftCard({ components }) {
   const { data } = useCached(['/drift']);
   const [open, setOpen] = useState(false);
@@ -132,15 +146,23 @@ function DriftCard({ components }) {
           {/* since the last check: the trend arrow and the mini chart from the snapshots CHIP keeps (/drift history);
               with one snapshot there is no change to show yet */}
           <Inset gap={24}>
-          <Stat
-            label="Parts that differ"
-            value={d.differing}
-            unit={`of ${d.total}`}
-            series={hist.length > 1 ? hist.map((x) => x.differing) : undefined}
-            seriesLabels={hist.length > 1 ? hist.map((x) => new Date(x.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ` ${new Date(x.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`) : undefined}
-            delta={prev ? `${Math.abs(d.differing - prev.differing) || 'No'} ${d.differing === prev.differing ? 'change' : d.differing < prev.differing ? 'fewer' : 'more'} since the last check, ${new Date(prev.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : 'First check kept: the change shows once BELLA moves'}
-            trend={prev && d.differing !== prev.differing ? (d.differing < prev.differing ? 'down' : 'up') : undefined}
-          />
+          {/* the headline as BELLA's LineChart (full: scrubber and callout), from the snapshots CHIP keeps (/drift history) */}
+          {hist.length > 1 ? (
+            <LineChart
+              label="Parts that differ"
+              tone="warning"
+              unit="parts"
+              baseline="auto"
+              baselineReason="Shows the change in parts that differ, not the count from zero"
+              scrubber
+              callout
+              draw="pick"
+              summary="Parts that differ over the last checks"
+              points={driftPoints(hist)}
+            />
+          ) : (
+            <TextStack title={`${d.differing} of ${d.total} parts differ`} body="First check kept: the chart shows once BELLA moves." />
+          )}
           {/* three kinds of drift, sorted, words in Lexend (pin 2) */}
           <Flow gap={12} as="ul" aria-label="The three kinds of drift, most first">
             {kinds.map((k) => (
@@ -218,6 +240,9 @@ function GapsCard() {
         status={`${plural(total, 'part')} BELLA can't give yet`}
         footer={g.notInCode.length ? <Button variant="primary" onClick={plan}>Plan the build</Button> : undefined}
       >
+        <Inset>
+          <TextStack body={`${plural(total, 'part')} now. No earlier checks are recorded for Gaps yet, so there is no chart: it starts with the next reading.`} />
+        </Inset>
         <ReadingGroups
           single
           openFirst
