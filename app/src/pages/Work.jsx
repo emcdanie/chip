@@ -10,7 +10,18 @@ import { filterFromHash, useWork } from './workModel.js';
 /** model and view: for stories; the page reads CHIP's data when no model is given. */
 export default function Work({ model: given, view: startView = 'board' }) {
   const live = useWork();
-  const [view, setView] = useState(startView);
+  const [view, setViewNow] = useState(() => {
+    const v = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('view');
+    return ['board', 'table', 'list'].includes(v) ? v : startView;
+  });
+  // the view is part of the address (second pass S6), so a shared link opens the same one
+  const setView = (v) => {
+    setViewNow(v);
+    const a = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    v === 'board' ? a.delete('view') : a.set('view', v);
+    const next = `#/work${a.toString() ? `?${a}` : ''}`;
+    if (window.location.hash.startsWith('#/work') && window.location.hash !== next) window.history.replaceState(null, '', next);
+  };
   return (
     <Screen
       place="work"

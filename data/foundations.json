@@ -1,8 +1,8 @@
 {
   "source": {
     "repo": "bella",
-    "commit": "913fac5",
-    "committedAt": "2026-11-22T23:13:00+01:00"
+    "commit": "d11a34c",
+    "committedAt": "2026-11-23T15:18:03+01:00"
   },
   "refs": {},
   "type": {
@@ -47,7 +47,7 @@
         "face": "Geist",
         "weights": [],
         "value": "Geist",
-        "contract": "Typeface Geist (sans, sister of Geist Mono). Global scale; parts use a Tier 2 type token. Chip body text (Elleta, 17 Nov: “C, Geist”).",
+        "contract": "Typeface Geist (sans, sister of Geist Mono). Global scale; parts use a Tier 2 type token. Chip body text (decided 17 Nov).",
         "contractFace": "Geist Mono",
         "matches": false
       },
@@ -455,13 +455,13 @@
     ]
   },
   "tokenized": {
-    "files": 98,
+    "files": 106,
     "rows": [
       {
         "p": "Border",
         "tokens": "11 widths + colour roles",
-        "decl": 170,
-        "ok": 161,
+        "decl": 184,
+        "ok": 175,
         "not": [
           {
             "component": "AnatomyHighlight",
@@ -522,8 +522,8 @@
       {
         "p": "Radius",
         "tokens": 8,
-        "decl": 179,
-        "ok": 178,
+        "decl": 185,
+        "ok": 184,
         "not": [
           {
             "component": "StatusPill",
@@ -536,29 +536,29 @@
       {
         "p": "Padding",
         "tokens": 12,
-        "decl": 149,
-        "ok": 149,
+        "decl": 154,
+        "ok": 154,
         "not": []
       },
       {
         "p": "Gap",
         "tokens": 12,
-        "decl": 209,
-        "ok": 209,
+        "decl": 222,
+        "ok": 222,
         "not": []
       },
       {
         "p": "Font size",
         "tokens": 10,
-        "decl": 217,
-        "ok": 217,
+        "decl": 231,
+        "ok": 231,
         "not": []
       },
       {
         "p": "Line height",
         "tokens": 5,
-        "decl": 165,
-        "ok": 161,
+        "decl": 179,
+        "ok": 175,
         "not": [
           {
             "component": "Avatar",
@@ -569,13 +569,13 @@
           {
             "component": "ChatBubble",
             "file": "src/components/ChatBubble/ChatBubble.module.css",
-            "line": 158,
+            "line": 157,
             "decl": "line-height: 1"
           },
           {
             "component": "ChatBubble",
             "file": "src/components/ChatBubble/ChatBubble.module.css",
-            "line": 257,
+            "line": 256,
             "decl": "line-height: 1"
           },
           {
@@ -589,15 +589,15 @@
       {
         "p": "Shadow",
         "tokens": 1,
-        "decl": 50,
-        "ok": 50,
+        "decl": 52,
+        "ok": 52,
         "not": []
       },
       {
         "p": "Motion",
         "tokens": 14,
-        "decl": 115,
-        "ok": 100,
+        "decl": 117,
+        "ok": 102,
         "not": [
           {
             "component": "BoardLane",

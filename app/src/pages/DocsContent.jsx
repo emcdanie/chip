@@ -6,7 +6,7 @@ import SearchField from '@bella/components/SearchField/SearchField';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import TextStack from '@bella/components/TextStack/TextStack';
-import EmptyState from '@bella/components/EmptyState/EmptyState';
+import NoResults from '../templates/NoResults.jsx';
 import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import { DocDrawer, day, size } from './DocReader.jsx';
@@ -82,7 +82,7 @@ export default function DocsContent({ docs: given }) {
               })}
             </Flow>
           ) : (
-            <EmptyState title="No doc matches" description="Search runs over titles and each doc’s first paragraph. Try a shorter word." />
+            <NoResults noun="docs" what={`“${q.trim()}”`} on={[{ key: 'q', label: `search “${q.trim()}”`, would: all?.length, onRemove: () => setQ('') }]} />
           )}
         </Flow>
       </div>

@@ -1,7 +1,7 @@
 // Not again: what keeps coming back and the permanent fixes (22 Nov). Only what the logs hold; nothing is invented.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { closedLoops, recurring } from '../lib/not-again.mjs';
+import { closedLoops, plannedFixes, recurring } from '../lib/not-again.mjs';
 
 const now = Date.parse('2026-11-23T12:00:00Z');
 const at = (d) => new Date(now - d * 86400000).toISOString();
@@ -28,17 +28,23 @@ test('nothing failing is an empty list, never made-up rows', () => {
   assert.deepEqual(recurring([{ id: 'a', ok: true, ranAt: at(1) }], { now }), []);
 });
 
-test('a kept run is a closed loop; before and after are counted only when the check it answers to is known', () => {
-  const actions = [
-    { kind: 'keep', title: "Fix CheckRow's drift", at: at(5), files: ['specs/a.yaml'], sentence: 'Rebuilt the spec.', check: 'contract' },
-    { kind: 'keep', title: 'Another fix', at: at(1), files: [] },
-    { kind: 'undo', title: 'Not this', at: at(2) },
+test('a landed fix is a closed loop; before and after are counted only when a check is tied to it', () => {
+  const fixes = [
+    { id: 'a', status: 'landed', kind: 'Fix contracts', closes: 'Contracts failing', check: 'contract', landed: at(5), commit: 'abc1234', changed: 'Rebuilt the spec.' },
+    { id: 'b', status: 'landed', kind: 'Another fix', closes: 'A layout slip', landed: at(1), commit: 'def5678' },
+    { id: 'c', status: 'planned', kind: 'Not yet', closes: 'Something', planned: at(1) },
   ];
-  const c = closedLoops(log, actions, { now });
-  assert.equal(c.length, 2, 'an undone run is not a permanent fix');
-  const fix = c.find((x) => x.kind === "Fix CheckRow's drift");
-  assert.deepEqual([fix.before, fix.after, fix.measured], [1, 2, true]);
+  const c = closedLoops(log, fixes, { now });
+  assert.equal(c.length, 2, 'a planned fix has not landed, so it is not a closed loop');
+  const fix = c.find((x) => x.kind === 'Fix contracts');
+  assert.deepEqual([fix.before, fix.after, fix.measured, fix.tooEarly, fix.commit], [1, 2, true, false, 'abc1234']);
   assert.equal(fix.changed, 'Rebuilt the spec.');
   const other = c.find((x) => x.kind === 'Another fix');
-  assert.deepEqual([other.before, other.after, other.measured, other.changed], [null, null, false, null]);
+  assert.deepEqual([other.before, other.after, other.measured, other.changed, other.tooEarly], [null, null, false, null, true]);
+  assert.deepEqual(plannedFixes(fixes).map((p) => p.kind), ['Not yet']);
+});
+
+test('a check tied to a fix that landed under 3 days ago has no after yet', () => {
+  const c = closedLoops(log, [{ status: 'landed', kind: 'Fresh', closes: 'x', check: 'contract', landed: at(1), commit: 'aaa1111' }], { now });
+  assert.deepEqual([c[0].before, c[0].after, c[0].tooEarly], [2, null, true]);
 });

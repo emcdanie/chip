@@ -14,6 +14,7 @@ import { createServer } from 'node:net';
 import { basename, join } from 'node:path';
 import { CHIP_CLAUDE_BIN, CHIP_CLAUDE_MODEL, DATA_DIR, plainEnv } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
+import { landFix } from './fixes.mjs';
 import { BASE, prepare } from './checks.mjs';
 import { logAction, portBusy, sh, strip, visualBlockers } from './review.mjs';
 
@@ -344,6 +345,12 @@ export function keepRun(id) {
   run.status = 'kept';
   save(run);
   logAction({ kind: 'keep', title: run.title, branch: run.branch, sha: run.sha, base: BASE, files: run.files ?? [], sentence: run.summary?.split('\n')[0] ?? '' });
+  // a fix she planned on Not again lands now: its commit is the run's
+  try {
+    landFix({ runTitle: run.title, commit: run.sha, changed: run.summary?.split('\n')[0] ?? '' }, { cwd: BELLA });
+  } catch {
+    /* not a planned fix, or no commit to point at: nothing to log */
+  }
   afterKeep(run).catch((e) => Object.assign(run, { step: null, afterError: e.message }));
   return public_(run);
 }

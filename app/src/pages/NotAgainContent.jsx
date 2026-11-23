@@ -25,6 +25,7 @@ import Toasts from '../templates/Toasts.jsx';
 import useCached from '../templates/useCached.js';
 import { FIX, LIBRARY, stateOf, stepsOf, useNotAgain } from './notAgainModel.js';
 import { handOff } from './healthModel.js';
+import { planRun } from '../templates/RunPlan.jsx';
 
 export const STATES = ['suggested', 'running', 'your-call', 'kept', 'gate-fails', 'library'];
 
@@ -141,8 +142,6 @@ function FixCard({ state, data, busy, act }) {
 
 function Banner({ state, data, busy, act }) {
   if (state === 'gate-fails' || state === 'running' || state === 'your-call') return null;
-  const n = data.parts.length;
-  const p = data.pairable.length;
   if (state === 'kept' && data.run)
     return (
       <Notification
@@ -156,11 +155,7 @@ function Banner({ state, data, busy, act }) {
     <Notification
       tone="info"
       title="What is Not again?"
-      message={
-        n
-          ? `${plural(n, 'part')} ${n === 1 ? 'has' : 'have'} no contrast pair. ${p ? `This saved fix adds pairs for the ${p} with colours of their own.` : `None of them has colours of its own, so there is no pair to add.`} When a check fails, the agent repeats a saved fix and a reviewer only presses Accept.`
-          : 'A saved fix: when a check fails, the agent repeats it and a reviewer only presses Accept.'
-      }
+      message="What keeps failing, and the fixes that make it stop. Make a check permanent: the agent fixes the cause on a copy, a reviewer presses Accept, and the fix lands under Closed loops with its before and after."
     />
   );
 }
@@ -209,7 +204,7 @@ function Stats() {
           <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={0} context="Saved fixes run since Monday" caption="Nothing run yet this week" href="#/system/history" />
         </Flow>
         <Flow span={6} fill>
-          <StatCard icon="ShieldCheck" tone="neutral" chart="empty" title="Kept" context="Accept a fix and it lands here" caption="Undone runs stay in History" href="#/system/history" />
+          <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Kept" value="Not measured" context="Accept a fix and it lands here" caption="Undone runs stay in History" href="#/system/history" />
         </Flow>
       </>
     );
@@ -240,6 +235,8 @@ function Stats() {
 /* Every saved fix CHIP can run: its trigger, how often it ran and was kept
    (the run log, the stats' source), and Run on the parts its check finds now. */
 function Library({ data, busy, act }) {
+  // one log: every run the board shows is counted here, in its fix's row or under Other agent runs
+  const other = data.runs.filter((r) => !LIBRARY.some((f) => String(r.title ?? '').startsWith(f.name)));
   return (
     <Card>
       <Flow gap={24}>
@@ -267,6 +264,9 @@ function Library({ data, busy, act }) {
               />
             );
           })}
+          {other.length ? (
+            <ListRow layout="stacked" title="Other agent runs" description={`${plural(other.length, 'run')} from other buttons · ${other.filter((r) => r.status === 'failed').length} stopped · ${other.filter((r) => r.status === 'kept').length} kept · in History`} />
+          ) : null}
         </Flow>
       </Flow>
     </Card>
@@ -280,18 +280,42 @@ function Library({ data, busy, act }) {
    (/not-again/recurring); "Too early" or "Not recorded" where nothing is kept, never a made-up number. */
 const dayOf = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const TREND = { up: 'more often than the week before', down: 'less often than the week before', same: 'as often as the week before' };
+/* Make it permanent: the plan opens first (approve, edit or close; nothing runs before). Approving starts the agent run
+   and logs the fix as planned in the permanent-fix log; it becomes a Closed loop when she accepts the run and its commit
+   lands (server/lib/runs.mjs keepRun, server/lib/fixes.mjs). */
+async function makePermanent(r, reload) {
+  const title = `Make permanent: ${r.name}`;
+  const brief = [
+    `The gate check "${r.name}" (${r.id}) failed ${r.count} ${r.count === 1 ? 'time' : 'times'} in the last 14 days. Make it stop failing for good. Steps:`,
+    '- Read what the check reports and find why it fails, not only where.',
+    '- Fix the cause in BELLA, not the symptom, and change only what that needs.',
+    '- Run the check and the gate; it must pass before the commit.',
+  ].join('\n');
+  const steps = [
+    { id: 'why', title: `Find why ${r.name} fails`, line: `Failed ${r.count} ${r.count === 1 ? 'time' : 'times'} in 14 days, last ${dayOf(r.last)}` },
+    { id: 'fix', title: 'Fix the cause, change nothing else', line: 'On a copy; main is untouched' },
+    { id: 'check', title: 'Run the check and the gate', line: 'It must pass before the commit' },
+  ];
+  const run = await planRun({ title, from: 'Not again', brief, steps, summary: `Closes "${r.name}" for good. Its before and after show in Closed loops once you accept it.` });
+  if (!run) return null;
+  await fetch('/not-again/fixes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: title, closes: r.name, check: r.id, runTitle: run.title ?? title }) });
+  reload();
+  return run;
+}
+
 function Recurring() {
-  const { data } = useCached(['/not-again/recurring'], { live: true });
+  const { data, reload } = useCached(['/not-again/recurring'], { live: true });
   const d = data?.[0];
   if (!d) return null;
   const rows = d.recurring ?? [];
   const loops = d.loops ?? [];
+  const planned = d.planned ?? [];
   return (
     <>
       <Flow span={12} fill>
         <Card>
           <Flow gap={16}>
-            <SectionHead icon="Book" iconTone="info" title="What keeps coming back" description="The gate's failures in the last 14 days, most often first" number={rows.length || undefined} words={rows.length ? 'checks' : undefined} showInfo={Boolean(rows.length)} />
+            <SectionHead icon="Book" iconTone="info" title="What keeps coming back" description="The gate's failures in the last 14 days, most often first. Make it permanent opens a plan to approve first; nothing runs before." number={rows.length || undefined} words={rows.length ? 'checks' : undefined} showInfo={Boolean(rows.length)} />
             {rows.length ? (
               <ListRowGroup ariaLabel="What keeps coming back">
                 {rows.map((r) => (
@@ -302,9 +326,14 @@ function Recurring() {
                     title={r.name}
                     description={`${r.count} ${r.count === 1 ? 'time' : 'times'} · last ${dayOf(r.last)} · ${TREND[r.trend]}`}
                     actionButton={
-                      <Button variant="secondary" size="sm" onClick={() => (window.location.hash = '#/work?filter=needs')}>
-                        Make it permanent
-                      </Button>
+                      <Flow direction="row" gap={8} wrap>
+                        <Button variant="tertiary" size="sm" ariaLabel={`History of ${r.name}`} onClick={() => (window.location.hash = `#/system/history?q=${encodeURIComponent(r.name)}`)}>
+                          History
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => makePermanent(r, reload).catch(() => {})}>
+                          Make it permanent
+                        </Button>
+                      </Flow>
                     }
                   />
                 ))}
@@ -318,21 +347,25 @@ function Recurring() {
       <Flow span={12} fill>
         <Card>
           <Flow gap={16}>
-            <SectionHead icon="CheckCircle" iconTone="success" title="Closed loops" description="Permanent fixes that were kept, and what changed after" number={loops.length || undefined} words={loops.length ? 'kept' : undefined} showInfo={Boolean(loops.length)} />
-            {loops.length ? (
+            <SectionHead icon="CheckCircle" iconTone="success" title="Closed loops" description="Permanent fixes that landed; the tag counts failures in the 14 days before → after" number={loops.length || undefined} words={loops.length ? 'landed' : undefined} showInfo={Boolean(loops.length)} />
+            {loops.length || planned.length ? (
               <ListRowGroup ariaLabel="Closed loops">
+                {planned.map((p, i) => (
+                  <ListRow key={`p-${p.planned}-${i}`} layout="stacked" statusBar="attention" title={p.kind} description={`Planned ${dayOf(p.planned)} · closes ${p.closes} · not landed yet`} />
+                ))}
                 {loops.slice(0, 8).map((l, i) => (
                   <ListRow
                     key={`${l.landed}-${i}`}
                     layout="stacked"
                     statusBar="success"
                     title={l.kind}
-                    description={`Landed ${dayOf(l.landed)} · ${l.changed ?? 'Not recorded'} · ${!l.measured ? 'before and after: Not recorded' : l.after == null ? `${l.before} before · Too early to say after` : `${l.before} before, ${l.after} after`}`}
+                    description={`Landed ${dayOf(l.landed)} (${l.commit ?? 'no commit'}) · closes ${l.closes}${l.changed ? ` · ${l.changed}` : ''}`}
+                    tag={<Tag variant="line">{!l.measured ? 'Not recorded' : l.after == null ? 'Too early' : `${l.before} → ${l.after}`}</Tag>}
                   />
                 ))}
               </ListRowGroup>
             ) : (
-              <EmptyState size="lane" mark="🕰️" title="Nothing kept yet" line="Accept a fix and it lands here with its before and after." />
+              <EmptyState size="lane" mark="🕰️" title="Nothing landed yet" line="Make a recurring check permanent, accept the fix, and its before and after show here." />
             )}
           </Flow>
         </Card>

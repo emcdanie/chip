@@ -33,6 +33,7 @@ import EasingCurve, { DurationBar, EASING_POINTS } from '@bella/components/Easin
 import Progress from '@bella/components/Progress/Progress';
 import ListRow from '@bella/components/ListRow/ListRow';
 import Button from '@bella/components/Button/Button';
+import NoResults from '../templates/NoResults.jsx';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
@@ -453,7 +454,7 @@ function Tiers({ bella }) {
                 ))}
               </Flow>
             ) : (
-              <EmptyState size="lane" mark="🔎" title="No token matches" line="Nothing by that name in this tier. Try fewer letters, or another tier." />
+              <NoResults noun="tokens" what={`“${q.trim()}” in this tier`} on={q.trim() ? [{ key: 'q', label: `search “${q.trim()}”`, onRemove: () => setQ('') }] : []} />
             )}
             {matches.length > rows.length ? <TextStack body={`Showing ${rows.length} of ${matches.length}. Type to narrow it down.`} /> : null}
           </Flow>
@@ -628,7 +629,7 @@ function wireIt(r) {
   planRun({ brief, title: `Remove or wire ${r.role}`, from: 'Foundations', steps: [{ id: 'a', title: `Find who should use ${r.role}`, line: r.token }, { id: 'b', title: 'Remove it, or wire it into that part' }] }).catch(() => {});
 }
 
-function RolesTable({ rows, total }) {
+function RolesTable({ rows, total, q = '', onClear }) {
   const onWire = (r) => wireIt(r);
   const columns = [
     // role names in Geist Mono (TextStack's subtext face), as Figma and the type rule
@@ -687,7 +688,7 @@ function RolesTable({ rows, total }) {
         {rows.length ? (
           <DataTable caption="Colour roles in the Chip theme" columns={columns} rows={rows} rowKey="token" defaultSort={{ key: 'used', direction: 'descending' }} maxHeight="calc(var(--spacing-80) * 5)" />
         ) : (
-          <EmptyState size="lane" mark="🔎" title="No role matches" line="Nothing by that name. Try fewer letters." />
+          <NoResults noun="roles" what={`“${q.trim()}”`} on={q.trim() ? [{ key: 'q', label: `search “${q.trim()}”`, onRemove: onClear }] : []} />
         )}
         <TextStack body={`Read from BELLA's tokens and each component's CSS · ${rows.length} of ${total} shown${rows.length > 8 ? ', scroll for the rest' : ''}.`} />
       </Flow>
@@ -912,7 +913,7 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
         </Flow>
       </Flow>
       {view === 'table' ? (
-        <RolesTable rows={tableRows} total={all.length} />
+        <RolesTable rows={tableRows} total={all.length} q={q} onClear={() => setQ('')} />
       ) : (
         <Roles
           roles={cardRoles}
@@ -923,7 +924,15 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
             used === 'unused' && !words ? (
               <EmptyState size="lane" mark="🧹" title="Every colour on these cards is in use" line={`The ${all.length - usedN} used by nothing are other colour tokens, listed in the Table.`} actions={<Button variant="secondary" onClick={() => setView('table')}>Show them in the Table</Button>} />
             ) : (
-              <EmptyState size="lane" mark="🔎" title="No role matches" line={used === 'all' ? 'Nothing by that name. Try fewer letters.' : `Nothing by that name among the ${used === 'used' ? 'used' : 'unused'} roles. Try All, or fewer letters.`} />
+              <NoResults
+                noun="roles"
+                what={`${words ? `“${q.trim()}”` : ''}${words && used !== 'all' ? ' among ' : ''}${used === 'all' ? '' : used === 'used' ? 'used roles' : 'roles used by nothing'}`}
+                on={[
+                  words && { key: 'q', label: `search “${q.trim()}”`, onRemove: () => setQ('') },
+                  used !== 'all' && { key: 'u', label: used === 'used' ? 'Used' : 'Used by nothing', onRemove: () => setUsed('all') },
+                ].filter(Boolean)}
+                onClearAll={() => (setQ(''), setUsed('all'))}
+              />
             )
           }
         />

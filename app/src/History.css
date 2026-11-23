@@ -39,8 +39,6 @@
 .relq .sub2 { margin-right: var(--s-4); }
 
 /* applied filters, each removable */
-.happ { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
-.happ .k-chip.on { background: var(--ink); border-color: var(--ink); color: var(--card); }
 
 /* the summary */
 .hdet summary { cursor: pointer; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
@@ -61,7 +59,6 @@
 .cite { padding: 0 var(--s-4); font: 600 var(--fs-14)/var(--lh-body) var(--typography-font-family-geist-mono); color: var(--ink); text-decoration: none; vertical-align: 1px; }
 .cite:hover { text-decoration: underline; }
 .hjump { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8); }
-.hnone { margin: 0; color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
 .hjump .k-chip { margin: 0; }
 .hwrap { --rx: 0px; --ry: 0px; position: relative; display: grid; min-width: 0; }
 .hwrap > * { grid-area: 1 / 1; min-width: 0; }

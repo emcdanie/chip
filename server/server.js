@@ -24,13 +24,16 @@ import { specOf, figmaLint, readBaseline, runBaseline } from './lib/spec-lint.mj
 import { attachTerminal, repoList } from './lib/term.mjs';
 import { BASE as checksBase, gateLog, listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
 import { accept, fixableChecks, keep, readActions, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
-import { closedLoops, recurring } from './lib/not-again.mjs';
+import { closedLoops, plannedFixes, recurring } from './lib/not-again.mjs';
+import { fixesRoutes, readFixes } from './lib/fixes.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
 import { saveBoard, saveIdea, workBoard, workLanes } from './lib/lanes.mjs';
 import { claudeReady, gateReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
 import { ciReadAt, ciRuns, warmCi, systemMap } from './lib/map.mjs';
+import { notionState, saveNotionToken } from './lib/connections.mjs';
+import { readSource, sourceList } from './lib/sources.mjs';
 import { figmaKeyState, saveFigmaKey, saveFigmaToken, testFigma } from './lib/figma-key.mjs';
 import { projectDetail, projectList, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
 import { newRoutes } from './lib/new-routes.mjs';
@@ -174,6 +177,30 @@ app.post('/figma-token', (req, res) => {
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
+});
+// Notion: the same shape as Figma's token. The secret goes in server/.env only; the page learns that it is set and the day.
+app.get('/notion-token', (req, res) => {
+  if (!sameApp(req, res, { post: false })) return;
+  res.json(notionState());
+});
+app.post('/notion-token', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(saveNotionToken(req.body?.token));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+// The real sources behind CHIP's reasons: who, what, when, and the text CHIP can show (lib/sources.mjs)
+app.get('/sources', (req, res) => {
+  if (!sameApp(req, res, { post: false })) return;
+  res.json({ sources: sourceList() });
+});
+app.get('/sources/:id', async (req, res) => {
+  if (!sameApp(req, res, { post: false })) return;
+  const s = await readSource(req.params.id, { heading: req.query.heading });
+  if (!s) return res.status(404).json({ error: 'No such source' });
+  res.json(s);
 });
 app.post('/figma-test', async (req, res) => {
   if (!sameApp(req, res)) return;
@@ -529,7 +556,7 @@ app.get('/checks', (_req, res) => {
 // Not again: what keeps coming back (14 days, ranked) and the permanent fixes that were kept, from the logs CHIP keeps
 app.get('/not-again/recurring', (_req, res) => {
   const log = gateLog();
-  res.json({ at: new Date().toISOString(), recurring: recurring(log), loops: closedLoops(log, readActions()) });
+  res.json({ at: new Date().toISOString(), recurring: recurring(log), loops: closedLoops(log, readFixes()), planned: plannedFixes(readFixes()) });
 });
 app.post('/checks/:id/run', (req, res) => {
   if (!sameApp(req, res)) return;
@@ -837,6 +864,7 @@ app.get('/starts', (_req, res) => {
     errorOut(res, e, 500);
   }
 });
+app.use(fixesRoutes({ origins: APP_ORIGINS }));
 app.use(newRoutes({ origins: APP_ORIGINS, ids: () => projectList().map((p) => p.id), changed: () => keptRead('projects', READS.projects, { fresh: true }).catch(() => {}) }));
 app.get('/projects/:id', async (req, res) => {
   try {

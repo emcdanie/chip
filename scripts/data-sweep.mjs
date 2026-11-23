@@ -183,7 +183,7 @@ const drift = await json('/drift').catch(() => null);
 if (drift?.total) check('health', 'Drift: parts that differ', grab('health', /Drift from BELLA\n+(?:\d+\n+)?(\d+)\n+of (\d+)/i)?.slice(1).join(' of '), `${drift.differing} of ${drift.total}`);
 const checks = await json('/checks');
 const behind = (checks.checks ?? []).filter((c) => c.gate === true && c.commit && c.commit !== checks.head);
-for (const c of behind) check('health', `Gate names ${c.name}, behind HEAD`, text.health.includes(`${c.name} last ran ${day(c.ranAt)} on ${c.commit}`) ? 'named' : 'not named', 'named');
+for (const c of behind) check('health', `Gate names ${c.name}, behind HEAD`, text.health.includes(`${c.name} last ran ${day(c.ranAt)}`) ? 'named' : 'not named', 'named');
 
 // Gate runs: only recorded runs, each day's count recomputed from its sources: GitHub's CI runs (gh) and CHIP's
 // own gate check runs (data/checks/log.jsonl and each result file's latest and previous run). A day with no record
@@ -222,7 +222,8 @@ const cssVars = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1])).s
 check('system-map', 'Tokens: CSS variables', grab('system-map', /(\d+) CSS variables/)?.[1], cssVars);
 // Processes' Stories node no longer shows the run's test count or commit (23 Nov); the commit the checks ran on is
 // said on Health's Checks card, so that is what is read: it must be BELLA's HEAD
-check('health', 'Checks: the run is on BELLA\'s HEAD', grab('health', /@ ([0-9a-f]{7})/)?.[1], head);
+// 23 Nov: the card carries no commit id (her chart rule: ids sit behind the link, in the drawer); the id shown there is read from /checks
+check('health', 'Checks card: no commit id in its text', grab('health', /@ ([0-9a-f]{7})/)?.[1] ?? 'none', 'none');
 // Bench: the score as the bench last wrote it, with the day of the agent run it leans on, stale after a week
 const odsb = join(process.env.HOME, 'DEV/tools/odsb/runs');
 const lastAgent = existsSync(odsb) ? readdirSync(odsb).filter((d) => existsSync(join(odsb, d, 'manifest.json'))).sort().at(-1) : null;

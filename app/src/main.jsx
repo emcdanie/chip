@@ -17,6 +17,7 @@ import Team from './pages/Team.jsx';
 import Health from './pages/Health.jsx';
 import Work from './pages/Work.jsx';
 import Components from './pages/Components.jsx';
+import Present from './pages/Present.jsx';
 import { warmPages } from './templates/useCached.js';
 import { openAtTop } from './templates/Screen.jsx';
 import RunPlanHost from './templates/RunPlan.jsx';
@@ -54,6 +55,7 @@ function Page({ hash }) {
   if (at === '#/team') return <Team />;
   if (at === '#/health') return <Health />;
   if (at === '#/work') return <Work />;
+  if (at === '#/present' || at.startsWith('#/present/')) return <Present />;
   if (at === '#/system/history') return <History />;
   if (at === '#/connectors') return <Connectors />;
   if (hash === '#/system-map') return <SystemMap />;

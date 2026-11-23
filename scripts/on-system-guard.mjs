@@ -217,6 +217,11 @@ const OUT = /\bwindow\.open\(|\btarget=\{?[`'"]_blank|\bhref=\{?\s*[`'"]https?:\
 const OUT_ALLOWED = [
   ['pages/WorkContent.jsx', "kind === 'link'", 'a pull request card opens the pull request on GitHub'],
   ['pages/ComponentsContent.jsx', 'part.storyUrl', 'the part\'s Storybook story, a design tool; for the coordinator to confirm it stays external'],
+  // set up steps (23 Nov, Set up drawers use one setup template): the button opens the third-party page where the step
+  // happens (Notion, Figma, Ollama, Claude Code). Those sites need her own sign-in and refuse framing, and the button's words say "(opens the site)"
+  ['templates/SetupSteps.jsx', 'window.open(href', 'set up: opens the tool where the step happens'],
+  ['templates/ConnectorSetup.jsx', '<OpenPage', 'set up: opens the tool where the step happens'],
+  ['templates/FigmaSetup.jsx', '<OpenPage', 'set up: opens Figma settings to make the token'],
   ['pages/ComponentsContent.jsx', 'github.com', 'the commit on GitHub; to open in CHIP once Components is free to edit'],
 ];
 const out = files(join(SRC, 'pages'))

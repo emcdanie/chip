@@ -1,20 +1,20 @@
 {
- "at": "2026-11-23T14:44:01.913Z",
+ "at": "2026-11-23T15:17:53.102Z",
  "files": {
   "app/src/templates/Flow.jsx": "3b27c0b5f75a3fdb9dfaa8a27b34efd2fe07bd42",
-  "app/src/templates/Screen.jsx": "d7412ed101f563f9b226df31ddbca9ac3d705cab",
-  "app/src/templates/Screen.css": "fec55e1350762cebac3914383673173ad8a0c371",
-  "app/src/pages/ComponentsContent.jsx": "fd25afa405e0a71c038245d78d10637262107711",
-  "app/src/pages/ConnectorsContent.jsx": "15efcf90f3cb59923423bd459335e40e9e93971e",
-  "app/src/pages/DocsContent.jsx": "3a97c3fd370d0c1127ffddc5bfc70bf9e0702c1e",
-  "app/src/pages/FoundationsContent.jsx": "eafd7c1c11892c2b01b7e563e415649220e6f498",
-  "app/src/pages/HealthContent.jsx": "9c9e14418eecf3d8ca7058755581d71a9053b5c2",
-  "app/src/pages/HistoryContent.jsx": "5c82b6c5f8d12e7e155c72ab7075632292956bfd",
-  "app/src/pages/NotAgainContent.jsx": "2637bc38ac37b3fecdbe419d63d0f89fa18a9ed6",
+  "app/src/templates/Screen.jsx": "fd3629cacdde3edc8d938da6de42e468fddbfdf6",
+  "app/src/templates/Screen.css": "5589636053172f1dd65e7192738bcdebd2c00e35",
+  "app/src/pages/ComponentsContent.jsx": "0b1267d381698e4c353ca4ac8a4f6c711875e3ea",
+  "app/src/pages/ConnectorsContent.jsx": "b33d472003614200f1612fc3fa00b3c8f1f3369c",
+  "app/src/pages/DocsContent.jsx": "b1e73ba0ff67aff7467a9c52cef5a811b6444868",
+  "app/src/pages/FoundationsContent.jsx": "0c84657bb8477e468db219eb8aa19c4607c51aac",
+  "app/src/pages/HealthContent.jsx": "b2b66fa11c31d0403136f7cdddfbc99230cf180b",
+  "app/src/pages/HistoryContent.jsx": "440456813eeb09f8e9e05d3c21236fe6fcedc737",
+  "app/src/pages/NotAgainContent.jsx": "190f293a79361162e2fb72567bb6c2ba0bdfed76",
   "app/src/pages/PlaygroundContent.jsx": "d710ee838ebdb45614077f8d5a5c53cb6ac0c2c9",
   "app/src/pages/SystemMapContent.jsx": "d82206e34450e12be7b5afa5e198ccad999c7f7f",
   "app/src/pages/TeamContent.jsx": "c1642a1a11e5f30da4b92add5c2df9c8aedc909d",
-  "app/src/pages/WorkContent.jsx": "63337d42240d16d98132124339a8196abc2724bf"
+  "app/src/pages/WorkContent.jsx": "ae7b688e94d18c5e2e78597e2f9e2eda48ec2b69"
  },
  "routes": {
   "#/work": true,
@@ -31,5 +31,5 @@
  "ok": true,
  "clean": 80,
  "total": 80,
- "texts": 13922
+ "texts": 10072
 }

@@ -33,10 +33,10 @@ const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 const RULES = {
   story: { rule: 'Props, variants and examples live in each component’s .tsx types and Storybook stories. npm run gate renders every story (audit:visual).', source: 'AGENTS.md · package.json "gate"' },
   docs: { rule: 'Every component has a docs page people can read.', source: 'CHIP coverage rule' },
-  contract: { rule: 'Agents build from the Tier 3 contract; contract-parity checks it against the exported Props.', source: 'scripts/contract-parity.mjs' },
-  dsds: { rule: 'Machine-readable contracts: bella.dsds.yaml. Only contracts listed in build-dsds.mjs’s IMPL map are extracted.', source: 'AGENTS.md · scripts/build-dsds.mjs' },
-  contrast: { rule: 'The pairs are checked, not just recorded: contrast-pairs.mjs computes every declared pair in every theme. Worst ground wins.', source: 'docs/agents/maintaining.md · scripts/contrast-pairs.mjs' },
-  a11y: { rule: 'Verified ratios and behaviour are recorded per component in $extensions.bella.a11y, dated; contrast-pairs is the check that the record is still true.', source: 'docs/agents/maintaining.md · scripts/contrast-pairs.mjs' },
+  contract: { rule: 'Agents build from the Tier 3 contract; contract-parity checks it against the exported Props.', source: 'scripts/contract-parity.mjs', sourceIds: ['curtis-components-as-data'] },
+  dsds: { rule: 'Machine-readable contracts: bella.dsds.yaml. Only contracts listed in build-dsds.mjs’s IMPL map are extracted.', source: 'AGENTS.md · scripts/build-dsds.mjs', sourceIds: ['curtis-components-as-data'] },
+  contrast: { rule: 'The pairs are checked, not just recorded: contrast-pairs.mjs computes every declared pair in every theme. Worst ground wins.', source: 'docs/agents/maintaining.md · scripts/contrast-pairs.mjs', sourceIds: ['wcag-1-4-6', 'bella-read-first'] },
+  a11y: { rule: 'Verified ratios and behaviour are recorded per component in $extensions.bella.a11y, dated; contrast-pairs is the check that the record is still true.', source: 'docs/agents/maintaining.md · scripts/contrast-pairs.mjs', sourceIds: ['wcag-2-5-5', 'wcag-1-4-6', 'bella-floors'] },
 };
 
 /* ---------- colour: the same maths and theme blocks as contrast-pairs.mjs ---------- */

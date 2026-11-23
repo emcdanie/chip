@@ -22,14 +22,14 @@ import Tooltip from '@bella/components/Tooltip/Tooltip';
 import Link from '@bella/components/Link/Link';
 import Icon from '@bella/components/Icon/Icon';
 import Avatar from '@bella/components/Avatar/Avatar';
-import Progress from '@bella/components/Progress/Progress';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
 import { NewStart as NewTask } from './NewStart.jsx';
 import Search from './Search.jsx';
-import { useHealth } from '../pages/healthModel.js';
 import useNarrow from './useNarrow.js';
 import WorkDock, { openWork } from './WorkDock.jsx';
+import MarkUp, { useMarkUp } from './MarkUp.jsx';
+import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
 
 // A page opens at its top with nothing scrolled or focused, unless a link
 // names a section (Elleta, 20 Nov 2026: "the pages open to weird places").
@@ -77,8 +77,10 @@ function useShellData() {
    plain text). Its first part is the way back (Elleta, 23 Nov: "just a back from the breadcrumb"): a link with a back
    arrow and the tooltip "Back" to the project's Work page, or one step back in the browser when the page before
    this one was inside CHIP. */
-function Crumb({ trail, href, linked }) {
-  const [parent, ...rest] = trail;
+function Crumb({ trail, href, linked, compact }) {
+  // the bar's meta holds the parents; the last segment is the page's h1 (PageHeader size bar)
+  const parents = trail.slice(0, -1);
+  const [parent, ...rest] = parents;
   const back = (e) => {
     const nav = window.navigation;
     const prev = nav?.canGoBack ? nav.entries()[nav.currentEntry.index - 1] : null;
@@ -88,14 +90,14 @@ function Crumb({ trail, href, linked }) {
     }
   };
   return (
-    <Flow as="nav" aria-label="Breadcrumb" direction="row" gap={8} align="center">
+    <Flow as="nav" aria-label="Breadcrumb" direction="row" gap={8} align="center" {...(compact ? { 'data-no-separator': true } : {})}>
       {linked ? (
         <Tooltip label="Back">
           <span onClick={back}>
-            <Link href={href}>
+            <Link href={href} aria-label={compact ? `Back to ${parent}` : undefined}>
               <Flow as="span" direction="row" gap={4} align="center">
                 <Icon name="NavArrowLeft" size="sm" />
-                {parent}
+                {compact ? null : parent}
               </Flow>
             </Link>
           </span>
@@ -103,10 +105,10 @@ function Crumb({ trail, href, linked }) {
       ) : (
         <TextStack meta={parent} />
       )}
-      {rest.map((t, i) => (
+      {compact ? null : rest.map((t) => (
         <Flow as="span" key={t} direction="row" gap={8} align="center">
           <TextStack meta="›" aria-hidden="true" />
-          <TextStack meta={t} aria-current={i === rest.length - 1 ? 'page' : undefined} />
+          <TextStack meta={t} />
         </Flow>
       ))}
     </Flow>
@@ -165,22 +167,6 @@ export function TabPanels({ tabs, children }) {
   );
 }
 
-/* The project's health under its title, as Figma: a bar and "95% healthy · 13 checks to fix". */
-function HealthLine() {
-  const { model } = useHealth();
-  const phone = useNarrow();
-  if (!model?.health) return null;
-  const { pct } = model.health;
-  return (
-    <Flow direction={phone ? 'column' : 'row'} gap={phone ? 8 : 12} align={phone ? undefined : 'center'}>
-      <div className="chip-screen__health-bar">
-        <Progress drawIn label="Project health" shape="bar" showLabel={false} showTarget={false} tone={pct >= 90 ? 'success' : 'attention'} fill={pct} target={0} />
-      </div>
-      <TextStack subtitle={`${pct}% healthy · ${model.fixCount} ${model.fixCount === 1 ? 'check' : 'checks'} to fix`} />
-    </Flow>
-  );
-}
-
 /**
  * place: the rail item you are on (an id from PLACES).
  * header: PageHeader props (title, lede, health, actions, ...).
@@ -222,7 +208,9 @@ export default function Screen({ place, header, tabs, children }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  });  const phone = useNarrow();
+  });
+  const phone = useNarrow();
+  const markup = useMarkUp();
   // below 400 the field would read "Sea": a search button that opens the field across the bar
   const tiny = useNarrow(400);
   const [searching, setSearching] = useState(false);
@@ -272,6 +260,12 @@ export default function Screen({ place, header, tabs, children }) {
               // straight into TopBar's right group (12 apart, its own spacing): a Flow there shrank and spilled
               // its buttons past the edge at 320
               <>
+                {/* Mark up (Elleta, 23 Nov): every page markable like Figma comments; notes stay drafts until one Send all */}
+                <span data-markup-own>
+                  <Tooltip label={markup.on ? 'Stop marking up' : 'Mark up'}>
+                    <Button variant="tertiary" iconOnly icon="EditPencil" ariaLabel="Mark up" ariaPressed={markup.on} onClick={() => markup.setOn((o) => !o)} />
+                  </Tooltip>
+                </span>
                 {/* the bell opens what needs you, in the Work panel (Figma Flow 12, screen 1); ⌘J opens it too */}
                 <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you, open the Work panel` : 'Nothing needs you, open the Work panel'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
                 {/* on a phone the place line needs the room: the avatar steps out (minimal chrome) */}
@@ -283,10 +277,10 @@ export default function Screen({ place, header, tabs, children }) {
         </div>
         <div className="chip-screen__page">
           <div className={`chip-screen__head${tabs ? '' : ' chip-screen__head--plain'}`}>
-            {/* project pages carry New task, as Figma; the health bar only on the Health tab (Elleta, 20 Nov: "Take it off"); the Playground too; other rail pages (Team, Not again) carry neither */}
-            {/* on a project's tabs the project name ("CHIP") is PageHeader size project, 28 on 36, so the tab's own
-                subject leads (batch 4, published 22 Nov); every other page keeps size page, 40 on 48 */}
-            <PageHeader {...(['projects', 'work', 'health', 'playground'].includes(place) ? { size: 'project', ...(place === 'health' ? { health: <HealthLine /> } : {}), actions: <NewTask />, ...header, ...(place === 'work' && projectOf() ? { title: projectName } : {}) } : header)} meta={<Crumb trail={trail} href={projectOf() ? `#/work?project=${projectOf()}` : '#/work'} linked={place !== 'work'} />} />
+            {/* one 56 row (Elleta, 23 Nov, "page chrome is small"): the breadcrumb is the title, its last segment the page's
+                h1, and the page's one action sits at the right edge. Project pages carry New; Not again passes its own;
+                the others carry none. No lede or health line here: the cards say it. */}
+            <PageHeader size="bar" title={trail[trail.length - 1]} actions={header?.actions ?? (['projects', 'work', 'health', 'playground'].includes(place) ? <NewTask /> : undefined)} meta={<Crumb trail={trail} compact={phone} href={projectOf() ? `#/work?project=${projectOf()}` : '#/work'} linked={place !== 'work'} />} />
             {tabs ? (
               <Tabs className="chip-screen__tabs" tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}
@@ -306,6 +300,8 @@ export default function Screen({ place, header, tabs, children }) {
       ) : collapsed ? null : (
         <div className="chip-screen__menu">
           <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
+          {/* the CHIP mark, bottom right of the menu (Elleta, 23 Nov: "the logo should maybe be bottom right of the menu") */}
+          <span className="chip-screen__logo"><BrandWordmark word="CHIP" variant="mark" size="nav" /></span>
           {/* CHIP has one client, so its list says so */}
           {clientsOpen ? (
             <div className="chip-pop__menu">
@@ -317,6 +313,7 @@ export default function Screen({ place, header, tabs, children }) {
         </div>
       )}
       <WorkDock />
+      <MarkUp markup={markup} />
     </div>
   );
 }

@@ -22,7 +22,7 @@ import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import { planRun } from '../templates/RunPlan.jsx';
 import FixPlan, { measuredMinutes } from '../templates/FixPlan.jsx';
 import AuditReading from './AuditReading.jsx';
-import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, ReadingTop, drawerOf, setDrawerUrl, useDrawerUrl } from '../templates/ReadingDrawer.jsx';
+import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, drawerOf, setDrawerUrl, useDrawerUrl } from '../templates/ReadingDrawer.jsx';
 import Marker from '@bella/components/Marker/Marker';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
@@ -363,7 +363,8 @@ function DriftCard({ components }) {
   const day = d.at ? new Date(d.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
   const differs = (p) => p.noSpec || p.specBehind.length || (p.compared ? p.differ : true);
   const rows = d.parts.filter(differs).map((p) => ({ name: p.name, figma: p.differ ?? 0, behind: p.specBehind?.length ?? 0, p }));
-  const top = [...d.parts].filter((p) => p.compared && p.differ).sort((x, y) => y.differ - x.differ).slice(0, 3);
+  const diffCount = (p) => (p.compared ? p.differ : 0) + p.specBehind.length + (p.noSpec ? 1 : 0);
+  const tenMost = d.parts.map((p) => ({ p, n: diffCount(p) })).filter((x) => x.n).sort((a, b) => b.n - a.n).slice(0, 10);
   return (
     <>
       <StatCard
@@ -424,12 +425,24 @@ function DriftCard({ components }) {
           <>
             {/* the plan right under the picture, so it is read without scrolling (second-pass review D4) */}
             <FixPlan plan={driftBatch(d, scope, setScope, runs)} onBefore={closed} />
-            <ReadingTop
-              label="The three parts with the most differences"
-              rows={top.map((p) => ({ key: p.name, title: p.name, line: driftLine(p), onClick: () => setView(p) }))}
-              more={`See all ${rows.length} parts`}
-              onMore={() => setView('table')}
-            />
+            {/* the drift chart is sorted bars (her chart rule; health-fixes 17b1f65): the ten parts with the most differences,
+                counted from the same parts (Figma differences read from Figma, props the spec is behind on, a missing spec as one).
+                Under the plan, so the plan stays at the top (second-pass review D4); every part is in the table behind See all */}
+            {tenMost.length ? (
+              <Inset gap={12}>
+                <TextStack title="Parts with the most differences" subtitle={`The ten most, of ${rows.length} that differ`} />
+                <Flow gap={12} as="ul" aria-label="Parts with the most differences">
+                  {tenMost.map(({ p, n: c }) => (
+                    <li key={p.name}>
+                      <Progress label={p.name} value={plural(c, 'difference')} fill={(c / tenMost[0].n) * 100} tone="attention" showTarget={false} />
+                    </li>
+                  ))}
+                </Flow>
+                <Flow direction="row" justify="end">
+                  <Button variant="tertiary" size="sm" onClick={() => setView('table')}>{`See all ${rows.length} parts`}</Button>
+                </Flow>
+              </Inset>
+            ) : null}
           </>
         ) : view === 'table' ? (
           <ReadingTable
@@ -567,9 +580,9 @@ function GateCard({ gate, run, onOpen }) {
         run && run.state !== 'none'
           ? 'Last run just now'
           : gate.behind?.length
-            ? `${gate.behind.map((b) => b.name).join(', ')} last ran ${gate.behind[0].when} on ${gate.behind[0].commit}; the rest on ${gate.on}`
+            ? `${gate.behind.map((b) => b.name).join(', ')} last ran ${gate.behind[0].when}; the rest ran on BELLA's latest work, ${gate.when ?? 'more recently'}`
             : gate.when
-              ? `Gate checks, last run ${gate.when}${gate.on ? ` on ${gate.on}` : ''}`
+              ? `Gate checks · last run ${gate.when}`
               : 'Gate checks'
       }
       // of what: the checks that didn't pass, by name (one source with System map and Connectors)
@@ -780,9 +793,10 @@ export default function HealthContent({ model, run, checked, stale, onCheck, loa
   return (
     <>
       {/* Control bar, as on Work: the last check and Check again, one group on the left. */}
-      <Flow direction="row" gap={8} align="center">
+      <Flow direction="row" gap={8} align="center" wrap>
         {stale ? <TextStack subtitle={stale} /> : checked ? <TextStack subtitle={`Updated ${checked}`} /> : null}
         <How id="all" />
+        <Button variant="tertiary" size="sm" icon="Play" leadingIcon href="#/present/1">Present</Button>
         {/* busy while the check runs: the icon turns and clicks wait (Button busy, parts-dev 99a021d) */}
         <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={onCheck}>
           {loading ? 'Checking…' : 'Check again'}

@@ -28,7 +28,8 @@ import Toasts from '../templates/Toasts.jsx';
 import Toast from '@bella/components/Toast/Toast';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
-import FigmaSetup from '../templates/FigmaSetup.jsx';
+import FigmaSetup, { useFigma } from '../templates/FigmaSetup.jsx';
+import ConnectorSetup, { PLAIN } from '../templates/ConnectorSetup.jsx';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 // map state → the words and tone Figma uses on a tile
@@ -68,22 +69,23 @@ function meta(r, gate) {
 /* The published Figma's names (601:126716, 20 Nov): the tool each path is, as
    the developers and designers who set them up know it. */
 const PATHS = [
-  { id: 'figma', name: 'Figma desktop MCP', icon: 'Activity' },
-  { id: 'figma-console', name: 'figma-console', icon: 'Code' },
-  { id: 'figma-rest', name: 'figma-rest', icon: 'Key' },
+  { id: 'figma', name: PLAIN.figma, icon: 'Activity' },
+  { id: 'figma-console', name: PLAIN['figma-console'], icon: 'Code' },
+  { id: 'figma-rest', name: PLAIN['figma-rest'], icon: 'Key' },
 ];
-const NAMES = { 'figma-key': 'Figma key', figma: 'Figma desktop MCP', 'figma-console': 'figma-console', 'figma-rest': 'figma-rest', notion: 'Notion' };
+// plain names, never a slug (Elleta, 23 Nov: the drawer title said figma-rest)
+const NAMES = { 'figma-key': 'Figma key', ...PLAIN };
 const nameOf = (n) => NAMES[n?.id] ?? n?.name;
 // the server's words, in the page's own names for the paths
-const plainWords = (t) => String(t ?? '').replace(/^No server called "[^"]+" in chip\.config\.local\.json\.?/, 'not set up in CHIP’s settings yet').replace(/\bthe Figma REST API\b/gi, 'figma-rest').replace(/\bFigma REST( API)?\b/g, 'figma-rest').replace(/\bREST API\b/g, 'figma-rest').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
+const plainWords = (t) => String(t ?? '').replace(/^No server called "[^"]+" in chip\.config\.local\.json\.?/, 'not set up in CHIP’s settings yet').replace(/\bthe Figma REST API\b/gi, 'Figma').replace(/\bFigma REST( API)?\b/g, 'Figma').replace(/\bREST API\b/g, 'Figma').replace(/\bserver\/\.env\b/g, "CHIP's settings").replace(/\b[A-Z][A-Z_]{3,}=<?token>?/g, 'a token');
 const first = (s) => String(s ?? '').split(/(?<=\.)\s/)[0];
 // Figma's own short words for each connector (601:126716): plain, no paths, tokens or hashes
 const SAYS = {
   figma: { ok: 'Answers', other: 'Not configured' },
   'figma-console': { ok: 'Answers', other: 'Not configured' },
   'figma-key': { why: 'Turns on the Figma check' },
-  'figma-rest': { ok: 'Answers', other: 'Needs a token', why: 'Reads Figma with no app open' },
-  notion: { ok: 'Answers', other: 'Needs a token', why: 'Reads shared pages' },
+  'figma-rest': { ok: 'Connected', other: 'Needs a token', why: 'Reads Figma with no app open' },
+  notion: { ok: 'Connected', other: 'Needs a token', why: 'Reads shared pages' },
 };
 const says = (n) => (n.state === 'ok' ? SAYS[n.id]?.ok : SAYS[n.id]?.other) ?? (n.state === 'ok' ? 'Answers' : 'Not set up yet');
 const why = (n) => SAYS[n.id]?.why ?? 'Unlocks more checks';
@@ -98,9 +100,9 @@ function useMap() {
 }
 
 /* Figma's tile status: a status dot and one word (a part's own status is a StatusDot plus one word). */
-function StateTag({ state }) {
+function StateTag({ state, okWord }) {
   const [word, tone] = LIVE[state] ?? LIVE.unknown;
-  return <StatusDot tone={tone} label={word} />;
+  return <StatusDot tone={tone} label={state === 'ok' && okWord ? okWord : word} />;
 }
 
 export default function ConnectorsContent() {
@@ -110,10 +112,16 @@ export default function ConnectorsContent() {
   // on a phone the row's own arrow wrapped under its button; the whole row opens the setup anyway
   const arrow = useNarrow(480) ? undefined : 'ArrowUpRight';
   const [map, reload] = useMap();
+  // Figma's token is judged by what CHIP last read from Figma, not by the map's untested guess: key and token saved and a good read means Connected
+  const [fig, readFig] = useFigma();
+  const figmaOk = Boolean(fig?.key && fig?.token && fig?.lastRead);
   const gateNode = map?.nodes?.find((x) => x.id === 'gate');
   const [busy, setBusy] = useState(null);
   const [setup, setSetup] = useState(null);
-  const node = (id) => map?.nodes?.find((n) => n.id === id);
+  const node = (id) => {
+    const n = map?.nodes?.find((x) => x.id === id);
+    return n && id === 'figma-rest' && figmaOk ? { ...n, state: 'ok', detail: `Connected to ${fig.lastRead.name}.` } : n;
+  };
   const [said, setSaid] = useState(null);
   /* Test: a connector with a server behind it (the Figma paths, Notion) is tested through
      /host/test; the others (the agent, the local model) are measured again on a fresh map.
@@ -122,6 +130,7 @@ export default function ConnectorsContent() {
   const test = async (n, name) => {
     setBusy(n.id);
     let error = null;
+    let result = { ok: false, text: `${name}: CHIP didn’t answer. Try again in a moment.` };
     try {
       if (n.action?.server) {
         const r = await fetch('/host/test', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ server: n.action.server }) });
@@ -131,13 +140,24 @@ export default function ConnectorsContent() {
       const fresh = await fetch('/map').then((r) => r.json());
       const now = fresh.nodes?.find((x) => x.id === n.id);
       const [word] = LIVE[now?.state] ?? LIVE.unknown;
-      setSaid(error || now?.state === 'bad' ? { tone: 'danger', text: `${name}: ${plainWords(first(error ?? now?.detail ?? 'it did not answer'))}` } : { tone: now?.state === 'ok' ? 'success' : 'info', text: `${name}: ${word}. ${plainWords(first(now?.detail ?? ''))}`.trim() });
+      const bad = error || now?.state === 'bad';
+      const msg = bad ? { tone: 'danger', text: `${name}: ${plainWords(first(error ?? now?.detail ?? 'it did not answer'))}` } : { tone: now?.state === 'ok' ? 'success' : 'info', text: `${name}: ${word}. ${plainWords(first(now?.detail ?? ''))}`.trim() };
+      setSaid(msg);
+      result = { ok: !bad && now?.state === 'ok', text: plainWords(first(error ?? now?.detail ?? word)) };
     } catch {
-      setSaid({ tone: 'danger', text: `${name}: CHIP didn’t answer. Try again in a moment.` });
+      setSaid({ tone: 'danger', text: result.text });
     } finally {
       reload();
       setBusy(null);
     }
+    return result;
+  };
+  // the set up drawer's own Test it keeps its last result, so the drawer says Works or Not yet (set up template)
+  const [lastTest, setLastTest] = useState({});
+  const runTest = async (n) => {
+    const r = await test(n, nameOf(n));
+    setLastTest((was) => ({ ...was, [n.id]: r }));
+    return r;
   };
 
   if (!map) return <EmptyState size="page" title="Knocking on every door" line="Asking each connector if it's home. Two ticks." />;
@@ -224,7 +244,7 @@ export default function ConnectorsContent() {
               const act = p.n.state === 'bad' ? <Button variant="secondary" size="sm" onClick={() => setSetup(p.n)}>Set up</Button> : testButton(p.n);
               // ListRow moves its button under the words on a narrow row by itself (parts-dev b69a5de)
               // ↗ opens the path's detail, the button tests it (READ FIRST [12]: arrows go, buttons do; Figma Flow 2, screen 7)
-              return <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} status={<StateTag state={p.n.state} />} actionButton={act} trailing={arrow} onClick={() => setSetup(p.n)} />;
+              return <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={says(p.n)} status={<StateTag state={p.n.state} okWord="Connected" />} actionButton={act} trailing={arrow} onClick={() => setSetup(p.n)} />;
             })}
           </Flow>
           {compare ? (
@@ -252,22 +272,17 @@ export default function ConnectorsContent() {
 
       <Drawer
         side="right"
+        size="lg"
         open={!!setup}
         onClose={() => setSetup(null)}
         // a path that works opens under its own name; one that needs setup says so
         label={setup ? (setup.state === 'ok' ? nameOf(setup) : `Set up ${nameOf(setup)}`) : 'Set up'}
-        footer={setup && setup.id !== 'figma-rest' ? <Flow direction="row" justify="end">{testButton(setup, 'Test it')}</Flow> : null}
       >
         {setup?.id === 'figma-rest' ? (
-          // the token setup is three plain steps, the same form Components' Add file key opens (templates/FigmaSetup.jsx)
-          <FigmaSetup onChanged={reload} />
+          // the same template as every connector; Figma's token has its own fields (templates/FigmaSetup.jsx)
+          <FigmaSetup onChanged={() => (reload(), readFig())} />
         ) : setup ? (
-          // the drawer's title already names it, so the body opens with what to do; groups 24 apart (rule 10)
-          <Flow gap={24} inset>
-            <TextStack body={plainWords(setup.detail)} />
-            {setup.id === 'figma-rest' && fileKey?.state === 'bad' ? <TextStack overline="File key" body={plainWords(fileKey.detail)} /> : null}
-            {setup.dependents?.length ? <TextStack overline="Unlocks" body={setup.dependents.join(', ')} /> : null}
-          </Flow>
+          <ConnectorSetup node={setup} name={nameOf(setup)} test={runTest} reload={reload} last={lastTest[setup.id]} />
         ) : null}
       </Drawer>
     </>

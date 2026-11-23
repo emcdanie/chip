@@ -31,6 +31,9 @@ import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import Step, { StepDay } from '@bella/components/Step/Step';
 import VariantTile from '@bella/components/VariantTile/VariantTile';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
+import SearchField from '@bella/components/SearchField/SearchField';
+import NoResults from '../templates/NoResults.jsx';
+import ResultsBar from '../templates/ResultsBar.jsx';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import Drawer from '@bella/components/Drawer/Drawer';
@@ -48,7 +51,7 @@ import { handOff } from './healthModel.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
-import { ContractCard, StoryDrawer } from './DocReader.jsx';
+import { ContractCard, StoryDrawer, StorySample } from './DocReader.jsx';
 import A11yStage from './A11yViews.jsx';
 import QualityPanel, { AccessMini, QualityCentre, useQuality, visiblePins } from './QualityPanel.jsx';
 import FigmaSetup, { useFigma } from '../templates/FigmaSetup.jsx';
@@ -99,8 +102,11 @@ function LivePart({ part, variant, label, state }) {
     );
   }
   const Specimen = SPECIMENS[part.name];
-  return Specimen ? <Specimen /> : null;
+  return Specimen ? <Specimen /> : <StorySample name={part.name} />; // no hand specimen: its first story, drawn from BELLA's Storybook
 }
+
+/* a part drawn from its story: the frame's own elements are out of reach, so pins and measures say so */
+const isSampled = (name) => !PLAY[name] && !SPECIMENS[name];
 
 /* One state, worn by the live part: BELLA's own :hover / :focus-visible /
    :active rules copied onto attributes (forcedStates.js), so no value is
@@ -440,7 +446,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   const shownId = useId();
   useForcedState(shownId, shown);
   useEffect(() => installForcedStates(), []);
-  const anatomy = detail?.anatomy ?? [];
+  const anatomy = isSampled(part.name) ? [] : detail?.anatomy ?? [];
   const a = anatomy.find((x) => x.key === picked) ?? anatomy[0] ?? null;
   // the part is drawn at the size where every label fits the stage: its own size first, then smaller, then larger
   // (a wide label reaches across the middle to a pin on the far side, so a bigger part can hold it where a
@@ -630,7 +636,6 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     if (layout.s === scale || !box?.tag) return layout.markers;
     return solveAt(scale, box).markers; // the size could not move to the layout's: label the part as drawn
   }, [legend, pinsAt, layout, scale, box, anatomy, a?.key, widths]); // eslint-disable-line react-hooks/exhaustive-deps
-  const has = PLAY[part.name] || SPECIMENS[part.name];
   return (
     <Flow gap={8} id={stageId} grow="first">
       {/* HOLE (BELLA gap): the tool column beside the stage (zoom in, fit, zoom out, light/dark, mark up)
@@ -638,7 +643,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
       <Stage label={`${part.name} on the stage`} leaderVariant="red" leaderDraw={pickedByYou ? 'pick' : 'map'} markers={markers} scale={scale} onSelect={onPick} activeId={lit} onActiveChange={setLit}>
         <Flow id={liveId} align="center" data-stage-part="">
           <Flow id={shownId} align="center">
-            {has ? <LivePart part={part} variant={variant} label={label} state={shown} /> : <EmptyState size="lane" mark="🧩" title="No live sample yet" line={`CHIP has no live sample of ${part.name} to draw yet.`} />}
+            <LivePart part={part} variant={variant} label={label} state={shown} />
           </Flow>
         </Flow>
       </Stage>
@@ -716,7 +721,7 @@ function PartList({ model, query, setQuery, filter, current, onPick, onHide, onF
   // the selected component is in view when the list opens or the selection changes
   useEffect(() => {
     document.getElementById('part-list')?.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest' });
-  }, [current, filter]);
+  }, [current, filter, query]);
   // 14 characters fit the row beside TreeItem's icon and dot; a longer name is cut, its full name on hover
   // (TreeItem takes no accessible name or tooltip of its own: a BELLA gap, so a screen reader hears the cut name)
   const row = (p) => <TreeItem key={p.id} kind="item" label={p.name.length > 14 ? <span title={p.name}>{`${p.name.slice(0, 13)}…`}</span> : p.name} needsWork={!p.ready} current={p.id === current} onClick={() => onPick(p.id)} />;
@@ -725,13 +730,33 @@ function PartList({ model, query, setQuery, filter, current, onPick, onHide, onF
       {/* search and the chips stay at the top while the rows scroll under them */}
       <Flow gap={16} sticky style={{ background: 'var(--color-background-default)', paddingBlockEnd: 'var(--spacing-8)' }}>
         <SectionHead title={`${total} components`} titleLevel={2} action={onHide ? <Button variant="tertiary" iconOnly icon="SidebarCollapse" ariaLabel="Hide the component list" ariaExpanded onClick={onHide} /> : undefined} />
-        <Input label="Find a component" value={query} onChange={setQuery} />
+        <SearchField label="Find a component" placeholder={`Filter ${total} components`} showShortcut={false} value={query} onChange={setQuery} />
         <Flow direction="row" gap={8} wrap aria-label="Show">
           <FilterChip size="compact" pressed={filter === 'all'} onClick={() => onFilter('all')}>{`All ${total}`}</FilterChip>
           <FilterChip size="compact" pressed={filter === 'needs'} onClick={() => onFilter(filter === 'needs' ? 'all' : 'needs')}>{`Needs work ${needsN}`}</FilterChip>
         </Flow>
+        {/* what is on, how many it leaves, a way off (second pass S7) */}
+        <ResultsBar
+          applied={[
+            query.trim() && { key: 'q', label: `Search: ${query.trim()}`, removeLabel: 'Take the search off', onRemove: () => setQuery('') },
+            filter !== 'all' && { key: 'f', label: 'Needs work', removeLabel: 'Take Needs work off', onRemove: () => onFilter('all') },
+          ].filter(Boolean)}
+          shown={shown.length}
+          total={total}
+          onClearAll={() => (setQuery(''), onFilter('all'))}
+        />
       </Flow>
-      {!shown.length ? <EmptyState size="lane" mark="🤷‍♀️" title="Nothing matches" line="No component has that name. Clear the search or pick All." /> : null}
+      {!shown.length ? (
+        <NoResults
+          noun="components"
+          what={query.trim() ? `“${query.trim()}”${filter === 'needs' ? ' in Needs work' : ''}` : 'Needs work'}
+          on={[
+            query.trim() && { key: 'q', label: `search “${query.trim()}”`, would: model.parts.filter((p) => (filter === 'needs' ? !p.ready : true)).length, onRemove: () => setQuery('') },
+            filter !== 'all' && { key: 'f', label: 'Needs work', would: model.parts.filter(match).length, onRemove: () => onFilter('all') },
+          ].filter(Boolean)}
+          onClearAll={() => (setQuery(''), onFilter('all'))}
+        />
+      ) : null}
       <Flow as="nav" aria-label={`${shown.length} components`} gap={4} id="part-list">
         {shown.map(row)}
       </Flow>
@@ -894,7 +919,7 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
         <Flow gap={8}>
           <SectionHead title="Accessibility" titleLevel={3} />
           <Flow as="ul" gap={0} aria-label="Accessibility, measured">
-            {touch ? <ListRow layout="inline" title="Touch target" value={`${touch.w} × ${touch.h}`} statusBar={touch.w >= 44 && touch.h >= 44 ? 'success' : 'danger'} /> : null}
+            {touch ? <ListRow layout="inline" title="Touch target" value={`${touch.w} × ${touch.h}`} statusBar={touch.w >= 44 && touch.h >= 44 ? 'success' : 'danger'} /> : isSampled(part.name) ? <ListRow layout="inline" title="Touch target" value="Not measurable for story samples" /> : null}
             {part.states.length ? <ListRow layout="stacked" title="States" description={part.states.map((s) => s.label).join(' · ')} /> : null}
           </Flow>
           {notes.length ? (
@@ -1107,7 +1132,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const [tab, setTab] = useState(() => (TABS.some((t) => t.id === shared.get('tab')) ? shared.get('tab') : 'inspect'));
   const [sharedVariant, setSharedVariant] = useState(() => shared.get('variant'));
   const [open, setOpen] = useState(null);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => (shared.get('q') ?? '').slice(0, 80));
   const [askText, setAskText] = useState('');
   const [picked, setPicked] = useState(null);
   const [keyOpen, setKeyOpen] = useState(false);
@@ -1156,11 +1181,12 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     if (!part || !/^#\/components\b/.test(window.location.hash)) return;
     const qs = new URLSearchParams();
     if (filter !== 'all') qs.set('filter', filter);
+    if (query.trim()) qs.set('q', query.trim());
     if (variant) qs.set('variant', variant);
     if (tab !== 'inspect') qs.set('tab', tab);
     const next = `#/components/${encodeURIComponent(part.id)}${qs.toString() ? `?${qs}` : ''}`;
     if (window.location.hash !== next) window.history.replaceState(null, '', next);
-  }, [part?.id, variant, tab, filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [part?.id, variant, tab, filter, query]); // eslint-disable-line react-hooks/exhaustive-deps
   const checks = part ? checksWithTouch(part, touch) : [];
   // the Story and Docs rows open the part's real story inside CHIP (StoryDrawer), never Storybook in another tab
   const links = {};
@@ -1267,7 +1293,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
           {qMode === 'all' || !q ? (
             <StudioStage part={part} detail={{ anatomy: visiblePins(q, qMode) }} variant={variant} label={label} shown="default" picked={qPick ?? visiblePins(q, qMode)[0]?.key} onPick={setQPick} onMeasured={noop} onTouch={setTouch} />
           ) : (
-            <A11yStage part={part} mode={qMode} facts={q.facts} variant={variant} label={label} renderPart={() => <LivePart part={part} variant={variant} label={label} state="default" />} />
+            <A11yStage part={part} mode={qMode} facts={q.facts} variant={variant} label={label} renderPart={() => <LivePart part={part} variant={variant} label={label} state="default" />} sampled={isSampled(part.name)} />
           )}
         </QualityCentre>
       ) : (

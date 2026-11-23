@@ -2,15 +2,15 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "913fac5",
-    "committedAt": "2026-11-22T23:13:00+01:00",
+    "commit": "d11a34c",
+    "committedAt": "2026-11-23T15:18:03+01:00",
     "version": "0.3.0"
   },
   "counts": {
-    "components": 98,
-    "withStory": 96,
-    "withDocs": 91,
-    "withContract": 96,
+    "components": 106,
+    "withStory": 104,
+    "withDocs": 99,
+    "withContract": 104,
     "semanticTokenGroups": {
       "light": [
         "border",
@@ -135,7 +135,15 @@ window.BELLA = {
         "map-label",
         "branch-group",
         "line-chart",
-        "map-node"
+        "map-node",
+        "slide",
+        "title-slide",
+        "deck-bar",
+        "video-player",
+        "run-indicator",
+        "timeline-row",
+        "last-run",
+        "sparkline"
       ],
       "exemptContracts": [
         "nav-link",
@@ -166,9 +174,9 @@ window.BELLA = {
     {
       "id": "a11y",
       "name": "A11y",
-      "score": 68,
+      "score": 71,
       "assessment": "measured",
-      "basis": "67/98 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
+      "basis": "75/106 components: contract a11y notes present and no failing contrast pair on their tokens (contrast-pairs: OK)"
     },
     {
       "id": "shared-language",
@@ -196,21 +204,21 @@ window.BELLA = {
       "name": "Governance",
       "score": 98,
       "assessment": "measured",
-      "basis": "96/98 components: Tier 3 contract checked by contract-parity and passing"
+      "basis": "104/106 components: Tier 3 contract checked by contract-parity and passing"
     },
     {
       "id": "docs",
       "name": "Docs",
       "score": 92,
       "assessment": "measured",
-      "basis": "90/98 components: Storybook story and a docs description in the manifest"
+      "basis": "98/106 components: Storybook story and a docs description in the manifest"
     },
     {
       "id": "machine-readable",
       "name": "Machine-readable",
       "score": 97,
       "assessment": "measured",
-      "basis": "95/98 components: DSDS component entry and react-docgen props in the manifest"
+      "basis": "103/106 components: DSDS component entry and react-docgen props in the manifest"
     },
     {
       "id": "agent-access",
@@ -221,136 +229,6 @@ window.BELLA = {
     }
   ],
   "history": [
-    {
-      "commit": "db12bef",
-      "committedAt": "2026-11-20T23:55:30+01:00",
-      "components": 86,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "02fc0d7",
-      "committedAt": "2026-11-21T08:18:48+01:00",
-      "components": 86,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "4dd68e1",
-      "committedAt": "2026-11-21T08:22:24+01:00",
-      "components": 86,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "1a0bd86",
-      "committedAt": "2026-11-21T08:26:02+01:00",
-      "components": 86,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "8923753",
-      "committedAt": "2026-11-21T09:05:07+01:00",
-      "components": 86,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "a683366",
-      "committedAt": "2026-11-21T15:52:53+01:00",
-      "components": 87,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "1850f58",
-      "committedAt": "2026-11-21T16:49:56+01:00",
-      "components": 87,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "b3c1c28",
-      "committedAt": "2026-11-21T17:16:25+01:00",
-      "components": 87,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "d7c8ade",
-      "committedAt": "2026-11-21T20:19:12+01:00",
-      "components": 88,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
-    {
-      "commit": "35effc1",
-      "committedAt": "2026-11-21T20:43:06+01:00",
-      "components": 88,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
     {
       "commit": "a7b2185",
       "committedAt": "2026-11-21T21:35:23+01:00",
@@ -602,6 +480,136 @@ window.BELLA = {
       "commit": "913fac5",
       "committedAt": "2026-11-22T23:13:00+01:00",
       "components": 98,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "62a25d0",
+      "committedAt": "2026-11-23T10:09:59+01:00",
+      "components": 102,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "1670a96",
+      "committedAt": "2026-11-23T10:45:50+01:00",
+      "components": 102,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "a974786",
+      "committedAt": "2026-11-23T11:33:35+01:00",
+      "components": 102,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "cc9f5e8",
+      "committedAt": "2026-11-23T12:56:48+01:00",
+      "components": 102,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "2fca340",
+      "committedAt": "2026-11-23T13:14:54+01:00",
+      "components": 102,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "764d7c4",
+      "committedAt": "2026-11-23T13:33:23+01:00",
+      "components": 105,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "6cc2292",
+      "committedAt": "2026-11-23T14:24:17+01:00",
+      "components": 105,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "1484f79",
+      "committedAt": "2026-11-23T14:30:54+01:00",
+      "components": 106,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "9a04b7a",
+      "committedAt": "2026-11-23T14:44:49+01:00",
+      "components": 106,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "d11a34c",
+      "committedAt": "2026-11-23T15:18:03+01:00",
+      "components": 106,
       "storyCoverage": 98,
       "contractCoverage": 98,
       "gate": {
@@ -1251,7 +1259,9 @@ window.BELLA = {
       "RadiusTile",
       "SideMenu",
       "SizeTag",
+      "Slide",
       "SpacingStep",
+      "Sparkline",
       "Stage",
       "Stat",
       "StatusDot",
@@ -1265,7 +1275,8 @@ window.BELLA = {
       "Tooltip",
       "TopBar",
       "TourStep",
-      "VariantTile"
+      "VariantTile",
+      "VideoPlayer"
     ],
     "--color-background-subtle": [
       "ActionChip",
@@ -1304,6 +1315,7 @@ window.BELLA = {
       "Combobox",
       "ConnectorTile",
       "DataTable",
+      "DeckBar",
       "Disclosure",
       "Drawer",
       "EasingCurve",
@@ -1316,6 +1328,7 @@ window.BELLA = {
       "IconWell",
       "Input",
       "Kbd",
+      "LastRun",
       "Leader",
       "LineChart",
       "Link",
@@ -1338,6 +1351,7 @@ window.BELLA = {
       "ProjectPanel",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "Section",
       "SectionHead",
@@ -1346,8 +1360,10 @@ window.BELLA = {
       "SegmentedControl",
       "Select",
       "SideMenu",
+      "Slide",
       "Slider",
       "SpacingStep",
+      "Sparkline",
       "Stage",
       "Stat",
       "StatCard",
@@ -1362,6 +1378,8 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
+      "TitleSlide",
       "Toast",
       "ToolColumn",
       "Tooltip",
@@ -1371,7 +1389,8 @@ window.BELLA = {
       "TreeItem",
       "TypeSpecimen",
       "TypingDots",
-      "VariantTile"
+      "VariantTile",
+      "VideoPlayer"
     ],
     "--color-neutral-white-alpha-10": [
       "ActionChip",
@@ -1417,11 +1436,13 @@ window.BELLA = {
       "PageOutline",
       "ProjectPanel",
       "SideMenu",
+      "Slide",
       "StatusPill",
       "TableCell",
       "Tabs",
       "TopBar",
-      "TourStep"
+      "TourStep",
+      "VideoPlayer"
     ],
     "--color-neutral-alpha-20": [
       "ActionChip",
@@ -1441,11 +1462,13 @@ window.BELLA = {
       "PageOutline",
       "ProjectPanel",
       "SideMenu",
+      "Slide",
       "StatusPill",
       "TableCell",
       "Tabs",
       "TopBar",
-      "TourStep"
+      "TourStep",
+      "VideoPlayer"
     ],
     "--color-neutral-700": [
       "ActionChip",
@@ -1472,6 +1495,7 @@ window.BELLA = {
       "IconRail",
       "Input",
       "Kbd",
+      "LastRun",
       "LineChart",
       "ListRow",
       "MapLeaf",
@@ -1489,12 +1513,14 @@ window.BELLA = {
       "ProjectPanel",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "Section",
       "SectionHead",
       "SectionNav",
       "Select",
       "SideMenu",
+      "Slide",
       "Slider",
       "SpacingStep",
       "Stage",
@@ -1510,6 +1536,8 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
+      "TitleSlide",
       "ToolColumn",
       "Tooltip",
       "TopBar",
@@ -1518,7 +1546,8 @@ window.BELLA = {
       "TreeItem",
       "TypeSpecimen",
       "TypingDots",
-      "VariantTile"
+      "VariantTile",
+      "VideoPlayer"
     ],
     "--color-border-focus": [
       "ActionChip",
@@ -1551,18 +1580,20 @@ window.BELLA = {
       "Pin",
       "PinLabel",
       "Progress",
+      "RunIndicator",
       "SearchField",
       "SectionNav",
       "SegmentedControl",
       "Select",
       "SidebarLayout",
       "Slider",
-      "Stat",
+      "Sparkline",
       "StatCard",
       "Step",
       "SystemHealth",
       "Tabs",
       "TaskCard",
+      "TimelineRow",
       "TopBar",
       "TreeItem",
       "VariantTile"
@@ -1602,18 +1633,20 @@ window.BELLA = {
       "PinLabel",
       "Progress",
       "ProgressTarget",
+      "RunIndicator",
       "SearchField",
       "SectionNav",
       "SegmentedControl",
       "Select",
       "SidebarLayout",
       "Slider",
-      "Stat",
+      "Sparkline",
       "StatCard",
       "Step",
       "SystemHealth",
       "Tabs",
       "TaskCard",
+      "TimelineRow",
       "TopBar",
       "TreeItem",
       "VariantTile"
@@ -1653,18 +1686,20 @@ window.BELLA = {
       "PinLabel",
       "Progress",
       "ProgressTarget",
+      "RunIndicator",
       "SearchField",
       "SectionNav",
       "SegmentedControl",
       "Select",
       "SidebarLayout",
       "Slider",
-      "Stat",
+      "Sparkline",
       "StatCard",
       "Step",
       "SystemHealth",
       "Tabs",
       "TaskCard",
+      "TimelineRow",
       "TopBar",
       "TreeItem",
       "VariantTile"
@@ -1684,6 +1719,7 @@ window.BELLA = {
       "MapLeaf",
       "MapLine",
       "PinLabel",
+      "RunIndicator",
       "Slider",
       "SpacingStep",
       "Tabs"
@@ -1708,6 +1744,7 @@ window.BELLA = {
       "Combobox",
       "ConnectorTile",
       "DataTable",
+      "DeckBar",
       "Disclosure",
       "Drawer",
       "EasingCurve",
@@ -1741,14 +1778,17 @@ window.BELLA = {
       "ProjectPanel",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "Section",
       "SectionHead",
       "SectionNav",
       "SegmentedControl",
       "Select",
+      "Slide",
       "Slider",
       "SpacingStep",
+      "Sparkline",
       "Stage",
       "Stat",
       "StatCard",
@@ -1762,13 +1802,16 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
+      "TitleSlide",
       "Toast",
       "Tooltip",
       "TopBar",
       "TourStep",
       "TreeItem",
       "TypeSpecimen",
-      "VariantTile"
+      "VariantTile",
+      "VideoPlayer"
     ],
     "--color-border-strong": [
       "ActionChip",
@@ -1786,10 +1829,13 @@ window.BELLA = {
       "MapLine",
       "MapNode",
       "PageOutline",
+      "Progress",
       "ProgressRing",
       "RadiusTile",
+      "RunIndicator",
       "Select",
       "Slider",
+      "Sparkline",
       "Stat",
       "Tag",
       "TreeItem",
@@ -1811,10 +1857,13 @@ window.BELLA = {
       "MapLine",
       "MapNode",
       "PageOutline",
+      "Progress",
       "ProgressRing",
       "RadiusTile",
+      "RunIndicator",
       "Select",
       "Slider",
+      "Sparkline",
       "Stat",
       "Tag",
       "TreeItem",
@@ -1836,10 +1885,13 @@ window.BELLA = {
       "MapLine",
       "MapNode",
       "PageOutline",
+      "Progress",
       "ProgressRing",
       "RadiusTile",
+      "RunIndicator",
       "Select",
       "Slider",
+      "Sparkline",
       "Stat",
       "Tag",
       "TreeItem",
@@ -1863,6 +1915,7 @@ window.BELLA = {
       "Stage",
       "Swatch",
       "SystemHealth",
+      "TimelineRow",
       "ToolColumn",
       "Tooltip",
       "VariantTile"
@@ -1882,6 +1935,7 @@ window.BELLA = {
       "Combobox",
       "ConnectorTile",
       "DataTable",
+      "DeckBar",
       "Disclosure",
       "Drawer",
       "EasingCurve",
@@ -1911,14 +1965,17 @@ window.BELLA = {
       "ProjectPanel",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "Section",
       "SectionHead",
       "SectionNav",
       "SegmentedControl",
       "Select",
+      "Slide",
       "Slider",
       "SpacingStep",
+      "Sparkline",
       "Stat",
       "StatCard",
       "Step",
@@ -1929,13 +1986,16 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
+      "TitleSlide",
       "Toast",
       "Tooltip",
       "TopBar",
       "TourStep",
       "TreeItem",
       "TypeSpecimen",
-      "VariantTile"
+      "VariantTile",
+      "VideoPlayer"
     ],
     "--color-content-subtle": [
       "ActionChip",
@@ -1957,6 +2017,7 @@ window.BELLA = {
       "FloatingPanel",
       "Input",
       "Kbd",
+      "LastRun",
       "LineChart",
       "ListRow",
       "MapLeaf",
@@ -1972,6 +2033,7 @@ window.BELLA = {
       "Progress",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "Section",
       "SectionHead",
@@ -1993,6 +2055,8 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
+      "TitleSlide",
       "ToolColumn",
       "TopBar",
       "TourStep",
@@ -2023,17 +2087,19 @@ window.BELLA = {
       "Pin",
       "PinLabel",
       "Progress",
+      "RunIndicator",
       "SearchField",
       "Select",
       "SideMenu",
       "SidebarLayout",
       "Slider",
-      "Stat",
+      "Sparkline",
       "StatCard",
       "Step",
       "SystemHealth",
       "Tabs",
       "TaskCard",
+      "TimelineRow",
       "TopBar",
       "TreeItem",
       "VariantTile"
@@ -2060,17 +2126,19 @@ window.BELLA = {
       "Pin",
       "PinLabel",
       "Progress",
+      "RunIndicator",
       "SearchField",
       "Select",
       "SideMenu",
       "SidebarLayout",
       "Slider",
-      "Stat",
+      "Sparkline",
       "StatCard",
       "Step",
       "SystemHealth",
       "Tabs",
       "TaskCard",
+      "TimelineRow",
       "TopBar",
       "TreeItem",
       "VariantTile"
@@ -2106,6 +2174,7 @@ window.BELLA = {
       "Pin",
       "PinLabel",
       "Progress",
+      "RunIndicator",
       "SearchField",
       "SectionNav",
       "SegmentedControl",
@@ -2113,12 +2182,13 @@ window.BELLA = {
       "SideMenu",
       "SidebarLayout",
       "Slider",
-      "Stat",
+      "Sparkline",
       "StatCard",
       "Step",
       "SystemHealth",
       "Tabs",
       "TaskCard",
+      "TimelineRow",
       "TopBar",
       "TreeItem",
       "VariantTile"
@@ -2156,6 +2226,7 @@ window.BELLA = {
       "Progress",
       "ProgressRing",
       "ProgressTarget",
+      "RunIndicator",
       "SearchField",
       "SectionNav",
       "SegmentedControl",
@@ -2163,12 +2234,13 @@ window.BELLA = {
       "SideMenu",
       "SidebarLayout",
       "Slider",
-      "Stat",
+      "Sparkline",
       "StatCard",
       "Step",
       "SystemHealth",
       "Tabs",
       "TaskCard",
+      "TimelineRow",
       "TopBar",
       "TreeItem",
       "VariantTile"
@@ -2190,10 +2262,12 @@ window.BELLA = {
       "PartRow",
       "PinLabel",
       "ProgressRing",
+      "RunIndicator",
       "SegmentedControl",
-      "Stat",
+      "Sparkline",
       "SystemHealth",
       "Tabs",
+      "TimelineRow",
       "TopBar",
       "TreeItem",
       "TypingDots"
@@ -2234,6 +2308,7 @@ window.BELLA = {
       "PinLabel",
       "Progress",
       "ProgressRing",
+      "RunIndicator",
       "SegmentedControl",
       "Stat",
       "StatusDot",
@@ -2241,6 +2316,7 @@ window.BELLA = {
       "SystemHealth",
       "Tabs",
       "TaskCard",
+      "TimelineRow",
       "Toast",
       "TopBar",
       "TreeItem"
@@ -2260,6 +2336,7 @@ window.BELLA = {
       "CodeBlock",
       "Combobox",
       "DataTable",
+      "DeckBar",
       "Disclosure",
       "Drawer",
       "EasingCurve",
@@ -2282,6 +2359,7 @@ window.BELLA = {
       "Progress",
       "ProjectPanel",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "SectionNav",
       "Select",
@@ -2297,13 +2375,15 @@ window.BELLA = {
       "SystemHealth",
       "Tag",
       "TaskCard",
+      "TimelineRow",
       "Toast",
       "Tooltip",
       "TopBar",
       "TourStep",
       "TreeItem",
       "TypeSpecimen",
-      "TypingDots"
+      "TypingDots",
+      "VideoPlayer"
     ],
     "--spacing-16": [
       "ActionChip",
@@ -2334,6 +2414,7 @@ window.BELLA = {
       "ProgressTarget",
       "ProjectPanel",
       "ResourceCard",
+      "RunIndicator",
       "Section",
       "SectionHead",
       "SectionHeader",
@@ -2345,6 +2426,7 @@ window.BELLA = {
       "TableCell",
       "Tabs",
       "TaskCard",
+      "TimelineRow",
       "Toast",
       "ToolColumn",
       "TopBar",
@@ -2375,20 +2457,22 @@ window.BELLA = {
       "PageOutline",
       "Pin",
       "PinLabel",
+      "RunIndicator",
       "SearchField",
       "SectionNav",
       "SegmentedControl",
       "Select",
       "Slider",
       "SpacingStep",
+      "Sparkline",
       "Stage",
-      "Stat",
       "StatCard",
       "Step",
       "SystemHealth",
       "TableCell",
       "Tabs",
       "TaskCard",
+      "TimelineRow",
       "TopBar",
       "Trailing",
       "TreeItem"
@@ -2409,6 +2493,8 @@ window.BELLA = {
       "CodeBlock",
       "Combobox",
       "ConnectorTile",
+      "DataTable",
+      "DeckBar",
       "Disclosure",
       "Drawer",
       "EasingCurve",
@@ -2434,6 +2520,7 @@ window.BELLA = {
       "ProgressTarget",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "Section",
       "SegmentedControl",
       "Select",
@@ -2453,6 +2540,7 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
       "Toast",
       "ToolColumn",
       "Tooltip",
@@ -2460,7 +2548,8 @@ window.BELLA = {
       "TourStep",
       "TreeItem",
       "TypingDots",
-      "VariantTile"
+      "VariantTile",
+      "VideoPlayer"
     ],
     "--typography-body-default-font-family": [
       "ActionChip",
@@ -2502,6 +2591,7 @@ window.BELLA = {
       "ProjectPanel",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "Section",
       "SectionHead",
@@ -2509,6 +2599,7 @@ window.BELLA = {
       "SegmentedControl",
       "Select",
       "SideMenu",
+      "Slide",
       "Slider",
       "Stat",
       "StatCard",
@@ -2522,6 +2613,8 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
+      "TitleSlide",
       "Toast",
       "Tooltip",
       "TopBar",
@@ -2571,6 +2664,7 @@ window.BELLA = {
       "ProjectPanel",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "Section",
       "SectionHead",
@@ -2578,6 +2672,7 @@ window.BELLA = {
       "SegmentedControl",
       "Select",
       "SideMenu",
+      "Slide",
       "Slider",
       "Stat",
       "StatCard",
@@ -2591,6 +2686,8 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
+      "TitleSlide",
       "Toast",
       "Tooltip",
       "TopBar",
@@ -2634,6 +2731,7 @@ window.BELLA = {
       "Combobox",
       "ConnectorTile",
       "DataTable",
+      "DeckBar",
       "Disclosure",
       "Drawer",
       "EasingCurve",
@@ -2644,6 +2742,7 @@ window.BELLA = {
       "GroupHead",
       "Input",
       "Kbd",
+      "LastRun",
       "LineChart",
       "ListRow",
       "MapLeaf",
@@ -2661,6 +2760,7 @@ window.BELLA = {
       "ProjectPanel",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "Section",
       "SectionHead",
@@ -2670,6 +2770,7 @@ window.BELLA = {
       "Select",
       "SideMenu",
       "SizeTag",
+      "Slide",
       "Slider",
       "SpacingStep",
       "Stage",
@@ -2685,6 +2786,8 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
+      "TitleSlide",
       "Toast",
       "ToolColumn",
       "Tooltip",
@@ -2772,6 +2875,7 @@ window.BELLA = {
       "ClientSwitcher",
       "Combobox",
       "DataTable",
+      "DeckBar",
       "EasingCurve",
       "FloatingPanel",
       "Input",
@@ -2785,11 +2889,13 @@ window.BELLA = {
       "ResourceCard",
       "Section",
       "SectionHeader",
+      "Slide",
       "StatCard",
       "TableCell",
       "Tabs",
       "Tag",
       "TextStack",
+      "TitleSlide",
       "ToolColumn",
       "Tooltip",
       "TourStep"
@@ -2816,6 +2922,7 @@ window.BELLA = {
       "ProgressTarget",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "Slider",
       "Stat",
       "StatusDot",
@@ -2933,6 +3040,7 @@ window.BELLA = {
       "ProjectPanel",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "SectionHead",
       "SectionNav",
       "SegmentedControl",
@@ -2951,6 +3059,7 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
       "Toast",
       "ToolColumn",
       "Tooltip",
@@ -2974,6 +3083,7 @@ window.BELLA = {
       "EasingCurve",
       "EmptyState",
       "GroupHead",
+      "LastRun",
       "ListRow",
       "MapLeaf",
       "MapNode",
@@ -2986,6 +3096,7 @@ window.BELLA = {
       "ProjectPanel",
       "RadiusTile",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "SectionHead",
       "Select",
@@ -2998,6 +3109,7 @@ window.BELLA = {
       "Swatch",
       "SystemHealth",
       "TaskCard",
+      "TimelineRow",
       "Toast",
       "TopBar",
       "TreeItem",
@@ -3011,6 +3123,7 @@ window.BELLA = {
       "ChatThread",
       "CheckRow",
       "ConnectorTile",
+      "LastRun",
       "ListRow",
       "PageHeader",
       "PinLabel",
@@ -3020,7 +3133,8 @@ window.BELLA = {
       "StatCard",
       "Step",
       "Swatch",
-      "TaskCard"
+      "TaskCard",
+      "TimelineRow"
     ],
     "--typography-font-family-geist-mono": [
       "AnatomyHighlight",
@@ -3033,8 +3147,10 @@ window.BELLA = {
       "CheckRow",
       "CodeBlock",
       "ConnectorTile",
+      "DeckBar",
       "EasingCurve",
       "Kbd",
+      "LastRun",
       "LineChart",
       "ListRow",
       "NavItem",
@@ -3044,6 +3160,7 @@ window.BELLA = {
       "Progress",
       "ProgressRing",
       "RadiusTile",
+      "RunIndicator",
       "SectionHead",
       "SegmentedControl",
       "SizeTag",
@@ -3059,6 +3176,7 @@ window.BELLA = {
       "Tag",
       "TaskCard",
       "TextStack",
+      "TimelineRow",
       "ToolColumn",
       "TreeItem",
       "TypeSpecimen"
@@ -3090,6 +3208,7 @@ window.BELLA = {
       "NavList",
       "PartRow",
       "PinLabel",
+      "RunIndicator",
       "SegmentedControl",
       "Stat",
       "StatCard",
@@ -3118,6 +3237,7 @@ window.BELLA = {
       "NavList",
       "PartRow",
       "PinLabel",
+      "RunIndicator",
       "SegmentedControl",
       "Stat",
       "StatCard",
@@ -3146,6 +3266,7 @@ window.BELLA = {
       "Notification",
       "PartRow",
       "PinLabel",
+      "RunIndicator",
       "SegmentedControl",
       "Stat",
       "StatCard",
@@ -3207,9 +3328,11 @@ window.BELLA = {
       "ProgressTarget",
       "ProjectPanel",
       "ResourceCard",
+      "RunIndicator",
       "SegmentedControl",
       "Select",
       "SideMenu",
+      "Slide",
       "Slider",
       "Stage",
       "StatCard",
@@ -3217,6 +3340,7 @@ window.BELLA = {
       "SystemHealth",
       "Tag",
       "TaskCard",
+      "TimelineRow",
       "Toast",
       "ToolColumn",
       "Tooltip",
@@ -3253,9 +3377,11 @@ window.BELLA = {
       "ProgressTarget",
       "ProjectPanel",
       "ResourceCard",
+      "RunIndicator",
       "SegmentedControl",
       "Select",
       "SideMenu",
+      "Slide",
       "Slider",
       "Stage",
       "StatCard",
@@ -3263,6 +3389,7 @@ window.BELLA = {
       "SystemHealth",
       "Tag",
       "TaskCard",
+      "TimelineRow",
       "Toast",
       "ToolColumn",
       "Tooltip",
@@ -3308,11 +3435,13 @@ window.BELLA = {
       "ProgressTarget",
       "ProjectPanel",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "SectionHeader",
       "SegmentedControl",
       "Select",
       "SideMenu",
+      "Slide",
       "Slider",
       "Stage",
       "StatCard",
@@ -3323,6 +3452,7 @@ window.BELLA = {
       "SystemHealth",
       "Tag",
       "TaskCard",
+      "TimelineRow",
       "Toast",
       "ToolColumn",
       "Tooltip",
@@ -3347,6 +3477,7 @@ window.BELLA = {
       "LineChart",
       "ListRow",
       "MapLine",
+      "PageHeader",
       "StatusDot",
       "StatusSquare",
       "TaskCard",
@@ -3426,6 +3557,7 @@ window.BELLA = {
       "ListRow",
       "PageOutline",
       "ResourceCard",
+      "RunIndicator",
       "SearchField",
       "SectionHeader",
       "SegmentedControl",
@@ -3454,6 +3586,7 @@ window.BELLA = {
       "CheckRow",
       "Combobox",
       "DataTable",
+      "DeckBar",
       "Drawer",
       "EasingCurve",
       "EmptyState",
@@ -3463,15 +3596,19 @@ window.BELLA = {
       "PageOutline",
       "ResourceCard",
       "SideMenu",
+      "Slide",
       "SpacingStep",
+      "Sparkline",
       "Stat",
       "SystemHealth",
+      "TitleSlide",
       "Toast",
       "TourStep"
     ],
     "--typography-font-size-22": [
       "Avatar",
       "ListRow",
+      "PageHeader",
       "SectionHeader",
       "TypeSpecimen"
     ],
@@ -3481,9 +3618,12 @@ window.BELLA = {
       "ChatBubble",
       "CheckRow",
       "ClientSwitcher",
+      "DeckBar",
       "Input",
+      "LastRun",
       "Pin",
       "ResourceCard",
+      "RunIndicator",
       "SizeTag",
       "Stat"
     ],
@@ -3512,7 +3652,9 @@ window.BELLA = {
       "ChatBubble",
       "ChatThread",
       "CheckRow",
+      "DeckBar",
       "EasingCurve",
+      "LastRun",
       "LineChart",
       "ListRow",
       "NavItem",
@@ -3520,6 +3662,7 @@ window.BELLA = {
       "Progress",
       "ProgressRing",
       "RadiusTile",
+      "RunIndicator",
       "SectionHead",
       "SegmentedControl",
       "Slider",
@@ -3552,6 +3695,7 @@ window.BELLA = {
       "SectionNav",
       "SizeTag",
       "SpacingStep",
+      "Sparkline",
       "Stat",
       "StatusSquare",
       "TableCell",
@@ -3601,11 +3745,13 @@ window.BELLA = {
       "Pin",
       "Progress",
       "ProgressRing",
+      "RunIndicator",
       "StatusDot",
       "StatusPill",
       "StatusSquare",
       "Tag",
       "TaskCard",
+      "TimelineRow",
       "Toast"
     ],
     "--color-utility-red-500": [
@@ -3621,12 +3767,14 @@ window.BELLA = {
       "Pin",
       "Progress",
       "ProgressRing",
+      "RunIndicator",
       "SizeTag",
       "StatusDot",
       "StatusPill",
       "StatusSquare",
       "Tag",
       "TaskCard",
+      "TimelineRow",
       "Toast"
     ],
     "--color-utility-red-300": [
@@ -3640,11 +3788,13 @@ window.BELLA = {
       "Pin",
       "Progress",
       "ProgressRing",
+      "RunIndicator",
       "StatusDot",
       "StatusPill",
       "StatusSquare",
       "Tag",
       "TaskCard",
+      "TimelineRow",
       "Toast"
     ],
     "--color-border-utility-success": [
@@ -3656,6 +3806,7 @@ window.BELLA = {
       "Pin",
       "Progress",
       "ProgressRing",
+      "RunIndicator",
       "StatusDot",
       "StatusPill",
       "StatusSquare",
@@ -3673,6 +3824,7 @@ window.BELLA = {
       "Pin",
       "Progress",
       "ProgressRing",
+      "RunIndicator",
       "StatusDot",
       "StatusPill",
       "StatusSquare",
@@ -3692,6 +3844,7 @@ window.BELLA = {
       "Pin",
       "Progress",
       "ProgressRing",
+      "RunIndicator",
       "StatusDot",
       "StatusPill",
       "StatusSquare",
@@ -3712,6 +3865,7 @@ window.BELLA = {
       "Progress",
       "RadiusTile",
       "SpacingStep",
+      "Sparkline",
       "Stat",
       "StatusDot"
     ],
@@ -3729,6 +3883,7 @@ window.BELLA = {
       "ProgressRing",
       "RadiusTile",
       "SpacingStep",
+      "Sparkline",
       "Stat",
       "StatusDot",
       "SystemHealth",
@@ -3796,6 +3951,7 @@ window.BELLA = {
       "Drawer",
       "EmptyState",
       "Notification",
+      "PageHeader",
       "Pin",
       "ProjectPanel",
       "ResourceCard",
@@ -3803,7 +3959,8 @@ window.BELLA = {
       "SideMenu",
       "StatCard",
       "TaskCard",
-      "TextStack"
+      "TextStack",
+      "TopBar"
     ],
     "--spacing-24": [
       "BarChart",
@@ -3824,15 +3981,17 @@ window.BELLA = {
       "Section",
       "SideMenu",
       "SidebarLayout",
+      "Slide",
       "Slider",
       "SpacingStep",
+      "Sparkline",
       "Stage",
-      "Stat",
       "StatCard",
       "Step",
       "SystemHealth",
       "Tabs",
       "TaskCard",
+      "TitleSlide",
       "VariantTile"
     ],
     "--spacing-64": [
@@ -3846,6 +4005,7 @@ window.BELLA = {
       "Progress",
       "Section",
       "SidebarLayout",
+      "Slide",
       "Slider",
       "SpacingStep",
       "Swatch",
@@ -3908,6 +4068,7 @@ window.BELLA = {
       "EmptyState",
       "Eyebrow",
       "Input",
+      "LastRun",
       "ListRow",
       "MapNode",
       "Menu",
@@ -3916,6 +4077,7 @@ window.BELLA = {
       "PageHeader",
       "Progress",
       "RadiusTile",
+      "RunIndicator",
       "SearchField",
       "SectionHead",
       "SideMenu",
@@ -3950,9 +4112,11 @@ window.BELLA = {
       "BranchGroup",
       "RadiusTile",
       "ResourceCard",
+      "Slide",
       "Stage",
       "ToolColumn",
-      "TourStep"
+      "TourStep",
+      "VideoPlayer"
     ],
     "--color-background-lane": [
       "BoardLane"
@@ -3986,6 +4150,7 @@ window.BELLA = {
       "BoardLane",
       "IconWell",
       "Notification",
+      "RunIndicator",
       "StatusDot",
       "Step",
       "Tag"
@@ -3995,6 +4160,7 @@ window.BELLA = {
       "CodeBlock",
       "IconWell",
       "Notification",
+      "RunIndicator",
       "StatusDot",
       "Step",
       "Tag",
@@ -4005,6 +4171,7 @@ window.BELLA = {
       "IconWell",
       "Notification",
       "Progress",
+      "RunIndicator",
       "StatusDot",
       "Step",
       "SystemHealth",
@@ -4075,7 +4242,9 @@ window.BELLA = {
       "MapLine",
       "MapNode",
       "ProgressTarget",
-      "SystemHealth"
+      "RunIndicator",
+      "SystemHealth",
+      "TimelineRow"
     ],
     "--color-content-brand": [
       "BoardLane",
@@ -4184,6 +4353,9 @@ window.BELLA = {
       "SectionHeader",
       "Tooltip",
       "TypeSpecimen"
+    ],
+    "--color-background-": [
+      "BrandWordmark"
     ],
     "--color-background-accent-3": [
       "BrandWordmark",
@@ -4369,6 +4541,7 @@ window.BELLA = {
       "IconWell",
       "Menu",
       "Notification",
+      "RunIndicator",
       "StatusDot",
       "Step",
       "Tag"
@@ -4379,6 +4552,7 @@ window.BELLA = {
       "IconWell",
       "Menu",
       "Notification",
+      "RunIndicator",
       "StatusDot",
       "Step",
       "Tag"
@@ -4389,6 +4563,7 @@ window.BELLA = {
       "IconWell",
       "Menu",
       "Notification",
+      "RunIndicator",
       "StatusDot",
       "Step",
       "Tag"
@@ -4665,6 +4840,7 @@ window.BELLA = {
       "CodeBlock",
       "IconWell",
       "Input",
+      "LastRun",
       "MapLine",
       "Menu",
       "Notification",
@@ -4677,6 +4853,7 @@ window.BELLA = {
       "CodeBlock",
       "IconWell",
       "Input",
+      "LastRun",
       "MapLeaf",
       "MapLine",
       "Menu",
@@ -4702,6 +4879,7 @@ window.BELLA = {
       "Progress",
       "SizeTag",
       "SpacingStep",
+      "Sparkline",
       "Stat",
       "StatusSquare",
       "TableCell",
@@ -4711,7 +4889,8 @@ window.BELLA = {
     ],
     "--border-radius-24": [
       "Drawer",
-      "RadiusTile"
+      "RadiusTile",
+      "TimelineRow"
     ],
     "--color-background-transparent": [
       "Drawer",
@@ -4731,7 +4910,9 @@ window.BELLA = {
       "PageOutline",
       "PinLabel",
       "SegmentedControl",
-      "TourStep"
+      "Slide",
+      "TourStep",
+      "VideoPlayer"
     ],
     "--size-36": [
       "Drawer",
@@ -4755,10 +4936,12 @@ window.BELLA = {
       "MapLeaf",
       "PinLabel",
       "ResourceCard",
+      "RunIndicator",
       "Section",
       "SegmentedControl",
       "Slider",
-      "Tabs"
+      "Tabs",
+      "TimelineRow"
     ],
     "--typography-font-size-display-page": [
       "Heading",
@@ -4849,6 +5032,7 @@ window.BELLA = {
     "--color-content-utility-error": [
       "IconWell",
       "Input",
+      "LastRun",
       "MapLine",
       "Menu",
       "Notification",
@@ -5006,6 +5190,7 @@ window.BELLA = {
     ],
     "--typography-font-size-28": [
       "PageHeader",
+      "TitleSlide",
       "TypeSpecimen"
     ],
     "--color-background-utility-error-knockout": [
@@ -5103,6 +5288,9 @@ window.BELLA = {
     "--dock-height": [
       "SidebarLayout"
     ],
+    "--slide-scale": [
+      "Slide"
+    ],
     "--mark-f": [
       "Slider"
     ],
@@ -5115,6 +5303,9 @@ window.BELLA = {
     "--motion-duration-3400": [
       "Stat",
       "SystemHealth"
+    ],
+    "--typography-font-size-88": [
+      "Stat"
     ],
     "--color-background-utility-warning-knockout": [
       "StatusPill",
@@ -5150,6 +5341,10 @@ window.BELLA = {
     "--tag-wash": [
       "Tag"
     ],
+    "--color-background-default-hover": [
+      "TimelineRow",
+      "VariantTile"
+    ],
     "--toast-edge": [
       "Toast"
     ],
@@ -5158,9 +5353,6 @@ window.BELLA = {
     ],
     "--tree-spine-x": [
       "TreeItem"
-    ],
-    "--color-background-default-hover": [
-      "VariantTile"
     ]
   },
   "tokenUsageOther": {
@@ -6769,6 +6961,27 @@ window.BELLA = {
         "name": "CHIP app",
         "file": "app/src/templates/Screen.css"
       }
+    ],
+    "--border-radius-16": [
+      {
+        "kind": "app",
+        "name": "CHIP app",
+        "file": "app/src/templates/SetupSteps.jsx"
+      }
+    ],
+    "--color-background-utility-neutral": [
+      {
+        "kind": "app",
+        "name": "CHIP app",
+        "file": "app/src/templates/SetupSteps.jsx"
+      }
+    ],
+    "--color-brand-wash-grey": [
+      {
+        "kind": "app",
+        "name": "CHIP app",
+        "file": "app/src/templates/SetupSteps.jsx"
+      }
     ]
   },
   "components": [
@@ -7715,7 +7928,7 @@ window.BELLA = {
       "id": "brand-wordmark",
       "name": "BrandWordmark",
       "category": "Brand",
-      "description": "The ELLETA / BELLA wordmark (brand refresh, 2026-09-22): custom E, L, T, A, B stroke glyphs at the locked settings (weight 12, width 58, height 130, tracking 16, soft corners; the E, A and B bars on one low line), filled with the seeded brand pattern and a grain, or in plain ink.",
+      "description": "The ELLETA / BELLA wordmark (brand refresh, 2026-09-22): custom E, L, T, A, B stroke glyphs at the locked settings (weight 12, width 58, height 130, tracking 16, soft corners; the E, A and B bars on one low line), filled with the seeded brand pattern and a grain, or in plain ink. CHIP also has a logotype (drawn 8 Nov 2026): the blue chip with its ink C and HIP written by the chip's right wall in one ink line, with a pink signal that runs the circuit once and rests as the full stop; still under reduced motion.",
       "hasStory": false,
       "hasDocs": false,
       "inDsds": true,
@@ -7732,7 +7945,8 @@ window.BELLA = {
       "variants": [
         "pattern",
         "ink",
-        "mark"
+        "mark",
+        "logotype"
       ],
       "states": [
         "default"
@@ -7770,10 +7984,11 @@ window.BELLA = {
         "Button"
       ],
       "tokens": {
-        "count": 6,
+        "count": 7,
         "component": 0,
         "semantic": 0,
         "list": [
+          "--color-background-",
           "--color-background-accent-2",
           "--color-background-accent-3",
           "--color-background-accent-4",
@@ -8048,6 +8263,7 @@ window.BELLA = {
         "BarChart",
         "BrandWordmark",
         "CheckRow",
+        "DeckBar",
         "Drawer",
         "FloatingPanel",
         "Input",
@@ -8056,7 +8272,8 @@ window.BELLA = {
         "Tabs",
         "Toast",
         "ToolColumn",
-        "TourStep"
+        "TourStep",
+        "VideoPlayer"
       ],
       "health": {
         "contrast": {
@@ -8559,7 +8776,7 @@ window.BELLA = {
       "id": "check-row",
       "name": "CheckRow",
       "category": "Data",
-      "description": "One health check across all components. A configuration of List item\n(ListRow), never its own drawing. Figma Check row 793:31331 (published\n21 Nov): no status bar and no status Tag, the progress bar is enough\n(Elleta: \"I don't want the status bar on this, it's too much; the\nprogress bar is fine\", \"yes take it off\"). Middle = title 20 regular and\nwhat is missing, on the bar's left edge; Right = the count once, Geist\nMono bold 20 (\"the numbers are too small now\"), with the action under it\non fail; Below = the Progress bar with its target.",
+      "description": "One health check across all components. A configuration of List item\n(ListRow), never its own drawing. Figma Check row 793:31331 (published\n21 Nov): no status bar and no status Tag, the progress bar is enough\n(decided). Middle = title 20 regular and\nwhat is missing, on the bar's left edge; Right = the count once, Geist\nMono bold 20 (\"the numbers are too small now\"), with the action under it\non fail; Below = the Progress bar with its target.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -9244,10 +9461,12 @@ window.BELLA = {
         "defaultSort",
         "density",
         "maxHeight",
+        "onOpen",
         "onSelect",
         "rowKey",
         "rows",
-        "selectedKey"
+        "selectedKey",
+        "stack"
       ],
       "variants": [],
       "states": [
@@ -9261,14 +9480,16 @@ window.BELLA = {
       "rendersAs": null,
       "usage": [
         "CHIP per-component health results",
-        "Any comparison of the same facts across many items"
+        "Any comparison of the same facts across many items",
+        "A long list in a CHIP drawer: the row opens its detail (onOpen) and stacks under 480 (stack)"
       ],
       "dont": [
         "Do not dim unselected rows: selection is the light blue fill with a bold ink label, everything else keeps its paint",
         "Do not use the focus ring colour for selection: the ring means focus only",
         "Do not left-align figures: numeric columns are right-aligned and tabular",
         "Do not drop the caption: it names the table",
-        "Do not use density compact on a sortable or selectable table: interactive rows keep the 44px target (the component ignores compact there)"
+        "Do not use density compact on a sortable or selectable table: interactive rows keep the 44px target (the component ignores compact there)",
+        "Do not put a fix button on every row: the row opens its detail, and the action lives there"
       ],
       "restNote": "Flat: rules, the sticky header and the cell text. audit:quality asserts no elevation or animation (root carries data-bella-component=data-table).",
       "a11y": "Verified 2026-10-03: a real table named by its visible caption (aria-labelledby; the caption sits above the frame, 20 Nov 2026); column headers scope=col, the first cell of each row scope=row. Sortable headers hold a button and carry aria-sort (none, ascending, descending); the arrow is decorative. Selection is a toggle button with aria-pressed in the row header; the selected row is the light blue fill (background/brand-subtle-hover) with a bold ink label: 12.30:1 Chip light, 9.54:1 BELLA light, 7.34:1 BELLA dark (AAA, measured 20 Nov 2026; Chip dark's white-alpha tint not measured), nested components included, and no other row changes. Header labels text-secondary on panel, 7.09:1 light / 8.44:1 dark (AAA). The frame's edge and corners sit on the scroll wrapper, so they stay while the table scrolls; with maxHeight that wrapper is a focusable region named by the caption. Sort and select buttons hit the 44px touch-target token; focus ring 4px with a 4px gap.",
@@ -9289,10 +9510,11 @@ window.BELLA = {
       "composedFrom": [
         "TableCell",
         "TableRow",
-        "Tag"
+        "Tag",
+        "Trailing"
       ],
       "tokens": {
-        "count": 23,
+        "count": 24,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -9313,6 +9535,7 @@ window.BELLA = {
           "--spacing-32",
           "--spacing-4",
           "--spacing-44",
+          "--spacing-8",
           "--spacing-80",
           "--typography-body-default-font-family",
           "--typography-font-size-16",
@@ -9330,6 +9553,96 @@ window.BELLA = {
         "contrast": {
           "status": "pass",
           "pairs": 56,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "deck-bar",
+      "name": "DeckBar",
+      "category": "Layout",
+      "description": "Deck bar (deck plan, 23 Nov 2026): the controls under a presented deck. Back, the count with one\nsegment per slide, Next, then Notes and All slides when the deck has them. Composes Button, Progress\n(segments) and Kbd; the keys it names are the ones the deck binds (arrows, N, G).",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "current",
+        "notesOpen",
+        "onBack",
+        "onGrid",
+        "onNext",
+        "onNotes",
+        "total"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "first",
+        "last",
+        "notes-open"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Under the deck stage in the Present page (deck plan, 23 Nov 2026)"
+      ],
+      "dont": [
+        "Not a tour step (TourStep)",
+        "Not site navigation (SectionNav)"
+      ],
+      "restNote": null,
+      "a11y": "A labelled group. Back and Next are disabled, not hidden, at the ends. Notes is a toggle (aria-pressed). The count is read in the progress name; the visible text is hidden from the tree to avoid a double read.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.deck-bar.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-deckbar--docs",
+      "composedFrom": [
+        "Button",
+        "Kbd",
+        "Progress"
+      ],
+      "tokens": {
+        "count": 8,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--color-content-default",
+          "--spacing-12",
+          "--spacing-8",
+          "--spacing-80",
+          "--typography-font-size-16",
+          "--typography-font-weight-700",
+          "--typography-line-height-150",
+          "--typography-number-font-family"
+        ]
+      },
+      "compositionDepth": 3,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 22,
           "failing": []
         },
         "contract": {
@@ -9651,7 +9964,7 @@ window.BELLA = {
       },
       "compositionDepth": 0,
       "composesInto": [
-        "Stat"
+        "Sparkline"
       ],
       "health": {
         "contrast": {
@@ -9834,7 +10147,8 @@ window.BELLA = {
       },
       "compositionDepth": 0,
       "composesInto": [
-        "SectionHeader"
+        "SectionHeader",
+        "TitleSlide"
       ],
       "health": {
         "contrast": {
@@ -10347,7 +10661,8 @@ window.BELLA = {
       },
       "compositionDepth": 0,
       "composesInto": [
-        "SectionHeader"
+        "SectionHeader",
+        "TitleSlide"
       ],
       "health": {
         "contrast": {
@@ -10369,7 +10684,7 @@ window.BELLA = {
       "id": "icon",
       "name": "Icon",
       "category": "Data",
-      "description": "The only way BELLA renders an icon. Iconoir glyphs from an inlined registry, icon-token sized, always currentColor; decorative by default, a label makes it meaningful.",
+      "description": "The only way BELLA renders an icon. Iconoir glyphs from an inlined registry, icon-token sized, always currentColor; decorative by default, a label makes it meaningful. Also carries the official one-colour tool marks (Storybook, Figma, GitHub, Notion), filled in the context ink beside a link's label.",
       "hasStory": true,
       "hasDocs": false,
       "inDsds": true,
@@ -10395,7 +10710,7 @@ window.BELLA = {
       ],
       "dont": [
         "Do not put id attributes inside an icon SVG: the glyph renders more than once (the Button label roll duplicates it), so an id-referenced gradient or clip would collide; draw with paths and currentColor only (audit:quality enforces)",
-        "Do not mix icon sets or draw one-off SVGs: Iconoir is the ONLY source (declared 2026-07-22) and every glyph lives in the registry, nothing inline (audit:quality enforces)",
+        "Do not mix icon sets or draw one-off SVGs: Iconoir is the ONLY source (declared 2026-07-22) and every glyph lives in the registry, nothing inline (audit:quality enforces); the one exception is the four tool marks (Storybook, Figma, GitHub, Notion), the official one-colour shapes from Simple Icons (CC0), filled not stroked, shapes unchanged",
         "Do not import an icon library component surface: the registry carries the paths BELLA ships (borrow-behavior-only, recorded)",
         "Do not hardcode an icon colour: currentColor inherits the themed ink",
         "Do not let a meaningful icon stand without text unless its accessible name is proven in a Behavior story; decorative is the default and needs no name"
@@ -10984,6 +11299,7 @@ window.BELLA = {
       },
       "compositionDepth": 0,
       "composesInto": [
+        "DeckBar",
         "Input",
         "SearchField"
       ],
@@ -10991,6 +11307,88 @@ window.BELLA = {
         "contrast": {
           "status": "pass",
           "pairs": 42,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "last-run",
+      "name": "LastRun",
+      "category": "Data",
+      "description": "The stamp under any action that can be run again: what, when, how long, what it found, as one line\n(\"Ran 09:24 · 2 s · nothing new\"). Numbers in the number face. Not interactive.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "result",
+        "style",
+        "tone",
+        "took",
+        "when"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "failed"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "CHIP Check again, Refresh and Test (23 Nov 2026)"
+      ],
+      "dont": [
+        "Not a Tag",
+        "Not for a time on its own (Stat)"
+      ],
+      "restNote": null,
+      "a11y": "Plain text in a paragraph; a failed run begins with the words \"Did not land\", so colour is never the only signal. 16px, 1.5 line height; subtle ink 7:1 or more on the page.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.last-run.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-lastrun--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 8,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--color-content-subtle",
+          "--color-content-utility-error",
+          "--typography-font-size-16",
+          "--typography-font-weight-400",
+          "--typography-font-weight-700",
+          "--typography-line-height-px-24",
+          "--typography-number-font-family",
+          "--typography-subtext-font-family"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 6,
           "failing": []
         },
         "contract": {
@@ -12512,7 +12910,7 @@ window.BELLA = {
         "Trailing"
       ],
       "tokens": {
-        "count": 23,
+        "count": 26,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -12523,6 +12921,8 @@ window.BELLA = {
           "--layout-measure-body",
           "--layout-stack-sm",
           "--size-20",
+          "--size-24",
+          "--size-28",
           "--size-36",
           "--spacing-16",
           "--spacing-4",
@@ -12532,6 +12932,7 @@ window.BELLA = {
           "--typography-body-default-font-weight",
           "--typography-font-size-14",
           "--typography-font-size-16",
+          "--typography-font-size-22",
           "--typography-font-size-28",
           "--typography-font-weight-400",
           "--typography-font-weight-600",
@@ -13069,7 +13470,7 @@ window.BELLA = {
       "id": "progress",
       "name": "Progress",
       "category": "Data",
-      "description": "A measured amount: bar (track, fill, optional target), segments, or ring. The track and undone segments are border/subtle (her 21 Nov \"can we litghten the grey bar\"): the empty part, not a mark; the fill carries the amount and the amount is always in words.",
+      "description": "A measured amount: bar (track, fill, optional target), segments, or ring. The track and undone segments are border/subtle ((decided 21 Nov 2026: a lighter grey bar): the empty part, not a mark; the fill carries the amount and the amount is always in words. 23 Nov: parts draws a bar in parts (each a share with what it is); showTargetLabel off leaves the thin tick with no tag.",
       "hasStory": true,
       "hasDocs": false,
       "inDsds": true,
@@ -13107,7 +13508,7 @@ window.BELLA = {
         "Tooltip"
       ],
       "tokens": {
-        "count": 42,
+        "count": 44,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -13118,6 +13519,7 @@ window.BELLA = {
           "--color-background-surface",
           "--color-background-utility-warning-mark",
           "--color-border-focus",
+          "--color-border-strong",
           "--color-border-subtle",
           "--color-border-utility-error",
           "--color-border-utility-info",
@@ -13141,6 +13543,7 @@ window.BELLA = {
           "--progress-glow",
           "--progress-order",
           "--progress-turn",
+          "--size-4",
           "--size-8",
           "--spacing-12",
           "--spacing-32",
@@ -13158,13 +13561,14 @@ window.BELLA = {
       "compositionDepth": 2,
       "composesInto": [
         "CheckRow",
+        "DeckBar",
         "StatCard",
         "TaskCard"
       ],
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 57,
+          "pairs": 60,
           "failing": []
         },
         "contract": {
@@ -13266,8 +13670,10 @@ window.BELLA = {
       },
       "compositionDepth": 1,
       "composesInto": [
+        "RunIndicator",
         "Step",
-        "TaskCard"
+        "TaskCard",
+        "TimelineRow"
       ],
       "health": {
         "contrast": {
@@ -13289,7 +13695,7 @@ window.BELLA = {
       "id": "progress-target",
       "name": "ProgressTarget",
       "category": "Data",
-      "description": "Figma \"Progress target\" 1168:72541 (22 Nov publish, her pick \"B · dashed\nmarker and label\"; centred 22 Nov): a 1.5 dashed line in border/brand at\ntarget %, 8 above and 8 below the 8 bar so the bar sits in its middle, and\na \"Target n%\" Tag (outline, number face 600) centred on the line above the\nbar. Only where centring would push the label past an end of the track does\nit stop at that end. Place it inside a position: relative track that has a\n32 Target row 8 above it (Progress does this with showTarget). The label is\nreal text; the bar's own name says the target too.",
+      "description": "Figma \"Progress target\" 1168:72541 (22 Nov publish, her pick B · dashed\nmarker and label; centred 22 Nov): a 1.5 dashed line in border/brand at\ntarget %, 8 above and 8 below the 8 bar so the bar sits in its middle, and\na \"Target n%\" Tag (outline, number face 600) centred on the line above the\nbar. Only where centring would push the label past an end of the track does\nit stop at that end. Place it inside a position: relative track that has a\n32 Target row 8 above it (Progress does this with showTarget). The label is\nreal text; the bar's own name says the target too.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -13297,6 +13703,7 @@ window.BELLA = {
       "hasA11yNotes": true,
       "props": [
         "label",
+        "showLabel",
         "target"
       ],
       "variants": [],
@@ -13659,6 +14066,120 @@ window.BELLA = {
         "contrast": {
           "status": "pass",
           "pairs": 59,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "run-indicator",
+      "name": "RunIndicator",
+      "category": "Data",
+      "description": "One persistent pill that says whether anything is running, which run, its step and the time it has been\ngoing. Idle, running, done and failed are all drawn, so the page is never silent. The turning arc stops\nafter 3 s (ProgressRing); the ticking time is what shows it is alive. Narrow screens keep the ring and the\ncount; the full sentence stays the accessible name.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "count",
+        "elapsed",
+        "expanded",
+        "onOpen",
+        "since",
+        "state",
+        "stepDone",
+        "stepTotal",
+        "style",
+        "title"
+      ],
+      "variants": [],
+      "states": [
+        "idle",
+        "running",
+        "done",
+        "failed"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "CHIP header, beside Search (23 Nov 2026, feedback and sense of time)"
+      ],
+      "dont": [
+        "Not a progress bar (Progress)",
+        "Not a toast (Toast): it stays",
+        "No second spinner on the page"
+      ],
+      "restNote": null,
+      "a11y": "Button when it opens the list (aria-expanded), otherwise role=img; always named by the whole sentence (\"Running: Fix CheckRow, Step 3 of 7, 2:41 so far\"). A status region announces start and end, never the ticking time. 44 high; edge 3:1; narrow screens keep the ring and the count and the name stays full.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.run-indicator.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-runindicator--docs",
+      "composedFrom": [
+        "ProgressRing"
+      ],
+      "tokens": {
+        "count": 30,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-round",
+          "--color-background-brand-subtle",
+          "--color-background-surface",
+          "--color-background-utility-error",
+          "--color-background-utility-success",
+          "--color-border-brand",
+          "--color-border-focus",
+          "--color-border-ink",
+          "--color-border-strong",
+          "--color-border-utility-error",
+          "--color-border-utility-success",
+          "--color-content-body",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--motion-duration-150",
+          "--motion-easing-standard",
+          "--spacing-12",
+          "--spacing-16",
+          "--spacing-4",
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-font-weight-400",
+          "--typography-font-weight-500",
+          "--typography-font-weight-700",
+          "--typography-line-height-px-24",
+          "--typography-number-font-family"
+        ]
+      },
+      "compositionDepth": 2,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 70,
           "failing": []
         },
         "contract": {
@@ -14406,7 +14927,7 @@ window.BELLA = {
       "id": "side-menu",
       "name": "SideMenu",
       "category": "Layout",
-      "description": "The one side menu of the CHIP app (Figma \"Side menu\" 1709:48082, published\n22 Nov 2026; her pick \"A · a new Side menu part\"): the plain Client switcher\nlevel with the Top bar, then where you go, what you pinned, your projects,\nand Team and Settings at the foot. Every row is a Nav item.",
+      "description": "The one side menu of the CHIP app (Figma \"Side menu\" 1709:48082, published\n22 Nov 2026; her pick A · a new Side menu part): the plain Client switcher\nlevel with the Top bar, then where you go, what you pinned, your projects,\nand Team and Settings at the foot. Every row is a Nav item.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -14672,6 +15193,94 @@ window.BELLA = {
       }
     },
     {
+      "id": "slide",
+      "name": "Slide",
+      "category": "Layout",
+      "description": "Slide (gap named in the deck plan, 23 Nov 2026): one 16:9 slide. It is drawn at its own design size,\n1280 by 720, and scaled down to the space it is given, so a slide reads the same in the stage, the\nall-slides grid and a thumbnail. The 16 px floor applies at the design size, as ScaledFrame does.\nIt owns the frame only: a card edge, the surface, and 64 of padding. What goes in is BELLA parts.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "centered",
+        "children",
+        "className",
+        "label",
+        "style"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "centered"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "A deck stage, the all-slides grid and slide thumbnails (deck plan, 23 Nov 2026)"
+      ],
+      "dont": [
+        "Not a page (PageHeader and Section)",
+        "Not a card in a grid (Card)"
+      ],
+      "restNote": null,
+      "a11y": "role group named \"slide\" with the label as its name. Content is drawn at the 16 px floor and scaled down only to fit; a slide is never scaled up past its design size.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.slide.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-slide--docs",
+      "composedFrom": [],
+      "tokens": {
+        "count": 13,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-16",
+          "--border-width-1",
+          "--color-background-surface",
+          "--color-border-default",
+          "--color-content-default",
+          "--shadow-soft",
+          "--slide-scale",
+          "--spacing-24",
+          "--spacing-64",
+          "--spacing-80",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-line-height-150"
+        ]
+      },
+      "compositionDepth": 0,
+      "composesInto": [
+        "TitleSlide"
+      ],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 51,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
       "id": "slider",
       "name": "Slider",
       "category": "Inputs",
@@ -14884,6 +15493,101 @@ window.BELLA = {
       }
     },
     {
+      "id": "sparkline",
+      "name": "Sparkline",
+      "category": "Data",
+      "description": "The sparkline: the numbers as a mini trend line, with its scrubber, summary and table. series: oldest first.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "caption",
+        "label",
+        "names",
+        "range",
+        "series",
+        "summary",
+        "table"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "scrubbing"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "Stat (series)",
+        "Stat card (series, under the number)"
+      ],
+      "dont": [
+        "Never invent a series: it is the values that were kept",
+        "Never read the height as an amount: it is a shape"
+      ],
+      "restNote": null,
+      "a11y": "role=img with a name and a description (the one-line summary); the keyboard scrubber (arrow keys, Home, End, Esc) says each point in a polite live region; the table of points is visually hidden. The hit area is 44 tall. Reduced motion: the end state at once.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.sparkline.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-sparkline--docs",
+      "composedFrom": [
+        "EasingCurve",
+        "Tooltip"
+      ],
+      "tokens": {
+        "count": 13,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-sm",
+          "--border-width-1",
+          "--color-border-focus",
+          "--color-border-strong",
+          "--color-content-default",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--motion-duration-150",
+          "--motion-duration-450",
+          "--motion-easing-out",
+          "--spacing-24",
+          "--spacing-44",
+          "--spacing-80"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [
+        "Stat",
+        "StatCard"
+      ],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 30,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
       "id": "stage",
       "name": "Stage",
       "category": "Layout",
@@ -15018,6 +15722,7 @@ window.BELLA = {
         "series",
         "seriesLabel",
         "seriesLabels",
+        "size",
         "summary",
         "table",
         "trend",
@@ -15142,12 +15847,11 @@ window.BELLA = {
       "anatomySource": "tokens/contracts.json → component.stat.$extensions.bella.anatomy",
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-stat--docs",
       "composedFrom": [
-        "EasingCurve",
         "Icon",
-        "Tooltip"
+        "Sparkline"
       ],
       "tokens": {
-        "count": 37,
+        "count": 32,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -15157,22 +15861,16 @@ window.BELLA = {
           "--border-width-2",
           "--color-background-brand-subtle",
           "--color-background-subtle",
-          "--color-border-focus",
           "--color-border-strong",
           "--color-content-default",
           "--color-content-subtle",
-          "--focus-ring-offset",
-          "--focus-ring-width",
-          "--motion-duration-150",
           "--motion-duration-3400",
           "--motion-duration-450",
           "--motion-duration-900",
           "--motion-easing-out",
           "--motion-easing-standard",
           "--size-20",
-          "--spacing-24",
           "--spacing-4",
-          "--spacing-44",
           "--spacing-48",
           "--spacing-8",
           "--spacing-80",
@@ -15180,6 +15878,7 @@ window.BELLA = {
           "--typography-font-size-14",
           "--typography-font-size-16",
           "--typography-font-size-40",
+          "--typography-font-size-88",
           "--typography-font-weight-400",
           "--typography-font-weight-600",
           "--typography-font-weight-700",
@@ -15190,12 +15889,12 @@ window.BELLA = {
           "--typography-subtext-font-family"
         ]
       },
-      "compositionDepth": 1,
+      "compositionDepth": 2,
       "composesInto": [],
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 42,
+          "pairs": 39,
           "failing": []
         },
         "contract": {
@@ -15223,6 +15922,7 @@ window.BELLA = {
         "caption",
         "chart",
         "className",
+        "comparison",
         "context",
         "drawIn",
         "emptyCount",
@@ -15232,10 +15932,14 @@ window.BELLA = {
         "label",
         "meter",
         "onOpen",
+        "series",
+        "seriesLabels",
         "style",
         "summary",
         "title",
         "tone",
+        "trend",
+        "trendTone",
         "unit",
         "value"
       ],
@@ -15269,6 +15973,7 @@ window.BELLA = {
         "Icon",
         "IconWell",
         "Progress",
+        "Sparkline",
         "Trailing"
       ],
       "tokens": {
@@ -16496,6 +17201,7 @@ window.BELLA = {
         "dragging",
         "entering",
         "href",
+        "lastStepAt",
         "leaving",
         "line",
         "onDragEnd",
@@ -16506,11 +17212,14 @@ window.BELLA = {
         "paused",
         "progress",
         "progressDone",
+        "progressLeft",
         "progressTotal",
         "showTag",
+        "since",
         "status",
         "statusTone",
         "stepNow",
+        "stopped",
         "style",
         "title"
       ],
@@ -16692,6 +17401,196 @@ window.BELLA = {
         "ListRow",
         "SectionHead"
       ],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 25,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "timeline-row",
+      "name": "TimelineRow",
+      "category": "Data",
+      "description": "One job in the Activity timeline: a rounded row with its state ring, the title and one line. Click opens\nthe run. The state is a shape and a word, never colour alone.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "line",
+        "onOpen",
+        "state",
+        "stepDone",
+        "stepTotal",
+        "style",
+        "title"
+      ],
+      "variants": [],
+      "states": [
+        "running",
+        "done",
+        "waiting",
+        "failed"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "CHIP Activity list in the drawer (23 Nov 2026)"
+      ],
+      "dont": [
+        "Not a Card (a message or a result is a Notification)",
+        "Never colour alone: the state is a ring shape and a word"
+      ],
+      "restNote": null,
+      "a11y": "A button when it opens the run, a plain row otherwise; the state is read as a word (Running, Done, Queued, Did not land). 44 or more high; focus ring on keyboard focus.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.timeline-row.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-data-timelinerow--docs",
+      "composedFrom": [
+        "ProgressRing",
+        "Trailing"
+      ],
+      "tokens": {
+        "count": 23,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-24",
+          "--color-background-default-hover",
+          "--color-background-surface",
+          "--color-border-brand",
+          "--color-border-focus",
+          "--color-border-subtle",
+          "--color-border-utility-error",
+          "--color-content-default",
+          "--color-content-subtle",
+          "--focus-ring-offset",
+          "--focus-ring-width",
+          "--motion-duration-150",
+          "--motion-easing-standard",
+          "--spacing-12",
+          "--spacing-16",
+          "--spacing-4",
+          "--spacing-44",
+          "--spacing-8",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-font-weight-500",
+          "--typography-line-height-px-24",
+          "--typography-subtext-font-family"
+        ]
+      },
+      "compositionDepth": 2,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 60,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "title-slide",
+      "name": "TitleSlide",
+      "category": "Layout",
+      "description": "Title slide (deck plan, 23 Nov 2026): the first or the last slide. Eyebrow, the hero title (82),\none lead sentence, and a foot line, centred on a Slide. Composes Eyebrow, Heading and Slide only.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "className",
+        "eyebrow",
+        "footer",
+        "label",
+        "lead",
+        "title"
+      ],
+      "variants": [],
+      "states": [
+        "default",
+        "title-only"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "First and last slide of a deck (deck plan, 23 Nov 2026)"
+      ],
+      "dont": [
+        "Not a content slide (Slide)",
+        "Not a page heading (PageHeader)"
+      ],
+      "restNote": null,
+      "a11y": "The title is an h2 inside the slide group; the group is named by label or the title text.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.title-slide.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-titleslide--docs",
+      "composedFrom": [
+        "Eyebrow",
+        "Heading",
+        "Slide"
+      ],
+      "tokens": {
+        "count": 8,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--color-content-default",
+          "--color-content-subtle",
+          "--spacing-24",
+          "--spacing-80",
+          "--typography-body-default-font-family",
+          "--typography-font-size-16",
+          "--typography-font-size-28",
+          "--typography-line-height-150"
+        ]
+      },
+      "compositionDepth": 1,
+      "composesInto": [],
       "health": {
         "contrast": {
           "status": "pass",
@@ -16989,7 +17888,7 @@ window.BELLA = {
         "FloatingPanel",
         "NavItem",
         "Progress",
-        "Stat",
+        "Sparkline",
         "ToolColumn"
       ],
       "health": {
@@ -17012,7 +17911,7 @@ window.BELLA = {
       "id": "top-bar",
       "name": "TopBar",
       "category": "Layout",
-      "description": "The top bar of the CHIP app frame (Figma \"Top bar\" 1168:95226, published\n22 Nov 2026; her pick \"B · search on the right\"): where you are on the\nleft (\"CHIP › Work\"), search beside the bell and the person on the right.",
+      "description": "The top bar of the CHIP app frame (Figma \"Top bar\" 1168:95226, published\n22 Nov 2026; her pick B · search on the right): where you are on the\nleft (\"CHIP › Work\"), search beside the bell and the person on the right.",
       "hasStory": true,
       "hasDocs": true,
       "inDsds": true,
@@ -17060,7 +17959,7 @@ window.BELLA = {
       "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-topbar--docs",
       "composedFrom": [],
       "tokens": {
-        "count": 24,
+        "count": 25,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -17077,6 +17976,7 @@ window.BELLA = {
           "--layout-search-max-width",
           "--motion-duration-150",
           "--motion-easing-standard",
+          "--size-28",
           "--spacing-12",
           "--spacing-16",
           "--spacing-32",
@@ -17257,10 +18157,12 @@ window.BELLA = {
       "compositionDepth": 1,
       "composesInto": [
         "ClientSwitcher",
+        "DataTable",
         "ListRow",
         "PageHeader",
         "StatCard",
-        "TaskCard"
+        "TaskCard",
+        "TimelineRow"
       ],
       "health": {
         "contrast": {
@@ -17648,6 +18550,93 @@ window.BELLA = {
         "contrast": {
           "status": "pass",
           "pairs": 65,
+          "failing": []
+        },
+        "contract": {
+          "status": "pass",
+          "issues": []
+        },
+        "visual": {
+          "status": "skipped",
+          "note": "TODO: audit:visual not run by sync (slow)"
+        }
+      }
+    },
+    {
+      "id": "video-player",
+      "name": "VideoPlayer",
+      "category": "Layout",
+      "description": "Video player (deck plan, 23 Nov 2026): a clip with a visible Play or Pause button, because a native\ncontrol bar is not BELLA's. Muted and silent by design (a deck clip carries captions, not sound);\nit autoplays only when the person has not asked for less motion, and otherwise shows the poster.\nThe clip is a 16:9 frame at the width it is given.",
+      "hasStory": true,
+      "hasDocs": true,
+      "inDsds": true,
+      "hasContract": true,
+      "hasA11yNotes": true,
+      "props": [
+        "autoPlay",
+        "captions",
+        "captionsLang",
+        "className",
+        "label",
+        "loop",
+        "poster",
+        "src"
+      ],
+      "variants": [],
+      "states": [
+        "playing",
+        "paused",
+        "ended",
+        "reduced-motion"
+      ],
+      "shapes": [],
+      "rendersAs": null,
+      "usage": [
+        "The opening film of a deck (deck plan, 23 Nov 2026)"
+      ],
+      "dont": [
+        "Not for sound or long video: no volume or scrub",
+        "Not a hero background loop"
+      ],
+      "restNote": null,
+      "a11y": "The video is named by label; captions are on by default. Autoplay is skipped under prefers-reduced-motion and the poster stays until Play is pressed. The button is a BELLA Button with its 44 target; it does not rely on the native control bar.",
+      "minTarget": null,
+      "sandbox": {
+        "minHeight": null,
+        "paddingY": null,
+        "paddingX": null,
+        "label": null,
+        "background": null,
+        "backgroundPair": null,
+        "ringWidth": null,
+        "ringOffset": null
+      },
+      "parts": [],
+      "anatomySource": "tokens/contracts.json → component.video-player.$extensions.bella.anatomy",
+      "storyUrl": "https://emcdanie.github.io/bella/?path=/docs/components-layout-videoplayer--docs",
+      "composedFrom": [
+        "Button"
+      ],
+      "tokens": {
+        "count": 7,
+        "component": 0,
+        "semantic": 0,
+        "list": [
+          "--border-radius-16",
+          "--border-width-1",
+          "--color-border-default",
+          "--color-content-default",
+          "--shadow-soft",
+          "--spacing-12",
+          "--spacing-8"
+        ]
+      },
+      "compositionDepth": 2,
+      "composesInto": [],
+      "health": {
+        "contrast": {
+          "status": "pass",
+          "pairs": 22,
           "failing": []
         },
         "contract": {

@@ -573,7 +573,7 @@ function Record({ id, fit, landing }) {
 
 export default function HistoryContent() {
   const phone = useNarrow();
-  // a drawer's source line links a commit here as #/system/history?q=<id>: History opens on that search (drawer template, 23 Nov)
+  // a link opens History already searched, #/system/history?q=<words>: a drawer's source line (a commit id) and Not again (its words)
   const fromLink = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('q') ?? '';
   const [draft, setDraft] = useState(fromLink);
   // Recent searches: this browser's own, a convenience (lost with site data, never shared)

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "fix-1-mwt3gjw6",
+    "kind": "Card check measures page end correctly",
+    "closes": "The card check reported History 14 to 33px short of the 64px page end",
+    "check": null,
+    "runTitle": null,
+    "status": "landed",
+    "landed": "2026-11-22T23:33:25.000Z",
+    "commit": "04fdd28",
+    "changed": "The card check ignores the hidden body of a closed disclosure when it measures the space after the last content."
+  },
+  {
+    "id": "fix-2-mwt3gjwz",
+    "kind": "Scroll check drives real input",
+    "closes": "A list squeezed to a small strip that scrolls while the page will not move",
+    "check": null,
+    "runTitle": null,
+    "status": "landed",
+    "landed": "2026-11-23T08:16:40.000Z",
+    "commit": "c230af7",
+    "changed": "The Work board keeps at least 480px and lists 360px; the scroll check sends real wheel and keyboard input on every page at four widths."
+  }
+]
