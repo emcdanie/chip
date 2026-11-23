@@ -16,9 +16,11 @@ function guard(files) {
   try {
     mkdirSync(join(root, 'scripts'), { recursive: true });
     cpSync(GUARD, join(root, 'scripts', 'on-system-guard.mjs'));
+    cpSync(join(dirname(GUARD), 'lib'), join(root, 'scripts', 'lib'), { recursive: true }); // the guard imports its helpers from scripts/lib
     mkdirSync(join(root, 'data'), { recursive: true });
     writeFileSync(join(root, 'data', 'on-system-baseline.json'), JSON.stringify({ files: {} }));
-    mkdirSync(join(root, 'app', 'src'), { recursive: true });
+    mkdirSync(join(root, 'app', 'src', 'pages'), { recursive: true });
+    mkdirSync(join(root, 'app', 'src', 'templates'), { recursive: true }); // the guard scans both
     for (const [path, text] of Object.entries(files)) {
       mkdirSync(dirname(join(root, path)), { recursive: true });
       writeFileSync(join(root, path), text);
