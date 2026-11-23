@@ -197,6 +197,30 @@ export function ReadingTop({ rows, more, onMore, label }) {
   );
 }
 
+/* The open drawer is in the URL (second-pass review S6): #/health?drawer=drift opens Drift, so a drawer can be shared,
+   reloaded and reached with Back. Opening sets ?drawer=<id>, closing takes it off; replaceState, so no page reload. */
+const drawerOf = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('drawer');
+export function setDrawerUrl(id, on) {
+  const [base, q = ''] = window.location.hash.split('?');
+  const p = new URLSearchParams(q);
+  if (on) p.set('drawer', id);
+  else if (p.get('drawer') === id) p.delete('drawer');
+  else return;
+  const qs = p.toString();
+  window.history.replaceState(window.history.state, '', `${base}${qs ? `?${qs}` : ''}`);
+}
+export function useDrawerUrl(id) {
+  const [open, setOpenState] = useState(() => drawerOf() === id);
+  useEffect(() => {
+    const on = () => setOpenState(drawerOf() === id);
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, [id]);
+  const setOpen = (on) => (setOpenState(on), setDrawerUrl(id, on));
+  return [open, setOpen];
+}
+export { drawerOf };
+
 export default function ReadingDrawer({ answer, lead, picture, source, children, gap = 24, ...drawer }) {
   const line = answer ?? lead;
   return (

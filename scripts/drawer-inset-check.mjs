@@ -32,6 +32,7 @@ for (const width of WIDTHS) {
     await page.reload();
     await page.waitForTimeout(2500);
     const card = page.locator('button', { hasText: d.card }).first();
+    await card.waitFor({ timeout: 15000 }).catch(() => {}); // the page's data can take longer than the fixed wait
     if (!(await card.count())) { console.log(`FAIL ${width} ${d.name}: card not found`); bad++; continue; }
     await card.click();
     await page.waitForTimeout(1200);
@@ -45,7 +46,8 @@ for (const width of WIDTHS) {
       const R = r(close).right;
       const nodes = [...dlg.querySelectorAll(blocks.map((b) => `[data-bella-component="${b}"]`).join(','))];
       // top-level blocks only: not inside another measured block (a row's text stack is the row's own padding)
-      const top = nodes.filter((n) => !nodes.some((o) => o !== n && o.contains(n)) && !n.closest('[data-bella-component="list-row"]'));
+      // a bulleted list's items sit in by their bullet, by design (a plan's steps), so they are not measured as blocks
+      const top = nodes.filter((n) => !nodes.some((o) => o !== n && o.contains(n)) && !n.closest('[data-bella-component="list-row"]') && !(n.closest('li') && getComputedStyle(n.closest('li')).display === 'list-item' && getComputedStyle(n.closest('li')).listStyleType !== 'none'));
       return { L: Math.round(L * 10) / 10, R: Math.round(R * 10) / 10, rows: top.map((n) => [n.dataset.bellaComponent, Math.round(r(n).left * 10) / 10, Math.round(r(n).right * 10) / 10]) };
     }, BLOCKS);
     if (!res) { console.log(`FAIL ${width} ${d.name}: drawer did not open`); bad++; continue; }
@@ -83,6 +85,7 @@ for (const width of WIDTHS) {
     await page.reload();
     await page.waitForTimeout(2500);
     const card = page.locator('button', { hasText: d.card }).first();
+    await card.waitFor({ timeout: 15000 }).catch(() => {}); // the page's data can take longer than the fixed wait
     if (!(await card.count())) { console.log(`FAIL ${width} ${d.name} groups: card not found`); bad++; continue; }
     await card.click();
     await page.waitForTimeout(1200);
@@ -137,6 +140,7 @@ for (const width of WIDTHS) {
   await page.reload();
   await page.waitForTimeout(2500);
   const card = page.locator('button', { hasText: /^Drift from BELLA/ }).first();
+  await card.waitFor({ timeout: 15000 }).catch(() => {});
   if (!(await card.count())) { console.log(`FAIL ${width} Drift table: card not found`); bad++; await page.close(); continue; }
   await card.click();
   await page.waitForTimeout(1000);

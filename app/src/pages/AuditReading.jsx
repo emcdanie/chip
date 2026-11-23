@@ -11,14 +11,12 @@
 // Every number comes from the report (auditReport.js); nothing is typed. BELLA parts only.
 import { useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
-import Marker from '@bella/components/Marker/Marker';
 import Notification from '@bella/components/Notification/Notification';
 import Progress from '@bella/components/Progress/Progress';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
 import FixPlan, { measuredMinutes } from '../templates/FixPlan.jsx';
 import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, ReadingTop } from '../templates/ReadingDrawer.jsx';
-import Keyed from '../templates/Keyed.jsx';
 import useCached from '../templates/useCached.js';
 import { greenFrom, parseReport } from './auditReport.js';
 
@@ -37,7 +35,7 @@ function ReadMore({ text }) {
   const more = first.length < text.replace(/\.$/, '').length;
   return (
     <Flow gap={4}>
-      <TextStack body={<Keyed text={open || !more ? text : `${first}.`} />} />
+      <TextStack body={open || !more ? text : `${first}.`} />
       {more ? (
         <Flow direction="row" justify="start">
           <Button variant="tertiary" size="sm" ariaExpanded={open} onClick={() => setOpen(!open)}>{open ? 'Show less' : 'Read more'}</Button>
@@ -49,7 +47,7 @@ function ReadMore({ text }) {
 
 /* Why the score moved and what 100 takes, in one line: each number says what it counts. */
 function answerOf(a, orders) {
-  const score = a.value == null ? null : <Marker>{`${a.value} ${a.unit ?? ''}`.trim()}</Marker>;
+  const score = a.value == null ? null : <strong>{`${a.value} ${a.unit ?? ''}`.trim()}</strong>;
   const moved = a.prev ? (a.prev.value === a.value ? `, the same as on ${dayOf(a.prev.day)}` : `, ${a.value > a.prev.value ? 'up' : 'down'} from ${a.prev.value} on ${dayOf(a.prev.day)}`) : ', the first report kept';
   const reach = orders ? ` Reaching ${a.unit === 'of 100' ? '100' : 'the top'} means the ${orders === 1 ? 'work order' : `${orders} work orders`} below, most important first.` : '';
   return score ? <>{score}{`${moved}.${reach}`}</> : `No score in the report.${reach}`;
@@ -86,7 +84,7 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
     return (
       <ReadingDrawer {...shell} label={station.name} status={[station.light ? WORD[station.light] : null, station.score != null ? `${station.score} of ${station.max}` : null].filter(Boolean).join(' · ')} onBack={() => setStation(null)} backLabel="Back to the report" source={source}>
         <Inset gap={12}>
-          {station.line ? <TextStack body={<Keyed text={station.line} />} /> : null}
+          {station.line ? <TextStack body={station.line} /> : null}
           {station.evidence.map((e, i) => <ReadMore key={i} text={e} />)}
         </Inset>
       </ReadingDrawer>
@@ -98,7 +96,7 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
     return (
       <ReadingDrawer {...shell} label={`Work order ${order.n}`} status={order.title} onBack={() => setOrder(null)} backLabel={all ? 'Back to all work orders' : 'Back to the report'} source={source}>
         <Inset>
-          <Facts label={`Work order ${order.n}`} facts={[{ label: 'Why', value: order.why ? <Keyed text={order.why} /> : null }, { label: 'First move', value: order.move ? <Keyed text={up(order.move)} /> : null }]} />
+          <Facts label={`Work order ${order.n}`} facts={[{ label: 'Why', value: order.why || null }, { label: 'First move', value: order.move ? up(order.move) : null }]} />
         </Inset>
       </ReadingDrawer>
     );
