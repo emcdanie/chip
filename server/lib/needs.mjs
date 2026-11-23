@@ -62,15 +62,32 @@ export function pushPreview(id, repos = reposOf()) {
   const branch = r.branch ?? git(r.dir, ['rev-parse', '--abbrev-ref', 'HEAD']);
   const up = branch && git(r.dir, ['rev-parse', '--abbrev-ref', `${branch}@{upstream}`]);
   if (!up) return { repo: r.id, name: r.name, branch, upstream: null, commits: [], files: 0 };
-  const log = git(r.dir, ['log', '--format=%h%x09%cI%x09%s', `${up}..${branch}`]) ?? '';
+  // what GitHub holds now, not this machine's last fetched copy
+  const tip = remoteTip(r.dir, up);
+  const base = tip && git(r.dir, ['cat-file', '-e', `${tip}^{commit}`]) !== null ? tip : up;
+  const log = git(r.dir, ['log', '--format=%h%x09%cI%x09%s', `${base}..${branch}`]) ?? '';
   const commits = log.split('\n').filter(Boolean).map((l) => {
     const [sha, date, subject] = l.split('\t');
     return { sha, date, subject };
   });
-  const files = (git(r.dir, ['diff', '--name-only', `${up}...${branch}`]) ?? '').split('\n').filter(Boolean);
+  const files = (git(r.dir, ['diff', '--name-only', `${base}...${branch}`]) ?? '').split('\n').filter(Boolean);
   return { repo: r.id, name: r.name, branch, upstream: up, commits, files: files.length, sample: files.slice(0, 8) };
 }
 
+/** What GitHub itself holds for this branch right now (git ls-remote), not the copy of it this machine last fetched:
+ *  the fetched copy goes stale the moment someone pushes from another checkout (the 23 Nov "Push chip/parts-dev?" card
+ *  kept showing after her push). null when GitHub does not answer in 4 s: the card then says nothing rather than guess. */
+function remoteTip(dir, up) {
+  const [remote, ...rest] = up.split('/');
+  try {
+    const out = execFileSync('git', ['-C', dir, '--no-optional-locks', 'ls-remote', '--heads', remote, `refs/heads/${rest.join('/')}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 4000 }).trim();
+    return out ? out.split(/\s/)[0] : '';
+  } catch {
+    return null;
+  }
+}
+
+// The cards speak in her words (23 Nov: no branch names, no git verbs): "Save BELLA to GitHub", "Get BELLA's latest".
 export function gitItems(repos = reposOf()) {
   const out = [];
   for (const r of repos) {
@@ -78,31 +95,35 @@ export function gitItems(repos = reposOf()) {
     if (!branch || branch === 'HEAD') continue;
     const up = git(r.dir, ['rev-parse', '--abbrev-ref', `${branch}@{upstream}`]);
     if (!up) continue;
-    const ahead = Number(git(r.dir, ['rev-list', '--count', `${up}..${branch}`]) ?? 0);
-    const behind = Number(git(r.dir, ['rev-list', '--count', `${branch}..${up}`]) ?? 0);
+    const tip = remoteTip(r.dir, up);
+    if (tip === null) continue; // GitHub did not answer: not measured, so no card
+    const known = tip && git(r.dir, ['cat-file', '-e', `${tip}^{commit}`]) !== null;
+    const ahead = tip === '' ? Number(git(r.dir, ['rev-list', '--count', branch]) ?? 0) : known ? Number(git(r.dir, ['rev-list', '--count', `${tip}..${branch}`]) ?? 0) : 0;
+    const behind = known ? Number(git(r.dir, ['rev-list', '--count', `${branch}..${tip}`]) ?? 0) : tip ? 1 : 0;
     if (behind) {
-      const subj = git(r.dir, ['log', '-1', '--format=%s', up]);
+      const subj = known ? git(r.dir, ['log', '-1', '--format=%s', tip]) : null;
+      const n = known ? `${behind} ${behind === 1 ? 'change' : 'changes'}` : 'newer changes';
       out.push({
         id: `behind-${r.id}`, kind: 'Git', risk: 'Medium', status: 'Waiting on you',
-        title: `Pull ${r.name}? ${behind} commit${behind === 1 ? '' : 's'} behind GitHub`, at: Date.parse(git(r.dir, ['log', '-1', '--format=%cI', up]) ?? '') || Date.now(),
-        what: `${r.name}'s ${branch} is ${behind} commit${behind === 1 ? '' : 's'} behind GitHub`,
-        detail: `GitHub has "${subj}" that this machine hasn't pulled, so the checks ran on the older tip.`,
+        title: `Get ${r.name}'s latest from GitHub? ${n} not here yet`, at: (known && Date.parse(git(r.dir, ['log', '-1', '--format=%cI', tip]) ?? '')) || Date.now(),
+        what: `GitHub has ${n} that ${r.name} on this machine does not`,
+        detail: `${subj ? `GitHub has "${subj}" that this machine hasn't got, so ` : 'GitHub has work this machine hasn\'t got, so '}the checks ran on the older version.`,
         riskWhy: 'Medium: the checks may be answering for a version that is no longer the latest.',
-        thisWill: `open a terminal in ${r.name} with git pull --ff-only typed, not run`,
+        thisWill: `open a terminal in ${r.name} with the update typed, not run`,
         undo: 'nothing runs until you press Return',
-        action: { type: 'terminal', repo: r.id, command: 'git pull --ff-only', label: 'Open a terminal to pull' },
+        action: { type: 'terminal', repo: r.id, command: 'git pull --ff-only', label: 'Open a terminal to update' },
       });
     }
     if (ahead) {
       out.push({
         id: `ahead-${r.id}`, kind: 'Git', risk: 'High', status: 'Waiting on you',
-        title: `Push ${branch}? CI hasn't run ${ahead === 1 ? 'it' : 'them'}`, at: Date.parse(git(r.dir, ['log', '-1', '--format=%cI', branch]) ?? '') || Date.now(),
-        what: `Push ${branch}? ${ahead} commit${ahead === 1 ? '' : 's'} CI hasn't run`,
-        detail: `${r.name} has ${ahead} local commit${ahead === 1 ? '' : 's'} on ${branch} that GitHub hasn't seen. The gate ran locally; CI hasn't.`,
-        riskWhy: 'High: a push is outward-facing and other people see it.',
-        thisWill: `show the ${ahead === 1 ? 'commit' : 'commits'} a push would send; you type git push yourself if you want it`,
-        undo: 'looking changes nothing; after a push, a revert commit',
-        action: { type: 'push', repo: r.id, label: 'See what would be pushed' },
+        title: `Save ${r.name} to GitHub? ${ahead} ${ahead === 1 ? 'change' : 'changes'} not there yet`, at: Date.parse(git(r.dir, ['log', '-1', '--format=%cI', branch]) ?? '') || Date.now(),
+        what: `${ahead} ${ahead === 1 ? 'change' : 'changes'} in ${r.name} that GitHub doesn't have yet`,
+        detail: `${r.name} has ${ahead} ${ahead === 1 ? 'change' : 'changes'} that GitHub hasn't seen. The checks ran here; GitHub's haven't.`,
+        riskWhy: 'High: saving to GitHub is outward-facing and other people see it.',
+        thisWill: `show the ${ahead === 1 ? 'change' : 'changes'} that would go to GitHub; nothing is sent until you do it yourself`,
+        undo: 'looking changes nothing; after saving, a revert',
+        action: { type: 'push', repo: r.id, label: 'See what would be saved' },
       });
     }
   }

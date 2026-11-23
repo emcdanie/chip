@@ -442,8 +442,8 @@ function PushDrawer({ item, onClose }) {
     <ReadingDrawer
       open
       onClose={onClose}
-      label={p ? `Push ${p.branch}?` : 'Push'}
-      status={p ? `${p.name} · ${n} ${n === 1 ? 'commit' : 'commits'} to ${p.upstream ?? 'nowhere yet'}` : undefined}
+      label={p ? `Save ${p.name} to GitHub?` : 'Save to GitHub'}
+      status={p ? `${p.name} · ${n} ${n === 1 ? 'change' : 'changes'} GitHub doesn’t have yet` : undefined}
       footer={
         shell ? undefined : (
           <Flow direction="row" justify="end" gap={8}>
@@ -467,7 +467,7 @@ function PushDrawer({ item, onClose }) {
         {p ? (
           <>
             {/* the amount first, then short bullets with the few key words marked, then the commits on request (Elleta, 23 Nov: a drawer is a reading surface) */}
-            <StatCard icon="GitBranch" tone="warning" title="Waiting to push" value={n} unit={n === 1 ? 'commit' : 'commits'} context={`${p.files} ${p.files === 1 ? 'file' : 'files'} · ${p.branch}`} chart="none" />
+            <StatCard icon="GitBranch" tone="warning" title="Waiting to save" value={n} unit={n === 1 ? 'change' : 'changes'} context={`${p.files} ${p.files === 1 ? 'file' : 'files'}`} chart="none" />
             <AnswerLines
               shaped={{
                 verdict: `**GitHub** would get ${n === 1 ? 'this commit' : `these ${n} commits`}.`,

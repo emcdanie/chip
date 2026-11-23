@@ -105,7 +105,7 @@ function useTalk(onText) {
   return { can: !!Speech, on, toggle };
 }
 
-export default function WorkDock() {
+export default function WorkDock({ needs: shared }) {
   const [open, setOpen] = useState(false);
   const [floating, setFloating] = useState(false); // the terminal is detached: the panel steps aside so the page stays usable
   const [tab, setTab] = useState(() => {
@@ -196,7 +196,9 @@ export default function WorkDock() {
     window.addEventListener('chip:changed', reload);
     return () => window.removeEventListener('chip:changed', reload);
   }, [reload]);
-  const needs = useMemo(() => (data ? workModel({ needs: data[0]?.items ?? [], runs: data[1]?.runs ?? [], runBase: data[1]?.base ?? null, agents: data[2]?.lanes ?? [] }).lanes.find((l) => l.id === 'needs').cards : null), [data]);
+  const own = useMemo(() => (data ? workModel({ needs: data[0]?.items ?? [], runs: data[1]?.runs ?? [], runBase: data[1]?.base ?? null, agents: data[2]?.lanes ?? [] }).lanes.find((l) => l.id === 'needs').cards : null), [data]);
+  // the shell's own Needs you cards when it has them: the bell, the menu badge and this list are then one count
+  const needs = shared ?? own;
   const sessions = useMemo(() => {
     if (!data) return null;
     const runs = [...(data[1]?.runs ?? [])].sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));

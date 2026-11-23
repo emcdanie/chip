@@ -1,3 +1,7 @@
+/* the window is the page ground edge to edge: an installed window never shows its own black behind the page (Elleta, 23 Nov: "this is not right") */
+html { background: var(--color-background-default); min-block-size: 100%; }
+body { min-block-size: 100dvh; background: var(--color-background-default); }
+
 /* CHIP pages from before the mock rebuild (Components, History, Connectors,
  * OBI). The frame, The Bar and Overview are in shell.css; values come from
  * kit/tokens.css and, until each page is rebuilt on the kit, BELLA tokens. */

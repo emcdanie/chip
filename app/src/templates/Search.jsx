@@ -137,6 +137,8 @@ export default function Search({ showShortcut, autoFocus }) {
             ) : shown !== q && !results.length ? (
               <TextStack body="Looking…" />
             ) : results.length ? (
+              <Flow gap={8}>
+              <TextStack subtitle={`${results.length === MAX ? `The first ${MAX} results` : `${results.length} ${results.length === 1 ? 'result' : 'results'}`} for “${shown.trim()}”`} />
               <Flow as="ul" gap={4} id={listId} role="listbox" aria-label={`${results.length} ${results.length === 1 ? 'result' : 'results'} for ${shown}`}>
                 {results.map((r, i) => (
                   // an option, not a button: focus stays in the field (arrows, Return, Esc work there);
@@ -145,6 +147,7 @@ export default function Search({ showShortcut, autoFocus }) {
                     <ListRow as="div" layout="stacked" title={breakable(r.title)} description={r.where} trailing selected={i === sel} />
                   </li>
                 ))}
+              </Flow>
               </Flow>
             ) : (
               <TextStack body={`Nothing called “${shown.trim()}” in BELLA’s parts or CHIP’s pages.`} />

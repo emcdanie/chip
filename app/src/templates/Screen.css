@@ -29,6 +29,8 @@
 .chip-screen__menu {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
   block-size: 100dvh;
 }
 /* a Menu that opens under its button, over the page, never pushing it down: the client list under the
@@ -46,12 +48,18 @@
   overflow-y: auto;
 }
 .chip-screen__logo {
-  position: absolute;
-  inset-block-end: var(--spacing-12);
-  inset-inline-end: var(--spacing-12);
-  display: inline-flex;
-  pointer-events: none;
+  /* the logotype closes the menu: the surface and right edge line as the menu's own; it ends where the rows end
+     (the menu's 12 side padding) so it lines up with the foot rows above it */
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--spacing-8) var(--spacing-12) var(--spacing-16);
+  background: var(--color-background-surface);
+  box-shadow: inset calc(-1 * var(--border-width-1)) 0 0 var(--color-border-default);
 }
+/* readable size: 96 wide, 65 tall (the drawn 94 by 64), larger than the 40 tall nav size */
+.chip-screen__logo-mark { inline-size: calc(var(--spacing-80) + var(--spacing-16)); }
+.chip-screen__menu-body { flex: 1 1 0; min-block-size: 0; }
 .chip-screen__menu > .chip-pop__menu { inset-block-start: var(--h-control); inset-inline-start: var(--spacing-12); }
 
 .chip-screen__main {

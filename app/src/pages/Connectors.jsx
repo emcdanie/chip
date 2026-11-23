@@ -6,7 +6,7 @@ import ConnectorsContent from './ConnectorsContent.jsx';
 
 export default function Connectors() {
   return (
-    <Screen place="settings" header={{ title: 'Connectors' }}>
+    <Screen place="settings" header={{ title: 'Settings' }}>
       <ConnectorsContent />
     </Screen>
   );

@@ -29,6 +29,7 @@ import Search from './Search.jsx';
 import useNarrow from './useNarrow.js';
 import WorkDock, { openWork } from './WorkDock.jsx';
 import MarkUp, { useMarkUp } from './MarkUp.jsx';
+import RunStatus from './RunStatus.jsx';
 import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
 
 // A page opens at its top with nothing scrolled or focused, unless a link
@@ -52,6 +53,34 @@ import './Screen.css';
  * Projects group never blanks while a page loads. The Status counts are the
  * Work board's own lanes (workModel), so the panel and the board always agree;
  * 0 is a real count (no runs), shown as Figma shows it. */
+// Back puts the page where you left it (second-pass M23): the content's scroll is kept per address when you navigate
+// away, and given back when the way in was Back or Forward. The data may still be loading, so it waits for the room.
+const scrollAt = new Map();
+let enteredBy = 'push';
+if (typeof window !== 'undefined' && window.navigation && !window.__chipScrollKeep) {
+  window.__chipScrollKeep = true;
+  window.navigation.addEventListener('navigate', (e) => {
+    const sc = document.querySelector('.chip-screen__content');
+    if (sc) scrollAt.set(window.location.href, sc.scrollTop);
+    enteredBy = e.navigationType;
+  });
+}
+function useRestoreScroll() {
+  useEffect(() => {
+    const want = enteredBy === 'traverse' ? scrollAt.get(window.location.href) : undefined;
+    if (!want) return undefined;
+    let tries = 0;
+    let raf;
+    const put = () => {
+      const sc = document.querySelector('.chip-screen__content');
+      if (sc && sc.scrollHeight - sc.clientHeight >= want) sc.scrollTop = want;
+      else if (tries++ < 60) raf = requestAnimationFrame(put);
+    };
+    raf = requestAnimationFrame(put);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+}
+
 function useShellData() {
   // the same reads as the Work board (useCached shares them), so the menu's Needs you count is the board's own
   const { data, reload } = useCached(['/needs', '/runs', '/gaps']);
@@ -65,12 +94,14 @@ function useShellData() {
     return () => window.removeEventListener('chip:changed', on);
   }, [reload, reloadExtra, reloadBoard, reloadProj]);
   const projects = proj?.[0]?.projects ?? null;
-  if (!data) return { projects, needs: null };
+  if (!data) return { projects, needs: null, needsCards: null };
   const [n, r, g] = data;
   const model = boardModel({ needs: n?.items ?? [], runs: r?.runs ?? [], runBase: r?.base ?? null, lanes: extra?.[0] ?? null, board: board?.[0] ?? null, gaps: g?.gaps ?? null });
   // what waits on her: the cards in Now that need her, the number the board's Needs you filter shows
-  const needs = (model.lanes.find((l) => l.id === 'now')?.cards ?? []).filter((c) => c.needs).length;
-  return { projects, needs };
+  // ONE source for "Needs you" (second-pass D7: the bell said 12, its panel 5): these cards. The menu badge, the bell,
+  // the Work panel's tab and its list all read them.
+  const needsCards = (model.lanes.find((l) => l.id === 'now')?.cards ?? []).filter((c) => c.needs);
+  return { projects, needs: needsCards.length, needsCards };
 }
 
 /* The breadcrumb, in the page header's meta line under the top bar (BELLA has no Breadcrumb part yet: Link, an icon and
@@ -175,7 +206,7 @@ export function TabPanels({ tabs, children }) {
  */
 export default function Screen({ place, header, tabs, children }) {
   useTheme();
-  const { projects, needs } = useShellData();
+  const { projects, needs, needsCards } = useShellData();
   // below 1024 the side menu steps out behind the top bar's Menu button; on a phone it rises as a sheet
   const menuOut = useNarrow(1024);
   // the menu can be hidden at every width (23 Nov): remembered in this browser; on a phone the same button raises the sheet
@@ -211,6 +242,7 @@ export default function Screen({ place, header, tabs, children }) {
   });
   const phone = useNarrow();
   const markup = useMarkUp();
+  useRestoreScroll();
   // below 400 the field would read "Sea": a search button that opens the field across the bar
   const tiny = useNarrow(400);
   const [searching, setSearching] = useState(false);
@@ -221,6 +253,10 @@ export default function Screen({ place, header, tabs, children }) {
   const projectName = (projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP';
   // the top bar says where you are: "CHIP › Work", "CHIP › System › Components", "CHIP › Team"
   const trail = view ? [projectName, view.groupLabel, view.label] : [projectName, place === 'work' ? 'Work' : place === 'health' ? 'Health' : header?.title];
+  // the tab's title says where you are ("Health · CHIP", "System · Components · CHIP"), so tabs and History tell apart
+  useEffect(() => {
+    document.title = [...trail.slice(1), trail[0]].filter(Boolean).join(' · ');
+  }, [trail.join('|')]);
   const onSearch = () => {
     setMenuOpen(false);
     if (tiny) setSearching(true);
@@ -260,6 +296,8 @@ export default function Screen({ place, header, tabs, children }) {
               // straight into TopBar's right group (12 apart, its own spacing): a Flow there shrank and spilled
               // its buttons past the edge at 320
               <>
+                {/* whether anything is running, always visible (Elleta, 23 Nov); it brings its own drawer and toast */}
+                <RunStatus />
                 {/* Mark up (Elleta, 23 Nov): every page markable like Figma comments; notes stay drafts until one Send all */}
                 <span data-markup-own>
                   <Tooltip label={markup.on ? 'Stop marking up' : 'Mark up'}>
@@ -299,9 +337,11 @@ export default function Screen({ place, header, tabs, children }) {
         </Drawer>
       ) : collapsed ? null : (
         <div className="chip-screen__menu">
-          <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
-          {/* the CHIP mark, bottom right of the menu (Elleta, 23 Nov: "the logo should maybe be bottom right of the menu") */}
-          <span className="chip-screen__logo"><BrandWordmark word="CHIP" variant="mark" size="nav" /></span>
+          <div className="chip-screen__menu-body">
+            <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
+          </div>
+          {/* the CHIP logotype, bottom right of the menu, inset like the rows (Elleta, 23 Nov: "the logo should maybe be bottom right of the menu") */}
+          <div className="chip-screen__logo"><div className="chip-screen__logo-mark"><BrandWordmark word="CHIP" variant="logotype" size="full-bleed" /></div></div>
           {/* CHIP has one client, so its list says so */}
           {clientsOpen ? (
             <div className="chip-pop__menu">
@@ -312,7 +352,7 @@ export default function Screen({ place, header, tabs, children }) {
           ) : null}
         </div>
       )}
-      <WorkDock />
+      <WorkDock needs={needsCards} />
       <MarkUp markup={markup} />
     </div>
   );
