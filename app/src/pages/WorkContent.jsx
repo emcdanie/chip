@@ -113,6 +113,7 @@ function Lane({ lane, move, why }) {
           since={goingNow(c) ? c.startedAt ?? undefined : undefined}
           lastStepAt={goingNow(c) ? c.lastStepAt ?? undefined : undefined}
           paused={!!c.paused}
+          stopped={hasProgress(c) && c.progress.state === 'error'}
           status={c.status}
           statusTone={c.tone}
           onOpen={c.open || c.kind === 'session' ? () => move.open(c) : undefined}

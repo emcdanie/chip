@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { indicator, activityRow, usually, waitStage, found, isGoing } = await import('../../app/src/runClock.js');
+const { indicator, activityRow, usually, waitStage, found, isGoing, changeNote } = await import('../../app/src/runClock.js');
 
 const running = { id: 'a', title: 'Fix CheckRow', status: 'running', step: 'Edited X', startedAt: '2026-11-23T09:41:00.000Z', steps: [{ endedAt: '2026-11-23T09:43:00.000Z' }] };
 
@@ -48,4 +48,20 @@ test('Friedman: none under 1 s, skeleton 1 to 3, bar 3 to 10, steps after', () =
 test('a read says what it found', () => {
   assert.equal(found({ a: 1 }, { a: 1 }), 'nothing changed');
   assert.equal(found({ a: 1 }, { a: 2 }), 'something changed');
+});
+
+test('a live change says which figure moved, with its sign', () => {
+  assert.equal(changeNote([['needing work', 5, 6], ['healthy %', 90, 90]]), 'needing work +1');
+  assert.equal(changeNote([['needing work', 5, 4]]), 'needing work −1');
+  assert.equal(changeNote([['x', 1, 1]]), null);
+});
+
+test('two runs with one title get distinct card titles; a stopped card keeps one count', async () => {
+  const { boardModel } = await import('../../app/src/pages/workModel.js');
+  const run = (id, at) => ({ id, title: "Fix CheckRow's drift", status: 'failed', error: 'the gate refused the commit', startedAt: at, steps: [{ step: 'a', endedAt: at }] });
+  const m = boardModel({ runs: [run('a', '2026-11-22T22:26:00.000Z'), run('b', '2026-11-21T22:26:00.000Z')] });
+  const titles = m.lanes.flatMap((l) => l.cards).filter((c) => c.kind === 'run').map((c) => c.title);
+  assert.equal(new Set(titles).size, titles.length);
+  const card = m.lanes.flatMap((l) => l.cards).find((c) => c.kind === 'run');
+  assert.ok(!/Stopped at/.test(card.line));
 });

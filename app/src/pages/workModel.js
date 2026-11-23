@@ -197,7 +197,8 @@ function runProgress(r) {
 const lineOf = (what, p) => {
   if (!p || p.state === 'blank') return [what, p ? 'No steps yet' : null].filter(Boolean).join(' · ');
   if (p.state === 'done') return `${what} · ${p.total} of ${p.total} done`;
-  if (p.state === 'error') return [what, `Stopped at ${p.done + 1} of ${p.total}`, p.now].filter(Boolean).join(' · ');
+  // one count on a stopped card: the bar's (the stopped row says why, never a second "Stopped at 2 of 4")
+  if (p.state === 'error') return what;
   return [what, `${p.done} of ${p.total}`, p.state === 'waiting' ? `Next: ${p.now}` : p.now].filter(Boolean).join(' · ');
 };
 const TONE = { working: 'info', waiting: 'neutral', blank: 'neutral', done: 'success', error: 'danger' };
@@ -309,7 +310,7 @@ export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra
   const parts = componentsOf(gaps ?? {});
   const all = [
     ...needs.map(bNeed),
-    ...runs.map((r) => bRun(r, runBase)),
+    ...runs.map((r) => bRun(r, runBase)).map((c, i, a) => (a.filter((o) => o.title === c.title).length > 1 && c.startedAt ? { ...c, title: `${c.title} · ${when(c.startedAt)}` } : c)),
     ...(extra?.prs ?? []).map(bPr),
     ...(board?.sessions ?? []).map((s) => bSession(s, now)),
     ...(board?.progress?.items ?? []).map(bItem).filter(Boolean),

@@ -76,3 +76,10 @@ export function waitStage(ms) {
 export const found = (before, after) => (before == null ? 'first read' : JSON.stringify(before) === JSON.stringify(after) ? 'nothing changed' : 'something changed');
 export const tookWords = took;
 export const clockWords = clock;
+
+/** A quiet line for a live change (second pass M26: "updated 14:31, drift +1"): the figures that moved between two reads, each with its
+ * sign, or null when none moved. `named` is [[label, before, after], ...]. */
+export function changeNote(named) {
+  const moved = named.filter(([, a, b]) => a != null && b != null && a !== b).map(([label, a, b]) => `${label} ${b - a > 0 ? '+' : '−'}${Math.abs(b - a)}`);
+  return moved.length ? moved.join(', ') : null;
+}

@@ -657,7 +657,7 @@ function AuditsSection() {
   );
 }
 
-export default function HealthContent({ model, run, checked, last, stale, onCheck, loading, view: startView = 'coverage' }) {
+export default function HealthContent({ model, run, checked, last, note, stale, onCheck, loading, view: startView = 'coverage' }) {
   const narrow = useNarrow();
   const [view, setView] = useState(startView);
   // handing a check's gaps to the agent: the button says Sending…, then a toast
@@ -689,6 +689,7 @@ export default function HealthContent({ model, run, checked, last, stale, onChec
       {/* Control bar, as on Work: the last check and Check again, one group on the left. */}
       <Flow direction="row" gap={8} align="center">
         {stale ? <TextStack subtitle={stale} /> : last ? <LastRun when={clockWords(last.at)} took={tookWords(last.tookMs)} result={last.found} /> : checked ? <TextStack subtitle={`Updated ${checked}`} /> : null}
+        {note ? <span aria-live="polite"><TextStack subtitle={`Changed ${note}`} /></span> : null}
         <How id="all" />
         {/* busy while the check runs: the icon turns and clicks wait (Button busy, parts-dev 99a021d) */}
         <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={onCheck}>
