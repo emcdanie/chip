@@ -275,22 +275,22 @@ function whyMoved(hist, d) {
   const first = hist[0];
   if (!first || !last.at || first.at === last.at) return `The first check CHIP kept: ${d.noSpec} parts have no spec yet and ${d.specBehind} have a spec behind their code. The change shows once BELLA moves.`;
   const dir = last.differing > first.differing ? 'rose' : last.differing < first.differing ? 'fell' : 'stayed';
-  return `Parts that differ ${dir === 'stayed' ? `stayed at ${last.differing}` : `${dir} from ${first.differing} (${when(first.at)}) to ${last.differing} (${when(last.at)})`}. No spec went from ${first.noSpec} to ${last.noSpec} and specs behind the code from ${first.specBehind} to ${last.specBehind}, while BELLA grew to ${d.total} parts: a new part with no spec yet counts as differing.`;
+  return `Parts that differ ${dir === 'stayed' ? `stayed at ${last.differing} of ${d.total}` : `${dir}: ${first.differing} on ${when(first.at)}, ${last.differing} of ${d.total} parts now`}. No spec went from ${first.noSpec} to ${last.noSpec} and specs behind the code from ${first.specBehind} to ${last.specBehind}, while BELLA grew to ${d.total} parts: a new part with no spec yet counts as differing.`;
 }
 
 /* The one plan for Drift: what the scope covers, the brief for the agent, and the facts she asked for. */
 function driftBatch(d, scope, setScope, runs) {
   const noSpec = d.parts.filter((p) => p.noSpec);
   const behind = d.parts.filter((p) => !p.noSpec && p.specBehind.length);
-  const figma = d.parts.filter((p) => !p.noSpec && p.differ);
+  const figma = d.parts.filter((p) => p.compared && p.differ);
   const pick = { nospec: noSpec, behind, figma, all: [...new Map([...noSpec, ...behind, ...figma].map((p) => [p.name, p])).values()] }[scope] ?? [];
-  const lines = pick.map((p) => (p.noSpec ? `- ${p.name}: no spec. Run node scripts/spec-build.mjs ${p.name} and keep the generated file.` : p.specBehind.length ? `- ${p.name}: the spec is behind the code (${p.specBehind.join('; ')}). Rebuild it with node scripts/spec-build.mjs ${p.name}.` : `- ${p.name}: Figma and code differ on ${p.fields.join('; ')}. Change the code where Figma is the decided look; where the code is right, list it under "For the parts session".`));
+  const lines = pick.map((p) => (scope === 'figma' ? `- ${p.name}: Figma and code differ on ${p.fields.join('; ')}. Change the code where Figma is the decided look; where the code is right, list it under "For the parts session".` : p.noSpec ? `- ${p.name}: no spec. Run node scripts/spec-build.mjs ${p.name} and keep the generated file.` : p.specBehind.length ? `- ${p.name}: the spec is behind the code (${p.specBehind.join('; ')}). Rebuild it with node scripts/spec-build.mjs ${p.name}.` : `- ${p.name}: Figma and code differ on ${p.fields.join('; ')}. Change the code where Figma is the decided look; where the code is right, list it under "For the parts session".`));
   const what = { nospec: 'have no spec', behind: 'have a spec behind their code', figma: 'differ from Figma', all: 'drift in one way or another' }[scope];
   return {
     title: `Close the drift of ${pick.length} ${pick.length === 1 ? 'part' : 'parts'}`,
     from: 'Health · Drift',
-    summary: `${pick.length} of ${d.total} parts ${what}. One agent run on one branch can close them all, and the gate must pass before anything is kept.`,
-    scope: { value: scope, onChange: setScope, options: [{ value: 'nospec', label: `No spec ${noSpec.length}` }, { value: 'behind', label: `Spec behind ${behind.length}` }, { value: 'figma', label: `Differ from Figma ${figma.length}` }, { value: 'all', label: 'All' }] },
+    summary: `${pick.length} of ${scope === 'figma' ? `${d.compared} parts read from Figma` : `${d.total} parts`} ${what}. One agent run on one branch can close them all, and the gate must pass before anything is kept.`,
+    scope: { value: scope, onChange: setScope, options: [{ value: 'nospec', label: `No spec ${noSpec.length}`, n: noSpec.length }, { value: 'behind', label: `Spec behind ${behind.length}`, n: behind.length }, { value: 'figma', label: `Differ from Figma ${figma.length}`, n: figma.length }, { value: 'all', label: 'All', n: 1 }].filter((o) => o.n) },
     brief: [`Close the drift of ${pick.length} parts in BELLA, one commit:`, ...lines, 'Follow BELLA AGENTS.md; no new tokens; ask before changing a public API.'].join('\n'),
     minutes: measuredMinutes(runs),
     youDo: 'Press Start to put the plan on your board. When you want it done, run it from the card and approve the agent run; then Accept or Undo the result.',
@@ -331,12 +331,23 @@ function DriftCard({ components }) {
   const { data } = useCached(['/drift'], { live: true });
   const [open, setOpen] = useState(false);
   const closed = () => setOpen(false);
-  const [scope, setScope] = useState('nospec');
+  const [picked, setScope] = useState(null);
   const runs = useCached(['/runs']).data?.[0]?.runs ?? [];
   const d = data?.[0] ?? null;
   const hist = d?.history ?? [];
   const prev = hist.length > 1 ? hist.at(-2) : null;
-  const kinds = d?.total ? [{ label: 'Differ from Figma', n: d.drifting }, { label: 'Spec behind the code', n: d.specBehind }, { label: 'No spec', n: d.noSpec }].sort((a, b) => b.n - a.n) : [];
+  // the headline counts every part that differs; the rows below split it, each against what it can be counted against
+  const unread = d?.parts?.filter((p) => !p.noSpec && !p.compared).length ?? 0;
+  const kinds = d?.total
+    ? [
+        { label: 'Not read from Figma yet', n: unread, of: d.total, note: 'counts as differing until read' },
+        { label: 'Differ from Figma', n: d.drifting, of: d.compared, note: 'parts read from Figma' },
+        { label: 'Spec behind the code', n: d.specBehind, of: d.total },
+        { label: 'No spec', n: d.noSpec, of: d.total },
+      ].sort((a, b) => b.n / b.of - a.n / a.of)
+    : [];
+  // the plan opens on a group that has parts: the largest of the three kinds, never an empty one
+  const scope = picked ?? ['behind', 'figma', 'nospec'].map((k) => [k, k === 'behind' ? d?.specBehind : k === 'figma' ? d?.drifting : d?.noSpec]).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'all';
   if (!d?.total) return <NoData title="Drift from BELLA" icon="Activity" context="Parts that differ from Figma, spec or code" caption={d ? 'No parts found' : 'Reading the specs'} />;
   const idOf = (name) => components.find((c) => c.name === name)?.id ?? name.replace(/(?<=[a-z])(?=[A-Z])/g, '-').toLowerCase();
   const day = d.at ? new Date(d.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
@@ -358,7 +369,7 @@ function DriftCard({ components }) {
         }
         onOpen={() => setOpen(true)}
       />
-      <ReadingDrawer open={open} onClose={closed} label="Drift from BELLA" status={`${d.differing} of ${d.total} parts differ · most first`}>
+      <ReadingDrawer open={open} onClose={closed} label="Drift from BELLA" status={`${d.differing} of ${d.total} parts differ`}>
         <>
           <Inset gap={24}>
           {/* why the count is what it is, and why it moved: the first and the last snapshots CHIP kept (/drift history), in words */}
@@ -370,7 +381,7 @@ function DriftCard({ components }) {
           <Flow gap={12} as="ul" aria-label="The three kinds of drift, most first">
             {kinds.map((k) => (
               <li key={k.label}>
-                <Progress label={k.label} value={`${k.n} of ${d.total}`} fill={(k.n / d.total) * 100} tone="attention" showTarget={false} />
+                <Progress label={k.label} value={`${k.n} of ${k.of} parts`} fill={k.of ? (k.n / k.of) * 100 : 0} tone="attention" showTarget={false} />
               </li>
             ))}
           </Flow>
@@ -385,10 +396,11 @@ function DriftCard({ components }) {
               openFirst
               label="Parts by kind of drift"
               groups={[
-                { name: 'Figma differs', tone: 'attention', items: d.parts.filter((p) => !p.noSpec && p.differ).map((p) => item(p, 'Differs', plural(p.differ, 'Figma difference'))) },
+                { name: 'Figma differs', tone: 'attention', items: d.parts.filter((p) => p.compared && p.differ).map((p) => item(p, 'Differs', plural(p.differ, 'Figma difference'))) },
                 { name: 'Spec behind the code', tone: 'info', items: d.parts.filter((p) => !p.noSpec && p.specBehind.length).map((p) => item(p, 'Behind', `Spec behind on ${plural(p.specBehind.length, 'prop')}`)) },
                 { name: 'No spec', tone: 'neutral', items: d.parts.filter((p) => p.noSpec).map((p) => item(p, 'No spec', 'No spec yet')) },
-                { name: 'Matches', tone: 'success', items: d.parts.filter((p) => !p.noSpec && !p.differ && !p.specBehind.length).map((p) => ({ key: p.name, title: p.name, state: 'Matches', line: p.compared ? 'Matches Figma' : 'Not read from Figma', onClick: open(p) })) },
+                { name: 'Not read from Figma yet', tone: 'neutral', items: d.parts.filter((p) => !p.noSpec && !p.compared).map((p) => item(p, 'Not read', 'Not read from Figma yet')) },
+                { name: 'Matches', tone: 'success', items: d.parts.filter((p) => p.compared && !p.differ && !p.specBehind.length).map((p) => ({ key: p.name, title: p.name, state: 'Matches', line: 'Matches Figma', onClick: open(p) })) },
               ]}
             />
           );
@@ -732,9 +744,9 @@ export default function HealthContent({ model, run, checked, stale, onCheck, loa
             value={model.lowest.ratio.toFixed(2)}
             unit=":1"
             chart="bar"
-            meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100) }}
+            meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100), targetText: `${model.lowest.bar}:1`, valueText: `${model.lowest.ratio.toFixed(2)}:1` }}
             context={model.lowest.below ? <Marker>{`${model.lowest.below} text pairs below ${model.lowest.bar}:1`}</Marker> : <Marker>Every pair clears the target</Marker>}
-            caption={`Target ${model.lowest.bar}:1 · ${model.lowest.checked ? `${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''}` : model.lowest.failing ? `the pairs check fails (${model.lowest.failing})` : 'not counted'}`}
+            caption={`${model.lowest.checked ? `${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''}` : model.lowest.failing ? `The pairs check fails (${model.lowest.failing})` : 'not counted'}`}
             href="#/system/foundations"
           />
         ) : (

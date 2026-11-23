@@ -91,7 +91,6 @@ export default function AuditReading({ a, day }) {
             showTarget={outOf100 && bar != null}
             target={outOf100 && bar != null ? bar * 10 : undefined}
             targetLabel={outOf100 && bar != null ? `Target ${bar * 10}` : undefined}
-            callout
           />
           {r.stations.length ? (
             <Flow gap={12} as="ul" aria-label={`${a.title}: each ${scored && r.stations[0].max === 100 ? 'flow' : 'check'} and its state`}>
