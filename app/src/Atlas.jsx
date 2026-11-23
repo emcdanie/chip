@@ -20,6 +20,7 @@ import { SPECIMENS, VARIANTS, COMPONENTS } from './specimens.jsx';
 import { targetsOf } from './anatomy.js';
 import { forceAttr, installForcedStates } from './forcedStates.js';
 import './atlas.css';
+import Icon from '@bella/components/Icon/Icon';
 
 function useReducedMotion() {
   const q = '(prefers-reduced-motion: reduce)';
@@ -659,7 +660,7 @@ function FigmaPanel({ c, lint, reading, onRead }) {
       <div className="embed">
         <div className="embedbar">
           <span className={`dot ${ok ? 'ok' : 'warn'}`} aria-hidden="true" />
-          <code>Figma · {c.name}</code>
+          <code><Icon name="Figma" size="sm" /> Figma · {c.name}</code>
           <span className="sub2">{reading ? 'Reading Figma…' : !lint ? 'Not read yet' : ok ? `Read ${new Date(lint.at).toLocaleString('en-GB')}` : 'The Figma MCP is not answering'}</span>
         </div>
         {ok ? (
@@ -674,7 +675,7 @@ function FigmaPanel({ c, lint, reading, onRead }) {
               </ul>
             ) : null}
             <span className="k-chrome a-ch">
-              <Button variant="secondary" onClick={onRead}>Read Figma again</Button>
+              <Button variant="secondary" icon="Figma" leadingIcon onClick={onRead}>Read Figma again</Button>
             </span>
           </div>
         ) : (
@@ -690,7 +691,7 @@ function FigmaPanel({ c, lint, reading, onRead }) {
                   <b>The Figma MCP isn’t answering</b>
                   <p className="sub2">{lint?.reason ?? 'CHIP reads Figma through it.'}</p>
                   <span className="k-chrome a-ch">
-                    <Button variant="secondary" onClick={onRead} disabled={reading}>
+                    <Button variant="secondary" icon="Figma" leadingIcon onClick={onRead} disabled={reading}>
                       {reading ? 'Reading Figma…' : 'Read Figma again'}
                     </Button>
                   </span>
@@ -2337,7 +2338,7 @@ export default function Atlas({ c, bella, lens = 'visual', onOpen, role = 'admin
             {c.storyUrl ? (
               <p>
                 <a href={c.storyUrl} target="_blank" rel="noopener noreferrer">
-                  {c.storyUrl}
+                  <Icon name="Storybook" size="sm" /> {c.storyUrl}
                 </a>
               </p>
             ) : (

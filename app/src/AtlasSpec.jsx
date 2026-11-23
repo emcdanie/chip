@@ -12,6 +12,7 @@ import Button from '@bella/components/Button/Button';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import StatusPill from '@bella/components/StatusPill/StatusPill';
 import { Token } from './Atlas.jsx';
+import Icon from '@bella/components/Icon/Icon';
 
 const px = (v) => Math.round(parseFloat(v) * 10) / 10;
 
@@ -261,7 +262,7 @@ export function SpecSection({ c, figmaNames = null, onSend, sendOpen }) {
         <div className="card-row">
           <h3 className="card-title">Send the spec to Figma</h3>
           {!sendOpen ? (
-            <Button variant="secondary" onClick={() => onSend(true)}>
+            <Button variant="secondary" icon="Figma" leadingIcon onClick={() => onSend(true)}>
               Send spec to Figma
             </Button>
           ) : null}
@@ -300,7 +301,7 @@ export function LintSection({ c, lint, reading, onRefresh }) {
   const [preview, setPreview] = React.useState(null);
   const again = (
     <ActionChip onClick={onRefresh} disabled={reading}>
-      {reading ? 'Reading Figma…' : 'Read Figma again'}
+      <Icon name="Figma" size="sm" /> {reading ? 'Reading Figma…' : 'Read Figma again'}
     </ActionChip>
   );
   if (!lint) return <p className="label">Reading Figma…</p>;
