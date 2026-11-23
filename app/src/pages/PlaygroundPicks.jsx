@@ -335,6 +335,10 @@ export default function PlaygroundPicks() {
   const [batch, setBatch] = useState({ sending: false, result: null, failed: null });
   const [notes, setNotes] = useState(false); // the thin comments panel, opened from the comment count
     const shown = useMemo(() => (picks ?? []).filter((p) => !filter || FILTERS.find((f) => f.id === filter).test(p)), [picks, filter]);
+  // nothing left to answer: open on All, not on an empty "Not answered 0" (second pass, D3)
+  useEffect(() => {
+    if (picks?.length && filter === 'open' && !picks.some((p) => !p.answer)) setFilter(null);
+  }, [picks, filter]);
   const pick = shown.find((p) => p.id === at) ?? shown[0] ?? null;
   const i = pick ? Math.max(0, Math.min(opt[pick.id] ?? 0, pick.options.length - 1)) : 0;
   const option = pick?.options[i] ?? null;

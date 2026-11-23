@@ -233,8 +233,9 @@ function ContrastCoverage({ contrast }) {
         value={contrast.pct}
         unit="%"
         chart="bar"
-        meter={{ fill: contrast.pct, target: TARGET }}
+        meter={{ fill: contrast.pct, target: TARGET, showTargetLabel: false }}
         context={`${contrast.pass} of ${contrast.of} have pairs${contrast.toGo ? ` · ${contrast.toGo} to go` : ''}`}
+        caption={names.length ? `Without pairs: ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2}` : ''}` : undefined}
         onOpen={() => setOpen(true)}
       />
       <ReadingDrawer open={open} onClose={() => setOpen(false)} label="Contrast coverage" status={`${contrast.pass} of ${contrast.of} parts declare their pairs`}>
@@ -327,13 +328,11 @@ function driftPoints(hist) {
   });
 }
 
-function DriftCard({ components }) {
-  const { data } = useCached(['/drift'], { live: true });
+function DriftCard({ components, d }) {
   const [open, setOpen] = useState(false);
   const closed = () => setOpen(false);
   const [picked, setScope] = useState(null);
   const runs = useCached(['/runs']).data?.[0]?.runs ?? [];
-  const d = data?.[0] ?? null;
   const hist = d?.history ?? [];
   const prev = hist.length > 1 ? hist.at(-2) : null;
   // the headline counts every part that differs; the rows below split it, each against what it can be counted against
@@ -351,6 +350,11 @@ function DriftCard({ components }) {
   if (!d?.total) return <NoData title="Drift from BELLA" icon="Activity" context="Parts that differ from Figma, spec or code" caption={d ? 'No parts found' : 'Reading the specs'} />;
   const idOf = (name) => components.find((c) => c.name === name)?.id ?? name.replace(/(?<=[a-z])(?=[A-Z])/g, '-').toLowerCase();
   const day = d.at ? new Date(d.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
+  // the change over time, only from the dated counts CHIP kept (/drift history), ending with the count now; never a typed series
+  const pts = driftPoints(hist);
+  const first = hist[0];
+  const series = pts.length && pts.at(-1).value !== d.differing ? [...pts, { label: 'Now', value: d.differing }] : pts;
+  const moved = first && series.length > 1 ? Math.sign(d.differing - first.differing) : 0;
   return (
     <>
       <StatCard
@@ -358,9 +362,14 @@ function DriftCard({ components }) {
         icon="Activity"
         tone={d.differing ? 'warning' : 'success'}
         chart="none"
+        series={series.length > 1 ? series.map((x) => x.value) : undefined}
+        seriesLabels={series.length > 1 ? series.map((x) => x.label) : undefined}
+        trend={moved ? (moved > 0 ? 'up' : 'down') : undefined}
+        trendTone={moved > 0 ? 'warning' : 'success'}
+        comparison={first && series.length > 1 ? `${d.differing} of ${d.total} parts now, ${first.differing} on ${when(first.at).split(' ').slice(0, 2).join(' ')}` : undefined}
         value={d.differing}
         unit={`of ${d.total}`}
-        context="Parts that differ from Figma, their spec or their code"
+        context="Differ from Figma, spec or code"
         caption={
           <>
             {day ? `Specs from ${day} · ` : ''}
@@ -431,12 +440,10 @@ function DriftCard({ components }) {
 /* Gaps: what BELLA can't do yet (her presentation, 22 Nov), measured from BELLA itself (/bella-gaps): parts drawn
    and specified that have no code yet, and the parts AGENTS.md lists as not in BELLA. ↗ opens both lists; the
    specified ones can be built: Plan the build opens the plan, and nothing runs until it is approved. */
-function GapsCard() {
-  const { data } = useCached(['/bella-gaps'], { live: true });
+function GapsCard({ g }) {
   const [open, setOpen] = useState(false);
   // the plan opens once this drawer has closed, so it sits on top
   const planNext = useRef(false);
-  const g = data?.[0] ?? null;
   if (!g) return <NoData title="Gaps" icon="WarningCircle" context="What BELLA can't do yet" caption="Reading BELLA" />;
   const total = g.notInCode.length + g.notInBella.length;
   const brief = ['Build these BELLA parts in code from their specs (specs/components/<Name>.spec.yaml), one at a time, each with a story:', ...g.notInCode.map((n) => `- ${n}`), 'Follow BELLA AGENTS.md; no new tokens; ask before changing a public API.'].join('\n');
@@ -453,10 +460,11 @@ function GapsCard() {
         title="Gaps"
         icon="WarningCircle"
         tone={total ? 'warning' : 'success'}
-        chart="none"
+        chart={total ? 'bar' : 'none'}
+        meter={total ? { parts: [{ value: (g.notInCode.length / total) * 100, label: 'specified, not in code' }, { value: (g.notInBella.length / total) * 100, label: 'not in BELLA yet', tone: 'info' }], valueText: `${g.notInCode.length} specified, not in code, ${g.notInBella.length} not in BELLA yet` } : undefined}
         value={total}
         unit={total === 1 ? 'part' : 'parts'}
-        context={<><Marker>{`${g.notInCode.length} specified, not in code`}</Marker>{` · ${g.notInBella.length} not in BELLA yet`}</>}
+        context={<><Marker>{`${g.notInCode.length} specified`}</Marker>{` · ${g.notInBella.length} not in BELLA yet`}</>}
         caption="What BELLA can't do yet"
         onOpen={() => setOpen(true)}
       />
@@ -751,8 +759,8 @@ export default function HealthContent({ model, run, checked, stale, onCheck, loa
         )}
         {/* ↗ opens the gate's recorded runs in Component checks and brings that card into view (click test 22 Nov: it switched the view out of sight, so it read as doing nothing) */}
         <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => (setView('gate'), requestAnimationFrame(() => [...document.querySelectorAll('[role="heading"], h2, h3')].find((h) => h.textContent === 'Component checks')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))) : undefined} />
-        <DriftCard components={model.components ?? []} />
-        <GapsCard />
+        <DriftCard components={model.components ?? []} d={model.drift} />
+        <GapsCard g={model.bellaGaps} />
         {contrast ? <ContrastCoverage contrast={contrast} /> : null}
         {model.lowest ? (
           <StatCard
@@ -762,8 +770,8 @@ export default function HealthContent({ model, run, checked, stale, onCheck, loa
             value={model.lowest.ratio.toFixed(2)}
             unit=":1"
             chart="bar"
-            meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100), targetText: `${model.lowest.bar}:1`, valueText: `${model.lowest.ratio.toFixed(2)}:1` }}
-            context={model.lowest.below ? <Marker>{`${model.lowest.below} text pairs below ${model.lowest.bar}:1`}</Marker> : <Marker>Every pair clears the target</Marker>}
+            meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100), targetText: `${model.lowest.bar}:1`, showTargetLabel: false, valueText: `${model.lowest.ratio.toFixed(2)}:1` }}
+            context={model.lowest.below ? <Marker>{`${model.lowest.below} text pairs below ${model.lowest.bar}:1`}</Marker> : <Marker>{`Every pair clears ${model.lowest.bar}:1`}</Marker>}
             caption={`${model.lowest.checked ? `${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''}` : model.lowest.failing ? `The pairs check fails (${model.lowest.failing})` : 'not counted'}`}
             href="#/system/foundations"
           />
