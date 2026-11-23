@@ -83,3 +83,14 @@ export function readAuditReport(id) {
   const a = readAudits().find((x) => x.id === id);
   return a?.file ? readFileSync(join(AUDIT_DIR, a.file), 'utf8') : null;
 }
+
+/** Every saved result of one audit, oldest first: its day, score and lights (the trend a step's panel draws). */
+export function auditHistory(kindId) {
+  const k = KINDS.find((x) => x.id === kindId);
+  if (!k) return [];
+  return reports(k)
+    .map((f) => ({ day: f.day, ...readReport(k.id, readFileSync(join(AUDIT_DIR, f.file), 'utf8')) }))
+    .filter((r) => r.value != null)
+    .map(({ day, value, unit, red, yellow, green, checks }) => ({ day, value, unit, red, yellow, green, checks }))
+    .reverse();
+}

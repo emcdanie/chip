@@ -36,21 +36,22 @@ import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 import { planRun } from '../templates/RunPlan.jsx';
+import StepPanel from './StepPanel.jsx';
 
 const FIGMA_PATHS = ['figma', 'figma-console', 'figma-rest'];
 // a step's state in words and tone; a step with no entry is a role in the workflow, nothing to measure
 const SAYS = {
   ok: ['Healthy', 'success'],
-  warn: ['Not all run', 'attention'],
-  bad: ['Needs you', 'attention'],
+  warn: ['Needs work', 'attention'],
+  bad: ['Failing', 'danger'],
   blocked: ['Blocked', 'neutral'],
-  unknown: ['Not known', 'neutral'],
+  unknown: ['Not measured', 'neutral'],
   you: ['Your click', 'attention'],
   unmeasured: ['Not measured', 'neutral'],
   // a saved audit report: its lights decide (docs/reference/audit/<date>/)
-  red: ['Red items', 'danger'],
-  yellow: ['Yellow items', 'attention'],
-  green: ['Passed', 'success'],
+  red: ['Failing', 'danger'],
+  yellow: ['Needs work', 'attention'],
+  green: ['Healthy', 'success'],
 };
 
 /* ---------------------------------------------------------------- BELLA pipeline (/map) */
@@ -112,7 +113,7 @@ const PIPELINE_RUNS = {
 };
 
 function usePipeline() {
-  const { data, error, at, reload, loading } = useCached(['/map']);
+  const { data, error, at, reload, loading } = useCached(['/map'], { live: true });
   if (error && !data) return { error: true, reload };
   if (!data) return null;
   const all = data[0].nodes ?? [];
@@ -314,11 +315,14 @@ const PHONE_BELOW = 520; // a map narrower than this is a BranchGroup a stage, o
 const params = (w) => {
   const rootW = Math.round(Math.min(170, Math.max(100, w * 0.15)));
   const catW = Math.round(Math.min(150, Math.max(100, w * 0.22)));
-  const catX = rootW + 28;
+  // room for the root's four branches to fan out of one point before they pass each other
+  const catX = rootW + Math.round(Math.min(120, Math.max(72, w * 0.12)));
   const leafX = catX + catW + 28;
   const R = Math.round(Math.min(110, Math.max(48, w * 0.1)));
   return { rootW, catW, catX, leafX, R, leafW: w - R - leafX };
 };
+// the root's branches leave its right edge this far apart, top to bottom in stage order, so they fan out and never run as one strand
+const ROOT_STEP = 20;
 const GAP = 12; // between steps
 const GROUP_GAP = 40; // between stages: room for a stage name to sit level with its steps' middle
 
@@ -341,8 +345,9 @@ function MindMap({ map, name, filterOnly, picked, onPick, w }) {
       });
       const cats = [];
       el.querySelectorAll('[data-stage-label]').forEach((n, i) => (cats[i] = n.getBoundingClientRect().width));
-      const key = JSON.stringify({ leaves, cats, h: el.offsetHeight });
-      setGeo((was) => (was?.key === key ? was : { key, leaves, cats }));
+      const rootW = el.querySelector('[data-root-label]')?.getBoundingClientRect().width ?? null;
+      const key = JSON.stringify({ leaves, cats, rootW, h: el.offsetHeight });
+      setGeo((was) => (was?.key === key ? was : { key, leaves, cats, rootW }));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -363,7 +368,7 @@ function MindMap({ map, name, filterOnly, picked, onPick, w }) {
   if (geo) {
     groups.forEach((g, i) => {
       const y = cy(g);
-      drawn.push(<Branch key={`root-${g.label}`} hue={g.hue} weight="regular" draw={first.current ? 'map' : 'none'} from={{ x: p.rootW + 4, y: rootY }} to={{ x: p.catX - 8, y }} />);
+      drawn.push(<Branch key={`root-${g.label}`} hue={g.hue} weight="regular" draw={first.current ? 'map' : 'none'} from={{ x: (geo.rootW ?? p.rootW) + 8, y: rootY + (i - (groups.length - 1) / 2) * ROOT_STEP }} to={{ x: p.catX - 8, y }} />);
       g.ids.forEach((id) => drawn.push(<Branch key={`leaf-${id}`} hue={g.hue} weight="thin" draw={first.current ? 'map' : 'none'} from={{ x: p.catX + (geo.cats[i] ?? p.catW) + 8, y }} to={{ x: p.leafX - 2, y: geo.leaves[id].y }} />));
     });
     // HOLE branch-loop: BELLA's Branch has no loop that leaves and returns on one side, so a link is three curves
@@ -411,8 +416,10 @@ function MindMap({ map, name, filterOnly, picked, onPick, w }) {
           </div>
         ))}
       </div>
-      <MapLabel kind="root" as="h3" style={{ position: 'absolute', insetInlineStart: 0, insetBlockStart: rootY, transform: 'translateY(-50%)', inlineSize: p.rootW, visibility: geo ? undefined : 'hidden' }}>
-        {name}
+      {/* the root is a plain label on the map ground (her 22 Nov: "what even is that a card"): MapLabel's stage kind, bare text.
+          BELLA GAP: MapLabel kind=root draws a card with a border and shadow and has no flat variant; named for the parts session. */}
+      <MapLabel kind="stage" as="h3" style={{ position: 'absolute', insetInlineStart: 0, insetBlockStart: rootY, transform: 'translateY(-50%)', inlineSize: 'max-content', maxInlineSize: p.rootW, visibility: geo ? undefined : 'hidden' }}>
+        <span data-root-label="">{name}</span>
       </MapLabel>
       {groups.map((g, i) => (
         <MapLabel key={g.label} kind="stage" style={{ position: 'absolute', insetInlineStart: p.catX, insetBlockStart: geo ? cy(g) : 0, transform: 'translateY(-50%)', inlineSize: 'max-content', maxInlineSize: p.catW, visibility: geo ? undefined : 'hidden' }}>
@@ -438,7 +445,7 @@ function PhoneMap({ map, name, filterOnly, picked, onPick }) {
   const shown = open ?? Math.max(0, groups.findIndex((g) => g.ids.includes(picked)));
   return (
     <Flow gap={8}>
-      <MapLabel kind="root" as="h3">
+      <MapLabel kind="stage" as="h3">
         {name}
       </MapLabel>
       {groups.map((g, i) => (
@@ -473,12 +480,6 @@ function Board({ map, name, filterOnly, picked, onPick, label }) {
     </Stage>
   );
 }
-
-// the measured line says nothing new when the detail already carries its numbers (no line printed twice)
-const says = (line, detail) => {
-  const nums = String(line).match(/\d+(?:\.\d+)?/g);
-  return String(detail).includes(line) || Boolean(nums?.length && nums.every((n) => String(detail).includes(n)));
-};
 
 function Detail({ map, mapId, step, onPick }) {
   // a closed Disclosure still lays its text out under the rows below it, so its words are only drawn while it is open
@@ -542,9 +543,16 @@ function Detail({ map, mapId, step, onPick }) {
         <Flow gap={8}>
           <SectionHead title={step.name} titleLevel={3} showInfo={false} />
           {said ? <StatusDot tone={said[1]} label={said[0]} /> : null}
-          {step.line && !says(step.line, step.detail) ? <TextStack meta={step.line} /> : null}
-          <TextStack body={step.detail} />
+          {step.line ? <TextStack meta={step.line} /> : null}
         </Flow>
+        <StepPanel
+          mapId={mapId}
+          step={step}
+          state={said?.[0] ?? 'Not measured'}
+          what={plain(first(step.detail))}
+          feeds={feeds.map((x) => ({ name: x.name, label: SAYS[x.state]?.[0] ?? 'Not measured' }))}
+          waits={waits.map((x) => ({ name: x.name, state: x.state, label: SAYS[x.state]?.[0] ?? 'Not measured' }))}
+        />
         {/* anything that needs you says why, from its source */}
         {step.state === 'bad' || step.state === 'you' ? (
           <Disclosure title="Why this?" open={more} onToggle={setMore}>
@@ -576,9 +584,9 @@ const timeOf = (t) => (t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-di
 
 export default function SystemMapContent() {
   const pipeline = usePipeline();
-  const reports = useCached(['/audits']);
+  const reports = useCached(['/audits'], { live: true });
   const statics = useMemo(() => staticMaps(reports.data?.[0]), [reports.data]);
-  const pushes = useCached(['/push/bella', '/push/chip']);
+  const pushes = useCached(['/push/bella', '/push/chip'], { live: true });
   const agents = withPush(statics.agents, pushes.data);
   const audits = statics.audits;
   const start = fromHash();
@@ -646,7 +654,7 @@ export default function SystemMapContent() {
       <Flow direction="row" gap={8} align="center" data-tools-fresh="" style={{ whiteSpace: 'nowrap', flexShrink: 0, justifySelf: 'end' }}>
         {live ? (
           <>
-            <TextStack subtitle={live.at ? `Updated ${timeOf(live.at)}` : 'Not read yet'} />
+            <TextStack subtitle={live.stale ?? (live.at ? `Updated ${timeOf(live.at)}` : 'Not read yet')} />
             <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={Boolean(live.loading)} onClick={live.reload}>
               {live.loading ? 'Refreshing…' : 'Refresh'}
             </Button>

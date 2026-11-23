@@ -2,10 +2,13 @@
 // a POST or DELETE needs an Origin that is one of CHIP's own (a tool with no Origin is refused too), and a GET
 // from another site is refused as well. server/test/new-routes.test.mjs proves it.
 import express from 'express';
+import { stepRoutes } from './step-facts.mjs';
 import { createProject, listFolders, readDropped, readFolder, removeProject, setupPlan } from './project-read.mjs';
 
 export function newRoutes({ origins, ids = () => [], changed = () => {} }) {
   const r = express.Router();
+  // Processes: what stands behind a step (read only, behind the same origin check)
+  r.use(stepRoutes({ origins }));
   const ok = (req, res, write) => {
     const o = req.get('origin');
     if (o ? !origins.has(o) : write) {

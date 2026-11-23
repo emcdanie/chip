@@ -2,6 +2,7 @@
 // maps she picked). For each map (BELLA pipeline, Agent workflow, Audits and skills), at 320, 768, 1024 and 1440, it
 // measures what the page actually draws, with nothing picked and with each step picked in turn, and fails when
 //   - a branch or a link enters a step's box (its text sits inside it), a stage's name or the root,
+//   - two of the root's branches run closer than 12px for more than 40px (they would read as one cable),
 //   - two links of one pick run closer than 6px (they would read as one strand), except where they share a step's edge,
 //   - the page scrolls sideways,
 //   - a wide map is not a tree (no steps drawn, or no branch to a step), or a narrow one (under the phone step) still draws branches.
@@ -31,7 +32,7 @@ const measure = () => {
   const textBox = (el) => { const rg = document.createRange(); rg.selectNodeContents(el); return box(rg.getBoundingClientRect()); };
   const leaves = [...document.querySelectorAll('[data-mindmap] [data-leaf]')].map((w) => ({ id: w.dataset.leaf, ...box(w.getBoundingClientRect()) }));
   const labels = [...document.querySelectorAll('[data-mindmap] [data-stage-label]')].map((w) => ({ id: w.textContent.trim(), ...textBox(w) }));
-  const root = [...document.querySelectorAll('[data-mindmap] [data-bella-component="map-label"][data-kind="root"]')].map((w) => ({ id: 'root', ...box(w.getBoundingClientRect()) }));
+  const root = [...document.querySelectorAll('[data-mindmap] [data-root-label]')].map((w) => ({ id: 'root', ...textBox(w) }));
   const path = (el) => {
     const pa = el.querySelector('svg path');
     const m = pa.getScreenCTM();
@@ -122,6 +123,15 @@ for (const map of MAPS) {
         g.labels.forEach((s) => through(l, s, 0) && bad.push(`a line runs through the stage name "${s.id}"`));
         g.root.forEach((s) => through(l, s, 1) && bad.push('a line enters the root'));
       });
+      // the root's branches fan out of one point: no two closer than 12px for more than 40px of length (a cable, not a fan)
+      const stageLeft = Math.min(...g.labels.map((s) => s.l));
+      const rootBranches = g.tree.filter((l) => l[0][0] < stageLeft - 1);
+      const lenOf = (l, i) => Math.hypot(l[i][0] - l[i - 1][0], l[i][1] - l[i - 1][1]);
+      rootBranches.forEach((a, x) => rootBranches.slice(x + 1).forEach((b) => {
+        let run = 0;
+        for (let i = 1; i < a.length; i += 1) if (Math.min(...b.map((q) => Math.hypot(q[0] - a[i][0], q[1] - a[i][1]))) < 12) run += lenOf(a, i);
+        if (run > 40) bad.push(`two root branches run within 12px for ${run.toFixed(0)}px`);
+      }));
       // the links of one pick: no two closer than 6px, leaving out the 32px around a step edge two of them share
       const ends = g.links.flatMap((l) => [l[0], l[l.length - 1]]);
       const hubs = ends.filter((e, a) => ends.some((o, b) => a !== b && Math.hypot(e[0] - o[0], e[1] - o[1]) < 1));
