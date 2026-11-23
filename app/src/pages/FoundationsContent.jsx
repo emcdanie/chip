@@ -686,11 +686,11 @@ function RolesTable({ rows, total, q = '', onClear }) {
       <Flow gap={16}>
         <SectionHead icon="Palette" iconTone="info" title="Roles" description="What each colour is for, one job each" />
         {rows.length ? (
-          <DataTable caption="Colour roles in the Chip theme" columns={columns} rows={rows} rowKey="token" defaultSort={{ key: 'used', direction: 'descending' }} maxHeight="calc(var(--spacing-80) * 5)" />
+          <DataTable caption="Colour roles in the Chip theme" columns={columns} rows={rows} rowKey="token" defaultSort={{ key: 'used', direction: 'descending' }} freezeFirst />
         ) : (
           <NoResults noun="roles" what={`“${q.trim()}”`} on={q.trim() ? [{ key: 'q', label: `search “${q.trim()}”`, onRemove: onClear }] : []} />
         )}
-        <TextStack body={`Read from BELLA's tokens and each component's CSS · ${rows.length} of ${total} shown${rows.length > 8 ? ', scroll for the rest' : ''}.`} />
+        <TextStack body={`Read from BELLA's tokens and each component's CSS · ${rows.length} of ${total} shown.`} />
       </Flow>
     </Card>
   );

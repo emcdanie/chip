@@ -430,11 +430,12 @@ export function projectStats(model, project = null) {
 }
 
 /* The tools row: Filter, Sort, Search. */
-export function shown(model, { filter = null, sort = 'mine', q = '' } = {}) {
+export function shown(model, { filter = null, project = null, sort = 'mine', q = '' } = {}) {
   if (!model) return model;
   const words = q.trim().toLowerCase();
   const keep = (c) =>
     (!words || `${c.title} ${c.line}`.toLowerCase().includes(words)) &&
+    (!project || String(c.project ?? 'CHIP').toLowerCase() === project.toLowerCase()) &&
     (!filter || filter.startsWith('lane:') || (filter === 'needs' ? c.needs : filter === 'components' ? c.component : filter.startsWith('area:') ? c.area === filter.slice(5) : filter.startsWith('project:') ? String(c.project ?? 'CHIP').toLowerCase() === filter.slice(8).toLowerCase() : true));
   const by = { updated: (a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0), started: (a, b) => (a.startedAt ?? Infinity) - (b.startedAt ?? Infinity) }[sort];
   const lanes = model.lanes

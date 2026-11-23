@@ -1,20 +1,20 @@
 {
- "at": "2026-11-23T19:42:39.646Z",
+ "at": "2026-11-23T19:51:22.150Z",
  "files": {
   "app/src/templates/Flow.jsx": "53c277b130557d93a2ceb98537b29097ece9ed92",
   "app/src/templates/Screen.jsx": "d26be57f8685e151c6d7db22928843317a191f70",
   "app/src/templates/Screen.css": "5fe008729489f35c661f091da219a5d37dcc501b",
-  "app/src/pages/ComponentsContent.jsx": "91749056e88b73c7f5a4c87db3ac7df1259239a2",
+  "app/src/pages/ComponentsContent.jsx": "7d19bc21344b34a27f652ff84244c3ef1d743873",
   "app/src/pages/ConnectorsContent.jsx": "b33d472003614200f1612fc3fa00b3c8f1f3369c",
   "app/src/pages/DocsContent.jsx": "b1e73ba0ff67aff7467a9c52cef5a811b6444868",
-  "app/src/pages/FoundationsContent.jsx": "0c84657bb8477e468db219eb8aa19c4607c51aac",
+  "app/src/pages/FoundationsContent.jsx": "4d7056faf5567a5964ae437c8ee7388f49a7b20a",
   "app/src/pages/HealthContent.jsx": "478c110baf7baa200f5e324a9dcf963de627c878",
   "app/src/pages/HistoryContent.jsx": "440456813eeb09f8e9e05d3c21236fe6fcedc737",
   "app/src/pages/NotAgainContent.jsx": "190f293a79361162e2fb72567bb6c2ba0bdfed76",
   "app/src/pages/PlaygroundContent.jsx": "698bbde7e14c1b624655fa38771582ded37f9ff2",
   "app/src/pages/SystemMapContent.jsx": "d82206e34450e12be7b5afa5e198ccad999c7f7f",
   "app/src/pages/TeamContent.jsx": "c1642a1a11e5f30da4b92add5c2df9c8aedc909d",
-  "app/src/pages/WorkContent.jsx": "532bde21514c3b30da673784b9b4cc924f5c8979"
+  "app/src/pages/WorkContent.jsx": "54872ca7ffccf1684479d989bb621dfc650ee711"
  },
  "routes": {
   "#/work": true,
@@ -31,5 +31,5 @@
  "ok": true,
  "clean": 80,
  "total": 80,
- "texts": 10653
+ "texts": 12451
 }

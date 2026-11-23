@@ -856,8 +856,17 @@ function PartList({ model, query, setQuery, filter, current, onPick, onHide, onF
           onClearAll={() => (setQuery(''), onFilter('all'))}
         />
       ) : null}
+      {/* grouped by her task: what needs work first, then the ready ones (second pass M22); a chip that narrows to one group shows it flat */}
       <Flow as="nav" aria-label={`${shown.length} components`} gap={4} id="part-list">
-        {shown.map(row)}
+        {filter === 'all' && shown.some((p) => !p.ready) && shown.some((p) => p.ready) ? (
+          [['Needs work', shown.filter((p) => !p.ready)], ['Ready', shown.filter((p) => p.ready)]].map(([name, list]) => (
+            <Disclosure key={name} title={name} summary={String(list.length)} defaultOpen={name === 'Needs work' || !!q || list.some((p) => p.id === current)}>
+              <Flow gap={4}>{list.map(row)}</Flow>
+            </Disclosure>
+          ))
+        ) : (
+          shown.map(row)
+        )}
       </Flow>
     </Flow>
   );
