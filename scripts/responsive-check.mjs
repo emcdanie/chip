@@ -24,7 +24,7 @@ const APP = arg('app', 'http://localhost:3160');
 const OUT = arg('out', join(tmpdir(), 'chip-responsive'));
 const ONLY_ROUTE = arg('route', null);
 const ONLY_WIDTH = arg('width', null);
-const ROUTES = ['#/work', '#/health', '#/system/components', '#/system/foundations', '#/system/history', '#/playground', '#/system-map', '#/connectors', '#/team', '#/not-again'].filter((r) => !ONLY_ROUTE || r === ONLY_ROUTE);
+const ROUTES = ['#/work', '#/health', '#/health/audits', '#/system/components', '#/system/foundations', '#/system/history', '#/playground', '#/system-map', '#/connectors', '#/team', '#/not-again'].filter((r) => !ONLY_ROUTE || r === ONLY_ROUTE);
 const WIDTHS = [1440, 1024, 768, 320].filter((w) => !ONLY_WIDTH || w === Number(ONLY_WIDTH));
 const THEMES = ['light', 'dark'];
 const { chromium } = createRequire(join(bellaDir(), 'package.json'))('playwright');

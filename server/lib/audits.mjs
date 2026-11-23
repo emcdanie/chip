@@ -34,7 +34,7 @@ export function readReport(kind, text) {
   else if (kind === 'figma') {
     const s = [...text.matchAll(/^### .*· score (\d+)/gm)].map((m) => +m[1]);
     if (s.length) ((value = Math.round(s.reduce((a, b) => a + b, 0) / s.length)), (unit = `average of ${s.length} screens`));
-  } else if (checks) ((value = lights.green), (unit = `of ${checks} checks green`));
+  } else if (checks) ((value = lights.green), (unit = `of ${checks} checks healthy`));
   // work orders: a "Work order" table (the item is its second column), numbered bold lines, or, for the Figma
   // audit, its "Fix once, many screens" list
   const orders = [];
@@ -79,7 +79,13 @@ export function readAudits() {
 }
 
 /** The saved report's own text, for "Read the full report"; only a file the list names. */
-export function readAuditReport(id) {
+export function readAuditReport(id, onDay) {
+  // an older run's report: its day, as written in the folder name, for the audit's own kind only
+  if (onDay && /^\d{4}-\d{2}-\d{2}$/.test(onDay)) {
+    const k = KINDS.find((x) => x.id === id);
+    const f = k ? reports(k).find((r) => r.day === onDay) : null;
+    return f ? readFileSync(join(AUDIT_DIR, f.file), 'utf8') : null;
+  }
   const a = readAudits().find((x) => x.id === id);
   return a?.file ? readFileSync(join(AUDIT_DIR, a.file), 'utf8') : null;
 }

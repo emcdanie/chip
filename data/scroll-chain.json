@@ -1,5 +1,5 @@
 {
- "at": "2026-11-23T19:05:51.519Z",
+ "at": "2026-11-23T20:33:50.993Z",
  "routes": {
   "#/work": {
    "hash": "e466e5ecfefd575253dac0a0498beef8d06ed5b3",
@@ -11,7 +11,7 @@
    "hash": "e466e5ecfefd575253dac0a0498beef8d06ed5b3",
    "ok": true,
    "bad": 0,
-   "total": 43
+   "total": 44
   },
   "#/system/components": {
    "hash": "e466e5ecfefd575253dac0a0498beef8d06ed5b3",
@@ -35,7 +35,7 @@
    "hash": "e466e5ecfefd575253dac0a0498beef8d06ed5b3",
    "ok": true,
    "bad": 0,
-   "total": 10
+   "total": 16
   },
   "#/system-map": {
    "hash": "e466e5ecfefd575253dac0a0498beef8d06ed5b3",
@@ -56,6 +56,12 @@
    "total": 10
   },
   "#/not-again": {
+   "hash": "e466e5ecfefd575253dac0a0498beef8d06ed5b3",
+   "ok": true,
+   "bad": 0,
+   "total": 10
+  },
+  "#/health/audits": {
    "hash": "e466e5ecfefd575253dac0a0498beef8d06ed5b3",
    "ok": true,
    "bad": 0,

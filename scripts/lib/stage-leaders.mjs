@@ -43,6 +43,7 @@ export const cardInputsHash = () => {
 export const PAGE_ROUTES = [
   [/WorkContent|WorkDrawer|WorkPanel/, '#/work'],
   [/HealthContent/, '#/health'],
+  [/AuditReports/, '#/health/audits'],
   [/ComponentsContent|componentsModel/, '#/system/components'],
   [/FoundationsContent/, '#/system/foundations'],
   [/HistoryContent/, '#/system/history'],

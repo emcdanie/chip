@@ -153,6 +153,16 @@ for (const page of ['health', 'foundations', 'connectors', 'team', 'history', 'n
   writeFileSync(join(OUT, `${page}.txt`), text[page]);
   await p.close();
 }
+// Audit reports (#/health/audits): the headline scores against the benchmark's own results.json, read by the server
+{
+  const p = await browser.newPage({ viewport: { width: 1100, height: 900 } });
+  await p.goto(`${APP}/#/health/audits`);
+  await p.waitForTimeout(1500);
+  await settled(p);
+  text['audit-reports'] = await p.evaluate(() => (document.querySelector('#main') ?? document.body).innerText);
+  writeFileSync(join(OUT, 'audit-reports.txt'), text['audit-reports']);
+  await p.close();
+}
 await browser.close();
 const grab = (page, re) => text[page].match(re);
 
@@ -183,7 +193,8 @@ const drift = await json('/drift').catch(() => null);
 if (drift?.total) check('health', 'Drift: parts that differ', grab('health', /Drift from BELLA\n+(?:\d+\n+)?(\d+)\n+of (\d+)/i)?.slice(1).join(' of '), `${drift.differing} of ${drift.total}`);
 const checks = await json('/checks');
 const behind = (checks.checks ?? []).filter((c) => c.gate === true && c.commit && c.commit !== checks.head);
-for (const c of behind) check('health', `Gate names ${c.name}, behind HEAD`, text.health.includes(`${c.name} last ran ${day(c.ranAt)}`) ? 'named' : 'not named', 'named');
+// the Checks card says how many gate checks last ran on an older commit; their names are in its drawer (Checks card fix, 23 Nov)
+if (behind.length) check('health', 'Gate says how many checks ran on an older commit', text.health.includes(`${behind.length} on an older commit`) ? `${behind.length} on an older commit` : 'not said', `${behind.length} on an older commit`);
 
 // Gate runs: only recorded runs, each day's count recomputed from its sources: GitHub's CI runs (gh) and CHIP's
 // own gate check runs (data/checks/log.jsonl and each result file's latest and previous run). A day with no record
@@ -240,6 +251,12 @@ check('connectors', 'GitHub CI day and commit', grab('connectors', /GitHub CI\n+
 // ---- Team: every open PR ----------------------------------------------------
 const projects = (await json('/projects')).projects ?? [];
 const prCounts = projects.map((p) => JSON.parse(sh('gh', ['pr', 'list', '--state', 'open', '--limit', '500', '--json', 'number'], p.repo) ?? 'null'));
+{
+  const ar = await fetch(`${APP}/audit-reports`).then((r) => r.json()).catch(() => null);
+  if (ar?.ok) {
+    check('audit-reports', 'Benchmark, AGENTS.md against no file (all 10 jobs)', grab('audit-reports', /AGENTS\.md scores ([\d.]+) against ([\d.]+)/)?.slice(1, 3).join(' vs '), `${ar.bench.all10.md} vs ${ar.bench.all10.bare}`);
+  } else check('audit-reports', 'Benchmark scores', null, null, 'server did not answer');
+}
 check('team', 'Open PRs', grab('team', /(\d+)\nopen PRs?/)?.[1], prCounts.every(Array.isArray) ? prCounts.reduce((a, l) => a + l.length, 0) : null);
 check('team', 'No "asks for you" (Needs you\'s word)', /asks? for you/.test(text.team) ? 'said' : 'not said', 'not said');
 const older = Number(grab('team', /(\d+) older asks?/)?.[1] ?? 0);

@@ -15,6 +15,7 @@ import Progress from '@bella/components/Progress/Progress';
 import SystemHealth from '@bella/components/SystemHealth/SystemHealth';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
+import Link from '@bella/components/Link/Link';
 import LineChart from '@bella/components/LineChart/LineChart';
 import TextStack from '@bella/components/TextStack/TextStack';
 import ListRow from '@bella/components/ListRow/ListRow';
@@ -22,10 +23,10 @@ import { planRun } from '../templates/RunPlan.jsx';
 import FixPlan, { measuredMinutes } from '../templates/FixPlan.jsx';
 import AuditReading from './AuditReading.jsx';
 import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, drawerOf, setDrawerUrl, useDrawerUrl } from '../templates/ReadingDrawer.jsx';
-import Link from '@bella/components/Link/Link';
 import { auditTone } from './auditReport.js';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
@@ -701,6 +702,8 @@ function AuditCard({ a }) {
   const [open, setOpen] = useDrawerUrl(`audit-${a.id}`);
   if (!a.ran) return <NoData title={a.title} icon={AUDIT_ICON[a.id] ?? 'Activity'} context={`${a.skill}`} caption="Not run: no saved report yet" />;
   const lights = a.red == null ? 'State not counted in this report' : `${a.red} failing · ${a.yellow} need work`;
+  // a sentence in the reading face, only its numbers in the number face (Elleta, 23 Nov: mono is for numbers only)
+  const lightsNode = a.red == null ? lights : <><b>{a.red}</b> failing · <b>{a.yellow}</b> need work</>;
   const was = a.prev ? ` · was ${a.prev.value} on ${dayOf(a.prev.day)}` : '';
   return (
     <>
@@ -710,12 +713,14 @@ function AuditCard({ a }) {
         tone={auditTone(a)}
         chart="none"
         value={a.value ?? '–'}
-        unit={a.unit ?? ''}
-        context={lights}
+        unit={(a.unit ?? '').replace(/^average of (\d+) screens$/, 'avg of $1')}
+        context={lightsNode}
+        contextSentence
         caption={`Ran ${dayOf(a.ran)}${was}`}
         onOpen={() => setOpen(true)}
       />
-      <AuditReading a={a} day={dayOf(a.ran)} lights={lights} open={open} onClose={() => setOpen(false)} />
+      {/* the drawer sits on the page, not inside the Audits card, so no card holds a panel that opens past its edge */}
+      {createPortal(<AuditReading a={a} day={dayOf(a.ran)} lights={lights} open={open} onClose={() => setOpen(false)} />, document.body)}
     </>
   );
 }
@@ -733,36 +738,35 @@ function AuditsSection() {
       brief: ['Run each audit read only and save its report to docs/reference/audit/<today>/ :', ...audits.map((a) => `- ${a.title}: ${a.skill}`), 'Change no repo, Figma or config file other than the reports.'].join('\n'),
       steps: audits.map((a) => ({ id: a.id, title: `${a.title}: ${a.skill}, read only`, line: a.ran ? `Last ran ${dayOf(a.ran)}` : 'Not run yet' })),
     }).catch(() => {});
-  // two cards under each other in three columns, as the cards above (the page's 12-column grid)
-  const cols = [0, 1, 2].map((c) => audits.slice(c * 2, c * 2 + 2));
   return (
-    <>
-      <Flow span={12} gap={24}>
-        <SectionHead
-          icon="ShieldCheck"
-          iconTone="info"
-          title="Audits"
-          showInfo={false}
-          description={
-            /* How was this measured? sits in the sentence, not on each card (template plan, 23 Nov) */
-            <>
-              {`${plural(audits.filter((a) => a.ran).length, 'audit')} with a saved report. `}
-              <Button variant="tertiary" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('chip:how', { detail: 'audits' }))}>
-                How was this measured?
-              </Button>
-            </>
-          }
-          action={<Button variant="secondary" size="sm" onClick={runAll}>Run all audits</Button>}
-        />
-      </Flow>
-      {cols.map((col, i) => (
-        <Flow key={i} span={4} gap={24} fill>
-          {col.map((a) => (
-            <AuditCard key={a.id} a={a} />
-          ))}
+    <Flow span={12} gap={24}>
+      <Card>
+        <Flow gap={24}>
+          <SectionHead
+            icon="ShieldCheck"
+            iconTone="info"
+            title="Audits"
+            showInfo={false}
+            description={
+              /* How was this measured? sits in the sentence, not on each card (template plan, 23 Nov) */
+              <>
+                {`${plural(audits.filter((a) => a.ran).length, 'audit')} with a saved report. `}
+                <Button variant="tertiary" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('chip:how', { detail: 'audits' }))}>
+                  How was this measured?
+                </Button>{' '}
+                <Link href="#/health/audits">See the full report</Link>
+              </>
+            }
+            action={<Button variant="secondary" size="sm" onClick={runAll}>Run all audits</Button>}
+          />
+          <Flow cards gap={24}>
+            {audits.map((a) => (
+              <AuditCard key={a.id} a={a} />
+            ))}
+          </Flow>
         </Flow>
-      ))}
-    </>
+      </Card>
+    </Flow>
   );
 }
 

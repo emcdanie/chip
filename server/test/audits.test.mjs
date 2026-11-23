@@ -19,7 +19,7 @@ test('a report gives its score, lights and first three work orders', () => {
 });
 test('a report with no overall score counts its green checks; table rows are work orders', () => {
   const r = readReport('tokens', tokens);
-  assert.deepEqual([r.value, r.unit], [1, 'of 2 checks green']);
+  assert.deepEqual([r.value, r.unit], [1, 'of 2 checks healthy']);
   assert.deepEqual(r.orders, ['Export is behind', 'Wash pairs']);
 });
 test('latest report per kind, its trend, and "not run" for an audit with no saved report', () => {

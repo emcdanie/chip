@@ -1,6 +1,7 @@
 // CHIP local server: serves the app and answers POST /ask with the local
 // model over the local index. Nothing here calls a paid or remote API.
 import { readAudits, readAuditReport } from './lib/audits.mjs';
+import { readAuditReports } from './lib/audit-reports.mjs';
 import { bellaHead, driftHistory, readDrift, readGaps } from './lib/drift.mjs';
 import express from 'express';
 import cors from 'cors';
@@ -336,8 +337,10 @@ app.get('/drift', (_req, res) => {
 });
 // Audits: the latest saved report of each audit (docs/reference/audit/<date>/), read only
 app.get('/audits', (_req, res) => res.json(readAudits()));
+// The full report of all audits (benchmark runs, readiness score, every audit's history), read from the saved files
+app.get('/audit-reports', (_req, res) => res.json(readAuditReports()));
 app.get('/audits/:id/report', (req, res) => {
-  const text = readAuditReport(String(req.params.id));
+  const text = readAuditReport(String(req.params.id), req.query.day ? String(req.query.day) : undefined);
   if (text == null) return res.status(404).type('text/plain').send('No saved report');
   res.type('text/plain; charset=utf-8').send(text);
 });

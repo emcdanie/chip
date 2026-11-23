@@ -64,14 +64,14 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
   useEffect(() => {
     if (!open || state.r) return undefined;
     let live = true;
-    fetch(`/audits/${a.id}/report`)
+    fetch(`/audits/${a.id}/report${a.at ? `?day=${a.at}` : ''}`)
       .then((res) => (res.ok ? res.text() : Promise.reject(new Error(String(res.status)))))
       .then((t) => live && setState({ r: parseReport(t), error: false }))
       .catch(() => live && setState({ r: null, error: true }));
     return () => {
       live = false;
     };
-  }, [a.id, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [a.id, a.at, open]); // eslint-disable-line react-hooks/exhaustive-deps
   const close = () => (setOrder(null), setStation(null), setAll(false), onClose());
   const shell = { open, onClose: close, label: `${a.title} audit`, status: lights };
 
@@ -121,7 +121,7 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
 
   const bar = greenFrom(r.stations);
   const outOf100 = a.unit === 'of 100';
-  const fill = a.value == null ? null : a.checks && !outOf100 && /checks green/.test(a.unit ?? '') ? (a.value / a.checks) * 100 : a.value;
+  const fill = a.value == null ? null : a.checks && !outOf100 && /checks healthy/.test(a.unit ?? '') ? (a.value / a.checks) * 100 : a.value;
   const tone = { danger: 'danger', warning: 'attention', success: 'success', neutral: 'neutral' }[auditTone(a)];
   const item = (s) => ({
     key: s.n,

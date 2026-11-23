@@ -252,7 +252,7 @@ export default function Screen({ place, header, tabs, children }) {
   const view = PROJECT_VIEWS.find((v) => v.id === tab);
   const projectName = (projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP';
   // the top bar says where you are: "CHIP › Work", "CHIP › System › Components", "CHIP › Team"
-  const trail = view ? [projectName, view.groupLabel, view.label] : [projectName, place === 'work' ? 'Work' : place === 'health' ? 'Health' : header?.title];
+  const trail = view ? [projectName, view.groupLabel, view.label] : header?.parent ? [projectName, header.parent, header.title] : [projectName, place === 'work' ? 'Work' : place === 'health' ? 'Health' : header?.title];
   // the tab's title says where you are ("Health · CHIP", "System · Components · CHIP"), so tabs and History tell apart
   useEffect(() => {
     document.title = [...trail.slice(1), trail[0]].filter(Boolean).join(' · ');
@@ -318,7 +318,7 @@ export default function Screen({ place, header, tabs, children }) {
             {/* one 56 row (Elleta, 23 Nov, "page chrome is small"): the breadcrumb is the title, its last segment the page's
                 h1, and the page's one action sits at the right edge. Project pages carry New; Not again passes its own;
                 the others carry none. No lede or health line here: the cards say it. */}
-            <PageHeader size="bar" title={trail[trail.length - 1]} actions={header?.actions ?? (['projects', 'work', 'health', 'playground'].includes(place) ? <NewTask /> : undefined)} meta={<Crumb trail={trail} compact={phone} href={projectOf() ? `#/work?project=${projectOf()}` : '#/work'} linked={place !== 'work'} />} />
+            <PageHeader size="bar" title={trail[trail.length - 1]} actions={header?.actions ?? (['projects', 'work', 'health', 'playground'].includes(place) ? <NewTask /> : undefined)} meta={<Crumb trail={trail} compact={phone} href={header?.back ?? (projectOf() ? `#/work?project=${projectOf()}` : '#/work')} linked={place !== 'work'} />} />
             {tabs ? (
               <Tabs className="chip-screen__tabs" tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}

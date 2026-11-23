@@ -15,6 +15,7 @@ import Foundations from './pages/Foundations.jsx';
 import Docs from './pages/Docs.jsx';
 import Team from './pages/Team.jsx';
 import Health from './pages/Health.jsx';
+import AuditReports from './pages/AuditReports.jsx';
 import Work from './pages/Work.jsx';
 import Components from './pages/Components.jsx';
 import Present from './pages/Present.jsx';
@@ -54,6 +55,7 @@ function Page({ hash }) {
   if (at === '#/playground') return <Playground />;
   if (at === '#/team') return <Team />;
   if (at === '#/health') return <Health />;
+  if (at === '#/health/audits') return <AuditReports />;
   if (at === '#/work') return <Work />;
   if (at === '#/present' || at.startsWith('#/present/')) return <Present />;
   if (at === '#/system/history') return <History />;
