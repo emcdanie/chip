@@ -2,15 +2,16 @@
 // will take, what I have to do, what I can expect ... then it shows in the Work board"; CHIP CLAUDE.md "Fix plans"). One
 // shared body for the reading drawers of Drift, Contrast coverage and Checks: what the finding is, the recommended plan already
 // written and editable, how long it takes, what she does and what to expect, then one Start.
+// The actions sit in the drawer's footer, never in the content (23 Nov evening: "Drawer actions sit in the footer only, in
+// one row"): useFixPlan returns the body for the drawer's content and the footer and footerNote for BELLA Drawer.
 //   Start puts the plan on the Work board as a card in Next with its brief; nothing runs and nothing is paid.
 //   Execute now opens the existing plan sheet (RunPlan), where the agent run still needs her approval.
 // plan: { title, from, summary, scope?: { value, options: [{ value, label }], onChange }, brief, outline?, minutes?, youDo, expect }
 // minutes: a measured line ("About 6 min: the average of your last 4 runs") or null; null says it is not measured yet.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Input from '@bella/components/Input/Input';
-import Notification from '@bella/components/Notification/Notification';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
 import { Facts, Inset } from './ReadingDrawer.jsx';
@@ -34,25 +35,21 @@ export function measuredMinutes(runs = []) {
   return `About ${avg} min: the average of your last ${took.length} ${took.length === 1 ? 'run' : 'runs'}`;
 }
 
-export default function FixPlan({ plan, onBefore }) {
-  const [brief, setBrief] = useState(plan.brief);
+export function useFixPlan(plan, onBefore) {
+  const [brief, setBrief] = useState(plan?.brief ?? '');
   const [done, setDone] = useState(null);
   const [busy, setBusy] = useState(false);
   // read first, edit on request (second-pass review M27: a read-only plan view wherever a plan can start; D4: the plan
   // was a 144px box to scroll inside)
   const [editing, setEditing] = useState(false);
   const [allSteps, setAllSteps] = useState(false);
-  const said = useRef(null);
   // choosing a scope writes a new plan; her edits are kept until she does
   useEffect(() => {
-    setBrief(plan.brief);
+    setBrief(plan?.brief ?? '');
     setDone(null);
     setEditing(false);
-  }, [plan.brief]);
-  // after Start the result and its "See it on the board" come into view
-  useEffect(() => {
-    if (done) requestAnimationFrame(() => said.current?.scrollIntoView({ block: 'nearest' }));
-  }, [done]);
+  }, [plan?.brief]);
+  if (!plan) return { body: null, footer: undefined, footerNote: undefined };
   const lines = brief.split('\n').map((l) => l.trim()).filter(Boolean);
   const lead = lines[0]?.startsWith('- ') ? null : lines[0];
   // a plan may give a short line per step for reading (plan.outline); the full brief is what Edit shows and what runs.
@@ -74,7 +71,7 @@ export default function FixPlan({ plan, onBefore }) {
     onBefore?.(); // the drawer closes first, so the plan sheet opens on top, never under it
     setTimeout(() => planRun({ title: plan.title, from: plan.from, brief }).catch(() => {}), 150);
   };
-  return (
+  const body = (
     <Inset gap={16}>
       <Flow gap={4} id="fix-plan">
         <TextStack title="Recommended plan" />
@@ -122,25 +119,24 @@ export default function FixPlan({ plan, onBefore }) {
           { label: 'Expect', value: plan.expect },
         ]}
       />
-      {done ? (
-        <div ref={said}>
-        <Notification
-          tone={done.tone}
-          message={done.text}
-          action={done.tone === 'success' ? { label: 'See it on the board', onClick: () => (onBefore?.(), (window.location.hash = '#/work')) } : undefined}
-        />
-        </div>
-      ) : null}
-      <Flow direction="row" gap={8} justify="end" wrap>
-        <Button variant="secondary" onClick={execute}>
-          Execute now
-        </Button>
-        <Button variant="primary" busy={busy} disabled={Boolean(done?.tone === 'success')} onClick={start}>
-          Start
-        </Button>
-      </Flow>
-      {/* what each button does, before she presses it (second-pass review S17) */}
-      <TextStack subtitle="Start adds a card to Work, in Next; nothing runs. Execute now opens the run plan, and nothing runs until you approve it." />
     </Inset>
   );
+  // after Start the footer says what happened and its primary becomes See it on the board; a failure says why
+  const footer = done?.tone === 'success' ? (
+    <Button variant="primary" onClick={() => (onBefore?.(), (window.location.hash = '#/work'))}>
+      See it on the board
+    </Button>
+  ) : (
+    <>
+      <Button variant="secondary" onClick={execute}>
+        Execute now
+      </Button>
+      <Button variant="primary" busy={busy} onClick={start}>
+        Start
+      </Button>
+    </>
+  );
+  // what the buttons do, before she presses them (second-pass review S17), on the buttons' row
+  const footerNote = done ? done.text : 'Start puts it on Work; nothing runs yet.';
+  return { body, footer, footerNote };
 }

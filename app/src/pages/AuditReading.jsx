@@ -15,7 +15,7 @@ import Notification from '@bella/components/Notification/Notification';
 import Progress from '@bella/components/Progress/Progress';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
-import FixPlan, { measuredMinutes } from '../templates/FixPlan.jsx';
+import { measuredMinutes, useFixPlan } from '../templates/FixPlan.jsx';
 import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, ReadingTop } from '../templates/ReadingDrawer.jsx';
 import useCached from '../templates/useCached.js';
 import { auditTone, greenFrom, parseReport } from './auditReport.js';
@@ -53,6 +53,18 @@ function answerOf(a, orders) {
   return score ? <>{score}{`${moved}.${reach}`}</> : `No score in the report.${reach}`;
 }
 
+/* The audit's plan: every work order, most important first, then the audit run again. */
+function auditPlan(a, r, day, runs) {
+  return {
+    title: `Reach ${a.unit === 'of 100' ? '100' : 'the top'} on the ${a.title} audit`,
+    from: `Health · ${a.title} audit`,
+    summary: `${r.orders.length} work orders from the report, most important first. Doing them and running the audit again moves the score.`,
+    brief: [`Work through the ${a.title} audit's work orders (the saved report of ${day}), most important first, one commit each:`, ...r.orders.map((o) => `- ${o.title}${o.move ? `: ${up(o.move)}` : ''}`), 'Then run the audit again, read only, and save its report.'].join('\n'),
+    minutes: measuredMinutes(runs),
+    youDo: 'Press Start to put the plan on your board. When you want it done, run it from the card and approve the agent run; then Accept or Undo the result.',
+    expect: 'A card on Work with its steps. Nothing is pushed; the audit is run again at the end so the card shows the new score.',
+  };}
+
 export default function AuditReading({ a, day, lights, open, onClose }) {
   const [state, setState] = useState({ r: null, error: false });
   const [order, setOrder] = useState(null);
@@ -74,6 +86,8 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
   }, [a.id, a.at, open]); // eslint-disable-line react-hooks/exhaustive-deps
   const close = () => (setOrder(null), setStation(null), setAll(false), onClose());
   const shell = { open, onClose: close, label: `${a.title} audit`, status: lights };
+  // the plan's Start and Execute now sit in the report's footer, only on the report itself
+  const fix = useFixPlan(state.r?.orders.length && !station && !order && !all ? auditPlan(a, state.r, day, runs) : null, close);
 
   if (state.error) return <ReadingDrawer {...shell}><Inset><Notification tone="danger" title="The saved report did not open" message="CHIP could not read this audit's report file. The card still shows its last numbers." /></Inset></ReadingDrawer>;
   if (!state.r) return <ReadingDrawer {...shell}><Inset><Notification tone="info" title="Reading the report" message="Opening this audit's saved report." /></Inset></ReadingDrawer>;
@@ -129,15 +143,7 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
     onClick: s.evidence.length ? () => setStation(s) : undefined,
     line: [s.score != null ? `${s.score}${s.max === 100 ? ' of 100' : ` of ${s.max}`}` : null, s.line || null].filter(Boolean).join(' · ') || undefined,
   });
-  const plan = {
-    title: `Reach ${outOf100 ? '100' : 'the top'} on the ${a.title} audit`,
-    from: `Health · ${a.title} audit`,
-    summary: `${r.orders.length} work orders from the report, most important first. Doing them and running the audit again moves the score.`,
-    brief: [`Work through the ${a.title} audit's work orders (the saved report of ${day}), most important first, one commit each:`, ...r.orders.map((o) => `- ${o.title}${o.move ? `: ${up(o.move)}` : ''}`), 'Then run the audit again, read only, and save its report.'].join('\n'),
-    minutes: measuredMinutes(runs),
-    youDo: 'Press Start to put the plan on your board. When you want it done, run it from the card and approve the agent run; then Accept or Undo the result.',
-    expect: 'A card on Work with its steps. Nothing is pushed; the audit is run again at the end so the card shows the new score.',
-  };
+
 
   return (
     <ReadingDrawer
@@ -157,11 +163,13 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
         ) : undefined
       }
       source={source}
+      footer={fix.footer}
+      footerNote={fix.footerNote}
     >
       {r.orders.length ? (
         <ReadingTop
           label="Do these first"
-          rows={r.orders.slice(0, 3).map((o) => ({ key: o.n, title: o.title, line: o.move ? `First move: ${oneSentence(up(o.move))}` : undefined, onClick: () => setOrder(o) }))}
+          rows={r.orders.slice(0, 3).map((o) => ({ key: o.n, title: o.title, onClick: () => setOrder(o) }))}
           more={r.orders.length > 3 ? `See all ${r.orders.length} work orders` : undefined}
           onMore={r.orders.length > 3 ? () => setAll(true) : undefined}
         />
@@ -176,7 +184,7 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
           ]}
         />
       ) : null}
-      {r.orders.length ? <FixPlan plan={plan} onBefore={close} /> : null}
+      {fix.body}
     </ReadingDrawer>
   );
 }
