@@ -97,7 +97,10 @@ function GateBars({ runs, readAt }) {
           return `${f} of ${n} runs failed ${WHEN[range]}. Each bar is the runs in that ${PER[range]}; a red cross means at least one failed. Press a bar with a cross to see what failed.`;
         })()}
       />
-      <TextStack subtitle={`GitHub CI and CHIP's own runs${readAt ? ` · read ${clockOf(new Date(readAt))}` : ''}`} />
+      <Flow direction="row" gap={8} align="center" wrap>
+        <TextStack subtitle={`GitHub CI and CHIP's own runs${readAt ? ` · read ${clockOf(new Date(readAt))}` : ''}`} />
+        <How id="gate-runs" />
+      </Flow>
       <ReadingDrawer
         open={Boolean(open?.length)}
         onClose={() => setOpen(null)}
@@ -135,6 +138,74 @@ function GateBars({ runs, readAt }) {
         })}
       </ReadingDrawer>
     </Flow>
+  );
+}
+
+/* "How was this measured?" (Elleta, 23 Nov, "Prove it": every headline number says where it comes from and when it was read).
+   One small control per card sends the card's id; one reading drawer on the page answers: the source, how the number is made,
+   and when it was read. The words are the ones CHIP's own reads support; nothing here is a number typed in. */
+function How({ id }) {
+  return (
+    <Button variant="tertiary" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('chip:how', { detail: id }))}>
+      How was this measured?
+    </Button>
+  );
+}
+const withHow = (id, text) => (
+  <Flow gap={4}>
+    {text}
+    <How id={id} />
+  </Flow>
+);
+function howOf(id, { model, checked, audits }) {
+  const read = checked ? `Read at ${checked}, and again every minute while this page is open.` : 'Read when this page opened.';
+  const h = model?.health;
+  if (id.startsWith('audit:')) {
+    const a = (audits ?? []).find((x) => x.id === id.slice(6));
+    if (!a) return null;
+    return { title: `${a.title} audit`, source: `The saved report docs/reference/audit/${a.file}, written by the ${a.skill} run.`, how: `The score is the report's own "Overall" line${a.red == null ? '' : `; the ${a.red} failing and ${a.yellow} need-work counts are its red and yellow headings`}. CHIP reads the file; it does not re-run the audit.`, when: `The audit ran on ${dayOf(a.ran)}.` };
+  }
+  return {
+    health: { title: 'System health', source: "BELLA's component data (/data/bella.json), which CHIP builds from every part's files in BELLA: spec, code, stories, contract and accessibility notes.", how: `Every part is checked for the same set of things; the number is the checks that pass out of the checks run${h ? ` (${h.passed} of ${h.total})` : ''}, against the ${TARGET}% target.`, when: read },
+    contrast: { title: 'Contrast coverage', source: "BELLA's declared contrast pairs for each part (/contrast-pairs).", how: `A part counts once it declares the pairs of text and background colours it uses${model?.contrast ? ` (${model.contrast.pass} of ${model.contrast.of} do)` : ''}.`, when: read },
+    lowest: { title: 'Lowest contrast', source: "BELLA's own pairs check, run against every declared pair in every theme.", how: `For each pair CHIP works out the contrast ratio of text on its background and shows the lowest, against the ${model?.lowest?.bar ?? 7}:1 target${model?.lowest?.checked ? ` (${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''})` : ''}.`, when: read },
+    drift: { title: 'Drift from BELLA', source: "Each part's spec file in BELLA, which lists where Figma, the spec and the code differ.", how: 'A part differs when its spec lists a mismatch or is behind its code. Parts whose spec was never read from Figma are counted separately, not as matching.', when: read },
+    gaps: { title: 'Gaps', source: "BELLA's own brief of what is specified and not yet in code (/bella-gaps).", how: 'Counted from that brief: a part is a gap when its brief says something is specified and missing. CHIP adds nothing to the list.', when: read },
+    checks: { title: 'Checks', source: "CHIP's gate check results and their log (data/checks/log.jsonl), written each time a check runs.", how: 'The gate is the set of checks BELLA must pass before a commit. A check shows its last recorded result and the commit it ran on; a check that has not run says so.', when: read },
+    'gate-runs': { title: 'Gate runs', source: "GitHub's CI runs for BELLA's repository (read with gh) and CHIP's own gate log.", how: 'Every finished run is counted once, in the half hour, day or month it ran. A cancelled run is neither a pass nor a failure and is left out.', when: 'Read when CI last answered; the time is under the chart.' },
+  }[id] ?? null;
+}
+function HowDrawer({ model, checked }) {
+  const [id, setId] = useState(null);
+  const audits = useCached(['/audits']).data?.[0] ?? null;
+  useEffect(() => {
+    const on = (e) => setId(e.detail);
+    window.addEventListener('chip:how', on);
+    return () => window.removeEventListener('chip:how', on);
+  }, []);
+  const ALL = ['health', 'checks', 'drift', 'gaps', 'contrast', 'lowest', 'gate-runs'];
+  const list = id === 'all' ? ALL.map((k) => howOf(k, { model, checked, audits })).filter(Boolean) : id ? [howOf(id, { model, checked, audits })].filter(Boolean) : [];
+  const f = list[0] ?? null;
+  return (
+    <ReadingDrawer open={Boolean(f)} onClose={() => setId(null)} label="How was this measured?" subtitle={id === 'all' ? 'Every headline number on this page' : f?.title}>
+      {list.map((f) => (
+        <Inset key={f.title} gap={16}>
+          {id === 'all' ? <TextStack title={f.title} /> : null}
+          <Flow gap={4}>
+            <TextStack title="Where it comes from" />
+            <TextStack body={f.source} />
+          </Flow>
+          <Flow gap={4}>
+            <TextStack title="How the number is made" />
+            <TextStack body={f.how} />
+          </Flow>
+          <Flow gap={4}>
+            <TextStack title="When it was read" />
+            <TextStack body={f.when} />
+          </Flow>
+        </Inset>
+      ))}
+    </ReadingDrawer>
   );
 }
 
@@ -443,7 +514,7 @@ function AuditCard({ a }) {
         value={a.value ?? '–'}
         unit={a.unit ?? ''}
         context={lights}
-        caption={`Ran ${dayOf(a.ran)}${was}`}
+        caption={withHow(`audit:${a.id}`, `Ran ${dayOf(a.ran)}${was}`)}
         onOpen={() => setOpen(true)}
       />
       <ReadingDrawer open={open} onClose={() => setOpen(false)} label={`${a.title} audit`} status={`Ran ${dayOf(a.ran)} · ${lights}`}>
@@ -523,12 +594,14 @@ export default function HealthContent({ model, run, checked, stale, onCheck, loa
       {/* Control bar, as on Work: the last check and Check again, one group on the left. */}
       <Flow direction="row" gap={8} align="center">
         {stale ? <TextStack subtitle={stale} /> : checked ? <TextStack subtitle={`Updated ${checked}`} /> : null}
+        <How id="all" />
         {/* busy while the check runs: the icon turns and clicks wait (Button busy, parts-dev 99a021d) */}
         <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={onCheck}>
           {loading ? 'Checking…' : 'Check again'}
         </Button>
       </Flow>
       <GateBanner run={run} />
+      <HowDrawer model={model} checked={checked} />
       {notice ? (
         <Toasts>
           <Toast tone={notice.tone} onClose={() => setNotice(null)}>
@@ -579,7 +652,7 @@ export default function HealthContent({ model, run, checked, stale, onCheck, loa
             chart="bar"
             meter={{ fill: contrast.pct, target: TARGET }}
             context={`${contrast.pass} of ${contrast.of} have pairs${contrast.toGo ? ` · ${contrast.toGo} to go` : ''}`}
-            href={contrast.href ?? undefined}
+                        href={contrast.href ?? undefined}
           />
         ) : null}
         {model.lowest ? (
