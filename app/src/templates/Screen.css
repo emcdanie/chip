@@ -45,6 +45,13 @@
   max-block-size: calc(var(--size-60) * 8);
   overflow-y: auto;
 }
+.chip-screen__logo {
+  position: absolute;
+  inset-block-end: var(--spacing-12);
+  inset-inline-end: var(--spacing-12);
+  display: inline-flex;
+  pointer-events: none;
+}
 .chip-screen__menu > .chip-pop__menu { inset-block-start: var(--h-control); inset-inline-start: var(--spacing-12); }
 
 .chip-screen__main {
@@ -59,7 +66,7 @@
   flex-direction: column;
   flex: 1 1 auto;
   min-block-size: 0;
-  padding-block-start: var(--layout-stack-lg);
+  /* the header is one 56 row; no air above it (23 Nov, page chrome is small) */
   background: var(--color-background-surface);
 }
 
@@ -67,7 +74,7 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--layout-stack-lg);
+  gap: 0;
   padding-inline: var(--layout-container-pad);
 }
 
@@ -81,7 +88,7 @@
 
 .chip-screen__lead {
   position: absolute;
-  inset-block-start: var(--spacing-12);
+  inset-block-start: calc(var(--spacing-12) / 2);
   inset-inline-start: var(--spacing-8);
   z-index: 1;
   display: flex;
@@ -99,7 +106,7 @@
 .chip-screen__head--plain {
   /* a page with no tabs: its title meets the scrolling content at a line, so text that scrolls under the title
      is cut at a visible edge and not mid-letter against bare background (Elleta, 23 Nov) */
-  padding-block-end: var(--spacing-12);
+  padding-block-end: 0;
   border-block-end: var(--border-width-1) solid var(--color-border-default);
 }
 
@@ -130,12 +137,6 @@
 
 :is(.chip-screen__content, .chip-tabpanel) > * {
   grid-column: 1 / -1;
-}
-
-/* The project's health bar under the title: Figma's 180 (three 60 steps). */
-.chip-screen__health-bar {
-  inline-size: calc(var(--size-60) * 3);
-  flex-shrink: 0;
 }
 
 /* Flow (Flow.jsx): the one layout primitive pages use. */
