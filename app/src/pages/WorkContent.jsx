@@ -32,6 +32,8 @@ import { useEffect, useRef, useState } from 'react';
 import Toasts from '../templates/Toasts.jsx';
 import { planRun } from '../templates/RunPlan.jsx';
 import Flow from '../templates/Flow.jsx';
+import ResultsBar from '../templates/ResultsBar.jsx';
+import NoResults from '../templates/NoResults.jsx';
 import WorkDrawer from './WorkDrawer.jsx';
 import NeedsYouView from './NeedsYouView.jsx';
 import useNarrow from '../templates/useNarrow.js';
@@ -48,10 +50,12 @@ export const VIEWS = [
 // the lane tags follow the lane washes (23 Nov): Ideas ochre, Next navy, Now blue, Shipped green, Not doing pink
 const LANE_TONE = { ideas: 'ochre', next: 'navy', now: 'info', shipped: 'success', 'not-doing': 'pink' };
 const tagTone = (t) => (t === 'neutral' ? 'default' : t);
+// status sorts by urgency, not alphabet (second pass S5): failed, then waiting on her, then working, quiet, done
+const URGENCY = { danger: 0, attention: 1, info: 2, neutral: 3, success: 4 };
 const TABLE_COLUMNS = [
   { key: 'title', label: 'Task', sortable: true },
   { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag variant="solid" tone={tagTone(LANE_TONE[r.laneId])}>{r.lane}</Tag> },
-  { key: 'status', label: 'Status', sortable: true, render: (r) => (r.status ? <Tag variant="line" tone={tagTone(r.tone)}>{r.status}</Tag> : null) },
+  { key: 'status', label: 'Status', sortable: true, sortValue: (r) => URGENCY[r.tone] ?? 5, render: (r) => (r.status ? <Tag variant="line" tone={tagTone(r.tone)}>{r.status}</Tag> : null) },
   { key: 'area', label: 'Area', sortable: true, render: (r) => r.area ?? '' },
   { key: 'who', label: 'Who acts', sortable: true, render: (r) => (r.who ? r.who[0].toUpperCase() + r.who.slice(1) : null) },
 ];
@@ -242,10 +246,25 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     const next = `#/work${q.toString() ? `?${q}` : ''}`;
     if (window.location.hash !== next) window.history.replaceState(null, '', next);
   };
-  const [sort, setSort] = useState('mine');
-  const [q, setQ] = useState('');
+  // search and sort come from the address and go back into it (search-filter plan, 23 Nov: a list's state is a link)
+  const fromAddr = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+  const [sort, setSort] = useState(SORTS.some((s) => s.value === fromAddr.get('sort')) ? fromAddr.get('sort') : 'mine');
+  const [q, setQ] = useState((fromAddr.get('q') ?? '').slice(0, 80));
+  useEffect(() => {
+    const a = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+    q ? a.set('q', q) : a.delete('q');
+    sort !== 'mine' ? a.set('sort', sort) : a.delete('sort');
+    const next = `#/work${a.toString() ? `?${a}` : ''}`;
+    if (window.location.hash.startsWith('#/work') && window.location.hash !== next) window.history.replaceState(null, '', next);
+  }, [q, sort]);
   const [tool, setTool] = useState(null); // 'filter' | 'sort' | 'search'
   const checkAsked = useRef(false);
+  // a menu that closes hands focus back to the button that opened it (second pass S10)
+  const lastTool = useRef(null);
+  useEffect(() => {
+    if (!tool && lastTool.current) document.querySelector(`[data-tool="${lastTool.current}"] button`)?.focus();
+    lastTool.current = tool === 'filter' || tool === 'sort' ? tool : null;
+  }, [tool]);
   // Search opens as its field, ready to type in
   const searchRef = useRef(null);
   useEffect(() => {
@@ -311,7 +330,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
           Search on the left; the count, the last check and the views on the right. */}
       {reviewing ? null : <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'}>
         <Flow direction="row" gap={8} align="center" wrap stretch={phone}>
-          <div className="chip-pop" style={phone ? { position: 'static' } : undefined}>
+          <div data-tool="filter" className="chip-pop" style={phone ? { position: 'static' } : undefined}>
             <Button variant="tertiary" size="sm" iconOnly icon="FilterList" ariaLabel="Filter" ariaPressed={!!filter} ariaExpanded={tool === 'filter'} onClick={() => setTool((t) => (t === 'filter' ? null : 'filter'))} />
             {tool === 'filter' ? (
               <div className="chip-pop__menu" style={phone ? { marginInlineStart: 'var(--spacing-16)' } : undefined}>
@@ -331,7 +350,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
               </div>
             ) : null}
           </div>
-          <div className="chip-pop" style={phone ? { position: 'static' } : undefined}>
+          <div data-tool="sort" className="chip-pop" style={phone ? { position: 'static' } : undefined}>
             <Button variant="tertiary" size="sm" iconOnly icon="NavArrowUpDown" ariaLabel={`Sort: ${SORTS.find((s) => s.value === sort).label}`} ariaPressed={sort !== 'mine'} ariaExpanded={tool === 'sort'} onClick={() => setTool((t) => (t === 'sort' ? null : 'sort'))} />
             {tool === 'sort' ? (
               <div className="chip-pop__menu" style={phone ? { marginInlineStart: 'var(--spacing-16)' } : undefined}>
@@ -345,7 +364,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
           </div>
           {tool === 'search' || q ? (
             <div ref={searchRef}>
-              <SearchField label="Search the board" placeholder="Search cards" value={q} onChange={setQ} />
+              <SearchField label="Search the board" placeholder="Search cards" showShortcut={false} value={q} onChange={setQ} />
             </div>
           ) : (
             <Button variant="tertiary" size="sm" iconOnly icon="Search" ariaPressed={!!q} ariaLabel="Search the board" onClick={() => setTool('search')} />
@@ -381,25 +400,16 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
       )}
       {/* what is on, with a way off, and how much of the board it leaves (feedback for Filter, Sort and Search) */}
       {reviewing || !all || !(filter || sort !== 'mine' || q) ? null : (
-        <Flow direction="row" gap={8} wrap align="center">
-          {filter ? (
-            <FilterChip pressed onClick={() => setFilter(null)} ariaLabel={`Filtered by ${filterLabel}. Clear the filter`}>
-              {`Filtered by: ${filterLabel}`}
-            </FilterChip>
-          ) : null}
-          {sort !== 'mine' ? (
-            <FilterChip pressed onClick={() => setSort('mine')} ariaLabel={`Sorted by ${SORTS.find((x) => x.value === sort).label.toLowerCase()}. Back to your order`}>
-              {`Sorted by: ${SORTS.find((x) => x.value === sort).label.toLowerCase()}`}
-            </FilterChip>
-          ) : null}
-          {q ? (
-            <FilterChip pressed onClick={() => setQ('')} ariaLabel={`Searching for ${q}. Clear the search`}>
-              {`Search: ${q}`}
-            </FilterChip>
-          ) : null}
-          <Button variant="tertiary" size="sm" onClick={() => (setSort('mine'), setQ(''), setFilter(null))}>Clear</Button>
-          {model ? <TextStack subtitle={`Showing ${model.total} of ${everything}`} /> : null}
-        </Flow>
+        <ResultsBar
+          applied={[
+            filter && { key: 'filter', label: `Filtered by: ${filterLabel}`, removeLabel: `Filtered by ${filterLabel}. Take the filter off`, onRemove: () => setFilter(null) },
+            sort !== 'mine' && { key: 'sort', label: `Sorted by: ${SORTS.find((x) => x.value === sort).label.toLowerCase()}`, removeLabel: 'Back to your order', onRemove: () => setSort('mine') },
+            q && { key: 'q', label: `Search: ${q}`, removeLabel: `Searching for ${q}. Take the search off`, onRemove: () => setQ('') },
+          ].filter(Boolean)}
+          shown={model?.total}
+          total={everything}
+          onClearAll={() => (setSort('mine'), setQ(''), setFilter(null))}
+        />
       )}
       {!model ? (
         <EmptyState size="lane" mark="⏳" title="Reading the board" line="Fetching the sessions, what needs you and the ideas." />
@@ -426,11 +436,21 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
             />
           ) : projectName && stats.cards === 0 && !q ? (
             <EmptyState size="page" mark="🔌" title={`Nothing from ${projectName} is on the board`} line={`No card is tagged ${projectName}. Start a task for it from New, or connect a Claude Code session working in its folder, and its cards show here.`} />
+          ) : model.total === 0 && (filter || q) ? (
+            <NoResults
+              noun="cards"
+              what={q ? `“${q}”${filter ? ` in ${filterLabel}` : ''}` : filterLabel}
+              on={[
+                filter && { key: 'filter', label: filterLabel, would: shown(all, { filter: null, sort, q }).total, onRemove: () => setFilter(null) },
+                q && { key: 'q', label: `search “${q}”`, would: shown(all, { filter, sort, q: '' }).total, onRemove: () => setQ('') },
+              ].filter(Boolean)}
+              onClearAll={() => (setSort('mine'), setQ(''), setFilter(null))}
+            />
           ) : view === 'table' ? (
             model.total ? (
-              <DataTable caption="Every card on the board" columns={TABLE_COLUMNS} rows={model.lanes.flatMap((l) => l.cards.map((c) => ({ ...c, lane: l.name, laneId: l.id })))} rowKey="id" />
+              <DataTable caption="Every card on the board" columns={TABLE_COLUMNS} rows={model.lanes.flatMap((l) => l.cards.map((c) => ({ ...c, lane: l.name, laneId: l.id })))} rowKey="id" onOpen={(id) => { const c = model.lanes.flatMap((l) => l.cards).find((x) => x.id === id); if (c) open(c); }} />
             ) : (
-              <EmptyState size="lane" mark="🔍" title="No cards" line={filterLabel || q ? 'Nothing matches. Clear the filter or the search.' : 'Nothing on the board.'} />
+              <EmptyState size="lane" mark="🔍" title="No cards" line="Nothing on the board." />
             )
           ) : view === 'list' ? (
             <Card>
@@ -445,14 +465,14 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
                     )}
                   </Flow>
                 ) : (
-                  <EmptyState size="lane" mark="🔍" title="No cards" line="Nothing matches. Clear the filter or the search." />
+                  <EmptyState size="lane" mark="🔍" title="No cards" line="Nothing on the board." />
                 )}
               </Flow>
             </Card>
           ) : (
             <Flow board direction="row" gap={24} aria-label="Work board" onDragOver={onDragOver} onDrop={onDrop}>
               {model.lanes.map((l) => (
-                <Lane key={l.id} lane={l} move={move} why={filterLabel || q ? 'Nothing here matches the filter or the search.' : model.why?.[l.id]} />
+                <Lane key={l.id} lane={l} move={move} why={model.why?.[l.id]} />
               ))}
             </Flow>
           )}
