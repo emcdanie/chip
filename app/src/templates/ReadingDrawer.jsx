@@ -89,7 +89,7 @@ export function SourceLine({ from, when, commit }) {
    Colour names the group only; the group's name is the state in a word (Failing, Needs work, Healthy), so an item repeats
    nothing. One group open at a time (single); an open group shows 7 rows, then See all. Opening a group brings it to the
    top of the drawer's body (her 22 Nov: the first item was cut at the top edge).
-   groups: [{ name, tone, hue?, items: [{ key, title, line, body, onClick, action }] }]; the count is items.length, never typed.
+   groups: [{ name, tone, hue?, items: [{ key, title, line?, state?, value?, body, onClick, action }] }]; the count is items.length, never typed.
    A group that explains instead of listing (How was this measured?) passes `body` and its own `count` (the number it explains). */
 const HUES = ['navy', 'blue', 'stone'];
 const FIRST = 7;
@@ -121,18 +121,20 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
             <BranchGroup key={g.name} name={g.name} count={g.count ?? g.items.length} hue={g.hue ?? HUES[gi % HUES.length]} open={open.includes(g.name)} onToggle={() => toggle(g.name)}>
               {g.body ? <Inset>{g.body}</Inset> : null}
               {g.items ? <ListRowGroup ariaLabel={`${g.name}: ${g.items.length}`}>
-                {items.map((it) => (
+                {items.map((it, k) => (
                   <ListRow
                     key={it.key ?? it.title}
                     as="div"
-                    layout="stacked"
-                    statusBar={g.tone ?? 'neutral'}
+                    layout="inline"
                     title={it.title}
                     description={it.line}
+                    valueLabel={it.state}
+                    value={it.value}
                     body={it.body}
                     trailing={it.onClick && !it.action ? true : undefined}
                     onClick={it.onClick}
                     actionButton={it.action}
+                    divider={k < items.length - 1}
                   />
                 ))}
               </ListRowGroup> : null}
@@ -175,13 +177,14 @@ export function ReadingTable({ caption, rows, columns, rowKey = 'key', filters, 
   );
 }
 
-/* The summary of a long list (option C, her pick): the top three rows and "See all N" into the table. */
+/* The summary of a long list (option C, her pick): the top three rows and "See all N" into the table. Each row is one line
+   with one divider (23 Nov evening); its detail is behind the row's click. */
 export function ReadingTop({ rows, more, onMore, label }) {
   return (
     <Flow gap={8}>
       <ListRowGroup ariaLabel={label}>
-        {rows.map((r) => (
-          <ListRow key={r.key ?? r.title} layout="stacked" statusBar={r.tone ?? 'attention'} title={r.title} description={r.line} trailing={r.onClick ? true : undefined} onClick={r.onClick} />
+        {rows.map((r, k) => (
+          <ListRow key={r.key ?? r.title} layout="inline" title={r.title} description={r.line} valueLabel={r.state} value={r.value} trailing={r.onClick ? true : undefined} onClick={r.onClick} divider={k < rows.length - 1} />
         ))}
       </ListRowGroup>
       {onMore ? (

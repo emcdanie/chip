@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from '
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { RECORD, WATCHED, leaderInputsHash, PROCESS_RECORD, PROCESS_WATCHED, processInputsHash, CARD_RECORD, routeWhy, scrollWhy, RESPONSIVE_RECORD, PAGE_ROUTES, fileHashes, cardWatched, STRIP_WATCHED, STRIP_RECORD, stripInputsHash, SCROLL_WATCHED, SCROLL_RECORD, scrollInputsHash } from './lib/stage-leaders.mjs';
+import { RECORD, WATCHED, leaderInputsHash, PROCESS_RECORD, PROCESS_WATCHED, processInputsHash, CARD_RECORD, routeWhy, scrollWhy, RESPONSIVE_RECORD, PAGE_ROUTES, fileHashes, cardWatched, STRIP_WATCHED, STRIP_RECORD, stripInputsHash, SCROLL_WATCHED, SCROLL_RECORD, scrollInputsHash, DRAWER_WATCHED, DRAWER_RECORD, drawerInputsHash } from './lib/stage-leaders.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(ROOT, 'data/on-system-baseline.json');
@@ -295,6 +295,20 @@ if (bareCommits.length) {
     const why = !rec ? 'it has not been run' : rec.hash !== stripInputsHash() ? 'it ran on other files than these' : !rec.ok ? `it found ${rec.bad} strips that are not the part's own states` : null;
     if (why) {
       console.log(`on-system-guard: the states strip changed and its check is not clean (${why}). Run npm run check:states. Commit blocked.`);
+      process.exit(1);
+    }
+  }
+}
+
+// Drawers: a commit that changes a file holding a drawer needs a clean full run of `npm run check:drawers` on exactly
+// these files (23 Nov evening: actions in the footer only, the helper on the buttons' row).
+{
+  const staged = spawnSync('git', ['diff', '--cached', '--name-only'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n');
+  if (DRAWER_WATCHED.some((f) => staged.includes(f))) {
+    const rec = existsSync(DRAWER_RECORD) ? JSON.parse(readFileSync(DRAWER_RECORD, 'utf8')) : null;
+    const why = !rec ? 'it has not been run' : rec.hash !== drawerInputsHash() ? 'it ran on other files than these' : !rec.ok ? `it found ${rec.bad} drawer actions out of place` : null;
+    if (why) {
+      console.log(`on-system-guard: a drawer changed and the drawer check is not clean (${why}). Run npm run check:drawers. Commit blocked.`);
       process.exit(1);
     }
   }

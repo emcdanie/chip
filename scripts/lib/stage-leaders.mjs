@@ -104,6 +104,23 @@ export const mergeRouteRecord = (path, routes, extra = {}) => {
   writeFileSync(path, JSON.stringify({ ...extra, at: new Date().toISOString(), routes: { ...(rec.routes ?? {}), ...routes } }, null, 1));
 };
 
+// Drawer actions sit in the footer only, in one row (scripts/rules-check.mjs --rule drawers; her 23 Nov evening: buttons in
+// the middle of drawers, a helper on its own line under the button). Every file that holds a drawer, its footer or what
+// goes in it; a change to one needs a clean full run of the rule on exactly these files.
+export const DRAWER_WATCHED = [
+  'app/src/templates/ReadingDrawer.jsx', 'app/src/templates/FixPlan.jsx', 'app/src/templates/RunPlan.jsx', 'app/src/templates/RunStatus.jsx',
+  'app/src/templates/NewStart.jsx', 'app/src/templates/WorkDock.jsx', 'app/src/templates/SetupSteps.jsx', 'app/src/templates/ConnectorSetup.jsx',
+  'app/src/templates/FigmaSetup.jsx', 'app/src/pages/HealthContent.jsx', 'app/src/pages/AuditReading.jsx', 'app/src/pages/WorkDrawer.jsx',
+  'app/src/pages/DocReader.jsx', 'app/src/pages/StepPanel.jsx', 'app/src/pages/HistoryContent.jsx', 'app/src/pages/ConnectorsContent.jsx',
+  'app/src/pages/ComponentsContent.jsx', 'app/src/pages/PlaygroundContent.jsx',
+];
+export const DRAWER_RECORD = join(ROOT, 'data', 'drawer-footer.json');
+export const drawerInputsHash = () => {
+  const h = createHash('sha1');
+  for (const f of DRAWER_WATCHED) h.update(existsSync(join(ROOT, f)) ? readFileSync(join(ROOT, f)) : '');
+  return h.digest('hex');
+};
+
 // The strip under the stage shows the part's own states, never other components (scripts/states-strip-check.mjs; her
 // bug, 22 Nov: "its meant to be states not take you to other components")
 export const STRIP_WATCHED = ['app/src/pages/ComponentsContent.jsx', 'app/src/pages/componentsModel.js', 'app/src/specimens.jsx'];

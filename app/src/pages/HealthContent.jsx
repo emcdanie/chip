@@ -20,7 +20,7 @@ import LineChart from '@bella/components/LineChart/LineChart';
 import TextStack from '@bella/components/TextStack/TextStack';
 import ListRow from '@bella/components/ListRow/ListRow';
 import { planRun } from '../templates/RunPlan.jsx';
-import FixPlan, { measuredMinutes } from '../templates/FixPlan.jsx';
+import { measuredMinutes, useFixPlan } from '../templates/FixPlan.jsx';
 import AuditReading from './AuditReading.jsx';
 import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, drawerOf, setDrawerUrl, useDrawerUrl } from '../templates/ReadingDrawer.jsx';
 import { auditTone } from './auditReport.js';
@@ -227,6 +227,7 @@ function ContrastCoverage({ contrast }) {
     youDo: 'Press Start to put the plan on your board. When you want it done, run it from the card and approve the agent run; then Accept or Undo the result.',
     expect: "A card on Work with its steps. The agent works on a copy in BELLA and runs the pairs check before a commit; nothing is pushed.",
   };
+  const fix = useFixPlan(names.length ? plan : null, () => setOpen(false));
   return (
     <>
       <StatCard
@@ -249,9 +250,11 @@ function ContrastCoverage({ contrast }) {
         answer={names.length ? <><strong>{`${names.length} of ${contrast.of} parts`}</strong>{` still need their pairs declared; that takes coverage from ${contrast.pct}% to 100%.`}</> : 'Every part declares its pairs: coverage is 100%.'}
         picture={<Progress label="Parts that declare their contrast pairs" value={`${contrast.pass} of ${contrast.of}`} fill={contrast.pct} target={TARGET} targetLabel={`${TARGET}% target`} tone={contrast.pct >= TARGET ? 'success' : 'attention'} />}
         source={{ from: "BELLA's declared contrast pairs for each part" }}
+        footer={fix.footer}
+        footerNote={fix.footerNote}
       >
-        <ReadingGroups openFirst label="Parts by contrast pairs" groups={[{ name: 'No pairs declared', tone: 'attention', items: names.map((n) => ({ key: n, title: n, line: 'Declares no text and background pair' })) }]} />
-        {names.length ? <FixPlan plan={plan} onBefore={() => setOpen(false)} /> : null}
+        <ReadingGroups openFirst label="Parts by contrast pairs" groups={[{ name: 'No pairs declared', tone: 'attention', items: names.map((n) => ({ key: n, title: n })) }]} />
+        {fix.body}
       </ReadingDrawer>
     </>
   );
@@ -363,6 +366,7 @@ function DriftCard({ components, d }) {
     : [];
   // the plan opens on a group that has parts: the largest of the three kinds, never an empty one
   const scope = picked ?? ['behind', 'figma', 'nospec'].map((k) => [k, k === 'behind' ? d?.specBehind : k === 'figma' ? d?.drifting : d?.noSpec]).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'all';
+  const fix = useFixPlan(d?.total && view === 'summary' ? driftBatch(d, scope, setScope, runs) : null, closed);
   if (!d?.total) return <NoData title="Drift from BELLA" icon="Activity" context="Parts that differ from Figma, spec or code" caption={d ? 'No parts found' : 'Reading the specs'} />;
   const idOf = (name) => components.find((c) => c.name === name)?.id ?? name.replace(/(?<=[a-z])(?=[A-Z])/g, '-').toLowerCase();
   const day = d.at ? new Date(d.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
@@ -412,24 +416,22 @@ function DriftCard({ components, d }) {
         source={view === 'summary' ? { from: "Each part's spec file in BELLA", when: day ? `specs from ${day}` : null } : undefined}
         footer={
           typeof view === 'object' ? (
-            <Flow gap={8} stretch>
-            <Flow direction="row" gap={8} justify="end" wrap>
+            <>
               <Button variant="secondary" onClick={() => ((window.location.hash = `#/system/components/${encodeURIComponent(idOf(view.name))}`), closed())}>
                 Open the part
               </Button>
               <Button variant="primary" onClick={() => (closed(), setTimeout(() => planRun(driftPlan(view)).catch(() => {}), 150))}>
                 Plan this fix
               </Button>
-            </Flow>
-            <TextStack subtitle="Open the part goes to its page. Plan this fix opens the plan; nothing runs until you approve it." />
-            </Flow>
-          ) : undefined
+            </>
+          ) : view === 'summary' ? fix.footer : undefined
         }
+        footerNote={typeof view === 'object' ? 'Opens the plan; nothing runs until you approve it.' : view === 'summary' ? fix.footerNote : undefined}
       >
         {view === 'summary' ? (
           <>
             {/* the plan right under the picture, so it is read without scrolling (second-pass review D4) */}
-            <FixPlan plan={driftBatch(d, scope, setScope, runs)} onBefore={closed} />
+            {fix.body}
             {/* the drift chart is sorted bars (her chart rule; health-fixes 17b1f65): the ten parts with the most differences,
                 counted from the same parts (Figma differences read from Figma, props the spec is behind on, a missing spec as one).
                 Under the plan, so the plan stays at the top (second-pass review D4); every part is in the table behind See all */}
@@ -535,23 +537,15 @@ function GapsCard({ g }) {
           </Flow>
         }
         source={{ from: "BELLA's own brief of what is specified and not yet in code", when: 'no earlier reading kept, so no trend yet' }}
-        footer={
-          g.notInCode.length ? (
-            <Flow gap={8} stretch>
-              <Flow direction="row" justify="end">
-                <Button variant="primary" onClick={plan}>Plan the build</Button>
-              </Flow>
-              <TextStack subtitle="Opens the plan to build them; nothing runs until you approve it." />
-            </Flow>
-          ) : undefined
-        }
+        footer={g.notInCode.length ? <Button variant="primary" onClick={plan}>Plan the build</Button> : undefined}
+        footerNote={g.notInCode.length ? 'Opens the plan; nothing runs until you approve it.' : undefined}
       >
         <ReadingGroups
           openFirst
           label="Gaps by kind"
           groups={[
-            { name: 'Specified, not in code', tone: 'info', items: g.notInCode.map((n) => ({ key: n, title: n, line: 'Has a spec from Figma, no code part yet' })) },
-            { name: 'Not in BELLA yet', tone: 'neutral', items: g.notInBella.map((n) => ({ key: n, title: n, line: "In BELLA's AGENTS.md: ask before building" })) },
+            { name: 'Specified, not in code', tone: 'info', items: g.notInCode.map((n) => ({ key: n, title: n })) },
+            { name: 'Not in BELLA yet', tone: 'neutral', items: g.notInBella.map((n) => ({ key: n, title: n })) },
           ]}
         />
       </ReadingDrawer>
@@ -562,6 +556,21 @@ function GapsCard({ g }) {
 function GateCard({ gate, run, onOpen }) {
   const [reading, setReading] = useDrawerUrl('checks');
   const runs = useCached(['/runs']).data?.[0]?.runs ?? [];
+  // the plan when a check fails or has not run; its Start and Execute now sit in the drawer's footer
+  const fix = useFixPlan(
+    gate && run?.state !== 'running' && (gate.failing.length || gate.notRun.length)
+      ? ((of) => ({
+        title: `Get the gate to ${of} of ${of}`,
+        from: 'Health · Checks',
+        summary: `${gate.failing.length ? `${gate.failing.length} failing` : ''}${gate.failing.length && gate.notRun.length ? ' and ' : ''}${gate.notRun.length ? `${gate.notRun.length} not run yet` : ''}: one agent run can fix what fails and run the rest.`,
+        brief: ['Make every BELLA gate check pass, one commit:', ...gate.failing.map((n) => `- ${n}: find why it fails and fix it.`), ...gate.notRun.map((n) => `- ${n}: run it and report the result.`), 'Follow BELLA AGENTS.md; ask before changing a public API.'].join('\n'),
+        minutes: measuredMinutes(runs),
+        youDo: 'Press Start to put the plan on your board. When you want it done, run it from the card and approve the agent run; then Accept or Undo the result.',
+        expect: 'A card on Work with its steps. The gate runs before any commit; nothing is pushed.',
+      }))(run && run.state !== 'none' ? run.of : gate.of)
+      : null,
+    () => setReading(false),
+  );
   if (!gate) return <NoData title="Checks" icon="ShieldCheck" context="Gate checks that pass" caption="No gate runs yet" />;
   if (run?.state === 'running')
     return <StatCard title="Checks" icon="ShieldCheck" tone="info" value={run.done} unit={`of ${run.of} so far`} chart="segments" meter={{ segments: run.of, done: run.done }} context={`Running ${run.now}`} caption="Started just now" />;
@@ -611,30 +620,19 @@ function GateCard({ gate, run, onOpen }) {
         }
         picture={<Progress shape="segments" label="Gate checks that pass" value={`${ok} of ${of}`} segments={of} done={ok} tone={ok === of ? 'success' : 'attention'} />}
         source={{ from: "BELLA's gate, run before each commit", when: gate.when ? `oldest check ran ${gate.when}` : null, commit: gate.head }}
+        footer={fix.footer}
+        footerNote={fix.footerNote}
       >
         <ReadingGroups
           openFirst
           label="The gate checks by state"
           groups={[
-            { name: 'Failing', tone: 'danger', items: (gate.members ?? []).filter((m) => ['failed', 'waiting'].includes(m.status)).map((m) => ({ key: m.name, title: m.name, line: m.when ? `Failed on ${m.when}` : 'Failed' })) },
-            { name: 'Not run yet', tone: 'neutral', items: (gate.members ?? []).filter((m) => m.status === 'not-run').map((m) => ({ key: m.name, title: m.name, line: 'No recorded run' })) },
-            { name: 'Passing', tone: 'success', items: (gate.members ?? []).filter((m) => m.status === 'passed').map((m) => ({ key: m.name, title: m.name, line: m.when ? `Passed, last run ${m.when}${m.commit && gate.head && m.commit !== gate.head ? ' on an older commit' : ''}` : 'Passed' })) },
+            { name: 'Failing', tone: 'danger', items: (gate.members ?? []).filter((m) => ['failed', 'waiting'].includes(m.status)).map((m) => ({ key: m.name, title: m.name, state: m.when ?? undefined })) },
+            { name: 'Not run yet', tone: 'neutral', items: (gate.members ?? []).filter((m) => m.status === 'not-run').map((m) => ({ key: m.name, title: m.name, })) },
+            { name: 'Passing', tone: 'success', items: (gate.members ?? []).filter((m) => m.status === 'passed').map((m) => ({ key: m.name, title: m.name, state: m.when ? `${m.when}${m.commit && gate.head && m.commit !== gate.head ? ', older commit' : ''}` : undefined })) },
           ]}
         />
-        {gate.failing.length || gate.notRun.length ? (
-          <FixPlan
-            onBefore={() => setReading(false)}
-            plan={{
-              title: `Get the gate to ${of} of ${of}`,
-              from: 'Health · Checks',
-              summary: `${gate.failing.length ? `${gate.failing.length} failing` : ''}${gate.failing.length && gate.notRun.length ? ' and ' : ''}${gate.notRun.length ? `${gate.notRun.length} not run yet` : ''}: one agent run can fix what fails and run the rest.`,
-              brief: ['Make every BELLA gate check pass, one commit:', ...gate.failing.map((n) => `- ${n}: find why it fails and fix it.`), ...gate.notRun.map((n) => `- ${n}: run it and report the result.`), 'Follow BELLA AGENTS.md; ask before changing a public API.'].join('\n'),
-              minutes: measuredMinutes(runs),
-              youDo: 'Press Start to put the plan on your board. When you want it done, run it from the card and approve the agent run; then Accept or Undo the result.',
-              expect: 'A card on Work with its steps. The gate runs before any commit; nothing is pushed.',
-            }}
-          />
-        ) : null}
+        {fix.body}
       </ReadingDrawer>
     </>
   );
