@@ -18,7 +18,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { writeFileSync } from 'node:fs';
 import { bellaDir } from './lib/bella-dir.mjs';
-import { SCROLL_RECORD, scrollInputsHash } from './lib/stage-leaders.mjs';
+import { SCROLL_RECORD, scrollInputsHash, mergeRouteRecord } from './lib/stage-leaders.mjs';
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -69,6 +69,9 @@ const scan = () => {
 
 const state = (i) => document.querySelector(`[data-sc="${i}"]`);
 let bad = 0;
+const STARTED_HASH = scrollInputsHash();
+const perRoute = {}; // route -> { bad, total }, for the per-route record
+const tally = (route, ok) => { const t = (perRoute[route] ??= { bad: 0, total: 0 }); t.total++; if (!ok) t.bad++; };
 let total = 0;
 const rows = [];
 
@@ -169,7 +172,7 @@ for (const width of WIDTHS) {
     await page.waitForTimeout(2500);
     if (t.drawer) {
       const card = page.locator('button', { hasText: t.drawer }).first();
-      if (!(await card.count())) { console.log(`FAIL ${width} ${t.label}: card not found`); bad++; continue; }
+      if (!(await card.count())) { console.log(`FAIL ${width} ${t.label}: card not found`); bad++; tally(t.route, false); continue; }
       await card.click();
       await page.waitForTimeout(1200);
     }
@@ -189,12 +192,14 @@ for (const width of WIDTHS) {
       if (sc.scrolls && !sc.page && !sc.modal && !sc.panel && sc.h < 320 && sc.sh > sc.h * 1.5 && sc.pageRoom < 4) { ok = false; notes.push(`SQUEEZED: ${sc.h}px box holds ${sc.sh}px and the page cannot scroll`); }
       if (sc.scrolls && !sc.key && !sc.page) notes.push('warn: no keyboard way in (tabindex 0 + name)');
       if (!ok) bad++;
+      tally(t.route, ok);
       rows.push(`${ok ? 'ok  ' : 'FAIL'} ${width} ${t.label} | ${sc.name} "${sc.text}" ${sc.h}/${sc.sh}px oc=${sc.oc} | ${verdict}${notes.length ? ' | ' + notes.join('; ') : ''}`);
     }
     if (!t.drawer) {
       total++;
       const end = await pageEnd(page, width);
       if (!end.ok) bad++;
+      tally(t.route, end.ok);
       rows.push(`${end.ok ? 'ok  ' : 'FAIL'} ${width} ${t.label} | the page | ${end.text}`);
     }
     if (t.drawer) await page.keyboard.press('Escape');
@@ -203,7 +208,11 @@ for (const width of WIDTHS) {
 }
 await browser.close();
 console.log(rows.join('\n'));
-if (!ONLY_ROUTE && !ONLY_WIDTH) writeFileSync(SCROLL_RECORD, JSON.stringify({ at: new Date().toISOString(), hash: scrollInputsHash(), ok: !bad, bad, total }, null, 1));
+if (!ONLY_WIDTH) {
+  // per route, merged: running one route again leaves the others' results as they were
+  const mine = Object.fromEntries(ROUTES.map((r) => [r, { hash: STARTED_HASH, ok: !perRoute[r]?.bad && !!perRoute[r]?.total, bad: perRoute[r]?.bad ?? 0, total: perRoute[r]?.total ?? 0 }]));
+  mergeRouteRecord(SCROLL_RECORD, mine);
+}
 console.log(`\nscroll-chain-check: ${total} scrollers, ${bad} failing.`);
 if (!total) { console.log('measured nothing: the check cannot pass on nothing'); process.exit(1); }
 process.exit(bad ? 1 : 0);

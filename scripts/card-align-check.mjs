@@ -16,13 +16,13 @@
 // It prints, for every page and width, how many cards and rows it measured and the worst numbers, so it cannot
 // pass on nothing. Usage: node scripts/card-align-check.mjs [--app http://localhost:3160] [--out dir]
 //   [--route '#/health'] [--width 1024] [--quick]   (--quick: the menu as it comes and the panel closed only; no record)
-// Needs a CHIP server and Playwright in BELLA_DIR. Exit 1 on any failure. A full run leaves data/card-align.json.
+// Needs a CHIP server and Playwright in BELLA_DIR. Exit 1 on any failure. A full run of a route (with or without --route) merges that route's result into data/card-align.json.
 import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { bellaDir } from './lib/bella-dir.mjs';
-import { CARD_RECORD, cardInputsHash } from './lib/stage-leaders.mjs';
+import { CARD_RECORD, fileHashes, mergeRouteRecord } from './lib/stage-leaders.mjs';
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -33,6 +33,7 @@ const OUT = arg('out', join(tmpdir(), 'chip-card-align'));
 const ONLY_ROUTE = arg('route', null);
 const ONLY_WIDTH = arg('width', null);
 const QUICK = process.argv.includes('--quick');
+const STARTED_ON = fileHashes(); // the files as they were when the run began: a pass belongs to those
 const ROUTES = ['#/work', '#/health', '#/system/components', '#/system/foundations', '#/system/history', '#/playground', '#/system-map', '#/connectors', '#/team', '#/not-again'];
 const WIDTHS = [1440, 1024, 768, 320, 1920, 2000];
 const MENUS = QUICK ? [null] : ['open', 'col'];
@@ -330,8 +331,15 @@ if (!measured) {
   console.log('card-align-check: no card found on any page, so nothing was measured');
   process.exit(1);
 }
-if (!QUICK && !ONLY_ROUTE && !ONLY_WIDTH) {
-  writeFileSync(CARD_RECORD, JSON.stringify({ at: new Date().toISOString(), hash: cardInputsHash(), ok: !failed, clean: results.length - failed, total: results.length, cards: measured }, null, 1));
+// A full run of a route (all widths, menus and panels) leaves that route's own record; the others stay as they were,
+// so one failing page never voids another's pass (23 Nov, her pick: the commit gate is per page).
+if (!QUICK && !ONLY_WIDTH) {
+  const mine = Object.fromEntries(routes.map((r) => {
+    const rs = results.filter((x) => x.label.split(' ')[0] === r);
+    const bad = rs.filter((x) => x.bad.length).length;
+    return [r, { at: new Date().toISOString(), files: STARTED_ON, ok: !bad, clean: rs.length - bad, total: rs.length }];
+  }));
+  mergeRouteRecord(CARD_RECORD, mine);
 }
 console.log(`card-align-check: ${results.length - failed} of ${results.length} page-widths clean · ${measured} cards measured · ${OUT}`);
 process.exit(failed ? 1 : 0);

@@ -8,7 +8,7 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from '
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { RECORD, WATCHED, leaderInputsHash, PROCESS_RECORD, PROCESS_WATCHED, processInputsHash, CARD_RECORD, RESPONSIVE_RECORD, PAGE_ROUTES, fileHashes, cardWatched, cardInputsHash, STRIP_WATCHED, STRIP_RECORD, stripInputsHash, SCROLL_WATCHED, SCROLL_RECORD, scrollInputsHash } from './lib/stage-leaders.mjs';
+import { RECORD, WATCHED, leaderInputsHash, PROCESS_RECORD, PROCESS_WATCHED, processInputsHash, CARD_RECORD, routeWhy, scrollWhy, RESPONSIVE_RECORD, PAGE_ROUTES, fileHashes, cardWatched, STRIP_WATCHED, STRIP_RECORD, stripInputsHash, SCROLL_WATCHED, SCROLL_RECORD, scrollInputsHash } from './lib/stage-leaders.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(ROOT, 'data/on-system-baseline.json');
@@ -278,7 +278,7 @@ if (bareCommits.length) {
   const staged = spawnSync('git', ['diff', '--cached', '--name-only'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n');
   if (SCROLL_WATCHED.some((f) => staged.includes(f))) {
     const rec = existsSync(SCROLL_RECORD) ? JSON.parse(readFileSync(SCROLL_RECORD, 'utf8')) : null;
-    const why = !rec ? 'it has not been run' : rec.hash !== scrollInputsHash() ? 'it ran on other files than these' : !rec.ok ? `it found ${rec.bad} scroll boxes that trap the page` : null;
+    const why = scrollWhy(rec, scrollInputsHash());
     if (why) {
       console.log(`on-system-guard: scrolling changed and the scroll check is not clean (${why}). Run npm run check:scroll. Commit blocked.`);
       process.exit(1);
@@ -314,13 +314,13 @@ if (bareCommits.length) {
   }
 }
 
-// Cards: a commit that changes a page or the shared templates needs a clean full run of `npm run check:cards` on
-// exactly these files (23 Nov: cards that do not line up and leave white space).
+// Cards: a commit that changes a page needs a clean full run of `npm run check:cards` for the routes that page draws, on
+// exactly its files; a shared template needs every route clean (per page, 23 Nov evening) (23 Nov: cards that do not line up and leave white space).
 {
   const staged = spawnSync('git', ['diff', '--cached', '--name-only'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n');
   if (cardWatched().some((f) => staged.includes(f))) {
     const rec = existsSync(CARD_RECORD) ? JSON.parse(readFileSync(CARD_RECORD, 'utf8')) : null;
-    const why = !rec ? 'it has not been run' : rec.hash !== cardInputsHash() ? 'it ran on other files than these' : !rec.ok ? `it found ${rec.total - rec.clean} of ${rec.total} page-widths not clean` : null;
+    const why = routeWhy(rec, staged, fileHashes());
     if (why) {
       console.log(`on-system-guard: a page or the templates changed and the card check is not clean (${why}). Run npm run check:cards. Commit blocked.`);
       process.exit(1);
