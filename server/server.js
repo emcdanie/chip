@@ -24,7 +24,8 @@ import { specOf, figmaLint, readBaseline, runBaseline } from './lib/spec-lint.mj
 import { attachTerminal, repoList } from './lib/term.mjs';
 import { BASE as checksBase, gateLog, listChecks, readResult, refreshIfStale, runCheck } from './lib/checks.mjs';
 import { accept, fixableChecks, keep, readActions, reviewCard, reviewImage, undo, waitingChecks } from './lib/review.mjs';
-import { closedLoops, recurring } from './lib/not-again.mjs';
+import { closedLoops, plannedFixes, recurring } from './lib/not-again.mjs';
+import { fixesRoutes, readFixes } from './lib/fixes.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
 import { saveBoard, saveIdea, workBoard, workLanes } from './lib/lanes.mjs';
 import { claudeReady, gateReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
@@ -555,7 +556,7 @@ app.get('/checks', (_req, res) => {
 // Not again: what keeps coming back (14 days, ranked) and the permanent fixes that were kept, from the logs CHIP keeps
 app.get('/not-again/recurring', (_req, res) => {
   const log = gateLog();
-  res.json({ at: new Date().toISOString(), recurring: recurring(log), loops: closedLoops(log, readActions()) });
+  res.json({ at: new Date().toISOString(), recurring: recurring(log), loops: closedLoops(log, readFixes()), planned: plannedFixes(readFixes()) });
 });
 app.post('/checks/:id/run', (req, res) => {
   if (!sameApp(req, res)) return;
@@ -863,6 +864,7 @@ app.get('/starts', (_req, res) => {
     errorOut(res, e, 500);
   }
 });
+app.use(fixesRoutes({ origins: APP_ORIGINS }));
 app.use(newRoutes({ origins: APP_ORIGINS, ids: () => projectList().map((p) => p.id), changed: () => keptRead('projects', READS.projects, { fresh: true }).catch(() => {}) }));
 app.get('/projects/:id', async (req, res) => {
   try {

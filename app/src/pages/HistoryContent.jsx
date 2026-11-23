@@ -599,7 +599,8 @@ export default function HistoryContent() {
       /* no storage: Recent lasts this visit */
     }
   };
-  const [q, setQ] = useState('');
+  // a link from Not again opens History already filtered: #/system/history?q=<words>
+  const [q, setQ] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('q') ?? '');
   const [kind, setKind] = useState(null);
   const [status, setStatus] = useState([]);
   const [since, setSince] = useState('');
