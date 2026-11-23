@@ -99,14 +99,10 @@ function useToBottom(on) {
       const sc = ref.current?.closest('.chip-screen__content');
       const t = ref.current ? Math.max(0, Math.round(ref.current.getBoundingClientRect().top + (sc ? sc.scrollTop : window.scrollY))) : null;
       setTop((was) => (was === t ? was : t));
-      // when the window is too short for the lanes' minimum, the page scrolls instead (Elleta, 23 Nov: the page could not be
-      // scrolled to the end because the board was only as tall as the room left under the Brief); it then gets the page's
-      // 64 of end room, and the content element says so for the CSS
-      if (sc && ref.current && t != null) {
-        const gutter = -parseFloat(getComputedStyle(ref.current).marginBlockEnd) || 0;
-        const tight = window.innerHeight - t - gutter < boardMin();
-        sc.toggleAttribute('data-board-tight', tight);
-      }
+      // the board fills the window, and the page still scrolls 64 past the lanes (Elleta, 22 Nov: every scrolling page leaves
+      // 64 after its last content, so it scrolls clear of the window's foot; the page's keys PageDown and End move it
+      // too). The content element says so for the CSS; the attribute stays on while a board is drawn.
+      sc?.setAttribute('data-board-tight', '');
     };
     measure();
     // what sits above it (the Brief, a notice, the header's fonts) can arrive

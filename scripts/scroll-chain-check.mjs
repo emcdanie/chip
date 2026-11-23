@@ -118,7 +118,16 @@ const pageEnd = async (page, width) => {
     if (!el) return null;
     el.scrollTop = 0;
     const b = el.getBoundingClientRect();
-    return { x: b.left + 4, y: b.top + b.height / 2 };
+    // the side gutter, at a height where nothing clickable sits (at 1024 the Work board's lanes reach the gutter, and a click
+    // on a card opens the part and leaves the page); the middle if every height has something
+    const x = b.left + 4;
+    for (let y = b.top + b.height / 2, d = 0; d < b.height / 2 - 20; d += 12) {
+      for (const yy of [y + d, y - d]) {
+        const hit = document.elementFromPoint(x, yy);
+        if (hit && el.contains(hit) && !hit.closest('a, button, [role=button], [role=link], input, select, textarea, [tabindex]:not([tabindex="-1"]), [data-bella-component="card"]')) return { x, y: yy };
+      }
+    }
+    return { x, y: b.top + b.height / 2 };
   });
   if (!r) return { ok: false, text: 'no .chip-screen__content' };
   await page.mouse.move(r.x, r.y);

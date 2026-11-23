@@ -327,10 +327,13 @@ for (const route of routes) {
 }
 const failed = results.filter((r) => r.bad.length).length;
 const measured = results.reduce((t, r) => t + r.cards, 0);
-if (!measured) {
+// a run of every page that finds no card anywhere measured nothing; one page with no cards (Playground) has nothing to
+// align and passes, as it did inside the full run
+if (!measured && !ONLY_ROUTE) {
   console.log('card-align-check: no card found on any page, so nothing was measured');
   process.exit(1);
 }
+if (!measured) console.log(`card-align-check: no card on ${ONLY_ROUTE} at any width: nothing to align there`);
 // A full run of a route (all widths, menus and panels) leaves that route's own record; the others stay as they were,
 // so one failing page never voids another's pass (23 Nov, her pick: the commit gate is per page).
 if (!QUICK && !ONLY_WIDTH) {
