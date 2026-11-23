@@ -21,6 +21,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
+import NoResults from '../templates/NoResults.jsx';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Heading from '@bella/components/Heading/Heading';
@@ -469,7 +470,7 @@ export default function PlaygroundPicks() {
             })}
           />
         ) : (
-          <EmptyState size="lane" mark="🙌" title="None here" line="Nothing matches this filter. Pick All to see the rest." />
+          <NoResults noun="picks" what={filter ? FILTERS.find((f) => f.id === filter)?.title.toLowerCase() : null} on={filter ? [{ key: 'f', label: FILTERS.find((f) => f.id === filter)?.title, would: picks.length, onRemove: () => (setFilter(null), setAt(null)) }] : []} />
         )}
       </Flow>
     </Card>

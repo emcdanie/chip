@@ -9,6 +9,8 @@
 import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import { Checkbox, Chips, DataTable, Drawer, LinkButton, PageHeader, Sheet, StatusPill } from './kit/index.jsx';
+import ResultsBar from './templates/ResultsBar.jsx';
+import NoResults from './templates/NoResults.jsx';
 import './History.css';
 
 const TYPES = ['Decision', 'Visual', 'Contract', 'Tokens', 'Fix', 'Docs', 'Tooling'];
@@ -733,34 +735,33 @@ function Changes({ bella, lens, onOpenAtlas, onSession }) {
           </div>
         ) : null}
         {data && !data.error && !records.length ? (
-          <p className="hnone" aria-live="polite">
-            Nothing matches. Try:{' '}
-            {f.date ? <LinkButton onClick={() => set({ date: '' })}>any time</LinkButton> : null}
-            {f.types.length ? <LinkButton onClick={() => set({ types: [] })}>every type</LinkButton> : null}
-            {f.comps.length ? <LinkButton onClick={() => set({ comps: [] })}>every component</LinkButton> : null}
-            {!nOn ? <LinkButton onClick={() => (setDraft(''), setF({ ...EMPTY }))}>clear the search</LinkButton> : null}
-          </p>
+          <NoResults
+            noun="records"
+            what={f.q ? `“${f.q}”` : null}
+            on={applied.map(([k, v, l]) => ({ key: `${k}${v}`, label: l, onRemove: () => unapply(k, v) }))}
+            onClearAll={() => (setDraft(''), setF({ ...EMPTY }))}
+          />
         ) : null}
         {applied.length ? (
-          <div className="happ" aria-label="Applied filters" role="group">
-            {applied.map(([k, v, l]) => (
-              <button key={`${k}${v}`} type="button" className="k-chip on" aria-label={`Remove ${l}`} onClick={() => unapply(k, v)}>
-                {l} <span aria-hidden="true">✕</span>
-              </button>
-            ))}
-            <LinkButton onClick={clear}>Clear all</LinkButton>
-            {mine.some(([n]) => n === searchName) ? null : (
-              <LinkButton
-                onClick={() => {
-                  const next = [...mine, [searchName, { ...f }]];
-                  setMine(next);
-                  keep('chip-hpre', next);
-                }}
-              >
-                Save this search
-              </LinkButton>
-            )}
-          </div>
+          <ResultsBar
+            applied={applied.map(([k, v, l]) => ({ key: `${k}${v}`, label: l, removeLabel: `Remove ${l}`, onRemove: () => unapply(k, v) }))}
+            shown={data && !data.error ? data.count : null}
+            total={data?.total}
+            onClearAll={clear}
+            extra={
+              mine.some(([n]) => n === searchName) ? null : (
+                <LinkButton
+                  onClick={() => {
+                    const next = [...mine, [searchName, { ...f }]];
+                    setMine(next);
+                    keep('chip-hpre', next);
+                  }}
+                >
+                  Save this search
+                </LinkButton>
+              )
+            }
+          />
         ) : null}
         {data && !data.error ? <Track records={records} total={data.count} decisions={f.q || f.types.length ? null : base?.counts?.types?.Decision} lens={lens} onRecord={setRecord} onOpenAtlas={onOpenAtlas} bellaComp={bellaComp} vstat={vstat} seen={seen} markSeen={markSeen} jumpRef={jumpRef} /> : null}
       </div>
