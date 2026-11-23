@@ -48,7 +48,7 @@ import { handOff } from './healthModel.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
-import { ContractCard, StoryDrawer } from './DocReader.jsx';
+import { ContractCard, StoryDrawer, StorySample } from './DocReader.jsx';
 import A11yStage from './A11yViews.jsx';
 import QualityPanel, { AccessMini, QualityCentre, useQuality, visiblePins } from './QualityPanel.jsx';
 import FigmaSetup, { useFigma } from '../templates/FigmaSetup.jsx';
@@ -99,8 +99,11 @@ function LivePart({ part, variant, label, state }) {
     );
   }
   const Specimen = SPECIMENS[part.name];
-  return Specimen ? <Specimen /> : null;
+  return Specimen ? <Specimen /> : <StorySample name={part.name} />; // no hand specimen: its first story, drawn from BELLA's Storybook
 }
+
+/* a part drawn from its story: the frame's own elements are out of reach, so pins and measures say so */
+const isSampled = (name) => !PLAY[name] && !SPECIMENS[name];
 
 /* One state, worn by the live part: BELLA's own :hover / :focus-visible /
    :active rules copied onto attributes (forcedStates.js), so no value is
@@ -440,7 +443,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   const shownId = useId();
   useForcedState(shownId, shown);
   useEffect(() => installForcedStates(), []);
-  const anatomy = detail?.anatomy ?? [];
+  const anatomy = isSampled(part.name) ? [] : detail?.anatomy ?? [];
   const a = anatomy.find((x) => x.key === picked) ?? anatomy[0] ?? null;
   // the part is drawn at the size where every label fits the stage: its own size first, then smaller, then larger
   // (a wide label reaches across the middle to a pin on the far side, so a bigger part can hold it where a
@@ -630,7 +633,6 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     if (layout.s === scale || !box?.tag) return layout.markers;
     return solveAt(scale, box).markers; // the size could not move to the layout's: label the part as drawn
   }, [legend, pinsAt, layout, scale, box, anatomy, a?.key, widths]); // eslint-disable-line react-hooks/exhaustive-deps
-  const has = PLAY[part.name] || SPECIMENS[part.name];
   return (
     <Flow gap={8} id={stageId} grow="first">
       {/* HOLE (BELLA gap): the tool column beside the stage (zoom in, fit, zoom out, light/dark, mark up)
@@ -638,7 +640,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
       <Stage label={`${part.name} on the stage`} leaderVariant="red" leaderDraw={pickedByYou ? 'pick' : 'map'} markers={markers} scale={scale} onSelect={onPick} activeId={lit} onActiveChange={setLit}>
         <Flow id={liveId} align="center" data-stage-part="">
           <Flow id={shownId} align="center">
-            {has ? <LivePart part={part} variant={variant} label={label} state={shown} /> : <EmptyState size="lane" mark="🧩" title="No live sample yet" line={`CHIP has no live sample of ${part.name} to draw yet.`} />}
+            <LivePart part={part} variant={variant} label={label} state={shown} />
           </Flow>
         </Flow>
       </Stage>
@@ -894,7 +896,7 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
         <Flow gap={8}>
           <SectionHead title="Accessibility" titleLevel={3} />
           <Flow as="ul" gap={0} aria-label="Accessibility, measured">
-            {touch ? <ListRow layout="inline" title="Touch target" value={`${touch.w} × ${touch.h}`} statusBar={touch.w >= 44 && touch.h >= 44 ? 'success' : 'danger'} /> : null}
+            {touch ? <ListRow layout="inline" title="Touch target" value={`${touch.w} × ${touch.h}`} statusBar={touch.w >= 44 && touch.h >= 44 ? 'success' : 'danger'} /> : isSampled(part.name) ? <ListRow layout="inline" title="Touch target" value="Not measurable for story samples" /> : null}
             {part.states.length ? <ListRow layout="stacked" title="States" description={part.states.map((s) => s.label).join(' · ')} /> : null}
           </Flow>
           {notes.length ? (
@@ -1267,7 +1269,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
           {qMode === 'all' || !q ? (
             <StudioStage part={part} detail={{ anatomy: visiblePins(q, qMode) }} variant={variant} label={label} shown="default" picked={qPick ?? visiblePins(q, qMode)[0]?.key} onPick={setQPick} onMeasured={noop} onTouch={setTouch} />
           ) : (
-            <A11yStage part={part} mode={qMode} facts={q.facts} variant={variant} label={label} renderPart={() => <LivePart part={part} variant={variant} label={label} state="default" />} />
+            <A11yStage part={part} mode={qMode} facts={q.facts} variant={variant} label={label} renderPart={() => <LivePart part={part} variant={variant} label={label} state="default" />} sampled={isSampled(part.name)} />
           )}
         </QualityCentre>
       ) : (

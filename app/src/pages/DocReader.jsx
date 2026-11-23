@@ -6,7 +6,7 @@
 // BELLA GAP, named: ReadingGroups (templates/ReadingDrawer.jsx) has no `value` slot for the exact value, and a doc group
 // holds prose and code as well as rows, so Groups below stands in with the same Disclosure and statusBar look. Fold it
 // into ReadingGroups (a `value` on an item, a `children` on a group) once the drawer template is committed.
-import { useState } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import Tag from '@bella/components/Tag/Tag';
@@ -17,6 +17,7 @@ import Drawer from '@bella/components/Drawer/Drawer';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Card from '@bella/components/Card/Card';
+import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Flow from '../templates/Flow.jsx';
 import Keyed from '../templates/Keyed.jsx';
 import ReadingDrawer, { Inset } from '../templates/ReadingDrawer.jsx';
@@ -234,17 +235,71 @@ const WIDTHS = [
   { value: '768', label: '768' },
   { value: '1024', label: '1024' },
 ];
+/** The plan to add a story to a part that has none (a plan first, never a silent run). */
+export const addStoryPlan = (name) =>
+  planRun({
+    title: `Add a story for ${name}`,
+    from: 'Components',
+    brief: `BELLA's ${name} has no Storybook story. Add src/components/${name}/${name}.stories.tsx with one story per contract variant and its states. Change only that file.`,
+    summary: `${name} · no story yet`,
+  }).catch(() => {});
+
+/** The page's theme as Storybook names it, following the page when it flips light and dark. */
+function useStoryTheme() {
+  const read = () => (document.documentElement.getAttribute('data-theme') || '').endsWith('dark') ? 'chip-dark' : 'chip-light';
+  const [t, setT] = useState(read);
+  useEffect(() => {
+    const mo = new MutationObserver(() => setT(read()));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => mo.disconnect();
+  }, []);
+  return t;
+}
+
+/** A live sample for a part with no hand-made specimen: its first story from BELLA's own Storybook index, drawn in the
+ *  stage at a width you choose, light or dark with the page (Elleta, 23 Nov: "most of the components are missing, I just
+ *  see the empty state"). No story says so and offers to add one. Measures that need the part's own elements (pins,
+ *  target, focus, contrast, reader) cannot reach into the frame and say so. */
+export function StorySample({ name }) {
+  const story = useStory(name, 'story');
+  const theme = useStoryTheme();
+  const [w, setW] = useState('fit');
+  // Fit is the stage's own inner width (a shrink-wrapped parent would leave the frame at 300)
+  const holder = useRef(null);
+  const [room, setRoom] = useState(null);
+  useLayoutEffect(() => {
+    const el = holder.current?.closest('[data-bella-component="stage"]') ?? holder.current?.parentElement;
+    if (!el) return undefined;
+    const read = () => setRoom(Math.floor(el.clientWidth));
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [story.state]);
+  if (story.state === 'none') {
+    return (
+      <Flow gap={16} align="center" data-story-sample="none">
+        <EmptyState size="lane" mark="🧩" title="No story yet" line={`BELLA has no Storybook story for ${name}, so CHIP has nothing to draw.`} />
+        <Button variant="secondary" onClick={() => addStoryPlan(name)}>Add a story</Button>
+      </Flow>
+    );
+  }
+  if (story.state !== 'found') return <TextStack body="Reading BELLA’s Storybook index." />;
+  return (
+    <Flow gap={8} data-story-sample="found">
+      <div ref={holder}>
+        <SegmentedControl label="Sample width" value={w} onChange={setW} options={WIDTHS} />
+      </div>
+      <iframe title={`${name} in BELLA’s Storybook`} src={`${story.frame}&globals=theme:${theme}`} loading="lazy" style={{ inlineSize: w === 'fit' ? (room ? Math.max(0, room - 32) : '100%') : `min(${w}px, ${room ? Math.max(0, room - 32) : 9999}px)`, blockSize: 'calc(var(--spacing-80) * 4)', border: 0 }} />
+    </Flow>
+  );
+}
+
 /** The part's story inside CHIP, at a width you choose; no story says so and offers to add one (a plan first). */
 export function StoryDrawer({ name, view = 'story', onClose, onBack }) {
   const story = useStory(name, view);
   const [w, setW] = useState('fit');
-  const add = () =>
-    planRun({
-      title: `Add a story for ${name}`,
-      from: 'Components',
-      brief: `BELLA's ${name} has no Storybook story. Add src/components/${name}/${name}.stories.tsx with one story per contract variant and its states. Change only that file.`,
-      summary: `${name} · no story yet`,
-    }).catch(() => {});
+  const add = () => addStoryPlan(name);
   return (
     <Drawer open side="right" size="lg" onClose={onClose} onBack={onBack} label={`${name}: ${view === 'docs' ? 'doc page' : 'story'}`} status={story.state === 'found' ? 'BELLA’s Storybook, shown here' : story.state === 'none' ? (view === 'docs' ? 'No doc page yet' : 'No story yet') : 'Reading…'}>
       {story.state === 'none' ? (

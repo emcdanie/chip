@@ -125,7 +125,7 @@ function TargetDrawing({ w, h, k }) {
 }
 
 /** One view of the part on its stage: the live part at one factor with the view's own drawing and words. */
-export default function A11yStage({ part, mode, facts, variant, label, renderPart }) {
+export default function A11yStage({ part, mode, facts, variant, label, renderPart, sampled = false }) {
   const id = useId();
   const [k, setK] = useState(1);
   const [room, setRoom] = useState(null); // the stage's inner width, so the drawing never runs past it
@@ -175,6 +175,7 @@ export default function A11yStage({ part, mode, facts, variant, label, renderPar
           {mode === 'target' && m ? <TargetDrawing w={m.w} h={m.h} k={k} /> : null}
         </div>
       </Stage>
+      {sampled ? <Tag variant="outline">Not measurable for story samples</Tag> : null}
       {mode === 'target' && m ? (
         <Flow direction="row" gap={8} wrap align="center">
           <Tag variant="outline">{`${Math.round(m.w)} × ${Math.round(m.h)} px`}</Tag>
