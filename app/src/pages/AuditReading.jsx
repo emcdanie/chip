@@ -1,28 +1,33 @@
-// An audit's saved report, read inside the Health drawer (CHIP rule 23 Nov: "Nothing sends her out of CHIP"; a drawer is a
-// reading surface): what it means in one line, the score as a bar with its number, the stations as rows that say their
-// state in a word as well as a colour, the top work orders with the key words marked, what to do first, then the rest
-// behind Disclosures. Every number comes from the report (auditReport.js). BELLA parts only: SectionHead, TextStack,
-// Progress, ListRow, StatusPill, Notification, Disclosure; the marker is History's (templates/Keyed.jsx).
+// An audit's saved report, read inside the Health drawer, on the one drawer template (CHIP READ FIRST, 23 Nov: "Nothing
+// sends her out of CHIP"; "A score says why it moved and how to reach 100, with the plan, in the same drawer"):
+//   title and status    the audit, and its Failing / Needs work / Healthy counts in words
+//   answer              the score, why it moved (the last report before it), and what reaching 100 takes
+//   picture             the score as a bar with the skill's own bar as the target tick
+//   do this first       one-line bar
+//   work orders         a table (her pick: "the table with filter buttons above it"); a row opens the order, with Back
+//   stations            branch rows by state, one open
+//   plan                the work orders as one plan to Start
+//   source              the saved report and the day it ran
+// Every number comes from the report (auditReport.js); nothing is typed. BELLA parts only.
 import { useEffect, useState } from 'react';
-import SectionHead from '@bella/components/SectionHead/SectionHead';
-import TextStack from '@bella/components/TextStack/TextStack';
-import Progress from '@bella/components/Progress/Progress';
-import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
-import StatusPill from '@bella/components/StatusPill/StatusPill';
-import Notification from '@bella/components/Notification/Notification';
-import Disclosure from '@bella/components/Disclosure/Disclosure';
 import Button from '@bella/components/Button/Button';
+import Marker from '@bella/components/Marker/Marker';
+import Notification from '@bella/components/Notification/Notification';
+import Progress from '@bella/components/Progress/Progress';
+import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
-import { Inset, ReadingGroups, ReadingSection } from '../templates/ReadingDrawer.jsx';
+import FixPlan, { measuredMinutes } from '../templates/FixPlan.jsx';
+import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, ReadingTop } from '../templates/ReadingDrawer.jsx';
 import Keyed from '../templates/Keyed.jsx';
+import useCached from '../templates/useCached.js';
 import { greenFrom, parseReport } from './auditReport.js';
 
-// the state words CHIP uses everywhere, never the colour's name (her 22 Nov: "why are we naming them colors"); the colour and shape stay as the signal
+// the state words CHIP uses everywhere, never the colour's name (her 22 Nov: "why are we naming them colors")
 const WORD = { red: 'Failing', yellow: 'Needs work', green: 'Healthy' };
 const TONE = { red: 'danger', yellow: 'attention', green: 'success' };
-const PILL = { red: 'danger', yellow: 'attention', green: 'success' };
 const up = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 const oneSentence = (s) => (s.match(/^.+?[.!?](?=\s|$)/)?.[0] ?? s).replace(/\.$/, '');
+const dayOf = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 /* A long line shows its first sentence, and Read more opens the rest where it is: nothing is cut with an ellipsis
    (her 22 Nov: "The cost is real all the…" with no way to read the rest). */
@@ -42,9 +47,24 @@ function ReadMore({ text }) {
   );
 }
 
-export default function AuditReading({ a, day }) {
+/* Why the score moved and what 100 takes, in one line: each number says what it counts. */
+function answerOf(a, orders) {
+  const score = a.value == null ? null : <Marker>{`${a.value} ${a.unit ?? ''}`.trim()}</Marker>;
+  const moved = a.prev ? (a.prev.value === a.value ? `, the same as on ${dayOf(a.prev.day)}` : `, ${a.value > a.prev.value ? 'up' : 'down'} from ${a.prev.value} on ${dayOf(a.prev.day)}`) : ', the first report kept';
+  const reach = orders ? ` Reaching ${a.unit === 'of 100' ? '100' : 'the top'} means the ${orders === 1 ? 'work order' : `${orders} work orders`} below, most important first.` : '';
+  return score ? <>{score}{`${moved}.${reach}`}</> : `No score in the report.${reach}`;
+}
+
+export default function AuditReading({ a, day, lights, open, onClose }) {
   const [state, setState] = useState({ r: null, error: false });
+  const [order, setOrder] = useState(null);
+  // a station's evidence opens behind its row, with Back (an open group listed every station's evidence: about 3,200px)
+  const [station, setStation] = useState(null);
+  // the report opens on its summary; every work order is a table one click behind (See all), as Drift
+  const [all, setAll] = useState(false);
+  const runs = useCached(['/runs']).data?.[0]?.runs ?? [];
   useEffect(() => {
+    if (!open || state.r) return undefined;
     let live = true;
     fetch(`/audits/${a.id}/report`)
       .then((res) => (res.ok ? res.text() : Promise.reject(new Error(String(res.status)))))
@@ -53,36 +73,80 @@ export default function AuditReading({ a, day }) {
     return () => {
       live = false;
     };
-  }, [a.id]);
+  }, [a.id, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const close = () => (setOrder(null), setStation(null), setAll(false), onClose());
+  const shell = { open, onClose: close, label: `${a.title} audit`, status: lights };
 
-  if (state.error) return <Inset><Notification tone="danger" title="The saved report did not open" message="CHIP could not read this audit's report file. The card still shows its last numbers." /></Inset>;
-  if (!state.r) return <Inset><Notification tone="info" title="Reading the report" message="Opening this audit's saved report." /></Inset>;
+  if (state.error) return <ReadingDrawer {...shell}><Inset><Notification tone="danger" title="The saved report did not open" message="CHIP could not read this audit's report file. The card still shows its last numbers." /></Inset></ReadingDrawer>;
+  if (!state.r) return <ReadingDrawer {...shell}><Inset><Notification tone="info" title="Reading the report" message="Opening this audit's saved report." /></Inset></ReadingDrawer>;
   const { r } = state;
-  const first = r.orders[0];
-  const top = r.orders.slice(0, 3);
+  const source = { from: `The saved ${a.title} audit report`, when: `ran ${day}` };
+
+  if (station) {
+    return (
+      <ReadingDrawer {...shell} label={station.name} status={[station.light ? WORD[station.light] : null, station.score != null ? `${station.score} of ${station.max}` : null].filter(Boolean).join(' · ')} onBack={() => setStation(null)} backLabel="Back to the report" source={source}>
+        <Inset gap={12}>
+          {station.line ? <TextStack body={<Keyed text={station.line} />} /> : null}
+          {station.evidence.map((e, i) => <ReadMore key={i} text={e} />)}
+        </Inset>
+      </ReadingDrawer>
+    );
+  }
+
+  // a work order, opened from the table: what it is, why, the first move; Back to the report
+  if (order) {
+    return (
+      <ReadingDrawer {...shell} label={`Work order ${order.n}`} status={order.title} onBack={() => setOrder(null)} backLabel={all ? 'Back to all work orders' : 'Back to the report'} source={source}>
+        <Inset>
+          <Facts label={`Work order ${order.n}`} facts={[{ label: 'Why', value: order.why ? <Keyed text={order.why} /> : null }, { label: 'First move', value: order.move ? <Keyed text={up(order.move)} /> : null }]} />
+        </Inset>
+      </ReadingDrawer>
+    );
+  }
+
+  if (all) {
+    return (
+      <ReadingDrawer {...shell} label="Every work order" status={`${r.orders.length} from the ${a.title} audit, most important first`} onBack={() => setAll(false)} backLabel="Back to the report" source={source}>
+        <ReadingTable
+          caption="Work orders, most important first"
+          rowKey="n"
+          rows={r.orders.map((o) => ({ ...o, order: o.title }))}
+          columns={[
+            { key: 'order', label: 'Work order' },
+            { key: 'n', label: 'Rank', numeric: true },
+          ]}
+          onOpen={(n) => setOrder(r.orders.find((o) => String(o.n) === String(n)))}
+        />
+      </ReadingDrawer>
+    );
+  }
+
   const bar = greenFrom(r.stations);
   const outOf100 = a.unit === 'of 100';
   const fill = a.value == null ? null : a.checks && !outOf100 && /checks green/.test(a.unit ?? '') ? (a.value / a.checks) * 100 : a.value;
   const tone = a.red ? 'danger' : a.yellow ? 'attention' : 'success';
-  const lightWords = a.red == null ? null : `${a.red} failing · ${a.yellow} need work · ${a.green} healthy`;
   const item = (s) => ({
     key: s.n,
     title: s.name,
-    body: s.evidence.length ? <Flow gap={8}>{s.evidence.map((e, i) => <ReadMore key={i} text={e} />)}</Flow> : undefined,
-    line: [s.score != null ? `${s.score}${s.max === 100 ? ' of 100' : `/${s.max}`}` : null, s.line || null].filter(Boolean).join(' · ') || undefined,
+    onClick: s.evidence.length ? () => setStation(s) : undefined,
+    line: [s.score != null ? `${s.score}${s.max === 100 ? ' of 100' : ` of ${s.max}`}` : null, s.line || null].filter(Boolean).join(' · ') || undefined,
   });
-  const scored = r.stations.some((s) => s.score != null);
+  const plan = {
+    title: `Reach ${outOf100 ? '100' : 'the top'} on the ${a.title} audit`,
+    from: `Health · ${a.title} audit`,
+    summary: `${r.orders.length} work orders from the report, most important first. Doing them and running the audit again moves the score.`,
+    brief: [`Work through the ${a.title} audit's work orders (the saved report of ${day}), most important first, one commit each:`, ...r.orders.map((o) => `- ${o.title}${o.move ? `: ${up(o.move)}` : ''}`), 'Then run the audit again, read only, and save its report.'].join('\n'),
+    minutes: measuredMinutes(runs),
+    youDo: 'Press Start to put the plan on your board. When you want it done, run it from the card and approve the agent run; then Accept or Undo the result.',
+    expect: 'A card on Work with its steps. Nothing is pushed; the audit is run again at the end so the card shows the new score.',
+  };
 
   return (
-    <Flow gap={24}>
-      <Inset gap={8}>
-        <SectionHead icon="Page" iconTone="info" title={r.title || `${a.title} audit`} description={`Ran ${day}`} showInfo={false} />
-        {r.meaning ? <TextStack body={<Keyed text={r.meaning} />} /> : null}
-      </Inset>
-
-      {fill != null ? (
-        <Inset gap={12}>
-          <SectionHead icon="Activity" iconTone="info" title="Score" description={lightWords ?? 'From the saved report'} showInfo={false} />
+    <ReadingDrawer
+      {...shell}
+      answer={answerOf(a, r.orders.length)}
+      picture={
+        fill != null ? (
           <Progress
             label={`${a.title} score`}
             value={`${a.value} ${a.unit ?? ''}`.trim()}
@@ -90,72 +154,31 @@ export default function AuditReading({ a, day }) {
             tone={tone}
             showTarget={outOf100 && bar != null}
             target={outOf100 && bar != null ? bar * 10 : undefined}
-            targetLabel={outOf100 && bar != null ? `Target ${bar * 10}` : undefined}
+            targetLabel={outOf100 && bar != null ? `Healthy from ${bar * 10}` : undefined}
           />
-          {r.stations.length ? (
-            <Flow gap={12} as="ul" aria-label={`${a.title}: each ${scored && r.stations[0].max === 100 ? 'flow' : 'check'} and its state`}>
-              {r.stations.map((s) => (
-                <li key={s.n}>
-                  {s.score != null ? (
-                    <Progress
-                      label={s.name}
-                      value={`${s.light ? `${WORD[s.light]} · ` : ''}${s.score}${s.max === 100 ? ' of 100' : `/${s.max}`}`}
-                      fill={(s.score / s.max) * 100}
-                      tone={s.light ? TONE[s.light] : 'info'}
-                      showTarget={false}
-                    />
-                  ) : (
-                    <ListRowGroup ariaLabel={s.name}>
-                      <ListRow layout="stacked" statusBar={s.light ? TONE[s.light] : 'neutral'} title={s.name} description={s.line || undefined} status={s.light ? <StatusPill variant={PILL[s.light]}>{WORD[s.light]}</StatusPill> : undefined} />
-                    </ListRowGroup>
-                  )}
-                </li>
-              ))}
-            </Flow>
-          ) : null}
-        </Inset>
+        ) : undefined
+      }
+      source={source}
+    >
+      {r.orders.length ? (
+        <ReadingTop
+          label="Do these first"
+          rows={r.orders.slice(0, 3).map((o) => ({ key: o.n, title: o.title, line: o.move ? `First move: ${oneSentence(up(o.move))}` : undefined, onClick: () => setOrder(o) }))}
+          more={r.orders.length > 3 ? `See all ${r.orders.length} work orders` : undefined}
+          onMore={r.orders.length > 3 ? () => setAll(true) : undefined}
+        />
       ) : null}
-
-      {top.length ? (
-        <ReadingSection icon="WarningCircle" iconTone="warning" title="Top work orders" description="Most important first, from the saved report" rows={
-          <ListRowGroup ariaLabel={`${a.title}: top work orders`}>
-            {top.map((o) => (
-              <ListRow key={o.n} layout="stacked" statusBar="attention" title={<Keyed text={o.title} />} description={o.why ? <ReadMore text={o.why} /> : undefined} />
-            ))}
-          </ListRowGroup>
-        } />
-      ) : null}
-
-      {first ? <Inset><Notification tone="info" title="Do this first" message={<Keyed text={first.move ? `${first.title}: ${up(first.move)}` : first.title} />} /></Inset> : null}
-
-      {r.orders.length > top.length ? (
-        <Inset>
-        <Disclosure title="Every work order" summary={`${r.orders.length} in all`}>
-          <Flow gap={12}>
-            {r.orders.slice(top.length).map((o) => (
-              <TextStack key={o.n} title={o.title} body={o.move || o.why ? <ReadMore text={o.move ? up(o.move) : o.why} /> : undefined} />
-            ))}
-          </Flow>
-        </Disclosure>
-        </Inset>
-      ) : null}
-
       {r.stations.length ? (
-        <Flow gap={12}>
-          <Inset>
-            <SectionHead icon="Activity" iconTone="info" title="Every station" description="Grouped by state, with the evidence behind each" showInfo={false} />
-          </Inset>
-          <ReadingGroups
-            single
-            openFirst
-            label={`${a.title}: stations by state`}
-            groups={[
-              ...['red', 'yellow', 'green'].map((l) => ({ name: WORD[l], tone: TONE[l], items: r.stations.filter((s) => s.light === l).map((s) => item(s)) })),
-              { name: 'Not rated', tone: 'neutral', items: r.stations.filter((s) => !s.light).map((s) => item(s)) },
-            ]}
-          />
-        </Flow>
+        <ReadingGroups
+          openFirst
+          label={`${a.title}: ${r.stations[0].max === 100 ? 'flows' : 'stations'} by state`}
+          groups={[
+            ...['red', 'yellow', 'green'].map((l) => ({ name: WORD[l], tone: TONE[l], items: r.stations.filter((s) => s.light === l).map(item) })),
+            { name: 'Not rated', tone: 'neutral', items: r.stations.filter((s) => !s.light).map(item) },
+          ]}
+        />
       ) : null}
-    </Flow>
+      {r.orders.length ? <FixPlan plan={plan} onBefore={close} /> : null}
+    </ReadingDrawer>
   );
 }

@@ -13,7 +13,7 @@ import Input from '@bella/components/Input/Input';
 import Notification from '@bella/components/Notification/Notification';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
-import { Inset } from './ReadingDrawer.jsx';
+import { Facts, Inset } from './ReadingDrawer.jsx';
 import { planRun } from './RunPlan.jsx';
 
 const post = (url, body) =>
@@ -74,20 +74,15 @@ export default function FixPlan({ plan, onBefore }) {
         </Flow>
       ) : null}
       <Input label="The plan: read it, edit it" multiline value={brief} onChange={setBrief} />
-      <Flow gap={12}>
-        <Flow gap={4}>
-          <TextStack title="How long it takes" />
-          <TextStack body={plan.minutes ?? 'Not measured yet: CHIP has no finished run to time. The first one sets it.'} />
-        </Flow>
-        <Flow gap={4}>
-          <TextStack title="What you do" />
-          <TextStack body={plan.youDo} />
-        </Flow>
-        <Flow gap={4}>
-          <TextStack title="What to expect" />
-          <TextStack body={plan.expect} />
-        </Flow>
-      </Flow>
+      {/* one card she approves whole (template plan): three inline lead-ins, not three headings */}
+      <Facts
+        label="About this plan"
+        facts={[
+          { label: 'Takes', value: plan.minutes ?? 'Not measured yet: CHIP has no finished run to time. The first one sets it.' },
+          { label: 'You do', value: plan.youDo },
+          { label: 'Expect', value: plan.expect },
+        ]}
+      />
       {done ? (
         <Notification
           tone={done.tone}

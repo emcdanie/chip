@@ -22,7 +22,7 @@ import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import { planRun } from '../templates/RunPlan.jsx';
 import FixPlan, { measuredMinutes } from '../templates/FixPlan.jsx';
 import AuditReading from './AuditReading.jsx';
-import ReadingDrawer, { Inset, ReadingGroups } from '../templates/ReadingDrawer.jsx';
+import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, ReadingTop } from '../templates/ReadingDrawer.jsx';
 import Marker from '@bella/components/Marker/Marker';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
@@ -106,37 +106,37 @@ function GateBars({ runs, readAt }) {
         open={Boolean(open?.length)}
         onClose={() => setOpen(null)}
         label={open?.length > 1 ? `${open.length} failed runs` : 'A failed run'}
+        source={open?.length ? { from: open[0].source === 'ci' ? "GitHub's CI run" : "CHIP's gate log", commit: open.length === 1 ? open[0].sha : null } : undefined}
         subtitle={open?.length ? `${gDay(open[0].at)} ${clockOf(open[0].at)}${open.length > 1 ? ` · ${open.length} runs` : ` · ${open[0].source === 'ci' ? 'GitHub CI' : 'CHIP'}`}` : undefined}
         footer={
-          <Button variant="primary" onClick={() => (setOpen(null), (window.location.hash = '#/system/history'))}>
+          <Button variant="primary" onClick={() => (setOpen(null), (window.location.hash = `#/system/history${open?.length === 1 && open[0].sha ? `?q=${encodeURIComponent(open[0].sha)}` : ''}`))}>
             Open the commit in History
           </Button>
         }
       >
-        {(open ?? []).map((run, k) => {
-          const why = explainRun(run, runs);
-          return (
-            <Inset key={`${+run.at}-${k}`} gap={16}>
-              <TextStack title={`${clockOf(run.at)} · What failed`} />
-              <TextStack body={`${why.what[0].toUpperCase()}${why.what.slice(1)}.`} />
-              {why.why ? (
-                <Flow gap={4}>
-                  <TextStack title="Why it matters" />
-                  <TextStack body={`${why.why[0].toUpperCase()}${why.why.slice(1)}.`} />
-                </Flow>
-              ) : null}
-              <Flow gap={4}>
-                <TextStack title="What caused it" />
-                <TextStack body={why.cause ?? 'Cause not recorded'} />
-              </Flow>
-              <Flow gap={4}>
-                <TextStack title="What fixed it" />
-                <TextStack body={why.fixed ? `Fixed ${why.fixed}.` : 'No later run has passed yet.'} />
-              </Flow>
-              {run.sha ? <TextStack subtitle={`Commit ${run.sha}`} /> : null}
-            </Inset>
-          );
-        })}
+        {/* each failed run as label and value lines, not four headings (drawer template, 23 Nov); its commit sits behind the source link */}
+        {(() => {
+          const fact = (run) => {
+            const why = explainRun(run, runs);
+            return (
+              <Facts
+                label={`The run at ${clockOf(run.at)}`}
+                facts={[
+                  { label: 'What failed', value: `${why.what[0].toUpperCase()}${why.what.slice(1)}.` },
+                  { label: 'Why it matters', value: why.why ? `${why.why[0].toUpperCase()}${why.why.slice(1)}.` : null },
+                  { label: 'Cause', value: why.cause ?? 'Not recorded.' },
+                  { label: 'Fixed', value: why.fixed ? `${why.fixed}.` : 'No later run has passed yet.' },
+                ]}
+              />
+            );
+          };
+          const list = open ?? [];
+          return list.length > 1 ? (
+            <ReadingGroups openFirst label="The failed runs" groups={list.map((run, k) => ({ name: `Run ${k + 1} · ${clockOf(run.at)} · ${run.source === 'ci' ? 'GitHub CI' : 'CHIP'}`, count: '', body: fact(run) }))} />
+          ) : list[0] ? (
+            <Inset>{fact(list[0])}</Inset>
+          ) : null;
+        })()}
       </ReadingDrawer>
     </Flow>
   );
@@ -152,30 +152,27 @@ function How({ id }) {
     </Button>
   );
 }
-const withHow = (id, text) => (
-  <Flow gap={4}>
-    {text}
-    <How id={id} />
-  </Flow>
-);
-function howOf(id, { model, checked, audits }) {
-  const read = checked ? `Read at ${checked}, and again every minute while this page is open.` : 'Read when this page opened.';
+function howOf(id, { model, audits }) {
   const h = model?.health;
   if (id.startsWith('audit:')) {
     const a = (audits ?? []).find((x) => x.id === id.slice(6));
     if (!a) return null;
-    return { title: `${a.title} audit`, source: `The saved report docs/reference/audit/${a.file}, written by the ${a.skill} run.`, how: `The score is the report's own "Overall" line${a.red == null ? '' : `; the ${a.red} failing and ${a.yellow} need-work counts are its red and yellow headings`}. CHIP reads the file; it does not re-run the audit.`, when: `The audit ran on ${dayOf(a.ran)}.` };
+    return { title: `${a.title} audit`, n: a.value != null ? `${a.value} ${a.unit ?? ''}`.trim() : null, source: `The saved ${a.title} audit report, written by its last run on ${dayOf(a.ran)}.`, how: `The score is the report's own "Overall" line${a.red == null ? '' : `; the ${a.red} failing and ${a.yellow} need-work counts are its Failing and Needs work headings`}. CHIP reads the report; it does not re-run the audit.` };
   }
+  const g = model?.gate;
   return {
-    health: { title: 'System health', source: "BELLA's component data (/data/bella.json), which CHIP builds from every part's files in BELLA: spec, code, stories, contract and accessibility notes.", how: `Every part is checked for the same set of things; the number is the checks that pass out of the checks run${h ? ` (${h.passed} of ${h.total})` : ''}, against the ${TARGET}% target.`, when: read },
-    contrast: { title: 'Contrast coverage', source: "BELLA's declared contrast pairs for each part (/contrast-pairs).", how: `A part counts once it declares the pairs of text and background colours it uses${model?.contrast ? ` (${model.contrast.pass} of ${model.contrast.of} do)` : ''}.`, when: read },
-    lowest: { title: 'Lowest contrast', source: "BELLA's own pairs check, run against every declared pair in every theme.", how: `For each pair CHIP works out the contrast ratio of text on its background and shows the lowest, against the ${model?.lowest?.bar ?? 7}:1 target${model?.lowest?.checked ? ` (${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''})` : ''}.`, when: read },
-    drift: { title: 'Drift from BELLA', source: "Each part's spec file in BELLA, which lists where Figma, the spec and the code differ.", how: 'A part differs when its spec lists a mismatch or is behind its code. Parts whose spec was never read from Figma are counted separately, not as matching.', when: read },
-    gaps: { title: 'Gaps', source: "BELLA's own brief of what is specified and not yet in code (/bella-gaps).", how: 'Counted from that brief: a part is a gap when its brief says something is specified and missing. CHIP adds nothing to the list.', when: read },
-    checks: { title: 'Checks', source: "CHIP's gate check results and their log (data/checks/log.jsonl), written each time a check runs.", how: 'The gate is the set of checks BELLA must pass before a commit. A check shows its last recorded result and the commit it ran on; a check that has not run says so.', when: read },
-    'gate-runs': { title: 'Gate runs', source: "GitHub's CI runs for BELLA's repository (read with gh) and CHIP's own gate log.", how: 'Every finished run is counted once, in the half hour, day or month it ran. A cancelled run is neither a pass nor a failure and is left out.', when: 'Read when CI last answered; the time is under the chart.' },
+    health: { title: 'System health', n: h ? `${h.passed} of ${h.total}` : null, source: "BELLA's component data, which CHIP builds from every part's spec, code, stories, contract and accessibility notes.", how: `Every part is checked for the same set of things; the number is the checks that pass out of the checks run, against the ${TARGET}% target.` },
+    checks: { title: 'Checks', n: g ? `${g.ok} of ${g.of}` : null, source: "CHIP's gate check results and their log, written each time a check runs.", how: 'The gate is the set of checks BELLA must pass before a commit. A check shows its last recorded result; a check that has not run says so.' },
+    drift: { title: 'Drift from BELLA', n: null, source: "Each part's spec file in BELLA, which lists where Figma, the spec and the code differ.", how: 'A part differs when its spec lists a mismatch or is behind its code. Parts whose spec was never read from Figma are counted separately, not as matching.' },
+    gaps: { title: 'Gaps', n: null, source: "BELLA's own brief of what is specified and not yet in code.", how: 'A part is a gap when its brief says something is specified and missing. CHIP adds nothing to the list.' },
+    contrast: { title: 'Contrast coverage', n: model?.contrast ? `${model.contrast.pass} of ${model.contrast.of}` : null, source: "BELLA's declared contrast pairs for each part.", how: 'A part counts once it declares the pairs of text and background colours it uses.' },
+    lowest: { title: 'Lowest contrast', n: model?.lowest?.ratio != null ? `${model.lowest.ratio}:1` : null, source: "BELLA's own pairs check, run against every declared pair in every theme.", how: `For each pair CHIP works out the contrast ratio of text on its background and shows the lowest, against the ${model?.lowest?.bar ?? 7}:1 target${model?.lowest?.checked ? ` (${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''})` : ''}.` },
+    'gate-runs': { title: 'Gate runs', n: null, source: "GitHub's CI runs for BELLA's repository and CHIP's own gate log.", how: 'Every finished run is counted once, in the half hour, day or month it ran. A cancelled run is neither a pass nor a failure and is left out.' },
   }[id] ?? null;
 }
+/* How was this measured? on the template (her screenshot, 23 Nov: "I just want it to be legible and it's too long"): one
+   branch row per number whose head says the number, so a closed one still answers; inside, two inline lead-ins (From,
+   Made by), not three headings; when it was read is said once, in the status line. */
 function HowDrawer({ model, checked }) {
   const [id, setId] = useState(null);
   const audits = useCached(['/audits']).data?.[0] ?? null;
@@ -185,27 +182,26 @@ function HowDrawer({ model, checked }) {
     return () => window.removeEventListener('chip:how', on);
   }, []);
   const ALL = ['health', 'checks', 'drift', 'gaps', 'contrast', 'lowest', 'gate-runs'];
-  const list = id === 'all' ? ALL.map((k) => howOf(k, { model, checked, audits })).filter(Boolean) : id ? [howOf(id, { model, checked, audits })].filter(Boolean) : [];
+  // 'all' is every number on the page; 'audits' every audit, from the Audits section's sentence
+  const many = id === 'all' || id === 'audits';
+  const ids = id === 'all' ? ALL : id === 'audits' ? (audits ?? []).filter((a) => a.ran).map((a) => `audit:${a.id}`) : id ? [id] : [];
+  const list = ids.map((k) => howOf(k, { model, audits })).filter(Boolean);
   const f = list[0] ?? null;
+  const read = id === 'gate-runs' ? 'Read when CI last answered' : checked ? `Read at ${checked}, again every minute while open` : 'Read when this page opened';
+  const facts = (x) => <Facts label={`How ${x.title} is measured`} facts={[{ label: 'From', value: x.source }, { label: 'Made by', value: x.how }]} />;
   return (
-    <ReadingDrawer open={Boolean(f)} onClose={() => setId(null)} label="How was this measured?" subtitle={id === 'all' ? 'Every headline number on this page' : f?.title}>
-      {list.map((f) => (
-        <Inset key={f.title} gap={16}>
-          {id === 'all' ? <TextStack title={f.title} /> : null}
-          <Flow gap={4}>
-            <TextStack title="Where it comes from" />
-            <TextStack body={f.source} />
-          </Flow>
-          <Flow gap={4}>
-            <TextStack title="How the number is made" />
-            <TextStack body={f.how} />
-          </Flow>
-          <Flow gap={4}>
-            <TextStack title="When it was read" />
-            <TextStack body={f.when} />
-          </Flow>
-        </Inset>
-      ))}
+    <ReadingDrawer
+      open={Boolean(f)}
+      onClose={() => setId(null)}
+      label={many ? 'How was this measured?' : `How ${f?.title ?? ''} is measured`}
+      status={read}
+      answer={many ? `Where each ${id === 'audits' ? 'audit score' : 'number on Health'} comes from and how it is made. Open one.` : f?.n ? <><Marker>{f.n}</Marker>{` is the number on the card.`}</> : undefined}
+    >
+      {many ? (
+        <ReadingGroups label="Each number on Health" groups={list.map((x) => ({ name: x.title, count: x.n ?? '', body: facts(x) }))} />
+      ) : f ? (
+        <Inset>{facts(f)}</Inset>
+      ) : null}
     </ReadingDrawer>
   );
 }
@@ -237,13 +233,16 @@ function ContrastCoverage({ contrast }) {
         context={`${contrast.pass} of ${contrast.of} have pairs${contrast.toGo ? ` · ${contrast.toGo} to go` : ''}`}
         onOpen={() => setOpen(true)}
       />
-      <ReadingDrawer open={open} onClose={() => setOpen(false)} label="Contrast coverage" status={`${contrast.pass} of ${contrast.of} parts declare their pairs`}>
-        <Inset gap={16}>
-          <Flow gap={4}>
-            <TextStack title={`${contrast.pct}% against a ${TARGET}% target`} />
-            <TextStack body={names.length ? `Parts still without declared pairs: ${names.join(', ')}.` : 'Every part declares its pairs.'} />
-          </Flow>
-        </Inset>
+      <ReadingDrawer
+        open={open}
+        onClose={() => setOpen(false)}
+        label="Contrast coverage"
+        status={`${contrast.pass} of ${contrast.of} parts declare their pairs`}
+        answer={names.length ? <><Marker>{`${names.length} of ${contrast.of} parts`}</Marker>{` still need their pairs declared; that takes coverage from ${contrast.pct}% to 100%.`}</> : 'Every part declares its pairs: coverage is 100%.'}
+        picture={<Progress label="Parts that declare their contrast pairs" value={`${contrast.pass} of ${contrast.of}`} fill={contrast.pct} target={TARGET} targetLabel={`${TARGET}% target`} tone={contrast.pct >= TARGET ? 'success' : 'attention'} />}
+        source={{ from: "BELLA's declared contrast pairs for each part" }}
+      >
+        <ReadingGroups openFirst label="Parts by contrast pairs" groups={[{ name: 'No pairs declared', tone: 'attention', items: names.map((n) => ({ key: n, title: n, line: 'Declares no text and background pair' })) }]} />
         {names.length ? <FixPlan plan={plan} onBefore={() => setOpen(false)} /> : null}
       </ReadingDrawer>
     </>
@@ -270,12 +269,13 @@ const driftLine = (p) =>
    snapshots CHIP kept of the specs, in words. Only what the snapshots hold; nothing is typed. */
 const when = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' + new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 function whyMoved(hist, d) {
-  // the end of the story is what the specs say now, not the last snapshot kept
-  const last = { at: d.at ?? hist.at(-1)?.at, differing: d.differing, noSpec: d.noSpec, specBehind: d.specBehind };
+  // the end of the story is what the specs say now, not the last snapshot kept; one line, each number saying of what
   const first = hist[0];
-  if (!first || !last.at || first.at === last.at) return `The first check CHIP kept: ${d.noSpec} parts have no spec yet and ${d.specBehind} have a spec behind their code. The change shows once BELLA moves.`;
-  const dir = last.differing > first.differing ? 'rose' : last.differing < first.differing ? 'fell' : 'stayed';
-  return `Parts that differ ${dir === 'stayed' ? `stayed at ${last.differing} of ${d.total}` : `${dir}: ${first.differing} on ${when(first.at)}, ${last.differing} of ${d.total} parts now`}. No spec went from ${first.noSpec} to ${last.noSpec} and specs behind the code from ${first.specBehind} to ${last.specBehind}, while BELLA grew to ${d.total} parts: a new part with no spec yet counts as differing.`;
+  const now = <Marker>{`${d.differing} of ${d.total} parts`}</Marker>;
+  if (!first || !d.at || first.at === d.at || first.differing === d.differing) return <>{now}{' differ now. The three below differ most from Figma.'}</>;
+  const day = new Date(first.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const grew = first.total && first.total < d.total ? ` BELLA grew from ${first.total} parts, and a new part with no spec counts as differing.` : '';
+  return <>{`${first.differing}${first.total ? ` of ${first.total}` : ''} parts differed on ${day}; `}{now}{` differ now.${grew}`}</>;
 }
 
 /* The one plan for Drift: what the scope covers, the brief for the agent, and the facts she asked for. */
@@ -330,7 +330,9 @@ function driftPoints(hist) {
 function DriftCard({ components }) {
   const { data } = useCached(['/drift'], { live: true });
   const [open, setOpen] = useState(false);
-  const closed = () => setOpen(false);
+  // what the drawer shows: 'summary', 'table', or a part (its detail); closing returns to the summary
+  const [view, setView] = useState('summary');
+  const closed = () => (setOpen(false), setView('summary'));
   const [picked, setScope] = useState(null);
   const runs = useCached(['/runs']).data?.[0]?.runs ?? [];
   const d = data?.[0] ?? null;
@@ -351,6 +353,9 @@ function DriftCard({ components }) {
   if (!d?.total) return <NoData title="Drift from BELLA" icon="Activity" context="Parts that differ from Figma, spec or code" caption={d ? 'No parts found' : 'Reading the specs'} />;
   const idOf = (name) => components.find((c) => c.name === name)?.id ?? name.replace(/(?<=[a-z])(?=[A-Z])/g, '-').toLowerCase();
   const day = d.at ? new Date(d.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
+  const differs = (p) => p.noSpec || p.specBehind.length || (p.compared ? p.differ : true);
+  const rows = d.parts.filter(differs).map((p) => ({ name: p.name, figma: p.differ ?? 0, behind: p.specBehind?.length ?? 0, p }));
+  const top = [...d.parts].filter((p) => p.compared && p.differ).sort((x, y) => y.differ - x.differ).slice(0, 3);
   return (
     <>
       <StatCard
@@ -369,43 +374,88 @@ function DriftCard({ components }) {
         }
         onOpen={() => setOpen(true)}
       />
-      <ReadingDrawer open={open} onClose={closed} label="Drift from BELLA" status={`${d.differing} of ${d.total} parts differ`}>
-        <>
-          <Inset gap={24}>
-          {/* why the count is what it is, and why it moved: the first and the last snapshots CHIP kept (/drift history), in words */}
-          <Flow gap={4}>
-            <TextStack title={`${d.differing} of ${d.total} parts differ`} />
-            <TextStack body={whyMoved(hist, d)} />
-          </Flow>
-          {/* three kinds of drift, sorted, words in Lexend (pin 2) */}
-          <Flow gap={12} as="ul" aria-label="The three kinds of drift, most first">
-            {kinds.map((k) => (
-              <li key={k.label}>
-                <Progress label={k.label} value={`${k.n} of ${k.of} parts`} fill={k.of ? (k.n / k.of) * 100 : 0} tone="attention" showTarget={false} />
-              </li>
-            ))}
-          </Flow>
-          </Inset>
-          <FixPlan plan={driftBatch(d, scope, setScope, runs)} onBefore={closed} />
-        {(() => {
-          const open = (p) => () => ((window.location.hash = `#/system/components/${encodeURIComponent(idOf(p.name))}`), setOpen(false));
-          const item = (p, state, line) => ({ key: p.name, title: p.name, state, line, onClick: open(p) });
-          return (
-            <ReadingGroups
-              single
-              openFirst
-              label="Parts by kind of drift"
-              groups={[
-                { name: 'Figma differs', tone: 'attention', items: d.parts.filter((p) => p.compared && p.differ).map((p) => item(p, 'Differs', plural(p.differ, 'Figma difference'))) },
-                { name: 'Spec behind the code', tone: 'info', items: d.parts.filter((p) => !p.noSpec && p.specBehind.length).map((p) => item(p, 'Behind', `Spec behind on ${plural(p.specBehind.length, 'prop')}`)) },
-                { name: 'No spec', tone: 'neutral', items: d.parts.filter((p) => p.noSpec).map((p) => item(p, 'No spec', 'No spec yet')) },
-                { name: 'Not read from Figma yet', tone: 'neutral', items: d.parts.filter((p) => !p.noSpec && !p.compared).map((p) => item(p, 'Not read', 'Not read from Figma yet')) },
-                { name: 'Matches', tone: 'success', items: d.parts.filter((p) => p.compared && !p.differ && !p.specBehind.length).map((p) => ({ key: p.name, title: p.name, state: 'Matches', line: 'Matches Figma', onClick: open(p) })) },
+      {/* Drift on the template, her pick C: the answer and the plan first (about one screen), the table of every part
+          one click behind with the filter chips above it, a part's detail one more click, Back to each step before */}
+      <ReadingDrawer
+        open={open}
+        onClose={closed}
+        label={view === 'summary' ? 'Drift from BELLA' : view === 'table' ? 'Parts that differ' : view.name}
+        status={view === 'summary' || view === 'table' ? `${d.differing} of ${d.total} parts differ` : driftLine(view)}
+        onBack={view === 'summary' ? undefined : () => setView(view === 'table' ? 'summary' : 'table')}
+        backLabel={view === 'table' ? 'Back to the summary' : 'Back to all parts'}
+        answer={view === 'summary' ? whyMoved(hist, d) : undefined}
+        picture={
+          view === 'summary' ? (
+            <Flow gap={12} as="ul" aria-label="The kinds of drift, most first">
+              {kinds.map((k) => (
+                <li key={k.label}>
+                  <Progress label={k.label} value={`${k.n} of ${k.of} parts`} fill={k.of ? (k.n / k.of) * 100 : 0} tone="attention" showTarget={false} />
+                </li>
+              ))}
+            </Flow>
+          ) : undefined
+        }
+        source={view === 'summary' ? { from: "Each part's spec file in BELLA", when: day ? `specs from ${day}` : null } : undefined}
+        footer={
+          typeof view === 'object' ? (
+            <Flow direction="row" gap={8} justify="end" wrap>
+              <Button variant="secondary" onClick={() => ((window.location.hash = `#/system/components/${encodeURIComponent(idOf(view.name))}`), closed())}>
+                Open the part
+              </Button>
+              <Button variant="primary" onClick={() => (closed(), setTimeout(() => planRun(driftPlan(view)).catch(() => {}), 150))}>
+                Plan this fix
+              </Button>
+            </Flow>
+          ) : undefined
+        }
+      >
+        {view === 'summary' ? (
+          <>
+            <ReadingTop
+              label="The three parts with the most differences"
+              rows={top.map((p) => ({ key: p.name, title: p.name, line: driftLine(p), onClick: () => setView(p) }))}
+              more={`See all ${rows.length} parts`}
+              onMore={() => setView('table')}
+            />
+            <FixPlan plan={driftBatch(d, scope, setScope, runs)} onBefore={closed} />
+          </>
+        ) : view === 'table' ? (
+          <ReadingTable
+            caption="Every part that differs: its Figma differences, and the props its spec is behind on"
+            rowKey="name"
+            rows={rows}
+            defaultSort={{ key: 'figma', direction: 'descending' }}
+            filters={[
+              { value: 'all', label: 'All' },
+              { value: 'figma', label: 'Differ from Figma', test: (r) => r.p.compared && r.figma > 0 },
+              { value: 'behind', label: 'Spec behind', test: (r) => r.behind > 0 },
+              { value: 'nospec', label: 'No spec', test: (r) => r.p.noSpec },
+              { value: 'unread', label: 'Not read from Figma', test: (r) => !r.p.noSpec && !r.p.compared },
+            ]}
+            columns={[
+              { key: 'name', label: 'Part', sortable: true },
+              { key: 'figma', label: 'Differences', numeric: true, sortable: true, sortValue: (r) => (r.p.compared ? r.figma : -1), render: (r) => (r.p.compared ? r.figma : 'Not read') },
+              { key: 'behind', label: 'Spec behind', numeric: true, sortable: true },
+            ]}
+            onOpen={(name) => setView(rows.find((r) => r.name === name).p)}
+          />
+        ) : (
+          <Inset>
+            <Facts
+              label={`What differs in ${view.name}`}
+              facts={[
+                { label: 'Figma', value: view.noSpec ? 'No spec, so nothing to compare yet.' : !view.compared ? 'Not read from Figma yet: it counts as differing until it is.' : view.differ ? `${plural(view.differ, 'field')} differ: ${view.fields.slice(0, 7).join('; ')}${view.fields.length > 7 ? `; and ${view.fields.length - 7} more` : ''}.` : 'Matches Figma.' },
+                { label: 'Spec', value: view.noSpec ? 'No spec yet: CHIP can write it from the code.' : view.specBehind.length ? (() => {
+                  // "labelPosition (in code, not in the spec)" said once for the list, not after every prop
+                  const NOT = ' (in code, not in the spec)';
+                  const all = view.specBehind.every((x) => x.endsWith(NOT));
+                  const names = view.specBehind.map((x) => (all ? x.slice(0, -NOT.length) : x));
+                  return `${plural(view.specBehind.length, 'prop')} ${all ? 'in the code, not in the spec' : 'behind the code'}: ${names.slice(0, 7).join(', ')}${names.length > 7 ? ` and ${names.length - 7} more` : ''}.`;
+                })() : 'Up to date with the code.' },
               ]}
             />
-          );
-        })()}
-        </>
+          </Inset>
+        )}
       </ReadingDrawer>
     </>
   );
@@ -448,18 +498,22 @@ function GapsCard() {
         onClose={closed}
         label="Gaps"
         status={`${plural(total, 'part')} BELLA can't give yet`}
+        answer={<><Marker>{`${g.notInCode.length} of ${total}`}</Marker>{` have a spec and no code yet, so they can be built now; the other ${g.notInBella.length} are listed in BELLA's AGENTS.md as not in BELLA: ask before building.`}</>}
+        picture={
+          <Flow gap={12} as="ul" aria-label="Gaps by kind">
+            <li><Progress label="Specified, not in code" value={`${g.notInCode.length} of ${total}`} fill={total ? (g.notInCode.length / total) * 100 : 0} tone="info" showTarget={false} /></li>
+            <li><Progress label="Not in BELLA yet" value={`${g.notInBella.length} of ${total}`} fill={total ? (g.notInBella.length / total) * 100 : 0} tone="attention" showTarget={false} /></li>
+          </Flow>
+        }
+        source={{ from: "BELLA's own brief of what is specified and not yet in code", when: 'no earlier reading kept, so no trend yet' }}
         footer={g.notInCode.length ? <Button variant="primary" onClick={plan}>Plan the build</Button> : undefined}
       >
-        <Inset>
-          <TextStack body={`${plural(total, 'part')} now. No earlier checks are recorded for Gaps yet, so there is no chart: it starts with the next reading.`} />
-        </Inset>
         <ReadingGroups
-          single
           openFirst
           label="Gaps by kind"
           groups={[
-            { name: 'Specified, not in code', tone: 'info', items: g.notInCode.map((n) => ({ key: n, title: n, state: 'Specified', line: 'Has a spec from Figma, no code part yet' })) },
-            { name: 'Not in BELLA yet', tone: 'neutral', items: g.notInBella.map((n) => ({ key: n, title: n, state: 'Listed', line: "In BELLA's AGENTS.md: ask before building" })) },
+            { name: 'Specified, not in code', tone: 'info', items: g.notInCode.map((n) => ({ key: n, title: n, line: 'Has a spec from Figma, no code part yet' })) },
+            { name: 'Not in BELLA yet', tone: 'neutral', items: g.notInBella.map((n) => ({ key: n, title: n, line: "In BELLA's AGENTS.md: ask before building" })) },
           ]}
         />
       </ReadingDrawer>
@@ -501,20 +555,34 @@ function GateCard({ gate, run, onOpen }) {
       caption={failed ? run.why : gate.failing.length ? <><Marker>{`Failing: ${gate.failing.join('; ')}`}</Marker></> : gate.notRun.length ? `Not run yet: ${gate.notRun.join('; ')}` : `All ${of} pass`}
       onOpen={() => setReading(true)}
     />
-      <ReadingDrawer open={reading} onClose={() => setReading(false)} label="Checks" status={`${ok} of ${of} pass${gate.when ? ` · last run ${gate.when}` : ''}`}>
-        <Inset gap={16}>
-          <Flow gap={4}>
-            <TextStack title={`${ok} of ${of} gate checks pass`} />
-            <TextStack body={gate.failing.length ? `Failing: ${gate.failing.join('; ')}.` : gate.notRun.length ? `Not run yet: ${gate.notRun.join('; ')}.` : `Every gate check passes${gate.on ? ` on ${gate.on}` : ''}. Nothing to fix.`} />
-          </Flow>
-          <Flow gap={8} as="ul" aria-label="The gate checks">
-            {(gate.members ?? []).map((m) => (
-              <li key={m.id ?? m.name}>
-                <TextStack title={m.name} subtitle={m.status === 'passed' ? 'Passes' : m.status === 'failed' ? 'Fails' : 'Not run yet'} />
-              </li>
-            ))}
-          </Flow>
-        </Inset>
+      {/* Checks drawer on the template (23 Nov: "I thought we were fixing the drawers"): the answer, the five checks as a
+          picture, the checks grouped by state, the plan when one fails, the source line with the commit behind a link */}
+      <ReadingDrawer
+        open={reading}
+        onClose={() => setReading(false)}
+        label="Checks"
+        status={`${ok} of ${of} gate checks pass`}
+        answer={
+          gate.failing.length ? (
+            <><Marker>{`${gate.failing.length} of ${of} fail`}</Marker>{`: ${gate.failing.join(', ')}. The plan below fixes them.`}</>
+          ) : gate.notRun.length ? (
+            <><Marker>{`${gate.notRun.length} of ${of} not run yet`}</Marker>{`: ${gate.notRun.join(', ')}.`}</>
+          ) : (
+            <>All <Marker>{`${of} of ${of} pass`}</Marker>: BELLA accepts a commit. Nothing to fix.</>
+          )
+        }
+        picture={<Progress shape="segments" label="Gate checks that pass" value={`${ok} of ${of}`} segments={of} done={ok} tone={ok === of ? 'success' : 'attention'} />}
+        source={{ from: "BELLA's gate, run before each commit", when: gate.when ? `oldest check ran ${gate.when}` : null, commit: gate.head }}
+      >
+        <ReadingGroups
+          openFirst
+          label="The gate checks by state"
+          groups={[
+            { name: 'Failing', tone: 'danger', items: (gate.members ?? []).filter((m) => ['failed', 'waiting'].includes(m.status)).map((m) => ({ key: m.name, title: m.name, line: m.when ? `Failed on ${m.when}` : 'Failed' })) },
+            { name: 'Not run yet', tone: 'neutral', items: (gate.members ?? []).filter((m) => m.status === 'not-run').map((m) => ({ key: m.name, title: m.name, line: 'No recorded run' })) },
+            { name: 'Passing', tone: 'success', items: (gate.members ?? []).filter((m) => m.status === 'passed').map((m) => ({ key: m.name, title: m.name, line: m.when ? `Passed, last run ${m.when}${m.commit && gate.head && m.commit !== gate.head ? ' on an older commit' : ''}` : 'Passed' })) },
+          ]}
+        />
         {gate.failing.length || gate.notRun.length ? (
           <FixPlan
             onBefore={() => setReading(false)}
@@ -607,12 +675,10 @@ function AuditCard({ a }) {
         value={a.value ?? '–'}
         unit={a.unit ?? ''}
         context={lights}
-        caption={withHow(`audit:${a.id}`, `Ran ${dayOf(a.ran)}${was}`)}
+        caption={`Ran ${dayOf(a.ran)}${was}`}
         onOpen={() => setOpen(true)}
       />
-      <ReadingDrawer open={open} onClose={() => setOpen(false)} label={`${a.title} audit`} status={`Ran ${dayOf(a.ran)} · ${lights}`}>
-        <AuditReading a={a} day={dayOf(a.ran)} />
-      </ReadingDrawer>
+      <AuditReading a={a} day={dayOf(a.ran)} lights={lights} open={open} onClose={() => setOpen(false)} />
     </>
   );
 }
@@ -640,7 +706,15 @@ function AuditsSection() {
           iconTone="info"
           title="Audits"
           showInfo={false}
-          description="The latest saved report of each audit"
+          description={
+            /* How was this measured? sits in the sentence, not on each card (template plan, 23 Nov) */
+            <>
+              {`${plural(audits.filter((a) => a.ran).length, 'audit')} with a saved report. `}
+              <Button variant="tertiary" size="sm" onClick={() => window.dispatchEvent(new CustomEvent('chip:how', { detail: 'audits' }))}>
+                How was this measured?
+              </Button>
+            </>
+          }
           action={<Button variant="secondary" size="sm" onClick={runAll}>Run all audits</Button>}
         />
       </Flow>

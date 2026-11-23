@@ -26,6 +26,7 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Swatch from '@bella/components/Swatch/Swatch';
 import TypeSpecimen from '@bella/components/TypeSpecimen/TypeSpecimen';
+import Tooltip from '@bella/components/Tooltip/Tooltip';
 import SpacingStep from '@bella/components/SpacingStep/SpacingStep';
 import RadiusTile from '@bella/components/RadiusTile/RadiusTile';
 import EasingCurve, { DurationBar, EASING_POINTS } from '@bella/components/EasingCurve/EasingCurve';
@@ -215,6 +216,47 @@ function useInUse(prefix) {
   return used;
 }
 
+/* What each size is for, and where BELLA sets it (CHIP Fix plans rule, 23 Nov: "Type sizes show on hover what each is used
+   for and where"). "For" is the step's job in CHIP's ramp (body and labels 16, headings 18, titles 20, display above);
+   "Where" is read from BELLA's own part styles: every part whose CSS sets that size token. Loaded on first hover. */
+const FOR = {
+  page: 'The page title',
+  section: 'Section titles',
+  subsection: 'Big numbers, subsections',
+  xl: 'Titles that lead a list',
+  title: 'Titles in cards, drawers',
+  heading: 'Group and card headings',
+  body: 'Reading text; the floor',
+};
+const PART_CSS = import.meta.glob('@bella/components/*/*.module.css', { query: '?raw', import: 'default' });
+let partsBySize = null;
+async function whereSet() {
+  if (partsBySize) return partsBySize;
+  const out = {};
+  await Promise.all(
+    Object.entries(PART_CSS).map(async ([path, load]) => {
+      const css = await load();
+      const part = path.split('/').at(-2);
+      for (const m of css.matchAll(/font-size:\s*var\((--typography-font-size-[\w-]+)\)/g)) (out[m[1]] ??= new Set()).add(part);
+    }),
+  );
+  partsBySize = Object.fromEntries(Object.entries(out).map(([k, v]) => [k, [...v].sort()]));
+  return partsBySize;
+}
+function TypeStep({ size, name, token, px }) {
+  const [where, setWhere] = useState(null);
+  const read = () => where ?? whereSet().then((w) => setWhere(w[token] ?? [])).catch(() => setWhere([]));
+  // short lines: BELLA's rich tooltip keeps each line whole, so each must fit a 320 screen
+  const rows = where == null ? ['Reading BELLA’s parts'] : where.length ? [`Set by ${where.length} BELLA ${where.length === 1 ? 'part' : 'parts'}`, `such as ${where.slice(0, 2).join(', ')}`] : ['No BELLA part sets it'];
+  return (
+    <Tooltip kind="rich" placement="top" label={`${px || '—'} · ${name}`} rows={[`For: ${FOR[name] ?? 'not named yet'}`, ...rows]}>
+      <Flow tabIndex={0} aria-label={`${name}, ${px}`} onPointerEnter={read} onFocus={read}>
+        <TypeSpecimen size={size} name={name} sizeLabel={px || '—'} />
+      </Flow>
+    </Tooltip>
+  );
+}
+
 function TypeRamp() {
   const [sizes, setSizes] = useState({});
   useEffect(() => {
@@ -230,7 +272,7 @@ function TypeRamp() {
         <SectionHead size="card" icon="Page" iconTone="info" title="Type ramp" description={inUse ? `${RAMP.length} of the ${inUse} sizes in use` : 'Reading the sizes in use'} showDescription />
         <Flow gap={8}>
           {RAMP.map(([size, name, v]) => (
-            <TypeSpecimen key={size} size={size} name={name} sizeLabel={sizes[v] || '—'} />
+            <TypeStep key={size} size={size} name={name} token={v} px={sizes[v]} />
           ))}
         </Flow>
       </Flow>

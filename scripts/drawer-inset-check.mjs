@@ -15,9 +15,12 @@ const WIDTHS = [1440, 768, 320];
 const DRAWERS = [
   { name: 'Drift', card: /^Drift from BELLA/ },
   { name: 'Gaps', card: /^Gaps/ },
+  { name: 'Checks', card: /^Checks/ },
+  { name: 'Contrast', card: /^Contrast coverage/ },
   { name: 'Audit', card: /^BELLA system/ },
 ];
-const BLOCKS = ['bar-chart', 'progress', 'disclosure', 'stat-card', 'section-head', 'notification', 'text-stack'];
+// the drawer template (23 Nov): branch-group rows and the data table sit on the title's edge like every other block
+const BLOCKS = ['bar-chart', 'progress', 'disclosure', 'branch-group', 'data-table', 'stat-card', 'section-head', 'notification', 'text-stack'];
 
 const browser = await chromium.launch();
 let bad = 0;
@@ -62,9 +65,12 @@ for (const width of WIDTHS) {
 //   (a) an opened group's header is not in view after it opens (the old scroll position cut its first item),
 //   (b) more than 160px (the phone sheet's own bottom padding is about 150) of empty body sits under the last content at the end, or content is cut off at the bottom,
 //   (c) any text ends in an ellipsis or is clipped by a line clamp or overflow, so a sentence cannot be read.
+// groups are BELLA BranchGroup rows (the drawer template, 23 Nov): a head button with aria-expanded, its items rendered
+// only while open. Drift opens on its summary; its groups are the table one click behind (See all), measured below.
 const GROUPED = [
-  { name: 'Drift', card: /^Drift from BELLA/ },
   { name: 'Gaps', card: /^Gaps/ },
+  { name: 'Checks', card: /^Checks/ },
+  { name: 'Contrast', card: /^Contrast coverage/ },
   { name: 'CHIP app audit', card: /^CHIP app/ },
   { name: 'BELLA system audit', card: /^BELLA system/ },
   { name: 'Figma screens audit', card: /^CHIP Figma screens/ },
@@ -80,22 +86,23 @@ for (const width of WIDTHS) {
     if (!(await card.count())) { console.log(`FAIL ${width} ${d.name} groups: card not found`); bad++; continue; }
     await card.click();
     await page.waitForTimeout(1200);
-    const groups = await page.evaluate(() => [...document.querySelectorAll('dialog [role="group"] > details')].map((x) => x.querySelector('summary')?.textContent.trim().slice(0, 24)));
+    const HEAD = 'dialog [data-bella-component="branch-group"] > button';
+    const groups = await page.evaluate((h) => [...document.querySelectorAll(h)].map((x) => x.textContent.trim().slice(0, 24)), HEAD);
     if (!groups.length) { console.log(`FAIL ${width} ${d.name} groups: no groups found, nothing measured`); bad++; continue; }
     const problems = [];
     for (let i = 0; i < groups.length; i++) {
-      const sum = page.locator('dialog [role="group"] > details').nth(i).locator('summary');
-      const wasOpen = await sum.evaluate((x) => x.parentElement.open);
+      const sum = page.locator(HEAD).nth(i);
+      const wasOpen = await sum.evaluate((x) => x.getAttribute('aria-expanded') === 'true');
       if (!wasOpen) await sum.click();
       await page.waitForTimeout(700);
       const res = await page.evaluate((idx) => {
         const dlg = [...document.querySelectorAll('dialog')].find((x) => x.getBoundingClientRect().width > 0);
-        const det = dlg.querySelectorAll('[role="group"] > details')[idx];
+        const det = dlg.querySelectorAll('[data-bella-component="branch-group"]')[idx];
         let sc = det;
         for (; sc && sc !== dlg; sc = sc.parentElement) { const s = getComputedStyle(sc); if (/auto|scroll/.test(s.overflowY) && sc.scrollHeight > sc.clientHeight) break; }
         const out = { header: null, empty: null, cut: [], clipped: [] };
         const box = (sc && sc !== dlg ? sc : dlg).getBoundingClientRect();
-        const hs = det.querySelector('summary').getBoundingClientRect();
+        const hs = det.querySelector(':scope > button').getBoundingClientRect();
         out.header = hs.top >= box.top - 1 && hs.bottom <= box.bottom + 1;
         if (sc && sc !== dlg) sc.scrollTop = sc.scrollHeight;
         // text a reader can see: not the inside of a closed <details>, not visually hidden (1px) text
@@ -119,6 +126,44 @@ for (const width of WIDTHS) {
     if (problems.length) bad++;
     await page.keyboard.press('Escape');
   }
+  await page.close();
+}
+
+// Drift's table, one click behind its summary (the drawer template, her pick C, 23 Nov): See all opens the table; it sits
+// on the title's edge, never scrolls sideways (at 320 it stacks), and a row opens that part's detail with Back.
+for (const width of WIDTHS) {
+  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  await page.goto(`${APP}/#/health`);
+  await page.reload();
+  await page.waitForTimeout(2500);
+  const card = page.locator('button', { hasText: /^Drift from BELLA/ }).first();
+  if (!(await card.count())) { console.log(`FAIL ${width} Drift table: card not found`); bad++; await page.close(); continue; }
+  await card.click();
+  await page.waitForTimeout(1000);
+  const all = page.locator('dialog button', { hasText: /See all \d+ parts/ }).first();
+  if (!(await all.count())) { console.log(`FAIL ${width} Drift table: no See all on the summary`); bad++; await page.close(); continue; }
+  await all.click();
+  await page.waitForTimeout(800);
+  const t = await page.evaluate(() => {
+    const dlg = [...document.querySelectorAll('dialog')].find((x) => x.getBoundingClientRect().width > 0);
+    const tb = dlg?.querySelector('[data-bella-component="data-table"]');
+    if (!tb) return null;
+    const r = (e) => e.getBoundingClientRect();
+    const wrap = tb.querySelector('[data-bella-scroll-edge] > *');
+    return { L: Math.round(r(dlg.querySelector('button[aria-label="Back"], h1, h2, h3')).left), tl: Math.round(r(tb).left), tr: Math.round(r(tb).right), R: Math.round(r(dlg.querySelector('button[aria-label="Close"], button:last-of-type')).right), sideways: wrap ? wrap.scrollWidth - wrap.clientWidth : 0, rows: tb.querySelectorAll('tbody tr').length };
+  });
+  if (!t) { console.log(`FAIL ${width} Drift table: no table after See all`); bad++; await page.close(); continue; }
+  const probs = [];
+  if (t.sideways > 1) probs.push(`the table scrolls sideways by ${t.sideways}px`);
+  if (!t.rows) probs.push('the table has no rows');
+  await page.locator('dialog [data-bella-component="data-table"] tbody tr button').first().click();
+  await page.waitForTimeout(600);
+  const back = await page.locator('dialog button', { hasText: /^Back/ }).count() + (await page.locator('dialog button[aria-label^="Back"]').count());
+  if (!back) probs.push('a row opened no detail with Back');
+  measured += 1;
+  console.log(`${probs.length ? 'FAIL' : 'ok  '} ${width} Drift table: ${t.rows} rows, left ${t.tl}, right ${t.tr}, sideways ${t.sideways}px, row opens detail ${back ? 'with Back' : 'without Back'}`);
+  for (const m of probs) console.log(`       ${m}`);
+  if (probs.length) bad++;
   await page.close();
 }
 
@@ -158,7 +203,7 @@ for (const width of WIDTHS) {
   await page.getByRole('button', { name: /^Task:/ }).click();
   await page.waitForSelector('[data-bella-component="branch-group"]', { timeout: 15000 });
   await report('task');
-  await page.getByRole('button', { name: 'Back' }).click();
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
   await page.getByRole('button', { name: /^Project:/ }).click();
   await report('project');
   const dt = await page.evaluateHandle(() => { const d = new DataTransfer(); d.items.add(new File(['# Harbour\n\nA ferry timetable.\n'], 'h.md')); return d; });

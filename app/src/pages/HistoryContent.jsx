@@ -573,7 +573,9 @@ function Record({ id, fit, landing }) {
 
 export default function HistoryContent() {
   const phone = useNarrow();
-  const [draft, setDraft] = useState('');
+  // a drawer's source line links a commit here as #/system/history?q=<id>: History opens on that search (drawer template, 23 Nov)
+  const fromLink = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('q') ?? '';
+  const [draft, setDraft] = useState(fromLink);
   // Recent searches: this browser's own, a convenience (lost with site data, never shared)
   const [recent, setRecent] = useState(() => {
     try {
@@ -599,7 +601,7 @@ export default function HistoryContent() {
       /* no storage: Recent lasts this visit */
     }
   };
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(fromLink);
   const [kind, setKind] = useState(null);
   const [status, setStatus] = useState([]);
   const [since, setSince] = useState('');
