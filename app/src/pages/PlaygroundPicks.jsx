@@ -92,6 +92,7 @@ function readCard(sec, page, item, mod) {
     .map((d) => text(d).match(LETTER))
     .filter(Boolean)
     .map(([full, letter, rest]) => ({ letter, answer: full, short: rest, img: figs.find((f) => new RegExp(`^${letter}\\s*·`).test(f.cap))?.img ?? null }));
+  options.sort((x, y) => x.letter.localeCompare(y.letter)); // A to E, whatever order the page lists them in (second pass, S15)
   let thumbs = false;
   if (!options.length) {
     // a card with no A/B is answered with 👍 or 👎 on its pictures (decide.js: "Looks right" / "Change it")
@@ -387,6 +388,10 @@ export default function PlaygroundPicks() {
     const o = pk.options.find((x) => x.letter === ups[ups.length - 1]);
     return o ? o.answer : null;
   };
+  // the answer in one word: the letter chosen here, else the one already sent to the board
+  const sentAnswer = pick?.answer?.text ?? null;
+  const chosen = pick ? answerOf(pick, draft) : null;
+  const yourAnswer = (chosen ?? sentAnswer)?.match(/^(?:[A-Z]\b|👍|👎)/u)?.[0] ?? (chosen ?? sentAnswer);
   const noteOf = (pk, d) => {
     const downs = Object.entries(d.thumb).filter(([, v]) => v === 'down').map(([k]) => (pk.thumbs ? null : `👎 ${k}`)).filter(Boolean);
     const pins = unsent(d).map((p) => `${pk.thumbs ? '' : `${p.option} · `}pin ${pinNoIn(pk, d, p)}: ${p.note.trim()}`);
@@ -495,6 +500,8 @@ export default function PlaygroundPicks() {
         {clean(pick.title)}
       </Heading>
       {/* one row above the picture: the options, your answer, Send and the comment count (23 Nov: like Figma comments) */}
+      {/* what counts as an answer, said once above the controls (second pass, S15) */}
+      <TextStack title={yourAnswer ? `Your answer: ${yourAnswer}` : 'No answer yet'} />
       <Flow direction="row" gap={12} align="center" wrap role="group" aria-label={`Your answer for ${pick.thumbs ? option.short : mark}`}>
         {pick.options.length > 1 ? (
           <SegmentedControl

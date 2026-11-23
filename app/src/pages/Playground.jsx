@@ -27,7 +27,13 @@ export default function Playground() {
     setProject(p);
     setRoute(null);
   }, []);
-  const tabs = { items: TABS, value: view, onChange: setView, label: 'Playground views', idBase: 'playground-views' };
+  // the tab is in the address, so a view can be shared (second pass, S15); Picks is the start and keeps the plain address
+  const changeView = (v) => {
+    setView(v);
+    const hash = v === 'pages' ? '#/playground?view=pages' : '#/playground';
+    if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
+  };
+  const tabs = { items: TABS, value: view, onChange: changeView, label: 'Playground views', idBase: 'playground-views' };
   return (
     <Screen place="playground" header={{ title: 'Playground' }} tabs={tabs}>
       {view === 'picks' ? <PlaygroundPicks /> : <PlaygroundContent project={project} onProject={pickProject} route={route} onRoute={setRoute} openFirst={asked().named} />}

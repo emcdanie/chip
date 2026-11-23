@@ -15,7 +15,7 @@ import Button from '@bella/components/Button/Button';
 import Flow from '../templates/Flow.jsx';
 import { Inset, ReadingGroups, ReadingSection } from '../templates/ReadingDrawer.jsx';
 import Keyed from '../templates/Keyed.jsx';
-import { greenFrom, parseReport } from './auditReport.js';
+import { auditTone, greenFrom, parseReport } from './auditReport.js';
 
 // the state words CHIP uses everywhere, never the colour's name (her 22 Nov: "why are we naming them colors"); the colour and shape stay as the signal
 const WORD = { red: 'Failing', yellow: 'Needs work', green: 'Healthy' };
@@ -63,7 +63,7 @@ export default function AuditReading({ a, day }) {
   const bar = greenFrom(r.stations);
   const outOf100 = a.unit === 'of 100';
   const fill = a.value == null ? null : a.checks && !outOf100 && /checks green/.test(a.unit ?? '') ? (a.value / a.checks) * 100 : a.value;
-  const tone = a.red ? 'danger' : a.yellow ? 'attention' : 'success';
+  const tone = { danger: 'danger', warning: 'attention', success: 'success', neutral: 'neutral' }[auditTone(a)];
   const lightWords = a.red == null ? null : `${a.red} failing · ${a.yellow} need work · ${a.green} healthy`;
   const item = (s) => ({
     key: s.n,
