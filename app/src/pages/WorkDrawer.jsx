@@ -317,6 +317,7 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
   };
   const footer =
     s.can === 'decide' ? (
+      <Flow gap={8} stretch>
       <Flow direction="row" justify="end" gap={8}>
         <Button variant="secondary" disabled={!!busy} onClick={() => act('undo', { title: 'Undone', message: `The branch ${s.branch} is gone; nothing else changed.` })}>
           {busy === 'undo' ? 'Undoing…' : 'Undo'}
@@ -324,6 +325,8 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
         <Button variant="primary" disabled={!!busy} onClick={() => act('keep', { title: s.merge ? 'Kept for merging' : 'Accepted', message: `${s.branch} is kept. Merging it is a maintainer’s step in git.` })}>
           {busy === 'keep' ? (s.merge ? 'Keeping…' : 'Accepting…') : s.merge ? 'Keep branch' : 'Accept'}
         </Button>
+      </Flow>
+      <TextStack subtitle={`${s.merge ? 'Keep branch' : 'Accept'} keeps the work on its branch; merging is a step in git. Undo deletes the branch and changes nothing else.`} />
       </Flow>
     ) : s.can === 'stop' ? (
       // a running run always has Stop: nothing is kept, the branch stays for a look
@@ -333,10 +336,13 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
         </Button>
       </Flow>
     ) : s.again ? (
+      <Flow gap={8} stretch>
       <Flow direction="row" justify="end" gap={8}>
         <Button variant="primary" disabled={!!busy} onClick={() => again(s.again)}>
           {busy === 'again' ? 'Starting…' : 'Run again'}
         </Button>
+      </Flow>
+      <TextStack subtitle="Opens the same plan for a new run on a new branch; nothing runs until you approve it." />
       </Flow>
     ) : s.can === 'run' ? (
       <Flow direction="row" justify="end" gap={8}>

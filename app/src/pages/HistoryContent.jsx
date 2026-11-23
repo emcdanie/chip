@@ -573,7 +573,9 @@ function Record({ id, fit, landing }) {
 
 export default function HistoryContent() {
   const phone = useNarrow();
-  const [draft, setDraft] = useState('');
+  // a link opens History already searched, #/system/history?q=<words>: a drawer's source line (a commit id) and Not again (its words)
+  const fromLink = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('q') ?? '';
+  const [draft, setDraft] = useState(fromLink);
   // Recent searches: this browser's own, a convenience (lost with site data, never shared)
   const [recent, setRecent] = useState(() => {
     try {
@@ -599,8 +601,7 @@ export default function HistoryContent() {
       /* no storage: Recent lasts this visit */
     }
   };
-  // a link from Not again opens History already filtered: #/system/history?q=<words>
-  const [q, setQ] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('q') ?? '');
+  const [q, setQ] = useState(fromLink);
   const [kind, setKind] = useState(null);
   const [status, setStatus] = useState([]);
   const [since, setSince] = useState('');

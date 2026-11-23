@@ -126,6 +126,12 @@ function gateFrom(g, checks) {
     notRun: not(['not-run']),
     on: checks?.base ? `${checks.base}${checks.head ? ` @ ${checks.head}` : ''}` : null,
     behind: behind.map((c) => ({ name: c.name, when: day(c.ranAt), commit: c.commit })),
+    // each check with its own last run, for the Checks drawer: the commit id is shown only behind a link (drawer template, 23 Nov)
+    head: checks?.head ?? null,
+    members: g.members.map((m) => {
+      const r = runs.find((c) => c.name === m.name);
+      return { id: m.id, name: m.name, status: m.status, when: r ? day(r.ranAt) : null, commit: r?.commit ?? null };
+    }),
   };
 }
 

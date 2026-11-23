@@ -267,9 +267,13 @@ export function NewStart({ variant = 'primary' }) {
     );
   } else if (step === 'project' && sub === 'result') {
     footer = (
-      <Flow direction="row" gap={8} justify="end">
-        <Button variant="secondary" size="sm" busy={busy} onClick={undo}>Undo</Button>
-        <Button variant="primary" size="sm" onClick={accept}>Accept</Button>
+      <Flow gap={8} stretch>
+        <Flow direction="row" gap={8} justify="end">
+          <Button variant="secondary" size="sm" busy={busy} onClick={undo}>Undo</Button>
+          <Button variant="primary" size="sm" onClick={accept}>Accept</Button>
+        </Flow>
+        {/* what each button does, before she presses it (second-pass review S17) */}
+        <TextStack subtitle="Accept keeps the project under Projects. Undo removes it and everything CHIP made for it." />
       </Flow>
     );
   }
