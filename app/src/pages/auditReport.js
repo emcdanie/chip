@@ -181,3 +181,8 @@ export function greenFrom(stations) {
   const lo = Math.min(...g);
   return Math.max(...y) < lo ? lo : null;
 }
+
+/* The state of an audit, from what its report counted (second pass: an icon that was green at 55 of 100). One meaning for the
+   colour everywhere: failing = danger, needs work = warning, healthy = success; an audit whose report counted no failing or
+   needs-work headings has no state to show, so it is neutral and says so, never green by default. */
+export const auditTone = (a) => (a.red == null ? 'neutral' : a.red ? 'danger' : a.yellow ? 'warning' : 'success');

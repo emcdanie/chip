@@ -18,7 +18,7 @@ import Flow from '../templates/Flow.jsx';
 import FixPlan, { measuredMinutes } from '../templates/FixPlan.jsx';
 import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, ReadingTop } from '../templates/ReadingDrawer.jsx';
 import useCached from '../templates/useCached.js';
-import { greenFrom, parseReport } from './auditReport.js';
+import { auditTone, greenFrom, parseReport } from './auditReport.js';
 
 // the state words CHIP uses everywhere, never the colour's name (her 22 Nov: "why are we naming them colors")
 const WORD = { red: 'Failing', yellow: 'Needs work', green: 'Healthy' };
@@ -122,7 +122,7 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
   const bar = greenFrom(r.stations);
   const outOf100 = a.unit === 'of 100';
   const fill = a.value == null ? null : a.checks && !outOf100 && /checks green/.test(a.unit ?? '') ? (a.value / a.checks) * 100 : a.value;
-  const tone = a.red ? 'danger' : a.yellow ? 'attention' : 'success';
+  const tone = { danger: 'danger', warning: 'attention', success: 'success', neutral: 'neutral' }[auditTone(a)];
   const item = (s) => ({
     key: s.n,
     title: s.name,
