@@ -27,7 +27,7 @@ import { accept, fixableChecks, keep, readActions, reviewCard, reviewImage, undo
 import { closedLoops, recurring } from './lib/not-again.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
 import { saveBoard, saveIdea, workBoard, workLanes } from './lib/lanes.mjs';
-import { claudeReady, gateReady, getRun, keepRun, listRuns, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
+import { claudeReady, gateReady, getRun, keepRun, listRuns, runClock, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
 import { ciReadAt, ciRuns, warmCi, systemMap } from './lib/map.mjs';
@@ -608,7 +608,7 @@ app.get('/push/:repo', (req, res) => {
     errorOut(res, e, 404);
   }
 });
-app.get('/runs', (_req, res) => res.json({ runs: listRuns(), base: checksBase }));
+app.get('/runs', (_req, res) => res.json({ runs: listRuns(), base: checksBase, clock: runClock() }));
 app.get('/runs/ready', (_req, res) => res.json(claudeReady()));
 // what a run does, step by step, for every plan a page shows (Talk)
 app.get('/runs/plan', (_req, res) => res.json(runPlan()));

@@ -219,6 +219,7 @@ function bSession(s, now) {
     needs: s.asks,
     home: done && !s.asks ? 'shipped' : s.working || s.asks || now - s.updatedAt < 60 * 60e3 ? 'now' : null,
     startedAt: s.startedAt,
+    lastStepAt: s.updatedAt ?? null,
     who: 'agent',
     area: s.project,
     project: s.project,
@@ -243,6 +244,7 @@ function bRun(r, base) {
     home: r.status === 'kept' ? (['working', 'error'].includes(afterSteps(r)?.state) ? 'now' : 'shipped') : ['starting', 'running', 'gate', 'passed', 'failed', 'login'].includes(r.status) ? 'now' : null,
     branch: r.branch ?? null,
     startedAt: r.startedAt ? Date.parse(r.startedAt) : null,
+    lastStepAt: r.lastStepAt ?? r.steps?.at(-1)?.endedAt ?? null,
     open: { kind: 'run', id: r.id },
     runBrief: r.status === 'failed' ? (r.brief ?? null) : null,
     who: needs ? 'reviewer' : 'agent',
@@ -364,7 +366,7 @@ function boardWhy(board, extra) {
 
 /** Reads the board's data (kept between pages); it is read again every 15 seconds, so progress moves on its own. */
 export function useWork() {
-  const { data, error, at, loading, reload } = useCached(['/needs', '/runs', '/gaps']);
+  const { data, error, at, loading, reload, last } = useCached(['/needs', '/runs', '/gaps']);
   const { data: extra, reload: reloadExtra } = useCached(['/work/lanes']);
   const { data: boardData, reload: reloadBoard } = useCached(['/work/board']);
   const [live, setLive] = useState(null);
@@ -395,7 +397,7 @@ export function useWork() {
     return () => clearInterval(t);
   }, [busy]);
   const model = useMemo(() => (data ? boardModel({ needs: data[0].items ?? [], runs: runs?.runs ?? [], runBase: runs?.base ?? null, lanes: extra?.[0] ?? null, board, gaps: data[2]?.gaps ?? null }) : null), [data, runs, extra, board]);
-  return { model, error, loading, reload: () => (reload(), reloadExtra(), reloadBoard()), checked: at ? hhmm(at) : null };
+  return { model, error, loading, reload: () => (reload(), reloadExtra(), reloadBoard()), checked: at ? hhmm(at) : null, last };
 }
 
 /** Saves where she put a card and before which one (lane null: back where CHIP measured it). */

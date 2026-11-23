@@ -130,10 +130,10 @@ function gateFrom(g, checks) {
 
 /** Reads CHIP's data (kept between pages); `model` is null only on the very first visit. */
 export function useHealth() {
-  const { data, error, at, loading, reload, stale } = useCached(['/data/bella.json', '/gaps', '/contrast-pairs', '/checks'], { live: true });
+  const { data, error, at, loading, reload, stale, last } = useCached(['/data/bella.json', '/gaps', '/contrast-pairs', '/checks'], { live: true });
   const model = useMemo(() => (data ? healthModel({ components: data[0].components, gaps: data[1].gaps, history: data[0].history, pairs: data[2], checks: data[3] }) : null), [data]);
   const checked = at ? new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
-  return { model, error, loading, reload, checked, stale };
+  return { model, error, loading, reload, checked, stale, last };
 }
 
 /* Hand a check's gaps to the agent (user test 21 Nov, item 2; rule: "Fix opens

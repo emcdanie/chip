@@ -17,6 +17,8 @@ import BoardLane, { BoardLaneDropSpace } from '@bella/components/BoardLane/Board
 import Menu, { MenuDivider, MenuItem } from '@bella/components/Menu/Menu';
 import Toast from '@bella/components/Toast/Toast';
 import TaskCard from '@bella/components/TaskCard/TaskCard';
+import LastRun from '@bella/components/LastRun/LastRun';
+import { clockWords, tookWords } from '../runClock.js';
 import Tag from '@bella/components/Tag/Tag';
 import ListRow from '@bella/components/ListRow/ListRow';
 import DataTable from '@bella/components/DataTable/DataTable';
@@ -77,6 +79,10 @@ const SORTS = [
    steps keeps its one line. A picture thumbnail in the card is a named gap: TaskCard has no picture part. */
 const hasProgress = (c) => !!c.progress && c.progress.state !== 'blank' && c.progress.total > 0 && !!c.what;
 const cardLine = (c) => (hasProgress(c) ? c.what : c.line);
+/* Steps done, the step running and what is left (feedback plan 23 Nov: "every card shows how far along it is"): the bar says done of
+   all, the step row the one running, and this the ones left; a card that is going also counts its time and the last step's age. */
+const stepsLeft = (p) => (p.state === 'error' ? undefined : p.state === 'done' ? 0 : Math.max(0, p.total - p.done - (p.state === 'working' ? 1 : 0)));
+const goingNow = (c) => hasProgress(c) && c.progress.state === 'working' && !c.paused;
 
 /* the label on the blue drop space: what the drop does */
 function dropLabel(card, from, to) {
@@ -103,6 +109,9 @@ function Lane({ lane, move, why }) {
           progressDone={c.progress?.done}
           progressTotal={c.progress?.total}
           stepNow={hasProgress(c) && c.progress.state !== 'done' ? c.progress.now ?? undefined : undefined}
+          progressLeft={hasProgress(c) ? stepsLeft(c.progress) : undefined}
+          since={goingNow(c) ? c.startedAt ?? undefined : undefined}
+          lastStepAt={goingNow(c) ? c.lastStepAt ?? undefined : undefined}
           paused={!!c.paused}
           status={c.status}
           statusTone={c.tone}
@@ -216,7 +225,7 @@ function useMove({ open }) {
   return { drag, over, setOver, menu, setMenu, start, end, drop, back, notice, setNotice, open };
 }
 
-export default function WorkContent({ model: all, filter: hashFilter = {}, view = 'board', onView, checked, onCheck, loading }) {
+export default function WorkContent({ model: all, filter: hashFilter = {}, view = 'board', onView, checked, last, onCheck, loading }) {
   const phone = useNarrow();
   const { data: proj, reload: reloadProj } = useCached(['/projects']);
   useEffect(() => {
@@ -354,7 +363,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
         <Flow direction="row" gap={16} wrap align="center" justify={phone ? 'start' : 'end'}>
           <TextStack title={all ? `${working} at work · ${waiting} wait on you` : 'Reading the board'} />
           <Flow direction="row" gap={8} align="center">
-            {checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
+            {last ? <LastRun when={clockWords(last.at)} took={tookWords(last.tookMs)} result={last.found} /> : checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
             <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={() => ((checkAsked.current = true), onCheck?.())}>
               {loading ? 'Checking…' : 'Check again'}
             </Button>
