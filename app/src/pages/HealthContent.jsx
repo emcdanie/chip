@@ -385,6 +385,23 @@ function DriftCard({ components }) {
               </li>
             ))}
           </Flow>
+          {/* sorted bars per part: the ten with the most differences, counted from the same parts (Figma differences read from Figma, props the spec is behind on, a missing spec as one) */}
+          {(() => {
+            const n = (p) => (p.compared ? p.differ : 0) + p.specBehind.length + (p.noSpec ? 1 : 0);
+            const top = d.parts.map((p) => ({ p, n: n(p) })).filter((x) => x.n).sort((a, b) => b.n - a.n).slice(0, 10);
+            return top.length ? (
+              <Flow gap={12}>
+                <TextStack title="Parts with the most differences" subtitle="Differences counted per part, ten most first" />
+                <Flow gap={12} as="ul" aria-label="Parts with the most differences">
+                  {top.map(({ p, n: c }) => (
+                    <li key={p.name}>
+                      <Progress label={p.name} value={plural(c, 'difference')} fill={(c / top[0].n) * 100} tone="attention" showTarget={false} />
+                    </li>
+                  ))}
+                </Flow>
+              </Flow>
+            ) : null;
+          })()}
           </Inset>
           <FixPlan plan={driftBatch(d, scope, setScope, runs)} onBefore={closed} />
         {(() => {
@@ -492,9 +509,9 @@ function GateCard({ gate, run, onOpen }) {
         run && run.state !== 'none'
           ? 'Last run just now'
           : gate.behind?.length
-            ? `${gate.behind.map((b) => b.name).join(', ')} last ran ${gate.behind[0].when} on ${gate.behind[0].commit}; the rest on ${gate.on}`
+            ? `${gate.behind.map((b) => b.name).join(', ')} last ran ${gate.behind[0].when}; the rest ran on BELLA's latest work, ${gate.when ?? 'more recently'}`
             : gate.when
-              ? `Gate checks, last run ${gate.when}${gate.on ? ` on ${gate.on}` : ''}`
+              ? `Gate checks · last run ${gate.when}`
               : 'Gate checks'
       }
       // of what: the checks that didn't pass, by name (one source with System map and Connectors)
@@ -507,6 +524,7 @@ function GateCard({ gate, run, onOpen }) {
             <TextStack title={`${ok} of ${of} gate checks pass`} />
             <TextStack body={gate.failing.length ? `Failing: ${gate.failing.join('; ')}.` : gate.notRun.length ? `Not run yet: ${gate.notRun.join('; ')}.` : `Every gate check passes${gate.on ? ` on ${gate.on}` : ''}. Nothing to fix.`} />
           </Flow>
+          {gate.on || gate.behind?.length ? <TextStack subtitle={`Commits: ${[gate.on ? `most checks on ${gate.on}` : null, ...(gate.behind ?? []).map((b) => `${b.name} on ${b.commit}`)].filter(Boolean).join(' · ')}`} /> : null}
           <Flow gap={8} as="ul" aria-label="The gate checks">
             {(gate.members ?? []).map((m) => (
               <li key={m.id ?? m.name}>
