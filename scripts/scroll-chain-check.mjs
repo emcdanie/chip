@@ -4,6 +4,11 @@
 // taller than the box) and, for each one, sends real wheel events (page.mouse.wheel) over it until it is at its end,
 // then keeps wheeling. FAILS when
 //   (a) the page does not move within 400ms of the inner box being at its end (a scroll trap), while the page has room, or
+//   (c) SQUEEZED (23 Nov: "the scroll on the main board is messed up and I can't scroll down the entire page"): a box that scrolls on
+//       its own, holds much more than it shows, is under 320px tall, and the page around it has no room to scroll (the Work board was only
+//       as tall as the window's leftover, 355px at 1440x800, so every lane scrolled in a small strip and nothing moved the page), or
+//   (d) the page's own scroller, driven by real wheel events over its side gutter (no inner box under the pointer), does not reach its end, or
+//       its last content ends less than 48px above the scroller's foot (the 22 Nov page-end rule), or
 //   (b) a scroller sets overscroll-behavior contain or none and is not a modal drawer or a panel of its own
 //       (the page's own scroller and the drawers are the only ones allowed).
 // A scroller with no keyboard way in (no tabindex and no name) is listed as a warning, not a failure.
@@ -23,7 +28,7 @@ const APP = arg('app', 'http://localhost:3160');
 const ONLY_ROUTE = arg('route', null);
 const ONLY_WIDTH = arg('width', null);
 const ROUTES = ['#/work', '#/health', '#/system/components', '#/system/foundations', '#/system/history', '#/playground', '#/system-map', '#/connectors', '#/team', '#/not-again'].filter((r) => !ONLY_ROUTE || r === ONLY_ROUTE);
-const WIDTHS = [1440, 320].filter((w) => !ONLY_WIDTH || w === Number(ONLY_WIDTH));
+const WIDTHS = [1440, 1024, 768, 320].filter((w) => !ONLY_WIDTH || w === Number(ONLY_WIDTH));
 const DRAWERS = [/^Drift from BELLA/, /^Gaps/, /^BELLA system/];
 const { chromium } = createRequire(join(bellaDir(), 'package.json'))('playwright');
 
@@ -49,8 +54,11 @@ const scan = () => {
     const modal = !!e.closest('dialog');
     const panel = !!e.closest('.wp-body, .wp-ask, .obi-thread, .wp-bottom');
     e.setAttribute('data-sc', String(out.length));
+    let up = e.parentElement;
+    while (up && !(/(auto|scroll)/.test(getComputedStyle(up).overflowY) && up.scrollHeight > up.clientHeight + 1)) up = up.parentElement;
+    const pageEl = e.closest('.chip-screen__content');
     out.push({
-      i: out.length, name: name(e), page: isPage(e), modal, panel, scrolls, oc,
+      i: out.length, pageRoom: pageEl ? pageEl.scrollHeight - pageEl.clientHeight : 0, name: name(e), page: isPage(e), modal, panel, scrolls, oc,
       h: Math.round(r.height), sh: e.scrollHeight,
       key: e.tabIndex >= 0 || !!e.getAttribute('aria-label') || !!e.getAttribute('aria-labelledby') || e.matches('textarea,input,select'),
       text: (e.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 28),
@@ -100,6 +108,56 @@ const wheelTest = async (page, sc) => {
   return moved > 0 ? { verdict: `chains (+${Math.round(moved)}px)`, ok: true } : { verdict: 'TRAP: page did not move', ok: false };
 };
 
+/* (d) real wheel over the page's side gutter (x=8 of the content: no inner box under the pointer) until it stops, then End and PageDown from focus */
+const pageEnd = async (page, width) => {
+  const r = await page.evaluate(() => {
+    const el = document.querySelector('.chip-screen__content');
+    if (!el) return null;
+    el.scrollTop = 0;
+    const b = el.getBoundingClientRect();
+    return { x: b.left + 4, y: b.top + b.height / 2 };
+  });
+  if (!r) return { ok: false, text: 'no .chip-screen__content' };
+  await page.mouse.move(r.x, r.y);
+  for (let n = 0; n < 120; n++) { await page.mouse.wheel(0, 300); await page.waitForTimeout(8); }
+  await page.waitForTimeout(250);
+  const m = await page.evaluate(() => {
+    const el = document.querySelector('.chip-screen__content');
+    const foot = el.getBoundingClientRect().bottom;
+    let last = 0;
+    el.querySelectorAll('*').forEach((e) => {
+      const q = e.getBoundingClientRect();
+      const shut = e.closest('details:not([open])'); // a closed disclosure's body has a box but is not shown
+      if (shut && !e.closest('summary')) return;
+      if (!q.height || getComputedStyle(e).position === 'absolute' || getComputedStyle(e).position === 'fixed') return;
+      for (let p = e.parentElement; p && p !== el; p = p.parentElement) {
+        const s = getComputedStyle(p);
+        if (/(hidden|auto|scroll|clip)/.test(s.overflowY) && p.getBoundingClientRect().bottom < q.bottom - 1) return; // clipped by a box of its own
+      }
+      last = Math.max(last, q.bottom);
+    });
+    return { left: Math.round(el.scrollHeight - el.clientHeight - el.scrollTop), room: el.scrollHeight - el.clientHeight, after: Math.round(foot - last) };
+  });
+  // keyboard: click the page's side gutter (focus goes into the page, nothing is pressed), then PageDown must move it and End must reach the end
+  const kb = [];
+  if (m.room > 4) {
+    await page.evaluate(() => { document.querySelector('.chip-screen__content').scrollTop = 0; });
+    await page.mouse.click(r.x, r.y);
+    await page.keyboard.press('PageDown');
+    await page.waitForTimeout(400);
+    const pd = await page.evaluate(() => document.querySelector('.chip-screen__content').scrollTop);
+    await page.keyboard.press('End');
+    await page.waitForTimeout(900);
+    const en = await page.evaluate(() => { const e = document.querySelector('.chip-screen__content'); return e.scrollHeight - e.clientHeight - e.scrollTop; });
+    if (pd < 1) kb.push('PageDown did not move the page');
+    if (en > 2) kb.push(`End stopped ${Math.round(en)}px short`);
+  }
+  const notes = kb;
+  if (m.left > 2) notes.push(`wheel stopped ${m.left}px short of the end`);
+  if (m.after < 48) notes.push(`last content ends ${m.after}px above the foot (needs 48+)`);
+  return { ok: !notes.length, text: notes.length ? notes.join('; ') : `wheel reaches the end, ${m.after}px after the last content (room ${m.room}px)` };
+};
+
 const browser = await chromium.launch();
 for (const width of WIDTHS) {
   const page = await browser.newPage({ viewport: { width, height: 800 } });
@@ -128,9 +186,16 @@ for (const width of WIDTHS) {
         verdict = w.verdict;
         if (w.ok === false) { ok = false; notes.push(w.verdict); }
       } else verdict = sc.page ? 'the page' : sc.modal ? 'drawer (contain allowed)' : sc.panel ? 'panel (contain allowed)' : 'not scrolling here';
+      if (sc.scrolls && !sc.page && !sc.modal && !sc.panel && sc.h < 320 && sc.sh > sc.h * 1.5 && sc.pageRoom < 4) { ok = false; notes.push(`SQUEEZED: ${sc.h}px box holds ${sc.sh}px and the page cannot scroll`); }
       if (sc.scrolls && !sc.key && !sc.page) notes.push('warn: no keyboard way in (tabindex 0 + name)');
       if (!ok) bad++;
       rows.push(`${ok ? 'ok  ' : 'FAIL'} ${width} ${t.label} | ${sc.name} "${sc.text}" ${sc.h}/${sc.sh}px oc=${sc.oc} | ${verdict}${notes.length ? ' | ' + notes.join('; ') : ''}`);
+    }
+    if (!t.drawer) {
+      total++;
+      const end = await pageEnd(page, width);
+      if (!end.ok) bad++;
+      rows.push(`${end.ok ? 'ok  ' : 'FAIL'} ${width} ${t.label} | the page | ${end.text}`);
     }
     if (t.drawer) await page.keyboard.press('Escape');
   }

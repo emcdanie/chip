@@ -41,6 +41,9 @@ const GAPS = new Set([0, 4, 8, 12, 16, 24]);
    left under the search). Watches the box, so it follows the window. */
 /* fit="rest": from where it starts to the box's foot, so nothing above it scrolls away (the Playground's
    stage under its control bar; her note, 22 Nov: "I can scroll the whole page"). */
+// never under 360 (a head and about two cards): in a short window the page scrolls instead of a list shrinking to a strip
+// that scrolls on its own (23 Nov, the page could not be scrolled to its end; Playground's Picks list was 290 of 1832 tall)
+const FIT_MIN = 360;
 function useFull(on) {
   const ref = useRef(null);
   const [h, setH] = useState(null);
@@ -56,7 +59,7 @@ function useFull(on) {
       const v =
         on === 'rest'
           ? Math.max(0, Math.round(sc.clientHeight - parseFloat(cs.paddingBottom) - eight - (ref.current.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop)))
-          : Math.max(0, Math.round(sc.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - foot));
+          : Math.max(FIT_MIN, Math.round(sc.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - foot));
       // rest: never shorter than its content needs, so a short window scrolls the page and the padding below holds
       // (bottom gap 24, Elleta 23 Nov); read at the window's height so it can shrink again
       let need = 0;
@@ -66,7 +69,7 @@ function useFull(on) {
         need = ref.current.scrollHeight;
         ref.current.style.blockSize = was;
       }
-      const next = Math.max(v, need - eight); // the 8 a scroll column reaches past is not content
+      const next = Math.max(v, need - eight, FIT_MIN); // the 8 a scroll column reaches past is not content
       setH((was) => (was === next ? was : next));
     };
     measure();
@@ -84,6 +87,8 @@ function useFull(on) {
    lanes"). It fills the window from where it starts, scrolls sideways when the
    lanes don't fit, and each lane scrolls on its own. On a phone, where the
    header takes most of the window, it keeps at least 70% of the window. */
+/* the least height the lanes get: about a lane head and two cards; on a phone 70% of the window */
+const boardMin = () => (window.innerWidth < 800 ? Math.round(window.innerHeight * 0.7) : 480);
 function useToBottom(on) {
   const ref = useRef(null);
   const [top, setTop] = useState(null);
@@ -94,6 +99,14 @@ function useToBottom(on) {
       const sc = ref.current?.closest('.chip-screen__content');
       const t = ref.current ? Math.max(0, Math.round(ref.current.getBoundingClientRect().top + (sc ? sc.scrollTop : window.scrollY))) : null;
       setTop((was) => (was === t ? was : t));
+      // when the window is too short for the lanes' minimum, the page scrolls instead (Elleta, 23 Nov: the page could not be
+      // scrolled to the end because the board was only as tall as the room left under the Brief); it then gets the page's
+      // 64 of end room, and the content element says so for the CSS
+      if (sc && ref.current && t != null) {
+        const gutter = -parseFloat(getComputedStyle(ref.current).marginBlockEnd) || 0;
+        const tight = window.innerHeight - t - gutter < boardMin();
+        sc.toggleAttribute('data-board-tight', tight);
+      }
     };
     measure();
     // what sits above it (the Brief, a notice, the header's fonts) can arrive
@@ -118,10 +131,11 @@ function useToBottom(on) {
       mo.disconnect();
       cancelAnimationFrame(frame);
       window.removeEventListener('resize', measure);
+      ref.current?.closest('.chip-screen__content')?.removeAttribute('data-board-tight');
     };
   }, [on]);
   const fit = `calc(100dvh - ${top}px - var(--layout-gutter))`;
-  return [ref, on && top != null ? { blockSize: window.innerWidth < 800 ? `max(${fit}, 70dvh)` : fit } : undefined];
+  return [ref, on && top != null ? { blockSize: `max(${fit}, ${boardMin()}px)` } : undefined];
 }
 
 /* The board's sideways cue (Elleta, 20 Nov at ~1100: the fourth lane was cut

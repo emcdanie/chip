@@ -125,6 +125,8 @@
 }
 /* the Work board fills the window to its foot and does not scroll as a page */
 .chip-screen__content:has(> .chip-board) { padding-block-end: var(--layout-gutter); }
+/* ...unless the board is at its minimum height and the page scrolls: then the page's 64 of end room applies (22 Nov rule) */
+.chip-screen__content[data-board-tight]:has(> .chip-board) { padding-block-end: calc(var(--spacing-64) + var(--layout-gutter)); } /* the lanes' own shadow room hangs one gutter below them, so a full 64 shows below the lane */
 
 :is(.chip-screen__content, .chip-tabpanel) > * {
   grid-column: 1 / -1;
