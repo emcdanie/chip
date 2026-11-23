@@ -33,7 +33,7 @@ const names = (list) => (list.length > 3 ? `${list.slice(0, 2).join(', ')} +${li
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 /** components: BELLA's list; gaps: /gaps .gaps ({ story: { Name: … } }); history: BELLA's commits. */
-export function healthModel({ components = [], gaps = {}, history = [], pairs = null, checks = null }) {
+export function healthModel({ components = [], gaps = {}, history = [], pairs = null, checks = null, drift = null, bellaGaps = null }) {
   const n = components.length;
   // a fix opens the first part that needs it on Components (#/system/components/<id>)
   const idOf = (name) => components.find((c) => c.name === name)?.id ?? name;
@@ -59,6 +59,9 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
     gateRuns: gateRuns(checks),
     gateReadAt: checks?.ciAt ?? null,
     lowest: lowestPair(pairs),
+    // Drift and Gaps are read in the same snapshot as everything above, so every card on the page counts the same parts at the same time (second pass, D2)
+    drift,
+    bellaGaps,
     fixCount: rows.reduce((s, r) => s + r.missing.length, 0),
   };
 }
@@ -119,11 +122,13 @@ function gateFrom(g, checks) {
   const oldest = runs.reduce((a, c) => (!a || Date.parse(c.ranAt) < Date.parse(a.ranAt) ? c : a), null);
   const behind = runs.filter((c) => c.commit && checks?.head && c.commit !== checks.head);
   return {
-    ok: g.counts.passed,
-    of: g.counts.total,
+    // one source: the checks' own states, so the number, the bar and the words never disagree (the summary counts can lag them)
+    ok: g.members.filter((m) => m.status === 'passed').length,
+    of: g.members.length,
     when: oldest ? day(oldest.ranAt) : g.ranAt ? day(g.ranAt) : null,
     failing: not(['failed', 'waiting']),
     notRun: not(['not-run']),
+    running: not(['running']),
     on: checks?.base ? `${checks.base}${checks.head ? ` @ ${checks.head}` : ''}` : null,
     behind: behind.map((c) => ({ name: c.name, when: day(c.ranAt), commit: c.commit })),
     // each check with its own last run, for the Checks drawer: the commit id is shown only behind a link (drawer template, 23 Nov)
@@ -137,8 +142,8 @@ function gateFrom(g, checks) {
 
 /** Reads CHIP's data (kept between pages); `model` is null only on the very first visit. */
 export function useHealth() {
-  const { data, error, at, loading, reload, stale, last } = useCached(['/data/bella.json', '/gaps', '/contrast-pairs', '/checks'], { live: true });
-  const model = useMemo(() => (data ? healthModel({ components: data[0].components, gaps: data[1].gaps, history: data[0].history, pairs: data[2], checks: data[3] }) : null), [data]);
+  const { data, error, at, loading, reload, stale, last } = useCached(['/data/bella.json', '/gaps', '/contrast-pairs', '/checks', '/drift', '/bella-gaps'], { live: true });
+  const model = useMemo(() => (data ? healthModel({ components: data[0].components, gaps: data[1].gaps, history: data[0].history, pairs: data[2], checks: data[3], drift: data[4], bellaGaps: data[5] }) : null), [data]);
   const checked = at ? new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
   // a live read that moved a figure says so, quietly (second pass M26): "updated 14:31, needing work +1"
   const prev = useRef(null);

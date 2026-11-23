@@ -13,17 +13,17 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import StatCard from '@bella/components/StatCard/StatCard';
 import Progress from '@bella/components/Progress/Progress';
 import SystemHealth from '@bella/components/SystemHealth/SystemHealth';
-import CheckRow from '@bella/components/CheckRow/CheckRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
 import LineChart from '@bella/components/LineChart/LineChart';
 import TextStack from '@bella/components/TextStack/TextStack';
-import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
+import ListRow from '@bella/components/ListRow/ListRow';
 import { planRun } from '../templates/RunPlan.jsx';
 import FixPlan, { measuredMinutes } from '../templates/FixPlan.jsx';
 import AuditReading from './AuditReading.jsx';
 import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, drawerOf, setDrawerUrl, useDrawerUrl } from '../templates/ReadingDrawer.jsx';
-import Marker from '@bella/components/Marker/Marker';
+import Link from '@bella/components/Link/Link';
+import { auditTone } from './auditReport.js';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import { useEffect, useRef, useState } from 'react';
 import Flow from '../templates/Flow.jsx';
@@ -62,7 +62,10 @@ const firstLine = (t) => String(t ?? '').split(/(?<=[.!?])\s/)[0].trim();
 function GateBars({ runs, readAt }) {
   const [range, setRange] = useState('day');
   const [open, setOpen] = useState(null);
-  const slots = gateSlots(runs, range);
+  const raw = gateSlots(runs, range);
+  // a failed bar is labelled on the axis, so you can see which one it is without hovering (second pass); where the chart had no axis labels of its own every bar keeps its label
+  const anyTick = raw.some((s) => s.axisLabel !== undefined);
+  const slots = raw.map((s) => (s.failed ? { ...s, axisLabel: s.label } : anyTick ? s : { ...s, axisLabel: s.label }));
   const a = gateAnswer(runs);
   const trend = a?.trend == null ? null : `${a.trend > 0 ? '↑' : a.trend < 0 ? '↓' : '→'} ${Math.abs(a.trend)} points against the 30 days before`;
   return (
@@ -73,7 +76,7 @@ function GateBars({ runs, readAt }) {
           <TextStack
             body={
               <>
-                <Marker>{`${a.passed} of ${a.total}`}</Marker> {`CI runs passed since ${gDay(a.since)}.`}
+                {`${a.passed} of ${a.total}`} {`CI runs passed since ${gDay(a.since)}.`}
                 {a.last ? ` The last failure was ${gDay(a.last.at)}: ${firstLine(a.last.title) || a.last.cause}.` : ' None has failed.'}
                 {trend ? ` ${trend}.` : ''}
               </>
@@ -83,7 +86,7 @@ function GateBars({ runs, readAt }) {
         </Flow>
       ) : null}
       <BarChart
-        title="Gate runs"
+        title="Passed and failed"
         showViewToggle={false}
         range={range}
         onRangeChange={setRange}
@@ -232,8 +235,9 @@ function ContrastCoverage({ contrast }) {
         value={contrast.pct}
         unit="%"
         chart="bar"
-        meter={{ fill: contrast.pct, target: TARGET }}
+        meter={{ fill: contrast.pct, target: TARGET, showTargetLabel: false }}
         context={`${contrast.pass} of ${contrast.of} have pairs${contrast.toGo ? ` · ${contrast.toGo} to go` : ''}`}
+        caption={names.length ? `Without pairs: ${names.slice(0, 2).join(', ')}${names.length > 2 ? ` +${names.length - 2}` : ''}` : undefined}
         onOpen={() => setOpen(true)}
       />
       <ReadingDrawer
@@ -335,15 +339,13 @@ function driftPoints(hist) {
   });
 }
 
-function DriftCard({ components }) {
-  const { data } = useCached(['/drift'], { live: true });
+function DriftCard({ components, d }) {
   const [open, setOpen] = useDrawerUrl('drift');
   // what the drawer shows: 'summary', 'table', or a part (its detail); closing returns to the summary
   const [view, setView] = useState('summary');
   const closed = () => (setOpen(false), setView('summary'));
   const [picked, setScope] = useState(null);
   const runs = useCached(['/runs']).data?.[0]?.runs ?? [];
-  const d = data?.[0] ?? null;
   const hist = d?.history ?? [];
   const prev = hist.length > 1 ? hist.at(-2) : null;
   // the headline counts every part that differs; the rows below split it, each against what it can be counted against
@@ -376,11 +378,11 @@ function DriftCard({ components }) {
         chart="none"
         value={d.differing}
         unit={`of ${d.total}`}
-        context="Parts that differ from Figma, their spec or their code"
+        context="Differ from Figma, spec or code"
         caption={
           <>
             {day ? `Specs from ${day} · ` : ''}
-            <Marker>{`${d.total - d.compared} not read from Figma`}</Marker>
+            {`${d.total - d.compared} not read from Figma`}
           </>
         }
         onOpen={() => setOpen(true)}
@@ -491,12 +493,10 @@ function DriftCard({ components }) {
 /* Gaps: what BELLA can't do yet (her presentation, 22 Nov), measured from BELLA itself (/bella-gaps): parts drawn
    and specified that have no code yet, and the parts AGENTS.md lists as not in BELLA. ↗ opens both lists; the
    specified ones can be built: Plan the build opens the plan, and nothing runs until it is approved. */
-function GapsCard() {
-  const { data } = useCached(['/bella-gaps'], { live: true });
+function GapsCard({ g }) {
   const [open, setOpen] = useDrawerUrl('gaps');
   // the plan opens once this drawer has closed, so it sits on top
   const planNext = useRef(false);
-  const g = data?.[0] ?? null;
   if (!g) return <NoData title="Gaps" icon="WarningCircle" context="What BELLA can't do yet" caption="Reading BELLA" />;
   const total = g.notInCode.length + g.notInBella.length;
   const brief = ['Build these BELLA parts in code from their specs (specs/components/<Name>.spec.yaml), one at a time, each with a story:', ...g.notInCode.map((n) => `- ${n}`), 'Follow BELLA AGENTS.md; no new tokens; ask before changing a public API.'].join('\n');
@@ -513,10 +513,11 @@ function GapsCard() {
         title="Gaps"
         icon="WarningCircle"
         tone={total ? 'warning' : 'success'}
-        chart="none"
+        chart={total ? 'bar' : 'none'}
+        meter={total ? { parts: [{ value: (g.notInCode.length / total) * 100, label: 'specified, not in code' }, { value: (g.notInBella.length / total) * 100, label: 'not in BELLA yet', tone: 'info' }], valueText: `${g.notInCode.length} specified, not in code, ${g.notInBella.length} not in BELLA yet` } : undefined}
         value={total}
         unit={total === 1 ? 'part' : 'parts'}
-        context={<><Marker>{`${g.notInCode.length} specified, not in code`}</Marker>{` · ${g.notInBella.length} not in BELLA yet`}</>}
+        context={`${g.notInCode.length} specified · ${g.notInBella.length} not in BELLA yet`}
         caption="What BELLA can't do yet"
         onOpen={() => setOpen(true)}
       />
@@ -581,14 +582,12 @@ function GateCard({ gate, run, onOpen }) {
       context={
         run && run.state !== 'none'
           ? 'Last run just now'
-          : gate.behind?.length
-            ? `${gate.behind.map((b) => b.name).join(', ')} last ran ${gate.behind[0].when}; the rest ran on BELLA's latest work, ${gate.when ?? 'more recently'}`
-            : gate.when
-              ? `Gate checks · last run ${gate.when}`
-              : 'Gate checks'
+          : gate.when
+            ? `Gate checks · last run ${gate.when}${gate.behind?.length ? ` · ${gate.behind.length} on an older commit` : ''}`
+            : 'Gate checks'
       }
       // of what: the checks that didn't pass, by name (one source with System map and Connectors)
-      caption={failed ? run.why : gate.failing.length ? <><Marker>{`Failing: ${gate.failing.join('; ')}`}</Marker></> : gate.notRun.length ? `Not run yet: ${gate.notRun.join('; ')}` : `All ${of} pass`}
+      caption={failed ? run.why : gate.failing.length ? `Failing: ${gate.failing.join('; ')}` : gate.notRun.length ? `Not run yet: ${gate.notRun.join('; ')}` : gate.running?.length ? `Running now: ${gate.running.length} of ${of}` : `All ${of} pass`}
       onOpen={() => setReading(true)}
     />
       {/* Checks drawer on the template (23 Nov: "I thought we were fixing the drawers"): the answer, the five checks as a
@@ -603,6 +602,8 @@ function GateCard({ gate, run, onOpen }) {
             <><strong>{`${gate.failing.length} of ${of} fail`}</strong>{`: ${gate.failing.join(', ')}. The plan below fixes them.`}</>
           ) : gate.notRun.length ? (
             <><strong>{`${gate.notRun.length} of ${of} not run yet`}</strong>{`: ${gate.notRun.join(', ')}.`}</>
+          ) : gate.running?.length ? (
+            <><strong>{`${gate.running.length} of ${of} running now`}</strong>{`: ${gate.running.join(', ')}. ${ok} pass so far.`}</>
           ) : (
             <>All <strong>{`${of} of ${of} pass`}</strong>: BELLA accepts a commit. Nothing to fix.</>
           )
@@ -699,14 +700,14 @@ const AUDIT_ICON = { product: 'ViewGrid', figma: 'Palette', ds: 'ShieldCheck', t
 function AuditCard({ a }) {
   const [open, setOpen] = useDrawerUrl(`audit-${a.id}`);
   if (!a.ran) return <NoData title={a.title} icon={AUDIT_ICON[a.id] ?? 'Activity'} context={`${a.skill}`} caption="Not run: no saved report yet" />;
-  const lights = a.red == null ? 'Failing and needs-work not counted' : `${a.red} failing · ${a.yellow} need work`;
+  const lights = a.red == null ? 'State not counted in this report' : `${a.red} failing · ${a.yellow} need work`;
   const was = a.prev ? ` · was ${a.prev.value} on ${dayOf(a.prev.day)}` : '';
   return (
     <>
       <StatCard
         title={a.title}
         icon={AUDIT_ICON[a.id] ?? 'Activity'}
-        tone={a.red ? 'danger' : a.yellow ? 'warning' : 'success'}
+        tone={auditTone(a)}
         chart="none"
         value={a.value ?? '–'}
         unit={a.unit ?? ''}
@@ -822,6 +823,9 @@ export default function HealthContent({ model, run, checked, last, note, stale, 
             value={health.pct}
             status={health.pct >= TARGET ? 'Healthy' : 'Below target'}
             target={TARGET}
+            lowLabel="0%"
+            highLabel="100%"
+            countUp={false}
             passed={`${health.passed} of ${health.total} pass`}
             // the failing checks show once, in Component checks below with their fix (user test 21 Nov, item 6)
             why={
@@ -829,11 +833,12 @@ export default function HealthContent({ model, run, checked, last, note, stale, 
                 {`Healthy means ${TARGET}% or more pass (the blue tick). `}
                 {health.failing.length ? (
                   <>
-                    <Marker>{`${health.failing.reduce((s, r) => s + r.missing.length, 0)} checks still fail`}</Marker>
+                    {/* a count that looks like a link is one (second pass, S13): it opens the parts that fail */}
+                    <Link href="#/system/components?filter=needs">{`${health.failing.reduce((s, r) => s + r.missing.length, 0)} checks still fail`}</Link>
                     {'; each is in Component checks below.'}
                   </>
                 ) : (
-                  <Marker>Every check passes.</Marker>
+                  'Every check passes.'
                 )}
               </>
             }
@@ -844,9 +849,9 @@ export default function HealthContent({ model, run, checked, last, note, stale, 
           <NoData title="System health" icon="Activity" context="Component checks that pass" caption="No components yet: point CHIP at BELLA" />
         )}
         {/* ↗ opens the gate's recorded runs in Component checks and brings that card into view (click test 22 Nov: it switched the view out of sight, so it read as doing nothing) */}
-        <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => (setView('gate'), requestAnimationFrame(() => [...document.querySelectorAll('[role="heading"], h2, h3')].find((h) => h.textContent === 'Component checks')?.scrollIntoView({ block: 'start', behavior: 'smooth' }))) : undefined} />
-        <DriftCard components={model.components ?? []} />
-        <GapsCard />
+        <GateCard gate={model.gate} run={run} onOpen={model.gateDays.length ? () => (setView('gate'), requestAnimationFrame(() => [...document.querySelectorAll('[role="heading"], h2, h3')].find((h) => /^(Component checks|Gate runs)$/.test(h.textContent))?.scrollIntoView({ block: 'start', behavior: 'smooth' }))) : undefined} />
+        <DriftCard components={model.components ?? []} d={model.drift} />
+        <GapsCard g={model.bellaGaps} />
         {contrast ? <ContrastCoverage contrast={contrast} /> : null}
         {model.lowest ? (
           <StatCard
@@ -856,9 +861,9 @@ export default function HealthContent({ model, run, checked, last, note, stale, 
             value={model.lowest.ratio.toFixed(2)}
             unit=":1"
             chart="bar"
-            meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100), targetText: `${model.lowest.bar}:1`, valueText: `${model.lowest.ratio.toFixed(2)}:1` }}
-            context={model.lowest.below ? <Marker>{`${model.lowest.below} text pairs below ${model.lowest.bar}:1`}</Marker> : <Marker>Every pair clears the target</Marker>}
-            caption={`${model.lowest.checked ? `${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''}` : model.lowest.failing ? `The pairs check fails (${model.lowest.failing})` : 'not counted'}`}
+            meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100), targetText: `${model.lowest.bar}:1`, showTargetLabel: false, valueText: `${model.lowest.ratio.toFixed(2)}:1` }}
+            context={model.lowest.below ? `${model.lowest.below} text pairs below ${model.lowest.bar}:1` : `Every pair clears ${model.lowest.bar}:1`}
+            caption={`Scale 0 to 21:1 · ${model.lowest.checked ? `${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''}` : model.lowest.failing ? `The pairs check fails (${model.lowest.failing})` : 'not counted'}`}
             href="#/system/foundations"
           />
         ) : (
@@ -874,20 +879,15 @@ export default function HealthContent({ model, run, checked, last, note, stale, 
             // what the view reports, each number once
             const line =
               view === 'gate' ? `${runs} recorded ${runs === 1 ? 'run' : 'runs'}${first ? ` · since ${gDay(first)}` : ''} · GitHub CI and CHIP`
-              : (
-                    // the target said once, in the line, with the blue marker (no legend under the rows)
-                    <>
-                      {`${n} parts · each block is 5 parts · `}
-                      <Marker>{`target ${TARGET}%`}</Marker>
-                    </>
-                  );
+              // one row per check with its count on the bar; the target is the thin tick, said once here (no pips, so no "each block is 5 parts")
+              : `${n} parts · target ${TARGET}%`;
             // her 21 Nov pick (question 1 A, "the control at teh top right and the feedback under?"): the
             // switch at the head's right end, and what the view reports in the line under the title
             return (
               <SectionHead
                 icon="ShieldCheck"
                 iconTone="info"
-                title="Component checks"
+                title={view === 'gate' ? 'Gate runs' : 'Component checks'}
                 showInfo={false}
                 description={line}
                 action={<SegmentedControl options={CHECK_VIEWS} value={view} onChange={setView} label="Component checks view" />}
@@ -904,11 +904,14 @@ export default function HealthContent({ model, run, checked, last, note, stale, 
             // her pick "C · Weather rows" (22 Nov): one row per check, a block per 5 parts against the dashed
             // target, the count at the right; no divider under the last row. Each failing check's fix is in
             // Needs you below, so a row carries no action of its own.
-            <ListRowGroup ariaLabel="Component checks">
-              {rows.map((r, i) => (
-                <CheckRow key={r.id} layout="weather" title={r.short ?? r.title} passed={r.pass} total={n} value={`${r.pass}/${n}`} target={TARGET} showDivider={i < rows.length - 1} />
+            // plain bars with the count on them; a check below the target is red, the target is a thin tick (second pass)
+            <Flow gap={16} as="ul" aria-label="Component checks">
+              {rows.map((r) => (
+                <li key={r.id}>
+                  <Progress label={r.short ?? r.title} value={`${r.pass} of ${n}`} fill={r.fill} tone={r.fill >= TARGET ? 'success' : 'danger'} target={TARGET} showTarget showTargetLabel={false} />
+                </li>
               ))}
-            </ListRowGroup>
+            </Flow>
           )}
         </Flow>
       </Card>

@@ -193,6 +193,12 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
     }
   };
 
+  // the Pages tab never starts blank (second pass, S15): it opens the last part or page used
+  useEffect(() => {
+    if (none && recent[0] && real.some((o) => o.value === recent[0])) onShow(recent[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [none, real.length]);
+  const suggestions = PARTS.filter((n) => ['Button', 'Card', 'Tabs'].includes(n)).slice(0, 3);
   const page = pages?.find((p) => p.route === route);
   const running = map?.run?.state === 'running';
   const shot = running && route != null ? `/play/shot?project=${encodeURIComponent(project)}&route=${encodeURIComponent(route)}&width=${width}` : null;
@@ -290,9 +296,18 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
           <EmptyState
             size="lane"
             mark="👀"
-            title="Pick a part to try"
+            title="Pick something to try"
             // the Show select above is the one way to pick (audit 4, item 3: "Show parts" opened the same)
-            line="Pick one in Show and give it a wee spin."
+            line="Choose a part or a page in Show, or start with one of these."
+            actions={
+              <Flow direction="row" gap={8} wrap justify="center">
+                {suggestions.map((n) => (
+                  <Button key={n} variant="secondary" size="sm" onClick={() => pickShow({ id: `part:${n}` })}>
+                    {n}
+                  </Button>
+                ))}
+              </Flow>
+            }
           />
         </Stage>
       ) : null}

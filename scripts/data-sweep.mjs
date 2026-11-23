@@ -135,7 +135,7 @@ for (const page of ['health', 'foundations', 'connectors', 'team', 'history', 'n
     // the Gate runs view of Component checks
     await p.evaluate(() => [...document.querySelectorAll('button,[role=radio],label')].find((e) => e.textContent.trim() === 'Gate runs')?.click());
     await p.waitForTimeout(800);
-    text['health-gate'] = await p.evaluate(() => { const x = document.querySelector('#main').innerText; return x.slice(x.lastIndexOf('Component checks')).split('\nAudits\n')[0]; });
+    text['health-gate'] = await p.evaluate(() => { const x = document.querySelector('#main').innerText; return x.slice(Math.max(x.indexOf('Gate runs\n'), 0)).split('\nAudits\n')[0]; });
   }
   if (page === 'foundations')
     // an "on X" colour, measured on X in Chip light, worked out here from the tokens
