@@ -64,7 +64,7 @@ const TABS = [
   { id: 'quality', label: 'Quality' },
   { id: 'fix', label: 'Fix' },
   { id: 'checks', label: 'Checks' },
-  { id: 'history', label: 'History' },
+  { id: 'history', label: 'Changes' },
 ];
 /* The stage's sample label: Figma 690:492657's own ("Send"). */
 const SAMPLE_LABEL = { Button: 'Send' };
@@ -1090,7 +1090,7 @@ function ChecksPanel({ part, rows, open, setOpen, onStory }) {
     <Card>
       <Flow gap={8}>
         {/* HOLE (BELLA gap): the rings per group (Figma, Code, A11y) wait on a BELLA progress ring part. */}
-        <SectionHead title="Checks" titleLevel={3} number={measured.filter((r) => r.tone === 'success').length} words={`of ${measured.length} pass · ${rows.length - measured.length} not measured`} />
+        <SectionHead title="Checks" titleLevel={3} number={measured.filter((r) => r.tone === 'success').length} words={[`of ${rows.length} pass`, measured.some((r) => r.tone !== 'success') ? `${measured.filter((r) => r.tone !== 'success').length} to fix` : null, rows.length - measured.length ? `${rows.length - measured.length} not measured` : null].filter(Boolean).join(' · ')} />
         <Flow as="ul" gap={4} aria-label={`${part.name}'s checks`}>
           {rows.map((r) => (
             // when it last ran, from the check's own source (/checks, the spec's build, /figma-lint, /gaps); none stored: Not measured
@@ -1138,7 +1138,8 @@ function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, m
   return (
     <>
       {quiet}
-      <Card>
+      <Card footerAction={<Button variant="primary" disabled={!n} onClick={onSend}>See the plan</Button>}>
+        <Flow gap={24}>
         <Flow gap={8}>
           <SectionHead title="Fixes" titleLevel={3} number={n} words={`of ${fixes.length} picked`} />
           <Flow as="ul" gap={4} aria-label="Fixes">
@@ -1156,12 +1157,11 @@ function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, m
             })}
           </Flow>
         </Flow>
-      </Card>
-      <Card footerAction={<Button variant="primary" disabled={!n} onClick={onSend}>{`Send ${n} ${n === 1 ? 'fix' : 'fixes'}`}</Button>}>
         <Flow gap={8}>
-          <SectionHead title="Send to" titleLevel={3} />
+          <SectionHead title="Send to" titleLevel={3} description={n ? `${n} ${n === 1 ? 'fix' : 'fixes'} picked. See the plan opens it to read first; nothing changes until you approve it.` : 'Pick a fix to see its plan.'} />
           <SegmentedControl label="Send to" value={target} onChange={setTarget} options={[{ value: 'code', label: 'Code' }, { value: 'figma', label: 'Figma' }, { value: 'both', label: 'Both' }]} />
           <ListRow layout="inline" title="Reaches" {...val(usedIn.length ? `${usedIn.length} ${usedIn.length === 1 ? 'part' : 'parts'}` : 'only itself')} {...(usedIn.length ? { trailing: true, onClick: () => setOpen('reach') } : {})} />
+        </Flow>
         </Flow>
       </Card>
     </>
@@ -1192,7 +1192,7 @@ function HistoryPanel({ part, detail, names, open, setOpen }) {
   return (
     <Card>
       <Flow gap={8}>
-        <SectionHead title="History" titleLevel={3} number={list.length} words={list.length === 1 ? 'record' : 'records'} />
+        <SectionHead title="Changes" titleLevel={3} number={list.length} words={list.length === 1 ? 'record' : 'records'} />
         {list.length ? (
           <Flow as="ul" gap={0} aria-label={`${part.name}'s records, newest first`}>
             {/* the mock's rows: the record's words in regular weight, the key words marked (never the area
@@ -1294,6 +1294,15 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   const fixes = part ? studioFixes({ part, rows, findings: (detail?.anatomy ?? []).filter((x) => x.status === 'finding') }) : [];
   const fixKey = fixes.map((f) => f.id).join('|');
   useEffect(() => setChosen(fixes.map((f) => f.id)), [fixKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the default target is where the fix applies: a Figma-parity fix touches both, anything else is code only
+  useEffect(() => setTarget(fixes.some((f) => f.id.startsWith('parity-')) ? 'both' : 'code'), [fixKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // a part that has a fix opens on Fix, once per part, unless the address names a tab
+  const autoFix = useRef(shared.get('tab') ? new Set([part?.id]) : new Set());
+  useEffect(() => {
+    if (!part || !studio.ready || !fixes.length || autoFix.current.has(part.id)) return;
+    autoFix.current.add(part.id);
+    setTab('fix');
+  }, [part?.id, studio.ready, fixKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const docs = part ? studioDocs(part, detail) : null;
   const props = studioProps(studio.spec, { variant, label });
   const names = useMemo(() => parts.map((p) => p.name), [parts]);
@@ -1443,11 +1452,11 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   // at the right edge. A record that never names the part is about something else, so it is not shown.
   const mine = detail?.history.find((h) => new RegExp(`\\b${part.name}\\b`, 'i').test(`${h.title ?? ''}`));
   const highlights = detail && studio.ready && mine ? (
-    <Notification tone="info" message={<>{`Changed ${day(mine.date)}: `}<Keyed text={mine.title} names={names} />{'.'}</>} action={{ label: 'See History', onClick: () => (setTab('history'), setOpen(null)) }} />
+    <Notification tone="info" message={<>{`Changed ${day(mine.date)}: `}<Keyed text={mine.title} names={names} />{'.'}</>} action={{ label: 'See changes', onClick: () => (setTab('history'), setOpen(null)) }} />
   ) : null;
   const right = (
     <Flow gap={16}>
-      <Tabs label={`${part.name}: inspect, quality, fix, checks, history`} idBase="studio-view" value={tab} onChange={(t) => (setTab(t), setOpen(null))} tabs={TABS} />
+      <Tabs label={`${part.name}: inspect, quality, fix, checks, changes`} idBase="studio-view" value={tab} onChange={(t) => (setTab(t), setOpen(null))} tabs={TABS} />
       <TabPanels tabs={{ idBase: 'studio-view', value: tab, items: TABS }}>
         <Flow gap={16} scroll={!phone}>
           {highlights}

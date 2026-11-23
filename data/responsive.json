@@ -1,10 +1,10 @@
 {
- "at": "2026-11-23T19:35:17.309Z",
+ "at": "2026-11-23T19:42:39.646Z",
  "files": {
   "app/src/templates/Flow.jsx": "53c277b130557d93a2ceb98537b29097ece9ed92",
   "app/src/templates/Screen.jsx": "d26be57f8685e151c6d7db22928843317a191f70",
   "app/src/templates/Screen.css": "5fe008729489f35c661f091da219a5d37dcc501b",
-  "app/src/pages/ComponentsContent.jsx": "d20bbc48402530f0f0c212b4be350e59acba5a57",
+  "app/src/pages/ComponentsContent.jsx": "91749056e88b73c7f5a4c87db3ac7df1259239a2",
   "app/src/pages/ConnectorsContent.jsx": "b33d472003614200f1612fc3fa00b3c8f1f3369c",
   "app/src/pages/DocsContent.jsx": "b1e73ba0ff67aff7467a9c52cef5a811b6444868",
   "app/src/pages/FoundationsContent.jsx": "0c84657bb8477e468db219eb8aa19c4607c51aac",
@@ -31,5 +31,5 @@
  "ok": true,
  "clean": 80,
  "total": 80,
- "texts": 12971
+ "texts": 10653
 }
