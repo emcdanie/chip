@@ -177,10 +177,10 @@ for (const f of ['bella.json', 'foundations.json']) {
 const pairs = (await json('/contrast-pairs')).pairs ?? [];
 const pairToks = new Set(pairs.flatMap((p) => [p.fg, ...String(p.bg).split(' over ')]).flatMap((s) => s.match(/--[\w-]+/g) ?? []));
 missing.contrast = comps.filter((c) => ![...tokensOf[c]].some((t) => pairToks.has(t)));
-// Weather rows (22 Nov): the check's short name, then its count on the next line
+// Component checks rows: the check's short name, then "N of M" on the next line (the plain bars, 23 Nov)
 const ROWS = { Story: 'story', Docs: 'docs', Contract: 'contract', Spec: 'dsds', Contrast: 'contrast', A11y: 'a11y' };
 for (const [title, id] of Object.entries(ROWS)) {
-  const m = text.health.match(new RegExp(`\\n${title}\\n(\\d+)/(\\d+)`));
+  const m = text.health.match(new RegExp(`\\n${title}\\n(\\d+) of (\\d+)`));
   check('health', `${title} row`, m ? `${m[1]}/${m[2]}` : null, missing[id] ? `${N - missing[id].length}/${N}` : null);
 }
 const measured = Object.values(missing).filter(Boolean);
