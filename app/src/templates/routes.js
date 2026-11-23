@@ -18,6 +18,8 @@ const WORK_UNDER_HEALTH = /^#\/health\/work(?=[?]|$)/;
 
 /** The address in its new form, or the same address when it is already new. */
 export function canon(hash) {
+  // Needs you is Work's filter, so the old #/needs address opens it there
+  if (/^#?\/?needs\/?(?=[?]|$)/.test(String(hash || ''))) return '#/work?filter=needs';
   if (WORK_UNDER_HEALTH.test(hash)) return String(hash).replace('#/health/work', '#/work');
   const m = String(hash || '').match(/^#?\/?([\w-]*)(\/[^?]*)?(\?.*)?$/);
   if (!m) return hash;

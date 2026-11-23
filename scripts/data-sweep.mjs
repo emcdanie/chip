@@ -106,11 +106,24 @@ const check = (page, what, shown, truth, note = '') => {
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 const text = {};
+// a page's text is read only once it has stopped changing (live counts arrive after the first paint), so a
+// first run no longer reads a stale count; three equal reads a second apart, at most 25 s
+const settled = async (p) => {
+  const read = () => p.evaluate(() => (document.querySelector('#main') ?? document.body).innerText);
+  let last = await read();
+  for (let same = 0, i = 0; same < 3 && i < 25; i++) {
+    await p.waitForTimeout(1000);
+    const now = await read();
+    same = now === last ? same + 1 : 0;
+    last = now;
+  }
+};
 const ratios = {};
 for (const page of ['health', 'foundations', 'connectors', 'team', 'history', 'not-again', 'work', 'system-map', 'components']) {
   const p = await browser.newPage({ viewport: { width: 1100, height: 900 } });
   await p.goto(`${APP}/#/${page}`);
-  await p.waitForTimeout(3500);
+  await p.waitForTimeout(1500);
+  await settled(p);
   text[page] = await p.evaluate(() => (document.querySelector('#main') ?? document.body).innerText);
   if (page === 'system-map') {
     // the Stories & tests node's detail card, where the run's counts and day are
@@ -280,7 +293,9 @@ if (board) {
     ...board.progress.tasks.map((t) => [t.id, t.title]),
     ...[...new Set(measured.flat())].map((n) => [`comp-${n}`, n]),
   ];
-  const ideasNow = ideas.filter(([id, t]) => (!place[id] || place[id].lane === 'ideas') && !busy.has(t)).length + Object.entries(place).filter(([id, p]) => p.lane === 'ideas' && !ideas.some(([i]) => i === id)).length;
+  // a placement whose card no longer exists (a finished or removed item) draws nothing, so it is not counted
+  const known = new Set([...(await json('/needs').catch(() => ({}))).items?.map((n) => n.id) ?? [], ...runs.map((r) => r.id), ...board.progress.items.map((i) => i.id), ...(board.sessions ?? []).map((x) => x.id)]);
+  const ideasNow = ideas.filter(([id, t]) => (!place[id] || place[id].lane === 'ideas') && !busy.has(t)).length + Object.entries(place).filter(([id, p]) => p.lane === 'ideas' && !ideas.some(([i]) => i === id) && known.has(id)).length;
   check('work', 'Ideas: to-dos, your tasks and parts that need work', grab('work', /\bIdeas\n(\d+)/)?.[1], ideasNow);
 }
 
