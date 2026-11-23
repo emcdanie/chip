@@ -300,6 +300,36 @@ check('not-again', 'Runs this week (saved fixes only)', grab('not-again', /Runs 
 const onBoard = runs.filter((r) => ['failed', 'login', 'starting', 'running', 'gate', 'passed'].includes(r.status) && new Date(r.startedAt).toDateString() !== new Date().toDateString());
 for (const r of onBoard) check('work', `Run "${r.title}" names its day`, text.work.includes(`${day(r.startedAt)} `) ? 'named' : 'time only', 'named');
 
+// Needs you counts only what is open (23 Nov 2026: closed fixes, a push ask after the push). Each count is worked out from git,
+// not from the run records: a passed run asks for her Accept only if its branch exists, is ahead of BELLA's base and still
+// changes something there; a failed run asks only if it is the newest run of its job; the GitHub ask is what `git ls-remote` says.
+{
+  const base = (await json('/checks').catch(() => ({}))).base ?? 'chip/parts-dev';
+  const gitIn = (dir, ...a) => sh('git', ['--no-optional-locks', '-C', dir, ...a], dir);
+  const stillOpen = (r) => {
+    if (gitIn(B, 'rev-parse', '--verify', '-q', `refs/heads/${r.branch}`) === null) return false;
+    if (Number(gitIn(B, 'rev-list', '--count', `${base}..${r.branch}`) ?? 0) === 0) return false;
+    const fork = gitIn(B, 'merge-base', base, r.branch);
+    const files = (gitIn(B, 'diff', '--name-only', fork, r.branch) ?? '').split('\n').filter(Boolean);
+    if (files.length && gitIn(B, 'diff', '--name-only', base, r.branch, '--', ...files) === '') return false;
+    if (files.length && (gitIn(B, 'diff', '--name-only', fork, base, '--', ...files) ?? '') !== '') return false;
+    return !runs.some((o) => o.id !== r.id && o.title === r.title && Date.parse(o.startedAt) > Date.parse(r.startedAt) && !['failed', 'login', 'nochange', 'undone'].includes(o.status));
+  };
+  const everPassed = runs.filter((r) => r.status === 'passed' || (r.status === 'closed' && r.closedFrom === 'passed'));
+  check('needs', 'Runs waiting for your Accept (branch kept, ahead, changes something)', runs.filter((r) => r.status === 'passed').length, everPassed.filter(stillOpen).length);
+  const failedOpen = runs.filter((r) => ['failed', 'login'].includes(r.status)).length;
+  check('needs', 'Failed runs asking (the newest of their job only)', failedOpen, runs.filter((r) => ['failed', 'login'].includes(r.status) && !runs.some((o) => o.title === r.title && Date.parse(o.startedAt) > Date.parse(r.startedAt))).length);
+  const needsNow = (await json('/needs').catch(() => ({}))).items ?? [];
+  for (const item of needsNow.filter((n) => /^ahead-/.test(n.id))) {
+    const dir = { bella: B, chip: ROOT }[item.id.slice(6)];
+    const branch = dir && gitIn(dir, 'rev-parse', '--abbrev-ref', 'HEAD');
+    const up = branch && gitIn(dir, 'rev-parse', '--abbrev-ref', `${branch}@{upstream}`);
+    const tip = up && gitIn(dir, 'ls-remote', '--heads', up.split('/')[0], `refs/heads/${up.split('/').slice(1).join('/')}`)?.split(/\s/)[0];
+    const ahead = tip ? gitIn(dir, 'rev-list', '--count', `${tip}..${branch}`) : null;
+    check('needs', `Save ${item.id.slice(6)} to GitHub: changes not there yet`, item.title.match(/(\d+) changes?/)?.[1], ahead);
+  }
+}
+
 // the board in her Notion lanes: Ideas is the progress board's to-dos, her tasks and the components
 // with a gap (the same set Health counts as Parts that need work), less what she moved out
 const board = await json('/work/board').catch(() => null);

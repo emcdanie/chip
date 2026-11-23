@@ -280,6 +280,21 @@ export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, t
   return out.sort((x, y) => (x.startedAt ?? 0) - (y.startedAt ?? 0));
 }
 
+/** Has she already answered this "Waiting on you" item? Three records say so: the item's own "Answered …" detail, her
+ *  answer on a card of its review page (answers.json, cards shape), and the board's shape keyed by the item's title. */
+export function isAnswered(item, answers) {
+  if (/^Answered\b/i.test(String(item.detail ?? ''))) return true;
+  const link = String(item.link ?? '');
+  const title = String(item.title ?? '').trim().toLowerCase();
+  for (const e of Array.isArray(answers) ? answers : []) {
+    const a = e?.answers;
+    if (!a || typeof a !== 'object') continue;
+    for (const c of a.cards ?? []) if ((c.answer || c.thumb) && /\//.test(String(c.from ?? '')) && link.includes(c.from) ) return true;
+    if (!a.cards && !a.type) for (const [key, v] of Object.entries(a)) if (v && typeof v === 'object' && (v.answers ?? []).some((r) => r?.a) && String(v.title ?? key).trim().toLowerCase() === title) return true;
+  }
+  return false;
+}
+
 /** The progress board's items and her new tasks, with links made whole (review pages on :3123). */
 export function progressItems(dir = PROGRESS_DIR, base = REVIEW_URL) {
   const read = (f) => {
@@ -306,8 +321,9 @@ export function progressItems(dir = PROGRESS_DIR, base = REVIEW_URL) {
     seen.set(k, n);
     return n === 1 ? `p-${k}` : `p-${k}-${n}`;
   };
-  const items = (prog?.items ?? []).map((i, n) => ({ id: idOf(i), title: String(i.title ?? ''), stage: i.stage, track: i.track ?? null, detail: i.detail ?? null, link: whole(i.link), img: whole(i.img), n }));
   const answers = read('answers.json');
+  // something she has answered never asks again (23 Nov 2026): the board's own "Answered …" note, or her answer on the card in answers.json
+  const items = (prog?.items ?? []).map((i, n) => ({ id: idOf(i), title: String(i.title ?? ''), stage: i.stage === 'Waiting on you' && isAnswered(i, answers) ? 'Answered' : i.stage, track: i.track ?? null, detail: i.detail ?? null, link: whole(i.link), img: whole(i.img), n }));
   const tasks = (Array.isArray(answers) ? answers : []).filter((a) => a?.type === 'task' && a.text).map((a, n) => ({ id: `task-${a.at ?? n}`, title: String(a.text).slice(0, 120), stage: 'To do', track: 'you', detail: null, link: null, img: null, at: a.at ?? null, n }));
   return { reached: !!prog, items, tasks };
 }

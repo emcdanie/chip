@@ -16,6 +16,7 @@ import { CHIP_CLAUDE_BIN, CHIP_CLAUDE_MODEL, DATA_DIR, plainEnv } from './config
 import { BELLA } from './bella-work.mjs';
 import { landFix } from './fixes.mjs';
 import { BASE, prepare } from './checks.mjs';
+import { PROGRESS_DIR } from './lanes.mjs';
 import { logAction, portBusy, sh, strip, visualBlockers } from './review.mjs';
 
 const RUNS_DIR = join(DATA_DIR, 'runs');
@@ -181,8 +182,103 @@ export async function gateReady({ deep = false } = {}) {
 
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'brief';
 const public_ = ({ child, ...r }) => r;
-export const getRun = (id) => (runs.has(id) ? public_(runs.get(id)) : null);
-export const listRuns = () => [...runs.values()].map(public_).reverse();
+
+/* Open or closed (23 Nov 2026: Activity still listed runs "waiting for your Accept" that were long done, and failed
+   runs a newer run had already replaced). A run asks her only while it is the newest of its kind and, if it passed,
+   while its branch can still be kept. Anything else is closed, once, with the reason in plain words, so every list
+   reads one answer. `probe(run)` reads BELLA: { branch, ahead, same, moved }, each null when git did not answer; a
+   fact that was not measured never closes a run. */
+const TERMINAL_FAIL = ['failed', 'login'];
+/** Did she already answer this run's keep question? An entry of answers.json (the board's shape, { <card title>: { answers: [{ q, a }] } })
+ *  whose question is about keeping, accepting, undoing or merging, answered after the run ended, on a card that names the
+ *  same part or job (a word of four letters or more beyond the generic ones). Returns the day, or null. */
+const GENERIC = new Set(['accept', 'undo', 'keep', 'merge', 'fix', 'run', 'the', 'and', 'with', 'from', 'that', 'this', 'start', 'make', 'check', 'drift', 'again', 'missing']);
+const words = (t) => new Set(String(t ?? '').toLowerCase().match(/[a-z][a-z0-9]{3,}/g)?.filter((w) => !GENERIC.has(w)) ?? []);
+export function answeredOn(run, answers) {
+  const mine = words(run.title);
+  const ended = Date.parse(run.endedAt ?? run.startedAt);
+  for (const e of Array.isArray(answers) ? answers : []) {
+    const sent = Date.parse(e?.sent);
+    if (!(sent > ended) || !e.answers || typeof e.answers !== 'object' || e.answers.cards || e.answers.type) continue;
+    for (const [key, v] of Object.entries(e.answers)) {
+      const theirs = words(v?.title ?? key);
+      if (![...mine].some((w) => theirs.has(w))) continue;
+      if ((v?.answers ?? []).some((r) => r?.a && /\b(keep|accept|undo|merge)\b/i.test(r.q ?? ''))) return new Date(sent).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+  }
+  return null;
+}
+export function closedWhy(run, all, probe, answers = null) {
+  const newer = all.find((o) => o.id !== run.id && o.title === run.title && Date.parse(o.startedAt) > Date.parse(run.startedAt));
+  if (TERMINAL_FAIL.includes(run.status)) return newer ? 'a newer run of the same job replaced it' : null;
+  if (run.status !== 'passed') return null;
+  const said = answeredOn(run, answers);
+  if (said) return `you answered it on ${said}`;
+  // a passed run is replaced only by another try that also got somewhere; a newer failure leaves it open to Accept
+  if (newer && !['failed', 'login', 'nochange', 'undone'].includes(newer.status)) return 'a newer run of the same job replaced it';
+  const f = probe(run) ?? {};
+  if (f.branch === false) return 'its branch is gone';
+  if (f.ahead === 0) return 'BELLA already has its change';
+  if (f.same === true) return 'BELLA already has its change';
+  if (f.moved) return `BELLA changed ${f.moved} after this run began`;
+  return null;
+}
+/** Closes every run that no longer asks anything of her (saved, so a restart reads the same). Returns how many it closed. */
+export function settle(list, probe, answers = null) {
+  let n = 0;
+  for (const r of [...list].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt)).reverse()) {
+    const why = closedWhy(r, list, probe, answers);
+    if (!why) continue;
+    Object.assign(r, { status: 'closed', closedFrom: r.status, closedWhy: why, step: null });
+    n++;
+  }
+  return n;
+}
+// what git says about a passed run's branch in BELLA; each answer null when BELLA did not answer
+export const bellaProbe = (run, { base = BASE, dir = BELLA } = {}) => {
+  const g = (args) => {
+    try {
+      return execFileSync('git', ['-C', dir, '--no-optional-locks', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    } catch {
+      return null;
+    }
+  };
+  if (!existsSync(dir) || g(['rev-parse', '--verify', '-q', base]) === null) return { branch: null, ahead: null, same: null, moved: null };
+  if (g(['rev-parse', '--verify', '-q', `refs/heads/${run.branch}`]) === null) return { branch: false, ahead: null, same: null, moved: null };
+  const ahead = g(['rev-list', '--count', `${base}..${run.branch}`]);
+  const fork = g(['merge-base', base, run.branch]);
+  const files = fork ? (g(['diff', '--name-only', fork, run.branch]) ?? '').split('\n').filter(Boolean) : [];
+  const differs = files.length ? g(['diff', '--name-only', base, run.branch, '--', ...files]) : null;
+  const movedFiles = fork && files.length ? (g(['diff', '--name-only', fork, base, '--', ...files]) ?? '').split('\n').filter(Boolean) : [];
+  return {
+    branch: true,
+    ahead: ahead === null ? null : Number(ahead),
+    same: differs === null ? null : differs === '',
+    moved: movedFiles.length ? `${movedFiles[0].split('/').at(-1)}${movedFiles.length > 1 ? ` and ${movedFiles.length - 1} more` : ''}` : null,
+  };
+};
+let settledAt = 0;
+const settleNow = () => {
+  // BELLA is read at most every 10 s; a closed run is saved, so it is never read again
+  if (Date.now() - settledAt < 10_000) return;
+  settledAt = Date.now();
+  const all = [...runs.values()];
+  const before = new Map(all.map((r) => [r.id, r.status]));
+  let answers = null;
+  try {
+    answers = JSON.parse(readFileSync(join(PROGRESS_DIR, 'answers.json'), 'utf8'));
+  } catch {}
+  settle(all, bellaProbe, answers);
+  for (const r of all) if (r.status !== before.get(r.id)) save(r);
+};
+export const getRun = (id) => {
+  settleNow();
+  return runs.has(id) ? public_(runs.get(id)) : null;
+};
+export const listRuns = () => {
+  settleNow();
+  return [...runs.values()].map(public_).reverse();
+};
 /** What the header indicator reads: the runs going now, and how long runs usually take. */
 export const runClock = () => ({ now: Date.now(), usual: usualRange([...runs.values()]), active: [...runs.values()].filter((r) => ACTIVE.includes(r.status) || r.after?.startedAt && !r.after.endedAt && !r.afterError && r.status === 'kept').map(public_) });
 
@@ -371,7 +467,10 @@ export function stopRun(id) {
 
 /** POST /runs/:id/keep: Accept. The branch waits for her to merge. */
 export function keepRun(id) {
+  settledAt = 0;
+  settleNow();
   const run = runs.get(id);
+  if (run?.status === 'closed') throw new Error(`This run is closed: ${run.closedWhy}`);
   if (run?.status !== 'passed') throw new Error('Only a run whose gate passed can be accepted');
   run.status = 'kept';
   save(run);

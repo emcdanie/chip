@@ -41,7 +41,7 @@ export function useRuns(live) {
 
 // a run as the tree shows it: state, and one line
 export const runState = (r) =>
-  ({ starting: ['working', 'Starting'], running: ['working', 'Claude working'], gate: ['working', 'Gate running'], passed: ['you', 'Waiting on you'], login: ['failed', 'Can’t start'], failed: ['failed', 'Failed'], nochange: ['done', 'No change'], kept: ['done', 'Kept'], undone: ['done', 'Undone'] })[r.status] ?? ['idle', r.status];
+  ({ starting: ['working', 'Starting'], running: ['working', 'Claude working'], gate: ['working', 'Gate running'], passed: ['you', 'Waiting on you'], login: ['failed', 'Can’t start'], failed: ['failed', 'Failed'], nochange: ['done', 'No change'], kept: ['done', 'Kept'], undone: ['done', 'Undone'], closed: ['done', 'Closed'] })[r.status] ?? ['idle', r.status];
 export const runLine = (r) =>
   r.status === 'passed'
     ? `Gate passed on ${r.branch}: Accept or Undo.`
@@ -51,6 +51,8 @@ export const runLine = (r) =>
         ? r.error
         : r.status === 'kept'
           ? `${r.branch} waits for you to merge.`
+          : r.status === 'closed'
+            ? `Closed: ${r.closedWhy ?? 'nothing is left to decide'}.`
           : r.status === 'nochange'
             ? 'Claude changed no file.'
             : `${r.branch} deleted.`;
@@ -62,6 +64,7 @@ const VERDICT = {
   gate: ['needs', 'Gate running', () => 'Claude is done. BELLA’s gate is checking the change (a few minutes).'],
   passed: ['pass', 'Gate passed', (r) => `Done, and the gate passed. ${r.branch} is ${r.sha}, one commit on ${r.base}. Accept keeps it for you to merge; Undo deletes it.`],
   kept: ['pass', 'Kept', (r) => `Kept. ${r.branch} (${r.sha}) waits for you to merge it into ${r.base}. CHIP never merges.`],
+  closed: ['neutral', 'Closed', (r) => `Closed: ${r.closedWhy ?? 'nothing is left to decide'}. Nothing here waits on you.`],
   undone: ['neutral', 'Undone', (r) => `Undone. ${r.branch} is deleted; ${r.base} never moved.`],
   nochange: ['needs', 'No change made', () => 'Claude finished without changing a file. Its summary says why.'],
   failed: ['fail', 'Not done', (r) => `${r.error}. Nothing changed in BELLA.`],

@@ -63,7 +63,7 @@ const prCard = (p) => ({
   id: p.id,
   title: p.title,
   branch: p.branch,
-  line: ['Pull request', `${p.project} #${p.number}`, p.draft ? 'draft' : null].filter(Boolean).join(' · '),
+  line: ['Pull request', p.project, p.draft ? 'draft' : null].filter(Boolean).join(' · '), // her words: the number stays behind the link (open.href)
   status: p.lane === 'gate' ? 'CI running' : 'CI passed',
   tone: p.lane === 'gate' ? 'info' : 'success',
   who: p.lane === 'gate' ? 'gate' : 'reviewer',
@@ -260,7 +260,7 @@ const bPr = (p) => ({
   id: p.id,
   kind: 'pr',
   title: p.title,
-  line: ['Pull request', `${p.project} #${p.number}`, p.lane === 'gate' ? 'CI running' : 'CI passed, yours to merge', p.draft ? 'draft' : null].filter(Boolean).join(' · '),
+  line: ['Pull request', p.project, p.lane === 'gate' ? 'CI running' : 'CI passed, yours to merge', p.draft ? 'draft' : null].filter(Boolean).join(' · '),
   status: p.lane === 'gate' ? 'CI running' : 'Yours to merge',
   tone: p.lane === 'gate' ? 'info' : 'attention',
   needs: p.lane !== 'gate',

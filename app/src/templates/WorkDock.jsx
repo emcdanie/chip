@@ -73,6 +73,8 @@ const RUN = {
   nochange: ['No change made', 'neutral'],
   kept: ['Kept', 'success'],
   undone: ['Undone', 'neutral'],
+  // nothing left to decide (server/lib/runs.mjs closedWhy): said with its reason, never as waiting for an Accept
+  closed: ['Closed', 'neutral'],
 };
 /* A relay lane, as a session row: its state for the role that acts, never a person's name for the role. */
 function laneRow(l) {
@@ -206,7 +208,7 @@ export default function WorkDock({ needs: shared }) {
     return [
       ...runs.map((r) => {
         const [word, tone] = RUN[r.status] ?? ['Finished', 'neutral'];
-        return { id: r.id, title: r.title ?? 'Fix', line: [word, r.startedAt ? `ran ${hhmm(r.startedAt)}` : null].filter(Boolean).join(' · '), tone, open: { kind: 'run', id: r.id } };
+        return { id: r.id, title: r.title ?? 'Fix', line: [word, r.startedAt ? `ran ${hhmm(r.startedAt)}` : null, r.status === 'closed' ? r.closedWhy : null].filter(Boolean).join(' · '), tone, open: { kind: 'run', id: r.id } };
       }),
       // an agent's session opens on Team, where its asks and replies are
       ...lanes.map((l) => ({ id: `lane-${l.id}`, title: l.name, ...laneRow(l), href: '#/team' })),

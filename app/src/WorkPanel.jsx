@@ -423,7 +423,7 @@ function Sessions({ lanes, terms, runs, labelOf, branchOf, handles, onGoTerm, on
               <ul>
                 {ls.map(([l, state]) => {
                   const folder = LANE_FOLDER[l.id];
-                  const prs = (l.prs ?? []).map((pr) => `PR #${pr.n}`).join(', ');
+                  const prs = (l.prs ?? []).length ? `${l.prs.length} ${l.prs.length === 1 ? 'pull request' : 'pull requests'}` : '';
                   return (
                     <Row
                       key={l.id}

@@ -53,8 +53,11 @@ export function activityRow(r, usual) {
   const s = standing(r);
   const failed = r.status === 'failed' || r.status === 'login';
   const state = going ? 'running' : failed || r.status === 'nochange' ? 'failed' : 'done';
+  // closed: it no longer asks anything of her (server/lib/runs.mjs closedWhy), so it never reads "waiting for your Accept"
   const line = going
     ? [`${clock(s.since)} to now`, `step ${Math.min(s.total, s.done + 1)} of ${s.total}`, usually(usual)].filter(Boolean).join(' · ')
+    : r.status === 'closed'
+      ? [clock(r.startedAt), `Closed: ${r.closedWhy ?? 'nothing is left to decide'}`].join(' · ')
     : failed
       ? [clock(r.startedAt), `Did not land: ${r.error ?? 'it stopped'}`].join(' · ')
       : r.status === 'nochange'
