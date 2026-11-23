@@ -3,6 +3,7 @@
 // project panel or flashes a loading state (19 Nov audit: 1–5 s of loading on
 // every visit). One cache per URL for the whole app session.
 import { useCallback, useEffect, useState } from 'react';
+import { found } from '../runClock.js';
 
 const cache = new Map(); // url -> { data, at }
 const inflight = new Map(); // url -> Promise
@@ -35,8 +36,11 @@ export default function useCached(urls, { live = false } = {}) {
     // a new address shows its own cached answer (or nothing), never the last one's
     // loading: a fresh read (Check again) is on its way, so its button can say busy
     setState((s) => ({ ...s, data: now() ?? (s.key === key ? s.data : null), key, loading: fresh === true }));
+    const t0 = Date.now();
+    const prev = fresh === true ? now() : null;
     Promise.all(urls.map((u) => fetchCached(u, { fresh: fresh === true })))
-      .then((data) => live && setState({ data, error: null, stale: null, at: Date.now(), key, loading: false }))
+      // a fresh read ("Check again") also keeps how long it took and what it found, for the page's LastRun line
+      .then((data) => live && setState((s) => ({ data, error: null, stale: null, at: Date.now(), key, loading: false, last: fresh === true ? { at: Date.now(), tookMs: Date.now() - t0, found: found(prev ?? s.data, data) } : s.last })))
       .catch((e) => live && setState((s) => ({ ...s, error: e.message, loading: false })));
     return () => {
       live = false;

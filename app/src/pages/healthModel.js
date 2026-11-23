@@ -2,7 +2,8 @@
 // (/data/bella.json), the gaps per check (/gaps) and BELLA's gate history.
 // Nothing here is invented: a card CHIP has no data for gets `null` and the
 // page shows the Empty state.
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { changeNote } from '../runClock.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import useCached from '../templates/useCached.js';
 import { gateRuns } from './gateSlots.js';
@@ -130,10 +131,22 @@ function gateFrom(g, checks) {
 
 /** Reads CHIP's data (kept between pages); `model` is null only on the very first visit. */
 export function useHealth() {
-  const { data, error, at, loading, reload, stale } = useCached(['/data/bella.json', '/gaps', '/contrast-pairs', '/checks'], { live: true });
+  const { data, error, at, loading, reload, stale, last } = useCached(['/data/bella.json', '/gaps', '/contrast-pairs', '/checks'], { live: true });
   const model = useMemo(() => (data ? healthModel({ components: data[0].components, gaps: data[1].gaps, history: data[0].history, pairs: data[2], checks: data[3] }) : null), [data]);
   const checked = at ? new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null;
-  return { model, error, loading, reload, checked, stale };
+  // a live read that moved a figure says so, quietly (second pass M26): "updated 14:31, needing work +1"
+  const prev = useRef(null);
+  const [note, setNote] = useState(null);
+  useEffect(() => {
+    const h = model?.health;
+    if (!h) return;
+    const before = prev.current;
+    prev.current = h;
+    if (!before) return;
+    const n = changeNote([['needing work', before.needsWork, h.needsWork], ['healthy %', before.pct, h.pct]]);
+    setNote(n ? `${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}, ${n}` : null);
+  }, [model]);
+  return { model, error, loading, reload, checked, stale, last, note };
 }
 
 /* Hand a check's gaps to the agent (user test 21 Nov, item 2; rule: "Fix opens

@@ -29,7 +29,7 @@ export default function Work({ model: given, view: startView = 'board' }) {
       // it waits rather than pointing somewhere it doesn't do.
       header={{ title: 'CHIP' }}
     >
-      <WorkContent model={given ?? live.model} filter={given ? {} : filterFromHash()} view={view} onView={setView} checked={given ? '10:29' : live.checked} onCheck={live.reload} loading={!given && live.loading} />
+      <WorkContent model={given ?? live.model} filter={given ? {} : filterFromHash()} view={view} onView={setView} checked={given ? '10:29' : live.checked} last={given ? null : live.last} onCheck={live.reload} loading={!given && live.loading} />
     </Screen>
   );
 }

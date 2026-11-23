@@ -24,8 +24,30 @@ const git = (args, cwd = BELLA) => execFileSync('git', ['-C', cwd, '--no-optiona
 const hasBranch = (b) => !!git(['branch', '--list', b]).trim();
 const runs = new Map(); // id -> run
 
+const ACTIVE = ['starting', 'running', 'gate'];
+
+/* Feedback and sense of time (23 Nov): a run records when it started, when it ended, how long it took and how many
+   steps it made, so the page can say "2 of 4, 2:41 so far, usually 4 to 7 min" and a finished run says how it ended.
+   Stamped the first time a run is saved outside the active states; never changed after. */
+export function stamp(run, now = new Date()) {
+  if (ACTIVE.includes(run.status) || run.endedAt) return run;
+  run.endedAt = now.toISOString();
+  run.durationMs = run.startedAt ? Math.max(0, now - Date.parse(run.startedAt)) : null;
+  run.stepCount = (run.steps ?? []).length;
+  return run;
+}
+
+/* How long runs of one kind usually take, from the passed ones (their saved durations). A range from three runs,
+   a countdown only from five (feedback plan 23 Nov: three finished runs are too few for a promise). */
+export function usualRange(list) {
+  const ms = list.filter((r) => r.status === 'passed' || r.status === 'kept').map((r) => r.durationMs).filter((n) => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
+  if (ms.length < 3) return { n: ms.length, minMs: null, maxMs: null, countdown: false };
+  return { n: ms.length, minMs: ms[0], maxMs: ms[ms.length - 1], countdown: ms.length >= 5 };
+}
+
 // kept in data/runs/<id>.json, so Accept and Undo outlive a restart
 const save = (run) => {
+  stamp(run);
   try {
     mkdirSync(RUNS_DIR, { recursive: true });
     writeFileSync(join(RUNS_DIR, `${run.id}.json`), JSON.stringify(public_(run), null, 2));
@@ -35,7 +57,12 @@ if (existsSync(RUNS_DIR)) {
   for (const f of readdirSync(RUNS_DIR).filter((x) => x.endsWith('.json')).sort()) {
     try {
       const r = JSON.parse(readFileSync(join(RUNS_DIR, f), 'utf8'));
-      if (['starting', 'running', 'gate'].includes(r.status)) Object.assign(r, { status: 'failed', step: null, error: 'CHIP restarted while this run was going' });
+      if (ACTIVE.includes(r.status)) Object.assign(r, { status: 'failed', step: null, error: 'CHIP restarted while this run was going' });
+      // runs saved before the end time was recorded: the last finished step is the best honest end
+      if (!ACTIVE.includes(r.status) && !r.endedAt) {
+        const last = r.steps?.at(-1)?.endedAt;
+        if (last) stamp(r, new Date(last));
+      }
       runs.set(r.id, r);
     } catch {}
   }
@@ -156,6 +183,8 @@ const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g
 const public_ = ({ child, ...r }) => r;
 export const getRun = (id) => (runs.has(id) ? public_(runs.get(id)) : null);
 export const listRuns = () => [...runs.values()].map(public_).reverse();
+/** What the header indicator reads: the runs going now, and how long runs usually take. */
+export const runClock = () => ({ now: Date.now(), usual: usualRange([...runs.values()]), active: [...runs.values()].filter((r) => ACTIVE.includes(r.status) || r.after?.startedAt && !r.after.endedAt && !r.afterError && r.status === 'kept').map(public_) });
 
 // one line per thing Claude does, in words
 function stepOf(tool) {
@@ -178,7 +207,7 @@ export async function startRun({ brief, title, from, approved, dryRun = false })
   if (typeof brief !== 'string' || brief.trim().length < 10) throw new Error('No brief to run');
   const wrong = runBellaProblem({ dir: realBella(), base: BASE }) ?? packagesProblem();
   if (wrong) throw new Error(wrong);
-  const busy = [...runs.values()].find((r) => ['starting', 'running', 'gate'].includes(r.status));
+  const busy = [...runs.values()].find((r) => ACTIVE.includes(r.status));
   if (busy) throw new Error(`Another run is still going: “${busy.title}”. It has to finish first (the gate needs port 6006).`);
   const at = new Date();
   const id = `${at.toISOString().slice(0, 10).replace(/-/g, '')}-${at.getTime().toString(36).slice(-5)}`;
@@ -199,15 +228,17 @@ export async function startRun({ brief, title, from, approved, dryRun = false })
   }
   if (await portBusy(6006)) {
     Object.assign(run, { status: 'failed', step: null, error: 'Port 6006 is in use (a Storybook is running). The gate needs it; stop that Storybook, then run again.' });
+    save(run);
     return public_(run);
   }
-  go(run).catch((e) => Object.assign(run, { status: 'failed', step: null, error: plainError(e, { where: 'run' }).text }));
+  go(run).catch((e) => (Object.assign(run, { status: 'failed', step: null, error: plainError(e, { where: 'run' }).text }), save(run)));
   return public_(run);
 }
 
 const step = (run, s) => {
   if (run.step) run.steps.push({ step: run.step, endedAt: new Date().toISOString() });
   run.step = s;
+  run.lastStepAt = new Date().toISOString();
   save(run);
 };
 
@@ -309,7 +340,7 @@ function claude(run, prompt, cwd) {
         } catch {
           continue;
         }
-        if (m.type === 'assistant') for (const c of m.message?.content ?? []) if (c.type === 'tool_use') run.steps.push({ step: stepOf(c), endedAt: new Date().toISOString(), claude: true });
+        if (m.type === 'assistant') for (const c of m.message?.content ?? []) if (c.type === 'tool_use') (run.steps.push({ step: stepOf(c), endedAt: (run.lastStepAt = new Date().toISOString()), claude: true }));
         if (m.type === 'result') result = m;
       }
     });
