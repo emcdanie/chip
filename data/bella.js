@@ -2,8 +2,8 @@
 window.BELLA = {
   "source": {
     "repo": "bella",
-    "commit": "dfdd34a",
-    "committedAt": "2026-11-22T21:59:02+01:00",
+    "commit": "913fac5",
+    "committedAt": "2026-11-22T23:13:00+01:00",
     "version": "0.3.0"
   },
   "counts": {
@@ -33,9 +33,9 @@ window.BELLA = {
   "gates": {
     "contrastPairs": {
       "ok": true,
-      "checked": 465,
-      "pairs": 114,
-      "summary": "contrast pairs: 465 checked across 4 themes (text 7:1, marks 3:1), OK; inset rule: 23 exempt, every consumer classified"
+      "checked": 473,
+      "pairs": 116,
+      "summary": "contrast pairs: 473 checked across 4 themes (text 7:1, marks 3:1), OK; inset rule: 23 exempt, every consumer classified"
     },
     "contractParity": {
       "ok": true,
@@ -221,19 +221,6 @@ window.BELLA = {
     }
   ],
   "history": [
-    {
-      "commit": "3b5080c",
-      "committedAt": "2026-11-20T23:35:31+01:00",
-      "components": 86,
-      "storyCoverage": 98,
-      "contractCoverage": 98,
-      "gate": {
-        "contrastPairs": true,
-        "contractParity": true,
-        "ok": true,
-        "from": "tree"
-      }
-    },
     {
       "commit": "db12bef",
       "committedAt": "2026-11-20T23:55:30+01:00",
@@ -601,6 +588,19 @@ window.BELLA = {
     {
       "commit": "dfdd34a",
       "committedAt": "2026-11-22T21:59:02+01:00",
+      "components": 98,
+      "storyCoverage": 98,
+      "contractCoverage": 98,
+      "gate": {
+        "contrastPairs": true,
+        "contractParity": true,
+        "ok": true,
+        "from": "tree"
+      }
+    },
+    {
+      "commit": "913fac5",
+      "committedAt": "2026-11-22T23:13:00+01:00",
       "components": 98,
       "storyCoverage": 98,
       "contractCoverage": 98,
@@ -2901,6 +2901,7 @@ window.BELLA = {
       "BarChart",
       "BoardLane",
       "Branch",
+      "Button",
       "ChatBubble",
       "ChatThread",
       "CheckRow",
@@ -3103,6 +3104,7 @@ window.BELLA = {
     "--color-brand-blue-100": [
       "AppTile",
       "BoardLane",
+      "Button",
       "ChatBubble",
       "ClientSwitcher",
       "CodeBlock",
@@ -4076,10 +4078,12 @@ window.BELLA = {
       "SystemHealth"
     ],
     "--color-content-brand": [
-      "BoardLane"
+      "BoardLane",
+      "Button"
     ],
     "--color-brand-blue-700": [
       "BoardLane",
+      "Button",
       "CodeBlock"
     ],
     "--color-content-lane-subtle": [
@@ -4237,6 +4241,14 @@ window.BELLA = {
     ],
     "--color-brand-blue-290": [
       "Button"
+    ],
+    "--color-background-wash-blue": [
+      "Button",
+      "CodeBlock"
+    ],
+    "--color-brand-blue-alpha-8": [
+      "Button",
+      "CodeBlock"
     ],
     "--color-border-action-raised": [
       "Button"
@@ -4557,12 +4569,6 @@ window.BELLA = {
       "CodeBlock"
     ],
     "--color-background-syntax-del": [
-      "CodeBlock"
-    ],
-    "--color-background-wash-blue": [
-      "CodeBlock"
-    ],
-    "--color-brand-blue-alpha-8": [
       "CodeBlock"
     ],
     "--color-border-syntax": [
@@ -7143,7 +7149,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 43,
+          "pairs": 45,
           "failing": []
         },
         "contract": {
@@ -7498,7 +7504,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 49,
+          "pairs": 51,
           "failing": []
         },
         "contract": {
@@ -7989,7 +7995,7 @@ window.BELLA = {
         "Icon"
       ],
       "tokens": {
-        "count": 39,
+        "count": 42,
         "component": 0,
         "semantic": 0,
         "list": [
@@ -8005,11 +8011,13 @@ window.BELLA = {
           "--color-background-brand-active",
           "--color-background-brand-hover",
           "--color-background-subtle",
+          "--color-background-wash-blue",
           "--color-border-action-raised",
           "--color-border-default",
           "--color-border-focus",
           "--color-border-ink",
           "--color-content-accent",
+          "--color-content-brand",
           "--color-content-brand-knockout",
           "--color-content-default",
           "--color-content-subtle",
@@ -8025,6 +8033,7 @@ window.BELLA = {
           "--size-32",
           "--spacing-12",
           "--spacing-20",
+          "--spacing-4",
           "--spacing-44",
           "--spacing-8",
           "--typography-body-default-font-family",
@@ -8052,7 +8061,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 72,
+          "pairs": 78,
           "failing": []
         },
         "contract": {
@@ -8443,7 +8452,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 92,
+          "pairs": 94,
           "failing": []
         },
         "contract": {
@@ -8926,7 +8935,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 18,
+          "pairs": 19,
           "failing": []
         },
         "contract": {
@@ -14974,7 +14983,7 @@ window.BELLA = {
       "health": {
         "contrast": {
           "status": "pass",
-          "pairs": 69,
+          "pairs": 71,
           "failing": []
         },
         "contract": {
