@@ -243,6 +243,7 @@ export function NewStart({ variant = 'primary' }) {
   const subtitle = step === 'pick' ? 'Start a job or a whole project' : step === 'task' ? 'Pick a job, check its target, then see the plan' : { give: 'Give CHIP something to read', understood: 'What CHIP understood', plan: 'The setup plan · nothing is made until you approve', result: 'Made. Accept keeps it, Undo removes it' }[sub];
 
   let footer;
+  let footerNote;
   if (step === 'task') {
     footer = (
       <Flow gap={16}>
@@ -252,6 +253,17 @@ export function NewStart({ variant = 'primary' }) {
         </Flow>
       </Flow>
     );
+  } else if (step === 'project' && sub === 'give') {
+    // the three ways in sit in the footer's row (23 Nov evening): a folder, or the line she typed; dropping a file reads at once
+    footer = folders ? (
+      <Button variant="primary" size="sm" disabled={busy} onClick={() => pickFolder(folders.dir)}>{`Use ${folders.dir.split('/').pop()}`}</Button>
+    ) : (
+      <>
+        <Button variant="secondary" size="sm" icon="Folder" leadingIcon onClick={() => openFolders('')}>Connect a folder</Button>
+        <Button variant="primary" size="sm" busy={busy} disabled={!say.trim()} onClick={() => readText(say, '')}>Read it</Button>
+      </>
+    );
+    footerNote = folders ? 'Or open a folder below to look inside it.' : 'Read it reads the line you typed.';
   } else if (step === 'project' && sub === 'understood') {
     footer = (
       <Flow direction="row" gap={8} justify="end">
@@ -267,15 +279,13 @@ export function NewStart({ variant = 'primary' }) {
     );
   } else if (step === 'project' && sub === 'result') {
     footer = (
-      <Flow gap={8} stretch>
-        <Flow direction="row" gap={8} justify="end">
-          <Button variant="secondary" size="sm" busy={busy} onClick={undo}>Undo</Button>
-          <Button variant="primary" size="sm" onClick={accept}>Accept</Button>
-        </Flow>
-        {/* what each button does, before she presses it (second-pass review S17) */}
-        <TextStack subtitle="Accept keeps the project under Projects. Undo removes it and everything CHIP made for it." />
-      </Flow>
+      <>
+        <Button variant="secondary" size="sm" busy={busy} onClick={undo}>Undo</Button>
+        <Button variant="primary" size="sm" onClick={accept}>Accept</Button>
+      </>
     );
+    // what each button does, before she presses it (second-pass review S17), at the left of their row
+    footerNote = 'Accept keeps the project; Undo removes all CHIP made.';
   }
 
   const unsure = FIELDS.filter(([k, , req]) => !guesses[k]?.sure || req && !fields?.[k]);
@@ -289,7 +299,7 @@ export function NewStart({ variant = 'primary' }) {
           New
         </Button>
       </Tooltip>
-      <ReadingDrawer open={open} onClose={() => setOpen(false)} onBack={back} label={label} subtitle={subtitle} footer={footer}>
+      <ReadingDrawer open={open} onClose={() => setOpen(false)} onBack={back} label={label} subtitle={subtitle} footer={footer} footerNote={footerNote}>
         {step === 'pick' ? (
           <Inset gap={16}>
             <Card onClick={() => { setStep('task'); }} ariaLabel="Task: run a job you repeat, with its target filled in">
@@ -359,10 +369,9 @@ export function NewStart({ variant = 'primary' }) {
                 <ListRowGroup ariaLabel="Folders">
                   {folders.up ? <ListRow layout="stacked" title="Up one folder" trailing onClick={() => openFolders(folders.up)} /> : null}
                   {folders.folders.map((f) => (
-                    <ListRow key={f} layout="stacked" title={f} trailing onClick={() => openFolders(`${folders.dir}/${f}`)} actionButton={<Button variant="secondary" size="sm" busy={busy} onClick={() => pickFolder(`${folders.dir}/${f}`)} ariaLabel={`Use ${f}`}>Use this</Button>} />
+                    <ListRow key={f} layout="stacked" title={f} trailing onClick={() => openFolders(`${folders.dir}/${f}`)} actionButton={<Button variant="tertiary" size="sm" busy={busy} onClick={() => pickFolder(`${folders.dir}/${f}`)} ariaLabel={`Use ${f}`}>Use this</Button>} />
                   ))}
                 </ListRowGroup>
-                <Inset><Button variant="secondary" size="sm" disabled={busy} onClick={() => pickFolder(folders.dir)}>{`Use ${folders.dir.split('/').pop()}`}</Button></Inset>
               </Flow>
             ) : (
               <>
@@ -377,15 +386,7 @@ export function NewStart({ variant = 'primary' }) {
                   </div>
                 </Inset>
                 <Inset>
-                  <Flow direction="row" gap={8} wrap>
-                    <Button variant="secondary" size="sm" icon="Folder" leadingIcon onClick={() => openFolders('')}>Connect a folder</Button>
-                  </Flow>
-                </Inset>
-                <Inset>
                   <Input label="Say what it is" hint="One line is enough" value={say} onChange={setSay} />
-                  <Flow direction="row" gap={8} justify="end">
-                    <Button variant="secondary" size="sm" busy={busy} disabled={!say.trim()} onClick={() => readText(say, '')}>Read it</Button>
-                  </Flow>
                 </Inset>
               </>
             )}

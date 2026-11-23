@@ -301,13 +301,12 @@ export function StoryDrawer({ name, view = 'story', onClose, onBack }) {
   const [w, setW] = useState('fit');
   const add = () => addStoryPlan(name);
   return (
-    <Drawer open side="right" size="lg" onClose={onClose} onBack={onBack} label={`${name}: ${view === 'docs' ? 'doc page' : 'story'}`} status={story.state === 'found' ? 'BELLA’s Storybook, shown here' : story.state === 'none' ? (view === 'docs' ? 'No doc page yet' : 'No story yet') : 'Reading…'}>
+    <Drawer open side="right" size="lg" onClose={onClose} onBack={onBack} label={`${name}: ${view === 'docs' ? 'doc page' : 'story'}`} status={story.state === 'found' ? 'BELLA’s Storybook, shown here' : story.state === 'none' ? (view === 'docs' ? 'No doc page yet' : 'No story yet') : 'Reading…'}
+      footer={story.state === 'none' ? <Button variant="primary" onClick={add}>Add a story</Button> : undefined}
+      footerNote={story.state === 'none' ? 'Opens the plan; nothing runs until you approve it.' : undefined}>
       {story.state === 'none' ? (
         <Flow inset gap={16}>
           <TextStack title="No story yet" body={`BELLA has no Storybook story for ${name}, so there is nothing to show.`} />
-          <Flow direction="row" justify="end">
-            <Button variant="secondary" onClick={add}>Add a story</Button>
-          </Flow>
         </Flow>
       ) : story.state === 'found' ? (
         <Flow inset gap={8}>

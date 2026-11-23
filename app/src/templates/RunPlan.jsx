@@ -10,8 +10,6 @@ import Input from '@bella/components/Input/Input';
 import ReadingDrawer from './ReadingDrawer.jsx';
 import ListRow from '@bella/components/ListRow/ListRow';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
-import Tag from '@bella/components/Tag/Tag';
-import TextStack from '@bella/components/TextStack/TextStack';
 import Toast from '@bella/components/Toast/Toast';
 import Flow from './Flow.jsx';
 import Toasts from './Toasts.jsx';
@@ -58,18 +56,16 @@ function RunPlan({ plan, onDone }) {
       size="lg"
       label={plan.title}
       subtitle={plan.subtitle ?? `Plan ready · from ${plan.from ?? 'CHIP'}`}
+      footerNote="Works on a copy; main is untouched."
       footer={
-        <Flow gap={16}>
-          <TextStack subtitle="The agent in CHIP · works on a copy, main untouched" />
-          <Flow direction="row" gap={8} justify="end" wrap>
-            <Button variant="secondary" size="sm" onClick={() => setEditing((e) => !e)}>
-              {editing ? 'Done editing' : 'Edit plan'}
-            </Button>
-            <Button variant="primary" size="sm" busy={busy} onClick={busy ? undefined : approve}>
-              {busy ? 'Sending…' : 'Approve plan'}
-            </Button>
-          </Flow>
-        </Flow>
+        <>
+          <Button variant="secondary" size="sm" onClick={() => setEditing((e) => !e)}>
+            {editing ? 'Done editing' : 'Edit plan'}
+          </Button>
+          <Button variant="primary" size="sm" busy={busy} onClick={busy ? undefined : approve}>
+            {busy ? 'Sending…' : 'Approve plan'}
+          </Button>
+        </>
       }
     >
       <Flow gap={16}>
@@ -83,7 +79,9 @@ function RunPlan({ plan, onDone }) {
         ) : (
           <Flow as="ul" gap={0} aria-label={`The plan: ${plan.title}`}>
             {[...steps, { id: 'gate', title: 'Run the gate on the agent’s copy', line: 'Then a reviewer accepts or undoes it on Work' }].map((x, i, all) => (
-              <ListRow key={x.id} layout="stacked" statusBar={x.id === 'gate' ? 'neutral' : 'attention'} divider={i < all.length - 1} title={x.title} description={x.line} tag={<Tag variant="line">{`Step ${i + 1}`}</Tag>} />
+              // one line per step, numbered, one divider (23 Nov evening: a list item in a drawer is one line). A Pin would sit
+              // 7px under the title: ListRow centres a leading item on the row with its divider, not on the title line
+              <ListRow key={x.id} layout="inline" divider={i < all.length - 1} title={`${i + 1}. ${x.title}`} description={x.line} />
             ))}
           </Flow>
         )}

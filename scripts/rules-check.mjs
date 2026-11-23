@@ -8,6 +8,10 @@
 //   menus    every menu closes on an outside click and on Esc (23 Nov)
 //   tabs     nothing opens a new tab or a raw file: source (target _blank, window.open) and live links (23 Nov)
 //   branches no branch names, slugs, PR numbers or branch pickers shown to her (23 Nov)
+//   drawers  drawer actions sit in BELLA Drawer's footer only, in one row (23 Nov evening): opens every drawer it can reach
+//            without starting anything and FAILS on a primary or secondary Button in a drawer's body, on footer text under
+//            the buttons, on a primary that is not the last button, and at 1440 on a footer helper not on the buttons'
+//            row. --shots <dir> [--tag before] also saves a picture of each open drawer, for the audit page.
 // Every failure prints rule, page, width and element. Usage:
 //   node scripts/rules-check.mjs [--app http://localhost:3160] [--rule edge,notices] [--route '#/work'] [--width 1440]
 // Needs a CHIP server and Playwright in BELLA_DIR. Exit 1 on any failure. Static rules (source) run once, not per width.
@@ -16,6 +20,7 @@ import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 import { bellaDir } from './lib/bella-dir.mjs';
+import { DRAWER_RECORD, drawerInputsHash } from './lib/stage-leaders.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const arg = (name, fallback) => {
@@ -23,7 +28,7 @@ const arg = (name, fallback) => {
   return i > 0 ? process.argv[i + 1] : fallback;
 };
 const APP = arg('app', 'http://localhost:3160');
-const ALL = ['edge', 'notices', 'bold', 'state', 'menus', 'tabs', 'branches'];
+const ALL = ['edge', 'notices', 'bold', 'state', 'menus', 'tabs', 'branches', 'drawers'];
 const RULES = (arg('rule', ALL.join(',')) ?? '').split(',').filter((r) => ALL.includes(r));
 const ROUTES = arg('route', null)
   ? [arg('route')]
@@ -231,11 +236,127 @@ const describeTrigger = (i) => {
 };
 
 const { chromium } = createRequire(join(bellaDir(), 'package.json'))('playwright');
+
+/* ---------- drawers: every drawer CHIP can open without starting anything ---------- */
+// open(page) opens it; nothing here presses Approve, Start, Send, Accept, Undo, Stop or a Save. Health's cards wait for
+// the page's data (about 10s on a cold server).
+const card = (re) => async (page) => {
+  const b = page.locator('button', { hasText: re }).first();
+  await b.waitFor({ timeout: 60000 });
+  await b.click();
+};
+const click = (role, name) => async (page) => {
+  const b = page.getByRole(role, { name }).first();
+  await b.waitFor({ timeout: 30000 });
+  await b.click();
+};
+const DRAWERS = [
+  { id: 'gaps', name: 'Gaps', file: 'pages/HealthContent.jsx', route: '#/health', open: card(/^Gaps/) },
+  { id: 'checks', name: 'Checks', file: 'pages/HealthContent.jsx', route: '#/health', open: card(/^Checks/) },
+  { id: 'drift', name: 'Drift from BELLA', file: 'pages/HealthContent.jsx', route: '#/health', open: card(/^Drift from BELLA/) },
+  { id: 'drift-part', name: 'Drift: one part', file: 'pages/HealthContent.jsx', route: '#/health', open: async (p) => { await card(/^Drift from BELLA/)(p); await click('button', /^See all \d+ parts/)(p); await p.waitForTimeout(600); await p.locator('dialog[open] tbody tr').first().click(); } },
+  { id: 'contrast', name: 'Contrast coverage', file: 'pages/HealthContent.jsx', route: '#/health', open: card(/^Contrast coverage/) },
+  { id: 'how', name: 'How was this measured?', file: 'pages/HealthContent.jsx', route: '#/health?drawer=how-all', open: async (p) => { await p.waitForSelector('dialog[open]', { timeout: 60000 }); } },
+  { id: 'audit-ds', name: 'BELLA system audit', file: 'pages/AuditReading.jsx', route: '#/health', open: card(/^BELLA system/) },
+  { id: 'audit-product', name: 'CHIP app audit', file: 'pages/AuditReading.jsx', route: '#/health', open: card(/^CHIP app/) },
+  { id: 'audit-all', name: 'Every work order', file: 'pages/AuditReading.jsx', route: '#/health', open: async (p) => { await card(/^BELLA system/)(p); await click('button', /^See all \d+ work orders/)(p); } },
+  { id: 'plan', name: 'A plan (Plan the build)', file: 'templates/RunPlan.jsx', route: '#/health', open: async (p) => { await card(/^Gaps/)(p); await click('button', 'Plan the build')(p); await p.waitForTimeout(800); } },
+  { id: 'activity', name: 'Activity', file: 'templates/RunStatus.jsx', route: '#/work', open: click('button', /^(Nothing running|Running|Done|Did not land)/) },
+  { id: 'work-panel', name: 'Work panel', file: 'templates/WorkDock.jsx', route: '#/work', open: click('button', /open the Work panel/) },
+  { id: 'new', name: 'New', file: 'templates/NewStart.jsx', route: '#/work', open: click('button', /^\+?\s*New$/) },
+  { id: 'new-task', name: 'New task', file: 'templates/NewStart.jsx', route: '#/work', open: async (p) => { await click('button', /^\+?\s*New$/)(p); await p.waitForTimeout(500); await p.locator('dialog[open] button', { hasText: /^Task/ }).first().click(); } },
+  { id: 'work-card', name: 'A Work card', file: 'pages/WorkDrawer.jsx', route: '#/work', open: async (p) => { const b = p.locator('[data-bella-component="task-card"] button[aria-label^="Open"]').first(); await b.waitFor({ timeout: 30000 }); await b.click(); } },
+  { id: 'history-filters', name: 'History filters', file: 'pages/HistoryContent.jsx', route: '#/system/history', open: click('button', /^Filters/) },
+  { id: 'story', name: 'A part: story', file: 'pages/DocReader.jsx', route: '#/system/components/button', open: click('button', /^Story$/) },
+  { id: 'file', name: 'A step: its file', file: 'pages/StepPanel.jsx', route: '#/system-map?map=pipeline&step=contrast', open: click('button', /^Open the (skill|script)/) },
+  { id: 'connector', name: 'Connector setup', file: 'pages/ConnectorsContent.jsx', route: '#/connectors', open: click('button', /^Set up/) },
+];
+// the drawer that is open now, measured: buttons in its body, its footer's text and buttons, its rows
+const drawerJs = () => {
+  const vis = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
+  const dlg = [...document.querySelectorAll('dialog[open][data-bella-component="drawer"]')].filter(vis).at(-1);
+  if (!dlg) return null;
+  const body = dlg.querySelector(':scope > [role="region"]');
+  const foot = body?.nextElementSibling ?? null;
+  const name = (b) => (b.getAttribute('aria-label') || b.querySelector('[data-bella-roll="label"]')?.textContent || b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+  const acts = (root) => [...(root?.querySelectorAll('[data-bella-component="button"]') ?? [])].filter((b) => vis(b) && ['primary', 'secondary'].includes(b.dataset.bellaVariant));
+  // a numbered setup step keeps its own control (the Set up template, 23 Nov: each step has the button that opens the
+  // page, the field to paste into, and Test it), so a button inside a step row with its number Pin is not counted
+  const step = (b) => b.closest('[data-bella-component="list-row"]')?.querySelector('[data-bella-component="pin"]');
+  const inBody = acts(body).filter((b) => !step(b)).map((b) => `${b.dataset.bellaVariant} "${name(b)}"`);
+  const fbs = acts(foot);
+  const out = { title: dlg.querySelector('h2')?.textContent?.trim() ?? '', inBody, footer: fbs.map((b) => `${b.dataset.bellaVariant} "${name(b)}"`), note: null, under: [], row: null, primaryLast: true, rows: 0, twoLine: 0 };
+  // a composer footer (the Work panel's ask box, a form's field) holds fields, not an action row: its labels are not helpers
+  out.composer = Boolean(foot?.querySelector('input, textarea, select, [role="combobox"]'));
+  if (foot && fbs.length && !out.composer) {
+    const top = Math.min(...fbs.map((b) => b.getBoundingClientRect().top));
+    const bottom = Math.max(...fbs.map((b) => b.getBoundingClientRect().bottom));
+    const texts = [...foot.querySelectorAll('p, span, div')].filter((e) => vis(e) && ![...e.children].length && (e.textContent ?? '').trim() && !e.closest('[data-bella-component="button"]'));
+    out.under = texts.filter((e) => e.getBoundingClientRect().top >= bottom - 1).map((e) => e.textContent.trim().slice(0, 60));
+    const note = texts.find((e) => e.getBoundingClientRect().bottom <= top + 1 || e.getBoundingClientRect().right <= Math.min(...fbs.map((b) => b.getBoundingClientRect().left)) + 1);
+    if (note) {
+      const n = note.getBoundingClientRect();
+      const b = fbs[0].getBoundingClientRect();
+      out.note = note.textContent.trim().slice(0, 70);
+      out.row = n.right <= b.left + 1 && Math.abs((n.top + n.bottom) / 2 - (b.top + b.bottom) / 2) < b.height / 2;
+    }
+    const prim = fbs.findIndex((b) => b.dataset.bellaVariant === 'primary');
+    out.primaryLast = prim < 0 || prim === fbs.length - 1;
+  }
+  const rows = [...(body?.querySelectorAll('[data-bella-component="list-row"]') ?? [])].filter(vis);
+  out.rows = rows.length;
+  out.twoLine = rows.filter((r) => r.getBoundingClientRect().height > 72).length;
+  return out;
+};
+const drawerReport = [];
+if (RULES.includes('drawers')) {
+  const shots = arg('shots', null);
+  const tag = arg('tag', 'now');
+  const only = arg('drawer', null);
+  const b = await chromium.launch();
+  for (const width of WIDTHS) {
+    for (const d of DRAWERS.filter((x) => !only || only.split(',').includes(x.id))) {
+      const page = await b.newPage({ viewport: { width, height: 900 } });
+      await page.goto(`${APP}/${d.route}`);
+      let m = null;
+      try {
+        await d.open(page);
+        await page.waitForSelector('dialog[open][data-bella-component="drawer"]', { timeout: 20000 });
+        await page.waitForTimeout(900);
+        m = await page.evaluate(drawerJs);
+      } catch (e) {
+        m = null;
+      }
+      if (!m) {
+        drawerReport.push({ id: d.id, width, opened: false });
+        console.log(`  drawers ${d.id} @${width}: could not open (no such item on this server)`);
+        await page.close();
+        continue;
+      }
+      if (shots) await page.screenshot({ path: join(shots, `${d.id}-${tag}-${width}.png`) });
+      drawerReport.push({ id: d.id, name: d.name, file: d.file, width, opened: true, ...m });
+      const where = `${d.name} (${d.file})`;
+      for (const x of m.inBody) add('drawers', d.route, width, where, `${x} sits in the drawer's body; actions go in the footer`);
+      for (const x of m.under) add('drawers', d.route, width, where, `footer text under the buttons: "${x}"; it goes at the left of the buttons' row (footerNote)`);
+      if (!m.primaryLast) add('drawers', d.route, width, where, 'the primary is not the last button in the footer');
+      if (width >= 1440 && m.row === false) add('drawers', d.route, width, where, `footer helper "${m.note}" is not on the buttons' row`);
+      await page.close();
+    }
+  }
+  await b.close();
+  if (shots) writeFileSync(join(shots, `drawers-${tag}-${WIDTHS.join('-')}${only ? `-${only}` : ''}.json`), JSON.stringify(drawerReport, null, 1));
+  // a full run (every drawer, 1440 among the widths) is the record the commit guard reads
+  if (!only && WIDTHS.includes(1440)) {
+    const bad = findings.filter((f) => f.rule === 'drawers').length;
+    writeFileSync(DRAWER_RECORD, JSON.stringify({ at: new Date().toISOString(), hash: drawerInputsHash(), ok: !bad, bad, opened: drawerReport.filter((x) => x.opened).length, of: drawerReport.length }, null, 1));
+  }
+}
 const live = RULES.filter((r) => ['edge', 'notices', 'bold', 'state', 'tabs', 'branches', 'menus'].includes(r));
+const pageRules = live.length;
 const browser = await chromium.launch();
 let loads = 0;
 const matrix = [];
-for (const width of WIDTHS) {
+for (const width of pageRules ? WIDTHS : []) {
   for (const hash of ROUTES) {
     loads += 1;
     const page = await browser.newPage({ viewport: { width, height: 900 } });
@@ -293,6 +414,7 @@ for (const r of RULES) {
   console.log(`\n${fs.length ? 'FAIL' : 'PASS'}  ${r}  (${fs.length})`);
   for (const f of fs) console.log(`  ${f.page} @${f.width}  ${f.element}  ${f.detail}`);
 }
+if (RULES.includes('drawers')) console.log(`\nOpened ${drawerReport.filter((x) => x.opened).length} of ${drawerReport.length} drawer-widths (${DRAWERS.length} drawers)`);
 console.log(`\nMeasured ${loads} page loads (${ROUTES.length} pages x ${WIDTHS.length} widths), rules: ${RULES.join(', ')}`);
 for (const m of matrix) console.log(`  ${m}`);
 const out = join(tmpdir(), 'chip-rules-check.json');

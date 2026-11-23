@@ -274,8 +274,8 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
     const t = setInterval(() => setTick((n) => n + 1), 3000);
     return () => clearInterval(t);
   }, [going]);
-  const shell = (label, status, body, footer) => (
-    <ReadingDrawer open onClose={onClose} label={label} status={status} footer={footer}>
+  const shell = (label, status, body, footer, footerNote) => (
+    <ReadingDrawer open onClose={onClose} label={label} status={status} footer={footer} footerNote={footerNote}>
       {/* one left edge with the sheet's title (audit 4, item 5) */}
       <Flow inset>{body}</Flow>
     </ReadingDrawer>
@@ -317,43 +317,42 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
   };
   const footer =
     s.can === 'decide' ? (
-      <Flow gap={8} stretch>
-      <Flow direction="row" justify="end" gap={8}>
+      <>
         <Button variant="secondary" disabled={!!busy} onClick={() => act('undo', { title: 'Undone', message: `The branch ${s.branch} is gone; nothing else changed.` })}>
           {busy === 'undo' ? 'Undoing…' : 'Undo'}
         </Button>
         <Button variant="primary" disabled={!!busy} onClick={() => act('keep', { title: s.merge ? 'Kept for merging' : 'Accepted', message: `${s.branch} is kept. Merging it is a maintainer’s step in git.` })}>
           {busy === 'keep' ? (s.merge ? 'Keeping…' : 'Accepting…') : s.merge ? 'Keep branch' : 'Accept'}
         </Button>
-      </Flow>
-      <TextStack subtitle={`${s.merge ? 'Keep branch' : 'Accept'} keeps the work on its branch; merging is a step in git. Undo deletes the branch and changes nothing else.`} />
-      </Flow>
+      </>
     ) : s.can === 'stop' ? (
       // a running run always has Stop: nothing is kept, the branch stays for a look
-      <Flow direction="row" justify="end" gap={8}>
+      <>
         <Button variant="secondary" disabled={!!busy} onClick={() => act('stop', { title: 'Stopped', message: `${s.title}: the agent stopped. Nothing was kept.` })}>
           {busy === 'stop' ? 'Stopping…' : 'Stop'}
         </Button>
-      </Flow>
+      </>
     ) : s.again ? (
-      <Flow gap={8} stretch>
-      <Flow direction="row" justify="end" gap={8}>
-        <Button variant="primary" disabled={!!busy} onClick={() => again(s.again)}>
-          {busy === 'again' ? 'Starting…' : 'Run again'}
-        </Button>
-      </Flow>
-      <TextStack subtitle="Opens the same plan for a new run on a new branch; nothing runs until you approve it." />
-      </Flow>
+      <Button variant="primary" disabled={!!busy} onClick={() => again(s.again)}>
+        {busy === 'again' ? 'Starting…' : 'Run again'}
+      </Button>
     ) : s.can === 'run' ? (
-      <Flow direction="row" justify="end" gap={8}>
+      <>
         <Button variant="primary" disabled={!!busy} onClick={() => act('accept', { title: 'Started', message: 'CHIP is making the fix on its own branch. It shows here when the gate has passed.' })}>
           {busy === 'accept' ? 'Starting…' : 'Run the fix'}
         </Button>
-      </Flow>
+      </>
     ) : null;
+  // what the footer's action does, at the left of its row (23 Nov evening: drawer actions in the footer, one row)
+  const footerNote =
+    s.can === 'decide'
+      ? `${s.merge ? 'Keep branch' : 'Accept'} keeps the branch; Undo deletes it.`
+      : s.can !== 'stop' && s.again
+        ? 'Opens the same plan; nothing runs until you approve it.'
+        : undefined;
   // Add it: a new run on the same brief with the agent's question and her answer added
   const answer = item.kind === 'run' && data.brief ? (q) => again({ title: `${data.title}: ${q.label}`, from: data.from, brief: `${data.brief}\n\n---\nThe last run asked: ${q.label}. ${q.line}\nElleta's answer: add it.` }) : undefined;
-  return shell(s.title, s.status, <FixBody s={s} onAnswer={answer} />, footer ?? undefined);
+  return shell(s.title, s.status, <FixBody s={s} onAnswer={answer} />, footer ?? undefined, footer ? footerNote : undefined);
 }
 
 /* The approved drawer's order (Flow 12, 791:264033): the outcome in one strong line with its facts
@@ -446,13 +445,12 @@ function PushDrawer({ item, onClose }) {
       status={p ? `${p.name} · ${n} ${n === 1 ? 'change' : 'changes'} GitHub doesn’t have yet` : undefined}
       footer={
         shell ? undefined : (
-          <Flow direction="row" justify="end" gap={8}>
-            <Button variant="secondary" disabled={!p} onClick={() => setShell(true)}>
-              Open a shell
-            </Button>
-          </Flow>
+          <Button variant="secondary" disabled={!p} onClick={() => setShell(true)}>
+            Open a shell
+          </Button>
         )
       }
+      footerNote={shell ? undefined : 'A shell in its folder, nothing typed.'}
     >
       <Flow inset gap={16}>
         {/* the shell opens at the top, in view; the commits stay under it */}
