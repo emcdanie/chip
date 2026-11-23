@@ -121,24 +121,15 @@ function whyEmpty(x) {
   };
 }
 
-/* The sidebar's filters (her rule "branches filter the board"; the Status rows
-   filter by lane): #/work?branch=<name> keeps the cards on that branch,
-   #/work?lane=<id> keeps that lane. Read from the address, so a sidebar row is a link. */
+/* The sidebar's filters (the Status rows filter by lane): #/work?lane=<id> keeps that lane.
+   Read from the address, so a sidebar row is a link. She never sees branch names (23 Nov): no branch filter. */
 export function filterFromHash(hash = window.location.hash) {
   const q = new URLSearchParams(hash.split('?')[1] ?? '');
   // filter: the board's Filter from the address (#/work?filter=needs), so a link can open the board filtered
   const f = q.get('filter') ?? (q.get('project') ? `project:${q.get('project')}` : null);
   const ok = f && (['needs', 'components'].includes(f) || /^(area|lane|project):[\w &-]{1,40}$/.test(f));
-  return { branch: q.get('branch'), lane: q.get('lane'), filter: ok ? f : null };
+  return { lane: q.get('lane'), filter: ok ? f : null };
 }
-export function filtered(model, { branch, lane }) {
-  if (!model || (!branch && !lane)) return model;
-  const lanes = model.lanes
-    .filter((l) => !lane || l.id === lane)
-    .map((l) => (branch ? { ...l, cards: l.cards.filter((c) => c.branch === branch) } : l));
-  return { ...model, lanes, total: lanes.reduce((n, l) => n + l.cards.length, 0), brief: branch ? briefOf(lanes) : model.brief };
-}
-
 /* ---------- The Work board in her Notion lanes (22 Nov) ----------
    Every card is read from where the work is (server/lib/lanes.mjs: GET /work/board and
    /work/lanes, plus CHIP's own /needs and /runs), never typed:
@@ -421,12 +412,25 @@ export const runnable = (c) => !!(c.brief || c.fixable || c.runBrief);
 /* Work going on: dragging it out of Now pauses it (saved on the board, where its agent reads it). */
 export const going = (c) => (c.kind === 'session' || c.kind === 'run') && ['working', 'waiting'].includes(c.progress?.state);
 
-/* The tools row: Filter, Sort, Search, and the Branch menu. */
-export function shown(model, { filter = null, sort = 'mine', q = '', branch = null } = {}) {
+/* What one project has on the board, counted from its cards (23 Nov: the progress line follows the project chip):
+   shipped is the Shipped lane, now is Now without what waits on her, waiting is Now cards that need her.
+   Null project counts every card; cards is how many the project has in all five lanes. */
+export function projectStats(model, project = null) {
+  const mine = (c) => !project || String(c.project ?? 'CHIP').toLowerCase() === project.toLowerCase();
+  const inLane = (id) => (model?.lanes.find((l) => l.id === id)?.cards ?? []).filter(mine);
+  const now = inLane('now');
+  const waiting = now.filter((c) => c.needs).length;
+  const shipped = inLane('shipped').length;
+  const atWork = now.length - waiting;
+  const cards = (model?.lanes ?? []).reduce((n, l) => n + l.cards.filter(mine).length, 0);
+  return { shipped, now: atWork, waiting, total: shipped + atWork + waiting, cards };
+}
+
+/* The tools row: Filter, Sort, Search. */
+export function shown(model, { filter = null, sort = 'mine', q = '' } = {}) {
   if (!model) return model;
   const words = q.trim().toLowerCase();
   const keep = (c) =>
-    (!branch || c.branch === branch) &&
     (!words || `${c.title} ${c.line}`.toLowerCase().includes(words)) &&
     (!filter || filter.startsWith('lane:') || (filter === 'needs' ? c.needs : filter === 'components' ? c.component : filter.startsWith('area:') ? c.area === filter.slice(5) : filter.startsWith('project:') ? String(c.project ?? 'CHIP').toLowerCase() === filter.slice(8).toLowerCase() : true));
   const by = { updated: (a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0), started: (a, b) => (a.startedAt ?? Infinity) - (b.startedAt ?? Infinity) }[sort];

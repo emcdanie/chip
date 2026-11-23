@@ -100,7 +100,8 @@ function readCard(sec, page, item, mod) {
     thumbs = true;
     options = pics.map((f, i) => ({ letter: null, answer: null, short: f.cap || `Picture ${i + 1}`, img: f.img }));
   }
-  const fallback = figs[0]?.img ?? item.img;
+  // a card with no picture of its own shows the page's first one (a card's, then any on the page), then the board item's
+  const fallback = figs[0]?.img ?? abs(sec.querySelector('img[src]')?.getAttribute('src')) ?? abs(sec.ownerDocument.querySelector('img[src]')?.getAttribute('src')) ?? item.img;
   options = options.map((o) => ({ ...o, img: o.img ?? fallback }));
   const mine = dts.find((d) => /my pick/i.test(text(d)));
   const decide = [...sec.querySelectorAll('p')].map(text).find((t) => /^decide:/i.test(t));
@@ -134,6 +135,8 @@ function itemCard(item, mod) {
   };
 }
 
+const norm = (t) => String(t ?? '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+
 /** Her answers and notes on a card, from answers.json. */
 function remarks(card, answers, single) {
   const path = pathOf(card.page);
@@ -143,10 +146,26 @@ function remarks(card, answers, single) {
     if (!a || typeof a !== 'object') return;
     const when = e.sent ?? null;
     (a.cards ?? []).forEach((c) => {
-      if (pathOf(c.from || a.url || '') !== path || c.title !== card.title) return;
+      // a card's from is a path, or a page's bare folder name (data-src, 23 Nov tertiary): then the page's own url counts
+      if (pathOf(/^(\/|https?:)/.test(c.from ?? '') ? c.from : a.url || '') !== path || c.title !== card.title) return;
       if (c.answer) out.answer = { text: c.answer, when };
       if (c.note) out.comments.push({ id: `a${k}-${c.title}`, text: spell(c.note), on: c.answer ? `with “${c.answer}”` : 'a note', when });
     });
+    // the progress board's own shape (22 Nov): { <item title>: { title, answers: [{ q, a }], note } }, no cards list and no page
+    if (!a.cards && !a.type) {
+      const same = (t) => {
+        const x = norm(t);
+        const y = norm(card.title);
+        const z = norm(card.from);
+        return !!x && (x === y || x === z || (x.length > 12 && (y.includes(x) || x.includes(y) || (z && (z.includes(x) || x.includes(z))))));
+      };
+      Object.entries(a).forEach(([key, v]) => {
+        if (!v || typeof v !== 'object' || !(same(v.title ?? key) || same(key))) return;
+        const said = [...new Set((v.answers ?? []).map((r) => r?.a).filter(Boolean))].join(', ');
+        if (said) out.answer = { text: said, when };
+        if (v.note) out.comments.push({ id: `p${k}-${key}`, text: spell(v.note), on: said ? `with “${said}”` : 'a note', when });
+      });
+    }
     if (a.type === 'markup' && pathOf(a.url || '') === path) {
       (a.notes ?? []).forEach((n) => {
         const sec = String(n.section ?? '').toLowerCase();
@@ -183,7 +202,9 @@ function usePicks() {
           answers = [];
         }
         if (!Array.isArray(answers)) answers = [];
-        const items = (prog.items ?? []).filter((i) => i.stage === 'Waiting on you');
+        // waiting on her, plus her calls already answered but not done (23 Nov: an answered pick stays in the list and reads Answered)
+        const waiting = (prog.items ?? []).filter((i) => i.stage === 'Waiting on you');
+        const items = (prog.items ?? []).filter((i) => i.stage === 'Waiting on you' || (i.track === 'you' && i.stage !== 'Done'));
         // the board's small server resets connections past a handful at once: three pages at a time, one retry
         const page = async (u) => {
           for (let t = 0; ; t++) {
@@ -226,11 +247,18 @@ function usePicks() {
         // two board items can link the same review page: each card once; A/B questions first, then the 👍/👎 ones
         const seen = new Set();
         const picks = cards
-          .flatMap((list) => list.map((c) => ({ ...c, ...remarks(c, answers, list.length === 1) })))
+          .flatMap((list, k) =>
+            list.map((c) => {
+              const r = remarks(c, answers, list.length === 1);
+              // the board's own record of a one-card item ("Answered 22 Nov: A, C and B. …") counts when answers.json saved it under another title
+              const m = list.length === 1 && !r.answer ? String(items[k]?.detail ?? '').match(/^Answered\s+([^:]+):\s*([^.]+)/i) : null;
+              return { ...c, ...r, ...(m ? { answer: { text: m[2].trim(), when: m[1].trim() } } : null) };
+            }),
+          )
           .filter((c) => !seen.has(c.id) && seen.add(c.id))
           .sort((x, y) => Number(x.thumbs) - Number(y.thumbs));
         const lastAnswer = answers.reduce((m, e) => ((e?.answers?.cards ?? []).some((c) => c.answer) && e.sent > (m ?? '') ? e.sent : m), null);
-        const next = { picks, items: items.length, down: false, at: new Date().toISOString(), lastAnswer, cached: false };
+        const next = { picks, items: waiting.length, down: false, at: new Date().toISOString(), lastAnswer, cached: false };
         try {
           localStorage.setItem(CACHE, JSON.stringify(next));
         } catch {}
@@ -447,6 +475,15 @@ export default function PlaygroundPicks() {
     </Card>
   );
 
+  // a filter with nothing in it (23 Nov: every pick answered, so Not answered is empty) says so and keeps the chips to switch back
+  if (!pick)
+    return (
+      <>
+        {highlights}
+        {filters}
+        <EmptyState size="page" mark="🎉" title={filter === 'open' ? 'Every pick is answered' : filter === 'notes' ? 'No picks have your notes' : 'Nothing here'} line="Pick another filter above to see the rest." />
+      </>
+    );
   const total = pick.comments.length + draft.pins.length;
   const centre = (
     <Flow gap={16} scroll={wide} style={HOLD} aria-label="The pick" id="pg-stage">

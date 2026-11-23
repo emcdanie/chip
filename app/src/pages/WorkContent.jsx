@@ -1,7 +1,7 @@
 // Work · content: the Work board in her Notion lanes (approved page
 // /screens/2026-11-22-workboard/, 22 Nov): Ideas, Next, Now, Shipped, Not doing.
 // Built from BELLA parts and Flow only, on real data (workModel.js boardModel).
-// - Tools row (her pick, section 3): Filter, Sort, Search, Branch, then Board · Table · List;
+// - Tools row (her pick, section 3): Filter, Sort, Search, then Board · Table · List;
 //   Check again and the Brief kept. New task is the page header's.
 // - Cards (section 4, her short-card pick still open): progress as "n of m" and the step now,
 //   in TaskCard's line until BELLA's TaskCard has its progress zone (named gap); the whole plan
@@ -26,6 +26,7 @@ import SegmentedControl from '@bella/components/SegmentedControl/SegmentedContro
 import SearchField from '@bella/components/SearchField/SearchField';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
+import Progress from '@bella/components/Progress/Progress';
 import Button from '@bella/components/Button/Button';
 import { useEffect, useRef, useState } from 'react';
 import Toasts from '../templates/Toasts.jsx';
@@ -35,7 +36,7 @@ import WorkDrawer from './WorkDrawer.jsx';
 import NeedsYouView from './NeedsYouView.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import useCached from '../templates/useCached.js';
-import { AREAS, LANES, LANE_NAMES, filterFromHash, going, runnable, saveMove, shown } from './workModel.js';
+import { AREAS, LANES, LANE_NAMES, filterFromHash, going, projectStats, runnable, saveMove, shown } from './workModel.js';
 
 export const VIEWS = [
   { value: 'board', label: 'Board' },
@@ -261,7 +262,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
-  const model = shown(all, { filter, sort, q, branch: hashFilter.branch });
+  const model = shown(all, { filter, sort, q });
   // a review page that needs her opens inside CHIP over the board (her pick A, 23 Nov); a pull request on GitHub; a component on its page; the rest in the drawer
   const [reviewing, setReviewing] = useState(null);
   const open = (c) => {
@@ -297,15 +298,17 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     ev.preventDefault();
     move.drop(d.card, d.from, o.lane, o.before);
   };
-  const now = all?.lanes.find((l) => l.id === 'now')?.cards ?? [];
-  const working = now.filter((c) => !c.needs).length;
-  const waiting = now.filter((c) => c.needs).length;
+  // the project chip (23 Nov): the counts above the lanes and in the tools row are the picked project's, read from its cards
+  const projectName = filter?.startsWith('project:') ? (projects.find((p) => p.id === filter.slice(8) || p.name.toLowerCase() === filter.slice(8).toLowerCase())?.name ?? filter.slice(8)) : null;
+  const stats = projectStats(all, projectName);
+  const working = stats.now;
+  const waiting = stats.waiting;
   const everything = (all?.lanes ?? []).reduce((n, l) => n + l.cards.length, 0);
   const filterLabel = filter === 'needs' ? 'Needs you' : filter === 'components' ? 'Components that need work' : filter?.startsWith('area:') ? filter.slice(5) : filter?.startsWith('project:') ? (projects.find((p) => p.id === filter.slice(8) || p.name.toLowerCase() === filter.slice(8).toLowerCase())?.name ?? filter.slice(8)) : filter?.startsWith('lane:') ? `Lane: ${LANE_NAMES[filter.slice(5)]}` : null;
   return (
     <>
       {/* Tools row, full width (23 Nov: "i want this to span so the numerical values are on the right"): Filter, Sort,
-          Search and Branch on the left; the count, the last check and the views on the right. */}
+          Search on the left; the count, the last check and the views on the right. */}
       {reviewing ? null : <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'}>
         <Flow direction="row" gap={8} align="center" wrap stretch={phone}>
           <div className="chip-pop" style={phone ? { position: 'static' } : undefined}>
@@ -347,7 +350,6 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
           ) : (
             <Button variant="tertiary" size="sm" iconOnly icon="Search" ariaPressed={!!q} ariaLabel="Search the board" onClick={() => setTool('search')} />
           )}
-          <BranchPicker branch={hashFilter.branch} />
         </Flow>
         <Flow direction="row" gap={16} wrap align="center" justify={phone ? 'start' : 'end'}>
           <TextStack title={all ? `${working} at work · ${waiting} wait on you` : 'Reading the board'} />
@@ -372,6 +374,10 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
             </FilterChip>
           ))}
         </Flow>
+      )}
+      {/* where the picked project stands: its own numbers and a bar, counted from its cards; on a phone the short form (the line above already says now and waiting) */}
+      {reviewing || !all || !projectName || stats.cards === 0 ? null : (
+        <Progress label={projectName} value={phone ? `${stats.shipped} of ${stats.total} shipped` : `${stats.shipped} shipped · ${stats.now} now · ${stats.waiting} waiting on you`} fill={stats.total ? Math.round((100 * stats.shipped) / stats.total) : 0} tone="success" summary={`${projectName}: ${stats.shipped} shipped, ${stats.now} now, ${stats.waiting} waiting on you.`} />
       )}
       {/* what is on, with a way off, and how much of the board it leaves (feedback for Filter, Sort and Search) */}
       {reviewing || !all || !(filter || sort !== 'mine' || q) ? null : (
@@ -418,6 +424,8 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
               onOpenOther={(c) => (setReviewing(null), open(c))}
               onNotice={(n) => move.setNotice({ tone: n.tone, message: `${n.title}. ${n.message}` })}
             />
+          ) : projectName && stats.cards === 0 && !q ? (
+            <EmptyState size="page" mark="🔌" title={`Nothing from ${projectName} is on the board`} line={`No card is tagged ${projectName}. Start a task for it from New, or connect a Claude Code session working in its folder, and its cards show here.`} />
           ) : view === 'table' ? (
             model.total ? (
               <DataTable caption="Every card on the board" columns={TABLE_COLUMNS} rows={model.lanes.flatMap((l) => l.cards.map((c) => ({ ...c, lane: l.name, laneId: l.id })))} rowKey="id" />
@@ -451,35 +459,5 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
         </>
       )}
     </>
-  );
-}
-
-/* The board's branch filter: the project's newest branches, the one checked out first. */
-function BranchPicker({ branch }) {
-  const [open, setOpen] = useState(false);
-  const { data } = useCached(['/projects/chip']);
-  const live = data?.[0]?.live;
-  const names = (live?.branches ?? []).slice(0, 8).map((b) => b.name);
-  if (!names.length) return null;
-  const pick = (name) => {
-    setOpen(false);
-    window.location.hash = name ? `#/work?branch=${encodeURIComponent(name)}` : '#/work';
-  };
-  return (
-    <div className="chip-pop">
-      <Button variant="tertiary" size="sm" icon="NavArrowDown" ariaExpanded={open} onClick={() => setOpen((o) => !o)}>
-        {branch ?? 'Branch'}
-      </Button>
-      {open ? (
-        <div className="chip-pop__menu">
-          <Menu label="Branches" onClose={() => setOpen(false)}>
-            <MenuItem label="All branches" icon={branch ? undefined : 'Check'} onSelect={() => pick(null)} />
-            {names.map((n) => (
-              <MenuItem key={n} label={n === live.branch ? `${n} · checked out` : n} icon={n === branch ? 'Check' : undefined} onSelect={() => pick(n)} />
-            ))}
-          </Menu>
-        </div>
-      ) : null}
-    </div>
   );
 }
