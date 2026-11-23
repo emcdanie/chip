@@ -53,7 +53,7 @@ export function healthModel({ components = [], gaps = {}, history = [], pairs = 
     health: n ? { pct: Math.round((passed / total) * 100), passed, total, failing: rows.filter((r) => r.missing.length), needsWork: new Set(rows.flatMap((r) => r.missing)).size } : null,
     // the gate as CHIP last ran it (/checks): its checks by name, the one source System map and Connectors read
     gate: gateFrom(checks?.gate, checks),
-    contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, href: contrast.href } : null,
+    contrast: n ? { pct: contrast.fill, pass: contrast.pass, of: n, toGo: contrast.missing.length, missing: contrast.missing, href: contrast.href } : null,
     gateDays: gateDays(checks),
     gateRuns: gateRuns(checks),
     gateReadAt: checks?.ciAt ?? null,
