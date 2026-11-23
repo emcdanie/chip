@@ -1,22 +1,20 @@
-// Connect Figma, in plain steps (Elleta, 22 Nov: "fix this so i can set it up"). One form used by the Connectors "Set up
-// figma-rest" drawer and the Components "Add file key" drawer, so there is one way in. Step 0 (only when no file is set)
-// takes the BELLA library's link; 1 says how to make a read-only token; 2 takes it in a masked field and saves it to
-// server/.env (never shown again, never logged, never in an address); 3 reads the file's name from Figma and says
-// "Connected to <name> · read 20:12", or in words why not. BELLA parts only: TextStack, Input type="password", Button.
+// Connect Figma, in the one set up template (templates/SetupSteps.jsx; Elleta, 22 Nov: "fix this so i can set it up";
+// 23 Nov: "we set up the figma rest yesterday so it should show as done no?? hidden key"). One form used by the
+// Connectors "Set up Figma" drawer and the Components "Add file key" drawer, so there is one way in.
+// Not set up: four numbered steps with a picture each (the library's link; make a read-only token; paste it; Test it).
+// Set up and the last test passed: the Connected state, the key as dots, the steps folded behind one click.
+// The token goes to server/.env and is never shown again, logged, or put in an address.
 import { useCallback, useEffect, useState } from 'react';
-import Button from '@bella/components/Button/Button';
-import Input from '@bella/components/Input/Input';
-import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
+import { Connected, OpenPage, PasteField, SetupList, SetupPicture, SetupStep, TestIt, clock, day } from './SetupSteps.jsx';
 
 const post = async (url, body) => {
   const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) });
   const j = await r.json().catch(() => ({}));
   return { ok: r.ok, ...j };
 };
-const clock = (iso) => (iso ? new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '');
 
-/** What is set up: { key, token, lastRead } from GET /figma-key, read again when something is saved. */
+/** What is set up: { key, token, lastRead, tokenSavedAt } from GET /figma-key, read again when something is saved. */
 export function useFigma() {
   const [state, setState] = useState(null);
   const read = useCallback(() => fetch('/figma-key').then((r) => r.json()).then(setState).catch(() => {}), []);
@@ -29,86 +27,63 @@ export function useFigma() {
 /** onChanged(): called after anything is saved or tested, so the page can read Figma again. */
 export default function FigmaSetup({ onChanged }) {
   const [state, read] = useFigma();
-  const [link, setLink] = useState('');
-  const [token, setToken] = useState('');
-  const [problem, setProblem] = useState({});
-  const [said, setSaid] = useState(null);
-  const [saved, setSaved] = useState(false);
-  const [busy, setBusy] = useState(null);
+  const [failed, setFailed] = useState(null);
   const changed = () => (read(), onChanged?.());
-  const saveKey = async () => {
-    setProblem({});
-    setBusy('key');
+  const saveKey = async (link) => {
     const r = await post('/figma-key', { link });
-    setBusy(null);
-    if (!r.ok) return setProblem({ key: r.error ?? 'Could not save it' });
-    setLink('');
     changed();
+    return r;
   };
-  const test = async () => {
-    setSaid(null);
-    setBusy('test');
-    const r = await post('/figma-test');
-    setBusy(null);
-    setSaid({ ok: Boolean(r.ok), text: r.ok ? `${r.says} · read ${clock(r.at ?? new Date().toISOString())}` : r.says ?? 'CHIP could not test it.' });
-    changed();
-  };
-  const saveToken = async () => {
-    setProblem({});
-    setSaved(false);
-    setBusy('token');
+  const saveToken = async (token) => {
     const r = await post('/figma-token', { token });
-    setBusy(null);
-    if (!r.ok) return setProblem({ token: r.error ?? 'Could not save it' });
-    setToken(''); // never kept on screen once saved
-    setSaved(true);
+    if (r.ok) setFailed(null);
     changed();
+    return r;
   };
-  const fileName = state?.lastRead?.name;
+  const run = async () => {
+    const r = await post('/figma-test');
+    const ok = Boolean(r.ok);
+    setFailed(ok ? null : { ok: false, text: r.says ?? 'CHIP could not test it.' });
+    changed();
+    return { ok, text: ok ? `${r.says} · read ${clock(r.at ?? new Date().toISOString())}` : r.says ?? 'CHIP could not test it.' };
+  };
+  if (!state) return null;
+  const fileName = state.lastRead?.name;
+  const connected = state.key && state.token && state.lastRead && !failed;
+  const steps = (
+    <SetupList label="Set up Figma">
+      <SetupStep
+        n={1}
+        title="The library’s link"
+        body="Open the BELLA library in Figma and copy the address from the browser bar."
+        done={state.key}
+        picture={state.key ? undefined : <SetupPicture where="The BELLA library in Figma" target="Address bar" tags={['figma.com/design/…']} />}
+      >
+        {state.key ? null : <PasteField label="Figma link" type="url" placeholder="https://www.figma.com/design/…" saveLabel="Save link" onSave={saveKey} />}
+      </SetupStep>
+      <SetupStep n={2} title="Make a read-only token" body="Open Settings, then Security. Under Personal access tokens choose Generate new token, tick only “File content: read-only”, and copy it." picture={<SetupPicture where="Figma settings, Security" target="Generate new token" tags={['Read-only']} />}>
+        <OpenPage label="Open Figma settings" href="https://www.figma.com/settings" />
+      </SetupStep>
+      <SetupStep n={3} title="Paste it here" body="CHIP keeps it on this Mac in its settings and never shows it again." done={state.token}>
+        <PasteField label="Figma token" type="password" name="figma-token" saveLabel="Save token" hint={state.token ? 'A token is saved. Paste a new one to replace it.' : undefined} onSave={saveToken} savedWords="Saved. It is kept on this Mac in CHIP’s settings, never shown again." />
+      </SetupStep>
+      <SetupStep n={4} title="Test it" body="CHIP reads the BELLA file’s name from Figma to check the token works.">
+        <TestIt run={run} last={failed} disabled={!state.key || !state.token} />
+      </SetupStep>
+    </SetupList>
+  );
+  if (!connected) return <Flow gap={16} inset>{steps}</Flow>;
+  const saved = state.tokenSavedAt ? `token saved ${day(state.tokenSavedAt)}` : 'token saved on this Mac';
   return (
-    <Flow gap={24} inset>
-      {state?.key ? (
-        <TextStack body={`File: ${fileName ?? 'the BELLA library'} · set`} />
-      ) : (
-        <Flow gap={8}>
-          <TextStack title="First, the library's link" />
-          <TextStack body="Open the BELLA library in Figma and copy the address from the browser bar." />
-          <Input label="Figma link" type="url" value={link} onChange={setLink} placeholder="https://www.figma.com/design/…" error={problem.key || undefined} />
-          <Flow direction="row" justify="end">
-            <Button variant="secondary" busy={busy === 'key'} disabled={!link.trim()} onClick={saveKey}>
-              Save link
-            </Button>
-          </Flow>
-        </Flow>
-      )}
-      <Flow gap={8}>
-        <TextStack title="1 · Make a token in Figma" />
-        <Flow as="ol" gap={4} bullets aria-label="Where to make the token">
-          <li>Open Settings, then Security.</li>
-          <li>Under Personal access tokens, choose Generate new token.</li>
-          <li>Tick only “File content: read-only”, then copy the token.</li>
-        </Flow>
-      </Flow>
-      <Flow gap={8}>
-        <TextStack title="2 · Paste it here" />
-        <Input label="Figma token" type="password" value={token} onChange={setToken} name="figma-token" error={problem.token || undefined} hint={state?.token ? 'A token is saved. Paste a new one to replace it.' : undefined} />
-        <Flow direction="row" justify="end">
-          <Button variant="secondary" busy={busy === 'token'} disabled={!token.trim()} onClick={saveToken}>
-            Save token
-          </Button>
-        </Flow>
-        {saved ? <TextStack body="Saved. It is kept on this Mac in CHIP's settings, never shown again." /> : null}
-      </Flow>
-      <Flow gap={8}>
-        <TextStack title="3 · Test it" />
-        <TextStack body="CHIP reads the BELLA file's name from Figma to check the token works." />
-        <Flow direction="row" justify="end">
-          <Button variant="primary" busy={busy === 'test'} disabled={!state?.key || !state?.token} onClick={test}>
-            Test it
-          </Button>
-        </Flow>
-        {said ? <TextStack body={`${said.ok ? '✓' : '✗'} ${said.text}`} /> : null}
-      </Flow>
+    <Flow gap={16} inset>
+      <Connected
+        name="Figma"
+        facts={[saved, `last test ${day(state.lastRead.at)} ${clock(state.lastRead.at)}: connected to ${fileName}`]}
+        secret="Figma token"
+        steps={steps}
+      >
+        <TestIt run={run} />
+      </Connected>
     </Flow>
   );
 }

@@ -3,6 +3,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATA_DIR, ROOT } from './config.mjs';
+import { markSaved, savedAt } from './connections.mjs';
 
 const ENV = join(ROOT, 'server', '.env');
 
@@ -23,13 +24,13 @@ export function lastFigmaRead(file = READ_FILE) {
     return null;
   }
 }
-export const figmaKeyState = () => ({ key: Boolean(process.env.FIGMA_FILE_KEY), token: Boolean(process.env.FIGMA_ACCESS_TOKEN), lastRead: lastFigmaRead() });
+export const figmaKeyState = () => ({ key: Boolean(process.env.FIGMA_FILE_KEY), token: Boolean(process.env.FIGMA_ACCESS_TOKEN), lastRead: lastFigmaRead(), tokenSavedAt: savedAt('figma-token') });
 
 // A personal access token looks like figd_ plus letters, digits, - and _ (older ones: hex). Nothing with a space or a line break.
 const TOKEN = /^[A-Za-z0-9_.-]{20,300}$/;
 
 /** Writes FIGMA_ACCESS_TOKEN to server/.env (gitignored) and into this process. The token is never returned, logged or put in an error. */
-export function saveFigmaToken(text, file = ENV) {
+export function saveFigmaToken(text, file = ENV, dates = undefined) {
   const token = String(text ?? '').trim();
   if (!TOKEN.test(token)) throw new Error('That does not look like a Figma token. Copy the whole token Figma showed you, with no spaces.');
   const lines = existsSync(file) ? readFileSync(file, 'utf8').split('\n') : [];
@@ -39,6 +40,7 @@ export function saveFigmaToken(text, file = ENV) {
   else lines.push(`FIGMA_ACCESS_TOKEN=${token}`);
   writeFileSync(file, `${lines.join('\n').replace(/\n+$/, '')}\n`, { mode: 0o600 });
   process.env.FIGMA_ACCESS_TOKEN = token;
+  markSaved('figma-token', dates);
   return { ok: true, ...figmaKeyState() };
 }
 

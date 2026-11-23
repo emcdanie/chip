@@ -108,13 +108,19 @@ export function scriptFacts(text, isHook = false) {
 }
 
 /** One line on why it matters, from the project's CLAUDE.md: the first line naming the step. */
-function whyOf(terms) {
+function whyOf(terms, found = {}) {
   for (const f of [join(CHIP, 'CLAUDE.md'), join(HOME, 'DEV/chip/CLAUDE.md')]) {
     if (!existsSync(f)) continue;
     const lines = readFileSync(f, 'utf8').split('\n');
     for (const t of terms) {
       const l = lines.find((x) => x.toLowerCase().includes(t.toLowerCase()) && x.length > 40 && !/^#/.test(x));
-      if (l) return sentence(clean(l).replace(/\(Elleta[^)]*\)/g, ''), 190);
+      if (l) {
+        // the section it sits in, so the screen can show where the rule comes from (Sources are the real thing, 23 Nov)
+        const at = lines.indexOf(l);
+        const head = lines.slice(0, at).reverse().find((x) => /^##\s/.test(x));
+        found.heading = head ? head.replace(/^##\s+/, '').replace(/\s*\([^)]*\)\s*$/, '').trim() : null;
+        return sentence(clean(l).replace(/\(Elleta[^)]*\)/g, ''), 190);
+      }
     }
   }
   return null;
@@ -147,7 +153,9 @@ export function stepFacts(map, step) {
       if (!out.inGuard) out.gaps.push(`${name} is not run by the pre-commit hook, the guard or an npm script`);
     }
   }
-  out.why = whyOf(e.terms);
+  const found = {};
+  out.why = whyOf(e.terms, found);
+  out.whyHeading = found.heading ?? null;
   if (e.kind) {
     out.runs = auditHistory(e.kind).slice(-8);
     out.last = out.runs.at(-1) ?? null;

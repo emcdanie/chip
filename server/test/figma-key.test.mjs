@@ -46,7 +46,7 @@ test('the token is written to the env file, kept in the process, and never retur
   const log = console.log;
   console.log = (...a) => logged.push(a.join(' '));
   try {
-    const out = saveFigmaToken(FAKE, file);
+    const out = saveFigmaToken(FAKE, file, join(file, '..', 'dates.json'));
     assert.equal(readFileSync(file, 'utf8'), `PORT=3100\nFIGMA_FILE_KEY=AbC123xyz9QwErTy\nFIGMA_ACCESS_TOKEN=${FAKE}\n`);
     assert.equal(process.env.FIGMA_ACCESS_TOKEN, FAKE);
     assert.equal(out.token, true);

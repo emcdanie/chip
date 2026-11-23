@@ -31,6 +31,8 @@ import { claudeReady, gateReady, getRun, keepRun, listRuns, startRun, stopRun, u
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
 import { ciReadAt, ciRuns, warmCi, systemMap } from './lib/map.mjs';
+import { notionState, saveNotionToken } from './lib/connections.mjs';
+import { readSource, sourceList } from './lib/sources.mjs';
 import { figmaKeyState, saveFigmaKey, saveFigmaToken, testFigma } from './lib/figma-key.mjs';
 import { projectDetail, projectList, projectsSummary, saveNote, startDev, stopDev } from './lib/projects.mjs';
 import { newRoutes } from './lib/new-routes.mjs';
@@ -174,6 +176,30 @@ app.post('/figma-token', (req, res) => {
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
+});
+// Notion: the same shape as Figma's token. The secret goes in server/.env only; the page learns that it is set and the day.
+app.get('/notion-token', (req, res) => {
+  if (!sameApp(req, res, { post: false })) return;
+  res.json(notionState());
+});
+app.post('/notion-token', (req, res) => {
+  if (!sameApp(req, res)) return;
+  try {
+    res.json(saveNotionToken(req.body?.token));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+// The real sources behind CHIP's reasons: who, what, when, and the text CHIP can show (lib/sources.mjs)
+app.get('/sources', (req, res) => {
+  if (!sameApp(req, res, { post: false })) return;
+  res.json({ sources: sourceList() });
+});
+app.get('/sources/:id', async (req, res) => {
+  if (!sameApp(req, res, { post: false })) return;
+  const s = await readSource(req.params.id, { heading: req.query.heading });
+  if (!s) return res.status(404).json({ error: 'No such source' });
+  res.json(s);
 });
 app.post('/figma-test', async (req, res) => {
   if (!sameApp(req, res)) return;

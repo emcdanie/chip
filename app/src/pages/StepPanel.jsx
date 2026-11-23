@@ -18,6 +18,7 @@ import useAsk from '../templates/useAsk.jsx';
 import ReadingDrawer, { Inset } from '../templates/ReadingDrawer.jsx';
 import { planRun } from '../templates/RunPlan.jsx';
 import { DocBody, day as longDay, size } from './DocReader.jsx';
+import Source from '../templates/Source.jsx';
 
 const dayOf = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const ago = (d) => Math.floor((Date.now() - new Date(`${d}T12:00:00`).getTime()) / 86_400_000);
@@ -165,7 +166,12 @@ export default function StepPanel({ mapId, step, what, feeds, waits, state, onOp
       </Disclosure>
 
       <Disclosure title="Why it matters" {...ask('why')}>
-        {open.why ? <Bullets label={`${step.name}: why it matters`} items={[facts?.why ?? (facts ? 'No rule in CLAUDE.md names this step yet.' : 'Reading the rules…')]} /> : null}
+        {open.why ? (
+          <Flow gap={12}>
+            <Bullets label={`${step.name}: why it matters`} items={[facts?.why ?? (facts ? 'No rule in CLAUDE.md names this step yet.' : 'Reading the rules…')]} />
+            {facts?.why && facts?.whyHeading ? <Source id="chip-claude" heading={facts.whyHeading} /> : null}
+          </Flow>
+        ) : null}
       </Disclosure>
 
       <Disclosure title="How it is working" summary={state} {...ask('working')}>
