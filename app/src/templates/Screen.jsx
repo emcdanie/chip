@@ -1,7 +1,8 @@
 // CHIP / Screen: the code twin of the Figma template (CHIP Dashboard
 // 601:112027). One shell for every new page: the side menu (her nav C pick,
-// 22 Nov), the top bar with where you are, then the page header, its tabs and
-// the content slot.
+// 22 Nov) with the Find field at its top, then one row with the menu button, the
+// breadcrumb and the page's actions (her mark-up, 23 Nov: no top bar), its tabs
+// and the content slot.
 // A page is this template plus one content component (Figma's slot fill);
 // pages pass words and parts, never styles (scripts/on-system-guard.mjs).
 //
@@ -13,7 +14,6 @@ import useCached from './useCached.js';
 import SideMenu from '@bella/components/SideMenu/SideMenu';
 import NavList from '@bella/components/NavList/NavList';
 import Menu, { MenuItem } from '@bella/components/Menu/Menu';
-import TopBar from '@bella/components/TopBar/TopBar';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import Drawer from '@bella/components/Drawer/Drawer';
@@ -21,7 +21,6 @@ import Button from '@bella/components/Button/Button';
 import Tooltip from '@bella/components/Tooltip/Tooltip';
 import Link from '@bella/components/Link/Link';
 import Icon from '@bella/components/Icon/Icon';
-import Avatar from '@bella/components/Avatar/Avatar';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
 import { NewStart as NewTask } from './NewStart.jsx';
@@ -121,7 +120,7 @@ function Crumb({ trail, href, linked, compact }) {
     }
   };
   return (
-    <Flow as="nav" aria-label="Breadcrumb" direction="row" gap={8} align="center" {...(compact ? { 'data-no-separator': true } : {})}>
+    <Flow as="nav" aria-label="Breadcrumb" direction="row" gap={8} align="center" {...(compact && linked ? { 'data-no-separator': true } : {})}>
       {linked ? (
         <Tooltip label="Back">
           <span onClick={back}>
@@ -153,7 +152,7 @@ function Crumb({ trail, href, linked, compact }) {
    the old app's project page until theirs are rebuilt. */
 const projectOf = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('project');
 
-function menuModel({ place, tab, projects, needs, onSearch }) {
+function menuModel({ place, tab, projects, needs }) {
   const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
   const needsHere = place === 'work' && q.get('filter') === 'needs';
   const project = projectOf();
@@ -161,7 +160,6 @@ function menuModel({ place, tab, projects, needs, onSearch }) {
   const workHere = place === 'work' && !needsHere && !project;
   return {
     items: [
-      { label: 'Search', icon: 'Search', onClick: onSearch },
       { label: 'Work', href: '#/work', icon: 'CheckCircle', current: workHere },
       { label: 'Health', href: '#/health', icon: 'Activity', current: place === 'health' },
       { label: 'System', href: '#/system/components', icon: 'ViewGrid', current: !!tab },
@@ -229,12 +227,27 @@ export default function Screen({ place, header, tabs, children }) {
     });
     return undefined;
   };
-  // Cmd+\\ (Ctrl+\\) shows and hides the menu
+  // Cmd+\\ (Ctrl+\\) shows and hides the menu. Cmd+K (Ctrl+K) goes to the Find field at the menu's top, showing
+  // the menu first when it is hidden or out (below 1024 the Drawer, which takes focus as it opens, so it tries a few frames)
   useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key === '\\') {
         e.preventDefault();
         toggleMenu();
+      } else if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (menuOut) setMenuOpen(true);
+        else if (collapsed) toggleMenu();
+        let tries = 0;
+        const put = () => {
+          const input = document.querySelector('.chip-screen__search input');
+          if (input && document.activeElement !== input) {
+            input.focus();
+            input.select?.();
+          }
+          if (tries++ < 10) requestAnimationFrame(put);
+        };
+        requestAnimationFrame(put);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -243,9 +256,6 @@ export default function Screen({ place, header, tabs, children }) {
   const phone = useNarrow();
   const markup = useMarkUp();
   useRestoreScroll();
-  // below 400 the field would read "Sea": a search button that opens the field across the bar
-  const tiny = useNarrow(400);
-  const [searching, setSearching] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
   const tab = place === 'projects' ? tabs?.value : null;
@@ -257,13 +267,8 @@ export default function Screen({ place, header, tabs, children }) {
   useEffect(() => {
     document.title = [...trail.slice(1), trail[0]].filter(Boolean).join(' · ');
   }, [trail.join('|')]);
-  const onSearch = () => {
-    setMenuOpen(false);
-    if (tiny) setSearching(true);
-    else requestAnimationFrame(() => document.querySelector('.chip-screen__main [role="search"] input')?.focus());
-  };
-  const menu = menuModel({ place, tab, projects, needs, onSearch });
-  // the drawer holds the same rows as BELLA's NavList (Drawer's own content); Search is in the top bar there
+  const menu = menuModel({ place, tab, projects, needs });
+  // the drawer holds the Find field and the same rows as BELLA's NavList (Drawer's own content)
   const strip = ({ label, href, icon, badge, current }) => ({ label, href, icon, badge, current });
   const groups = [
     { items: menu.items.filter((i) => i.href).map(strip) },
@@ -274,28 +279,27 @@ export default function Screen({ place, header, tabs, children }) {
   return (
     <div className={`chip-screen${!menuOut && collapsed ? ' chip-screen--collapsed' : ''}`}>
       <div className="chip-screen__main">
-        {/* On a phone the ⌘ K legend steps out so the field keeps room for its words. */}
-        {/* The side-menu button is the first thing in the top bar, at its left end, and stays there whether the menu is
-            open or closed (Elleta, 23 Nov). BELLA's TopBar has no leading slot yet (gap for the parts session), so it sits
-            over the bar's own padding and comes first in the tab order. */}
-        <div className="chip-screen__topbar">
-          <span className="chip-screen__lead">
-            <Tooltip label={menuOut || collapsed ? 'Show menu' : 'Hide menu'}>
-              <Button variant="tertiary" iconOnly icon={menuOut || collapsed ? 'SidebarExpand' : 'SidebarCollapse'} ariaLabel={menuOut || collapsed ? 'Show menu' : 'Hide menu'} ariaExpanded={menuOut ? menuOpen : !collapsed} ariaHaspopup={menuOut ? 'dialog' : undefined} onClick={toggleMenu} />
-            </Tooltip>
-          </span>
-        <TopBar
-          // room at the left for the menu button (below)
-          style={{ paddingInlineStart: 'calc(var(--spacing-8) + var(--h-control) + var(--spacing-8))' }}
-          showPlace={false}
-          search={tiny && !searching ? <Button variant="tertiary" iconOnly icon="Search" ariaLabel="Search" onClick={() => setSearching(true)} /> : <Search showShortcut={!phone} autoFocus={tiny && searching} />}
-          right={
-            tiny && searching ? (
-              <Button variant="tertiary" iconOnly icon="Xmark" ariaLabel="Close search" onClick={() => setSearching(false)} />
-            ) : (
-              // straight into TopBar's right group (12 apart, its own spacing): a Flow there shrank and spilled
-              // its buttons past the edge at 320
-              <>
+        <div className="chip-screen__page">
+          <div className={`chip-screen__head${tabs ? '' : ' chip-screen__head--plain'}`}>
+            {/* the one row at the top (her mark-up, 23 Nov: no top bar above it, no line under it): the side-menu button at
+                the left, in place whether the menu is open or closed, then the breadcrumb, its last segment the page's h1; at
+                the right edge what is running, Mark up, the bell (notifications only) and the page's one action. Project
+                pages carry New; Not again passes its own. When the whole title and the actions don't fit on one row (a
+                phone, a long System title at 1024), the actions move under it, still at the right edge, so nothing is cut. */}
+            <Flow direction="row" wrap justify="end" align="center" gap={8} grow="first">
+              <PageHeader
+                size="bar"
+                title={trail[trail.length - 1]}
+                meta={
+                  <Flow as="span" direction="row" gap={8} align="center">
+                    <Tooltip label={menuOut || collapsed ? 'Show menu' : 'Hide menu'}>
+                      <Button variant="tertiary" iconOnly icon={menuOut || collapsed ? 'SidebarExpand' : 'SidebarCollapse'} ariaLabel={menuOut || collapsed ? 'Show menu' : 'Hide menu'} ariaExpanded={menuOut ? menuOpen : !collapsed} ariaHaspopup={menuOut ? 'dialog' : undefined} onClick={toggleMenu} />
+                    </Tooltip>
+                    <Crumb trail={trail} compact={phone} href={header?.back ?? (projectOf() ? `#/work?project=${projectOf()}` : '#/work')} linked={place !== 'work'} />
+                  </Flow>
+                }
+              />
+              <Flow direction="row" gap={8} align="center">
                 {/* whether anything is running, always visible (Elleta, 23 Nov); it brings its own drawer and toast */}
                 <RunStatus />
                 {/* Mark up (Elleta, 23 Nov): every page markable like Figma comments; notes stay drafts until one Send all */}
@@ -305,20 +309,12 @@ export default function Screen({ place, header, tabs, children }) {
                   </Tooltip>
                 </span>
                 {/* the bell opens what needs you, in the Work panel (Figma Flow 12, screen 1); ⌘J opens it too */}
-                <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you, open the Work panel` : 'Nothing needs you, open the Work panel'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
-                {/* on a phone the place line needs the room: the avatar steps out (minimal chrome) */}
-                {phone ? null : <Avatar name="Elleta McDaniel" size="sm" />}
-              </>
-            )
-          }
-        />
-        </div>
-        <div className="chip-screen__page">
-          <div className={`chip-screen__head${tabs ? '' : ' chip-screen__head--plain'}`}>
-            {/* one 56 row (Elleta, 23 Nov, "page chrome is small"): the breadcrumb is the title, its last segment the page's
-                h1, and the page's one action sits at the right edge. Project pages carry New; Not again passes its own;
-                the others carry none. No lede or health line here: the cards say it. */}
-            <PageHeader size="bar" title={trail[trail.length - 1]} actions={header?.actions ?? (['projects', 'work', 'health', 'playground'].includes(place) ? <NewTask /> : undefined)} meta={<Crumb trail={trail} compact={phone} href={header?.back ?? (projectOf() ? `#/work?project=${projectOf()}` : '#/work')} linked={place !== 'work'} />} />
+                <Tooltip label="Notifications">
+                  <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you, open the Work panel` : 'Nothing needs you, open the Work panel'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
+                </Tooltip>
+                {header?.actions ?? (['projects', 'work', 'health', 'playground'].includes(place) ? <NewTask /> : null)}
+              </Flow>
+            </Flow>
             {tabs ? (
               <Tabs className="chip-screen__tabs" tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}
@@ -333,14 +329,18 @@ export default function Screen({ place, header, tabs, children }) {
       {/* after the page in the source so the menu button, which is in the page, is the first stop for the keyboard; the grid puts the menu back on the left */}
       {menuOut ? (
         <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} label="Menu" side={phone ? 'bottom' : 'left'}>
+          {/* the Find field first, as in the menu at full width (her mark-up, 23 Nov) */}
+          <Flow role="search" direction="row" gap={4} align="start" grow="first">
+            <Search inDrawer />
+          </Flow>
           <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />
         </Drawer>
       ) : collapsed ? null : (
         <div className="chip-screen__menu">
           <div className="chip-screen__menu-body">
-            <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
+            <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} search={<Search />} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
           </div>
-          {/* the CHIP logotype, bottom right of the menu, inset like the rows (Elleta, 23 Nov: "the logo should maybe be bottom right of the menu") */}
+          {/* the CHIP logotype closes the menu, its left edge on the rows' icons (her mark-up, 23 Nov) */}
           <div className="chip-screen__logo"><div className="chip-screen__logo-mark"><BrandWordmark word="CHIP" variant="logotype" size="full-bleed" /></div></div>
           {/* CHIP has one client, so its list says so */}
           {clientsOpen ? (

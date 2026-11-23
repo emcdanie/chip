@@ -2,13 +2,13 @@
  * CSS: where the published BELLA parts sit, never how they look. Token values
  * only; no part is restyled here (scripts/on-system-guard.mjs).
  *
- * Side menu (SideMenu, her nav C pick, 22 Nov) | main column: the top bar,
- * then the page (header, tabs) on the surface and the content on the page
- * ground, with the BELLA container padding (16 on a phone, 32 from 800px) and
+ * Side menu (SideMenu, her nav C pick, 22 Nov, the Find field at its top) | main column: the page's one
+ * row (menu button, breadcrumb, actions) and its tabs on the surface, no top bar above them (her mark-up,
+ * 23 Nov), and the content on the page ground, with the BELLA container padding (16 on a phone, 32 from 800px) and
  * the 24 gutter. The side menu stays in view while the content scrolls.
  *
  * Below 1024px the side menu steps out so nothing scrolls sideways; the top
- * bar's Menu button opens it as a Drawer (a bottom sheet on a phone). */
+ * row's menu button opens it as a Drawer (a bottom sheet on a phone). */
 
 .chip-screen {
   display: grid;
@@ -40,20 +40,23 @@
   position: absolute;
   inset-block-start: calc(100% + var(--spacing-4));
   inset-inline-start: 0;
-  z-index: 20;
+  z-index: 60;
   /* as wide as its longest item */
   inline-size: max-content;
   /* a long menu scrolls inside the window instead of running past its foot */
   max-block-size: calc(var(--size-60) * 8);
   overflow-y: auto;
 }
+/* a menu that ends at its button's right edge (the Find field's filter, at the side menu's right) */
+.chip-pop__menu--end { inset-inline-start: auto; inset-inline-end: 0; }
 .chip-screen__logo {
-  /* the logotype closes the menu: the surface and right edge line as the menu's own; it ends where the rows end
-     (the menu's 12 side padding) so it lines up with the foot rows above it */
+  /* the logotype closes the menu: the surface and right edge line as the menu's own; its drawn left edge is the rows'
+     icons' left edge, 28 from the menu's edge (her mark-up, 23 Nov, mark 6): the menu's 12 side padding plus the Nav
+     item's own 16 inset, less the 4 of room the logotype's art keeps at its left (measured: box 28 put the ink at 32) */
   flex: none;
   display: flex;
-  justify-content: flex-end;
-  padding: var(--spacing-8) var(--spacing-12) var(--spacing-16);
+  justify-content: flex-start;
+  padding: var(--spacing-8) var(--spacing-12) var(--spacing-16) calc(var(--spacing-12) + var(--spacing-12));
   background: var(--color-background-surface);
   box-shadow: inset calc(-1 * var(--border-width-1)) 0 0 var(--color-border-default);
 }
@@ -86,22 +89,9 @@
   padding-inline: var(--layout-container-pad);
 }
 
-.chip-screen__topbar {
-  position: relative;
-}
-
 .chip-screen__menu { order: -1; }
 
 .chip-screen--collapsed { grid-template-columns: minmax(0, 1fr); }
-
-.chip-screen__lead {
-  position: absolute;
-  inset-block-start: calc(var(--spacing-12) / 2);
-  inset-inline-start: var(--spacing-8);
-  z-index: 1;
-  display: flex;
-  gap: var(--spacing-4);
-}
 
 .chip-screen__tabs {
   /* the tabs' own line runs the whole width of the page column and meets the frame at both edges: the part's root
@@ -112,10 +102,9 @@
 }
 
 .chip-screen__head--plain {
-  /* a page with no tabs: its title meets the scrolling content at a line, so text that scrolls under the title
-     is cut at a visible edge and not mid-letter against bare background (Elleta, 23 Nov) */
+  /* a page with no tabs: no line under the row (her mark-up, 23 Nov, mark 4): the surface row meeting the warm
+     page ground is the edge, so the frame stays quiet */
   padding-block-end: 0;
-  border-block-end: var(--border-width-1) solid var(--color-border-default);
 }
 
 .chip-screen__content {
@@ -418,7 +407,8 @@
   max-inline-size: calc(100% - 2 * var(--layout-gutter)); /* a fixed box's % is the window */
 }
 
-/* The top bar's search results (Search.jsx): under the field, its width, above the page.
+/* The Find field's results (Search.jsx), at the side menu's top: under the field, over the page, as wide as a toast
+   (360) so names keep their words; in the menu's Drawer (below 1024) the list sits under the field in the drawer.
    BELLA has no popover for SearchField yet (named gap); the Card is BELLA's. */
 .chip-screen__search { position: relative; inline-size: 100%; }
 .chip-screen__search-results {
@@ -426,20 +416,17 @@
   /* the list scrolls inside the window, never past its foot; the 12 of padding keeps the
      Card's shadow inside the scroll box (never clip a shadow), the offsets keep the Card where it was */
   inset-block-start: calc(100% + var(--spacing-8) - var(--spacing-12));
-  inset-inline: calc(-1 * var(--spacing-12));
+  inset-inline-start: calc(-1 * var(--spacing-12));
+  inline-size: calc(var(--size-60) * 6);
   padding: var(--spacing-12);
   z-index: 50;
-  /* runs to the window's foot, so no page text shows under its cut edge while it scrolls */
-  max-block-size: calc(100dvh - var(--h-control) - var(--spacing-8));
+  max-block-size: calc(100dvh - var(--size-60) * 2);
   overflow-y: auto;
 }
-/* a phone (below 800, the app's phone width): the field shares the bar with its buttons, so the list
-   spans the bar's width under it (audit 21 Nov: 196 wide at 320, 182 at 414; names broke mid-word) */
-@media (width < 800px) {
-  .chip-screen__search-results {
-    position: fixed;
-    inset-block-start: calc(var(--h-control) + var(--spacing-12) * 2 + var(--spacing-8) - var(--spacing-12));
-    inset-inline: calc(var(--layout-gutter) - var(--spacing-12));
-    max-block-size: calc(100dvh - var(--h-control) - var(--spacing-12) - var(--spacing-8));
-  }
+.chip-screen__search-results--inline {
+  position: static;
+  inline-size: auto;
+  max-block-size: none;
+  overflow: visible;
+  padding: var(--spacing-8) 0 0;
 }
