@@ -703,9 +703,10 @@ export default function HealthContent({ model, run, checked, stale, onCheck, loa
   return (
     <>
       {/* Control bar, as on Work: the last check and Check again, one group on the left. */}
-      <Flow direction="row" gap={8} align="center">
+      <Flow direction="row" gap={8} align="center" wrap>
         {stale ? <TextStack subtitle={stale} /> : checked ? <TextStack subtitle={`Updated ${checked}`} /> : null}
         <How id="all" />
+        <Button variant="tertiary" size="sm" icon="Play" leadingIcon href="#/present/1">Present</Button>
         {/* busy while the check runs: the icon turns and clicks wait (Button busy, parts-dev 99a021d) */}
         <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={onCheck}>
           {loading ? 'Checking…' : 'Check again'}

@@ -48,6 +48,8 @@ const measure = () => {
     const r = el.getBoundingClientRect();
     // a drawer or dialog is a surface the cards sit on, not a card
     if (s.position === 'fixed' || el.matches('[role="dialog"], dialog, aside')) return false;
+    // a slide is a fixed 16:9 frame the deck's cards sit on (Present), so space inside it is the slide's, not a card's
+    if (el.matches('[data-bella-component="slide"]')) return false;
     return s.boxShadow !== 'none' && px(s.borderTopLeftRadius) >= 12 && r.width > 120 && r.height > 56 && s.display !== 'none' && s.visibility !== 'hidden';
   };
   const cards = [...document.querySelectorAll('body *')].filter(isCard);
@@ -319,7 +321,8 @@ for (const r of results) console.log(`${r.bad.length ? 'FAIL' : 'ok  '} ${r.labe
 // a page that shows cards at one width and none at another was not measured there: that fails too
 for (const route of routes) {
   const mine = results.filter((r) => r.label.startsWith(`${route} `) && !/drawer/.test(r.label));
-  if (mine.some((r) => r.cards > 0)) mine.filter((r) => r.cards === 0).forEach((r) => (r.bad.push('c) no card found here but there are some at other widths: not measured'), console.log(`NOT MEASURED ${r.label}`)));
+  // a slide shrinks to a thumbnail on a narrow window, so its cards fall under the size of a card there: not a miss (Present)
+  if (!route.startsWith('#/present') && mine.some((r) => r.cards > 0)) mine.filter((r) => r.cards === 0).forEach((r) => (r.bad.push('c) no card found here but there are some at other widths: not measured'), console.log(`NOT MEASURED ${r.label}`)));
 }
 const failed = results.filter((r) => r.bad.length).length;
 const measured = results.reduce((t, r) => t + r.cards, 0);
