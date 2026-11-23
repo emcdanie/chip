@@ -149,15 +149,84 @@ function StateThumb({ part, variant, label, state, selected, onPick }) {
 const BELOW = new Set(['box', 'ring', 'shadow', 'state', 'edge']);
 const LEVEL = 48; // one label's row: its height and the space to the next
 const LABEL_H = 40;
+const PIN = 44; // a numbered pin's box: two pins never overlap
 // Pins only, for a stage too narrow to hold every label uncut: numbered pins on the part's top and bottom edges,
 // spread evenly, with the names in a legend under the stage (same numbers and names as at wide widths)
-function pinsOnly(anatomy, box, scale, picked) {
+/* Where a pin's dot sits: on the piece its label names, measured from that piece's own box (Elleta, 23 Nov: every dot
+   sat on the fill's top or bottom edge, not on "Send" or the outer ring). pc is the piece's box against the stage
+   centre, at the size drawn. The shadow and the focus ring are drawn outside the box, so their dot is below it; every
+   other piece takes a dot inside its own box, near the edge the pin comes from. lo..hi is the dot's room along x. */
+const FIXED_BELOW = new Set(['shadow', 'ring']);
+function anchorOf(x, pc, k, side, edgeY) { // k: the drawn scale, since a zone's size is in unscaled CSS px
+  if (!pc) return { lo: -1e9, hi: 1e9, y: edgeY };
+  const l = pc.cx - pc.w / 2;
+  const rt = pc.cx + pc.w / 2;
+  const t = pc.cy - pc.h / 2;
+  const b = pc.cy + pc.h / 2;
+  const z = x.zone ?? {};
+  const room = (m) => { const q = Math.min(m, pc.w / 4); return { lo: l + q, hi: rt - q }; };
+  // ylo..yhi: the dot's room along y, inside the piece's own box (the shadow's and the ring's band below the part)
+  if (x.kind === 'shadow') return { ...room(2), y: b + ((z.size ?? 8) * k) * 0.7, ylo: b + 1, yhi: b + (z.size ?? 8) * k - 1 };
+  if (x.kind === 'ring') return { ...room(0), y: b + (Math.abs(z.inset ?? 4) * k) * 0.85, ylo: b + 1, yhi: b + Math.abs(z.inset ?? 4) * k - 1 }; // on the ring's outer edge
+  const up = side === 'top';
+  const own = { ylo: t + 1, yhi: b - 1 };
+  if (x.kind === 'content') return { ...room(2), ...own, y: up ? t + pc.h * 0.3 : b - pc.h * 0.3 };
+  if (x.kind === 'fill') {
+    const ins = Math.min((z.inset ?? 6) * k, pc.h / 2);
+    return { ...room(ins), ...own, y: up ? t + ins : b - ins };
+  }
+  return { ...room(2), ...own, y: up ? t + 1 : b - 1 }; // box, edge, state, part: on the piece's own edge
+}
+// Legend mode: no two numbered pins touch. Each pin keeps to its own piece's box; one that would sit on another
+// moves to the nearest free spot inside that box.
+function settlePins(items, gap = PIN) {
+  const placed = [];
+  return items.map(({ an, px, py }) => {
+    const clear = (x, y) => Math.min(Infinity, ...placed.map((q) => Math.max(Math.abs(q.x - x), Math.abs(q.y - y))));
+    let best = { x: px, y: py, c: clear(px, py) };
+    if (best.c < gap) {
+      // inside its piece first; when the pieces are too small to hold the pins apart, up to half a pin past its edge
+      const lo = an.lo - PIN / 2;
+      const hi = Math.max(an.lo, an.hi) + PIN / 2;
+      const ylo = (an.ylo ?? py) - PIN / 2;
+      const yhi = Math.max(ylo, (an.yhi ?? py) + PIN / 2);
+      let pick = null;
+      for (let i = 0; i <= 24; i += 1)
+        for (let j = 0; j <= 4; j += 1) {
+          const x = lo + ((hi - lo) * i) / 24;
+          const y = ylo + ((yhi - ylo) * j) / 4;
+          const c = clear(x, y);
+          const d = Math.hypot(x - px, y - py) + (x < an.lo || x > an.hi || y < (an.ylo ?? py) || y > (an.yhi ?? py) ? 1000 : 0); // prefer inside
+          if (c >= gap ? !pick || pick.c < gap || d < pick.d : !pick || (pick.c < gap && c > pick.c)) pick = { x, y, c, d };
+        }
+      if (pick) best = pick;
+    }
+    placed.push({ x: best.x, y: best.y });
+    return best;
+  });
+}
+const clearance = (pts) => Math.min(Infinity, ...pts.flatMap((p, i) => pts.slice(i + 1).map((q) => Math.max(Math.abs(p.x - q.x), Math.abs(q.y - p.y)))));
+const scalePieces = (pieces, k) => (pieces ? Object.fromEntries(Object.entries(pieces).map(([key, q]) => [key, { cx: q.cx * k, cy: q.cy * k, w: q.w * k, h: q.h * k }])) : null);
+// move a pin to the other side only if its piece can sit there (the shadow and the ring are drawn below the part)
+const movable = (item) => !FIXED_BELOW.has(item.x.kind);
+function balance(top, bottom, most) {
+  while (top.length > bottom.length + 2 || top.length > most) {
+    const i = top.map(movable).lastIndexOf(true);
+    if (i < 0) break;
+    bottom.unshift(...top.splice(i, 1));
+  }
+  while (bottom.length > top.length + 2 || bottom.length > most) {
+    const i = bottom.findIndex(movable);
+    if (i < 0) break;
+    top.push(...bottom.splice(i, 1));
+  }
+}
+function pinsOnly(anatomy, box, scale, picked, pieces) {
   const top = [];
   const bottom = [];
   anatomy.forEach((x, i) => (BELOW.has(x.kind) ? bottom : top).push({ x, i }));
-  while (top.length > bottom.length + 2) bottom.unshift(top.pop());
-  while (bottom.length > top.length + 2) top.push(bottom.shift());
-  const out = [];
+  balance(top, bottom, Infinity);
+  const wanted = [];
   let tight = Infinity; // the least room between two pins on one edge
   for (const [zone, pins] of [['top', top], ['bottom', bottom]]) {
     const m = pins.length;
@@ -165,29 +234,36 @@ function pinsOnly(anatomy, box, scale, picked) {
     const step = m > 1 ? spread / (m - 1) : Infinity;
     tight = Math.min(tight, step);
     const edge = zone === 'top' ? box.cy - box.h / 2 : box.cy + box.h / 2;
-    pins.forEach(({ x, i }, j) => out.push({ id: x.key, x: Math.round((box.cx + (m > 1 ? -spread / 2 + j * step : 0)) / scale), y: Math.round(edge / scale), label: x.n ?? i + 1, selected: x.key === picked }));
+    const want = pins.map(({ x }, j) => {
+      const an = anchorOf(x, pieces?.[x.key], scale, zone, edge);
+      return { an, px: Math.min(an.hi, Math.max(an.lo, box.cx + (m > 1 ? -spread / 2 + j * step : 0))), py: an.y };
+    });
+    pins.forEach(({ x, i }, j) => wanted.push({ ...want[j], x, i }));
   }
-  return { markers: out.sort((p, q) => p.label - q.label), tight };
+  const at = settlePins(wanted);
+  const out = wanted.map(({ x, i }, j) => ({ id: x.key, x: Math.round(at[j].x / scale), y: Math.round(at[j].y / scale), label: x.n ?? i + 1, selected: x.key === picked }));
+  return { markers: out.sort((p, q) => p.label - q.label), tight, clear: clearance(at) };
 }
 const perms = (n) => (n <= 1 ? [[0]] : perms(n - 1).flatMap((p) => Array.from({ length: n }, (_, i) => [...p.slice(0, i), n - 1, ...p.slice(i)])));
 const PERMS = [0, 1, 2, 3, 4].map((n) => (n ? perms(n) : [[]]));
 // do two axis-aligned boxes (or a segment, as a thin box) touch, with a little air
 const touch = (a, b, air = 2) => a.x0 - air < b.x1 && b.x0 - air < a.x1 && a.y0 - air < b.y1 && b.y0 - air < a.y1;
 // topKeys: the pins that sit above the part; missing = by what each is, kept within two of even and four a side
-function anatomyMarkers(anatomy, box, scale, picked, widths, topKeys) {
+function anatomyMarkers(anatomy, box, scale, picked, widths, topKeys, pieces) {
   const top = [];
   const bottom = [];
-  anatomy.forEach((x, i) => ((topKeys ? topKeys.has(x.key) : !BELOW.has(x.kind)) ? top : bottom).push({ x, i }));
-  if (!topKeys) {
-    while (top.length > bottom.length + 2 || top.length > 4) bottom.unshift(top.pop());
-    while (bottom.length > top.length + 2 || bottom.length > 4) top.push(bottom.shift());
-  }
+  anatomy.forEach((x, i) => ((topKeys ? topKeys.has(x.key) && movable({ x }) : !BELOW.has(x.kind)) ? top : bottom).push({ x, i }));
+  if (!topKeys) balance(top, bottom, 4);
   const half = box.sw / 2 - 6; // a label keeps 6 clear of the stage's edge
   const out = [];
   let over = 0;
   for (const [zone, pins] of [['top', top], ['bottom', bottom]]) {
     const m = pins.length;
     if (!m) continue;
+    if (m > 4) {
+      over += 1e6; // more pins on one side than the search lays out
+      continue;
+    }
     const dir = zone === 'top' ? -1 : 1;
     const edge = zone === 'top' ? box.cy - box.h / 2 : box.cy + box.h / 2;
     const wOf = (pin) => widths[pin.x.key] ?? 150;
@@ -196,7 +272,10 @@ function anatomyMarkers(anatomy, box, scale, picked, widths, topKeys) {
     let best = null;
     orders.forEach((order, oi) => spreads.forEach((spread, si) => {
       const gapX = m > 1 ? spread / (m - 1) : 0;
-      const px = order.map((_, j) => Math.round(box.cx + (m > 1 ? -spread / 2 + j * gapX : 0)));
+      const anchors = order.map((pin) => anchorOf(pin.x, pieces?.[pin.x.key], scale, zone, edge));
+      // each dot keeps to its own piece's width
+      const px = order.map((_, j) => Math.round(Math.min(anchors[j].hi, Math.max(anchors[j].lo, box.cx + (m > 1 ? -spread / 2 + j * gapX : 0)))));
+      const py = anchors.map((an) => an.y);
       for (const g of [14, 8, 4]) {
         for (let mask = 0; mask < 1 << m; mask += 1) {
           // chips: left of the pin when its bit is set
@@ -208,7 +287,7 @@ function anatomyMarkers(anatomy, box, scale, picked, widths, topKeys) {
             // each leader: level run from its label to the pin's column, then straight to the pin
             const lines = order.map((_, j) => {
               const edgeX = (mask >> j) & 1 ? chipsX[j][1] : chipsX[j][0];
-              return [{ x0: Math.min(edgeX, px[j]), x1: Math.max(edgeX, px[j]), y0: y[j], y1: y[j] }, { x0: px[j], x1: px[j], y0: Math.min(y[j], edge), y1: Math.max(y[j], edge) }];
+              return [{ x0: Math.min(edgeX, px[j]), x1: Math.max(edgeX, px[j]), y0: y[j], y1: y[j] }, { x0: px[j], x1: px[j], y0: Math.min(y[j], py[j]), y1: Math.max(y[j], py[j]) }];
             });
             let bad = 0;
             for (let i = 0; i < m && bad < 3; i += 1)
@@ -217,9 +296,10 @@ function anatomyMarkers(anatomy, box, scale, picked, widths, topKeys) {
                 if (j > i && touch(rects[i], rects[j])) bad += 1; // two labels overlap
                 if (lines[i].some((seg) => touch(seg, rects[j], 1))) bad += 1; // a line through another label
                 if (j > i && lines[i].some((a) => lines[j].some((b) => touch(a, b, 2)))) bad += 1; // two lines meet
+                if (j > i && Math.abs(px[i] - px[j]) < 12 && Math.abs(py[i] - py[j]) < 12) bad += 1; // two dots on top of each other
               }
             const score = [cut + bad * 1000, oi ? 1 : 0, si, -g, mask];
-            if (!best || score.some((v, q) => v < best.score[q] && score.slice(0, q).every((w, r) => w === best.score[r]))) best = { g, order, px, mask, lv, score };
+            if (!best || score.some((v, q) => v < best.score[q] && score.slice(0, q).every((w, r) => w === best.score[r]))) best = { g, order, px, py, mask, lv, score };
           }
         }
       }
@@ -227,7 +307,7 @@ function anatomyMarkers(anatomy, box, scale, picked, widths, topKeys) {
     over += best.score[0];
     best.order.forEach(({ x, i }, j) => {
       const left = (best.mask >> j) & 1;
-      out.push({ id: x.key, x: Math.round(best.px[j] / scale), y: Math.round(edge / scale), label: x.n ?? i + 1, part: x.title, chipX: left ? best.px[j] - best.g : best.px[j] + best.g, chipY: Math.round(edge + dir * (28 + LEVEL * best.lv[j])), selected: x.key === picked });
+      out.push({ id: x.key, x: Math.round(best.px[j] / scale), y: Math.round(best.py[j] / scale), label: x.n ?? i + 1, part: x.title, chipX: left ? best.px[j] - best.g : best.px[j] + best.g, chipY: Math.round(edge + dir * (28 + LEVEL * best.lv[j])), selected: x.key === picked });
     });
   }
   return { markers: out.sort((p, q) => p.label - q.label), over };
@@ -248,7 +328,7 @@ function useWidth(id) {
 
 /* The live part's box against the stage's centre, measured after layout and
    again when the stage resizes. */
-function useBox(stageWrapId, partId, deps, tag) {
+function useBox(stageWrapId, partId, deps, tag, anatomy = [], shownId = null) {
   const [box, setBox] = useState(null);
   useLayoutEffect(() => {
     const wrap = document.getElementById(stageWrapId);
@@ -258,13 +338,26 @@ function useBox(stageWrapId, partId, deps, tag) {
       if (!content || !live) return;
       const c = content.getBoundingClientRect();
       const p = live.getBoundingClientRect();
-      const next = { cx: Math.round(p.left + p.width / 2 - (c.left + c.width / 2)), cy: Math.round(p.top + p.height / 2 - (c.top + c.height / 2)), w: Math.round(p.width), h: Math.round(p.height), sw: Math.round(c.width), tag };
-      setBox((was) => (was && Object.keys(next).every((k) => was[k] === next[k]) ? was : next));
+      // each anatomy piece's own box, from the element its contract names (target), against the same centre
+      const root = shownId ? document.getElementById(shownId)?.firstElementChild : null;
+      const pieces = {};
+      if (root)
+        for (const x of anatomy) {
+          const el = !x.target || x.target === ':scope' ? root : root.querySelector(x.target) ?? root;
+          const q = el.getBoundingClientRect();
+          pieces[x.key] = { cx: Math.round(q.left + q.width / 2 - (c.left + c.width / 2)), cy: Math.round(q.top + q.height / 2 - (c.top + c.height / 2)), w: Math.round(q.width), h: Math.round(q.height) };
+        }
+      const next = { cx: Math.round(p.left + p.width / 2 - (c.left + c.width / 2)), cy: Math.round(p.top + p.height / 2 - (c.top + c.height / 2)), w: Math.round(p.width), h: Math.round(p.height), sw: Math.round(c.width), tag, pieces };
+      setBox((was) => (was && Object.keys(next).every((k) => (k === 'pieces' ? JSON.stringify(was[k]) === JSON.stringify(next[k]) : was[k] === next[k])) ? was : next));
     };
     measure();
+    // a part draws its inner pieces after first paint (a lazy story, a font): read the pieces again
+    const later = [setTimeout(measure, 250), setTimeout(measure, 700)];
     const ro = new ResizeObserver(measure);
     if (content) ro.observe(content);
-    return () => ro.disconnect();
+    const inner = shownId ? document.getElementById(shownId)?.firstElementChild : null;
+    if (inner) ro.observe(inner);
+    return () => (ro.disconnect(), later.forEach(clearTimeout));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
   return box;
@@ -469,20 +562,26 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   }, [picked]);
   const legendChanges = useRef(0);
   const [legend, setLegend] = useState(false); // numbered pins and a legend, when no arrangement of labels fits uncut
-  const box = useBox(stageId, liveId, [part.id, variant, label, scale, anatomy.length, a?.key], scale);
+  const box = useBox(stageId, liveId, [part.id, variant, label, scale, anatomy.length, a?.key], scale, anatomy, shownId);
   // the best arrangement at one size: the usual split of pins above and below, then other splits only if it does not fit
   const named = anatomy;
   const solveAt = (s, b) => {
     const k = s / b.tag;
     const scaled = { cx: b.cx * k, cy: b.cy * k, w: b.w * k, h: b.h * k, sw: b.sw };
+    const pieces = scalePieces(b.pieces, k);
     const keys = anatomy.map((x) => x.key);
-    let best = anatomyMarkers(named, scaled, s, a?.key, widths);
+    let best = anatomyMarkers(named, scaled, s, a?.key, widths, undefined, pieces);
     if (!best.over) return best;
-    const sized = (set) => keys.length - set.size <= 4 && set.size <= 4 && Math.abs(set.size - (keys.length - set.size)) <= 2;
+    // a pin whose piece is drawn below the part (shadow, ring) stays below, so it counts on the bottom whatever the set says
+    const fixed = new Set(anatomy.filter((x) => !movable({ x })).map((x) => x.key));
+    const sized = (set) => {
+      const up = [...set].filter((key) => !fixed.has(key)).length;
+      return up <= 4 && keys.length - up <= 4 && Math.abs(up - (keys.length - up)) <= 2;
+    };
     for (let m = 0; m < 1 << keys.length; m += 1) {
       const set = new Set(keys.filter((_, i) => (m >> i) & 1));
       if (!sized(set)) continue;
-      const r = anatomyMarkers(named, scaled, s, a?.key, widths, set);
+      const r = anatomyMarkers(named, scaled, s, a?.key, widths, set, pieces);
       if (r.over < best.over) best = r;
       if (!best.over) break;
     }
@@ -616,13 +715,13 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     let pick = null;
     for (const s of SCALES) {
       const k = s / box.tag;
-      const r = pinsOnly(anatomy, { cx: box.cx * k, cy: box.cy * k, w: box.w * k, h: box.h * k }, s, a?.key);
-      if (box.w * k <= box.sw - 48 && r.tight >= 36 && box.h * k >= LABEL_H) {
+      const r = pinsOnly(anatomy, { cx: box.cx * k, cy: box.cy * k, w: box.w * k, h: box.h * k }, s, a?.key, scalePieces(box.pieces, k));
+      if (box.w * k <= box.sw - 48 && r.tight >= 36 && box.h * k >= LABEL_H && r.clear >= PIN) {
         pick = { ...r, s };
         break;
       }
     }
-    return pick ?? { ...pinsOnly(anatomy, { cx: 0, cy: 0, w: box.w, h: box.h }, box.tag, a?.key), s: box.tag };
+    return pick ?? { ...pinsOnly(anatomy, { cx: box.cx, cy: box.cy, w: box.w, h: box.h }, box.tag, a?.key, box.pieces), s: box.tag };
   }, [legend, box, anatomy, a?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (pinsAt && pinsAt.s !== scale && box?.tag === scale && legendChanges.current < 3) {
@@ -631,7 +730,7 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     }
   }, [pinsAt, scale, box]);
   const markers = useMemo(() => {
-    if (legend) return pinsAt && pinsAt.s === scale ? pinsAt.markers : box?.tag ? pinsOnly(anatomy, box, scale, a?.key).markers : [];
+    if (legend) return pinsAt && pinsAt.s === scale ? pinsAt.markers : box?.tag ? pinsOnly(anatomy, box, scale, a?.key, box.pieces).markers : [];
     if (!layout) return [];
     if (layout.s === scale || !box?.tag) return layout.markers;
     return solveAt(scale, box).markers; // the size could not move to the layout's: label the part as drawn
