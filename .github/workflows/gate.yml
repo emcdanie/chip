@@ -1,12 +1,12 @@
-# CHIP gate (19 Nov 2026, build review: "CHIP has no CI"). Runs on every PR so
-# the local pre-commit hook is not the only gate: the on-system guard, the hex
-# and px font-size checks, and the app build against BELLA: emcdanie/bella
-# at the branch named in .bella-ref (the build prints its commit).
+# CHIP gate (19 Nov 2026, build review: "CHIP has no CI"). Runs on every PR and on
+# pushes to main, so the local pre-commit hook is not the only gate: the on-system
+# guard, the hex and px font-size checks, the server's unit tests and the app build
+# against BELLA: emcdanie/bella at the branch named in .bella-ref (the build prints
+# its commit).
 #
-# Self-hosted only (Elleta's Mac, runner elleta-mac); never ubuntu-latest
-# (GitHub-hosted runners do not start on this account). This repo is PUBLIC:
-# a pull request from a fork must never run on her Mac, so every job is
-# skipped unless the PR's branch lives in this repo.
+# GitHub's own Linux machines (24 Nov 2026): free on this public repo, so checks no
+# longer run on, or slow down, Elleta's Mac. A fork's pull request runs here too, on
+# GitHub's machine with read-only rights, so it is safe.
 name: gate
 
 on:
@@ -23,14 +23,13 @@ permissions:
 
 jobs:
   gate:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, elleta-mac]
+    name: Guard, tests and build
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       # The BELLA this branch builds against is the one line in .bella-ref
-      # (a branch of emcdanie/bella). The gate checks it out from GitHub into
-      # its own work folder, never a folder in ~/DEV, and prints its commit.
+      # (a branch of emcdanie/bella), checked out into bella-parts (the name CHIP's runs expect).
       - name: Which BELLA (.bella-ref)
         id: bella
         run: echo "ref=$(tr -d '[:space:]' < .bella-ref)" >> "$GITHUB_OUTPUT"
@@ -38,11 +37,15 @@ jobs:
         with:
           repository: emcdanie/bella
           ref: ${{ steps.bella.outputs.ref }}
-          path: .bella
+          path: bella-parts
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
       - run: npm ci
+      - name: BELLA's packages (runs and spec tests use them)
+        working-directory: bella-parts
+        run: npm ci
       - name: On-system guard
         run: node scripts/on-system-guard.mjs
       - name: No hex values in app/src
@@ -51,9 +54,86 @@ jobs:
       - name: No px font sizes in app/src
         run: |
           if grep -rnE "font-size:[[:space:]]*[0-9.]+px|fontSize:[[:space:]]*['\"]?[0-9.]+(px)?['\"]?[,} ]" app/src; then echo "px font size in app/src"; exit 1; fi
+      - name: Server unit tests
+        env:
+          BELLA_DIR: ${{ github.workspace }}/bella-parts
+        run: npm test
       - name: Build (prints which BELLA it used)
         env:
-          BELLA_DIR: ${{ github.workspace }}/.bella
+          BELLA_DIR: ${{ github.workspace }}/bella-parts
         run: |
-          echo "BELLA: emcdanie/bella ${{ steps.bella.outputs.ref }} @ $(git -C .bella rev-parse --short HEAD)"
+          echo "BELLA: emcdanie/bella ${{ steps.bella.outputs.ref }} @ $(git -C bella-parts rev-parse --short HEAD)"
           npm run app:build
+
+  # The visual checks (cards line up, every width 320 to 1440, scroll, top bar) need a
+  # browser and the running app. Advisory for now: they report and attach their
+  # pictures but do not block a merge. To make them required: the app must start
+  # without Ollama and without the data files written on her Mac (data/notion,
+  # data/index), and each check must pass three runs in a row here.
+  visual:
+    name: Visual checks (advisory)
+    runs-on: ubuntu-latest
+    needs: gate
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Which BELLA (.bella-ref)
+        id: bella
+        run: echo "ref=$(tr -d '[:space:]' < .bella-ref)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: emcdanie/bella
+          ref: ${{ steps.bella.outputs.ref }}
+          path: bella-parts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # the checks load Playwright from BELLA (scripts/lib/bella-dir.mjs)
+      - name: BELLA's dependencies and Chromium
+        working-directory: bella-parts
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Build the app
+        env:
+          BELLA_DIR: ${{ github.workspace }}/bella-parts
+        run: npm run app:build
+      - name: Start CHIP
+        env:
+          BELLA_DIR: ${{ github.workspace }}/bella-parts
+          PORT: 3160
+        run: |
+          nohup node server/server.js > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3160/ > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:3160/ > /dev/null || (cat server.log; exit 1)
+      - name: Cards line up
+        env:
+          BELLA_DIR: ${{ github.workspace }}/bella-parts
+        run: node scripts/card-align-check.mjs --app http://localhost:3160 --out shots/cards
+      - name: Every width, light and dark
+        if: always()
+        env:
+          BELLA_DIR: ${{ github.workspace }}/bella-parts
+        run: node scripts/responsive-check.mjs --app http://localhost:3160 --out shots/responsive
+      - name: Scroll
+        if: always()
+        env:
+          BELLA_DIR: ${{ github.workspace }}/bella-parts
+        run: node scripts/scroll-chain-check.mjs --app http://localhost:3160
+      - name: Top bar
+        if: always()
+        env:
+          BELLA_DIR: ${{ github.workspace }}/bella-parts
+        run: node scripts/top-bar-check.mjs --app http://localhost:3160
+      - name: Pictures and server log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-checks
+          path: |
+            shots/
+            server.log
+          if-no-files-found: ignore
