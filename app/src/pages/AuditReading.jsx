@@ -16,13 +16,12 @@ import Progress from '@bella/components/Progress/Progress';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
 import { measuredMinutes, useFixPlan } from '../templates/FixPlan.jsx';
-import ReadingDrawer, { Facts, Inset, ReadingGroups, ReadingTable, ReadingTop } from '../templates/ReadingDrawer.jsx';
+import ReadingDrawer, { Facts, Inset, ReadingTable, ReadingTop } from '../templates/ReadingDrawer.jsx';
 import useCached from '../templates/useCached.js';
 import { auditTone, greenFrom, parseReport } from './auditReport.js';
 
 // the state words CHIP uses everywhere, never the colour's name (her 22 Nov: "why are we naming them colors")
 const WORD = { red: 'Failing', yellow: 'Needs work', green: 'Healthy' };
-const TONE = { red: 'danger', yellow: 'attention', green: 'success' };
 const up = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 const oneSentence = (s) => (s.match(/^.+?[.!?](?=\s|$)/)?.[0] ?? s).replace(/\.$/, '');
 const dayOf = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -120,6 +119,7 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
     return (
       <ReadingDrawer {...shell} label="Every work order" status={`${r.orders.length} from the ${a.title} audit, most important first`} onBack={() => setAll(false)} backLabel="Back to the report" source={source}>
         <ReadingTable
+          unit="work orders"
           caption="Work orders, most important first"
           rowKey="n"
           rows={r.orders.map((o) => ({ ...o, order: o.title }))}
@@ -137,12 +137,6 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
   const outOf100 = a.unit === 'of 100';
   const fill = a.value == null ? null : a.checks && !outOf100 && /checks healthy/.test(a.unit ?? '') ? (a.value / a.checks) * 100 : a.value;
   const tone = { danger: 'danger', warning: 'attention', success: 'success', neutral: 'neutral' }[auditTone(a)];
-  const item = (s) => ({
-    key: s.n,
-    title: s.name,
-    onClick: s.evidence.length ? () => setStation(s) : undefined,
-    line: [s.score != null ? `${s.score}${s.max === 100 ? ' of 100' : ` of ${s.max}`}` : null, s.line || null].filter(Boolean).join(' · ') || undefined,
-  });
 
 
   return (
@@ -175,13 +169,20 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
         />
       ) : null}
       {r.stations.length ? (
-        <ReadingGroups
-          openFirst
-          label={`${a.title}: ${r.stations[0].max === 100 ? 'flows' : 'stations'} by state`}
-          groups={[
-            ...['red', 'yellow', 'green'].map((l) => ({ name: WORD[l], tone: TONE[l], items: r.stations.filter((s) => s.light === l).map(item) })),
-            { name: 'Not rated', tone: 'neutral', items: r.stations.filter((s) => !s.light).map(item) },
+        // the stations as one table, the state words as filter chips above it (23 Nov evening: tighter rows; drawer-data-types
+        // "grouped findings": each group a short table); a row opens the station's evidence
+        <ReadingTable
+          caption={`${a.title}: ${r.stations[0].max === 100 ? 'flows' : 'stations'}`}
+          rowKey="key"
+          unit={r.stations[0].max === 100 ? 'flows' : 'stations'}
+          rows={r.stations.map((s) => ({ key: String(s.n), station: s.name, state: s.light ? WORD[s.light] : 'Not rated', score: s.score != null ? `${s.score} of ${s.max}` : '—' }))}
+          columns={[
+            { key: 'station', label: r.stations[0].max === 100 ? 'Flow' : 'Station' },
+            { key: 'state', label: 'State', stackUnder: true, byFilter: true },
+            { key: 'score', label: 'Score', numeric: true },
           ]}
+          filters={[{ value: 'all', label: 'All' }, ...['red', 'yellow', 'green'].map((l) => ({ value: l, label: WORD[l], test: (x) => x.state === WORD[l] })), { value: 'none', label: 'Not rated', test: (x) => x.state === 'Not rated' }]}
+          onOpen={(k) => setStation(r.stations.find((x) => String(x.n) === String(k)))}
         />
       ) : null}
       {fix.body}

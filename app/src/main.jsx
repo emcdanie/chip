@@ -4,8 +4,6 @@ import '@bella/fonts.css';
 import '@bella/tokens.css';
 import './kit/tokens.css';
 import './app.css';
-import App from './App.jsx';
-import Kit from './Kit.jsx';
 import NotAgain from './pages/NotAgain.jsx';
 import Playground from './pages/Playground.jsx';
 import History from './pages/History.jsx';
@@ -25,9 +23,8 @@ import RunPlanHost from './templates/RunPlan.jsx';
 import PageGuard from './templates/PageGuard.jsx';
 import { canon } from './templates/routes.js';
 
-// #/kit shows the shared pieces on their own, outside the app shell.
-// Pages on the new CHIP / Screen template; the old app stays beside them
-// until each page is rebuilt. The Playground lists these too
+// Pages on the CHIP / Screen template. The retired app (App.jsx) and the Kit are no longer reachable: every
+// other address opens its current page (templates/routes.js canon, checked by scripts/route-check.mjs). The Playground lists these too
 // (server/lib/projects.mjs reads NEW_PAGES).
 const NEW_PAGES = [
   { id: 'not-again', label: 'Not again' },
@@ -47,11 +44,10 @@ function Page({ hash }) {
   // (#/components/Button, #/history?…) keeps its place
   const page = hash.match(/^#\/(system\/[\w-]+|[\w-]+)/)?.[1] ?? '';
   useLayoutEffect(openAtTop, [page]);
-  if (hash === '#/kit') return <Kit />;
   // Work and Health are their own items (her pick B, 23 Nov); Components, Foundations and History are one System place
   // (Elleta, 23 Nov). The old addresses redirect in Root (templates/routes.js), so only new ones arrive here.
   const at = hash.split('?')[0];
-  if (hash === '#/not-again') return <NotAgain />;
+  if (at === '#/not-again') return <NotAgain />;
   if (at === '#/playground') return <Playground />;
   if (at === '#/team') return <Team />;
   if (at === '#/health') return <Health />;
@@ -60,11 +56,12 @@ function Page({ hash }) {
   if (at === '#/present' || at.startsWith('#/present/')) return <Present />;
   if (at === '#/system/history') return <History />;
   if (at === '#/connectors') return <Connectors />;
-  if (hash === '#/system-map') return <SystemMap />;
+  if (at === '#/system-map') return <SystemMap />;
   if (at === '#/system/foundations') return <Foundations />;
   if (at === '#/system/docs') return <Docs />;
   if (at === '#/system/components' || at.startsWith('#/system/components/')) return <Components />;
-  return <App />;
+  // canon() in Root sends every other address to a current page, so nothing else arrives here
+  return <Work />;
 }
 
 /* Every page sits in a guard (an error shows in place, never a white app) beside the one
@@ -94,4 +91,11 @@ function Root() {
 }
 
 warmPages();
-createRoot(document.getElementById('root')).render(<Root />);
+// The app draws once its fonts are in (Elleta, 23 Nov evening: text flashed in a fallback font on refresh): Lexend for
+// words, Geist Mono for numbers, both preloaded by index.html. Until then the frame's outline holds the window
+// (index.html, .chip-boot). After 3 seconds it draws anyway, so a missing font never leaves the window empty.
+const FACES = ['400 16px Lexend', '600 16px Lexend', '400 16px "Geist Mono"', '600 16px "Geist Mono"'];
+const fonts = document.fonts ? Promise.all(FACES.map((f) => document.fonts.load(f))) : Promise.resolve();
+Promise.race([fonts, new Promise((r) => setTimeout(r, 3000))])
+  .catch(() => {})
+  .then(() => createRoot(document.getElementById('root')).render(<Root />));

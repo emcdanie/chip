@@ -23,7 +23,7 @@
 // must stay hits, three that must not): a rule that hides a real clip stops
 // the sweep. --self-test runs only that.
 //
-// Usage: node scripts/clip-sweep.mjs [--app http://localhost:3160] [--out dir]
+// Usage: node scripts/clip-sweep.mjs [--app http://localhost:3160] [--out dir] [--markup on]
 //        [--pages work,health] [--widths 1100] [--themes light] [--self-test]
 // Needs a CHIP server and Playwright in BELLA_DIR (as checkpoint.mjs).
 import { createRequire } from 'node:module';
@@ -42,6 +42,8 @@ const PAGES = arg('pages', 'work,health,components,foundations,history,playgroun
 const WIDTHS = arg('widths', '320,768,1024,1100,1440').split(',').map(Number);
 const THEMES = arg('themes', 'light,dark').split(',');
 const DRAWER = arg('drawer', 'closed,open').split(',');
+// --markup on: every page with Mark up switched on (its pins, comment box and bar drawn over the page), as she uses it
+const MARKUP = arg('markup', 'off') === 'on';
 
 const { chromium } = createRequire(join(bellaDir(), 'package.json'))('playwright');
 
@@ -287,6 +289,7 @@ for (const page of PAGES) {
     for (const w of WIDTHS) {
       for (const drawer of DRAWER) {
         const p = await browser.newPage({ viewport: { width: w, height: 900 } });
+        if (MARKUP) await p.addInitScript(() => { try { sessionStorage.setItem('chip.markup.on', '1'); } catch {} });
         await p.goto(`${APP}/#/${page}`);
         await p.waitForTimeout(2500);
         if (theme === 'dark') await p.evaluate(() => document.documentElement.setAttribute('data-theme', 'chip-dark'));

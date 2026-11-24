@@ -83,6 +83,26 @@ export function SourceLine({ from, when, commit }) {
   );
 }
 
+/* The head of a list that shows part of itself (23 Nov evening, her Drift drawer: after See all, Show fewer sat at the
+   foot of 94 rows and she had to scroll to find it). One pattern for every drawer: the count at the left, the toggle at
+   the right, above the list, so the way back stays where she pressed. extra: more tertiary actions on the same row. */
+export function ListHead({ shown, total, unit, open, onToggle, extra }) {
+  const more = total > shown || open;
+  return (
+    <Flow direction="row" gap={8} justify="between" align="center" wrap>
+      <TextStack subtitle={more ? `Showing ${shown} of ${total} ${unit}` : `${total} ${unit}`} />
+      <Flow direction="row" gap={8} align="center" wrap>
+        {more ? (
+          <Button variant="tertiary" size="sm" ariaExpanded={open} onClick={onToggle}>
+            {open ? 'Show fewer' : `Show all ${total}`}
+          </Button>
+        ) : null}
+        {extra}
+      </Flow>
+    </Flow>
+  );
+}
+
 /* Grouped content as branch rows (Elleta, 23 Nov: "i really like the styling on this ... we could do that with some of the
    content in the drawers"): BELLA BranchGroup, a row with a colour bar at its left, the group's name, a count and a plus or
    minus, opening to its items, each a ListRow with a state mark (statusBar, the group's tone) and a short status line.
@@ -120,6 +140,11 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
           return (
             <BranchGroup key={g.name} name={g.name} count={g.count ?? g.items.length} hue={g.hue ?? HUES[gi % HUES.length]} open={open.includes(g.name)} onToggle={() => toggle(g.name)}>
               {g.body ? <Inset>{g.body}</Inset> : null}
+              {g.items?.length > FIRST ? (
+                <Inset>
+                  <ListHead shown={items.length} total={g.items.length} unit={g.unit ?? 'items'} open={full} onToggle={() => setAll((a) => (full ? a.filter((n) => n !== g.name) : [...a, g.name]))} />
+                </Inset>
+              ) : null}
               {g.items ? <ListRowGroup ariaLabel={`${g.name}: ${g.items.length}`}>
                 {items.map((it, k) => (
                   <ListRow
@@ -138,13 +163,6 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
                   />
                 ))}
               </ListRowGroup> : null}
-              {g.items?.length > FIRST ? (
-                <Flow direction="row" justify="end">
-                  <Button variant="tertiary" size="sm" ariaExpanded={full} onClick={() => setAll((a) => (full ? a.filter((n) => n !== g.name) : [...a, g.name]))}>
-                    {full ? 'Show fewer' : `See all ${g.items.length}`}
-                  </Button>
-                </Flow>
-              ) : null}
             </BranchGroup>
           );
         })}
@@ -157,22 +175,32 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
    filter with those buttons, it's clear"). BELLA DataTable: sortable, its row opens the item's detail (onOpen), stacked
    under 480 (stack). filters: [{ value, label, test(row) }], each chip carrying its count; the first is the default.
    columns: DataTable columns (name first, the main number second). onOpen(key) opens the detail in the same drawer. */
-export function ReadingTable({ caption, rows, columns, rowKey = 'key', filters, defaultSort, onOpen }) {
+/* density="compact": a read-only list (no sort, no row to open) takes BELLA DataTable's compact rows, so a short list of
+   parts reads at a glance (23 Nov evening, Gaps: "tighter rows"). first: over this many rows the table shows that many,
+   then "Show 10 more" (second-pass review, pattern 1); every row shows when there are 20 or fewer. A column marked
+   byFilter (the state the chips filter on) is left out while a chip other than All is on: every row would repeat it.
+   The chips are one row that scrolls sideways (Flow swipe), so the table starts high at 320. */
+export function ReadingTable({ caption, rows, columns, rowKey = 'key', filters, defaultSort, onOpen, density, first = 20, unit = 'rows' }) {
   const [f, setF] = useState(filters?.[0]?.value ?? null);
+  const [open, setOpen] = useState(false);
   const pick = filters?.find((x) => x.value === f);
-  const shown = pick?.test ? rows.filter(pick.test) : rows;
+  const all = pick?.test ? rows.filter(pick.test) : rows;
+  const shown = all.length > first && !open ? all.slice(0, first) : all;
+  // a chip that would show nothing is left out, and one chip alone is no filter
+  const chips = (filters ?? []).filter((x) => !x.test || rows.some(x.test));
   return (
     <Inset gap={8}>
-      {filters?.length ? (
-        <Flow direction="row" gap={8} wrap align="center" role="group" aria-label={`Filter: ${caption}`}>
-          {filters.map((x) => (
-            <FilterChip key={x.value} size="compact" pressed={f === x.value} onClick={() => setF(x.value)}>
+      {chips.length > 1 ? (
+        <Flow direction="row" gap={8} swipe align="center" role="group" aria-label={`Filter: ${caption}`}>
+          {chips.map((x) => (
+            <FilterChip key={x.value} size="compact" pressed={f === x.value} onClick={() => (setF(x.value), setOpen(false))}>
               {`${x.label} ${x.test ? rows.filter(x.test).length : rows.length}`}
             </FilterChip>
           ))}
         </Flow>
       ) : null}
-      <DataTable caption={caption} columns={columns} rows={shown} rowKey={rowKey} defaultSort={defaultSort} onOpen={onOpen} stack />
+      {all.length > first ? <ListHead shown={shown.length} total={all.length} unit={unit} open={open} onToggle={() => setOpen(!open)} /> : null}
+      <DataTable caption={caption} columns={pick?.test ? columns.filter((c) => !c.byFilter) : columns} rows={shown} rowKey={rowKey} defaultSort={defaultSort} onOpen={onOpen} density={density} stack />
     </Inset>
   );
 }

@@ -14,9 +14,22 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 const BELLA = bellaDir();
 const SERVER = 'http://127.0.0.1:3100';
 
+// Preload the font files the first page draws with (Lexend for words, Geist Mono for numbers), so the app can start
+// the moment they are in and never shows text in a fallback font (Elleta, 23 Nov evening). Build only: the files'
+// hashed names exist once the bundle is written.
+const PRELOAD = [/Lexend-Variable-latin-[\w-]+\.woff2$/, /GeistMono-Regular-[\w-]+\.woff2$/, /GeistMono-SemiBold-[\w-]+\.woff2$/];
+const preloadFonts = {
+  name: 'chip-preload-fonts',
+  transformIndexHtml(html, ctx) {
+    if (!ctx.bundle) return html;
+    const files = Object.keys(ctx.bundle).filter((f) => PRELOAD.some((re) => re.test(f)) && !/latin-ext/.test(f));
+    return { html, tags: files.map((f) => ({ tag: 'link', attrs: { rel: 'preload', as: 'font', type: 'font/woff2', href: `/${f}`, crossorigin: '' }, injectTo: 'head-prepend' })) };
+  },
+};
+
 export default defineConfig({
   root: here,
-  plugins: [react()],
+  plugins: [react(), preloadFonts],
   resolve: {
     alias: {
       '@bella/components': resolve(BELLA, 'src/components'),

@@ -303,6 +303,17 @@ const drawerJs = () => {
     const prim = fbs.findIndex((b) => b.dataset.bellaVariant === 'primary');
     out.primaryLast = prim < 0 || prim === fbs.length - 1;
   }
+  // a table cell whose text is cut or runs into its neighbour (23 Nov evening, Gaps at 320: "CommentThreaSpec, no code")
+  out.clipped = [...(body?.querySelectorAll('td, th') ?? [])].filter(vis).filter((c) => {
+    if (c.scrollWidth > c.clientWidth + 1) return true;
+    const n = c.nextElementSibling;
+    if (!n || !vis(n)) return false;
+    // the text of the two cells, where it is drawn: on one line they need 8 between them
+    const ink = (el) => [...el.querySelectorAll('*'), el].filter((e) => vis(e) && getComputedStyle(e).clipPath === 'none' && [...e.childNodes].some((x) => x.nodeType === 3 && x.textContent.trim())).map((e) => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect(); });
+    const ta = ink(c), tb = ink(n);
+    if (!ta.length || !tb.length) return false;
+    return ta.some((x) => tb.some((y) => x.top < y.bottom - 1 && y.top < x.bottom - 1 && y.left - x.right < 8));
+  }).map((c) => (c.textContent ?? '').trim().slice(0, 30));
   const rows = [...(body?.querySelectorAll('[data-bella-component="list-row"]') ?? [])].filter(vis);
   out.rows = rows.length;
   out.twoLine = rows.filter((r) => r.getBoundingClientRect().height > 72).length;
@@ -338,6 +349,7 @@ if (RULES.includes('drawers')) {
       const where = `${d.name} (${d.file})`;
       for (const x of m.inBody) add('drawers', d.route, width, where, `${x} sits in the drawer's body; actions go in the footer`);
       for (const x of m.under) add('drawers', d.route, width, where, `footer text under the buttons: "${x}"; it goes at the left of the buttons' row (footerNote)`);
+      for (const x of m.clipped ?? []) add('drawers', d.route, width, where, `table text cut or touching its neighbour: "${x}"`);
       if (!m.primaryLast) add('drawers', d.route, width, where, 'the primary is not the last button in the footer');
       if (width >= 1440 && m.row === false) add('drawers', d.route, width, where, `footer helper "${m.note}" is not on the buttons' row`);
       await page.close();

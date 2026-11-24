@@ -329,11 +329,14 @@ export default function Screen({ place, header, tabs, children }) {
       {/* after the page in the source so the menu button, which is in the page, is the first stop for the keyboard; the grid puts the menu back on the left */}
       {menuOut ? (
         <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} label="Menu" side={phone ? 'bottom' : 'left'}>
-          {/* the Find field first, as in the menu at full width (her mark-up, 23 Nov) */}
-          <Flow role="search" direction="row" gap={4} align="start" grow="first">
-            <Search inDrawer />
+          {/* the Find field first, as in the menu at full width (her mark-up, 23 Nov), 16 above the rows like the menu's
+              own gap between groups (23 Nov evening: it sat on the selected row) */}
+          <Flow gap={16}>
+            <Flow role="search" direction="row" gap={4} align="start" grow="first">
+              <Search inDrawer />
+            </Flow>
+            <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />
           </Flow>
-          <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />
         </Drawer>
       ) : collapsed ? null : (
         <div className="chip-screen__menu">

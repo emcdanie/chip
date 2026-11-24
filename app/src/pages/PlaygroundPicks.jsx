@@ -1,8 +1,9 @@
 // Playground · Your picks: the A/B questions waiting on you (Elleta picked B · studio and "Where the A/B opens: A,
-// the Playground tab", 22 Nov; /screens/2026-11-22-playground/). Picks on the left, filtered by the FilterChip row
-// above. The picture fills the room and you comment on it like Figma comments (23 Nov): a click drops a numbered pin
-// and a small box (templates/PicturePins.jsx, shared with the Needs you view); the options, your thumb, Send and the
-// comment count sit in one row above it; the comments list is a thin panel opened from the count.
+// the Playground tab", 22 Nov; /screens/2026-11-22-playground/), laid out as her Workbench A (23 Nov,
+// /screens/2026-11-23-workbench/, templates/Workbench.jsx, shared with the Needs you view): the picture big in the
+// middle with the tool column fixed beside it, one row under it (the choice, thumbs, one comment box and one Send), the
+// comments as a thin panel opened from the count, and the picks as a strip of board cards along the bottom. You
+// comment on the picture like Figma comments: a click drops a numbered pin and a small box (templates/PicturePins.jsx).
 //
 // Real data only: the progress board (localhost:3123) serves the items waiting
 // on you (progress.json), the decision cards on each linked review page
@@ -12,30 +13,31 @@
 // them; when the board is down the last reading shows with its time, never
 // sample cards. Her notes show with obvious typos corrected (TYPOS), the stored words untouched.
 //
-// Sending: marks and comments are drafts kept in this browser; one "n marked · Send all" bar posts every marked pick in ONE
-// request (23 Nov), then the cards read Sent. A comment's Enter saves it as a draft. Asking an agent for a change is the Ask panel's job. A pick has its own link: #/playground?pick=<id>&option=<n>.
+// Sending: marks and comments are drafts kept in this browser (a pin's Enter, the thumbs, the words in the comment box);
+// the row's Send posts this pick now, and one "n marked · Send all" bar posts every marked pick in ONE request (23 Nov);
+// then the cards read Sent. Asking an agent for a change is the Ask panel's job. A pick has its own link:
+// #/playground?pick=<id>&option=<n>.
 //
 // HOLES (BELLA has no part yet, not invented here): a Comment popover that sits at a pin (PicturePins places a
-// Card); a ToolColumn without Light or dark and Compare (three Buttons stand in); no Skeleton part, so loading says
-// what it is reading, in words, no spinner.
-import { useEffect, useMemo, useState } from 'react';
+// Card); no Skeleton part, so loading says what it is reading, in words, no spinner.
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
+import Input from '@bella/components/Input/Input';
 import NoResults from '../templates/NoResults.jsx';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
-import Heading from '@bella/components/Heading/Heading';
-import Link from '@bella/components/Link/Link';
-import ListRow from '@bella/components/ListRow/ListRow';
 import Notification from '@bella/components/Notification/Notification';
-import Pin from '@bella/components/Pin/Pin';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import Select from '@bella/components/Select/Select';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
 import SendBar from '../templates/SendBar.jsx';
-import PickList from '../templates/PickList.jsx';
 import PicturePins from '../templates/PicturePins.jsx';
+import Workbench from '../templates/Workbench.jsx';
+import { CommentBubble } from '../templates/Comment.jsx';
+import { drawerOf } from '../templates/ReadingDrawer.jsx';
 import useNarrow from '../templates/useNarrow.js';
 
 // The progress board. The server knows it as CHIP_REVIEW_URL (lanes.mjs) but no route hands it to the page,
@@ -278,17 +280,14 @@ function usePicks() {
   return { ...state, again: () => setTick((t) => t + 1) };
 }
 
-// a scroll column holds its own floating bits (a field's ghost text, a button's label copy): without a
-// positioned box they hang off the page's own scroll and stretch it far past the window (Flow scroll is not
-// positioned; a template gap)
-const HOLD = { position: 'relative' };
-
 const FILTERS = [
   { id: 'open', title: 'Not answered', test: (p) => !p.answer },
   { id: 'answered', title: 'Answered', test: (p) => !!p.answer },
   { id: 'notes', title: 'With your notes', test: (p) => p.comments.length > 0 },
 ];
 
+// her words without the "A · pin 1:" prefix a note carries for the agent
+const herWords = (s) => String(s ?? '').replace(/(^|·\s*)(?:[A-E]\s*·\s*)?pin \d+:\s*/gi, '$1').replace(/^·\s*/, '');
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const day = (iso) => {
   if (!iso) return null;
@@ -296,10 +295,6 @@ const day = (iso) => {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 };
 const clock = (iso) => (iso ? new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null);
-const age = (ms) => {
-  const h = Math.floor(ms / 3600000);
-  return h >= 48 ? `${Math.floor(h / 24)} days` : h >= 1 ? plural(h, 'hour') : 'under an hour';
-};
 
 // the item's name: the card's title without its trailing ": A or B?"
 const shortName = (t) => clean(t).replace(/\s*[:·-]\s*(A or B|A, B or C|yes or no)\??$/i, '');
@@ -308,20 +303,18 @@ const asked = () => new URLSearchParams(window.location.hash.split('?')[1] ?? ''
 const linkTo = (id, n) => `#/playground?pick=${encodeURIComponent(id)}${n ? `&option=${n + 1}` : ''}`;
 
 export default function PlaygroundPicks() {
-  const { picks, items, down, at: readAt, lastAnswer, cached, again } = usePicks();
-  // three columns from a 1280 window: the list, then the stage and the comments in halves, so comments read at
-  // 45 characters or more; list beside the stage from 800; a phone stacks them
-  const wide = !useNarrow(1280);
-  const phone = useNarrow(800);
-  // opens on what waits on you: the picks not answered yet, unless a link names a pick
-  const [filter, setFilter] = useState(() => (asked().get('pick') ? null : 'open'));
+  const { picks, items, down, at: readAt, cached, again } = usePicks();
+  const phone = useNarrow(640);
+  // opens on what waits on you, always: the picks not answered yet (her note, 23 Nov 22:05: "why am I shown old answered
+  // ones"; something answered never asks again). Answered sits behind its chip for looking back.
+  const [filter, setFilter] = useState('open');
   const [at, setAt] = useState(() => asked().get('pick'));
   const [opt, setOpt] = useState(() => {
     const id = asked().get('pick');
     const n = Number(asked().get('option'));
     return id && n > 0 ? { [id]: n - 1 } : {};
   });
-  // your answer, pins and notes per pick are drafts kept in this browser (they survive a reload) until Send all
+  // your answer, pins, notes and the comment box per pick are drafts kept in this browser (they survive a reload) until sent
   const [drafts, setDrafts] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(DRAFTS) ?? '{}') || {};
@@ -335,12 +328,20 @@ export default function PlaygroundPicks() {
     } catch {}
   }, [drafts]);
   const [batch, setBatch] = useState({ sending: false, result: null, failed: null });
-  const [notes, setNotes] = useState(false); // the thin comments panel, opened from the comment count
-    const shown = useMemo(() => (picks ?? []).filter((p) => !filter || FILTERS.find((f) => f.id === filter).test(p)), [picks, filter]);
-  // nothing left to answer: open on All, not on an empty "Not answered 0" (second pass, D3)
+  const [zoom, setZoom] = useState(null); // the picture's zoom, held here for the tool column; null = Fit
+  const [fit, setFit] = useState({ fit: 1, whole: 1 });
+  const shown = useMemo(() => (picks ?? []).filter((p) => !filter || FILTERS.find((f) => f.id === filter).test(p)), [picks, filter]);
+  // a link that names an answered pick opens it under Answered, as a record
+  const named = useRef(asked().get('pick'));
   useEffect(() => {
-    if (picks?.length && filter === 'open' && !picks.some((p) => !p.answer)) setFilter(null);
-  }, [picks, filter]);
+    const id = named.current;
+    if (!picks || !id) return;
+    named.current = null;
+    const p = picks.find((x) => x.id === id);
+    if (p?.answer) setFilter('answered');
+  }, [picks]);
+  // "Change my answer" turns an answered pick back into a question, for this visit
+  const [changing, setChanging] = useState({});
   const pick = shown.find((p) => p.id === at) ?? shown[0] ?? null;
   const i = pick ? Math.max(0, Math.min(opt[pick.id] ?? 0, pick.options.length - 1)) : 0;
   const option = pick?.options[i] ?? null;
@@ -348,10 +349,12 @@ export default function PlaygroundPicks() {
   const setDraft = (fn) => pick && setDrafts((all) => ({ ...all, [pick.id]: fn(all[pick.id] ?? { thumb: {}, pins: [] }) }));
   const mark = option?.letter ?? `${i + 1}`;
 
-  // the selected pick has its own link, so a view can be shared
+  // the selected pick has its own link, so a view can be shared; a new picture opens fitted
   useEffect(() => {
+    setZoom(null);
     if (!pick) return;
-    const want = linkTo(pick.id, i);
+    // an open comments panel stays open in the address (?drawer=comments)
+    const want = `${linkTo(pick.id, i)}${drawerOf() === 'comments' ? '&drawer=comments' : ''}`;
     if (window.location.hash !== want) window.history.replaceState(null, '', want);
   }, [pick?.id, i]);
 
@@ -367,10 +370,6 @@ export default function PlaygroundPicks() {
   if (!picks.length) return <EmptyState size="page" mark="🎉" title="Nothing waiting on you" line={`The progress board has ${plural(items, 'item')} waiting on you, none with a picture to pick from.`} />;
 
   const counts = Object.fromEntries(FILTERS.map((f) => [f.id, picks.filter(f.test).length]));
-  const open = picks.filter((p) => !p.answer);
-  const dated = open.map((p) => Date.parse(p.mod)).filter((t) => !Number.isNaN(t));
-  const fresh = lastAnswer ? open.filter((p) => Date.parse(p.mod) > Date.parse(lastAnswer)).length : null;
-  const oldest = dated.length ? age(Date.now() - Math.min(...dated)) : null;
 
   const thumb = draft.thumb[mark] ?? null;
   const setThumb = (v) => setDraft((d) => ({ ...d, thumb: { ...d.thumb, [mark]: d.thumb[mark] === v ? null : v } }));
@@ -379,7 +378,7 @@ export default function PlaygroundPicks() {
   const pinNoIn = (pk, d, p) => (p.isNew ? d.pins.length + 1 : d.pins.indexOf(p) + 1) + pk.comments.filter((c) => c.n).length;
   const pinNo = (p) => pinNoIn(pick, draft, p);
   const unsent = (d) => d.pins.filter((p) => !p.sent && p.note.trim());
-  const marked = (d) => !!d && (Object.values(d.thumb ?? {}).some(Boolean) || unsent(d).length > 0);
+  const marked = (d) => !!d && (Object.values(d.thumb ?? {}).some(Boolean) || unsent(d).length > 0 || !!(d.comment ?? '').trim());
 
   // what goes to the board, in decide.js's shape: one card answer, notes beside it
   const answerOf = (pk, d) => {
@@ -396,21 +395,22 @@ export default function PlaygroundPicks() {
   const noteOf = (pk, d) => {
     const downs = Object.entries(d.thumb).filter(([, v]) => v === 'down').map(([k]) => (pk.thumbs ? null : `👎 ${k}`)).filter(Boolean);
     const pins = unsent(d).map((p) => `${pk.thumbs ? '' : `${p.option} · `}pin ${pinNoIn(pk, d, p)}: ${p.note.trim()}`);
-    return [...downs, ...pins].join(' · ') || null;
+    const said = (d.comment ?? '').trim();
+    return [...downs, ...pins, said || null].filter(Boolean).join(' · ') || null;
   };
-  // ONE Send all: every marked pick's answer and notes in one POST (one message to the agent, not one per pick)
+  // one POST for the picks given: the row's Send (this pick) or Send all (every marked pick), one message to the agent
   const markedPicks = picks.filter((p) => marked(drafts[p.id]));
-  async function sendAll() {
-    if (!markedPicks.length || batch.sending) return;
+  async function post(list) {
+    if (!list.length || batch.sending) return;
     setBatch({ sending: true, result: null, failed: null });
-    const n = markedPicks.length;
-    const body = { type: 'batch', page: `Playground · ${n} answers`, url: '/playground', cards: markedPicks.map((p) => ({ from: pathOf(p.page), title: p.title, answer: answerOf(p, drafts[p.id]), note: noteOf(p, drafts[p.id]) })) };
+    const n = list.length;
+    const body = { type: 'batch', page: `Playground · ${plural(n, 'answer')}`, url: '/playground', cards: list.map((p) => ({ from: pathOf(p.page), title: p.title, answer: answerOf(p, drafts[p.id]), note: noteOf(p, drafts[p.id]) })) };
     try {
       const r = await fetch(`${BOARD}/answers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error(String(r.status));
-      const at = new Date().toISOString();
-      setDrafts((all) => Object.fromEntries(Object.entries(all).map(([id, d]) => (markedPicks.some((p) => p.id === id) ? [id, { thumb: {}, pins: d.pins.map((x) => ({ ...x, sent: true })), sentAt: at }] : [id, d]))));
-      setBatch({ sending: false, result: { n, at: clock(at) }, failed: null });
+      const sentAt = new Date().toISOString();
+      setDrafts((all) => Object.fromEntries(Object.entries(all).map(([id, d]) => (list.some((p) => p.id === id) ? [id, { thumb: {}, pins: d.pins.map((x) => ({ ...x, sent: true })), comment: '', sentAt }] : [id, d]))));
+      setBatch({ sending: false, result: { n, at: clock(sentAt) }, failed: null });
       again();
     } catch {
       setBatch({ sending: false, result: null, failed: `Not sent: the progress board doesn’t answer at ${BOARD}. Your marks are kept here.` });
@@ -419,160 +419,138 @@ export default function PlaygroundPicks() {
 
   /* ---------- the parts ---------- */
 
-  // highlights, top left: what changed and what to do, from the board's dates and her last answer
-  const showing = filter ? FILTERS.find((f) => f.id === filter).title : 'Everything';
-  const highlights = (
-    <Flow gap={4}>
-      <TextStack
-        title={[fresh != null ? `${plural(fresh, 'pick')} new since your last answer` : null, oldest ? `oldest waiting ${oldest}` : null, `${counts.open} to answer`].filter(Boolean).join(' · ')}
-      />
-      <TextStack subtitle={`Showing: ${showing} · ${plural(shown.length, 'pick')}`} />
+  // one status line in her words (Workbench A: "16 to answer"); the tools row beside it: the filter chips, and when the
+  // board was read with Check again, as Work has it (her note, 23 Nov 22:05: "the whole Picks board is hard to understand")
+  const top = (
+    <Flow direction="row" gap={12} align="center" justify="between" wrap>
+      <TextStack title={counts.open ? `${counts.open} to answer` : 'All answered'} />
+      <Flow direction="row" gap={8} align="center" wrap>
+        {/* filters: the FilterChip row History and Work use, one on at a time, counts beside the name; on a phone the
+            same choice as one Select, so the picture stays near the top (Workbench A at 320 has no chip rows) */}
+        {phone ? (
+          <Select label="Show" value={filter ?? 'all'} onChange={(v) => (setFilter(v === 'all' ? null : v), setAt(null))} options={[...FILTERS.map((f) => ({ value: f.id, label: `${f.title} ${counts[f.id]}` })), { value: 'all', label: `All ${picks.length}` }]} />
+        ) : (
+          <Flow direction="row" gap={8} wrap role="group" aria-label="Filter your picks">
+            {FILTERS.map((f) => (
+              <FilterChip key={f.id} size="compact" pressed={filter === f.id} onClick={() => (setFilter(f.id), setAt(null))}>
+                {`${f.title} ${counts[f.id]}`}
+              </FilterChip>
+            ))}
+            <FilterChip size="compact" pressed={!filter} onClick={() => (setFilter(null), setAt(null))}>
+              {`All ${picks.length}`}
+            </FilterChip>
+          </Flow>
+        )}
+        <Flow direction="row" gap={8} align="center">
+          <TextStack subtitle={cached ? `Board down · checked ${clock(readAt)}` : `Checked ${clock(readAt)}`} />
+          <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon onClick={again}>
+            Check again
+          </Button>
+        </Flow>
+      </Flow>
     </Flow>
   );
-  // how fresh it is: the time it was read, and Refresh; the last reading with its time when the board is down
-  const freshness = (
-    <Flow direction="row" gap={8} align="center" justify="between" wrap>
-      <TextStack subtitle={cached ? `board down, read ${clock(readAt)}` : `read ${clock(readAt)}`} />
-      <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon onClick={again}>
-        Refresh
-      </Button>
-    </Flow>
-  );
+  const bar = <SendBar count={markedPicks.length} onSend={() => post(markedPicks)} sending={batch.sending} result={batch.result} failed={batch.failed} onBack={() => (window.location.hash = '#/work')} onDismiss={() => setBatch({ sending: false, result: null, failed: null })} inFlow />;
 
-  // filters: the FilterChip row History and Work use (23 Nov: "just use the filter chips like we have already"):
-  // All first, one filter on at a time, counts beside the name
-  const filters = (
-    <Flow direction="row" gap={8} wrap role="group" aria-label="Filter your picks">
-      <FilterChip size="compact" pressed={!filter} onClick={() => (setFilter(null), setAt(null))}>
-        {`All ${picks.length}`}
-      </FilterChip>
-      {FILTERS.map((f) => (
-        <FilterChip key={f.id} size="compact" pressed={filter === f.id} onClick={() => (setFilter(f.id), setAt(null))}>
-          {`${f.title} ${counts[f.id]}`}
-        </FilterChip>
-      ))}
-    </Flow>
-  );
-
-  const list = (
-    <Card>
-      <Flow gap={8} scroll style={HOLD} aria-label="Picks, scrolls on its own" tabIndex={0}>
-        <SectionHead title="Picks" number={shown.length} titleLevel={2} />
-        {freshness}
-        {shown.length ? (
-          // the Work board's cards: the item's name, where it comes from, its status; the whole card is the button
-          <PickList
-            label={`Your picks, ${shown.indexOf(pick) + 1} of ${shown.length} selected`}
-            currentId={pick?.id}
-            onPick={choose}
-            items={shown.map((p) => {
-              const d = drafts[p.id];
-              const mine = marked(d);
-              const count = p.comments.length + (d?.pins.filter((x) => !x.sent).length ?? 0);
-              return {
-                id: p.id,
-                title: shortName(p.title),
-                line: [p.from, count ? plural(count, 'comment') : null].filter(Boolean).join(' · '),
-                status: mine ? 'Marked' : d?.sentAt ? 'Sent' : p.answer ? 'Answered' : 'Not answered',
-                tone: mine ? 'attention' : d?.sentAt || p.answer ? 'success' : 'neutral',
-              };
-            })}
+  // nothing waits: one line says so (her note, 23 Nov 22:05), with no picture, no A to E row and no strip; Answered sits
+  // behind its chip. Another filter with nothing in it says which filter and how to take it off.
+  if (!pick)
+    return (
+      <Flow gap={16}>
+        {top}
+        {filter === 'open' ? (
+          <EmptyState
+            size="page"
+            mark="🙆‍♀️"
+            title="Nothing to answer"
+            line="Every pick is answered."
+            actions={counts.answered ? <Button variant="secondary" onClick={() => (setFilter('answered'), setAt(null))}>{`See your ${plural(counts.answered, 'answer')}`}</Button> : undefined}
           />
         ) : (
           <NoResults noun="picks" what={filter ? FILTERS.find((f) => f.id === filter)?.title.toLowerCase() : null} on={filter ? [{ key: 'f', label: FILTERS.find((f) => f.id === filter)?.title, would: picks.length, onRemove: () => (setFilter(null), setAt(null)) }] : []} />
         )}
+        {bar}
       </Flow>
-    </Card>
-  );
-
-  // a filter with nothing in it (23 Nov: every pick answered, so Not answered is empty) says so and keeps the chips to switch back
-  if (!pick)
-    return (
-      <>
-        {highlights}
-        {filters}
-        <EmptyState size="page" mark="🎉" title={filter === 'open' ? 'Every pick is answered' : filter === 'notes' ? 'No picks have your notes' : 'Nothing here'} line="Pick another filter above to see the rest." />
-      </>
     );
-  const total = pick.comments.length + draft.pins.length;
-  const centre = (
-    <Flow gap={16} scroll={wide} style={HOLD} aria-label="The pick" id="pg-stage">
-      <Heading tier="subsection" as="h2" after={<TextStack subtitle={pick.decide} />}>
-        {clean(pick.title)}
-      </Heading>
-      {/* one row above the picture: the options, your answer, Send and the comment count (23 Nov: like Figma comments) */}
-      {/* what counts as an answer, said once above the controls (second pass, S15) */}
-      <TextStack title={yourAnswer ? `Your answer: ${yourAnswer}` : 'No answer yet'} />
-      <Flow direction="row" gap={12} align="center" wrap role="group" aria-label={`Your answer for ${pick.thumbs ? option.short : mark}`}>
-        {pick.options.length > 1 ? (
-          <SegmentedControl
-            label="Option"
-            value={String(i)}
-            onChange={(v) => setOpt((x) => ({ ...x, [pick.id]: Number(v) }))}
-            options={pick.options.map((o, n) => ({ value: String(n), label: o.letter ?? String(n + 1), ariaLabel: o.letter ? `${o.letter} · ${o.short}` : o.short }))}
-          />
-        ) : null}
-        <TextStack subtitle={pick.thumbs ? option.short : `${mark} · ${option.short}`} />
-        <FilterChip pressed={thumb === 'up'} onClick={() => setThumb('up')} ariaLabel="Thumbs up">
-          👍
-        </FilterChip>
-        <FilterChip pressed={thumb === 'down'} onClick={() => setThumb('down')} ariaLabel="Thumbs down">
-          👎
-        </FilterChip>
-        <Flow role="status" gap={0}>
-          {marked(draft) ? <TextStack body="Saved · not sent yet" /> : draft.sentAt ? <TextStack body="Sent" /> : null}
-        </Flow>
-        <Button variant="tertiary" size="sm" ariaExpanded={notes} onClick={() => setNotes((n) => !n)}>
-          {plural(total, 'comment')}
+  const total = pick.comments.length + draft.pins.filter((p) => !p.sent).length;
+
+  // the feedback sits after Send (Workbench A): what this pick holds that is not sent, or when it was sent; on a phone
+  // on its own line under the row, so the comment box keeps its width
+  const saidHere = (
+    <Flow role="status" gap={0}>
+      {marked(draft) ? <TextStack body="Saved, not sent yet" /> : draft.sentAt ? <TextStack body={`Sent ${clock(draft.sentAt)}`} /> : null}
+    </Flow>
+  );
+  // an answered pick reads as a record, not a question: what she picked and when, her notes, and one way to change it
+  // (her note, 23 Nov 22:05; something answered never asks again)
+  const record = !!pick.answer && !changing[pick.id];
+  const when = pick.answer ? day(pick.answer.when) ?? pick.answer.when : null;
+  const notesSaid = pick.comments.filter((c) => !c.n);
+  const recordRow = record ? (
+    <Flow gap={12} role="group" aria-label="Your answer">
+      <TextStack title={`You picked ${pick.answer.text}`} subtitle={when ?? undefined} />
+      {/* her words, without the stored "A · pin 1:" prefix the note carries for the agent */}
+      {notesSaid.map((c) => (
+        <TextStack key={c.id} body={herWords(c.text)} />
+      ))}
+      <Flow direction="row" justify="end">
+        <Button variant="secondary" onClick={() => setChanging((x) => ({ ...x, [pick.id]: true }))}>
+          Change my answer
         </Button>
-        <Link href={pick.page} external>
-          Review page
-        </Link>
       </Flow>
-      <PicturePins
-        key={`${pick.id}-${i}`}
-        src={option?.img}
-        alt={`${pick.title}: ${option.short}`}
-        pins={pinsHere}
-        setPins={(next) =>
-          setDraft((d) => {
-            const mine = d.pins.filter((p) => p.option === mark);
-            const out = (typeof next === 'function' ? next(mine) : next).map((p) => (p.option ? p : { ...p, option: mark }));
-            return { ...d, pins: [...d.pins.filter((p) => p.option !== mark), ...out] };
-          })
-        }
-        numberOf={pinNo}
-        commitLabel="Save"
-      />
+    </Flow>
+  ) : null;
+  // one row under the picture: the choice, thumbs, one comment box and one Send for this pick (Workbench A)
+  const row = (
+    <Flow direction="row" gap={12} align="end" wrap grow="last" role="group" aria-label={`Your answer for ${pick.thumbs ? option.short : `${mark} · ${option.short}`}`}>
+      {pick.options.length > 1 ? (
+        <SegmentedControl
+          label="Option"
+          stretch={phone}
+          value={String(i)}
+          onChange={(v) => setOpt((x) => ({ ...x, [pick.id]: Number(v) }))}
+          options={pick.options.map((o, n) => ({ value: String(n), label: o.letter ?? String(n + 1), ariaLabel: o.letter ? `${o.letter} · ${o.short}` : o.short }))}
+        />
+      ) : null}
+      <Flow direction="row" gap={8} align="center">
+        <Button variant="secondary" iconOnly icon="ThumbsUp" ariaLabel={`Looks right: ${pick.thumbs ? option.short : mark}`} ariaPressed={thumb === 'up'} onClick={() => setThumb('up')} />
+        <Button variant="secondary" iconOnly icon="ThumbsDown" ariaLabel={`Change it: ${pick.thumbs ? option.short : mark}`} ariaPressed={thumb === 'down'} onClick={() => setThumb('down')} />
+      </Flow>
+      <Flow as="form" direction="row" gap={8} align="end" grow="first" onSubmit={(e) => (e.preventDefault(), post([{ ...pick }]))}>
+        <Input label="Comment" labelPosition={phone ? 'top' : 'inline'} value={draft.comment ?? ''} onChange={(v) => setDraft((d) => ({ ...d, comment: v }))} placeholder="Say what you think…" />
+        <Button variant="primary" type="submit" busy={batch.sending} disabled={!marked(draft)}>
+          Send
+        </Button>
+        {phone ? null : saidHere}
+      </Flow>
+      {phone ? saidHere : null}
     </Flow>
   );
 
   // the comments: a thin panel opened from the comment count and closed again; saved notes first, then pins not sent yet
-  const right = notes ? (
+  const panel = (close) => (
     <Card>
       <Flow gap={12}>
         <Flow direction="row" gap={8} align="center" justify="between">
           <SectionHead title="Comments" number={total || undefined} titleLevel={2} />
-          <Button variant="tertiary" size="sm" iconOnly icon="Xmark" ariaLabel="Close comments" onClick={() => setNotes(false)} />
+          <Button variant="tertiary" size="sm" iconOnly icon="Xmark" ariaLabel="Close comments" onClick={close} />
         </Flow>
         {total ? (
           <Flow as="ol" gap={12} aria-label="Comments">
+            {/* each comment as Figma lists them: her avatar, name and when, then her words (templates/Comment.jsx) */}
             {pick.comments.map((c) => (
-              <Flow as="li" key={c.id} gap={4}>
-                <Flow direction="row" gap={8} align="center" wrap>
-                  {c.n ? <Pin number={c.n} pinStyle="solid" variant="red" /> : <TextStack title="Note" />}
-                  <TextStack meta={[c.n ? null : c.on, day(c.when)].filter(Boolean).join(' · ')} />
-                </Flow>
-                <TextStack body={c.text} />
-              </Flow>
+              <li key={c.id}>
+                <CommentBubble flat when={[day(c.when) ?? c.when, c.n ? 'on the picture' : null].filter(Boolean).join(' · ')}>
+                  <TextStack body={herWords(c.text)} />
+                </CommentBubble>
+              </li>
             ))}
             {draft.pins.filter((p) => !p.sent).map((p) => (
-              <Flow as="li" key={p.id} gap={4}>
-                <Flow direction="row" gap={8} align="center" wrap>
-                  <Pin number={pinNo(p)} pinStyle="solid" variant="red" label="not sent" />
-                </Flow>
-                <TextStack body={p.note} />
-              </Flow>
+              <li key={p.id}>
+                <CommentBubble flat when="Draft, not sent yet">
+                  <TextStack body={p.note} />
+                </CommentBubble>
+              </li>
             ))}
           </Flow>
         ) : (
@@ -580,58 +558,57 @@ export default function PlaygroundPicks() {
         )}
       </Flow>
     </Card>
-  ) : null;
+  );
 
   return (
-    <>
-      {highlights}
-      {filters}
-      {wide ? (
-        // the list, then the picture (it takes the room) and, only when asked for, the thin comments panel
-        <Flow direction="row" gap={24} fill>
-          <Flow aside>
-            <Flow fit="rest">
-              <Flow span={12}>{list}</Flow>
-            </Flow>
-          </Flow>
-          <Flow direction="row" gap={24} grow="first">
-            <Flow fit="rest">
-              <Flow span={12}>{centre}</Flow>
-            </Flow>
-            {right ? (
-              <Flow fit="rest" style={{ inlineSize: 'calc(var(--spacing-4) * 80)', flexShrink: 0 }}>
-                <Flow span={12}>{right}</Flow>
-              </Flow>
-            ) : null}
-          </Flow>
-        </Flow>
-      ) : phone ? (
-        <Flow gap={24}>
-          <Flow fit>
-            <Flow span={12}>{list}</Flow>
-          </Flow>
-          {centre}
-          {right}
-        </Flow>
-      ) : (
-        // the list beside the picture; the comments under it, in the same scroll
-        <Flow direction="row" gap={24} fill>
-          <Flow aside>
-            <Flow fit="rest">
-              <Flow span={12}>{list}</Flow>
-            </Flow>
-          </Flow>
-          <Flow fit="rest">
-            <Flow span={12}>
-              <Flow gap={24} scroll style={HOLD}>
-                {centre}
-                {right}
-              </Flow>
-            </Flow>
-          </Flow>
-        </Flow>
-      )}
-      <SendBar count={markedPicks.length} onSend={sendAll} sending={batch.sending} result={batch.result} failed={batch.failed} onBack={() => (window.location.hash = '#/health/work')} onDismiss={() => setBatch({ sending: false, result: null, failed: null })} />
-    </>
+    <Workbench
+      id="pg-stage"
+      top={top}
+      title={clean(pick.title)}
+      subtitle={record ? `Answered${when ? ` ${when}` : ''}` : [pick.decide, yourAnswer ? `Your answer: ${yourAnswer}` : null].filter(Boolean).join(' · ')}
+      count={total}
+      notes={panel}
+      tools={{ zoom, fit: fit.fit, whole: fit.whole, onZoom: setZoom }}
+      picture={
+        <PicturePins
+          key={`${pick.id}-${i}`}
+          src={option?.img}
+          alt={`${pick.title}: ${option.short}`}
+          pins={pinsHere}
+          setPins={(next) =>
+            setDraft((d) => {
+              const mine = d.pins.filter((p) => p.option === mark);
+              const out = (typeof next === 'function' ? next(mine) : next).map((p) => (p.option ? p : { ...p, option: mark }));
+              return { ...d, pins: [...d.pins.filter((p) => p.option !== mark), ...out] };
+            })
+          }
+          numberOf={pinNo}
+          commitLabel="Save"
+          zoom={zoom}
+          onZoomChange={setZoom}
+          onFitChange={(f, w) => setFit({ fit: f, whole: w })}
+          reserve={phone ? 360 : 580}
+        />
+      }
+      row={record ? recordRow : row}
+      strip={{
+        title: 'Picks',
+        currentId: pick.id,
+        onPick: choose,
+        items: shown.map((p) => {
+          const d = drafts[p.id];
+          const mine = marked(d);
+          const count = p.comments.length + (d?.pins.filter((x) => !x.sent).length ?? 0);
+          return {
+            id: p.id,
+            title: shortName(p.title),
+            line: [p.from, count ? plural(count, 'comment') : null].filter(Boolean).join(' · '),
+            status: mine ? 'Marked' : d?.sentAt ? 'Sent' : p.answer ? 'Answered' : 'Not answered',
+            tone: mine ? 'attention' : d?.sentAt || p.answer ? 'success' : 'neutral',
+          };
+        }),
+      }}
+      bar={bar}
+    />
   );
 }

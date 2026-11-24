@@ -25,6 +25,7 @@
     "check:stories": "node scripts/story-links-check.mjs",
     "check:states": "node scripts/states-strip-check.mjs",
     "check:topbar": "node scripts/top-bar-check.mjs",
+    "check:routes": "node scripts/route-check.mjs",
     "check:process-lines": "node scripts/process-line-check.mjs",
     "check:system": "node scripts/system-check.mjs",
     "check:rules": "node scripts/rules-check.mjs",

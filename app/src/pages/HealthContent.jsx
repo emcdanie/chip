@@ -253,7 +253,15 @@ function ContrastCoverage({ contrast }) {
         footer={fix.footer}
         footerNote={fix.footerNote}
       >
-        <ReadingGroups openFirst label="Parts by contrast pairs" groups={[{ name: 'No pairs declared', tone: 'attention', items: names.map((n) => ({ key: n, title: n })) }]} />
+        {names.length ? (
+          <ReadingTable
+            caption="Parts that declare no contrast pair"
+            unit="parts"
+            density="compact"
+            rows={names.map((n) => ({ key: n, part: n }))}
+            columns={[{ key: 'part', label: 'Part with no pair declared' }]}
+          />
+        ) : null}
         {fix.body}
       </ReadingDrawer>
     </>
@@ -453,6 +461,7 @@ function DriftCard({ components, d }) {
           </>
         ) : view === 'table' ? (
           <ReadingTable
+            unit="parts"
             caption="Every part that differs: its Figma differences, and the props its spec is behind on"
             rowKey="name"
             rows={rows}
@@ -540,12 +549,25 @@ function GapsCard({ g }) {
         footer={g.notInCode.length ? <Button variant="primary" onClick={plan}>Plan the build</Button> : undefined}
         footerNote={g.notInCode.length ? 'Opens the plan; nothing runs until you approve it.' : undefined}
       >
-        <ReadingGroups
-          openFirst
-          label="Gaps by kind"
-          groups={[
-            { name: 'Specified, not in code', tone: 'info', items: g.notInCode.map((n) => ({ key: n, title: n })) },
-            { name: 'Not in BELLA yet', tone: 'neutral', items: g.notInBella.map((n) => ({ key: n, title: n })) },
+        {/* one compact table with the two kinds as filter chips above it (23 Nov evening, her pick for long lists of parts:
+            "the table with filter buttons above it"; drawer-data-types.md, component list): a row is the part, its state
+            on one line (the state word says where it is written: a spec, or BELLA's AGENTS.md) */}
+        <ReadingTable
+          caption="Parts BELLA can't give yet"
+          unit="parts"
+          density="compact"
+          rows={[
+            ...g.notInCode.map((n) => ({ key: n, kind: 'spec', part: n, state: 'Spec, no code' })),
+            ...g.notInBella.map((n) => ({ key: n, kind: 'bella', part: n, state: 'Not in BELLA yet' })),
+          ]}
+          columns={[
+            { key: 'part', label: 'Part' },
+            { key: 'state', label: 'State', stackUnder: true, byFilter: true },
+          ]}
+          filters={[
+            { value: 'all', label: 'All' },
+            { value: 'spec', label: 'Specified, not in code', test: (r) => r.kind === 'spec' },
+            { value: 'bella', label: 'Not in BELLA yet', test: (r) => r.kind === 'bella' },
           ]}
         />
       </ReadingDrawer>
@@ -623,13 +645,25 @@ function GateCard({ gate, run, onOpen }) {
         footer={fix.footer}
         footerNote={fix.footerNote}
       >
-        <ReadingGroups
-          openFirst
-          label="The gate checks by state"
-          groups={[
-            { name: 'Failing', tone: 'danger', items: (gate.members ?? []).filter((m) => ['failed', 'waiting'].includes(m.status)).map((m) => ({ key: m.name, title: m.name, state: m.when ?? undefined })) },
-            { name: 'Not run yet', tone: 'neutral', items: (gate.members ?? []).filter((m) => m.status === 'not-run').map((m) => ({ key: m.name, title: m.name, })) },
-            { name: 'Passing', tone: 'success', items: (gate.members ?? []).filter((m) => m.status === 'passed').map((m) => ({ key: m.name, title: m.name, state: m.when ? `${m.when}${m.commit && gate.head && m.commit !== gate.head ? ', older commit' : ''}` : undefined })) },
+        {/* the gate's checks as one compact table, state words as filter chips (23 Nov evening: tighter rows, one line each) */}
+        <ReadingTable
+          caption="The gate checks"
+          unit="checks"
+          density="compact"
+          rows={(gate.members ?? []).map((m) => ({
+            key: m.name,
+            check: m.name,
+            state: ['failed', 'waiting'].includes(m.status) ? 'Failing' : m.status === 'not-run' ? 'Not run yet' : m.status === 'passed' ? 'Passing' : 'Running',
+            when: m.status === 'not-run' ? 'No recorded run' : `${m.when ?? ''}${m.commit && gate.head && m.commit !== gate.head ? ', older commit' : ''}` || '—',
+          }))}
+          columns={[
+            { key: 'check', label: 'Check' },
+            { key: 'state', label: 'State', stackUnder: true, byFilter: true },
+            { key: 'when', label: 'Last run' },
+          ]}
+          filters={[
+            { value: 'all', label: 'All' },
+            ...['Failing', 'Not run yet', 'Passing'].map((w) => ({ value: w, label: w, test: (r) => r.state === w })),
           ]}
         />
         {fix.body}

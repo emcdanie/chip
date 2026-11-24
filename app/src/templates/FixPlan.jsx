@@ -14,7 +14,7 @@ import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Input from '@bella/components/Input/Input';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
-import { Facts, Inset } from './ReadingDrawer.jsx';
+import { Facts, Inset, ListHead } from './ReadingDrawer.jsx';
 import { planRun } from './RunPlan.jsx';
 
 const post = (url, body) =>
@@ -86,6 +86,19 @@ export function useFixPlan(plan, onBefore) {
           ))}
         </Flow>
       ) : null}
+      {/* the steps' count and the toggles sit above the steps (ListHead), so Show fewer is where she pressed Show all */}
+      <ListHead
+        shown={editing ? steps.length : allSteps ? steps.length : Math.min(SHOWN, steps.length)}
+        total={steps.length}
+        unit="steps"
+        open={!editing && allSteps}
+        onToggle={editing ? undefined : () => setAllSteps(!allSteps)}
+        extra={
+          <Button variant="tertiary" size="sm" ariaExpanded={editing} onClick={() => setEditing(!editing)}>
+            {editing ? 'Done editing' : 'Edit the plan'}
+          </Button>
+        }
+      />
       {editing ? (
         <Input label="The plan: edit it" multiline value={brief} onChange={setBrief} />
       ) : (
@@ -100,16 +113,6 @@ export function useFixPlan(plan, onBefore) {
           </Flow>
         </Flow>
       )}
-      <Flow direction="row" gap={8} justify="end" wrap>
-        {!editing && steps.length > SHOWN ? (
-          <Button variant="tertiary" size="sm" ariaExpanded={allSteps} onClick={() => setAllSteps(!allSteps)}>
-            {allSteps ? 'Show fewer steps' : `Show all ${steps.length} steps`}
-          </Button>
-        ) : null}
-        <Button variant="tertiary" size="sm" ariaExpanded={editing} onClick={() => setEditing(!editing)}>
-          {editing ? 'Done editing' : 'Edit the plan'}
-        </Button>
-      </Flow>
       {/* one card she approves whole (template plan): three inline lead-ins, not three headings */}
       <Facts
         label="About this plan"

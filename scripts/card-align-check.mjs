@@ -3,7 +3,7 @@
 // 1440, 1024, 768 and 320, with the side menu shown and hidden and the Work panel closed and open (and Health's
 // drawers open), it finds every card (a rounded, shadowed box), groups the cards that sit side by side into rows
 // and FAILS when
-//   (a) the same part (title row, big number, bar, caption, footer) of cards in one row sits at a different y
+//   (a) the same part (title row, big number, bar, caption, footer, status) of cards in one row sits at a different y
 //       by more than 1px, or a footer's bottom is not the same distance from its card's bottom edge,
 //   (b) a card has more than 24px between its last content and its bottom edge (the padding included),
 //   (c) a card overflows its own box or the window, or clips its content,
@@ -115,6 +115,9 @@ const measure = () => {
         part('caption', '[class*="caption"]'),
         part('footer', '[class*="footer"], [class*="Footer"]'),
         part('footer foot', '[class*="footer"], [class*="Footer"]', 'foot'),
+        // a card's status row (TaskCard's Marked, Sent, Answered): in a row of cards it sits at one height, pinned to the
+        // foot (23 Nov: the Playground strip passed with its statuses at seven heights, because no part named status was read)
+        part('status', '[class*="status"]'),
       ].filter(Boolean),
     );
     const name = (c.querySelector('[class*="title"], h1, h2, h3, h4, [role="heading"]')?.textContent || c.getAttribute('aria-label') || String(c.className)).trim().slice(0, 28);
@@ -132,6 +135,9 @@ const measure = () => {
       kind: `${kind}`,
       sig,
       outer,
+      // the list the card sits in (a strip's ul): the status row is compared only among cards of one list, because the
+      // Work board's lanes put the first card of each lane at one top without being a row
+      list: (() => { const l = c.closest('ul, ol'); if (!l) return null; if (!l.dataset.cardList) l.dataset.cardList = String(document.querySelectorAll('[data-card-list]').length + 1); return l.dataset.cardList; })(),
       t: cr.top,
       b: cr.bottom,
       l: cr.left,
@@ -225,7 +231,7 @@ function judge(cards) {
   const rows = rowsOf(cards);
   // cards of one kind in a row are compared part by part; the parts below a chart are compared only among cards
   // that draw the same parts above it (a card with no bar has its line higher by design)
-  const TOP = ['title', 'label', 'number', 'bar', 'context'];
+  const TOP = ['title', 'label', 'number', 'bar', 'context', 'status'];
   rows.forEach((row) => {
     [...new Set(row.map((c) => c.kind))].forEach((kind) => {
       const same = row.filter((c) => c.kind === kind);
@@ -242,7 +248,8 @@ function judge(cards) {
       // the title row is the same in every card of the row; the footer's foot is the same distance from the edge
       test(same, 'title', (c) => c.parts.title);
       test(same, 'footer foot', (c) => c.parts['footer foot']);
-      bySig.forEach((g) => TOP.slice(1).forEach((k) => test(g, k, (c) => c.parts[k])));
+      bySig.forEach((g) => TOP.slice(1, -1).forEach((k) => test(g, k, (c) => c.parts[k])));
+      [...new Set(same.map((c) => c.list).filter(Boolean))].forEach((l) => test(same.filter((c) => c.list === l), 'status', (c) => c.parts.status));
     });
   });
   return { bad, rows: rows.length, worstDy, worstDead };

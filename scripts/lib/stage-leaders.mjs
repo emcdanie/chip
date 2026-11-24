@@ -112,7 +112,7 @@ export const DRAWER_WATCHED = [
   'app/src/templates/NewStart.jsx', 'app/src/templates/WorkDock.jsx', 'app/src/templates/SetupSteps.jsx', 'app/src/templates/ConnectorSetup.jsx',
   'app/src/templates/FigmaSetup.jsx', 'app/src/pages/HealthContent.jsx', 'app/src/pages/AuditReading.jsx', 'app/src/pages/WorkDrawer.jsx',
   'app/src/pages/DocReader.jsx', 'app/src/pages/StepPanel.jsx', 'app/src/pages/HistoryContent.jsx', 'app/src/pages/ConnectorsContent.jsx',
-  'app/src/pages/ComponentsContent.jsx', 'app/src/pages/PlaygroundContent.jsx',
+  'app/src/pages/ComponentsContent.jsx', 'app/src/pages/PlaygroundContent.jsx', 'app/src/pages/AuditReportsContent.jsx',
 ];
 export const DRAWER_RECORD = join(ROOT, 'data', 'drawer-footer.json');
 export const drawerInputsHash = () => {

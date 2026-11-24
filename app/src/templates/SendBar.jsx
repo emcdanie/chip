@@ -13,9 +13,11 @@ const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
  * count: marked items; onSend(): posts them all in one request; sending; result: { n, at } after a send; failed: text;
  * onBack(): back to the board; onDismiss(): closes the confirmation and keeps marking.
  */
-export default function SendBar({ count, onSend, sending, result, failed, onBack, onDismiss }) {
+export default function SendBar({ count, onSend, sending, result, failed, onBack, onDismiss, inFlow = false }) {
   if (!count && !result && !failed) return null;
-  const wrap = (node) => <div style={{ position: 'sticky', insetBlockEnd: 'var(--spacing-16)', zIndex: 2 }}>{node}</div>;
+  // sticky at the foot of the window, or (inFlow) in its place in the page: the Workbench puts it under the strip, as
+  // Workbench A draws it, so it never covers the picture or the comment row
+  const wrap = (node) => (inFlow ? <div>{node}</div> : <div style={{ position: 'sticky', insetBlockEnd: 'var(--spacing-16)', zIndex: 2 }}>{node}</div>);
   // a failed send says so in words and keeps every draft; Try again sends the same batch
   if (failed) return wrap(<Notification tone="danger" title="Not sent" message={failed} action={{ label: 'Try again', onClick: onSend }} />);
   // after a send: a clear confirmation, read out to screen readers (Notification is role status), with the way back
@@ -34,7 +36,7 @@ export default function SendBar({ count, onSend, sending, result, failed, onBack
     <Card>
       <Flow direction="row" gap={12} align="center" justify="end" wrap role="group" aria-label="Send all">
         <Flow role="status" gap={0} grow="first">
-          <TextStack body={`${count} marked`} />
+          <TextStack body={`${count} marked · not sent yet`} />
         </Flow>
         <Button variant="primary" busy={sending} onClick={onSend}>
           Send all

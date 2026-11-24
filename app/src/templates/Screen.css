@@ -251,6 +251,19 @@
 .chip-hold { white-space: nowrap; }
 .chip-flow--row { flex-direction: row; }
 .chip-flow--wrap { flex-wrap: wrap; }
+/* swipe (23 Nov evening, the Gaps drawer at 320: three chips stacked as three rows and pushed the table down): one
+   row that scrolls sideways instead of wrapping; 4 of padding, taken back by the margin, so a chip's focus ring is not
+   cut by the scroll box's edge */
+.chip-flow--swipe {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  padding: var(--spacing-4);
+  margin: calc(var(--spacing-4) * -1);
+  scroll-padding-inline: var(--spacing-4);
+}
+.chip-flow--swipe > * { flex: none; }
 .chip-flow--fill > * { flex: 1 1 auto; }
 /* cards: one grid, so the cards of a row share its height and their parts line up across it (the cards' own
    bodies start at the top and their footers sit on the bottom edge, BELLA); an odd last card takes the row */
@@ -429,4 +442,82 @@
   max-block-size: none;
   overflow: visible;
   padding: var(--spacing-8) 0 0;
+}
+
+/* The start of the app (app/index.html): the frame's outline until the app and its fonts are ready. Nothing shows for
+   the first second (BELLA Progress: under 1 second, show nothing), then the menu column, the top row and two content
+   blocks in the page's own colours, never text in a fallback font (Elleta, 23 Nov evening). */
+.chip-boot {
+  display: grid;
+  grid-template-columns: calc(var(--spacing-80) * 3 - var(--spacing-8)) minmax(0, 1fr);
+  block-size: 100dvh;
+  opacity: 0;
+  animation: chip-boot-in 0s linear 1s forwards;
+}
+@keyframes chip-boot-in { to { opacity: 1; } }
+.chip-boot__menu {
+  background: var(--color-background-surface);
+  box-shadow: inset calc(-1 * var(--border-width-1)) 0 0 var(--color-border-default);
+}
+.chip-boot__main {
+  display: grid;
+  grid-template-rows: calc(var(--size-28) * 2) var(--spacing-80) minmax(0, 1fr);
+  gap: var(--layout-gutter);
+  padding-block-end: var(--layout-gutter);
+}
+.chip-boot__row { background: var(--color-background-surface); margin-block-end: calc(-1 * var(--layout-gutter)); }
+.chip-boot__block {
+  margin-inline: var(--layout-container-pad);
+  border-radius: var(--border-radius-20);
+  background: var(--color-background-subtle);
+}
+@media (width < 1024px) {
+  .chip-boot { grid-template-columns: minmax(0, 1fr); }
+  .chip-boot__menu { display: none; }
+}
+
+/* Flow grid: the CHIP / Screen 12 columns inside a block, so its parts sit on the page's columns (visual study, 22 Nov,
+   approved: "every block's edge on a column"); a child says how many columns it takes with style gridColumn 'span n'. */
+.chip-flow.chip-flow--grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--layout-gutter);
+  align-items: start;
+}
+
+/* Flow strip: a row of cards you pick from (Playground picks, Needs you; Workbench A, 23 Nov 2026; her note at 22:00:
+   "tighter", "use the card grid"). One grid row of equal cards that scrolls sideways and snaps; each card takes whole
+   columns of the page grid with the gutter between them (3 columns from a 1000 content width, 4 below, 10 on a phone,
+   so the next card peeks), as the Work board's lanes do. Three shared rows (title, line, status) that every item takes
+   through subgrid, so all cards are one height and each part sits at one height across the row, the status pinned to
+   the foot (TaskCard use="pick"). 16 of room inside so the cards' shadows, the selected outline and focus rings are
+   never cut; the negative margin keeps the first card on the grid's first column. */
+.chip-flow.chip-flow--strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100cqi - 11 * var(--layout-gutter)) / 3 + 3 * var(--layout-gutter));
+  grid-template-rows: auto auto 1fr;
+  column-gap: var(--layout-gutter);
+  row-gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--spacing-16);
+  padding: var(--spacing-16);
+  margin: calc(var(--spacing-16) * -1);
+  position: relative;
+}
+.chip-flow--strip > * {
+  grid-row: span 3;
+  display: grid;
+  grid-template-rows: subgrid;
+  min-inline-size: 0;
+  scroll-snap-align: start;
+}
+@container chip-content (width >= 1000px) {
+  .chip-flow.chip-flow--strip { grid-auto-columns: calc((100cqi - 11 * var(--layout-gutter)) / 4 + 2 * var(--layout-gutter)); }
+}
+@container chip-content (width < 500px) {
+  .chip-flow.chip-flow--strip { grid-auto-columns: calc((100cqi - 11 * var(--layout-gutter)) / 12 * 10 + 9 * var(--layout-gutter)); }
 }

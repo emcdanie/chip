@@ -326,7 +326,10 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
   const open = (c) => {
     const o = c.open;
     if (c.kind === 'session') return setOpen({ kind: 'session', card: c });
-    if (c.kind === 'review' && c.needs && o?.kind === 'page') return setReviewing(c.id);
+    // every card that needs her opens the Needs you view, where she goes through them all and marks them up (her pick
+    // A, 23 Nov 23:00: "every new needs you card opens on this view, that's really helpful"); a card with no picture shows
+    // its summary there with Open it, which then opens it the old way
+    if (c.needs && !c.fromNeedsView) return setReviewing(c.id);
     if (o.kind === 'page') return setReviewing(c.id); // a review page opens inside CHIP, needs her or not
     if (o.kind === 'link') return window.open(o.href, '_blank', 'noopener');
     if (o.kind === 'hash') return (window.location.hash = o.href);
@@ -367,7 +370,8 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     <>
       {/* Tools row, full width (23 Nov: "i want this to span so the numerical values are on the right"): Filter, Sort,
           Search on the left; the count, the last check and the views on the right. */}
-      {reviewing ? null : <Flow sticky={!phone} style={phone ? undefined : { background: 'var(--color-background-default)', insetBlockStart: 'calc(var(--spacing-24) * -1)', paddingBlock: 'var(--spacing-24) var(--spacing-8)', marginBlockStart: 'calc(var(--spacing-24) * -1)' }} direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'}>
+      {reviewing ? null : <Flow sticky={!phone} style={phone ? undefined : { background: 'var(--color-background-default)', insetBlockStart: 'calc(var(--spacing-24) * -1)', paddingBlock: 'var(--spacing-24) var(--spacing-8)', marginBlockStart: 'calc(var(--spacing-24) * -1)' }} gap={16}>
+        <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'}>
         <Flow direction="row" gap={8} align="center" wrap stretch={phone}>
           <div data-tool="filter" className="chip-pop" style={phone ? { position: 'static' } : undefined}>
             <Button variant="tertiary" size="sm" iconOnly icon="FilterList" ariaLabel="Filter" ariaPressed={!!filter} ariaExpanded={tool === 'filter'} onClick={() => setTool((t) => (t === 'filter' ? null : 'filter'))} />
@@ -426,20 +430,24 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
           </Flow>
           <SegmentedControl options={VIEWS} value={view} onChange={onView} label="Work view" />
         </Flow>
-      </Flow>}
-      {/* the project filter (New, 23 Nov): one chip per project, read from /projects: CHIP, Site, BELLA and the ones made in New */}
-      {reviewing || !all || (projects?.length ?? 0) < 2 ? null : (
-        <Flow direction="row" gap={8} wrap align="center" role="group" aria-label="Project">
-          <FilterChip pressed={!project} onClick={() => project && setProject(null)}>
-            All
-          </FilterChip>
-          {projects.map((p) => (
-            <FilterChip key={p.id} pressed={project?.toLowerCase() === p.name.toLowerCase() || project?.toLowerCase() === p.id.toLowerCase()} onClick={() => setProject(project?.toLowerCase() === p.name.toLowerCase() || project?.toLowerCase() === p.id.toLowerCase() ? null : p.name)}>
-              {p.name}
+      </Flow>
+        {/* the project filter (New, 23 Nov): one chip per project, read from /projects: CHIP, Site, BELLA and the ones made
+            in New. Inside the sticky tools block, so it stays in view and never scrolls under the tools row (24 Nov: it
+            showed cut off under it). Not on the tools line itself: at 1440 the tools and the four chips need about 1200
+            of the 1144 there is. */}
+        {!all || (projects?.length ?? 0) < 2 ? null : (
+          <Flow direction="row" gap={8} wrap align="center" role="group" aria-label="Project">
+            <FilterChip pressed={!project} onClick={() => project && setProject(null)}>
+              All
             </FilterChip>
-          ))}
-        </Flow>
-      )}
+            {projects.map((p) => (
+              <FilterChip key={p.id} pressed={project?.toLowerCase() === p.name.toLowerCase() || project?.toLowerCase() === p.id.toLowerCase()} onClick={() => setProject(project?.toLowerCase() === p.name.toLowerCase() || project?.toLowerCase() === p.id.toLowerCase() ? null : p.name)}>
+                {p.name}
+              </FilterChip>
+            ))}
+          </Flow>
+        )}
+      </Flow>}
       {/* where the picked project stands: its own numbers and a bar, counted from its cards; on a phone the short form (the line above already says now and waiting) */}
       {reviewing || !all || !projectName || stats.cards === 0 ? null : (
         <Progress label={projectName} value={phone ? `${stats.shipped} of ${stats.total} shipped` : `${stats.shipped} shipped · ${stats.now} now · ${stats.waiting} waiting on you`} fill={stats.total ? Math.round((100 * stats.shipped) / stats.total) : 0} tone="success" summary={`${projectName}: ${stats.shipped} shipped, ${stats.now} now, ${stats.waiting} waiting on you.`} />
@@ -477,7 +485,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
               cards={model.lanes.flatMap((l) => l.cards).filter((c) => c.needs || c.id === reviewing)}
               startId={reviewing}
               onBack={() => setReviewing(null)}
-              onOpenOther={(c) => (setReviewing(null), open(c))}
+              onOpenOther={(c) => (setReviewing(null), open({ ...c, fromNeedsView: true }))}
               onNotice={(n) => move.setNotice({ tone: n.tone, message: `${n.title}. ${n.message}` })}
             />
           ) : projectName && stats.cards === 0 && !q ? (

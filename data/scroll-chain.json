@@ -1,68 +1,68 @@
 {
- "at": "2026-11-23T23:04:45.943Z",
+ "at": "2026-11-23T23:30:57.411Z",
  "routes": {
   "#/work": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
    "total": 22
   },
   "#/health": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
    "total": 40
   },
   "#/system/components": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
    "total": 13
   },
   "#/system/foundations": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
    "total": 14
   },
   "#/system/history": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
    "total": 14
   },
   "#/playground": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
-   "total": 16
+   "total": 10
   },
   "#/system-map": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
    "total": 10
   },
   "#/connectors": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
    "total": 10
   },
   "#/team": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
    "total": 10
   },
   "#/not-again": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
    "total": 10
   },
   "#/health/audits": {
-   "hash": "587ae5585673f0d3c55cf30ae7cce067f36ab9a3",
+   "hash": "2d6338e7320e27457d884748af3f6ebd9db74867",
    "ok": true,
    "bad": 0,
    "total": 10
