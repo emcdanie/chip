@@ -200,7 +200,7 @@ function Crumb({ trail, href, linked, compact }) {
 }
 
 /* The one side menu (her nav C pick, 22 Nov), in her words: where you go, what is pinned, the projects,
-   and Team and Settings at the foot. One current item, the page you are on (aria-current page): a pinned
+   and Team and Connectors at the foot. One current item, the page you are on (aria-current page): a pinned
    page wins over its project, so Components marks Components, the other CHIP tabs mark CHIP. Branches
    filter the board from Work's own control bar, so no branch name sits in the menu. Site and BELLA open
    the old app's project page until theirs are rebuilt. */
@@ -226,10 +226,13 @@ function menuModel({ place, tab, projects, needs }) {
     // every project opens the new board (23 Nov: "the old board show when i click projects like site")
     // the side menu's Projects set the Work board's project filter and put the project in the breadcrumb (picked A, 22 Nov:
     // one board with a project filter, no board per project)
-    projects: (projects ?? []).map((p) => ({ label: p.name, href: `#/work?project=${p.id}`, current: place === 'work' && !needsHere && p.id === project })),
+    // no Projects in the side menu for the demo (Elleta, 24 Nov morning review): the Work board's project chips pick a
+    // project; a project's address (#/work?project=) still works
+    projects: [],
     foot: [
       { label: 'Team', href: '#/team', icon: 'Group', current: place === 'team' },
-      { label: 'Settings', href: '#/connectors', icon: 'Settings', current: place === 'settings' },
+      // named for what it holds until there are settings (Elleta, 24 Nov morning review)
+      { label: 'Connectors', href: '#/connectors', icon: 'Network', current: place === 'settings' },
     ],
   };
 }
@@ -388,7 +391,7 @@ export default function Screen({ place, header, tabs, children }) {
           {/* the Find field first, as in the menu at full width (her mark-up, 23 Nov), 16 above the rows like the menu's
               own gap between groups (23 Nov evening: it sat on the selected row) */}
           <Flow gap={16}>
-            <Flow role="search" direction="row" gap={4} align="start" grow="first">
+            <Flow role="search" direction="row" gap={12} align="start" grow="first" style={{ maxInlineSize: 'calc(var(--layout-search-max-width) + var(--spacing-12) + var(--spacing-44))' }}>
               <Search inDrawer />
             </Flow>
             <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />

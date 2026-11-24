@@ -1,17 +1,17 @@
 {
- "at": "2026-11-24T08:45:10.782Z",
+ "at": "2026-11-24T08:55:05.206Z",
  "files": {
   "app/src/templates/Flow.jsx": "8764a71b1f2712cca45a1dd818dee16d2631fa54",
-  "app/src/templates/Screen.jsx": "c63552a4ecb6a66df320c060dc529607bc1c7310",
-  "app/src/templates/Screen.css": "9246a9ff897a698da362229f3b842439e53818f9",
-  "app/src/pages/AuditReportsContent.jsx": "145e98d973c1a3360e001c6ddf4fca695a46bc7e",
+  "app/src/templates/Screen.jsx": "9db48256257c30e0e17782d484d8406eb99d4516",
+  "app/src/templates/Screen.css": "80f579a66254dd3175c436730fdc7b5dde31bd5d",
+  "app/src/pages/AuditReportsContent.jsx": "2c525417164fcc48691c273cae93fb4a053eb78b",
   "app/src/pages/ComponentsContent.jsx": "7b7f0f2b88c61f46c7f0121c246df13b9b5a5c5e",
-  "app/src/pages/ConnectorsContent.jsx": "b33d472003614200f1612fc3fa00b3c8f1f3369c",
+  "app/src/pages/ConnectorsContent.jsx": "6d8c5024cfdf71090e11d1741e68c2d5b0e17a61",
   "app/src/pages/DocsContent.jsx": "b1e73ba0ff67aff7467a9c52cef5a811b6444868",
-  "app/src/pages/FoundationsContent.jsx": "0344195ae021a0f6e160a9a9a5efd7bbb70af47e",
+  "app/src/pages/FoundationsContent.jsx": "45b2ff6c6ed764796a4ad117ae0997976e844146",
   "app/src/pages/HealthContent.jsx": "52bb12bb0280a7386877c64c4226279460d0e70b",
   "app/src/pages/HistoryContent.jsx": "440456813eeb09f8e9e05d3c21236fe6fcedc737",
-  "app/src/pages/NotAgainContent.jsx": "9eb4995ded48a5d498c8b621b1622b25005fe5d4",
+  "app/src/pages/NotAgainContent.jsx": "bc8b71829699f3f0506cbcb5b64ffb55d99c1493",
   "app/src/pages/PlaygroundContent.jsx": "698bbde7e14c1b624655fa38771582ded37f9ff2",
   "app/src/pages/SystemMapContent.jsx": "d82206e34450e12be7b5afa5e198ccad999c7f7f",
   "app/src/pages/TeamContent.jsx": "c1642a1a11e5f30da4b92add5c2df9c8aedc909d",
@@ -33,5 +33,5 @@
  "ok": true,
  "clean": 88,
  "total": 88,
- "texts": 13200
+ "texts": 8625
 }

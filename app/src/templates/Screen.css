@@ -87,7 +87,11 @@
   flex-direction: column;
   gap: 0;
   padding-inline: var(--layout-container-pad);
+  /* 8 of room above the page's top row (Elleta, 24 Nov morning: it sat too close to the top of the page) */
+  padding-block-start: var(--spacing-8);
 }
+/* and 4 under it, so the row ends where the side menu's BELLA row ends (68) and the two read as one band */
+.chip-screen__head > .chip-flow:first-child { padding-block-end: var(--spacing-4); }
 
 .chip-screen__menu { order: -1; }
 
