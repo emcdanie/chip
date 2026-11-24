@@ -19,7 +19,7 @@ const CACHE_MS = 60e3;
 
 const gh = (cwd) =>
   new Promise((done) =>
-    execFile('gh', ['pr', 'list', '--state', 'open', '--limit', '100', '--json', 'number,title,headRefName,url,isDraft,updatedAt,statusCheckRollup'], { cwd, timeout: 8000, maxBuffer: 8 << 20 }, (err, out) => {
+    execFile('gh', ['pr', 'list', '--state', 'open', '--limit', '100', '--json', 'number,title,headRefName,headRefOid,baseRefName,url,isDraft,updatedAt,statusCheckRollup'], { cwd, timeout: 8000, maxBuffer: 8 << 20 }, (err, out) => {
       if (err) return done(null);
       try {
         done(JSON.parse(out));
@@ -39,11 +39,89 @@ export function ciOf(rollup = []) {
 }
 
 /** The PRs as lane cards, plus what was left out and why (the empty lines). */
-export function prCards(byProject, now = Date.now()) {
+/* The board's area of a change, from the files it touched (24 Nov: the Table's Area said "Shipped" or the lane): the area
+   most of its files belong to; null when none of them names one, so the page says "Not set" rather than guess. */
+const AREA_OF = [
+  [/(^|\/)tokens\/|tokens?\.(json|css)$/i, 'Tokens'],
+  [/figma/i, 'Figma'],
+  [/a11y|accessib/i, 'Accessibility'],
+  [/^(src|specs)\/components\//, 'Components'],
+  [/^docs\/(?!reference\/screens)/, 'Docs'],
+  [/^(app\/src|server|scripts|\.github|hooks)\/|\.test\.|\.spec\./, 'Tooling & gate'],
+];
+export function areaOfFiles(files = []) {
+  const n = new Map();
+  for (const f of files) {
+    const a = AREA_OF.find(([re]) => re.test(f))?.[1];
+    if (a) n.set(a, (n.get(a) ?? 0) + 1);
+  }
+  return [...n].sort((x, y) => y[1] - x[1])[0]?.[0] ?? null;
+}
+/* A pull request's area, from the files it changes (24 Nov): read once per head commit with gh and kept, so a board read
+   costs nothing while the head stays the same; null when gh does not answer (the Table then says Not set, and it is
+   asked again on the next read). */
+const prAreas = new Map(); // headRefOid -> area or null
+export function prArea(repo, p, read = (r, n) => JSON.parse(execFileSync('gh', ['pr', 'view', String(n), '--json', 'files'], { cwd: r, encoding: 'utf8', timeout: 8000, stdio: ['ignore', 'pipe', 'ignore'] })).files.map((f) => f.path)) {
+  if (!p.headRefOid) return null;
+  if (prAreas.has(p.headRefOid)) return prAreas.get(p.headRefOid);
+  try {
+    const area = areaOfFiles(read(repo, p.number));
+    prAreas.set(p.headRefOid, area);
+    return area;
+  } catch {
+    return null;
+  }
+}
+
+/* Is one commit inside another, in this project's own checkout? null when git can't say (an object it has not fetched). */
+const gitContains = (repo, oid, other) => {
+  try {
+    execFileSync('git', ['-C', repo, '--no-optional-locks', 'merge-base', '--is-ancestor', oid, other], { stdio: 'ignore', timeout: 4000 });
+    return true;
+  } catch (e) {
+    return e.status === 1 ? false : null;
+  }
+};
+/** The newer open pull request that already holds all of this one, or null (24 Nov: three old CHIP pull requests were offered
+ *  for merge though the new one held all of them). Checked with git, never by title. */
+export function replacedBy(p, prs, contains, baseTip = null, landed = []) {
+  if (!p.headRefOid) return null;
+  for (const o of prs) if (o.number !== p.number && o.headRefOid && o.headRefOid !== p.headRefOid && contains(p.headRefOid, o.headRefOid) === true) return o.number;
+  // already landed: everything it holds is in its base branch on GitHub now (24 Nov: the new one was merged, the old three stayed open)
+  if (baseTip && contains(p.headRefOid, baseTip) === true) return p.baseRefName ?? 'main';
+  // or in the project's default branch (a pull request opened against an old base whose work landed in main another way)
+  for (const [name, tip] of landed) if (tip && contains(p.headRefOid, tip) === true) return name;
+  return null;
+}
+/* Where each base branch is on GitHub now (git ls-remote, not this machine's last fetch); null when GitHub does not answer. */
+const remoteTips = (repo, bases) => {
+  const out = {};
+  for (const b of new Set(bases.filter(Boolean))) {
+    try {
+      const tip = execFileSync('git', ['-C', repo, 'ls-remote', '--heads', 'origin', `refs/heads/${b}`], { encoding: 'utf8', timeout: 4000, stdio: ['ignore', 'pipe', 'ignore'] }).split(/\s/)[0] || null;
+      // a merge made on GitHub is not on this machine yet: fetch that one branch so git can answer (read only on GitHub's side)
+      if (tip) {
+        try {
+          execFileSync('git', ['-C', repo, 'cat-file', '-e', `${tip}^{commit}`], { stdio: 'ignore', timeout: 2000 });
+        } catch {
+          execFileSync('git', ['-C', repo, 'fetch', '-q', 'origin', b], { stdio: 'ignore', timeout: 8000 });
+        }
+      }
+      out[b] = tip;
+    } catch {
+      out[b] = null;
+    }
+  }
+  return out;
+};
+
+export function prCards(byProject, now = Date.now(), contains = gitContains) {
   const since = now - WINDOW_DAYS * 864e5;
   const cards = [];
   const left = { failed: 0, none: 0, old: 0 };
   for (const { project, prs } of byProject) {
+    const main = project.defaultBranch ?? 'main';
+    const tips = project.repo && (prs ?? []).length ? remoteTips(project.repo, [...(prs ?? []).map((p) => p.baseRefName), main]) : {};
     for (const p of prs ?? []) {
       if (Date.parse(p.updatedAt) < since) {
         left.old++;
@@ -54,7 +132,8 @@ export function prCards(byProject, now = Date.now()) {
         left[ci]++;
         continue;
       }
-      cards.push({ id: `pr-${project.id}-${p.number}`, lane: ci === 'checking' ? 'gate' : 'ready', project: project.short ?? project.name, number: p.number, title: p.title, branch: p.headRefName, url: p.url, draft: !!p.isDraft, updatedAt: p.updatedAt, ci });
+      const by = replacedBy(p, prs, (a, b) => contains(project.repo, a, b), tips[p.baseRefName] ?? null, [[main, tips[main] ?? null]]);
+      cards.push({ id: `pr-${project.id}-${p.number}`, lane: ci === 'checking' ? 'gate' : 'ready', project: project.short ?? project.name, projectId: project.id, number: p.number, replacedBy: by, area: by == null && project.repo ? prArea(project.repo, p) : null, title: p.title, branch: p.headRefName, url: p.url, draft: !!p.isDraft, updatedAt: p.updatedAt, ci });
     }
   }
   return { cards, left };
@@ -111,6 +190,52 @@ async function readLanes() {
 }
 /** GET /work/lanes: answers at once from the last read and reads GitHub again behind it when that is
  *  over a minute old, so a move on the board shows straight away. */
+/* A pull request read inside CHIP (24 Nov, her review: "Nothing sends her to GitHub or another site; a pull request shows
+   what it changes inside CHIP (picture, files in plain words) with its Yes"). */
+const AREA_WORDS = [
+  [/^src\/components\/([A-Z]\w+)\/.*\.stories\./, (m) => `${m[1]}: its story`],
+  [/^src\/components\/([A-Z]\w+)\//, (m) => `${m[1]}: the part`],
+  [/^specs\/components\/([A-Z]\w+)\./, (m) => `${m[1]}: its spec`],
+  [/^app\/src\/pages\/(\w+?)(Content|View|Model)?\.(jsx?|css)$/, (m) => `CHIP's ${m[1].replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^\w/, (c) => c.toUpperCase())} page`],
+  [/^app\/src\/templates\//, () => "CHIP's shared page parts"],
+  [/^app\/src\//, () => "CHIP's pages"],
+  [/^server\/test\//, () => 'tests'],
+  [/^server\//, () => "CHIP's server"],
+  [/^scripts\//, () => 'checks and scripts'],
+  [/^tokens\//, () => 'tokens'],
+  [/^docs\//, () => 'docs'],
+  [/\.(test|spec)\.[jt]sx?$/, () => 'tests'],
+  [/^\.github\//, () => 'GitHub checks'],
+  [/^package(-lock)?\.json$/, () => 'packages'],
+  [/^[^/]+$/, () => 'project files'],
+];
+/** Files in her words: what each group of changed files is, with how many, most changed first. */
+export function plainFiles(files = []) {
+  const by = new Map();
+  for (const f of files) {
+    const path = f.path ?? f;
+    const rule = AREA_WORDS.find(([re]) => re.test(path));
+    const word = rule ? rule[1](path.match(rule[0])) : 'other files';
+    const g = by.get(word) ?? { what: word, files: 0, added: 0, removed: 0 };
+    g.files++;
+    g.added += f.additions ?? 0;
+    g.removed += f.deletions ?? 0;
+    by.set(word, g);
+  }
+  return [...by.values()].sort((a, b) => b.added + b.removed - (a.added + a.removed) || a.what.localeCompare(b.what));
+}
+/** The first picture in a pull request's description (markdown or an img tag), or null. */
+export const firstPicture = (body = '') => String(body).match(/!\[[^\]]*\]\((https:[^)\s]+)\)/)?.[1] ?? String(body).match(/<img[^>]+src="(https:[^"]+)"/)?.[1] ?? null;
+/** GET /work/pr?project=<id>&number=<n>: what one pull request changes, read with gh in the project's own folder. */
+export function prDetail(projectId, number) {
+  const p = projectList().find((x) => x.id === projectId || x.short === projectId || x.name === projectId);
+  if (!p || !/^\d{1,6}$/.test(String(number))) throw new Error('No such pull request');
+  const out = execFileSync('gh', ['pr', 'view', String(number), '--json', 'number,title,body,files,additions,deletions,headRefName,baseRefName,url,commits'], { cwd: p.repo, encoding: 'utf8', timeout: 8000, stdio: ['ignore', 'pipe', 'ignore'] });
+  const d = JSON.parse(out);
+  const firstLine = String(d.body ?? '').split(/\n\s*\n/).map((x) => x.replace(/[#*_`>]/g, '').trim()).find((x) => x && !/^!\[/.test(x)) ?? '';
+  return { project: p.short ?? p.name, number: d.number, title: d.title, why: firstLine.length > 220 ? `${firstLine.slice(0, firstLine.lastIndexOf(' ', 217))}…` : firstLine, picture: firstPicture(d.body), areas: plainFiles(d.files ?? []), files: (d.files ?? []).length, added: d.additions, removed: d.deletions, commits: (d.commits ?? []).length, into: d.baseRefName, url: d.url };
+}
+
 export async function workLanes() {
   if (!cache) return (fresh ??= readLanes().finally(() => (fresh = null)));
   if (Date.now() - cache.at > CACHE_MS && !fresh) fresh = readLanes().finally(() => (fresh = null));
@@ -213,7 +338,7 @@ const recordOf = (file) => {
     const hit = recs.get(file);
     if (hit?.m === m) return hit.r;
     const d = JSON.parse(readFileSync(file, 'utf8'));
-    const r = { sessionId: d.sessionId, cliSessionId: d.cliSessionId, lastAssistantCliSessionId: d.lastAssistantCliSessionId, cwd: d.cwd, title: d.title, isArchived: d.isArchived, lastActivityAt: d.lastActivityAt, createdAt: d.createdAt, interruptedAwaitingPerson: d.interruptedAwaitingPerson, spawnedFrom: d.spawnedFrom ? { name: d.spawnedFrom.name, sessionId: d.spawnedFrom.sessionId ?? null } : null, model: d.model ?? null, lastTurnEdgeAt: d.lastTurnEdgeAt ?? null, report: d.turnWrapUp?.description ?? null, status: d.postTurnSummary ? { category: d.postTurnSummary.status_category ?? null, detail: d.postTurnSummary.status_detail ?? null, needs: d.postTurnSummary.needs_action ?? null } : null };
+    const r = { sessionId: d.sessionId, cliSessionId: d.cliSessionId, lastAssistantCliSessionId: d.lastAssistantCliSessionId, cwd: d.cwd, title: d.title, isArchived: d.isArchived, lastActivityAt: d.lastActivityAt, createdAt: d.createdAt, interruptedAwaitingPerson: d.interruptedAwaitingPerson, spawnedFrom: d.spawnedFrom ? { name: d.spawnedFrom.name, sessionId: d.spawnedFrom.sessionId ?? null } : null, model: d.model ?? null, lastTurnEdgeAt: d.lastTurnEdgeAt ?? null, turnDone: !!d.postTurnSummaryFor && d.postTurnSummaryFor === d.lastAssistantUuid, report: d.turnWrapUp?.description ?? null, status: d.postTurnSummary ? { category: d.postTurnSummary.status_category ?? null, detail: d.postTurnSummary.status_detail ?? null, needs: d.postTurnSummary.needs_action ?? null } : null };
     recs.set(file, { m, r });
     return r;
   } catch {
@@ -274,7 +399,11 @@ export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, t
       steps: plan.steps,
       startedAt: r.createdAt ?? null,
       updatedAt: Math.round(plan.mtime),
-      working: now - plan.mtime < ACTIVE_MIN * 60e3,
+      // working: its turn is open (the app writes a summary for the last message when a turn ends; 24 Nov, the light
+      // said 13 working while most had finished) and it wrote in the last ACTIVE_MIN minutes (a stuck turn stops counting)
+      working: !r.turnDone && now - plan.mtime < ACTIVE_MIN * 60e3,
+      // came back: the turn ended, so it has something to say (the bell's "Came back")
+      turnDone: r.turnDone,
       asks: !!r.interruptedAwaitingPerson,
       parent: r.spawnedFrom?.name ?? null,
       // the session that started this one, for the Sessions panel's tree (the app's sidebar nests them the same way)

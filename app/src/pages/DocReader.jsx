@@ -4,13 +4,15 @@
 // for each, the exact value in Geist Mono (ListRow's value slot). Everything is read from /system-docs, which reads the files.
 //
 // BELLA GAP, named: ReadingGroups (templates/ReadingDrawer.jsx) has no `value` slot for the exact value, and a doc group
-// holds prose and code as well as rows, so Groups below stands in with the same Disclosure and statusBar look. Fold it
+// holds prose and code as well as rows, so Groups below stands in with the same Disclosure look. A plain row carries no
+// status mark; a row with a real state shows BELLA's status dot and its word (her review, 24 Nov: one status mark). Fold it
 // into ReadingGroups (a `value` on an item, a `children` on a group) once the drawer template is committed.
-import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import IconWell from '@bella/components/IconWell/IconWell';
 import Tag from '@bella/components/Tag/Tag';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Button from '@bella/components/Button/Button';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import TextStack from '@bella/components/TextStack/TextStack';
@@ -24,6 +26,7 @@ import Keyed from '../templates/Keyed.jsx';
 import ReadingDrawer, { Inset } from '../templates/ReadingDrawer.jsx';
 import useCached from '../templates/useCached.js';
 import { planRun } from '../templates/RunPlan.jsx';
+import { markOf } from '../templates/marks.js';
 
 export const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null);
 export const size = (b) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`);
@@ -53,11 +56,10 @@ function Rows({ items, tone = 'neutral', label }) {
         <ListRow
           key={it.key ?? it.title}
           layout="stacked"
-          statusBar={it.tone ?? tone}
           title={it.title}
           description={it.line}
           value={it.value}
-          rightTag={it.state ? <Tag variant="line">{it.state}</Tag> : undefined}
+          rightTag={it.state ? <StatusDot tone={it.tone ?? tone} label={it.state} /> : undefined}
           trailing={it.onClick ? true : undefined}
           onClick={it.onClick}
         />
@@ -302,7 +304,7 @@ export function StorySample({ name, bare = false }) {
   if (story.state === 'none') {
     return (
       <Flow gap={16} align="center" data-story-sample="none">
-        <EmptyState size="lane" mark="🧩" title="No story yet" line={`BELLA has no Storybook story for ${name}, so CHIP has nothing to draw.`} />
+        <EmptyState size="lane" {...markOf('🧩')} title="No story yet" line={`BELLA has no Storybook story for ${name}, so CHIP has nothing to draw.`} />
         <Button variant="secondary" onClick={() => addStoryPlan(name)}>Add a story</Button>
       </Flow>
     );
@@ -380,7 +382,8 @@ function DocDrawerWithBack({ id, onClose, onBack }) {
 
 /** The Contract card on a part's Inspect tab: what the part promises, in rows that open the contract (Elleta, 23 Nov: "the
  *  contracts are not showing on the components anymore"). Read live from /system-docs/contract/<Name>. */
-export function ContractCard({ name }) {
+/** bare: the rows only, for a section of another card (Inspect's accordions); otherwise its own Card with a title. */
+export function ContractCard({ name, bare = false }) {
   const { data, error } = useCached([`/system-docs/contract/${name}`]);
   const [open, setOpen] = useState(null); // the group to open first, or true
   const c = data?.[0];
@@ -396,10 +399,11 @@ export function ContractCard({ name }) {
   const rows = [
     ...groups.map((g) => ({ name: g.name, n: g.items.length })),
   ];
+  const Box = bare ? Fragment : Card;
   return (
-    <Card>
+    <Box>
       <Flow gap={8}>
-        <SectionHead title="Contract" titleLevel={3} words={c?.found ? 'read from BELLA now' : undefined} />
+        {bare ? null : <SectionHead title="Contract" titleLevel={3} words={c?.found ? 'read from BELLA now' : undefined} />}
         {error ? <TextStack body="CHIP could not read BELLA's contract. The server may have no contract route yet: restart it, then reload." /> : null}
         {c && !c.contract ? (
           <>
@@ -411,7 +415,7 @@ export function ContractCard({ name }) {
         ) : null}
         {c?.found ? (
           <Flow as="ul" gap={0} aria-label="Contract">
-            <ListRow title="Spec" layout="inline" statusBar={st.tone} valueLabel={st.word} trailing="NavArrowRight" onClick={() => setOpen('Spec status')} />
+            <ListRow title="Spec" layout="inline" valueLabel={<StatusDot tone={st.tone} label={st.word} />} trailing="NavArrowRight" onClick={() => setOpen('Spec status')} />
             {rows.map((r) => (
               <ListRow key={r.name} title={r.name} layout="inline" value={r.n} trailing="NavArrowRight" onClick={() => setOpen(r.name)} />
             ))}
@@ -422,6 +426,6 @@ export function ContractCard({ name }) {
         ) : null}
       </Flow>
       {open ? <ContractDrawer name={name} openName={open} onClose={() => setOpen(null)} /> : null}
-    </Card>
+    </Box>
   );
 }

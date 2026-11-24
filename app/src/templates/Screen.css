@@ -33,6 +33,29 @@
   flex-direction: column;
   block-size: 100dvh;
 }
+/* System › Components (B, 24 Nov): the icon rail, then the parts list in its own column, as wide as the side menu, with
+   the menu's surface and its visible line on the right; the list scrolls on its own */
+.chip-screen__menu--rail { flex-direction: row; }
+/* the logotype at the rail's top: the rail's 72 less 8 a side */
+.chip-screen__rail-logo { inline-size: calc(var(--spacing-48) + var(--spacing-8)); }
+.chip-screen__list {
+  display: flex;
+  flex-direction: column;
+  inline-size: calc(var(--spacing-80) * 3 - var(--spacing-8));
+  box-sizing: border-box;
+  block-size: 100dvh;
+  /* 16 above the list, 12 at the sides as the side menu, less the 8 the scroll keeps for focus rings */
+  padding: var(--spacing-8) var(--spacing-4) 0;
+  background: var(--color-background-surface);
+  box-shadow: inset calc(-1 * var(--border-width-1)) 0 0 var(--color-border-default);
+}
+/* the list's own scroll, with 8 of room for a row's focus ring (as SideMenu's rows) and 24 after the last row */
+.chip-screen__list-body {
+  flex: 1 1 0;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--spacing-8) var(--spacing-8) var(--spacing-24);
+}
 /* a Menu that opens under its button, over the page, never pushing it down: the client list under the
    side menu's switcher, the branch list under Work's Branch button */
 .chip-pop { position: relative; }

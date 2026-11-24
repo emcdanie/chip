@@ -257,6 +257,7 @@ const DRAWERS = [
   { id: 'checks', name: 'Checks', file: 'pages/HealthContent.jsx', route: '#/health', open: card(/^Checks/) },
   { id: 'drift', name: 'Drift from BELLA', file: 'pages/HealthContent.jsx', route: '#/health', open: card(/^Drift from BELLA/) },
   { id: 'drift-part', name: 'Drift: one part', file: 'pages/HealthContent.jsx', route: '#/health', open: async (p) => { await card(/^Drift from BELLA/)(p); await click('button', /^See all \d+ parts/)(p); await p.waitForTimeout(600); await p.locator('dialog[open] tbody tr').first().click(); } },
+  { id: 'check-fixes', name: 'A check and its fixes', file: 'pages/HealthContent.jsx', route: '#/health', open: async (p) => { const r = p.locator('[aria-label="Component checks"] button').last(); await r.waitFor({ timeout: 60000 }); await r.click(); } },
   { id: 'contrast', name: 'Contrast coverage', file: 'pages/HealthContent.jsx', route: '#/health', open: card(/^Contrast coverage/) },
   { id: 'how', name: 'How was this measured?', file: 'pages/HealthContent.jsx', route: '#/health?drawer=how-all', open: async (p) => { await p.waitForSelector('dialog[open]', { timeout: 60000 }); } },
   { id: 'audit-ds', name: 'BELLA system audit', file: 'pages/AuditReading.jsx', route: '#/health', open: card(/^BELLA system/) },

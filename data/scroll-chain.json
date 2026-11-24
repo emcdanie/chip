@@ -1,68 +1,68 @@
 {
- "at": "2026-11-24T09:42:27.156Z",
+ "at": "2026-11-24T11:42:36.550Z",
  "routes": {
   "#/work": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
-   "total": 24
+   "total": 20
   },
   "#/health": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
-   "total": 39
+   "total": 32
   },
   "#/system/components": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/system/foundations": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
    "total": 11
   },
   "#/system/history": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
-   "total": 14
+   "total": 12
   },
   "#/playground": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/system-map": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
-   "total": 8
+   "total": 10
   },
   "#/connectors": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/team": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
-   "total": 10
+   "total": 8
   },
   "#/not-again": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/health/audits": {
-   "hash": "11270de9843b8457678db8c39701dedec3b2dc4b",
+   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
    "ok": true,
    "bad": 0,
    "total": 8

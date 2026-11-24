@@ -36,6 +36,7 @@ import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Link from '@bella/components/Link/Link';
 import FloatingPanel from '@bella/components/FloatingPanel/FloatingPanel';
 import Toast from '@bella/components/Toast/Toast';
+import { markOf } from '../templates/marks.js';
 
 const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '');
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
@@ -183,7 +184,7 @@ function FixToBoard() {
           <TextStack meta={`Now on the Work board: ${plural(now.cards.length, 'card')} · read ${checked ?? ''}`} />
         </Flow>
       ) : (
-        <EmptyState size="lane" mark="⏳" title={model ? 'Nothing running right now' : 'Not measured'} line={model ? 'When a plan is started, its card shows here with its steps.' : "The Work board didn't answer."} />
+        <EmptyState size="lane" {...markOf('⏳')} title={model ? 'Nothing running right now' : 'Not measured'} line={model ? 'When a plan is started, its card shows here with its steps.' : "The Work board didn't answer."} />
       )}
     </Slide>
   );
@@ -211,7 +212,7 @@ function Audits() {
           ))}
         </Flow>
       ) : (
-        <EmptyState size="lane" mark="📦" title="Not measured" line="No saved audit reports were found." />
+        <EmptyState size="lane" {...markOf('📦')} title="Not measured" line="No saved audit reports were found." />
       )}
     </Slide>
   );
@@ -249,7 +250,7 @@ function Contrast() {
           )}
         </Columns>
       ) : (
-        <EmptyState size="lane" mark="🚦" title="Not measured" line="BELLA's pairs check didn't answer." />
+        <EmptyState size="lane" {...markOf('🚦')} title="Not measured" line="BELLA's pairs check didn't answer." />
       )}
     </Slide>
   );

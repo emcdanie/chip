@@ -28,6 +28,7 @@ import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import TourStep from '@bella/components/TourStep/TourStep';
+import Loading from '../templates/Loading.jsx';
 import Flow from '../templates/Flow.jsx';
 import { parseDiff } from './WorkDrawer.jsx';
 import useCached from '../templates/useCached.js';
@@ -694,7 +695,7 @@ export default function HistoryContent() {
           }
         />
       ) : !data ? (
-        <EmptyState size="page" title="Reading the record" line="Pulling BELLA's and CHIP's git logs. Won't be a minute." />
+        <Loading size="page" title="Reading the record" sources={[{ url: `/history?${new URLSearchParams(params).toString()}`, label: "BELLA's and CHIP's git logs" }]} />
       ) : (
         // the list and the record fill the window and each scrolls on its own; the page never scrolls
         // (Elleta, 22 Nov: "I don't want to scroll the whole page"). A phone stacks them and scrolls.

@@ -30,12 +30,14 @@ import Tag from '@bella/components/Tag/Tag';
 import StatCard from '@bella/components/StatCard/StatCard';
 import Progress from '@bella/components/Progress/Progress';
 import Flow from '../templates/Flow.jsx';
+import { plainStop } from '../runClock.js';
 import { afterSteps } from './workModel.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import { Words, AnswerLines } from '../templates/useAsk.jsx';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import { TermScreen } from '../Terminal.jsx';
 import { keyPhrases } from '../templates/keyPhrase.js';
+import { markOf } from '../templates/marks.js';
 
 const POST = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' };
 // when it ran, with its day: "today 10:26", "20 Nov, 19:04"
@@ -231,7 +233,7 @@ function shapeOf(item, d) {
       title: d.title,
       status: ['Agent', d.from ? `from ${d.from}` : null, d.startedAt ? `ran ${when(d.startedAt)}` : null].filter(Boolean).join(' · '),
       // the outcome in one plain line: a gate stop names its tests and file; the agent's notes fold, whole
-      outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d).line : `Stopped: ${String(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}. **Nothing was kept.**`) : d.status === 'kept' ? 'Accepted: **the branch is kept**.' : d.status === 'passed' ? (firstLine(d.summary) ? `**Gate passed**: ${firstLine(d.summary)}` : '**The gate passed.**') : d.step || 'Working.',
+      outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d).line : `${plainStop(d.error ?? 'The run stopped before it finished')}. **Nothing was kept.**`) : d.status === 'kept' ? 'Accepted: **the branch is kept**.' : d.status === 'passed' ? (firstLine(d.summary) ? `**Gate passed**: ${firstLine(d.summary)}` : '**The gate passed.**') : d.step || 'Working.',
       gate: d.gate?.passed ? `Gate passed · ${d.sha ? '1 commit' : 'no commit'}` : failed && d.gate && d.gate.passed === false ? gateReason(d).facts : null,
       notes: d.summary ?? null,
       // what the change shows, in one line: what the agent wrote and what the gate made of it
@@ -534,7 +536,7 @@ function SessionDrawer({ item, onClose }) {
             ))}
           </Flow>
         ) : (
-          <EmptyState size="lane" mark="📝" title="No steps yet" line="This session hasn’t listed its plan. Its steps show here once it does." />
+          <EmptyState size="lane" {...markOf('📝')} title="No steps yet" line="This session hasn’t listed its plan. Its steps show here once it does." />
         )}
         <TextStack subtitle="Read from the session’s own plan in the Claude app. CHIP shows it; it can’t stop or steer the session." />
       </Flow>

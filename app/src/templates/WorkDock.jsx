@@ -17,10 +17,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
+import Tooltip from '@bella/components/Tooltip/Tooltip';
 import ListRow from '@bella/components/ListRow/ListRow';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Step from '@bella/components/Step/Step';
-import TimelineRow from '@bella/components/TimelineRow/TimelineRow';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
@@ -37,8 +37,10 @@ import useAsk from './useAsk.jsx';
 import { workModel } from '../pages/workModel.js';
 import WorkDrawer from '../pages/WorkDrawer.jsx';
 import TermChat from './TermChat.jsx';
-import { openRun } from '../Runs.jsx';
-import { activityRow, isGoing } from '../runClock.js';
+import { planRun } from './RunPlan.jsx';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
+import { activityRow, isGoing, plainStop, splitRuns } from '../runClock.js';
+import { markOf } from './marks.js';
 
 const TAB_IDS = ['sessions', 'ask'];
 const KEY = 'chip-dock';
@@ -53,8 +55,52 @@ const ago = (t) => {
 /* The chat between pages: one per CHIP window, gone when the window closes. */
 const kept = { turns: [], past: [], answer: null };
 
-/** Open the Sessions panel from anywhere: openWork('sessions') or openWork('ask'). */
-export const openWork = (tab) => window.dispatchEvent(new CustomEvent('chip:work', { detail: { tab } }));
+/** Open the Sessions panel from anywhere: openWork('sessions') or openWork('ask'); openWork('sessions', id) on one session. */
+export const openWork = (tab, session = null) => window.dispatchEvent(new CustomEvent('chip:work', { detail: { tab, session } }));
+
+/* The bell's count, shared with BellButton in the header: what needs her plus the sessions that came back since she last
+   opened the notifications. */
+let bell = 0;
+const bellHear = new Set();
+const setBell = (n) => {
+  if (n === bell) return;
+  bell = n;
+  bellHear.forEach((f) => f(n));
+};
+/** The header's bell (CLAUDE.md Navigation: notifications only), with its count as BELLA's status dot and number beside
+ *  it when something is new (24 Nov: "a dot or count on the bell"). BELLA's Button has no badge; the dot sits beside it. */
+export function BellButton() {
+  const [n, setN] = useState(bell);
+  // on a phone the header row is full: the dot alone, the number in its spoken name (24 Nov, 320: the count ran under New)
+  const narrow = useNarrow();
+  useEffect(() => {
+    bellHear.add(setN);
+    return () => bellHear.delete(setN);
+  }, []);
+  return (
+    <Flow direction="row" gap={4} align="center">
+      <Tooltip label="Notifications">
+        <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={n ? `Notifications, ${n} new` : 'Notifications'} ariaHaspopup="dialog" onClick={openNotices} />
+      </Tooltip>
+      {n ? <StatusDot tone="attention" label={narrow ? `${n} new` : String(n)} showLabel={!narrow} /> : null}
+    </Flow>
+  );
+}
+const SEEN_KEY = 'chip-bell-seen';
+const readSeen = () => {
+  try {
+    const v = Number(localStorage.getItem(SEEN_KEY));
+    return v > 0 ? v : Date.now() - 36e5;
+  } catch {
+    return Date.now() - 36e5;
+  }
+};
+/* a long commit subject keeps its lead (what changed), never cut with an ellipsis */
+const leadOf = (t) => {
+  const one = firstSentence(t).replace(/\.$/, '');
+  const cut = one.search(/,\s|\s(so|and|while|because)\s|:\s/);
+  return cut > 24 ? one.slice(0, cut) : one;
+};
 /** Open the bell's notifications. */
 export const openNotices = () => window.dispatchEvent(new Event('chip:notices'));
 
@@ -121,18 +167,29 @@ function useTalk(onText) {
 }
 
 
-/* One session as a row of the tree: the light and its state, the title, one line; a child sits in under its parent. */
+/* The tree as groups: each top session, then every session under it (any depth), in the tree's order. */
+export function sessionGroups(tree = []) {
+  const out = [];
+  for (const s of tree) {
+    if (s.depth === 0) out.push({ root: s, kids: [] });
+    else out.at(-1)?.kids.push(s);
+  }
+  return out;
+}
+
+/* One session as a row: the light and its state, the title, one line. Every row on one column under the section's title
+   (24 Nov: indented children broke the line with the coordinator); a session follows the one that started it, and its
+   overview names it. */
 function SessionRow({ s, onOpen }) {
   const [word, tone] = sessionState(s);
   return (
     <ListRow
       layout="stacked"
-      indent={s.depth > 0}
       statusDot={<StatusDot tone={tone} label={word} showLabel={false} />}
       title={s.title}
-      description={`${word} · ${sessionLine(s)}`}
-      // when it last wrote while it works, else when it last reported
-      meta={ago(s.working ? s.updatedAt : s.reportedAt ?? s.updatedAt)}
+      // the time in the sentence, in the reading face (24 Nov, 10:35: times in Geist Mono read as code): when it last
+      // wrote while it works, else when it last reported
+      description={`${word} · ${sessionLine(s)} · ${ago(s.working ? s.updatedAt : s.reportedAt ?? s.updatedAt)}`}
       trailing
       onClick={() => onOpen(s.id)}
     />
@@ -259,6 +316,7 @@ export default function WorkDock({ needs: shared }) {
       const t = e.detail?.tab;
       if (TAB_IDS.includes(t)) setTab(t);
       else if (t === 'term') setTab('ask');
+      setPicked(e.detail?.session ?? null);
       setNotices(false);
       setOpen(true);
     };
@@ -275,7 +333,7 @@ export default function WorkDock({ needs: shared }) {
 
   // read while either surface is open; the sessions every 15 seconds so the lights move on their own
   const live = open || notices;
-  const { data, reload } = useCached(['/needs', '/runs', '/work/board', '/work/landed']);
+  const { data, reload } = useCached(['/needs', '/runs', '/work/sessions', '/work/landed']);
   useEffect(() => {
     window.addEventListener('chip:changed', reload);
     return () => window.removeEventListener('chip:changed', reload);
@@ -296,7 +354,39 @@ export default function WorkDock({ needs: shared }) {
   const pickedSession = tree?.find((s) => s.id === picked) ?? null;
   const working = tree?.filter((s) => s.working).length ?? 0;
   const waiting = tree?.filter((s) => sessionState(s)[1] === 'attention').length ?? 0;
-  const runRows = runs.slice(0, 6).map((r) => activityRow(r, null));
+  const runSplit = useMemo(() => splitRuns(runs), [runs]);
+  // a run in her words: running, waiting for your Accept, did not land, or how it closed; the action on the row
+  const RUN_WORD = { running: ['Running', 'info'], passed: ['Waiting for your Accept', 'success'], failed: ['Did not land', 'danger'], login: ['Needs a sign-in', 'attention'] };
+  const runRow = (r) => {
+    const row = activityRow(r, null);
+    const [word, tone] = isGoing(r) ? RUN_WORD.running : RUN_WORD[r.status] ?? [r.status === 'kept' ? 'Kept' : r.status === 'undone' ? 'Undone' : 'Closed', 'neutral'];
+    const failedOpen = ['failed', 'login'].includes(r.status) && runSplit.open.includes(r);
+    // the line already says why it did not land ("Did not run: another program held the port it needs")
+    const line = /did not|closed/i.test(row.line) || row.line.toLowerCase().includes(word.toLowerCase()) ? row.line : `${word} · ${row.line}`;
+    return (
+      <ListRow
+        key={r.id}
+        layout="stacked"
+        statusDot={<StatusDot tone={tone} label={word} showLabel={false} />}
+        title={row.title}
+        description={line}
+        trailing
+        onClick={() => setItem({ kind: 'run', id: r.id })}
+        actionButton={
+          isGoing(r) ? (
+            <Button variant="secondary" size="sm" ariaLabel={`Stop ${row.title}`} onClick={() => stop(r.id)}>
+              Stop
+            </Button>
+          ) : failedOpen && r.brief ? (
+            // Run again opens its plan first; nothing starts without her Approve
+            <Button variant="secondary" size="sm" ariaLabel={`Run ${row.title} again`} onClick={() => planRun({ title: r.title, brief: r.brief, from: r.from ?? 'Sessions', subtitle: 'Run again · the same brief, on a new branch' }).catch(() => {})}>
+              Run again
+            </Button>
+          ) : undefined
+        }
+      />
+    );
+  };
   const today = new Date().toDateString();
   const finished = runs.filter((r) => !isGoing(r) && r.endedAt && new Date(r.endedAt).toDateString() === today);
 
@@ -374,7 +464,7 @@ export default function WorkDock({ needs: shared }) {
   const chatEmpty = (
     <EmptyState
       size="page"
-      mark="💬"
+      {...markOf('💬')}
       title="Ask about the work, in plain words"
       line="What is running, what landed, what needs you, where a piece of work is. I show where I read it."
       actions={
@@ -397,13 +487,31 @@ export default function WorkDock({ needs: shared }) {
               <TextStack body="Reading your sessions." />
             </Inset>
           ) : tree.length ? (
-            <Flow as="ul" gap={4} aria-label="Claude sessions">
-              {tree.map((s) => (
-                <SessionRow key={s.id} s={s} onOpen={setPicked} />
+            // no indent (it moved the text but not the dot, 24 Nov 10:35): a session that started others is followed by
+            // one line, "Under <its title>", then its sessions on the same column
+            <Flow gap={4}>
+              {sessionGroups(tree).map((g) => (
+                <Flow key={g.root.id} gap={4}>
+                  <Flow as="ul" gap={4} aria-label={g.root.title}>
+                    <SessionRow s={g.root} onOpen={setPicked} />
+                  </Flow>
+                  {g.kids.length ? (
+                    <>
+                      <Inset>
+                        <TextStack subtitle={`Under ${g.root.title} · ${g.kids.length} ${g.kids.length === 1 ? 'session' : 'sessions'}`} />
+                      </Inset>
+                      <Flow as="ul" gap={4} aria-label={`Sessions under ${g.root.title}`}>
+                        {g.kids.map((k) => (
+                          <SessionRow key={k.id} s={k} onOpen={setPicked} />
+                        ))}
+                      </Flow>
+                    </>
+                  ) : null}
+                </Flow>
               ))}
             </Flow>
           ) : (
-            <EmptyState size="lane" mark="🍵" title="No sessions" line="None in CHIP’s projects in the last day and a half." />
+            <EmptyState size="lane" {...markOf('🍵')} title="No sessions" line="None in CHIP’s projects in the last day and a half." />
           )
         }
       />
@@ -411,23 +519,39 @@ export default function WorkDock({ needs: shared }) {
         title="CHIP’s runs"
         description="Fixes CHIP ran from a plan you approved"
         rows={
-          <Flow gap={12} inset>
-            {stopError ? <TextStack body={`Not stopped: ${stopError}.`} /> : null}
-            {runRows.length ? (
-              runRows.map((row) => (
-                <Flow key={row.id} gap={8}>
-                  <TimelineRow title={row.title} line={row.line} state={row.state} stepDone={row.stepDone} stepTotal={row.stepTotal} onOpen={() => openRun(row.id)} />
-                  {row.state === 'running' ? (
-                    <Flow direction="row" justify="end">
-                      <Button variant="secondary" size="sm" onClick={() => stop(row.id)}>
-                        Stop
-                      </Button>
-                    </Flow>
-                  ) : null}
-                </Flow>
-              ))
+          // flat rows with a status dot and its word, each opening its run's drawer (steps, what changed, Accept / Undo
+          // or Run again); open runs first, the rest under Earlier (24 Nov: "what is the point of them")
+          <Flow gap={8}>
+            {stopError ? (
+              <Inset>
+                <TextStack body={`Not stopped: ${stopError}.`} />
+              </Inset>
+            ) : null}
+            {runs.length ? (
+              <>
+                {runSplit.open.length ? (
+                  <Flow as="ul" gap={4} aria-label="Open runs">
+                    {runSplit.open.map((r) => runRow(r))}
+                  </Flow>
+                ) : (
+                  <Inset>
+                    <TextStack body="No run is open." />
+                  </Inset>
+                )}
+                {runSplit.earlier.length ? (
+                  <Inset>
+                    <Disclosure flush title="Earlier" summary={`${runSplit.earlier.length} ${runSplit.earlier.length === 1 ? 'run' : 'runs'}, closed or replaced`}>
+                      <Flow as="ul" gap={4} aria-label="Earlier runs">
+                        {runSplit.earlier.slice(0, 12).map((r) => runRow(r))}
+                      </Flow>
+                    </Disclosure>
+                  </Inset>
+                ) : null}
+              </>
             ) : (
-              <TextStack body="Nothing has run yet. Runs show here once approved." />
+              <Inset>
+                <TextStack body="Nothing has run yet. Runs show here once approved." />
+              </Inset>
             )}
           </Flow>
         }
@@ -451,26 +575,55 @@ export default function WorkDock({ needs: shared }) {
       sessionsBody
     );
 
-  // the bell: what needs her, what finished today, what landed today; each opens where it lives
-  const noticeCount = (needs?.length ?? 0) + finished.length + (landed?.length ?? 0);
+  // the bell (24 Nov: "too much to read", "where does it take me"): short items, a status dot each, every one opens what
+  // it is about. Came back: sessions whose turn ended since she last opened it (their overview). Needs you: the item.
+  // Finished: the run. Landed: History at that change (a plain list, no state mark).
+  const [seenAt, setSeenAt] = useState(readSeen);
+  const cameBack = useMemo(() => (board?.sessions ?? []).filter((x) => x.turnDone && (x.reportedAt ?? 0) > seenAt).sort((a, b) => b.reportedAt - a.reportedAt), [board, seenAt]);
+  useEffect(() => setBell((needs?.length ?? 0) + cameBack.length), [needs, cameBack]);
+  const closeBell = () => {
+    setNotices(false);
+    const now = Date.now();
+    setSeenAt(now);
+    try {
+      localStorage.setItem(SEEN_KEY, String(now));
+    } catch {}
+  };
+  const go = (fn) => () => (closeBell(), fn());
+  const bellRead = !!(needs && data?.[1] && data?.[2] && data?.[3]);
+  const noticeCount = cameBack.length + (needs?.length ?? 0) + finished.length + (landed?.length ?? 0);
   const where = (branch) => (/parts/.test(branch) ? 'BELLA' : 'CHIP');
+  const dotRow = (key, tone, title, line, onClick, extra = {}) => (
+    <ListRow key={key} layout="stacked" statusDot={tone ? <StatusDot tone={tone} label={extra.word ?? tone} showLabel={false} /> : undefined} title={title} description={line} trailing onClick={onClick} {...extra.row} />
+  );
   const bellDrawer = (
     <ReadingDrawer
       open={notices}
-      onClose={() => setNotices(false)}
+      onClose={closeBell}
       side={phone ? 'bottom' : 'right'}
       label="Notifications"
-      status={needs == null ? 'Reading' : `${needs.length} need you · ${finished.length} finished · ${landed?.length ?? 0} landed today`}
-      source={{ from: 'Needs you, CHIP’s runs and the git logs of CHIP and BELLA', when: data?.[3]?.at ? `read ${hhmm(data[3].at)}` : null }}
+      status={!bellRead ? 'Reading what is new' : [cameBack.length ? `${cameBack.length} came back` : null, `${needs.length} need you`, `${landed?.length ?? 0} landed today`].filter(Boolean).join(' · ')}
+      source={{ from: 'Your sessions, Needs you, CHIP’s runs and the git logs of CHIP and BELLA', when: data?.[3]?.at ? `read ${hhmm(data[3].at)}` : null }}
     >
+      {cameBack.length ? (
+        <ReadingSection
+          title="Came back"
+          rows={
+            <Flow as="ul" gap={4} aria-label="Sessions that came back">
+              {cameBack.slice(0, 5).map((x) => {
+                const [word, tone] = sessionState(x);
+                return dotRow(x.id, tone, x.title, `${word} · ${ago(x.reportedAt)}`, go(() => openWork('sessions', x.id)), { word });
+              })}
+            </Flow>
+          }
+        />
+      ) : null}
       {needs?.length ? (
         <ReadingSection
           title="Needs you"
           rows={
             <Flow as="ul" gap={4} aria-label="Needs you">
-              {needs.map((c) => (
-                <ListRow key={c.id} layout="stacked" statusBar={c.tone} title={c.title} description={[c.status, c.line].filter(Boolean).join(' · ')} trailing={!!c.open} onClick={c.open ? () => setItem(c.open) : undefined} />
-              ))}
+              {needs.map((c) => dotRow(c.id, c.tone === 'strong' ? 'neutral' : c.tone, c.title, c.status ?? null, c.open ? go(() => setItem(c.open)) : undefined, { word: c.status ?? 'needs you' }))}
             </Flow>
           }
         />
@@ -482,7 +635,8 @@ export default function WorkDock({ needs: shared }) {
             <Flow as="ul" gap={4} aria-label="Finished today">
               {finished.slice(0, 5).map((r) => {
                 const row = activityRow(r, null);
-                return <ListRow key={r.id} layout="stacked" statusBar={row.state === 'failed' ? 'danger' : 'success'} title={row.title} description={row.line} trailing onClick={() => openRun(r.id)} />;
+                const failed = row.state === 'failed';
+                return dotRow(r.id, failed ? 'danger' : 'success', row.title, failed ? plainStop(r.error).split(':')[0] : 'Done', go(() => setItem({ kind: 'run', id: r.id })), { word: failed ? 'did not land' : 'done' });
               })}
             </Flow>
           }
@@ -494,14 +648,21 @@ export default function WorkDock({ needs: shared }) {
           description={`${landed.length} ${landed.length === 1 ? 'change' : 'changes'}, newest first`}
           rows={
             <Flow as="ul" gap={4} aria-label="Landed today">
-              {landed.slice(0, 5).map((c) => (
-                <ListRow key={`${c.branch}-${c.hash}`} layout="stacked" statusBar="success" title={c.subject} description={`${c.when} · ${where(c.branch)}`} trailing href={`#/system/history?q=${encodeURIComponent(c.hash)}`} onClick={() => setNotices(false)} />
-              ))}
+              {/* landed is a state (done): the same dot as the rows above, so every row keeps one column (24 Nov) */}
+              {landed.slice(0, 5).map((c) => dotRow(`${c.branch}-${c.hash}`, 'success', leadOf(c.subject), `${c.when} · ${where(c.branch)}`, closeBell, { word: 'landed', row: { href: `#/system/history?q=${encodeURIComponent(c.hash)}` } }))}
             </Flow>
           }
         />
       ) : null}
-      {needs && !noticeCount ? <EmptyState size="lane" mark="🍵" title="Nothing new" line="Nothing needs you, finished or landed today." /> : null}
+      {landed?.length > 5 ? (
+        <Inset>
+          <Flow direction="row" justify="end">
+            <ActionChip onClick={() => (closeBell(), (window.location.hash = '#/system/history'))}>{`See all ${landed.length} in History`}</ActionChip>
+          </Flow>
+        </Inset>
+      ) : null}
+      {/* nothing new only once every read is in: never an empty bell while it is still reading */}
+      {bellRead && !noticeCount ? <EmptyState size="lane" {...markOf('🍵')} title="Nothing new" line="Nothing came back, needs you or landed today." /> : null}
     </ReadingDrawer>
   );
 

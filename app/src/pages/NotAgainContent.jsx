@@ -26,6 +26,7 @@ import useCached from '../templates/useCached.js';
 import { FIX, LIBRARY, stateOf, stepsOf, useNotAgain } from './notAgainModel.js';
 import { handOff } from './healthModel.js';
 import { planRun } from '../templates/RunPlan.jsx';
+import { markOf } from '../templates/marks.js';
 
 export const STATES = ['suggested', 'running', 'your-call', 'kept', 'gate-fails', 'library'];
 
@@ -262,7 +263,7 @@ function Recurring() {
           <Card>
             <Flow gap={16}>
               <SectionHead icon="Book" iconTone="info" title="What keeps coming back" description="The gate's failures in the last 14 days, most often first. Make it permanent opens a plan to approve first; nothing runs before." />
-              <EmptyState size="lane" mark="⏳" title="Reading the last 14 days" line="The gate's failures, most often first." />
+              <EmptyState size="lane" {...markOf('⏳')} title="Reading the last 14 days" line="The gate's failures, most often first." />
             </Flow>
           </Card>
         </Flow>
@@ -270,7 +271,7 @@ function Recurring() {
           <Card>
             <Flow gap={16}>
               <SectionHead icon="CheckCircle" iconTone="success" title="Closed loops" description="Permanent fixes that landed; the tag counts failures in the 14 days before → after" />
-              <EmptyState size="lane" mark="⏳" title="Reading the fixes that landed" line="Each with its before and after." />
+              <EmptyState size="lane" {...markOf('⏳')} title="Reading the fixes that landed" line="Each with its before and after." />
             </Flow>
           </Card>
         </Flow>
@@ -309,7 +310,7 @@ function Recurring() {
                 ))}
               </ListRowGroup>
             ) : (
-              <EmptyState size="lane" mark="✅" title="Nothing came back" line="No gate check failed in the last 14 days." />
+              <EmptyState size="lane" {...markOf('✅')} title="Nothing came back" line="No gate check failed in the last 14 days." />
             )}
           </Flow>
         </Card>
@@ -335,7 +336,7 @@ function Recurring() {
                 ))}
               </ListRowGroup>
             ) : (
-              <EmptyState size="lane" mark="🕰️" title="Nothing landed yet" line="Make a recurring check permanent, accept the fix, and its before and after show here." />
+              <EmptyState size="lane" {...markOf('🕰️')} title="Nothing landed yet" line="Make a recurring check permanent, accept the fix, and its before and after show here." />
             )}
           </Flow>
         </Card>
@@ -347,7 +348,7 @@ function Recurring() {
 export default function NotAgainContent({ state: forced, tab = 'flow' }) {
   const data = useNotAgain();
   const { busy, act, toast } = useAct(data.reload);
-  if (!data.parts) return data.error ? <EmptyState size="lane" title="Not again isn’t answering" line="CHIP couldn’t read its checks just now. Refresh and I’ll try again." /> : <EmptyState size="lane" mark="⏳" title="Reading the fix" line="Fetching its parts and runs." />;
+  if (!data.parts) return data.error ? <EmptyState size="lane" title="Not again isn’t answering" line="CHIP couldn’t read its checks just now. Refresh and I’ll try again." /> : <EmptyState size="lane" {...markOf('⏳')} title="Reading the fix" line="Fetching its parts and runs." />;
   if (tab === 'library' || forced === 'library')
     return (
       <>

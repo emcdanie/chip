@@ -13,6 +13,8 @@ import { useEffect, useState } from 'react';
 import useCached from './useCached.js';
 import SideMenu from '@bella/components/SideMenu/SideMenu';
 import NavList from '@bella/components/NavList/NavList';
+import IconRail from '@bella/components/IconRail/IconRail';
+import NavItem from '@bella/components/NavItem/NavItem';
 import Menu, { MenuItem } from '@bella/components/Menu/Menu';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
@@ -29,7 +31,7 @@ export { glide };
 import { NewStart as NewTask } from './NewStart.jsx';
 import Search from './Search.jsx';
 import useNarrow from './useNarrow.js';
-import WorkDock, { openNotices } from './WorkDock.jsx';
+import WorkDock, { BellButton } from './WorkDock.jsx';
 import MarkUp, { useMarkUp } from './MarkUp.jsx';
 import RunStatus from './RunStatus.jsx';
 import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
@@ -273,8 +275,15 @@ export default function Screen({ place, header, tabs, children }) {
       return false;
     }
   });
+  // System › Components shows the main places as an icon rail and its parts list in a column of its own (her lean B, 24
+  // Nov morning review: deep in a part she could not see where she was without scrolling the menu back up). The menu
+  // button, or Cmd+K, brings the full menu back for a while; leaving the page brings the rail back.
+  const [railOff, setRailOff] = useState(false);
+  const railPage = place === 'projects' && tabs?.value === 'components';
+  const rail = railPage && !menuOut && !collapsed && !railOff;
   const toggleMenu = () => {
     if (menuOut) return setMenuOpen((o) => !o);
+    if (railPage && !collapsed) return setRailOff((o) => !o);
     const c = collapsed;
     glide('menu', () => setCollapsed(!c));
     try {
@@ -295,6 +304,7 @@ export default function Screen({ place, header, tabs, children }) {
         e.preventDefault();
         if (menuOut) setMenuOpen(true);
         else if (collapsed) toggleMenu();
+        else if (rail) setRailOff(true);
         let tries = 0;
         const put = () => {
           const input = document.querySelector('.chip-screen__search input');
@@ -319,8 +329,8 @@ export default function Screen({ place, header, tabs, children }) {
   const tab = place === 'projects' ? tabs?.value : null;
   const view = PROJECT_VIEWS.find((v) => v.id === tab);
   const projectName = (projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP';
-  // the top bar says where you are: "CHIP › Work", "CHIP › System › Components", "CHIP › Team"
-  const trail = view ? [projectName, view.groupLabel, view.label] : header?.parent ? [projectName, header.parent, header.title] : [projectName, place === 'work' ? 'Work' : place === 'health' ? 'Health' : header?.title];
+  // the top bar says where you are (Needs you is its own place, 24 Nov: the menu and the title agree): "CHIP › Work", "CHIP › System › Components", "CHIP › Team"
+  const trail = view ? [projectName, view.groupLabel, view.label] : header?.parent ? [projectName, header.parent, header.title] : [projectName, place === 'work' ? (new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('filter') === 'needs' ? 'Needs you' : 'Work') : place === 'health' ? 'Health' : header?.title];
   // the tab's title says where you are ("Health · CHIP", "System · Components · CHIP"), so tabs and History tell apart
   useEffect(() => {
     document.title = [...trail.slice(1), trail[0]].filter(Boolean).join(' · ');
@@ -350,8 +360,8 @@ export default function Screen({ place, header, tabs, children }) {
                 title={trail[trail.length - 1]}
                 meta={
                   <Flow as="span" direction="row" gap={8} align="center">
-                    <Tooltip label={menuOut || collapsed ? 'Show menu' : 'Hide menu'}>
-                      <Button variant="tertiary" iconOnly icon={menuOut || collapsed ? 'SidebarExpand' : 'SidebarCollapse'} ariaLabel={menuOut || collapsed ? 'Show menu' : 'Hide menu'} ariaExpanded={menuOut ? menuOpen : !collapsed} ariaHaspopup={menuOut ? 'dialog' : undefined} onClick={toggleMenu} />
+                    <Tooltip label={menuOut || collapsed || rail ? 'Show menu' : 'Hide menu'}>
+                      <Button variant="tertiary" iconOnly icon={menuOut || collapsed || rail ? 'SidebarExpand' : 'SidebarCollapse'} ariaLabel={menuOut || collapsed || rail ? 'Show menu' : 'Hide menu'} ariaExpanded={menuOut ? menuOpen : !collapsed && !rail} ariaHaspopup={menuOut ? 'dialog' : undefined} onClick={toggleMenu} />
                     </Tooltip>
                     <Crumb trail={trail} compact={phone} href={header?.back ?? (projectOf() ? `#/work?project=${projectOf()}` : '#/work')} linked={place !== 'work'} />
                   </Flow>
@@ -368,9 +378,8 @@ export default function Screen({ place, header, tabs, children }) {
                 </span>
                 {/* the bell is notifications only (CLAUDE.md Navigation): what needs you, what finished, what landed today.
                     The Sessions panel opens from the running indicator and ⌘J */}
-                <Tooltip label="Notifications">
-                  <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `Notifications: ${needs} ${needs === 1 ? 'thing needs' : 'things need'} you` : 'Notifications'} ariaHaspopup="dialog" onClick={openNotices} />
-                </Tooltip>
+                {/* with its count beside it when a session came back or something needs her (24 Nov) */}
+                <BellButton />
                 {header?.actions ?? (['projects', 'work', 'health', 'playground'].includes(place) ? <NewTask /> : null)}
               </Flow>
             </Flow>
@@ -397,8 +406,28 @@ export default function Screen({ place, header, tabs, children }) {
             <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />
           </Flow>
         </Drawer>
-      ) : collapsed ? null : (
-        <div className="chip-screen__menu">
+      ) : collapsed ? null : rail ? (
+        // its own key (and the full menu its own), so switching builds new boxes: the Components page draws its list into
+        // this column's box, and a reused box carried the list into the menu's logo
+        <div key="rail" className="chip-screen__menu chip-screen__menu--rail">
+          {/* the main places as icons, each named by its tooltip; the current one marked as in the menu */}
+          <IconRail
+            label="Main"
+            // the whole CHIP logotype, never the mark alone (CLAUDE.md, the installed app's mark), in the rail's width
+            logo={<div className="chip-screen__rail-logo"><BrandWordmark word="CHIP" variant="logotype" size="full-bleed" /></div>}
+            end={
+              <Flow gap={8} align="center">
+                {menu.foot.map((it) => <NavItem key={it.label} iconOnly label={it.label} icon={it.icon} href={it.href} current={it.current} />)}
+              </Flow>
+            }
+          >
+            {[...menu.items, ...menu.pinned].map((it) => <NavItem key={it.label} iconOnly label={it.badge ? `${it.label}, ${it.badge}` : it.label} icon={it.icon} href={it.href} current={it.current} />)}
+          </IconRail>
+          {/* System's list in its own column: the Components page draws it here (ComponentsContent useMenuSub) */}
+          <div className="chip-screen__list"><div className="chip-screen__list-body" data-chip-menu-sub="" /></div>
+        </div>
+      ) : (
+        <div key="menu" className="chip-screen__menu">
           <div className="chip-screen__menu-body">
             <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} search={<Search />} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
           </div>

@@ -8,13 +8,29 @@ import { found } from '../runClock.js';
 const cache = new Map(); // url -> { data, at }
 const inflight = new Map(); // url -> Promise
 
+/* What is being read right now, for the loading view (templates/Loading.jsx): when each read started and whether it is
+   in. Progress follows Vitaly Friedman (CHIP rule, 22 Nov): a wait over a second says what it is reading and how far. */
+const reads = new Map(); // url -> { start, done }
+const tellReads = () => window.dispatchEvent(new Event('chip:reads'));
+/** The read state of these addresses: { done, total, started } (started: the earliest start, ms). */
+export function readState(urls) {
+  const got = urls.map((u) => (cache.has(u) ? { done: true } : reads.get(u) ?? null));
+  const starts = got.filter((g) => g?.start).map((g) => g.start);
+  return { doneOf: urls.map((u, i) => !!got[i]?.done), started: starts.length ? Math.min(...starts) : null };
+}
+
 /** fresh: ask the server for a new read, not its last answer ("Check again"). */
 export function fetchCached(url, { fresh = false } = {}) {
   if (inflight.has(url) && !fresh) return inflight.get(url);
+  if (!cache.has(url)) {
+    reads.set(url, { start: Date.now(), done: false });
+    tellReads();
+  }
   const p = fetch(fresh ? `${url}${url.includes('?') ? '&' : '?'}fresh=1` : url)
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${url} answered ${r.status}`))))
     .then((data) => {
       cache.set(url, { data, at: Date.now() });
+      if (reads.has(url)) (reads.set(url, { ...reads.get(url), done: true }), tellReads());
       return data;
     })
     .finally(() => inflight.delete(url));

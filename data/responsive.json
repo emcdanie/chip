@@ -1,21 +1,21 @@
 {
- "at": "2026-11-24T08:55:05.206Z",
+ "at": "2026-11-24T10:50:34.446Z",
  "files": {
   "app/src/templates/Flow.jsx": "8764a71b1f2712cca45a1dd818dee16d2631fa54",
-  "app/src/templates/Screen.jsx": "9db48256257c30e0e17782d484d8406eb99d4516",
-  "app/src/templates/Screen.css": "80f579a66254dd3175c436730fdc7b5dde31bd5d",
-  "app/src/pages/AuditReportsContent.jsx": "2c525417164fcc48691c273cae93fb4a053eb78b",
-  "app/src/pages/ComponentsContent.jsx": "7b7f0f2b88c61f46c7f0121c246df13b9b5a5c5e",
-  "app/src/pages/ConnectorsContent.jsx": "6d8c5024cfdf71090e11d1741e68c2d5b0e17a61",
+  "app/src/templates/Screen.jsx": "36a8a5ff19b4c1abfc4a47403c4a6acfa28a6ad8",
+  "app/src/templates/Screen.css": "8dd1d26717508d1d4670db4f0fff11acf998adb8",
+  "app/src/pages/AuditReportsContent.jsx": "07966843a8a35a0ddf9ad057ff10a306a9854f42",
+  "app/src/pages/ComponentsContent.jsx": "d1181d6c21836e23a69027844eda65f2d321d3d8",
+  "app/src/pages/ConnectorsContent.jsx": "c871f7343c0ad4eb7d151f9ac9f256896a871706",
   "app/src/pages/DocsContent.jsx": "b1e73ba0ff67aff7467a9c52cef5a811b6444868",
-  "app/src/pages/FoundationsContent.jsx": "45b2ff6c6ed764796a4ad117ae0997976e844146",
-  "app/src/pages/HealthContent.jsx": "52bb12bb0280a7386877c64c4226279460d0e70b",
-  "app/src/pages/HistoryContent.jsx": "440456813eeb09f8e9e05d3c21236fe6fcedc737",
-  "app/src/pages/NotAgainContent.jsx": "bc8b71829699f3f0506cbcb5b64ffb55d99c1493",
-  "app/src/pages/PlaygroundContent.jsx": "698bbde7e14c1b624655fa38771582ded37f9ff2",
-  "app/src/pages/SystemMapContent.jsx": "d82206e34450e12be7b5afa5e198ccad999c7f7f",
-  "app/src/pages/TeamContent.jsx": "c1642a1a11e5f30da4b92add5c2df9c8aedc909d",
-  "app/src/pages/WorkContent.jsx": "3ea5b9b0aacd39c9bd2125c7da408ab9e684021c"
+  "app/src/pages/FoundationsContent.jsx": "df00f1b4c317aa4ed0207b5e36671a4511e42bb3",
+  "app/src/pages/HealthContent.jsx": "6be19bb4e73ff6dea7832b65a8277d5e9240f5bc",
+  "app/src/pages/HistoryContent.jsx": "b60d5e05de5e1f3690abf69d77bd48941d2bde36",
+  "app/src/pages/NotAgainContent.jsx": "f6e07804b5fd510a3f0246de6f244294bf07c66d",
+  "app/src/pages/PlaygroundContent.jsx": "56796964b5dd178e94d67bef821b950d3c6402f5",
+  "app/src/pages/SystemMapContent.jsx": "574cee86d8ab319eb98c6e8e81ec500703874152",
+  "app/src/pages/TeamContent.jsx": "5c0fb5c69527f7ab3c62508c1371e4fbf10d886b",
+  "app/src/pages/WorkContent.jsx": "733f018fe41f2fc325ac3bdbbb5cf557d9d6d65a"
  },
  "routes": {
   "#/work": true,
@@ -33,5 +33,5 @@
  "ok": true,
  "clean": 88,
  "total": 88,
- "texts": 8625
+ "texts": 11732
 }

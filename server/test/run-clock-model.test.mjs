@@ -65,3 +65,29 @@ test('two runs with one title get distinct card titles; a stopped card keeps one
   const card = m.lanes.flatMap((l) => l.cards).find((c) => c.kind === 'run');
   assert.ok(!/Stopped at/.test(card.line));
 });
+
+test('the header light counts her Claude sessions whose turn is open, not only CHIP runs (24 Nov)', async () => {
+  const { lightOf } = await import('../../app/src/runClock.js');
+  assert.equal(lightOf([], []).state, 'idle');
+  assert.equal(lightOf([], [{ id: 'a', title: 'Idle', working: false }]).state, 'idle');
+  const one = lightOf([], [{ id: 'a', title: 'Drawers', working: true, steps: [{ status: 'completed' }, { status: 'in_progress' }, { status: 'pending' }] }]);
+  assert.deepEqual([one.state, one.count, one.title, one.done, one.total], ['running', 1, 'Drawers', 1, 3]);
+  const many = lightOf([{ id: 'r', title: 'Fix', status: 'running', startedAt: new Date().toISOString() }], [{ id: 'a', title: 'A', working: true }, { id: 'b', title: 'B', working: true }]);
+  assert.deepEqual([many.state, many.count, many.title], ['running', 3, '3 running']);
+});
+
+test('runs: open first, closed or replaced under Earlier; a held port said plainly (24 Nov)', async () => {
+  const { splitRuns, plainStop } = await import('../../app/src/runClock.js');
+  const runs = [
+    { id: 'a', title: 'Contrast', status: 'failed', startedAt: '2026-11-24T09:40:00Z', error: 'Port 6006 is in use (a Storybook is running).' },
+    { id: 'b', title: 'Contrast', status: 'failed', startedAt: '2026-11-24T08:00:00Z' },
+    { id: 'c', title: 'Kbd', status: 'passed', startedAt: '2026-11-24T07:00:00Z' },
+    { id: 'd', title: 'Pin', status: 'closed', startedAt: '2026-11-23T07:00:00Z' },
+    { id: 'e', title: 'Old', status: 'kept', startedAt: '2026-11-23T06:00:00Z' },
+  ];
+  const { open, earlier } = splitRuns(runs);
+  assert.deepEqual(open.map((r) => r.id), ['a', 'c']);
+  assert.deepEqual(earlier.map((r) => r.id), ['b', 'd', 'e']);
+  assert.equal(plainStop(runs[0].error), 'Did not run: another program held the port it needs');
+  assert.equal(plainStop('The gate failed.'), 'Did not land: The gate failed');
+});

@@ -28,6 +28,8 @@ import ResultsBar from '../templates/ResultsBar.jsx';
 import NoResults from '../templates/NoResults.jsx';
 import { planRun } from '../templates/RunPlan.jsx';
 import AuditReading from './AuditReading.jsx';
+import { markOf } from '../templates/marks.js';
+import Loading from '../templates/Loading.jsx';
 import { AUDIT_NAME, FILTERS, buildReport, changeTone, changeWord, counts, dayWords, sgn } from './auditReportsModel.js';
 
 const DOT = { success: 'success', danger: 'danger', warning: 'attention', neutral: 'neutral', info: 'info' };
@@ -402,9 +404,9 @@ export default function AuditReportsContent() {
   }, [filter, open, auditAsked]);
   const rep = useMemo(() => (d?.ok ? buildReport(d) : null), [d]);
 
-  if (error && !d) return <EmptyState size="lane" mark="🔌" title="CHIP's server isn't answering" line={error} />;
-  if (!d) return <EmptyState size="lane" mark="⏳" title="Reading the audits" line="Looking for each audit's saved report and the benchmark runs." />;
-  if (!d.ok) return <EmptyState size="lane" mark="📄" title="Not measured" line={d.why} />;
+  if (error && !d) return <EmptyState size="lane" {...markOf('🔌')} title="CHIP's server isn't answering" line={error} />;
+  if (!d) return <Loading title="Reading the audits" sources={[{ url: '/audit-reports', label: "each audit's saved report and the benchmark runs" }]} />;
+  if (!d.ok) return <EmptyState size="lane" {...markOf('📄')} title="Not measured" line={d.why} />;
 
   const { changes, line } = rep;
   const n = counts(changes);

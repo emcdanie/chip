@@ -37,6 +37,7 @@ import useCached from '../templates/useCached.js';
 import useNarrow from '../templates/useNarrow.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import StepPanel from './StepPanel.jsx';
+import { measuredMinutes, useFixPlan } from '../templates/FixPlan.jsx';
 
 const FIGMA_PATHS = ['figma', 'figma-console', 'figma-rest'];
 // a step's state in words and tone; a step with no entry is a role in the workflow, nothing to measure
@@ -289,7 +290,7 @@ function summaryOf(map) {
 
 /* A step as BELLA's MapLeaf: its name, a shape and its state word, then its measured line. State is the shape and the
    word, never the stage's colour. */
-const LEAF_STATE = { ok: 'ok', green: 'ok', bad: 'attention', you: 'attention', warn: 'attention', yellow: 'attention', red: 'failed', blocked: 'blocked', unknown: 'unmeasured', unmeasured: 'unmeasured' };
+const LEAF_STATE = { ok: 'ok', green: 'ok', bad: 'failed', you: 'attention', warn: 'attention', yellow: 'attention', red: 'failed', blocked: 'blocked', unknown: 'unmeasured', unmeasured: 'unmeasured' };
 function Leaf({ step, picked, related, onPick }) {
   const said = SAYS[step.state];
   return <MapLeaf name={step.name} state={LEAF_STATE[step.state] ?? 'unmeasured'} status={said ? said[0] : 'Not known'} detail={step.line ?? undefined} selected={picked} related={related} onSelect={() => onPick(step.id)} />;
@@ -481,7 +482,65 @@ function Board({ map, name, filterOnly, picked, onPick, label }) {
   );
 }
 
-function Detail({ map, mapId, step, onPick }) {
+const GAP_OF = { pipeline: { contracts: 'contract', stories: 'story', contrast: 'contrast' } };
+const FAILS = new Set(['bad', 'red', 'warn', 'yellow']);
+// what fails behind a step: the parts from /gaps where it has them, else its own measured words (a saved audit's first work
+// orders, what blocks it, its detail). Always one plan, started from "See the plan": nothing runs on a click.
+function failingOf(mapId, step, map, gaps) {
+  const kind = GAP_OF[mapId]?.[step.id];
+  const parts = kind && gaps?.[kind] ? Object.entries(gaps[kind]) : [];
+  if (parts.length)
+    return {
+      title: `${step.name}: ${parts.length} ${parts.length === 1 ? 'part' : 'parts'} to fix`,
+      lead: `${parts.length} ${parts.length === 1 ? 'part is' : 'parts are'} behind this number.`,
+      rows: parts.map(([n, g]) => ({ id: n, title: n, line: plain(first(g.missing)), plan: first(g.suggest?.text ?? g.missing) })),
+      brief: `Fix every part that fails ${step.name} in BELLA:\n${parts.map(([n, g]) => `- ${n}: ${g.missing}`).join('\n')}`,
+      planTitle: (r) => `Fix ${r.title}`,
+    };
+  if (!FAILS.has(step.state)) return null;
+  const orders = String(step.more ?? '').match(/First work orders: (.*)\.$/)?.[1]?.split('; ') ?? [];
+  const blocker = step.blockedBy ? map.steps[step.blockedBy] : null;
+  const rows = orders.length
+    ? orders.map((o, i) => ({ id: `o${i}`, title: o, line: 'First work order from the saved report.', plan: o }))
+    : [{ id: 'why', title: step.name, line: blocker ? `Waits on ${blocker.name}: ${plain(first(blocker.detail))}` : plain(first(step.why ?? step.detail)), plan: plain(first(step.detail)) }];
+  return {
+    title: `${step.name}: ${rows.length === 1 ? 'fix it' : `${rows.length} things to fix`}`,
+    lead: orders.length ? "These come from the audit's saved report." : 'This is what the step itself reports.',
+    rows,
+    brief: `Find why ${step.name} is ${SAYS[step.state]?.[0]?.toLowerCase()} in CHIP's processes and fix it, then report the result:\n${rows.map((r) => `- ${r.title}: ${r.line}`).join('\n')}`,
+    planTitle: (r) => (orders.length ? r.title : blocker ? `Unblock ${blocker.name}` : `Fix ${step.name}`),
+  };
+}
+/* A failing step ends in its fix plan (24 Nov review: "Contracts says Failing but there is nowhere to fix it"): the plan
+   template every finding uses, read first, then Start (it goes on Work, nothing runs) or Execute now (the plan sheet
+   opens first). */
+function StepFix({ mapId, step, map, gaps, runs }) {
+  const f = failingOf(mapId, step, map, gaps);
+  const plan = f
+    ? {
+        title: f.title,
+        from: `Processes · ${step.name}`,
+        summary: f.lead,
+        brief: f.brief,
+        outline: f.rows.map((r) => `${f.planTitle(r)}: ${r.line}`),
+        minutes: measuredMinutes(runs),
+        expect: 'a card on Work; works on a copy; the step is checked again after; nothing is pushed.',
+      }
+    : null;
+  const fix = useFixPlan(plan);
+  if (!f) return null;
+  return (
+    <Flow gap={16}>
+      {fix.body}
+      <Flow direction="row" gap={8} justify="end" align="center" wrap>
+        {fix.footer}
+      </Flow>
+      <TextStack subtitle={fix.footerNote} />
+    </Flow>
+  );
+}
+
+function Detail({ map, mapId, step, onPick, gaps, runs, fit }) {
   // a closed Disclosure still lays its text out under the rows below it, so its words are only drawn while it is open
   const [more, setMore] = useState(false);
   if (!map || !step)
@@ -537,36 +596,42 @@ function Detail({ map, mapId, step, onPick }) {
         <ListRowGroup ariaLabel={`${step.name}: ${title.toLowerCase()}`}>{items.map(render)}</ListRowGroup>
       </Flow>
     ) : null;
+  const failingNow = Boolean(failingOf(mapId, step, map, gaps));
   return (
-    <Card footerAction={action}>
-      <Flow gap={16} aria-live="polite">
+    // in the wide layout the card takes its column's height (placement only, as the template's fit rule does), so its body scrolls inside
+    <Card footerAction={failingNow ? undefined : action} style={fit ? { flex: '1 1 0', minBlockSize: 0 } : undefined}>
+      {/* the head stays put and the rest scrolls inside the card (24 Nov review: it scrolled the whole page) */}
+      <Flow gap={16} aria-live="polite" style={fit ? { flex: '1 1 0', minBlockSize: 0 } : undefined}>
         <Flow gap={8}>
           <SectionHead title={step.name} titleLevel={3} showInfo={false} />
           {said ? <StatusDot tone={said[1]} label={said[0]} /> : null}
           {step.line ? <TextStack meta={step.line} /> : null}
         </Flow>
-        <StepPanel
-          mapId={mapId}
-          step={step}
-          state={said?.[0] ?? 'Not measured'}
-          what={plain(first(step.detail))}
-          feeds={feeds.map((x) => ({ name: x.name, label: SAYS[x.state]?.[0] ?? 'Not measured' }))}
-          waits={waits.map((x) => ({ name: x.name, state: x.state, label: SAYS[x.state]?.[0] ?? 'Not measured' }))}
-        />
-        {/* anything that needs you says why, from its source */}
-        {step.state === 'bad' || step.state === 'you' ? (
-          <Disclosure title="Why this?" open={more} onToggle={setMore}>
-            {more ? <TextStack body={step.why ?? `Its own check reports it: ${step.more ?? step.detail} Read from CHIP's map of BELLA's checks.`} /> : null}
-          </Disclosure>
-        ) : step.more ? (
-          <Disclosure title="More" open={more} onToggle={setMore}>
-            {more ? <TextStack body={step.more} /> : null}
-          </Disclosure>
-        ) : null}
-        {list('Waits on', waits, rowOf)}
-        {list('Runs at', step.at ?? [], (m) => <ListRow key={m} layout="stacked" title={m} />)}
-        {list('Runs with', peers, rowOf)}
-        {list('Feeds', feeds, rowOf)}
+        <Flow gap={16} scroll={fit} aria-label={`${step.name}: details`}>
+          <StepPanel
+            mapId={mapId}
+            step={step}
+            state={said?.[0] ?? 'Not measured'}
+            what={plain(first(step.detail))}
+            feeds={feeds.map((x) => ({ name: x.name, label: SAYS[x.state]?.[0] ?? 'Not measured' }))}
+            waits={waits.map((x) => ({ name: x.name, state: x.state, label: SAYS[x.state]?.[0] ?? 'Not measured' }))}
+          />
+          {/* anything that needs you says why, from its source */}
+          {step.state === 'bad' || step.state === 'you' ? (
+            <Disclosure title="Why this?" open={more} onToggle={setMore}>
+              {more ? <TextStack body={step.why ?? `Its own check reports it: ${step.more ?? step.detail} Read from CHIP's map of BELLA's checks.`} /> : null}
+            </Disclosure>
+          ) : step.more ? (
+            <Disclosure title="More" open={more} onToggle={setMore}>
+              {more ? <TextStack body={step.more} /> : null}
+            </Disclosure>
+          ) : null}
+          {list('Waits on', waits, rowOf)}
+          {list('Runs at', step.at ?? [], (m) => <ListRow key={m} layout="stacked" title={m} />)}
+          {list('Runs with', peers, rowOf)}
+          {list('Feeds', feeds, rowOf)}
+          <StepFix mapId={mapId} step={step} map={map} gaps={gaps} runs={runs} />
+        </Flow>
       </Flow>
     </Card>
   );
@@ -666,7 +731,7 @@ export default function SystemMapContent() {
     </Flow>
   );
 
-  const center = (
+  const head = (
     <Flow gap={16}>
       {tools}
       <Flow gap={8}>
@@ -674,21 +739,45 @@ export default function SystemMapContent() {
         <SectionHead title={meta.name} description={map ? summaryOf(map) : meta.sub} showDescription showInfo={false} />
         <TextStack subtitle={`Showing: ${only ? 'Needs you' : 'Everything'} · ${only ? owed : total} of ${total} steps`} />
       </Flow>
+    </Flow>
+  );
+  const center = (
+    <Flow gap={16}>
+      {head}
       {board}
     </Flow>
   );
 
   // the detail card stands from the first paint (a Pick a step card while the map is still being read)
-  const detail = (
-    <Flow id="process-step" gap={16} aside={!stack}>
-      <Detail key={`${mapId}:${pickId}`} map={map} mapId={mapId} step={step} onPick={pick} />
-    </Flow>
-  );
+  const gaps = useCached(['/gaps']).data?.[0]?.gaps ?? null;
+  const runs = useCached(['/runs']).data?.[0]?.runs ?? [];
+  const detail = (fit) => <Detail key={`${mapId}:${pickId}`} map={map} mapId={mapId} step={step} onPick={pick} gaps={gaps} runs={runs} fit={fit} />;
 
-  const work = (
-    <Flow direction={stack ? 'column' : 'row'} gap={24} grow={stack ? undefined : 'first'} align={stack ? undefined : 'start'}>
+  // wide: the map and its detail fill the window under the head and each scrolls on its own, as History does (24 Nov
+  // review: the detail was squished at 240 and scrolled the whole page); narrow: the detail stacks under the map
+  const work = stack ? (
+    <Flow gap={24}>
       {center}
-      {detail}
+      <Flow id="process-step" gap={16}>
+        {detail(false)}
+      </Flow>
+    </Flow>
+  ) : (
+    <Flow gap={16}>
+      {head}
+      <Flow fit span={12}>
+        <Flow span={12}>
+          {/* the tree keeps about two thirds of the row so its branches stay apart; the detail takes the rest */}
+          <Flow direction="row" gap={24} style={{ minBlockSize: 0 }}>
+            <Flow gap={16} scroll aria-label={`${meta.name} map`} style={{ flex: '2 1 0', blockSize: 'auto', minInlineSize: 0 }}>
+              {board}
+            </Flow>
+            <Flow id="process-step" style={{ flex: '1 1 0', minInlineSize: 0 }}>
+              {detail(true)}
+            </Flow>
+          </Flow>
+        </Flow>
+      </Flow>
     </Flow>
   );
 

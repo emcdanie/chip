@@ -6,7 +6,8 @@
 // tool column beside the picture). No Mark up mode. Shared by Playground Picks and the Needs
 // you view so both behave alike.
 //
-// BELLA parts: Stage (the plain stage the picture stands on), Pin, Card, Input (multiline), Button, TextStack.
+// BELLA parts: Stage (the plain stage the picture stands on), ToolColumn (zoom in, Fit, zoom out, on the picture's
+// top-left corner; a row under it when the picture is narrow), Pin (comment), Card, Avatar, Input, Button, TextStack.
 // BELLA GAPS (named, not drawn here): a Comment popover with a pin (the box is a Card placed by this file); a
 // ToolColumn without Light or dark and Compare (so three Buttons); Stage's frame mode keeps about 130px of
 // padding and a size row around the picture, so the plain stage carries it.
@@ -16,15 +17,16 @@ import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Input from '@bella/components/Input/Input';
 import Stage from '@bella/components/Stage/Stage';
 import TextStack from '@bella/components/TextStack/TextStack';
-import { ZOOM_STEPS } from '@bella/components/ToolColumn/ToolColumn';
+import ToolColumn, { ZOOM_STEPS } from '@bella/components/ToolColumn/ToolColumn';
 import Flow from './Flow.jsx';
 import { CommentBubble, CommentPin, NewComment, PIN_AT } from './Comment.jsx';
+import { markOf } from './marks.js';
 
 const MIN = 0.1;
 const MAX = 4;
 const BOX = 288; // the comment box's width in px, three times the 96 grid
 
-function useSize(src) {
+function useSize(src, again = 0) {
   const [size, setSize] = useState(null);
   useEffect(() => {
     setSize(null);
@@ -37,7 +39,7 @@ function useSize(src) {
     return () => {
       live = false;
     };
-  }, [src]);
+  }, [src, again]);
   return size;
 }
 
@@ -47,7 +49,8 @@ function useSize(src) {
  * numberOf(pin): the pin's number on the picture; the list's order by default.
  */
 export default function PicturePins({ src, alt, pins, setPins, onCommit, numberOf, commitLabel = 'Send', summary, zoom: zoomProp, onZoomChange, onFitChange, reserve }) {
-  const size = useSize(src);
+  const [again, setAgain] = useState(0); // Try again on a picture that didn't load
+  const size = useSize(src, again);
   const scroller = useRef(null);
   const wrap = useRef(null);
   const inner = useRef(null);
@@ -136,9 +139,11 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
     if (next) zoomTo(next / 100);
   };
 
-  // pinch (a trackpad sends Ctrl + wheel) and Cmd/Ctrl + scroll zoom; a plain scroll pans, as in Figma
+  // pinch (a trackpad sends Ctrl + wheel) and Cmd/Ctrl + scroll zoom; a plain scroll pans, as in Figma. Caught on the
+  // whole picture area, tools included, so a pinch never zooms the browser page instead (her review, 24 Nov: "zoomed in
+  // on Pages she got stuck and had to refresh")
   useEffect(() => {
-    const el = scroller.current;
+    const el = wrap.current;
     if (!el) return undefined;
     const wheel = (e) => {
       if (!e.ctrlKey && !e.metaKey) return;
@@ -229,9 +234,25 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
   }, [open?.id, !!place]);
   useEffect(() => setOpen(null), [src]);
 
-  if (!src) return <EmptyState size="lane" mark="🖼" title="No picture on this card" />;
-  if (!size) return <EmptyState size="lane" mark="⏳" title="Loading the picture" />;
-  if (!size.w) return <EmptyState size="lane" mark="🖼" title="The picture didn’t load" />;
+  if (!src) return <EmptyState size="lane" {...markOf('🖼')} title="No picture on this card" />;
+  if (!size) return <EmptyState size="lane" {...markOf('⏳')} title="Loading the picture" />;
+  // a picture that doesn't load says where it comes from and offers Try again (her review, 24 Nov: "the picture
+  // didn't load"; the review board on localhost:3123 serves every picture, and it had stopped)
+  if (!size.w) {
+    let from = 'its page';
+    try {
+      from = new URL(src, window.location.href).host;
+    } catch {}
+    return (
+      <EmptyState
+        size="lane"
+        {...markOf('🖼')}
+        title="The picture didn’t load"
+        line={`It comes from ${from}, which didn’t answer. Start it, then try again.`}
+        actions={<Button variant="secondary" onClick={() => setAgain((n) => n + 1)}>Try again</Button>}
+      />
+    );
+  }
 
   const drop = (e) => {
     if (quiet.current) {
@@ -269,6 +290,13 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
     }
   };
   const now = open && open.id !== 'new' ? pins.find((p) => p.id === open.id) : null;
+  // Fit always works: from any zoom it goes back to Fit; at Fit it toggles to the whole picture (when Fit fills the
+  // width) and back. Zoom out always goes a step down; Esc and 0 go back to Fit.
+  const fitToggle = () => setZoom(zoom != null ? null : Math.abs(whole - fit) > 0.001 ? whole : null);
+  const narrowWrap = (room?.w ?? Infinity) < 460;
+  const tools = (
+    <ToolColumn tools="view" orientation={narrowWrap ? 'horizontal' : 'vertical'} label="Picture tools" showZoom={false} zoom={Math.round(k * 100)} onZoomChange={(z) => zoomTo(z / 100)} onFit={fitToggle} />
+  );
   const label = (p) => number(p);
   const nextNo = number({ id: 'new', isNew: true });
 
@@ -280,12 +308,24 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
         onPointerEnter={() => (over.current = true)}
         onPointerLeave={() => (over.current = false)}
         onKeyDown={(e) => {
-          if (e.key === 'Escape' && open) {
+          if (e.key !== 'Escape') return;
+          if (open) {
             e.stopPropagation();
             setOpen(null);
+          } else if (zoom != null) {
+            e.stopPropagation();
+            setZoom(null);
           }
         }}
       >
+        {/* the picture's tools sit on its top-left corner and stay in view while the page scrolls past the picture
+            (Workbench tools stay in reach, 23 Nov; on the picture, her review 24 Nov): a sticky row of no height, so it
+            takes no room and rides at the top of the window until the picture's foot passes */}
+        {narrowWrap ? null : (
+          <div style={{ position: 'sticky', insetBlockStart: 'var(--spacing-16)', blockSize: 0, zIndex: 1 }}>
+            <div style={{ position: 'absolute', insetBlockStart: 'var(--spacing-16)', insetInlineStart: 'var(--spacing-16)' }}>{tools}</div>
+          </div>
+        )}
         <div
           ref={scroller}
           tabIndex={0}
@@ -309,24 +349,16 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
             ) : null}
           </div>
         </div>
-        <div style={{ position: 'absolute', insetBlockEnd: 'var(--spacing-16)', insetInlineEnd: 'var(--spacing-16)' }}>
-          <Flow direction="row" gap={4} align="center" role="toolbar" aria-label="Picture zoom">
-            {outside ? null : (
-              <>
-            <Flow role="status" gap={0}>
-              {saved ? <TextStack body="Saved" /> : null}
-            </Flow>
-              <>
-                <Button variant="secondary" size="sm" iconOnly icon="ZoomOut" ariaLabel="Zoom out" onClick={() => step(-1)} />
-                <Button variant="secondary" size="sm" iconOnly icon="ZoomIn" ariaLabel="Zoom in" onClick={() => step(1)} />
-                <Button variant="secondary" size="sm" ariaPressed={zoom == null} onClick={() => setZoom(null)}>
-                  {zoom == null ? `Fit ${Math.round(fit * 100)}%` : `${Math.round(k * 100)}%`}
-                </Button>
-              </>
-              </>
-            )}
-          </Flow>
-        </div>
+        {narrowWrap ? (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBlockStart: 'var(--spacing-8)' }}>{tools}</div>
+        ) : null}
+        {/* the picture's tools sit on the picture (her review, 24 Nov: the column was "too wide and sits oddly at the
+            side"): BELLA ToolColumn at its top-left corner; under the picture, in a row, when the picture is narrow */}
+        {outside || !saved ? null : (
+          <div role="status" style={{ position: 'absolute', insetBlockEnd: 'var(--spacing-16)', insetInlineEnd: 'var(--spacing-16)' }}>
+            <TextStack body="Saved" />
+          </div>
+        )}
         {open && place ? (
           <div
             data-comment-box

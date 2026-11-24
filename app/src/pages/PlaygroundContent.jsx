@@ -26,6 +26,8 @@ import Flow from '../templates/Flow.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import PicturePins from '../templates/PicturePins.jsx';
 import SendBar from '../templates/SendBar.jsx';
+import { markOf } from '../templates/marks.js';
+import Loading from '../templates/Loading.jsx';
 
 // The progress board server takes the notes (screens/progress/server.py).
 export const BOARD = 'http://localhost:3123';
@@ -255,18 +257,21 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
     return <Notification tone="danger" title="The CHIP server" message="It isn't answering. Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
 
   if (!part && pages && !pages.length)
-    return <EmptyState size="page" mark="🤷‍♀️" title="No pages to open here" line="This project has no pages CHIP can load yet. Pick another one." />;
+    return <EmptyState size="page" {...markOf('🤷‍♀️')} title="No pages to open here" line="This project has no pages CHIP can load yet. Pick another one." />;
 
   return (
     <>
       {/* Control bar: what you look at on the left, switches on the right */}
       <Flow direction={narrow ? 'column' : 'row'} gap={16} wrap={!narrow} justify={narrow ? 'start' : 'between'} align={narrow ? undefined : 'center'}>
-        <Flow direction="row" gap={12} wrap>
+        {/* one row, one input pattern (her review, 24 Nov: "two inputs, one with label on top and one on the left,
+            misaligned, different font sizes"): both labels on the left in the body text, both fields 44 and centred */}
+        <Flow direction="row" gap={24} wrap align="center">
           {/* Figma: one Show select; a page also names its project */}
           {!part && !none && projects?.length ? <Select label="Project" value={project} onChange={onProject} options={projects.map((p) => ({ value: p.id, label: p.name }))} /> : null}
           <Flow>
             <Combobox
               label="Show"
+              labelPosition="inline"
               search
               value={q}
               onChange={setQ}
@@ -295,7 +300,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
         <Stage label="Nothing picked yet">
           <EmptyState
             size="lane"
-            mark="👀"
+            {...markOf('👀')}
             title="Pick something to try"
             // the Show select above is the one way to pick (audit 4, item 3: "Show parts" opened the same)
             line="Choose a part or a page in Show, or start with one of these."
@@ -336,7 +341,7 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
           />
         </Flow>
       )}
-      {!part && !none && map && running && !shot ? <EmptyState size="lane" title="Loading the page" /> : null}
+      {!part && !none && map && running && !shot ? <Loading title="Loading the page" what={`a picture of ${page?.label ?? 'the page'}`} /> : null}
       <SendBar count={count} onSend={sendAll} sending={batch.sending} result={batch.result} failed={batch.failed} onDismiss={() => setBatch({ sending: false, result: null, failed: null })} />
 
       {/* Figma "controls open": the part's props as rows, value on the right; a click moves to the next value */}

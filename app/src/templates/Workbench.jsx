@@ -3,13 +3,13 @@
 // bottom and scroll across and i can pick them"). Shared by Playground picks and the Needs you view, so both look and
 // behave alike:
 //   - the picture big in the middle, with its title, what to decide and the comment count on one line above it;
-//   - a thin tool column (zoom in, Fit, zoom out) fixed beside the picture, in view while the page scrolls;
+//   - the picture's own thin tool column (zoom in, Fit, zoom out) on its top-left corner (PicturePins, 24 Nov);
 //   - one row under the picture (the choice, thumbs, one comment box, one Send), passed in as `row`;
 //   - the comments as a thin panel on the right, opened from the count and closed again;
 //   - the items as a strip of the Work board's cards along the bottom that scrolls sideways, the open one outlined,
 //     with Back and Next and the arrow keys;
-//   - on a phone: picture, the tools in a small row right under it, the row, then the strip.
-// BELLA parts: ToolColumn (tools="view", orientation), TaskCard (use="pick", selected), SectionHead, Button, Heading,
+//   - on a phone: picture (its tools in a small row right under it), the row, then the strip.
+// BELLA parts: TaskCard (use="pick", selected), SectionHead, Button, Heading, Link,
 // TextStack. Layout: Flow only (sticky, strip). No page CSS.
 import { useEffect, useRef } from 'react';
 import Button from '@bella/components/Button/Button';
@@ -18,7 +18,6 @@ import Link from '@bella/components/Link/Link';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TaskCard from '@bella/components/TaskCard/TaskCard';
 import TextStack from '@bella/components/TextStack/TextStack';
-import ToolColumn from '@bella/components/ToolColumn/ToolColumn';
 import Flow from './Flow.jsx';
 import useNarrow from './useNarrow.js';
 import { useDrawerUrl } from './ReadingDrawer.jsx';
@@ -97,25 +96,15 @@ function notesHref(open) {
 
 /**
  * title, subtitle: what is open and what to decide. count: the number of comments, a Link that opens the panel (open
- * state in the address, ?drawer=comments). notes(close): the panel's content. tools: { zoom (null = Fit to the width),
- * fit, whole, onZoom(next | null) } or null when there is no picture; the column's Fit toggles to the whole picture.
+ * state in the address, ?drawer=comments). notes(close): the panel's content.
  * picture, row: the stage and the one row under it. strip: CardStrip's props. top: the line above (counts and filters).
  * bar: the Send all bar (SendBar with inFlow).
  */
-export default function Workbench({ id, title, subtitle, count, notes, tools, picture, row, strip, top, bar }) {
+export default function Workbench({ id, title, subtitle, count, notes, picture, row, strip, top, bar }) {
   const phone = useNarrow(640);
   const [notesOpen, setNotes] = useDrawerUrl('comments');
-  const column = tools ? (
-    <ToolColumn
-      tools="view"
-      orientation={phone ? 'horizontal' : 'vertical'}
-      label="Picture tools"
-      showZoom={false}
-      zoom={Math.round((tools.zoom ?? tools.fit ?? 1) * 100)}
-      onZoomChange={(z) => tools.onZoom(z / 100)}
-      onFit={() => tools.onZoom(tools.zoom == null ? tools.whole ?? null : null)}
-    />
-  ) : null;
+  // the picture's tools are the picture's own now (PicturePins draws ToolColumn on its corner, her review 24 Nov: the
+  // side column was "too wide and sits oddly at the side"), so the picture takes the bench's whole width
   const head = (
     <Flow direction={phone ? 'column' : 'row'} gap={phone ? 4 : 12} align="start" justify="between">
       <Heading tier="subsection" as="h2" after={subtitle ? <TextStack subtitle={subtitle} /> : null}>
@@ -129,12 +118,6 @@ export default function Workbench({ id, title, subtitle, count, notes, tools, pi
     <Flow gap={12} id={id} aria-label={typeof title === 'string' ? title : undefined}>
       {head}
       {picture}
-      {/* on a phone the tools sit right under the picture they act on (her note, 23 Nov 23:00) */}
-      {phone && column ? (
-        <Flow direction="row" justify="end">
-          {column}
-        </Flow>
-      ) : null}
       {row}
     </Flow>
   );
@@ -149,15 +132,10 @@ export default function Workbench({ id, title, subtitle, count, notes, tools, pi
           {panel}
         </Flow>
       ) : (
-        // on the page's 12 columns (visual study, 22 Nov): the tool column takes the first, the picture the rest (eight
-        // with the comments panel, which takes the last three); the tool column stays at the top of the window on scroll
+        // on the page's 12 columns (visual study, 22 Nov): the picture takes them all, or nine with the comments panel,
+        // which takes the last three
         <Flow grid>
-          {column ? (
-            <Flow sticky style={{ gridColumn: 'span 1' }}>
-              {column}
-            </Flow>
-          ) : null}
-          <Flow style={{ gridColumn: `span ${(column ? 11 : 12) - (panel ? 3 : 0)}` }}>{centre}</Flow>
+          <Flow style={{ gridColumn: `span ${panel ? 9 : 12}` }}>{centre}</Flow>
           {panel ? <Flow style={{ gridColumn: 'span 3' }}>{panel}</Flow> : null}
         </Flow>
       )}

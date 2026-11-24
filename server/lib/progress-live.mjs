@@ -11,9 +11,10 @@ import { join } from 'node:path';
 import { ROOT } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
 import { BASE } from './checks.mjs';
-import { SESSIONS_DIR, isAnswered, workBoard } from './lanes.mjs';
+import { SESSIONS_DIR, areaOfFiles, isAnswered, workBoard } from './lanes.mjs';
 import { listRuns } from './runs.mjs';
 import { readDrift } from './drift.mjs';
+import { reviewsWaiting } from './review-fixes.mjs';
 
 const SOURCES = JSON.parse(readFileSync(new URL('./progress-sources.json', import.meta.url), 'utf8'));
 const git = (dir, args, timeout = 8000) => {
@@ -33,6 +34,8 @@ export function reposFor({ chipDir = ROOT, bellaDir = BELLA, base = BASE } = {})
     bella: { dir: bellaDir, ref: has(bellaDir, base) ? base : 'HEAD', name: 'BELLA' },
   };
 }
+export { areaOfFiles } from './lanes.mjs';
+const filesOf = (dir, sha) => (sha ? (git(dir, ['show', '--name-only', '--format=', sha]) ?? '').split('\n').filter(Boolean) : []);
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const done = (repo, sha, iso) => ({ state: 'done', repo, sha, at: iso ?? null, date: iso ? day(iso) : null });
 
@@ -54,7 +57,7 @@ export function check(src, ctx) {
     if (out === null || !r) return { state: 'unmeasured', why: `${r?.name ?? src.commit.repo}'s history could not be read` };
     if (!out) return { state: 'open' };
     const [sha, at] = out.split('\t');
-    return done(r.name, sha, at);
+    return { ...done(r.name, sha, at), area: areaOfFiles(filesOf(r.dir, sha)) };
   }
   if (src.commits) {
     const r = repoOf(src.commits.repo);
@@ -67,7 +70,7 @@ export function check(src, ctx) {
       const at = git(r.dir, ['log', '-1', '--format=%cI', sha]);
       if (!last || Date.parse(at) > Date.parse(last.at)) last = { sha, at };
     }
-    return done(r.name, last.sha, last.at);
+    return { ...done(r.name, last.sha, last.at), area: areaOfFiles(src.commits.shas.flatMap((x) => filesOf(r.dir, x))) };
   }
   if (src.path) {
     const r = repoOf(src.path.repo);
@@ -75,7 +78,7 @@ export function check(src, ctx) {
     if (git(r.dir, ['cat-file', '-e', `${r.ref}:${src.path.file}`]) === null) return { state: 'open' };
     const out = git(r.dir, ['log', r.ref, '-1', '--format=%h%x09%cI', '--', src.path.file]) ?? '';
     const [sha, at] = out.split('\t');
-    return done(r.name, sha || null, at || null);
+    return { ...done(r.name, sha || null, at || null), area: areaOfFiles([src.path.file]) };
   }
   if (src.file) {
     const f = src.file.replace(/^~\//, `${homedir()}/`);
@@ -143,7 +146,7 @@ export function liveItem(item, ctx, typed) {
   const src = typed?.doneWhen ?? SOURCES[typed?.id];
   const r = check(src, { ...ctx, item });
   const answered = item.stage === 'Answered' || /^Answered\b/i.test(item.detail ?? '') || isAnswered(item, ctx.answers);
-  if (r.state === 'done') return { ...item, stage: 'Done', shipped: { date: r.date, at: r.at, commit: r.sha, where: r.repo }, source: 'checked' };
+  if (r.state === 'done') return { ...item, stage: 'Done', shipped: { date: r.date, at: r.at, commit: r.sha, where: r.repo, area: r.area ?? null }, source: 'checked' };
   if (r.state === 'unmeasured') return { ...item, stage: 'Not measured', source: r.why };
   if (item.stage === 'Done') return { ...item, stage: answered ? 'Next' : 'To do', source: 'checked, not landed yet' };
   return { ...item, stage: answered && !['Building', 'Checking'].includes(item.stage) ? 'Next' : item.stage, source: 'checked, not landed yet' };
@@ -155,27 +158,40 @@ export function landedCommits(repos, now = Date.now(), { days = 14, cap = 60 } =
   const since = new Date(now - days * 86400000).toISOString();
   const out = [];
   for (const [key, r] of Object.entries(repos)) {
-    const log = git(r.dir, ['log', r.ref, '--no-merges', '-n', '400', '--format=%h%x09%cI%x09%s']); // the cut-off is applied below, on the commit's own date
+    const log = git(r.dir, ['log', r.ref, '--no-merges', '-n', '400', '--name-only', '--format=%x1e%h%x09%cI%x09%s']); // the cut-off is applied below, on the commit's own date
     if (log === null) continue;
-    for (const l of log.split('\n').filter(Boolean)) {
+    for (const block of log.split('\x1e').filter((b) => b.trim())) {
+      const [l, ...files] = block.split('\n').filter(Boolean);
       const [sha, at, ...rest] = l.split('\t');
       if (Date.parse(at) < Date.parse(since)) continue;
       const subject = rest.join('\t');
       const first = subject.split(/(?<=[.:?!])\s/)[0];
-      out.push({ id: `landed-${key}-${sha}`, sha, at, repo: r.name, project: key === 'bella' ? 'BELLA' : 'CHIP', title: first.length > 96 ? `${first.slice(0, first.lastIndexOf(' ', 93))}…` : first, subject });
+      out.push({ id: `landed-${key}-${sha}`, sha, at, repo: r.name, project: key === 'bella' ? 'BELLA' : 'CHIP', title: first.length > 96 ? `${first.slice(0, first.lastIndexOf(' ', 93))}…` : first, subject, area: areaOfFiles(files) });
     }
   }
   return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, cap);
 }
+
+// the review-fix pictures and waiting A/B pages (review-fixes.mjs); a folder that can't be read leaves them out, never the board
+const safeReviews = (now) => {
+  try {
+    return reviewsWaiting({ now });
+  } catch {
+    return { areas: [], pages: [], reached: false };
+  }
+};
 
 let memo = null;
 /** Drops the kept answer (a card was moved, so the next read shows it). */
 export const dropBoardCache = () => (memo = null);
 /** GET /work/board with the progress items computed now (kept 5 s: the read walks git and takes about 1.5 s). `at` is when this computation ran. */
 export function workBoardLive(now = Date.now(), over = {}) {
-  if (!over.repos && memo && now - memo.now < 5000 && now >= memo.now) return memo.board;
+  // kept 5 s, or ten times as long as the read took when it is slow: the read is synchronous, so a 3 s read every 5 s
+  // would leave the server answering nothing else for more than half of the time (24 Nov: History sat on "Opening the record")
+  if (!over.repos && memo && now - memo.now < Math.max(5000, memo.took * 10) && now >= memo.now) return memo.board;
+  const t0 = Date.now();
   const board = computeBoard(now, over);
-  if (!over.repos) memo = { now, board };
+  if (!over.repos) memo = { now, board, took: Date.now() - t0 };
   return board;
 }
 function computeBoard(now, over) {
@@ -196,5 +212,5 @@ function computeBoard(now, over) {
   const items = board.progress.items.map((it) => liveItem(it, ctx, { ...byIndex[it.n], id: byIndex[it.n]?.id }));
   for (const i of items) if (i.stage === 'Not measured' && /could not be read|did not answer|not there|no upstream/.test(i.source ?? '')) unread.push({ name: i.title, why: i.source });
   const notMeasured = items.filter((i) => i.stage === 'Not measured').map((i) => ({ id: i.id, title: i.title, why: i.source }));
-  return { ...board, progress: { ...board.progress, items, notMeasured }, landed: landedCommits(repos, now), unread, at: new Date(now).toISOString() };
+  return { ...board, progress: { ...board.progress, items, notMeasured }, landed: landedCommits(repos, now), reviews: over.reviews ?? safeReviews(now), unread, at: new Date(now).toISOString() };
 }

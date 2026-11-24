@@ -279,6 +279,10 @@ export default function ConnectorsContent() {
         </Card>
       ) : null}
 
+      {/* credits for what CHIP shows from others, at the foot of the page that lists what CHIP connects to (no About page yet;
+          the empty-state marks rule asks for this line) */}
+      <TextStack subtitle="Credits · Animated emoji: Noto Emoji Animation by Google, CC BY 4.0" />
+
       <Drawer
         side="right"
         size="lg"

@@ -39,6 +39,8 @@ import Workbench from '../templates/Workbench.jsx';
 import { CommentBubble } from '../templates/Comment.jsx';
 import { drawerOf } from '../templates/ReadingDrawer.jsx';
 import useNarrow from '../templates/useNarrow.js';
+import { markOf } from '../templates/marks.js';
+import Loading from '../templates/Loading.jsx';
 
 // The progress board. The server knows it as CHIP_REVIEW_URL (lanes.mjs) but no route hands it to the page,
 // so this is the same origin the shell's Mark up and Team already post to (Screen.jsx, TeamContent.jsx).
@@ -329,7 +331,6 @@ export default function PlaygroundPicks() {
   }, [drafts]);
   const [batch, setBatch] = useState({ sending: false, result: null, failed: null });
   const [zoom, setZoom] = useState(null); // the picture's zoom, held here for the tool column; null = Fit
-  const [fit, setFit] = useState({ fit: 1, whole: 1 });
   const shown = useMemo(() => (picks ?? []).filter((p) => !filter || FILTERS.find((f) => f.id === filter).test(p)), [picks, filter]);
   // a link that names an answered pick opens it under Answered, as a record
   const named = useRef(asked().get('pick'));
@@ -366,8 +367,8 @@ export default function PlaygroundPicks() {
   if (down && !cached)
     return <Notification tone="attention" title="The progress board" message={`It isn’t answering at ${BOARD}, so your picks can’t show. Start it, then try again.`} action={{ label: 'Try again', onClick: again }} />;
   // no Skeleton part in BELLA: the wait says what it is reading, no spinner
-  if (!picks) return <EmptyState size="lane" title="Reading your picks from the progress board" />;
-  if (!picks.length) return <EmptyState size="page" mark="🎉" title="Nothing waiting on you" line={`The progress board has ${plural(items, 'item')} waiting on you, none with a picture to pick from.`} />;
+  if (!picks) return <Loading title="Reading your picks" what="the progress board" />;
+  if (!picks.length) return <EmptyState size="page" {...markOf('🎉')} title="Nothing waiting on you" line={`The progress board has ${plural(items, 'item')} waiting on you, none with a picture to pick from.`} />;
 
   const counts = Object.fromEntries(FILTERS.map((f) => [f.id, picks.filter(f.test).length]));
 
@@ -461,7 +462,7 @@ export default function PlaygroundPicks() {
         {filter === 'open' ? (
           <EmptyState
             size="page"
-            mark="🙆‍♀️"
+            {...markOf('🙆‍♀️')}
             title="Nothing to answer"
             line="Every pick is answered."
             actions={counts.answered ? <Button variant="secondary" onClick={() => (setFilter('answered'), setAt(null))}>{`See your ${plural(counts.answered, 'answer')}`}</Button> : undefined}
@@ -490,8 +491,11 @@ export default function PlaygroundPicks() {
     <Flow gap={12} role="group" aria-label="Your answer">
       <TextStack title={`You picked ${pick.answer.text}`} subtitle={when ?? undefined} />
       {/* her words, without the stored "A · pin 1:" prefix the note carries for the agent */}
+      {/* her note shows as her comment (avatar, name, when), never loose text under the answer (her review, 24 Nov) */}
       {notesSaid.map((c) => (
-        <TextStack key={c.id} body={herWords(c.text)} />
+        <CommentBubble key={c.id} when={day(c.when) ?? c.when}>
+          <TextStack body={herWords(c.text)} />
+        </CommentBubble>
       ))}
       <Flow direction="row" justify="end">
         <Button variant="secondary" onClick={() => setChanging((x) => ({ ...x, [pick.id]: true }))}>
@@ -536,7 +540,7 @@ export default function PlaygroundPicks() {
           <Button variant="tertiary" size="sm" iconOnly icon="Xmark" ariaLabel="Close comments" onClick={close} />
         </Flow>
         {total ? (
-          <Flow as="ol" gap={12} aria-label="Comments">
+          <Flow as="ol" gap={16} aria-label="Comments">
             {/* each comment as Figma lists them: her avatar, name and when, then her words (templates/Comment.jsx) */}
             {pick.comments.map((c) => (
               <li key={c.id}>
@@ -568,7 +572,6 @@ export default function PlaygroundPicks() {
       subtitle={record ? `Answered${when ? ` ${when}` : ''}` : [pick.decide, yourAnswer ? `Your answer: ${yourAnswer}` : null].filter(Boolean).join(' · ')}
       count={total}
       notes={panel}
-      tools={{ zoom, fit: fit.fit, whole: fit.whole, onZoom: setZoom }}
       picture={
         <PicturePins
           key={`${pick.id}-${i}`}
@@ -586,7 +589,6 @@ export default function PlaygroundPicks() {
           commitLabel="Save"
           zoom={zoom}
           onZoomChange={setZoom}
-          onFitChange={(f, w) => setFit({ fit: f, whole: w })}
           reserve={phone ? 360 : 580}
         />
       }

@@ -155,7 +155,7 @@ export const LANE_NAMES = Object.fromEntries(LANES.map((l) => [l.id, l.name]));
 
 /* the progress board's tracks as the board's area tags */
 const AREA = { you: 'Your call', design: 'Figma', figma: 'Figma', library: 'Docs', parts: 'Components', pages: 'Components', bugs: 'Tooling & gate', code: 'Tooling & gate' };
-export const AREAS = ['Your call', 'Components', 'Figma', 'Docs', 'Accessibility', 'Tooling & gate'];
+export const AREAS = ['Your call', 'Tokens', 'Components', 'Figma', 'Docs', 'Accessibility', 'Tooling & gate'];
 
 /* A plan's progress: steps done, the step running now, and how many in all. */
 function progressOf(steps, { working = true } = {}) {
@@ -195,7 +195,8 @@ function runProgress(r) {
 
 /* The card's line: what it is, then how far along ("2 of 5", the step now). */
 const lineOf = (what, p) => {
-  if (!p || p.state === 'blank') return [what, p ? 'No steps yet' : null].filter(Boolean).join(' · ');
+  // "No steps yet" was not a state she could read (24 Nov): a session that has not listed its plan is Starting while it works
+  if (!p || p.state === 'blank') return [what, p ? (p.working === false ? 'Waiting, no plan shared' : 'Starting') : null].filter(Boolean).join(' · ');
   if (p.state === 'done') return `${what} · ${p.total} of ${p.total} done`;
   // one count on a stopped card: the bar's (the stopped row says why, never a second "Stopped at 2 of 4")
   if (p.state === 'error') return what;
@@ -205,8 +206,11 @@ const TONE = { working: 'info', waiting: 'neutral', blank: 'neutral', done: 'suc
 
 function bSession(s, now) {
   const done = s.steps.length > 0 && s.steps.every((x) => x.status === 'completed');
-  const p = progressOf(s.steps, { working: s.working });
-  const what = s.asks ? 'Agent · waiting on you' : done ? 'Agent' : `Agent · ${s.working ? 'working' : ago(s.updatedAt, now)}`;
+  const p = { ...progressOf(s.steps, { working: s.working }), working: !!s.working };
+  // Now is what is moving (24 Nov: Now was full of builder sessions, some done, some idle with steps left): a session whose
+  // turn ended with nothing working waits in Next, saying what it waits for; one whose steps are all done is Shipped
+  const idle = !s.working && !s.asks && !done;
+  const what = s.asks ? 'Agent · waiting on you' : done ? 'Agent' : idle ? `Agent · waiting since ${ago(s.updatedAt, now)}` : 'Agent · working';
   return {
     id: s.id,
     kind: 'session',
@@ -216,20 +220,20 @@ function bSession(s, now) {
     progress: p,
     steps: s.steps,
     tone: s.asks ? 'attention' : TONE[p.state],
-    status: s.asks ? 'Needs you' : done ? 'Shipped' : p.state === 'working' ? 'Working' : 'Waiting',
+    status: s.asks ? 'Needs you' : done ? 'Shipped' : idle ? 'Waiting' : 'Working',
     needs: s.asks,
-    home: done && !s.asks ? 'shipped' : s.working || s.asks || now - s.updatedAt < 60 * 60e3 ? 'now' : null,
+    home: done && !s.asks ? 'shipped' : s.working || s.asks ? 'now' : now - s.updatedAt < 24 * 60 * 60e3 ? 'next' : null,
     startedAt: s.startedAt,
     lastStepAt: s.updatedAt ?? null,
     who: 'agent',
-    area: s.project,
+    area: null, // a session's project is not an area; the Table says Not set
     project: s.project,
   };
 }
 
 function bRun(r, base) {
   const p = runProgress(r);
-  const what = [afterSteps(r)?.state === 'working' ? 'Accepted, finishing' : afterSteps(r)?.state === 'error' ? 'Accepted, then stopped' : 'CHIP run', r.startedAt ? when(r.startedAt) : null, base && r.base && r.base !== base ? `from ${r.base}` : null].filter(Boolean).join(' · ');
+  const what = [afterSteps(r)?.state === 'working' ? 'Accepted, finishing' : afterSteps(r)?.state === 'error' ? 'Accepted, then stopped' : 'Started by you', r.startedAt ? when(r.startedAt) : null, base && r.base && r.base !== base ? `from ${r.base}` : null].filter(Boolean).join(' · ');
   // a run whose after-Accept steps stopped needs her again
   const needs = ['passed', 'failed', 'login'].includes(r.status) || afterSteps(r)?.state === 'error';
   return {
@@ -259,6 +263,7 @@ const bNeed = (n) => ({ ...needCard(n), kind: 'need', line: ['CHIP check', needC
 const bPr = (p) => ({
   id: p.id,
   kind: 'pr',
+  pr: { project: p.project, number: p.number },
   title: p.title,
   line: ['Pull request', p.project, p.lane === 'gate' ? 'CI running' : 'CI passed, yours to merge', p.draft ? 'draft' : null].filter(Boolean).join(' · '),
   status: p.lane === 'gate' ? 'CI running' : 'Yours to merge',
@@ -269,25 +274,93 @@ const bPr = (p) => ({
   startedAt: Date.parse(p.updatedAt),
   who: p.lane === 'gate' ? 'gate' : 'maintainer',
   open: { kind: 'link', href: p.url },
-  area: 'Tooling & gate',
+  area: p.area ?? null, // read from the files it changes (server/lib/lanes.mjs prArea); Not set when unknown
   project: p.project,
 });
+
+const bFixes = (a) => ({
+  id: a.id,
+  kind: 'fixes',
+  title: a.title,
+  line: a.changedSinceAnswer ? 'Review fixes · changed since your answer' : `Review fixes · ${a.topics.length} ${a.topics.length === 1 ? 'thing' : 'things'} to look at`,
+  status: 'Your look',
+  tone: 'attention',
+  needs: true,
+  home: 'now',
+  fixes: a,
+  startedAt: a.changedAt ? Date.parse(a.changedAt) : null,
+  who: 'you',
+  area: 'Your call',
+  project: 'CHIP',
+});
+const bPage = (p) => ({
+  id: p.id,
+  kind: 'review',
+  title: p.title,
+  line: `Review page · ${p.open} of ${p.questions} to pick`,
+  status: 'Your pick',
+  tone: 'attention',
+  needs: true,
+  home: 'now',
+  img: p.img,
+  open: { kind: 'page', href: p.url },
+  who: 'you',
+  area: 'Your call',
+  project: 'CHIP',
+});
+
+/* Pull requests a newer open one already holds become one card per project (24 Nov: three old CHIP pull requests were
+   offered for merge though the new one held all of them; server/lib/lanes.mjs replacedBy, checked with git). */
+function prsOf(prs) {
+  const old = new Map();
+  const out = [];
+  for (const p of prs) {
+    if (p.replacedBy == null) {
+      out.push(bPr(p));
+      continue;
+    }
+    const k = p.project;
+    old.set(k, [...(old.get(k) ?? []), p]);
+  }
+  for (const [project, list] of old) {
+    const n = list.length;
+    out.push({
+      id: `pr-old-${String(project).toLowerCase()}`,
+      kind: 'pr-old',
+      title: typeof list[0].replacedBy === 'number' ? `${n} old ${project} pull ${n === 1 ? 'request is' : 'requests are'} replaced by the new one` : `${n} old ${project} pull ${n === 1 ? 'request has' : 'requests have'} already landed`,
+      line: ['Pull requests', project].join(' · '),
+      status: 'Yours to close',
+      tone: 'attention',
+      needs: true,
+      home: 'now',
+      prs: list.map((p) => ({ number: p.number, title: p.title })),
+      by: list[0].replacedBy,
+      repo: String(list[0].projectId ?? project).toLowerCase(),
+      startedAt: Math.max(...list.map((p) => Date.parse(p.updatedAt) || 0)),
+      who: 'maintainer',
+      area: 'Tooling & gate',
+      project,
+    });
+  }
+  return out;
+}
 
 /* The progress board's items: a review page waiting on her opens in full (her pick B, 22 Nov). */
 function bItem(i) {
   const area = AREA[i.track] ?? 'Components';
   const page = i.link ? { kind: 'page', href: i.link } : null;
-  if (i.stage === 'Waiting on you') return { id: i.id, kind: 'review', title: i.title, line: `Review page · ${area}`, status: 'Needs you', tone: 'attention', needs: true, home: 'now', open: page, area, who: 'you', n: i.n };
+  if (i.stage === 'Waiting on you') return { id: i.id, kind: 'review', img: i.img ?? null, title: i.title, line: `Review page · ${area}`, status: 'Needs you', tone: 'attention', needs: true, home: 'now', open: page, area, who: 'you', n: i.n };
   // computed on the server from the item's own source (server/lib/progress-live.mjs): a landed item says when and in which commit
-  if (i.stage === 'Done') return { id: i.id, kind: 'item', title: i.title, line: ['Shipped', i.shipped?.date, area].filter(Boolean).join(' · '), commit: i.shipped?.commit ?? null, status: 'Shipped', tone: 'success', home: 'shipped', open: page, area, n: i.n, startedAt: i.shipped?.at ? Date.parse(i.shipped.at) : undefined };
+  // a shipped item's area is the one its commit touched, never its track or lane (24 Nov, the Table said Shipped three times)
+  if (i.stage === 'Done') return { id: i.id, kind: 'item', title: i.title, line: ['Shipped', i.shipped?.date, i.shipped?.area].filter(Boolean).join(' · '), commit: i.shipped?.commit ?? null, status: 'Shipped', tone: 'success', home: 'shipped', open: page, area: i.shipped?.area ?? null, n: i.n, startedAt: i.shipped?.at ? Date.parse(i.shipped.at) : undefined };
   // answered, its work not landed yet: Next, never "Your call"
-  if (i.stage === 'Next') return { id: i.id, kind: 'item', title: i.title, line: `Answered, not landed yet · ${area}`, status: 'Next', tone: 'info', home: 'next', open: page, area, n: i.n, brief: [i.title, i.detail].filter(Boolean).join('. ') };
+  if (i.stage === 'Next') return { id: i.id, kind: 'item', title: i.title, line: area === 'Your call' ? 'Answered, not landed yet' : `Answered, not landed yet · ${area}`, status: 'Next', tone: 'info', home: 'next', open: page, area, n: i.n, brief: [i.title, i.detail].filter(Boolean).join('. ') };
   if (i.stage === 'Not measured') return { id: i.id, kind: 'item', title: i.title, line: `Not measured · ${i.source ?? 'no source to check'}`, status: 'Not measured', tone: 'neutral', home: 'ideas', open: page, area, n: i.n };
   if (i.stage === 'To do') return { id: i.id, kind: 'idea', title: i.title, line: `Idea · ${area}`, status: 'Idea', tone: 'neutral', home: 'ideas', open: page, brief: [i.title, i.detail].filter(Boolean).join('. '), area, n: i.n };
   return null; // Building and Checking are the sessions' own words for work Now already reads from the session
 }
 /* What landed in the last 14 days, one card per commit with its date (server/lib/progress-live.mjs landedCommits). */
-const bLanded = (c) => ({ id: c.id, kind: 'item', title: c.title, line: ['Landed', new Date(c.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), c.repo].join(' · '), commit: c.sha, status: 'Shipped', tone: 'success', home: 'shipped', area: 'Shipped', project: c.project, startedAt: Date.parse(c.at), n: -1 });
+const bLanded = (c) => ({ id: c.id, kind: 'item', title: c.title, line: ['Landed', new Date(c.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), c.repo].join(' · '), commit: c.sha, status: 'Shipped', tone: 'success', home: 'shipped', area: c.area ?? null, project: c.project, startedAt: Date.parse(c.at), n: -1 });
 const bTask = (t) => ({ id: t.id, kind: 'idea', title: t.title, line: 'Idea · from you', status: 'Idea', tone: 'neutral', home: 'ideas', brief: t.title, area: 'Your call', project: 'CHIP' });
 /* Components that need work, from CHIP's gap checks (/gaps), the count Health and Components show */
 const GAP_WORDS = { story: 'story', docs: 'doc page description', contract: 'contract', dsds: 'spec', contrast: 'contrast pair', a11y: 'accessibility notes' };
@@ -312,12 +385,16 @@ const bComponent = (c) => ({
   project: 'BELLA',
 });
 
+const hers = (c) => c.kind === 'run' || !!c.moved;
 export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra = null, board = null, gaps = null, now = Date.now() }) {
   const parts = componentsOf(gaps ?? {});
   const all = [
     ...needs.map(bNeed),
     ...runs.map((r) => bRun(r, runBase)).map((c, i, a) => (a.filter((o) => o.title === c.title).length > 1 && c.startedAt ? { ...c, title: `${c.title} · ${when(c.startedAt)}` } : c)),
-    ...(extra?.prs ?? []).map(bPr),
+    ...prsOf(extra?.prs ?? []),
+    // everything waiting for her look (24 Nov 10:40): one card per review-fix area she has not answered, one per A/B page
+    ...(board?.reviews?.areas ?? []).filter((a) => !a.answered).map(bFixes),
+    ...(board?.reviews?.pages ?? []).filter((p) => p.open > 0).map(bPage),
     ...(board?.sessions ?? []).map((s) => bSession(s, now)),
     ...(board?.progress?.items ?? []).map(bItem).filter(Boolean),
     ...(board?.progress?.tasks ?? []).map(bTask),
@@ -345,6 +422,8 @@ export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra
     l.cards.sort((a, b) => {
       // in Now, what needs her comes first, then her order, then the order the work started in
       // (so one finishing first never makes another look lost)
+      // what she started comes first in Now (her runs and the cards she moved there), then what needs her (24 Nov)
+      if (l.id === 'now' && hers(a) !== hers(b)) return hers(a) ? -1 : 1;
       if (l.id === 'now' && !!a.needs !== !!b.needs) return a.needs ? -1 : 1;
       if (rank(a) !== rank(b)) return rank(a) - rank(b);
       if (l.id === 'shipped') return (b.startedAt ?? 0) - (a.startedAt ?? 0) || (b.n ?? -1) - (a.n ?? -1);
@@ -484,3 +563,77 @@ export async function workStatus() {
   if (next) shown.push(`Next · ${next} ${next === 1 ? 'card' : 'cards'} lined up by you`);
   return { verdict, bullets: shown, at, line: `From the Work board, read ${at}. Sessions in the Claude app and CHIP's own runs.` };
 }
+
+/* ---------- Needs you as decisions (Elleta, 24 Nov morning: "a full page of decision cards, picture large, why in one
+   line, the action already written, Yes / No; she goes Yes, Yes, Yes down the list") ----------
+   What one card asks and what each answer does, from the card alone. yes/no: { label, does, call } where call names
+   what the page runs: a POST to a run, a drawer it opens, or the review workbench. A No that would only close the page
+   is left out: every button changes something or opens the thing to decide on. */
+// one line, never a wall: a brief with no full stop for 2,000 characters (Close the drift) is cut at a word, and the whole
+// brief opens in the plan
+// her words are never quoted back on a page (CLAUDE.md, Answers): a "(Elleta, 17 Nov: "…")" or "Elleta, 17 Nov:" in a pull
+// request's text is taken out, and a sentence that was only that quote goes with it
+export const noQuotes = (t) =>
+  String(t ?? '')
+    .replace(/\s*\((?:[^()]*?)(?:Elleta|her words|she said)[^()]*\)/gi, '')
+    .replace(/\bElleta,?\s+\d{1,2}\s+\w{3,9}:?\s*(["“][^"”]*["”])?/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,;:])/g, '$1')
+    .trim();
+const cut = (t, n = 180) => (t.length > n ? `${t.slice(0, t.lastIndexOf(' ', n - 3)).replace(/[,:;\s-]+$/, '')}…` : t);
+const later = (what = 'it') => ({ label: 'Not now', does: `puts ${what} in Next, out of Needs you; it waits there`, call: { move: 'next' } });
+export function decisionOf(c) {
+  const d = decide(c);
+  return { ...d, why: cut(noQuotes(d.why)) };
+}
+function decide(c) {
+  if (c.kind === 'run' && c.status === 'Your Accept')
+    return { ask: `Keep ${c.title}?`, why: 'The agent made the change and BELLA’s gate passed it.', yes: { label: 'Yes, keep it', does: 'keeps the change on its branch and rebuilds its spec and docs', call: { post: `/runs/${c.id}/keep` } }, no: { label: 'No, undo it', does: 'deletes the branch; nothing else changes', call: { post: `/runs/${c.id}/undo` } }, picture: { kind: 'run', id: c.id } };
+  if (c.kind === 'run' && (c.status === 'Failed' || c.status === 'Sign in'))
+    return { ask: `Run ${c.title} again?`, why: c.progress?.now ? `It stopped: ${c.progress.now}` : 'It stopped before it finished; nothing was kept.', yes: c.runBrief ? { label: 'Yes, run it again', does: 'opens its plan first, then starts a new run on a new branch', call: { again: true } } : { label: 'See why it stopped', does: 'opens the run with what it did and where it stopped', call: { open: c.open } }, no: { label: 'No, close it', does: 'closes it here; nothing is deleted', call: { post: `/runs/${c.id}/close` } }, picture: { kind: 'run', id: c.id } };
+  if (c.kind === 'fixes')
+    return { ask: `${c.title}: does it look right?`, why: c.fixes.line, yes: { label: 'Accept', does: 'says it looks right; the builder hands it over', call: { fixAnswer: 'Accept' } }, no: { label: 'Change', does: 'sends your note on what to change to the builder', call: { fixAnswer: 'Change', note: true } }, picture: null };
+  if (c.kind === 'pr-old') {
+    const landed = typeof c.by !== 'number';
+    const cmd = c.prs.map((p) => `gh pr close ${p.number} --comment "${landed ? `Already in ${c.by}` : `Replaced by #${c.by}`}"`).join(' && ');
+    return { ask: `${c.title}: close ${c.prs.length === 1 ? 'it' : 'them'}?`, why: landed ? `Everything ${c.prs.length === 1 ? 'it' : 'they'} changed is already in ${c.project}'s ${c.by} on GitHub.` : `The newest ${c.project} pull request already holds everything ${c.prs.length === 1 ? 'it' : 'they'} changed.`, facts: c.prs.map((p) => p.title), yes: { label: 'Yes, close them', does: 'opens a terminal with the close commands typed; they run when you press Return', call: { terminal: { repo: c.repo, command: cmd, title: 'close the old pull requests' } } }, no: { label: 'No, keep them', does: 'puts this card in Next and leaves them open', call: { move: 'next' } }, picture: null };
+  }
+  if (c.kind === 'pr')
+    return { ask: `Merge “${c.title}”?`, why: c.status === 'Yours to merge' ? `Every check passed on this ${c.project} pull request.` : `Its checks are still running.`, yes: { label: 'Yes, merge it', does: 'opens a terminal with the merge typed; it runs when you press Return', call: { merge: c.pr } }, no: later('the pull request'), picture: { kind: 'pr', ...c.pr } };
+  if (c.kind === 'need' && c.open?.kind === 'push')
+    return { ask: c.title, why: 'These changes are only on this Mac; GitHub runs its checks once they are there.', yes: { label: 'See what would be saved', does: 'shows each change; you save it to GitHub yourself', call: { open: c.open } }, no: later(), picture: null };
+  if (c.kind === 'need')
+    return { ask: c.title, why: c.line ?? 'One of CHIP’s checks needs you.', yes: { label: c.action ?? 'Open it', does: 'opens it here with what to do next', call: { open: c.open } }, no: later(), picture: null };
+  if (c.kind === 'review')
+    return { ask: c.title, why: 'A review page waits on your pick.', yes: { label: 'Open the pictures', does: 'opens its pictures with your choices and comments', call: { review: c.id } }, no: later('the review'), picture: c.img ? { kind: 'img', src: c.img } : null };
+  if (c.kind === 'session')
+    return { ask: c.title, why: 'A Claude Code session is waiting on your answer.', yes: { label: 'Open the session', does: 'shows its steps and what it asks', call: { session: true } }, no: later('the session'), picture: null };
+  // shipped: what landed and when, read only (24 Nov: every card opens its detail)
+  if (c.status === 'Shipped') return { ask: c.title, why: c.line ?? '', facts: [c.commit ? `Commit ${c.commit}` : null].filter(Boolean), yes: null, no: null, picture: null };
+  // an idea, a to-do or an answered item whose work has not landed: start it (its plan opens first, where the brief can be
+  // changed), or say it is not being done; one with no brief can be lined up in Next
+  if (c.brief) return { ask: `Start “${c.title}”?`, why: cut(String(c.brief).split(/(?<=[.?!])\s/)[0]), yes: { label: 'Yes, start it', does: 'opens its plan, where you can change the brief, then starts it', call: { start: true } }, no: { label: 'Not doing', does: 'moves it to Not doing; you can move it back', call: { move: 'not-doing' } }, picture: null };
+  if (c.status === 'Not measured') return { ask: c.title, why: c.line ?? '', yes: c.open?.kind === 'page' ? { label: 'Open the pictures', does: 'opens its review page here', call: { review: c.id } } : { label: 'Line it up', does: 'moves it to Next', call: { move: 'next' } }, no: { label: 'Not doing', does: 'moves it to Not doing; you can move it back', call: { move: 'not-doing' } }, picture: null };
+  return { ask: c.title, why: c.line ?? '', yes: c.open ? { label: 'Open it', does: 'opens it here', call: { open: c.open } } : null, no: null, picture: null };
+}
+
+/* The order of Needs you while she reviews (24 Nov): what waits on her look first (review-fix areas, newest picture first,
+   then the A/B pages), then her runs, then the rest in the board's own order. */
+export function needsOrder(cards) {
+  const rank = (c) => (c.kind === 'fixes' ? 0 : c.kind === 'review' ? 1 : c.kind === 'run' ? 2 : 3);
+  return cards.map((c, i) => [c, i]).sort(([a, i], [b, j]) => rank(a) - rank(b) || (rank(a) === 0 ? (b.startedAt ?? 0) - (a.startedAt ?? 0) : i - j)).map(([c]) => c);
+}
+
+/* The Table says each thing once (24 Nov, her screenshot: a shipped row said "Shipped" three times): the lane as a status
+   dot and its word, the Status column only where it adds to the lane (a running step, what waits on her, what did not
+   land), and the area read from the card, "Not set" when unknown. */
+export const LANE_DOT = { ideas: 'neutral', next: 'neutral', now: 'info', shipped: 'success', 'not-doing': 'neutral' };
+export function tableStatus(c) {
+  const p = c.progress;
+  if (p?.state === 'working' && p.total) return `Running · step ${Math.min(p.total, p.done + 1)} of ${p.total}`;
+  if (c.tone === 'danger' || p?.state === 'error') return 'Did not land';
+  if (c.needs) return c.status && !/^needs you$/i.test(c.status) ? c.status : 'Waiting on you';
+  if (p?.state === 'waiting' && c.kind === 'session') return 'Waiting';
+  return '';
+}
+export const tableArea = (c) => (c.area && c.area !== c.lane ? c.area : 'Not set');

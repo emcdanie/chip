@@ -589,6 +589,21 @@ export async function afterKeep(run, { only = AFTER_STEPS } = {}) {
   }
 }
 
+/** POST /runs/:id/close: her No on a run that stopped (24 Nov, Needs you decisions: "Yes, Yes, Yes down the list"). Nothing
+ *  is deleted: the run leaves Needs you and Now, saying she closed it and when. A passed run is Undone instead. */
+export function closeRun(id, now = new Date(), { keep = true } = {}) {
+  const run = runs.get(id);
+  if (!run) throw new Error('No such run');
+  if (!['failed', 'login', 'nochange'].includes(run.status)) throw new Error(run.status === 'passed' ? 'A run whose gate passed is kept or undone, not closed' : 'Only a run that stopped can be closed');
+  Object.assign(run, { status: 'closed', closedFrom: run.status, closedWhy: `you closed it on ${now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`, step: null });
+  if (!keep) return public_(run); // tests: nothing written to data/runs or the action log
+  save(run);
+  logAction({ kind: 'close', title: run.title, branch: run.branch, base: BASE });
+  return public_(run);
+}
+/** For tests: put a run in the map as if it had been read from disk. */
+export const _putRun = (r) => runs.set(r.id, r);
+
 /** POST /runs/:id/undo: deletes the branch, only when it holds the run's one commit. */
 export function undoRun(id) {
   const run = runs.get(id);

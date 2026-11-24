@@ -30,8 +30,9 @@ import { closedLoops, plannedFixes, recurring } from './lib/not-again.mjs';
 import { fixesRoutes, readFixes } from './lib/fixes.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
 import { dropBoardCache, workBoardLive } from './lib/progress-live.mjs';
-import { saveBoard, saveIdea, workLanes } from './lib/lanes.mjs';
-import { claudeReady, gateReady, getRun, keepRun, listRuns, runClock, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
+import { reviewsWaiting } from './lib/review-fixes.mjs';
+import { prDetail, saveBoard, saveIdea, sessionTasks, workLanes } from './lib/lanes.mjs';
+import { claudeReady, gateReady, getRun, keepRun, listRuns, runClock, startRun, stopRun, undoRun, closeRun, runPlan } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
 import { ciReadAt, ciRuns, warmCi, systemMap } from './lib/map.mjs';
@@ -606,6 +607,22 @@ app.post('/review/:check/keep', (req, res) => {
 // base: today's BELLA branch, so a card can say when a run started from another one (data check, 22 Nov)
 // Work's Agent, Gate and Ready lanes beyond CHIP's runs: open PRs by their CI, sessions at work (read only)
 app.get('/work/lanes', async (_req, res) => res.json(await workLanes()));
+// what waits on her look, read live from the review folders (24 Nov: everything waiting for her look is in Needs you)
+app.get('/needs/reviews', (_req, res) => {
+  try {
+    res.json(reviewsWaiting());
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+// one pull request, read inside CHIP: what it changes in plain words, its picture, how big (Needs you decisions, 24 Nov)
+app.get('/work/pr', (req, res) => {
+  try {
+    res.json(prDetail(String(req.query.project ?? ''), String(req.query.number ?? '')));
+  } catch (e) {
+    errorOut(res, e, 404);
+  }
+});
 // the bell's "Landed today": commits on chip/whole and chip/parts-dev since midnight, read only
 app.get('/work/landed', (_req, res) => {
   try {
@@ -615,6 +632,20 @@ app.get('/work/landed', (_req, res) => {
   }
 });
 // the board in her Notion lanes: sessions and their steps, the progress board, components that need work, her order
+// her Claude sessions only (24 Nov): the header light, the Sessions panel and the bell read this every 15 s, so it is the
+// session records alone (about half a second warm), kept 10 s; the whole live board (/work/board) takes seconds
+let sessionsMemo = null;
+app.get('/work/sessions', (_req, res) => {
+  try {
+    if (!sessionsMemo || Date.now() - sessionsMemo.t > 10_000) {
+      const projects = projectList().filter((p) => existsSync(p.repo));
+      sessionsMemo = { t: Date.now(), body: { sessions: sessionTasks(projects), at: new Date().toISOString() } };
+    }
+    res.json(sessionsMemo.body);
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
 app.get('/work/board', (_req, res) => {
   try {
     bellaWork.keepBellaFresh(); // the components that need work are read from the BELLA snapshot: re-sync it when BELLA moved
@@ -676,7 +707,7 @@ app.post('/runs', async (req, res) => {
     errorOut(res, e);
   }
 });
-for (const [verb, fn] of [['stop', stopRun], ['keep', keepRun], ['undo', undoRun]]) {
+for (const [verb, fn] of [['stop', stopRun], ['keep', keepRun], ['undo', undoRun], ['close', closeRun]]) {
   app.post(`/runs/:id/${verb}`, (req, res) => {
     if (!sameApp(req, res)) return;
     try {

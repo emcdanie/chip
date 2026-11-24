@@ -19,7 +19,7 @@ import Toast from '@bella/components/Toast/Toast';
 import TaskCard from '@bella/components/TaskCard/TaskCard';
 import LastRun from '@bella/components/LastRun/LastRun';
 import { clockWords, tookWords } from '../runClock.js';
-import Tag from '@bella/components/Tag/Tag';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
 import DataTable from '@bella/components/DataTable/DataTable';
 import TextStack from '@bella/components/TextStack/TextStack';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
@@ -28,6 +28,7 @@ import FilterChip from '@bella/components/FilterChip/FilterChip';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Progress from '@bella/components/Progress/Progress';
 import Button from '@bella/components/Button/Button';
+import Tooltip from '@bella/components/Tooltip/Tooltip';
 import { useEffect, useRef, useState } from 'react';
 import Toasts from '../templates/Toasts.jsx';
 import { planRun } from '../templates/RunPlan.jsx';
@@ -36,9 +37,10 @@ import ResultsBar from '../templates/ResultsBar.jsx';
 import NoResults from '../templates/NoResults.jsx';
 import WorkDrawer from './WorkDrawer.jsx';
 import NeedsYouView from './NeedsYouView.jsx';
+import NeedsYouList, { CardDrawer } from './NeedsYouList.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import useCached from '../templates/useCached.js';
-import { AREAS, LANES, LANE_NAMES, filterFromHash, going, projectStats, runnable, saveMove, shown } from './workModel.js';
+import { AREAS, LANES, LANE_DOT, LANE_NAMES, filterFromHash, going, needsOrder, tableArea, tableStatus, projectStats, runnable, saveMove, shown } from './workModel.js';
 
 export const VIEWS = [
   { value: 'board', label: 'Board' },
@@ -47,15 +49,15 @@ export const VIEWS = [
 
 /* the Table view shows the lane in its own tint's tone */
 // the lane tags follow the lane washes (23 Nov): Ideas ochre, Next navy, Now blue, Shipped green, Not doing pink
-const LANE_TONE = { ideas: 'ochre', next: 'navy', now: 'info', shipped: 'success', 'not-doing': 'pink' };
-const tagTone = (t) => (t === 'neutral' ? 'default' : t);
 // status sorts by urgency, not alphabet (second pass S5): failed, then waiting on her, then working, quiet, done
 const URGENCY = { danger: 0, attention: 1, info: 2, neutral: 3, success: 4 };
 const TABLE_COLUMNS = [
   { key: 'title', label: 'Task', sortable: true },
-  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag variant="solid" tone={tagTone(LANE_TONE[r.laneId])}>{r.lane}</Tag> },
-  { key: 'status', label: 'Status', sortable: true, sortValue: (r) => URGENCY[r.tone] ?? 5, render: (r) => (r.status ? <Tag variant="line" tone={tagTone(r.tone)}>{r.status}</Tag> : null) },
-  { key: 'area', label: 'Area', sortable: true, render: (r) => r.area ?? '' },
+  // one state mark, each thing said once (24 Nov): the lane as a status dot and its word, the status only where it adds to
+  // the lane, the area read from the card
+  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <StatusDot tone={LANE_DOT[r.laneId] ?? 'neutral'} label={r.lane} /> },
+  { key: 'status', label: 'Status', sortable: true, sortValue: (r) => URGENCY[r.tone] ?? 5, render: (r) => tableStatus(r) || null },
+  { key: 'area', label: 'Area', sortable: true, sortValue: (r) => tableArea(r), render: (r) => tableArea(r) },
   { key: 'who', label: 'Who acts', sortable: true, render: (r) => (r.who ? r.who[0].toUpperCase() + r.who.slice(1) : null) },
 ];
 
@@ -92,7 +94,7 @@ function dropLabel(card, from, to) {
   return 'Drop here';
 }
 
-function Lane({ lane, move, why }) {
+function Lane({ lane, move, why, focus }) {
   const e = why ? { ...EMPTY[lane.id], line: why } : EMPTY[lane.id];
   const d = move.drag;
   const over = move.over?.lane === lane.id ? move.over : null;
@@ -117,7 +119,8 @@ function Lane({ lane, move, why }) {
           stopped={hasProgress(c) && c.progress.state === 'error'}
           status={c.status}
           statusTone={c.tone}
-          onOpen={c.open || c.kind === 'session' ? () => move.open(c) : undefined}
+          onOpen={() => move.open(c)}
+          selected={focus === c.id}
           dragging={lifted}
           draggable
           onDragStart={(ev) => move.start(ev, c, lane.id)}
@@ -341,17 +344,43 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
   const sortOff = () => (view === 'table' ? setTsort(null) : setSort('mine'));
   // a review page that needs her opens inside CHIP over the board (her pick A, 23 Nov); a pull request on GitHub; a component on its page; the rest in the drawer
   const [reviewing, setReviewing] = useState(null);
+  // Needs you is a page of decisions, not a filtered board (24 Nov morning review): the board and its tools go, the cards move up
+  const deciding = filter === 'needs' && view === 'board';
+  // every card opens its own detail (24 Nov morning review: "a card opens its own drawer with its action prefilled and a
+  // Yes / No, or leaves for Needs you only when that is the review"): a review page opens its pictures, a run or a check
+  // its own drawer, a part its page, a session its steps, and everything else (pull requests, ideas, items, what shipped)
+  // the card drawer with its question and answers, inside CHIP
   const open = (c) => {
     const o = c.open;
     if (c.kind === 'session') return setOpen({ kind: 'session', card: c });
-    // every card that needs her opens the Needs you view, where she goes through them all and marks them up (her pick
-    // A, 23 Nov 23:00: "every new needs you card opens on this view, that's really helpful"); a card with no picture shows
-    // its summary there with Open it, which then opens it the old way
-    if (c.needs && !c.fromNeedsView) return setReviewing(c.id);
-    if (o.kind === 'page') return setReviewing(c.id); // a review page opens inside CHIP, needs her or not
-    if (o.kind === 'link') return window.open(o.href, '_blank', 'noopener');
-    if (o.kind === 'hash') return (window.location.hash = o.href);
-    setOpen(o);
+    if (c.kind === 'review' || o?.kind === 'page') return setReviewing(c.id);
+    if (o?.kind === 'hash') return (window.location.hash = o.href);
+    if (o && ['run', 'review', 'push', 'terminal'].includes(o.kind)) return setOpen(o);
+    setOpen({ kind: 'card', card: c });
+  };
+  // a card she just started lands in view (24 Nov: she started a plan from Health and could not find it): #/work?card=<id>
+  // scrolls the board to that card, outlines it and opens it, once per address
+  const [focusId, setFocusId] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('card'));
+  useEffect(() => {
+    const on = () => setFocusId(new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('card'));
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  const focused = useRef(null);
+  useEffect(() => {
+    if (!focusId || focused.current === focusId || !all) return;
+    const c = all.lanes.flatMap((l) => l.cards).find((x) => x.id === focusId);
+    if (!c) return;
+    focused.current = focusId;
+    requestAnimationFrame(() => document.querySelector(`[data-card="${CSS.escape(focusId)}"]`)?.scrollIntoView({ block: 'center', inline: 'center' }));
+    open(c);
+  });
+  const handlers = {
+    onOpen: (c, o) => setOpen(o),
+    onReview: (c) => (setOpen(null), setReviewing(c.id)),
+    onSession: (c) => setOpen({ kind: 'session', card: c }),
+    onTerminal: (t) => setOpen({ kind: 'terminal', ...t }),
+    onNotice: (n) => move.setNotice({ tone: n.tone, message: `${n.title}. ${n.message}` }),
   };
   const move = useMove({ open });
   // over a lane: the blue space goes before the first card whose middle is below the pointer
@@ -384,11 +413,97 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
   const waiting = stats.waiting;
   const everything = (all?.lanes ?? []).reduce((n, l) => n + l.cards.length, 0);
   const filterLabel = filter === 'needs' ? 'Needs you' : filter === 'components' ? 'Components that need work' : filter?.startsWith('area:') ? filter.slice(5) : filter?.startsWith('project:') ? (projects.find((p) => p.id === filter.slice(8) || p.name.toLowerCase() === filter.slice(8).toLowerCase())?.name ?? filter.slice(8)) : filter?.startsWith('lane:') ? `Lane: ${LANE_NAMES[filter.slice(5)]}` : null;
+  // when the board was last read, for Check again's tooltip and its accessible name
+  const checkedWords = last ? `Checked ${clockWords(last.at)}${last.tookMs ? `, took ${tookWords(last.tookMs)}` : ''}` : checked ? `Checked ${checked}${unread.length ? ` · could not read: ${[...new Set(unread.map((u) => u.why))].join('; ')}` : ''}` : 'Not checked yet';
   return (
     <>
+      {/* Tools, one line on a computer, the way Notion and Linear lay out a view (Elleta, 24 Nov morning review: filter
+          and sort inside the work row, the project chips on the same line): the projects on the left as the views; the
+          count, Filter, Sort, Search, Check again and Board / Table on the right. The count's place says where a picked
+          project stands, with its bar under the words, so pressing a chip changes words, not the page. The time of the
+          last check is Check again's tooltip, which leaves room for the line. On a phone the tools stack as before. */}
+      {reviewing || deciding || phone ? null : (
+        <Flow sticky style={{ background: 'var(--color-background-default)', insetBlockStart: 'calc(var(--spacing-24) * -1)', paddingBlock: 'var(--spacing-24) var(--spacing-8)', marginBlockStart: 'calc(var(--spacing-24) * -1)' }} direction="row" gap={16} wrap justify="between" align="center">
+          {!all || (projects?.length ?? 0) < 2 ? <span /> : (
+            <Flow direction="row" gap={8} wrap align="center" role="group" aria-label="Project">
+              <FilterChip pressed={!project} onClick={() => project && setProject(null)}>
+                All
+              </FilterChip>
+              {projects.map((p) => (
+                <FilterChip key={p.id} pressed={project?.toLowerCase() === p.name.toLowerCase() || project?.toLowerCase() === p.id.toLowerCase()} onClick={() => setProject(project?.toLowerCase() === p.name.toLowerCase() || project?.toLowerCase() === p.id.toLowerCase() ? null : p.name)}>
+                  {p.name}
+                </FilterChip>
+              ))}
+            </Flow>
+          )}
+          {/* on its own line (1024) it still ends on the right edge */}
+          <Flow direction="row" gap={16} wrap align="center" justify="end" style={{ marginInlineStart: 'auto' }}>
+            <Flow gap={4}>
+              <TextStack title={!all ? 'Reading the board' : projectName && stats.total ? `${stats.shipped} of ${stats.total} shipped` : `${working} at work · ${waiting} wait on you`} />
+              {all && projectName && stats.total ? (
+                <Progress label={projectName} showLabel={false} fill={Math.round((100 * stats.shipped) / stats.total)} tone="success" summary={`${projectName}: ${stats.shipped} shipped, ${stats.now} now, ${stats.waiting} waiting on you.`} />
+              ) : null}
+            </Flow>
+            <Flow direction="row" gap={8} align="center">
+              <div data-tool="filter" className="chip-pop" style={phone ? { position: 'static' } : undefined}>
+                <Button variant="tertiary" size="sm" iconOnly icon="FilterList" ariaLabel="Filter" ariaPressed={!!filter} ariaExpanded={tool === 'filter'} onClick={() => setTool((t) => (t === 'filter' ? null : 'filter'))} />
+                {tool === 'filter' ? (
+                  <div className="chip-pop__menu" style={phone ? { marginInlineStart: 'var(--spacing-16)' } : undefined}>
+                    <Menu label="Filter" onClose={() => setTool(null)}>
+                      <MenuItem label={`Everything · ${count(null)}`} icon={filter ? undefined : 'Check'} onSelect={() => (setFilter(null), setTool(null))} />
+                      <MenuItem label={`Needs you · ${count('needs')}`} icon={filter === 'needs' ? 'Check' : undefined} onSelect={() => (setFilter('needs'), setTool(null))} />
+                      <MenuItem label={`Components that need work · ${count('components')}`} icon={filter === 'components' ? 'Check' : undefined} onSelect={() => (setFilter('components'), setTool(null))} />
+                      <MenuDivider />
+                      {AREAS.map((a) => (
+                        <MenuItem key={a} label={`${a} · ${count(`area:${a}`)}`} icon={filter === `area:${a}` ? 'Check' : undefined} onSelect={() => (setFilter(`area:${a}`), setTool(null))} />
+                      ))}
+                      <MenuDivider />
+                      {LANES.map((l) => (
+                        <MenuItem key={l.id} label={`Lane: ${l.name} · ${count(`lane:${l.id}`)}`} icon={filter === `lane:${l.id}` ? 'Check' : undefined} onSelect={() => (setFilter(`lane:${l.id}`), setTool(null))} />
+                      ))}
+                    </Menu>
+                  </div>
+                ) : null}
+              </div>
+              <div data-tool="sort" className="chip-pop" style={phone ? { position: 'static' } : undefined}>
+                <Button variant="tertiary" size="sm" iconOnly icon="NavArrowUpDown" ariaLabel={`Sort: ${sortLabel}`} ariaPressed={sortOn} ariaExpanded={tool === 'sort'} onClick={() => setTool((t) => (t === 'sort' ? null : 'sort'))} />
+                {tool === 'sort' ? (
+                  <div className="chip-pop__menu" style={phone ? { marginInlineStart: 'var(--spacing-16)' } : undefined}>
+                    <Menu label="Sort" onClose={() => setTool(null)}>
+                      {view === 'table' ? (
+                        <>
+                          <MenuItem label="Your order" icon={tsort ? undefined : 'Check'} onSelect={() => (setTsort(null), setTool(null))} />
+                          {TABLE_COLUMNS.filter((c) => c.sortable).map((c) => (
+                            <MenuItem key={c.key} label={c.label} icon={tsort?.key === c.key ? 'Check' : undefined} onSelect={() => (setTsort({ key: c.key, direction: 'ascending' }), setTool(null))} />
+                          ))}
+                        </>
+                      ) : (
+                        SORTS.map((s) => <MenuItem key={s.value} label={s.label} icon={sort === s.value ? 'Check' : undefined} onSelect={() => (setSort(s.value), setTool(null))} />)
+                      )}
+                    </Menu>
+                  </div>
+                ) : null}
+              </div>
+              {tool === 'search' || q ? (
+                <div ref={searchRef}>
+                  <SearchField label="Search the board" placeholder="Search cards" showShortcut={false} value={q} onChange={setQ} />
+                </div>
+              ) : (
+                <Button variant="tertiary" size="sm" iconOnly icon="Search" ariaPressed={!!q} ariaLabel="Search the board" onClick={() => setTool('search')} />
+              )}
+            </Flow>
+            {/* an icon button among the tools, as Notion's and Linear's toolbars are; its words and the last check's time are
+                its tooltip and its name */}
+            <Tooltip label={loading ? 'Checking…' : `Check again · ${checkedWords}`}>
+              <Button variant="tertiary" size="sm" iconOnly icon="RefreshDouble" busy={!!loading} ariaLabel={loading ? 'Checking' : `Check again. ${checkedWords}`} onClick={() => ((checkAsked.current = true), onCheck?.())} />
+            </Tooltip>
+            <SegmentedControl options={VIEWS} value={view} onChange={onView} label="Work view" />
+          </Flow>
+        </Flow>
+      )}
       {/* Tools row, full width (23 Nov: "i want this to span so the numerical values are on the right"): Filter, Sort,
           Search on the left; the count, the last check and the views on the right. */}
-      {reviewing ? null : <Flow sticky={!phone} style={phone ? undefined : { background: 'var(--color-background-default)', insetBlockStart: 'calc(var(--spacing-24) * -1)', paddingBlock: 'var(--spacing-24) var(--spacing-8)', marginBlockStart: 'calc(var(--spacing-24) * -1)' }} gap={16}>
+      {reviewing || deciding || !phone ? null : <Flow sticky={!phone} style={phone ? undefined : { background: 'var(--color-background-default)', insetBlockStart: 'calc(var(--spacing-24) * -1)', paddingBlock: 'var(--spacing-24) var(--spacing-8)', marginBlockStart: 'calc(var(--spacing-24) * -1)' }} gap={16}>
         <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align={phone ? 'start' : 'center'}>
         <Flow direction="row" gap={8} align="center" wrap stretch={phone}>
           <div data-tool="filter" className="chip-pop" style={phone ? { position: 'static' } : undefined}>
@@ -476,7 +591,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
         )}
       </Flow>}
       {/* what is on, with a way off, and how much of the board it leaves (feedback for Filter, Sort and Search) */}
-      {reviewing || !all || !(filter || sortOn || q) ? null : (
+      {reviewing || deciding || !all || !(filter || sortOn || q) ? null : (
         <ResultsBar
           applied={[
             filter && { key: 'filter', label: `Filtered by: ${filterLabel}`, removeLabel: `Filtered by ${filterLabel}. Take the filter off`, onRemove: () => setFilter(null) },
@@ -503,7 +618,8 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
               </Toast>
             </Toasts>
           ) : null}
-          <WorkDrawer item={opened} onClose={() => setOpen(null)} onNotice={(n) => move.setNotice({ tone: n.tone, message: `${n.title}. ${n.message}` })} onChanged={() => window.dispatchEvent(new Event('chip:changed'))} onAccepted={() => (setOpen(null), window.dispatchEvent(new Event('chip:changed')))} />
+          {opened?.kind === 'card' ? <CardDrawer key={opened.card.id} card={opened.card} onClose={() => setOpen(null)} handlers={handlers} /> : null}
+          <WorkDrawer item={opened?.kind === 'card' ? null : opened} onClose={() => setOpen(null)} onNotice={(n) => move.setNotice({ tone: n.tone, message: `${n.title}. ${n.message}` })} onChanged={() => window.dispatchEvent(new Event('chip:changed'))} onAccepted={() => (setOpen(null), window.dispatchEvent(new Event('chip:changed')))} />
           {reviewing ? (
             <NeedsYouView
               cards={model.lanes.flatMap((l) => l.cards).filter((c) => c.needs || c.id === reviewing)}
@@ -512,6 +628,8 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
               onOpenOther={(c) => (setReviewing(null), open({ ...c, fromNeedsView: true }))}
               onNotice={(n) => move.setNotice({ tone: n.tone, message: `${n.title}. ${n.message}` })}
             />
+          ) : deciding ? (
+            <NeedsYouList cards={needsOrder((model.lanes.find((l) => l.id === 'now')?.cards ?? []).filter((c) => c.needs))} {...handlers} />
           ) : projectName && stats.cards === 0 && !q ? (
             <EmptyState size="page" mark="🔌" title={`Nothing from ${projectName} is on the board`} line={`No card is tagged ${projectName}. Start a task for it from New, or connect a Claude Code session working in its folder, and its cards show here.`} />
           ) : model.total === 0 && (filter || q) ? (
@@ -534,7 +652,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
             <Flow board direction="row" gap={24} aria-label="Work board" onDragOver={onDragOver} onDrop={onDrop}>
               {/* with a filter or a search on, only lanes that hold something (visual study, 23 Nov: Needs you opened on three empty lanes); a drag shows them all again as places to drop */}
               {((filter || q) && !move.drag && model.lanes.some((l) => l.cards.length) ? model.lanes.filter((l) => l.cards.length) : model.lanes).map((l) => (
-                <Lane key={l.id} lane={l} move={move} why={model.why?.[l.id]} />
+                <Lane key={l.id} lane={l} move={move} why={model.why?.[l.id]} focus={focusId} />
               ))}
             </Flow>
           )}

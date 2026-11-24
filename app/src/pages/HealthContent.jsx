@@ -19,7 +19,7 @@ import Button from '@bella/components/Button/Button';
 import Link from '@bella/components/Link/Link';
 import LineChart from '@bella/components/LineChart/LineChart';
 import TextStack from '@bella/components/TextStack/TextStack';
-import ListRow from '@bella/components/ListRow/ListRow';
+import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import { glide } from '../templates/glide.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import { markLead, measuredMinutes, useFixPlan } from '../templates/FixPlan.jsx';
@@ -39,6 +39,8 @@ import Toast from '@bella/components/Toast/Toast';
 import LastRun from '@bella/components/LastRun/LastRun';
 import { clockWords, tookWords } from '../runClock.js';
 import Toasts from '../templates/Toasts.jsx';
+import { markOf } from '../templates/marks.js';
+import Loading from '../templates/Loading.jsx';
 
 export const GATE_RUNS = ['none', 'running', 'passed', 'failed'];
 
@@ -526,10 +528,10 @@ function GapsCard({ g }) {
         icon="WarningCircle"
         tone={total ? 'warning' : 'success'}
         chart={total ? 'bar' : 'none'}
-        meter={total ? { parts: [{ value: (g.notInCode.length / total) * 100, label: 'specified, not in code' }, { value: (g.notInBella.length / total) * 100, label: 'not in BELLA yet', tone: 'info' }], valueText: `${g.notInCode.length} specified, not in code, ${g.notInBella.length} not in BELLA yet` } : undefined}
+        meter={total ? { parts: [{ value: (g.notInCode.length / total) * 100, label: 'have a spec but no code yet' }, { value: (g.notInBella.length / total) * 100, label: 'are not in BELLA at all', tone: 'info' }], valueText: `${g.notInCode.length} have a spec but no code yet, ${g.notInBella.length} are not in BELLA at all` } : undefined}
         value={total}
         unit={total === 1 ? 'part' : 'parts'}
-        context={`${g.notInCode.length} specified · ${g.notInBella.length} not in BELLA yet`}
+        context={`${g.notInCode.length} have a spec but no code yet; ${g.notInBella.length} are not in BELLA at all`}
         caption="What BELLA can't do yet"
         onOpen={() => setOpen(true)}
       />
@@ -541,8 +543,8 @@ function GapsCard({ g }) {
         answer={<><Marker>{`${g.notInCode.length} of ${total}`}</Marker>{` have a spec and can be built now; the other ${g.notInBella.length} need your yes first (BELLA's AGENTS.md).`}</>}
         picture={
           <Flow gap={12} as="ul" aria-label="Gaps by kind">
-            <li><Progress label="Specified, not in code" value={`${g.notInCode.length} of ${total}`} fill={total ? (g.notInCode.length / total) * 100 : 0} tone="info" showTarget={false} /></li>
-            <li><Progress label="Not in BELLA yet" value={`${g.notInBella.length} of ${total}`} fill={total ? (g.notInBella.length / total) * 100 : 0} tone="attention" showTarget={false} /></li>
+            <li><Progress label="A spec, no code yet" value={`${g.notInCode.length} of ${total}`} fill={total ? (g.notInCode.length / total) * 100 : 0} tone="info" showTarget={false} /></li>
+            <li><Progress label="Not in BELLA at all" value={`${g.notInBella.length} of ${total}`} fill={total ? (g.notInBella.length / total) * 100 : 0} tone="attention" showTarget={false} /></li>
           </Flow>
         }
         source={{ from: "BELLA's own brief of what is specified and not yet in code", when: 'no earlier reading kept, so no trend yet' }}
@@ -558,7 +560,7 @@ function GapsCard({ g }) {
           density="compact"
           rows={[
             ...g.notInCode.map((n) => ({ key: n, kind: 'spec', part: n, state: 'Spec, no code' })),
-            ...g.notInBella.map((n) => ({ key: n, kind: 'bella', part: n, state: 'Not in BELLA yet' })),
+            ...g.notInBella.map((n) => ({ key: n, kind: 'bella', part: n, state: 'Not in BELLA at all' })),
           ]}
           columns={[
             { key: 'part', label: 'Part' },
@@ -566,8 +568,8 @@ function GapsCard({ g }) {
           ]}
           filters={[
             { value: 'all', label: 'All' },
-            { value: 'spec', label: 'Specified, not in code', test: (r) => r.kind === 'spec' },
-            { value: 'bella', label: 'Not in BELLA yet', test: (r) => r.kind === 'bella' },
+            { value: 'spec', label: 'A spec, no code yet', test: (r) => r.kind === 'spec' },
+            { value: 'bella', label: 'Not in BELLA at all', test: (r) => r.kind === 'bella' },
           ]}
         />
       </ReadingDrawer>
@@ -677,53 +679,6 @@ const CHECK_VIEWS = [
   { value: 'gate', label: 'Gate runs' },
 ];
 
-/* Needs you (Figma Flow 2, screen 1, the card at the foot): the three checks with the most parts to fix,
-   each with who takes it, its fix and ↗ to the first part that needs it; "See all N fixes" opens
-   Components on Needs work. Counts are the Component checks' own (one source). */
-function NeedsYouCard({ rows, fixCount, verb, send, sending }) {
-  const top = rows.filter((r) => r.missing.length).sort((a, b) => b.missing.length - a.missing.length).slice(0, 3);
-  if (!top.length) return null;
-  return (
-    <Card>
-      <Flow gap={16}>
-        <SectionHead
-          icon="WarningCircle"
-          iconTone="warning"
-          title="Needs you"
-          showInfo={false}
-          description="Fixes that need a reviewer"
-          action={
-            <Button variant="tertiary" size="sm" icon="ArrowUpRight" href="#/system/components?filter=needs">
-              {`See all ${fixCount} ${fixCount === 1 ? 'fix' : 'fixes'}`}
-            </Button>
-          }
-        />
-        <Flow as="ul" gap={0} aria-label="Fixes that need a reviewer">
-          {top.map((r, i) => (
-            <ListRow
-              key={r.id}
-              layout="stacked"
-              statusBar="attention"
-              divider={i < top.length - 1}
-              title={`${r.missing.length} ${r.some}`}
-              description={r.line.split(': ').slice(1).join(': ')}
-              textButton={
-                r.action ? (
-                  <Button variant="tertiary" size="sm" busy={sending === r.id} onClick={sending ? undefined : () => send(r)}>
-                    {verb(r)}
-                  </Button>
-                ) : undefined
-              }
-              trailing="ArrowUpRight"
-              href={r.href}
-            />
-          ))}
-        </Flow>
-      </Flow>
-    </Card>
-  );
-}
-
 /* Audits, all in one place (CHIP rule 22 Nov): one card per audit, read from the report it saved in
    docs/reference/audit/<date>/ (/audits). An audit with no saved report says Not run. The card: score and trend,
    the day it ran, failing and needs work; ↗ opens the report read in the drawer, explained (AuditReading.jsx). Run all opens a plan first. */
@@ -759,7 +714,7 @@ function AuditCard({ a }) {
 function AuditsSection() {
   const { data } = useCached(['/audits'], { live: true });
   const audits = data?.[0] ?? null;
-  if (!audits) return <EmptyState size="lane" mark="⏳" title="Reading the audits" line="Looking for each audit's saved report." />;
+  if (!audits) return <Loading title="Reading the audits" sources={[{ url: '/audits', label: "each audit's saved report" }]} />;
   const runAll = () =>
     planRun({
       title: `Run all ${audits.length} audits`,
@@ -804,21 +759,9 @@ function AuditsSection() {
 export default function HealthContent({ model, run, checked, last, note, stale, onCheck, loading, view: startView = 'coverage' }) {
   const narrow = useNarrow();
   const [view, setView] = useState(startView);
-  // handing a check's gaps to the agent: the button says Sending…, then a toast
-  const [sending, setSending] = useState(null);
+  // the Component checks row whose fixes are open in the drawer
+  const [check, setCheck] = useState(null);
   const [notice, setNotice] = useState(null);
-  const send = async (row) => {
-    setSending(row.id);
-    try {
-      // opens the plan; the plan's Approve sends it and says so (templates/RunPlan.jsx)
-      await handOff(row);
-    } catch (e) {
-      if (!e.shown) setNotice({ tone: 'danger', text: `Not sent: ${e.message}.` });
-    } finally {
-      setSending(null);
-    }
-  };
-  const verb = (row) => (sending === row.id ? 'Sending…' : row.action);
   // Check again ends with a toast that says what it found (feedback on the control plus a toast)
   const wasLoading = useRef(false);
   useEffect(() => {
@@ -826,7 +769,7 @@ export default function HealthContent({ model, run, checked, last, note, stale, 
     wasLoading.current = !!loading;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
-  if (!model) return <EmptyState size="lane" mark="⏳" title="Reading BELLA" line="Counting every part and its checks." />;
+  if (!model) return <Loading title="Reading BELLA" sources={[{ url: '/data/bella.json', label: 'the parts' }, { url: '/gaps', label: 'the gaps' }, { url: '/contrast-pairs', label: 'the contrast pairs' }, { url: '/checks', label: 'the checks' }, { url: '/drift', label: 'the drift' }, { url: '/bella-gaps', label: 'what BELLA lacks' }]} />;
   const { health, contrast, rows, n } = model;
   return (
     <>
@@ -899,6 +842,7 @@ export default function HealthContent({ model, run, checked, last, note, stale, 
             meter={{ fill: Math.round((model.lowest.ratio / 21) * 100), target: Math.round((model.lowest.bar / 21) * 100), targetText: `${model.lowest.bar}:1`, showTargetLabel: false, valueText: `${model.lowest.ratio.toFixed(2)}:1` }}
             context={model.lowest.below ? `${model.lowest.below} text pairs below ${model.lowest.bar}:1` : `Every pair clears ${model.lowest.bar}:1`}
             caption={`Scale 0 to 21:1 · ${model.lowest.checked ? `${model.lowest.checked} checks${model.lowest.declared ? ` across ${model.lowest.declared} pairs in 4 themes` : ''}` : model.lowest.failing ? `The pairs check fails (${model.lowest.failing})` : 'not counted'}`}
+            // opens Foundations, whose alert leads to the token problems in Tokenized with one plan (her review, 24 Nov)
             href="#/system/foundations"
           />
         ) : (
@@ -930,7 +874,7 @@ export default function HealthContent({ model, run, checked, last, note, stale, 
             );
           })()}
           {view === 'gate' && !model.gateDays.length ? (
-            <EmptyState size="lane" mark="🚦" title="No run recorded" line="Neither GitHub CI nor CHIP has a gate run on record yet." />
+            <EmptyState size="lane" {...markOf('🚦')} title="No run recorded" line="Neither GitHub CI nor CHIP has a gate run on record yet." />
           ) : view === 'gate' ? (
             // her pick "C · Apple style" (22 Nov): bars per half hour, failures red with a cross, a callout on hover or
             // the arrow keys, D W M Y; BELLA's BarChart draws it from the runs CHIP and GitHub recorded
@@ -940,19 +884,64 @@ export default function HealthContent({ model, run, checked, last, note, stale, 
             // target, the count at the right; no divider under the last row. Each failing check's fix is in
             // Needs you below, so a row carries no action of its own.
             // plain bars with the count on them; a check below the target is red, the target is a thin tick (second pass)
-            <Flow gap={16} as="ul" aria-label="Component checks">
+            // every row opens its check: the parts that miss it, one plan, Send all (her review, 24 Nov: "every row opens
+            // the fixes for that check with a batch plan and Send all"); BELLA ListRow makes the whole row the target,
+            // the same Progress bar in its Below slot
+            <ListRowGroup ariaLabel="Component checks">
               {rows.map((r) => (
-                <li key={r.id}>
-                  <Progress label={r.short ?? r.title} value={`${r.pass} of ${n}`} fill={r.fill} tone={r.fill >= TARGET ? 'success' : 'danger'} target={TARGET} showTarget showTargetLabel={false} />
-                </li>
+                <ListRow
+                  key={r.id}
+                  as="div"
+                  layout="inline"
+                  title={r.short ?? r.title}
+                  value={`${r.pass} of ${n}`}
+                  progress={<Progress label={r.short ?? r.title} showLabel={false} fill={r.fill} tone={r.fill >= TARGET ? 'success' : 'danger'} target={TARGET} showTarget showTargetLabel={false} />}
+                  onClick={r.missing.length ? () => setCheck(r) : undefined}
+                  trailing={r.missing.length ? true : undefined}
+                />
               ))}
-            </Flow>
+            </ListRowGroup>
           )}
         </Flow>
       </Card>
-      <NeedsYouCard rows={rows} fixCount={model.fixCount} verb={verb} send={send} sending={sending} />
+      <CheckDrawer row={check} n={n} onClose={() => setCheck(null)} />
       <AuditsSection />
     </>
+  );
+}
+
+/* One check's fixes (her review, 24 Nov): the parts that miss it in one table, and Send all, which opens one plan for
+   every one of them (handOff: BELLA's brief per part); nothing runs until she approves it. Opened from its row. */
+function CheckDrawer({ row, n, onClose }) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState(null);
+  const sendAll = async () => {
+    setBusy(true);
+    setNote(null);
+    try {
+      onClose();
+      await handOff(row);
+    } catch (e) {
+      if (!e.shown) setNote(`Not sent: ${e.message}.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (!row) return null;
+  return (
+    <ReadingDrawer
+      open
+      onClose={onClose}
+      label={row.title}
+      status={`${row.missing.length} of ${n} parts miss it`}
+      answer={<><Marker>{`${row.missing.length} parts`}</Marker>{` ${row.some}.`}</>}
+      picture={<Progress label={`Parts that pass ${row.short ?? row.title}`} value={`${row.pass} of ${n}`} fill={row.fill} tone={row.fill >= TARGET ? 'success' : 'danger'} target={TARGET} showTarget showTargetLabel={false} />}
+      footer={row.action ? <Button variant="primary" busy={busy} onClick={busy ? undefined : sendAll}>{`Send all ${row.missing.length}`}</Button> : undefined}
+      footerNote={note ?? (row.action ? 'One plan for all; nothing runs until you approve.' : undefined)}
+      source={{ from: "BELLA's own check of every part" }}
+    >
+      <ReadingTable caption={`Parts that miss ${row.short ?? row.title}`} unit="parts" density="compact" rows={row.missing.map((p) => ({ key: p, part: p }))} columns={[{ key: 'part', label: 'Part' }]} />
+    </ReadingDrawer>
   );
 }
 
