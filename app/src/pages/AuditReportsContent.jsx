@@ -54,6 +54,21 @@ const Note = ({ children }) => <TextStack body={children} />;
    A tile is a toggle: it highlights what it is about in the charts below (her idea, 24 Nov). */
 // a No file tile lights the rings (the base), an AGENTS.md tile the dots and gaps, and in the checks the ones that cost points
 const lightOf = (pick) => (!pick ? null : pick.endsWith('bare') ? 'base' : 'value');
+/* Two measures from Romina Kavcic's article (her ask, 24 Nov), on the same tiles. Adherence: the benchmark jobs whose
+   AGENTS.md run passes the benchmark's own gate, against the run before; one run says "first run" in grey. Cost: what
+   CHIP's own runs cost (as Claude Code reports each run) over the runs whose gate passed; no runs, "Not measured". */
+const adherence = (a) => {
+  if (!a) return { value: 'Not measured', tone: 'neutral' };
+  if (!a.prev) return { value: `${a.pass} of ${a.n}`, tone: 'neutral', word: 'first run' };
+  const [tone] = STATE(Math.round((a.pass / a.n) * 100));
+  return { value: `${a.pass} of ${a.n}`, tone, word: a.pass === a.prev.pass ? `same as ${dayWords(a.prev.day)}` : `was ${a.prev.pass} on ${dayWords(a.prev.day)}` };
+};
+const cost = (c) => {
+  if (!c) return { value: 'Not measured', tone: 'neutral', word: 'not recorded yet' };
+  if (c.per == null) return { value: 'Not measured', tone: 'neutral', word: 'none passed yet' };
+  return { value: `$${c.per.toFixed(2)}`, tone: 'neutral', word: 'first measure' };
+};
+const costLine = (c) => (c?.per == null ? '' : ` Cost: $${c.total.toFixed(2)} over ${c.runs} CHIP runs since ${dayWords(c.since)}${c.costed < c.runs ? ` (${c.runs - c.costed} with no cost recorded)` : ''}; ${c.shipped} passed their gate.`);
 function Pairs({ b, pick, onPick }) {
   const md = (bare, mdv) => {
     const gap = Math.round((mdv - bare) * 10) / 10;
@@ -71,8 +86,11 @@ function Pairs({ b, pick, onPick }) {
         {tile('all-md', 'All 10 jobs · AGENTS.md', b.all10.md, t10, w10)}
         {tile('eight-bare', `The ${b.eight.n} jobs BELLA can do · No file`, b.eight.bare, 'neutral', 'the base')}
         {tile('eight-md', `The ${b.eight.n} jobs BELLA can do · AGENTS.md`, b.eight.md, t8, w8)}
+        <ScoreTile key="adherence" label="Agent adherence · jobs that pass with AGENTS.md" {...adherence(b.adherence)} />
+        <ScoreTile key="cost" label="Cost per shippable output · a run that passed its gate" {...cost(b.cost)} />
       </Flow>
-      <Source>{`Scores out of 100. The ${b.eight.n} jobs BELLA can do: computed from results.json.`}</Source>
+      <Source>{`Scores out of 100. The ${b.eight.n} jobs BELLA can do: computed from results.json.${costLine(b.cost)}`}</Source>
+      <Source>Agent adherence and cost per shippable output: Romina Kavcic, “Half my design system metrics don't work anymore”, learn.thedesignsystem.guide, 24 Oct 2026.</Source>
     </Flow>
   );
 }

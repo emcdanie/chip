@@ -341,7 +341,7 @@ app.get('/drift', (_req, res) => {
 // Audits: the latest saved report of each audit (docs/reference/audit/<date>/), read only
 app.get('/audits', (_req, res) => res.json(readAudits()));
 // The full report of all audits (benchmark runs, readiness score, every audit's history), read from the saved files
-app.get('/audit-reports', (_req, res) => res.json(readAuditReports()));
+app.get('/audit-reports', (_req, res) => res.json(readAuditReports({ runs: listRuns() })));
 app.get('/audits/:id/report', (req, res) => {
   const text = readAuditReport(String(req.params.id), req.query.day ? String(req.query.day) : undefined);
   if (text == null) return res.status(404).type('text/plain').send('No saved report');

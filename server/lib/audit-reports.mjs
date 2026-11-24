@@ -194,7 +194,31 @@ function readiness() {
 const fileOf = (a) => (a?.file ? `docs/reference/audit/${a.file}` : null);
 
 /** The whole report: one object, read fresh from the files each time. */
-export function readAuditReports() {
+/** Agent adherence (Romina Kavcic's measure): how many benchmark jobs pass the benchmark's own gate with AGENTS.md,
+ *  this run and the run before it. */
+function adherenceOf(R) {
+  const one = (r) => {
+    const md = Object.values(r.byCtx.md);
+    return { pass: md.filter((x) => x.gate === 'pass').length, n: md.length, day: r.day, run: r.id };
+  };
+  const withMd = R.filter((r) => Object.keys(r.byCtx.md).length);
+  if (!withMd.length) return null;
+  const now = one(withMd[withMd.length - 1]);
+  return { ...now, prev: withMd.length > 1 ? one(withMd[withMd.length - 2]) : null };
+}
+
+/** Cost per shippable output: what CHIP's own runs cost (as Claude Code reports each one) over the runs whose gate
+ *  passed (kept, waiting for her look, or closed after passing). Runs with no recorded cost are left out and counted. */
+export function costOf(list) {
+  if (!Array.isArray(list) || !list.length) return null;
+  const costed = list.filter((r) => Number.isFinite(r.cost));
+  const shipped = list.filter((r) => r.status === 'passed' || r.status === 'kept' || r.closedFrom === 'passed').length;
+  const total = costed.reduce((a, r) => a + r.cost, 0);
+  const since = list.map((r) => r.startedAt).filter(Boolean).sort()[0] ?? null;
+  return { runs: list.length, costed: costed.length, shipped, total: Math.round(total * 100) / 100, per: shipped ? Math.round((total / shipped) * 100) / 100 : null, since: since ? since.slice(0, 10) : null };
+}
+
+export function readAuditReports({ runs: chipRuns } = {}) {
   const w = weights();
   const R = runs();
   if (!w || !R.length) return { ok: false, why: !w ? 'The benchmark rubric (rubric.config.ts) was not found.' : 'No benchmark run was found.' };
@@ -247,7 +271,7 @@ export function readAuditReports() {
   return {
     ok: true,
     read: new Date().toISOString(),
-    bench: { how, run: last.id, day: last.day, all10, eight: eightM, stopped: stopped.length, stoppedIds: stopped, jobs, checks, series, runs: runList, runDirs: R.map((r) => r.id) },
+    bench: { how, run: last.id, day: last.day, all10, eight: eightM, stopped: stopped.length, stoppedIds: stopped, jobs, checks, series, runs: runList, runDirs: R.map((r) => r.id), adherence: adherenceOf(R), cost: costOf(chipRuns) },
     readiness: ready,
     audits,
   };
