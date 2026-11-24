@@ -188,7 +188,6 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
     setNone(false);
     if (v.startsWith('part:')) {
       setPart(v.slice(5));
-      setMarking(false);
     } else {
       setPart(null);
       onRoute(v.slice(5));
