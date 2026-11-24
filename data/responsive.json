@@ -1,5 +1,5 @@
 {
- "at": "2026-11-24T03:07:09.428Z",
+ "at": "2026-11-24T08:45:10.782Z",
  "files": {
   "app/src/templates/Flow.jsx": "8764a71b1f2712cca45a1dd818dee16d2631fa54",
   "app/src/templates/Screen.jsx": "c63552a4ecb6a66df320c060dc529607bc1c7310",
@@ -8,7 +8,7 @@
   "app/src/pages/ComponentsContent.jsx": "7b7f0f2b88c61f46c7f0121c246df13b9b5a5c5e",
   "app/src/pages/ConnectorsContent.jsx": "b33d472003614200f1612fc3fa00b3c8f1f3369c",
   "app/src/pages/DocsContent.jsx": "b1e73ba0ff67aff7467a9c52cef5a811b6444868",
-  "app/src/pages/FoundationsContent.jsx": "4d7056faf5567a5964ae437c8ee7388f49a7b20a",
+  "app/src/pages/FoundationsContent.jsx": "0344195ae021a0f6e160a9a9a5efd7bbb70af47e",
   "app/src/pages/HealthContent.jsx": "52bb12bb0280a7386877c64c4226279460d0e70b",
   "app/src/pages/HistoryContent.jsx": "440456813eeb09f8e9e05d3c21236fe6fcedc737",
   "app/src/pages/NotAgainContent.jsx": "9eb4995ded48a5d498c8b621b1622b25005fe5d4",
@@ -33,5 +33,5 @@
  "ok": true,
  "clean": 88,
  "total": 88,
- "texts": 11915
+ "texts": 13200
 }

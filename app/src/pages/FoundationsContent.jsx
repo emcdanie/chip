@@ -251,7 +251,7 @@ function TypeStep({ size, name, token, px }) {
   const rows = where == null ? ['Reading BELLA’s parts'] : where.length ? [`Set by ${where.length} BELLA ${where.length === 1 ? 'part' : 'parts'}`, `such as ${where.slice(0, 2).join(', ')}`] : ['No BELLA part sets it'];
   return (
     <Tooltip kind="rich" placement="top" label={`${px || '—'} · ${name}`} rows={[`For: ${FOR[name] ?? 'not named yet'}`, ...rows]}>
-      <Flow tabIndex={0} aria-label={`${name}, ${px}`} onPointerEnter={read} onFocus={read}>
+      <Flow tabIndex={0} aria-label={`${name}, ${px}`} onPointerEnter={read} onFocus={read} style={{ flex: '1 1 auto', minInlineSize: 0 }}>
         <TypeSpecimen size={size} name={name} sizeLabel={px || '—'} />
       </Flow>
     </Tooltip>
@@ -268,10 +268,12 @@ function TypeRamp() {
   const used = useInUse('--typography-');
   const inUse = used ? new Set(used.filter((u) => /font-size/.test(u.name) && u.value).map((u) => u.value)).size : null;
   return (
+    // fills its row beside Tokenized, the steps spread down the card, each step's size at the right edge (approved
+    // Foundations, 15 Nov; her 24 Nov review: the card hugged its content and stood shorter than Tokenized)
     <Card>
-      <Flow gap={16}>
+      <Flow gap={16} grow="last" style={{ flex: '1 1 auto' }}>
         <SectionHead size="card" icon="Page" iconTone="info" title="Type ramp" description={inUse ? `${RAMP.length} of the ${inUse} sizes in use` : 'Reading the sizes in use'} showDescription />
-        <Flow gap={8}>
+        <Flow gap={8} justify="between">
           {RAMP.map(([size, name, v]) => (
             <TypeStep key={size} size={size} name={name} token={v} px={sizes[v]} />
           ))}
@@ -281,18 +283,59 @@ function TypeRamp() {
   );
 }
 
+/* Tokenized (her 24 Nov review: the alert stays, the big Token problems card goes, and the alert opens this view
+   where the problems are, with an action there). Each kind of value as a bar; the values that aren't tokens yet are
+   named under the bars, and one plan covers them all (batches, not rows: one Send, a plan to read first). */
 function Tokenized({ rows, source }) {
   // the snapshot's commit and day, so a stale count shows its age (data check, 22 Nov)
   const from = source?.commit ? ` · BELLA @ ${source.commit}, ${new Date(source.committedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : '';
+  const open = rows.filter((r) => r.not.length);
+  const raw = open.reduce((n, r) => n + r.not.length, 0);
+  const parts = [...new Set(open.flatMap((r) => r.not.map((n) => n.component)))];
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState(null);
+  const plan = async () => {
+    setBusy(true);
+    try {
+      const brief = [
+        `Replace the ${raw} raw values in BELLA's parts with tokens. Each line is file:line and the declaration:`,
+        ...open.flatMap((r) => [`${r.p} (${r.tokens}):`, ...r.not.map((n) => `- ${n.file}:${n.line} ${n.decl}`)]),
+        'Use an existing token only; ask before adding or changing one.',
+      ].join('\n');
+      // the plan opens first (templates/RunPlan.jsx); its Approve sends it and says so
+      await planRun({ brief, title: `Tokens for ${raw} raw values in ${parts.length} parts`, from: 'Foundations', steps: open.flatMap((r) => r.not.map((n, i) => ({ id: `${r.p}-${i}`, title: `${n.component}: ${n.decl}`, line: `${n.file}:${n.line}` }))) });
+    } catch (e) {
+      if (!e.shown) setSaid({ tone: 'danger', text: `Not sent: ${e.message}.` });
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <Card>
-      <Flow gap={16}>
+      <Flow gap={16} id="tokenized" aria-label="Tokenized">
         <SectionHead size="card" icon="Code" iconTone="info" title="Tokenized" description={`Values that use a token${from}`} showDescription />
         <Flow gap={12}>
           {rows.map((r) => (
             <Progress drawIn key={r.p} label={r.p} value={`${r.ok} of ${r.decl} values`} fill={r.decl ? (100 * r.ok) / r.decl : 0} tone={r.ok === r.decl ? 'success' : 'attention'} />
           ))}
         </Flow>
+        {open.length ? (
+          <Flow gap={16}>
+            <TextStack body={<><Marker>{`${raw} values`}</Marker>{` in ${parts.length} ${parts.length === 1 ? 'part' : 'parts'} aren’t tokens yet: ${open.map((r) => `${r.not.length} ${r.p.toLowerCase()}`).join(', ')}.`}</>} />
+            <Flow direction="row" justify="end">
+            <Button variant="secondary" size="sm" disabled={busy} onClick={plan}>
+              {busy ? 'Opening the plan…' : `Plan the fix for all ${raw}`}
+            </Button>
+            </Flow>
+          </Flow>
+        ) : null}
+        {said ? (
+          <Toasts>
+            <Toast tone={said.tone} onClose={() => setSaid(null)}>
+              {said.text}
+            </Toast>
+          </Toasts>
+        ) : null}
       </Flow>
     </Card>
   );
@@ -504,65 +547,6 @@ function Tiers({ bella }) {
 }
 
 
-/* Token problems (Figma 612:62034): one List item each, its status bar, the parts, an Open
-   tag, the verb and ›. Send hands the raw values to the agent (a run with each file and line);
-   › opens the first part on Components. */
-function Problems({ rows }) {
-  const problems = rows.filter((r) => r.not.length);
-  const [busy, setBusy] = useState(null);
-  const [said, setSaid] = useState(null);
-  const send = async (r) => {
-    setBusy(r.p);
-    try {
-      const brief = [`Replace raw ${r.p.toLowerCase()} values in BELLA's parts with tokens (${r.tokens}). Each line is file:line and the declaration:`, ...r.not.map((n) => `- ${n.file}:${n.line} ${n.decl}`), 'Use an existing token only; ask before adding or changing one.'].join('\n');
-      // the plan opens first (templates/RunPlan.jsx); its Approve sends it and says so
-      await planRun({ brief, title: `Tokens for ${r.not.length} ${r.p.toLowerCase()} values`, from: 'Foundations', steps: r.not.map((n, i) => ({ id: `v${i}`, title: `${n.component}: ${n.decl}`, line: `${n.file}:${n.line}` })) });
-    } catch (e) {
-      if (!e.shown) setSaid({ tone: 'danger', text: `Not sent: ${e.message}.` });
-    } finally {
-      setBusy(null);
-    }
-  };
-  if (!problems.length) return null;
-  return (
-    <Card>
-      <Flow gap={16}>
-        <SectionHead icon="WarningCircle" iconTone="warning" title="Token problems" description="What breaks the token rules" number={problems.length} words="open" />
-        {problems.length ? (
-          <Flow as="ul" gap={8} aria-label="Token problems">
-            {problems.map((r) => {
-              const parts = [...new Set(r.not.map((n) => n.component))];
-              return (
-                <ListRow
-                  key={r.p}
-                  layout="stacked"
-                  statusBar="attention"
-                  title={`${r.not.length} ${r.p.toLowerCase()} ${r.not.length === 1 ? 'value isn’t a token' : 'values aren’t tokens'}`}
-                  description={parts.length > 4 ? `${parts.slice(0, 4).join(', ')} and ${parts.length - 4} more` : parts.join(', ')}
-                  actionButton={
-                    <Button variant="secondary" size="sm" disabled={!!busy} onClick={() => send(r)}>
-                      {busy === r.p ? 'Sending…' : 'Send'}
-                    </Button>
-                  }
-                  // one control per row: Send changes something, so the row is not also a link with ↗
-                  // (READ FIRST [12]: "Arrows go, buttons do"; audit 3, item 11)
-                />
-              );
-            })}
-          </Flow>
-        ) : null}
-        {said ? (
-          <Toasts>
-            <Toast tone={said.tone} onClose={() => setSaid(null)}>
-              {said.text}
-            </Toast>
-          </Toasts>
-        ) : null}
-      </Flow>
-    </Card>
-  );
-}
-
 /** Every colour role BELLA ships, with its live Chip light and dark value, contrast on the light surface and the parts that use it. */
 function useAllRoles(bella) {
   const [rows, setRows] = useState(null);
@@ -700,6 +684,7 @@ function RolesTable({ rows, total, q = '', onClear }) {
 // small to large, as the names read ("md, lg")
 const SIZE_WORDS = ['none', 'sm', 'md', 'lg', 'lg-focus', 'form', 'card'];
 function ShapeAndSpace({ radius }) {
+  const narrow = useNarrow(1024);
   // each corner's names: the Chip names the app's CSS really uses at that size, else the size alone
   const used = useInUse('--border-radius-');
   const useOf = (step) => {
@@ -709,24 +694,32 @@ function ShapeAndSpace({ radius }) {
       .sort((a, b) => SIZE_WORDS.indexOf(a) - SIZE_WORDS.indexOf(b));
     return names.length ? `${names.join(', ')} · ${px}` : px;
   };
+  // Radius and Spacing side by side on the grid, two halves of one card (her 24 Nov review: far too much empty space);
+  // below 1024 the halves stack
   return (
     <Card>
       <Flow gap={16}>
         <SectionHead icon="ViewGrid" iconTone="warning" title="Shape and space" description="Every corner token and every spacing step" />
-        <TextStack title="Radius" />
-        {/* each corner token on BELLA's RadiusTile (bd87f14): the tile, its token and Chip's names for it */}
-        <Flow as="ul" direction="row" gap={24} wrap aria-label="Corner tokens">
-          {radius.map((r) => (
-            <li key={r.token}>
-              <RadiusTile radius={r.name} use={useOf(r.name)} animated />
-            </li>
-          ))}
-        </Flow>
-        <TextStack title="Spacing" />
-        <Flow gap={8}>
-          {[1, 2, 3, 4, 5, 6, 8, 10, 'touch', 12, 16, 20].map((s) => (
-            <SpacingStep key={s} step={s} animated />
-          ))}
+        <Flow grid gap={24}>
+          <Flow gap={16} style={{ gridColumn: narrow ? '1 / -1' : 'span 7' }}>
+            <TextStack title="Radius" />
+            {/* each corner token on BELLA's RadiusTile (bd87f14): the tile, its token and Chip's names for it */}
+            <Flow as="ul" direction="row" gap={24} wrap aria-label="Corner tokens">
+              {radius.map((r) => (
+                <li key={r.token}>
+                  <RadiusTile radius={r.name} use={useOf(r.name)} animated />
+                </li>
+              ))}
+            </Flow>
+          </Flow>
+          <Flow gap={16} style={{ gridColumn: narrow ? '1 / -1' : 'span 5' }}>
+            <TextStack title="Spacing" />
+            <Flow gap={8}>
+              {[1, 2, 3, 4, 5, 6, 8, 10, 'touch', 12, 16, 20].map((s) => (
+                <SpacingStep key={s} step={s} animated />
+              ))}
+            </Flow>
+          </Flow>
         </Flow>
         <TextStack body="Read from the Foundations variables: border radius (Chip light) and spacing. Each corner names what CHIP's CSS uses at that size." />
       </Flow>
@@ -742,13 +735,6 @@ const jobOf = (d) => (/^Value:/.test(d ?? '') ? null : String(d ?? '').replace(/
    from the browser (computed style), named by the token that matches. Hover and pressed are the real thing: point
    at it, press it. Gap (named for the library): Button and Card have no forced-state prop, so a state cannot be
    frozen next to the others; "Show focus" moves the real focus ring onto the Button. */
-const STATES = [
-  ['rest', 'Rest', 'Nothing moves.'],
-  ['hover', 'Hover', 'Point at it.'],
-  ['pressed', 'Pressed', 'Press and hold.'],
-  ['focus', 'Focus', 'Tab to it.'],
-  ['disabled', 'Disabled', 'No response.'],
-];
 const msOf = (t) => Math.round(parseFloat(t) * (/ms$/.test(t) ? 1 : 1000));
 const easeName = (css) => {
   const m = String(css).match(/cubic-bezier\(([^)]+)\)/);
@@ -756,82 +742,128 @@ const easeName = (css) => {
   const n = m[1].split(',').map(Number);
   return Object.entries(EASING_POINTS).find(([, pts]) => pts.every((v, i) => Math.abs(v - n[i]) < 0.01))?.[0] ?? `cubic-bezier(${m[1]})`;
 };
+/* States (her 23 Nov: "its not even showing any state hover etc"; 24 Nov review: good idea, poor execution). One real
+   Button and one real Card to try, each with a line under it that says, live, which state it is in and what moves: point
+   at it, press it, tab to it. The timing is read from the part's own CSS (computed style) and named by its token.
+   A disabled Button beside them. Gap, named for the library: Button and Card have no forced-state prop, so a state
+   cannot be frozen next to the others; this shows them one at a time, on the real thing. */
+function useLiveState() {
+  const [state, setState] = useState('rest');
+  const handlers = {
+    onPointerEnter: () => setState('hover'),
+    onPointerLeave: () => setState('rest'),
+    onPointerDown: () => setState('pressed'),
+    onPointerUp: () => setState('hover'),
+    onFocus: (e) => e.target.matches(':focus-visible') && setState('focus'),
+    onBlur: () => setState('rest'),
+  };
+  return [state, handlers];
+}
 function MotionStates() {
-  const narrow = useNarrow(1200);
+  // three across from 800, one under the other on a phone
+  const phone = useNarrow();
+  const col = { gridColumn: phone ? '1 / -1' : 'span 4' };
   const wrap = useRef(null);
   const [read, setRead] = useState(null);
+  const [btn, onBtn] = useLiveState();
+  const [card, onCard] = useLiveState();
   useEffect(() => {
     const first = (el) => {
       const cs = getComputedStyle(el);
-      return `${msOf(cs.transitionDuration.split(',')[0].trim())}ms · ${easeName(cs.transitionTimingFunction.split(/,(?![^(]*\))/)[0])}`;
+      return `${msOf(cs.transitionDuration.split(',')[0].trim())}ms, ${easeName(cs.transitionTimingFunction.split(/,(?![^(]*\))/)[0])}`;
     };
     const b = wrap.current?.querySelector('[data-spec="button"] button');
     const c = wrap.current?.querySelector('[data-spec="card"] button, [data-spec="card"] a');
     if (b && c) setRead({ button: first(b), card: first(c) });
   }, []);
+  const say = (st, part) => {
+    const t = read ? read[part] : '…';
+    return { rest: 'Rest: nothing moves', hover: `Hover: the fill changes over ${t}`, pressed: `Pressed: the fill changes over ${t}`, focus: 'Focus: the blue ring shows at once, nothing moves' }[st];
+  };
   return (
-    <Flow gap={12}>
-      <TextStack title="States" body="A real Button and a real Card. Point at one, press it, tab to it." />
-      <div ref={wrap}>
-        <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
-          {STATES.map(([k, name, line]) => (
-            <Flow key={k} gap={8}>
-              <TextStack title={name} body={line} />
-              <div data-spec="button" data-state={k}>
-                <Button variant="secondary" disabled={k === 'disabled'}>Button</Button>
-              </div>
-              {k === 'disabled' ? (
-                <TextStack body="A Card has no disabled state." />
-              ) : (
-                <div data-spec="card">
-                  <Card onClick={() => {}}>
-                    <TextStack title="Card" />
-                  </Card>
-                </div>
-              )}
-              <TextStack subtitle={k === 'rest' || k === 'disabled' ? 'no motion' : k === 'focus' ? 'pink ring, no move' : read ? `${read.button} · Button` : '…'} />
-              {k === 'hover' || k === 'pressed' ? <TextStack subtitle={read ? `${read.card} · Card` : '…'} /> : null}
-              {k === 'focus' ? <Button variant="tertiary" size="sm" onClick={() => wrap.current?.querySelector('[data-state="focus"] button')?.focus({ focusVisible: true })}>Show focus</Button> : null}
+    <Card>
+      <Flow gap={16}>
+        <SectionHead icon="Activity" iconTone="info" title="States" description="Try a real Button and a real Card: point at one, press it, tab to it" />
+        <div ref={wrap}>
+          <Flow grid gap={24}>
+            <Flow gap={8} style={col} data-spec="button">
+              <Flow direction="row">
+                <span style={{ display: 'inline-flex' }} {...onBtn}>
+                  <Button variant="secondary">Button</Button>
+                </span>
+              </Flow>
+              <TextStack body={<><Marker>{btn[0].toUpperCase() + btn.slice(1)}</Marker>{say(btn, 'button').replace(/^\w+/, '')}</>} aria-live="polite" />
             </Flow>
-          ))}
-        </Flow>
-      </div>
-    </Flow>
+            <Flow gap={8} style={col} data-spec="card">
+              <div {...onCard}>
+                <Card onClick={() => {}}>
+                  <TextStack title="Card" />
+                </Card>
+              </div>
+              <TextStack body={<><Marker>{card[0].toUpperCase() + card.slice(1)}</Marker>{say(card, 'card').replace(/^\w+/, '')}</>} aria-live="polite" />
+            </Flow>
+            <Flow gap={8} style={col}>
+              <Flow direction="row">
+                <Button variant="secondary" disabled>Button</Button>
+              </Flow>
+              <TextStack body={<><Marker>Disabled</Marker>: no response, no motion</>} />
+            </Flow>
+          </Flow>
+        </div>
+      </Flow>
+    </Card>
   );
 }
 
-/* Motion (Figma 810:82446): how long things take, to scale, and how they ease; then the states a part moves through. */
+/* Motion (Figma 810:82446): how long things take, to scale, and how they ease. Each time the card scrolls into view the
+   durations and easings play once, each on its own token (her 24 Nov review: it didn't run; less of it); select one to
+   play it again. Her reduced-motion setting, or Still, shows the finished frame and nothing plays. */
 function Motion({ motion }) {
   // durations beside easings only where a DurationBar keeps about 480 (a 1440 window); narrower, its token runs under its bar, so they stack
   const narrow = useNarrow(1440);
   const longest = Math.max(...motion.durations.map((d) => d.ms));
   // her own setting decides first; the switch shows the still version (the dot sits at its end) without changing the system
   const [still, setStill] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+  const box = useRef(null);
+  useEffect(() => {
+    if (still || !box.current || !('IntersectionObserver' in window)) return undefined;
+    // play once on the way in (BELLA's own play: each row is a button that plays when selected), again only after leaving
+    let shown = false;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !shown) {
+        shown = true;
+        box.current?.querySelectorAll('[data-bella-component="duration-bar"], [data-bella-component="easing-curve"]').forEach((b) => b.click());
+      } else if (!e.isIntersecting) shown = false;
+    }, { threshold: 0.4 });
+    io.observe(box.current);
+    return () => io.disconnect();
+  }, [still]);
   return (
     <Card>
       <Flow gap={16}>
-        <SectionHead icon="Clock" iconTone="warning" title="Motion" description="How long things take and how they ease" />
+        <SectionHead icon="Clock" iconTone="warning" title="Motion" description="How long things take and how they ease; they play as you scroll here" />
         <Flow direction="row" justify="end">
           <SegmentedControl options={[{ value: 'live', label: 'Live' }, { value: 'still', label: 'Still (reduced motion)' }]} value={still ? 'still' : 'live'} onChange={(v) => setStill(v === 'still')} label="Show motion as" />
         </Flow>
-        <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
-          <Flow gap={12}>
-            <TextStack title="Duration" body={still ? 'Still: each bar shows its finished length.' : 'Select one to play it: the pink dot crosses in that time.'} />
-            {/* BELLA's DurationBar (bd87f14): the token, its job where the token names one, to scale */}
-            {motion.durations.map((d) => (
-              <DurationBar key={d.token} duration={d.ms} use={jobOf(d.description) ?? undefined} animated={!still} />
-            ))}
+        <div ref={box}>
+          <Flow direction={narrow ? 'column' : 'row'} gap={24} equal>
+            <Flow gap={12}>
+              <TextStack title="Duration" />
+              {/* BELLA's DurationBar (bd87f14): the token, its job where the token names one, to scale */}
+              {motion.durations.map((d) => (
+                <DurationBar key={d.token} duration={d.ms} use={jobOf(d.description) ?? undefined} animated={!still} />
+              ))}
+            </Flow>
+            <Flow gap={12}>
+              <TextStack title="Easing" />
+              {/* BELLA's EasingCurve (bd87f14): the curve, its token and its cubic-bezier */}
+              {motion.easings.map((e) => (
+                <EasingCurve key={e.token} easing={e.name} animated={!still} />
+              ))}
+            </Flow>
           </Flow>
-          <Flow gap={12}>
-            <TextStack title="Easing" body={still ? 'Still: each curve shows its shape.' : 'Select one to play it: the pink dot rides the curve.'} />
-            {/* BELLA's EasingCurve (bd87f14): the curve, its token and its cubic-bezier */}
-            {motion.easings.map((e) => (
-              <EasingCurve key={e.token} easing={e.name} animated={!still} />
-            ))}
-          </Flow>
-        </Flow>
-        <MotionStates />
-        <TextStack body={`Read from the Foundations variables: motion duration and easing. Bars are to scale, ${longest}ms full. State timings are read from the Button's and Card's own CSS.`} />
+        </div>
+        <TextStack body={`Read from the Foundations variables. Bars are to scale, ${longest}ms full.`} />
       </Flow>
     </Card>
   );
@@ -889,13 +921,12 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
   return (
     <>
       {/* Token problems first (her 23 Nov: "if there are problems we should be notified?? that is the point no"): a one-line notice under
-          the tabs, the card straight below it; none, and one quiet line */}
+          the tabs; See them opens Tokenized, where the problems are and the plan to fix them (24 Nov review: no second card) */}
       {openProblems ? (
-        <Notification tone="attention" message={`Foundations: ${openProblems} token ${openProblems === 1 ? 'problem' : 'problems'}`} action={{ label: 'See them', onClick: () => document.querySelector('[aria-label="Token problems"]')?.scrollIntoView({ block: 'center' }) }} />
+        <Notification tone="attention" message={`Foundations: ${openProblems} token ${openProblems === 1 ? 'problem' : 'problems'}`} action={{ label: 'See them', onClick: () => { const t = document.getElementById('tokenized'); t?.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); [...(t?.querySelectorAll('button') ?? [])].pop()?.focus({ preventScroll: true }); } }} />
       ) : (
         <TextStack body="No token problems." />
       )}
-      <Problems rows={f.tokenized.rows} />
       {/* Control bar on the page ground: what you look at on the left (filter, chips), the view switch on the right */}
       {/* the switch keeps the right end at every width: the left group wraps (filter, then chips), never the bar (audit 9 at 1024 and 1100) */}
       <Flow direction={phone ? 'column' : 'row'} gap={16} justify="between" align="start" grow={phone ? undefined : 'first'}>
@@ -941,14 +972,15 @@ export default function FoundationsContent({ view: startView = 'cards' }) {
       <WhoUsesWhat bella={data[1]} />
       {/* the scales row: type ramp and tokenized fill it (Figma 21 Nov: the 7-step Spacing card gives way to the full scale below) */}
       {/* list cards hug their rows (rule 15), so Card's centring (0bc08b6) never pushes a header down */}
-      <Flow span={6}>
+      <Flow span={6} fill>
         <TypeRamp />
       </Flow>
-      <Flow span={6}>
+      <Flow span={6} fill>
         <Tokenized rows={f.tokenized.rows} source={f.source} />
       </Flow>
       <ShapeAndSpace radius={f.radius} />
       {f.motion ? <Motion motion={f.motion} /> : null}
+      <MotionStates />
       <Tiers bella={data[1]} />
     </>
   );
