@@ -323,7 +323,9 @@
 .chip-flow--sticky {
   position: sticky;
   inset-block-start: 0;
-  z-index: 1;
+  /* above a table's frozen first column and its header (DataTable stacks them at 1 and 2), so a scrolled table passes
+     under the tools row, never over it (24 Nov: the Work table's Task cells drew over the tools) */
+  z-index: 3;
 }
 /* a column that scrolls on its own: its height comes from its frame, never from its content, and 8 of
    room inside so focus rings and selected rows are never cut at the edge */
@@ -423,7 +425,7 @@
   .chip-screen { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* Toasts (Toasts.jsx): bottom right, above the page, 24 from the edges, stacked 8 apart */
+/* Toasts (Toasts.jsx): bottom centre of the work area, above the page, stacked 8 apart */
 .chip-toasts {
   /* a manual popover (Toasts.jsx): the browser's popover box reset, our place kept */
   margin: 0;
@@ -433,10 +435,10 @@
   overflow: visible;
   inset: auto;
   position: fixed;
-  /* top centre of the work area, just under the top bar, in one place on every page (Work board
-     6b, her pick 22 Nov): it clears the board's scroll button, the last lane and the Work panel.
-     Toasts.jsx moves it to the measured work area; until then, the window's top centre. */
-  inset-block-start: var(--layout-gutter);
+  /* bottom centre of the work area, 24 above the window's foot (her review, 24 Nov: toasts high in a corner are
+     missed; Vitaly Friedman: never in a corner). Toasts.jsx moves it to the measured work area's centre; until then,
+     the window's centre. */
+  inset-block-end: var(--spacing-24);
   inset-inline-start: 50%;
   transform: translateX(-50%);
   z-index: 50;
@@ -583,3 +585,5 @@
 ::view-transition-new(chip-menu) { animation: chip-glide-in var(--motion-duration-250) var(--motion-easing-standard) both; }
 @keyframes chip-glide-out { to { transform: translateX(-100%); opacity: 0; } }
 @keyframes chip-glide-in { from { transform: translateX(-100%); opacity: 0; } }
+/* a menu that opens upward from a control at the foot of a panel (the Sessions panel's model menu) */
+.chip-pop__menu--up { inset-block-start: auto; inset-block-end: calc(100% + var(--spacing-4)); }

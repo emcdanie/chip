@@ -15,6 +15,7 @@
 // Gaps named for BELLA, not drawn here: StatusDot has no steady pulse for "working" (it pulses once on a change); Drawer
 // has no tabs slot under its head (the tabs scroll with the body); Select has no option groups or disabled options.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import Tooltip from '@bella/components/Tooltip/Tooltip';
@@ -24,7 +25,9 @@ import Step from '@bella/components/Step/Step';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
-import Select from '@bella/components/Select/Select';
+import Menu, { MenuItem } from '@bella/components/Menu/Menu';
+import Sparkline from '@bella/components/Sparkline/Sparkline';
+import { GLYPHS } from '@bella/components/Icon/registry';
 import TextStack from '@bella/components/TextStack/TextStack';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Toast from '@bella/components/Toast/Toast';
@@ -43,6 +46,8 @@ import { activityRow, isGoing, plainStop, splitRuns } from '../runClock.js';
 import { markOf } from './marks.js';
 
 const TAB_IDS = ['sessions', 'ask'];
+// BELLA's Microphone glyph (proposed with this change); the word until it is in BELLA's registry
+const MIC = 'Microphone' in GLYPHS;
 const KEY = 'chip-dock';
 const EXAMPLE = 'Where are we?';
 const JSON_HEADERS = { 'content-type': 'application/json' };
@@ -149,23 +154,69 @@ export function sessionTree(list = []) {
 /* The browser's own speech to text, where it has it; it fills the field and never sends. */
 function useTalk(onText) {
   const rec = useRef(null);
+  const audio = useRef(null);
   const [on, setOn] = useState(false);
+  // the live level while listening (24 Nov 15:20: "live feedback ... from the browser's audio level"): the microphone's
+  // loudness, a value 0 to 100 every 100 ms, the last 24 kept for the waveform
+  const [levels, setLevels] = useState([]);
   const Speech = typeof window !== 'undefined' ? window.SpeechRecognition ?? window.webkitSpeechRecognition : null;
+  const stopAudio = () => {
+    const a = audio.current;
+    if (!a) return;
+    clearInterval(a.timer);
+    a.stream.getTracks().forEach((t) => t.stop());
+    a.ctx.close().catch(() => {});
+    audio.current = null;
+    setLevels([]);
+  };
+  const startAudio = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const ctx = new AudioContext();
+      ctx.resume?.().catch(() => {});
+      const an = ctx.createAnalyser();
+      an.fftSize = 512;
+      ctx.createMediaStreamSource(stream).connect(an);
+      const buf = new Uint8Array(an.fftSize);
+      const timer = setInterval(() => {
+        an.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (const v of buf) sum += ((v - 128) / 128) ** 2;
+        // a square-root scale: a quiet room still moves the bars, speech sits in the middle, a shout near the top
+        const level = Math.min(100, Math.round(Math.sqrt(Math.sqrt(sum / buf.length)) * 140));
+        setLevels((l) => [...l.slice(-23), level]);
+      }, 100);
+      audio.current = { stream, ctx, timer };
+    } catch {
+      // no level without the microphone's permission; the words still come through
+    }
+  };
+  useEffect(() => stopAudio, []);
   const toggle = () => {
     if (on) return rec.current?.stop();
     const r = new Speech();
     r.lang = 'en-GB';
     r.interimResults = true;
     r.onresult = (e) => onText(Array.from(e.results, (x) => x[0].transcript).join(''));
-    r.onend = () => setOn(false);
-    r.onerror = () => setOn(false);
+    r.onend = () => (setOn(false), stopAudio());
+    r.onerror = () => (setOn(false), stopAudio());
     rec.current = r;
     r.start();
     setOn(true);
+    startAudio();
   };
-  return { can: !!Speech, on, toggle };
+  return { can: !!Speech, on, toggle, levels };
 }
 
+/* Now and Earlier (24 Nov 15:20): a session that is working, or not done and active in the last 2 hours, is now;
+   done or quiet for longer is earlier. Each half is its own tree, working sessions first. */
+export function splitSessions(list = [], now = Date.now()) {
+  const recent = (x) => now - (x.working ? x.updatedAt : x.reportedAt ?? x.updatedAt ?? 0) <= 2 * 36e5;
+  const isNow = (x) => x.working || (recent(x) && sessionState(x)[0] !== 'Done');
+  const first = (a, b) => Number(b.working) - Number(a.working) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+  const tree = (xs) => sessionTree([...xs].sort(first));
+  return { now: tree(list.filter(isNow)), earlier: tree(list.filter((x) => !isNow(x))) };
+}
 
 /* The tree as groups: each top session, then every session under it (any depth), in the tree's order. */
 export function sessionGroups(tree = []) {
@@ -251,11 +302,19 @@ export default function WorkDock({ needs: shared }) {
   });
   const [picked, setPicked] = useState(null); // the session whose overview is open
   const [item, setItem] = useState(null); // what a row opens (WorkDrawer)
+  // openRun(id) from anywhere (a toast's Open, the pill after a run ends) opens that run's drawer here: the old
+  // run sheet that listened for it lives only in the legacy shell, so on these pages it opened nothing (her review, 24 Nov)
+  useEffect(() => {
+    const on = (e) => e.detail?.id && setItem({ kind: 'run', id: e.detail.id });
+    window.addEventListener('chip:run', on);
+    return () => window.removeEventListener('chip:run', on);
+  }, []);
   const [notice, setNotice] = useState(null);
   const [stopError, setStopError] = useState(null);
   const [model, setModel] = useState('auto');
   const [menu, setMenu] = useState(null);
   const [modelNote, setModelNote] = useState(null);
+  const [modelOpen, setModelOpen] = useState(false);
   useEffect(() => {
     let on = true;
     // refreshed when the panel opens, so "Claude x of 20 today" is today's
@@ -352,7 +411,10 @@ export default function WorkDock({ needs: shared }) {
   const needs = shared ?? own;
   const tree = useMemo(() => (board?.sessions ? sessionTree(board.sessions) : null), [board]);
   const pickedSession = tree?.find((s) => s.id === picked) ?? null;
-  const working = tree?.filter((s) => s.working).length ?? 0;
+  // CHIP's own runs count as working too (24 Nov 15:20: "0 working" while a run was at step 3 of 4)
+  const working = (tree?.filter((s) => s.working).length ?? 0) + runs.filter(isGoing).length;
+  // now: working first, then the rest of the last 2 hours; done or quiet for over 2 hours folds under Earlier
+  const split = useMemo(() => (board?.sessions ? splitSessions(board.sessions) : null), [board]);
   const waiting = tree?.filter((s) => sessionState(s)[1] === 'attention').length ?? 0;
   const runSplit = useMemo(() => splitRuns(runs), [runs]);
   // a run in her words: running, waiting for your Accept, did not land, or how it closed; the action on the row
@@ -444,20 +506,58 @@ export default function WorkDock({ needs: shared }) {
   const suggestion = (asker.answer?.next ?? []).find((q) => !asked.has(q)) ?? (asked.has(EXAMPLE) ? undefined : EXAMPLE);
   const pickedModel = menu?.models.find((m) => m.id === model);
 
+  // one row (24 Nov 15:20): the model as a small menu at the start of the field (Input's menu slot), the field with Send
+  // in it, and the microphone; while listening, the live level as bars and what she said in the field as she speaks
+  const modelShort = model === 'auto' ? 'Auto' : pickedModel?.label ?? 'Auto';
+  // the menu opens upward over the panel: drawn at the dialog's own level (a portal), placed from the button, because
+  // the footer's layer sits under the session rows' click targets and the drawer is BELLA's, not restyled from here
+  const openModels = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const host = e.currentTarget.closest('dialog');
+    setModelOpen((o) => (o ? false : { host, left: Math.round(r.left), bottom: Math.round(window.innerHeight - r.top + 4) }));
+  };
+  const modelMenu = (
+    <span className="chip-pop">
+      <Button variant="tertiary" size="sm" label={modelShort} icon="NavArrowDown" ariaLabel={`Model: ${modelShort}`} ariaExpanded={!!modelOpen} onClick={openModels} />
+      {modelOpen?.host ? createPortal(
+        // placed from the button's measured position once it is drawn (a measurement, not a design value)
+        <div className="chip-pop__menu chip-pop__menu--up" ref={(el) => el && Object.assign(el.style, { position: 'fixed', left: `${modelOpen.left}px`, bottom: `${modelOpen.bottom}px` })}>
+          <Menu label="Model" onClose={() => setModelOpen(false)} autoFocus>
+            {modelOptions(menu).map((o) => (
+              <MenuItem key={o.value} label={o.label} icon={o.value === model ? 'Check' : undefined} onSelect={() => (pickModel(o.value), setModelOpen(false))} />
+            ))}
+          </Menu>
+        </div>,
+        modelOpen.host,
+      ) : null}
+    </span>
+  );
   const composer = (
-    <Flow gap={8}>
-      <Flow direction="row" gap={8} align="end" wrap grow="last">
-        <Select label="Model" value={model} onChange={pickModel} options={modelOptions(menu)} />
-        <Flow direction="row" gap={8} align="end" grow="first">
-          <Input label="Ask about the work" placeholder={tiny ? 'Your question' : 'Where are we?'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" suggestion={suggestion} />
-          {talk.can ? (
-            <Button variant="secondary" ariaExpanded={talk.on} onClick={talk.toggle}>
-              {talk.on ? 'Listening' : 'Talk'}
-            </Button>
-          ) : null}
-        </Flow>
+    // the footer hugs its content and sits at the right; the ask box takes the footer's whole width (the Drawer's lg
+    // width, min(100dvw, 640), less its 24 sides), so the field is never squeezed by a short model name
+    <Flow gap={8} style={{ inlineSize: 'min(calc(100dvw - var(--spacing-48)), calc(var(--spacing-80) * 8 - var(--spacing-48)))' }}>
+      <Flow direction="row" gap={8} align="end" grow="first">
+        <Input label="Ask about the work" placeholder={tiny ? 'Your question' : 'Where are we?'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" suggestion={suggestion} menu={modelMenu} />
+        {talk.can ? (
+          <Tooltip label={talk.on ? 'Stop listening' : 'Speak your question'}>
+            {MIC ? (
+              <Button variant={talk.on ? 'primary' : 'secondary'} iconOnly icon="Microphone" ariaLabel={talk.on ? 'Stop listening' : 'Speak your question'} ariaPressed={talk.on} onClick={talk.toggle} />
+            ) : (
+              <Button variant="secondary" ariaPressed={talk.on} onClick={talk.toggle}>
+                {talk.on ? 'Listening' : 'Talk'}
+              </Button>
+            )}
+          </Tooltip>
+        ) : null}
       </Flow>
-      {tiny && !modelNote ? null : <TextStack subtitle={modelNote ?? (pickedModel ? `${pickedModel.label}: ${pickedModel.note}` : `Auto ${menu ? menu.auto.note : 'picks by the question'}`)} />}
+      {talk.on ? (
+        <Flow direction="row" gap={12} align="center">
+          <Sparkline form="bars" series={talk.levels.length > 1 ? talk.levels : [0, 0]} label="Your voice level" summary="The microphone is listening" table={false} caption="Voice level" />
+          <TextStack subtitle={draft ? 'Listening. Your words are in the field.' : 'Listening. Say your question.'} />
+        </Flow>
+      ) : tiny && !modelNote ? null : (
+        <TextStack subtitle={modelNote ?? (pickedModel ? `${pickedModel.label}: ${pickedModel.note}` : `Auto ${menu ? menu.auto.note : 'picks by the question'}`)} />
+      )}
     </Flow>
   );
 
@@ -474,10 +574,32 @@ export default function WorkDock({ needs: shared }) {
       }
     />
   );
-  const sessionsBody = pickedSession ? (
-    <SessionOverview s={pickedSession} parent={tree.find((x) => x.id === pickedSession.parentId)} onAsk={() => send(`Where is ${pickedSession.title}?`)} />
-  ) : (
-    <Flow gap={24}>
+  // no indent (it moved the text but not the dot, 24 Nov 10:35): a session that started others is followed by one line,
+  // "Under <its title>", then its sessions on the same column
+  const groupsOf = (list, label) => (
+    <Flow gap={4} aria-label={label}>
+      {sessionGroups(list).map((g) => (
+        <Flow key={g.root.id} gap={4}>
+          <Flow as="ul" gap={4} aria-label={g.root.title}>
+            <SessionRow s={g.root} onOpen={setPicked} />
+          </Flow>
+          {g.kids.length ? (
+            <>
+              <Inset>
+                <TextStack subtitle={`Under ${g.root.title} · ${g.kids.length} ${g.kids.length === 1 ? 'session' : 'sessions'}`} />
+              </Inset>
+              <Flow as="ul" gap={4} aria-label={`Sessions under ${g.root.title}`}>
+                {g.kids.map((k) => (
+                  <SessionRow key={k.id} s={k} onOpen={setPicked} />
+                ))}
+              </Flow>
+            </>
+          ) : null}
+        </Flow>
+      ))}
+    </Flow>
+  );
+  const sessionsSection = (
       <ReadingSection
         title="Claude sessions"
         description="Read from the Claude app; CHIP can't send into them yet"
@@ -487,34 +609,27 @@ export default function WorkDock({ needs: shared }) {
               <TextStack body="Reading your sessions." />
             </Inset>
           ) : tree.length ? (
-            // no indent (it moved the text but not the dot, 24 Nov 10:35): a session that started others is followed by
-            // one line, "Under <its title>", then its sessions on the same column
-            <Flow gap={4}>
-              {sessionGroups(tree).map((g) => (
-                <Flow key={g.root.id} gap={4}>
-                  <Flow as="ul" gap={4} aria-label={g.root.title}>
-                    <SessionRow s={g.root} onOpen={setPicked} />
-                  </Flow>
-                  {g.kids.length ? (
-                    <>
-                      <Inset>
-                        <TextStack subtitle={`Under ${g.root.title} · ${g.kids.length} ${g.kids.length === 1 ? 'session' : 'sessions'}`} />
-                      </Inset>
-                      <Flow as="ul" gap={4} aria-label={`Sessions under ${g.root.title}`}>
-                        {g.kids.map((k) => (
-                          <SessionRow key={k.id} s={k} onOpen={setPicked} />
-                        ))}
-                      </Flow>
-                    </>
-                  ) : null}
-                </Flow>
-              ))}
+            <Flow gap={8}>
+              {split.now.length ? groupsOf(split.now, 'Sessions now') : (
+                <Inset>
+                  <TextStack body="No session is working or active in the last 2 hours." />
+                </Inset>
+              )}
+              {split.earlier.length ? (
+                <Inset>
+                  <Disclosure flush title="Earlier" summary={`${split.earlier.length} ${split.earlier.length === 1 ? 'session' : 'sessions'}, done or quiet for 2 hours`}>
+                    {groupsOf(split.earlier, 'Earlier sessions')}
+                  </Disclosure>
+                </Inset>
+              ) : null}
             </Flow>
           ) : (
             <EmptyState size="lane" {...markOf('🍵')} title="No sessions" line="None in CHIP’s projects in the last day and a half." />
           )
         }
       />
+  );
+  const runsSection = (
       <ReadingSection
         title="CHIP’s runs"
         description="Fixes CHIP ran from a plan you approved"
@@ -556,6 +671,23 @@ export default function WorkDock({ needs: shared }) {
           </Flow>
         }
       />
+  );
+  const sessionsBody = pickedSession ? (
+    <SessionOverview s={pickedSession} parent={tree.find((x) => x.id === pickedSession.parentId)} onAsk={() => send(`Where is ${pickedSession.title}?`)} />
+  ) : (
+    // a CHIP run that is going comes first (24 Nov 15:20: "put the running ones first")
+    <Flow gap={24}>
+      {runs.some(isGoing) ? (
+        <>
+          {runsSection}
+          {sessionsSection}
+        </>
+      ) : (
+        <>
+          {sessionsSection}
+          {runsSection}
+        </>
+      )}
     </Flow>
   );
   const body =

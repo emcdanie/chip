@@ -149,6 +149,27 @@ export function gateOf(g) {
   };
 }
 
+
+/* The two Figma desktop paths, measured as they are now rather than read from CHIP's settings (review 24 Nov: both
+   read "Needs setting up" while both worked). The Desktop Bridge: figma-console's own status page on one of its
+   ports (9223 to 9232) says how many Figma files have the plugin open. The desktop app: Figma's Dev Mode MCP server
+   on 3845 answers any request with a JSON-RPC reply. Both are local reads, under a second. */
+export async function figmaBridgeNow() {
+  const tries = [];
+  for (let p = 9223; p <= 9232; p++) for (const h of ['[::1]', '127.0.0.1']) tries.push(fetch(`http://${h}:${p}/`, { signal: AbortSignal.timeout(800) }).then((r) => r.json()).catch(() => null));
+  const up = (await Promise.all(tries)).filter((d) => d?.status === 'ok');
+  if (!up.length) return null;
+  return { files: Math.max(...up.map((d) => Number(d.connectedClients) || 0)) };
+}
+export async function figmaDesktopNow() {
+  try {
+    const r = await fetch('http://127.0.0.1:3845/mcp', { signal: AbortSignal.timeout(800) });
+    return /jsonrpc/.test(await r.text());
+  } catch {
+    return false;
+  }
+}
+
 /** GET /map */
 export async function systemMap() {
   const bella = JSON.parse(readFileSync(join(ROOT, 'data/bella.json'), 'utf8'));
@@ -162,6 +183,8 @@ export async function systemMap() {
   // Figma counts as up when any read path answers; the others are then optional
   const figmaState = (s) => (fig.connected ? optional(s) : fromServer(s));
   const readPath = ['figma-rest', 'figma'].find((n) => servers[n]?.status === 'connected') ?? 'figma-rest';
+  const [bridge, desktop] = await Promise.all([figmaBridgeNow(), figmaDesktopNow()]);
+  const plural = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
   let ollama = 'unknown';
   try {
     const r = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(1500) });
@@ -176,8 +199,8 @@ export async function systemMap() {
     // the BELLA library's file key: Components' Figma check reads the library through it (audit 10: Figma's Need setup "Figma key")
     node({ id: 'figma-key', group: 'Design', name: 'Figma key', state: process.env.FIGMA_FILE_KEY ? 'ok' : 'bad', detail: process.env.FIGMA_FILE_KEY ? 'The BELLA library’s file key is in server/.env.' : 'Add the BELLA library’s file key to server/.env as FIGMA_FILE_KEY: the part after /design/ in its Figma link. Then restart CHIP.', source: 'server/.env', action: { type: 'test', server: 'figma-rest', label: 'Add key' } }),
     node({ id: 'figma-rest', group: 'Design', name: 'Figma REST', state: figmaState(servers['figma-rest']), detail: servers['figma-rest']?.setup ? `Optional upgrade: reads Figma with no app open once a token is in server/.env. ${fig.sentence}` : servers['figma-rest']?.status === 'error' ? servers['figma-rest'].error : `${servers['figma-rest']?.status ?? 'not tested'}. ${servers['figma-rest']?.note ?? ''}`, source: 'Figma REST API · server/.env', action: { type: 'test', server: 'figma-rest', label: 'Test it' } }),
-    node({ id: 'figma', group: 'Design', name: 'Figma desktop MCP', state: figmaState(servers.figma), detail: servers.figma ? `${servers.figma.status === 'error' ? 'Closed now' : servers.figma.status}. Answers while the Figma app is open with Dev Mode MCP on; reads the file that is open.` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma', label: 'Test it' } }),
-    node({ id: 'figma-console', group: 'Design', name: 'figma-console', state: figmaState(servers['figma-console']), detail: servers['figma-console'] ? `${servers['figma-console'].status}. ${servers['figma-console'].note}` : 'Not configured.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma-console', label: 'Test it' } }),
+    node({ id: 'figma', group: 'Design', name: 'Figma desktop MCP', state: desktop ? 'ok' : servers.figma ? figmaState(servers.figma) : 'bad', detail: desktop ? 'Answers: the Figma app is open with its Dev Mode MCP on; it reads the file that is open.' : servers.figma ? `${servers.figma.status === 'error' ? 'Closed now' : servers.figma.status}. Answers while the Figma app is open with Dev Mode MCP on; reads the file that is open.` : 'Not set up: open the Figma app and turn on its Dev Mode MCP.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma', label: 'Test it' } }),
+    node({ id: 'figma-console', group: 'Design', name: 'figma-console', state: bridge?.files ? 'ok' : servers['figma-console'] ? figmaState(servers['figma-console']) : 'bad', detail: bridge?.files ? `Answers: the Desktop Bridge plugin is open in ${plural(bridge.files, 'Figma file')}.` : servers['figma-console'] ? `${servers['figma-console'].status}. ${servers['figma-console'].note}` : bridge ? 'Not set up: open the Desktop Bridge plugin in Figma.' : 'Not set up: the Desktop Bridge is not running; open Figma and its Desktop Bridge plugin.', source: 'chip.config.local.json · last test', action: { type: 'test', server: 'figma-console', label: 'Test it' } }),
     // Source
     node({ id: 'tokens', group: 'Source', name: 'Tokens', state: fromCheck(ck['tokens-built']), detail: `${n.cssVars.light} CSS variables, four themes. ${ck['tokens-built']?.summary ?? 'Not checked yet.'}`, source: `tokens/*.json · ${lastChange(['tokens']) ?? ''}` }),
     // a part with no contract needs someone, as Health counts it (one reading: audit 21 Nov)

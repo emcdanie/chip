@@ -265,7 +265,7 @@ const DRAWERS = [
   { id: 'audit-all', name: 'Every work order', file: 'pages/AuditReading.jsx', route: '#/health', open: async (p) => { await card(/^BELLA system/)(p); await click('button', /^See all \d+ work orders/)(p); } },
   { id: 'plan', name: 'A plan (Plan the build)', file: 'templates/RunPlan.jsx', route: '#/health', open: async (p) => { await card(/^Gaps/)(p); await click('button', 'Plan the build')(p); await p.waitForTimeout(800); } },
   // the running light opens the Sessions panel; the bell opens only the notifications (23 Nov)
-  { id: 'sessions', name: 'Sessions panel', file: 'templates/WorkDock.jsx', route: '#/work', open: click('button', /^(Nothing running|Running|Done|Did not land)/) },
+  { id: 'sessions', name: 'Sessions panel', file: 'templates/WorkDock.jsx', route: '#/work', open: click('button', /^(Nothing running|Running|\d+ (runs )?running|Done|Did not land)/) },
   { id: 'notifications', name: 'Notifications', file: 'templates/WorkDock.jsx', route: '#/work', open: click('button', /^Notifications/) },
   { id: 'new', name: 'New', file: 'templates/NewStart.jsx', route: '#/work', open: click('button', /^\+?\s*New$/) },
   { id: 'new-task', name: 'New task', file: 'templates/NewStart.jsx', route: '#/work', open: async (p) => { await click('button', /^\+?\s*New$/)(p); await p.waitForTimeout(500); await p.locator('dialog[open] button', { hasText: /^Task/ }).first().click(); } },
@@ -287,7 +287,10 @@ const drawerJs = () => {
   // a numbered setup step keeps its own control (the Set up template, 23 Nov: each step has the button that opens the
   // page, the field to paste into, and Test it), so a button inside a step row with its number Pin is not counted
   const step = (b) => b.closest('[data-bella-component="list-row"]')?.querySelector('[data-bella-component="pin"]');
-  const inBody = acts(body).filter((b) => !step(b)).map((b) => `${b.dataset.bellaVariant} "${name(b)}"`);
+  // a one-line notice carries its own action at its right edge (rule "Notices are one-line bars", 16 Nov): not a
+  // drawer action, so not counted (24 Nov: a plan's "Last run changed nothing · See the run")
+  const notice = (b) => b.closest('[data-bella-component="notification"]');
+  const inBody = acts(body).filter((b) => !step(b) && !notice(b)).map((b) => `${b.dataset.bellaVariant} "${name(b)}"`);
   const fbs = acts(foot);
   const out = { title: dlg.querySelector('h2')?.textContent?.trim() ?? '', inBody, footer: fbs.map((b) => `${b.dataset.bellaVariant} "${name(b)}"`), note: null, under: [], row: null, primaryLast: true, rows: 0, twoLine: 0 };
   // a composer footer (the Work panel's ask box, a form's field) holds fields, not an action row: its labels are not helpers

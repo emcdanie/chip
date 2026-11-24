@@ -645,42 +645,51 @@ export default function HistoryContent() {
       <Flow gap={24}>
         {/* Figma's content set opens with its lede (664:123672) */}
         <TextStack body="What we agreed, when and why, across BELLA and CHIP." />
-        {/* Search beside the field, lined up with its box (the label sits above); a phone stacks them */}
-        <Flow direction={phone ? 'column' : 'row'} gap={8} grow={phone ? undefined : 'first'} as="form" role="search" onSubmit={(e) => (e.preventDefault(), search(draft))}>
-          {/* Ask suggestions (Figma Flow 5, screen 2): the field opens matching parts and pages, then
-              Recent; picking one searches the record for it (screen 4, "Only the fixes for Button") */}
-          <Combobox
-            label="Ask about a change, in plain words"
-            search
-            value={draft}
-            onChange={setDraft}
-            groups={[
-              { id: 'match', label: 'Parts and pages', options: find(draft, parts).map((x) => ({ id: x.key, label: x.title, meta: x.where })) },
-              { id: 'recent', label: 'Recent', options: recent.filter((r) => !draft.trim() || r.toLowerCase().includes(draft.trim().toLowerCase())).map((r) => ({ id: `recent:${r}`, label: r })) },
-            ]}
-            onSelect={(o) => search(o.label)}
-          />
-          <Flow direction={phone ? 'row' : 'column'} justify="end">
-            {/* Figma (664:123671): Search, then Filters, both white, words only; the page's one blue action is New task */}
-            <Flow direction="row" gap={8} justify="end">
-              <Button variant="secondary" type="submit">
-                Search
-              </Button>
-              <Button variant="secondary" onClick={() => setFilters(true)} ariaHaspopup="dialog">
-                {extra ? `Filters · ${extra}` : 'Filters'}
-              </Button>
+        {/* One tools line (her review, 24 Nov: the search was too long and the filters sat on another line): a short
+            field (the template's 240 side width), Search and Filters, then the kind chips on the same line, scrolling
+            sideways when they run out of room; a phone stacks the field row and the chip row. The form is a plain
+            element so it keeps its own width beside the chips (a Flow may shrink to nothing). */}
+        <Flow direction={phone ? 'column' : 'row'} gap={16} align={phone ? undefined : 'center'} grow={phone ? undefined : 'last'}>
+          <form role="search" onSubmit={(e) => (e.preventDefault(), search(draft))}>
+            <Flow direction="row" gap={8} align="center" wrap={phone} grow={phone ? 'first' : undefined}>
+              <Flow aside={!phone}>
+                {/* Ask suggestions (Figma Flow 5, screen 2): the field opens matching parts and pages, then
+                    Recent; picking one searches the record for it (screen 4, "Only the fixes for Button") */}
+                <Combobox
+                  label="Ask about a change, in plain words"
+                  hideLabel
+                  placeholder="Search changes"
+                  search
+                  value={draft}
+                  onChange={setDraft}
+                  groups={[
+                    { id: 'match', label: 'Parts and pages', options: find(draft, parts).map((x) => ({ id: x.key, label: x.title, meta: x.where })) },
+                    { id: 'recent', label: 'Recent', options: recent.filter((r) => !draft.trim() || r.toLowerCase().includes(draft.trim().toLowerCase())).map((r) => ({ id: `recent:${r}`, label: r })) },
+                  ]}
+                  onSelect={(o) => search(o.label)}
+                />
+              </Flow>
+              {/* Figma (664:123671): Search, then Filters, both white, words only; the page's one blue action is New task */}
+              <Flow direction="row" gap={8}>
+                <Button variant="secondary" type="submit">
+                  Search
+                </Button>
+                <Button variant="secondary" onClick={() => setFilters(true)} ariaHaspopup="dialog">
+                  {extra ? `Filters · ${extra}` : 'Filters'}
+                </Button>
+              </Flow>
             </Flow>
-          </Flow>
-        </Flow>
-        <Flow direction="row" gap={8} wrap aria-label="Kinds">
-          <FilterChip size="compact" pressed={!kind} onClick={() => setKind(null)}>
-            All {all?.total ?? ''}
-          </FilterChip>
-          {KINDS.map((k) => (
-            <FilterChip key={k} size="compact" pressed={kind === k} onClick={() => setKind(kind === k ? null : k)}>
-              {k} {counts[k] ?? 0}
+          </form>
+          <Flow direction="row" gap={8} swipe aria-label="Kinds">
+            <FilterChip size="compact" pressed={!kind} onClick={() => setKind(null)}>
+              All {all?.total ?? ''}
             </FilterChip>
-          ))}
+            {KINDS.map((k) => (
+              <FilterChip key={k} size="compact" pressed={kind === k} onClick={() => setKind(kind === k ? null : k)}>
+                {k} {counts[k] ?? 0}
+              </FilterChip>
+            ))}
+          </Flow>
         </Flow>
       </Flow>
 

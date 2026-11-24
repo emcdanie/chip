@@ -159,6 +159,7 @@ export default function AuditReading({ a, day, lights, open, onClose }) {
       source={source}
       footer={fix.footer}
       footerNote={fix.footerNote}
+      notice={fix.notice}
     >
       {r.orders.length ? (
         <ReadingTop

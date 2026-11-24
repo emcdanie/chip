@@ -42,6 +42,23 @@ test('an area is one card: each topic with its widths, the before of the same wi
   assert.match(board.views[0].before, /before-board-1440\.png$/);
   assert.equal(board.views[1].before !== null, true, 'a width with no before of its own falls back to the topic’s before');
   assert.match(a.line, /What changed: board, quality/);
+  // each picture carries its own time, so the card can say which version is showing
+  assert.ok(!Number.isNaN(Date.parse(board.views[0].at)) && !Number.isNaN(Date.parse(board.views[0].beforeAt)));
+});
+
+test('answered areas leave the board but stay on Needs you, split into Answered and Change asked', async () => {
+  const root = screens();
+  mkdirSync(join(root, FIXES_DIR, 'runs'));
+  writeFileSync(join(root, FIXES_DIR, 'runs', 'after-drawer-1440.png'), 'x');
+  const sent = new Date(Date.now() + 60_000).toISOString();
+  writeFileSync(join(root, 'progress', 'answers.json'), JSON.stringify([
+    { sent, answers: { url: `/screens/${FIXES_DIR}/needs-you/`, cards: [{ title: 'Needs you', answer: 'Accept' }] } },
+    { sent, answers: { url: `/screens/${FIXES_DIR}/runs/`, cards: [{ title: 'Runs', answer: 'Change', note: 'the bar is cut' }] } },
+  ]));
+  const m = boardModel({ board: { reviews: reviewsWaiting({ screens: root, review: REVIEW }), progress: { reached: true, items: [], tasks: [] }, board: { place: {}, order: {} } } });
+  assert.equal(m.lanes.flatMap((l) => l.cards).filter((c) => c.kind === 'fixes').length, 0);
+  assert.deepEqual(m.answered.map((c) => [c.id, c.status, c.needs]).sort(), [['fixes-needs-you', 'Accepted', false], ['fixes-runs', 'Change asked', false]]);
+  assert.equal(m.answered.find((c) => c.id === 'fixes-runs').answer.note, 'the bar is cut');
 });
 
 test('an answered area leaves Needs you, and comes back when a picture changes after her answer', async () => {

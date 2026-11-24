@@ -320,8 +320,19 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
       {!part && !none && map && !running ? (
         <Notification
           tone="attention"
-          // one line: message left, action right (16 Nov, "A"; audit 3)
-          message={`${map.name ?? 'This project'} isn’t running: ${map.run?.url ? `nothing answers at ${map.run.url}.` : 'there is no address for it in the config.'}`}
+          // plain words: what is wrong, what to type, where (her review, 24 Nov 15:20: say so, with the command to start it)
+          title={`${map.name ?? 'This project'} isn’t running`}
+          message={
+            <>
+              {map.run?.url ? `Nothing answers at ${map.run.url}.` : 'There is no address for it in the config.'}
+              {map.run?.command ? (
+                <>
+                  {' '}Start it with <code>{map.run.command}</code>
+                  {map.repo ? <> in <code>{String(map.repo).replace(/^\/Users\/[^/]+/, '~')}</code></> : null}, or press Start it.
+                </>
+              ) : null}
+            </>
+          }
           action={map.run?.command ? { label: starting ? 'Starting…' : 'Start it', onClick: start } : undefined}
         />
       ) : null}
@@ -341,6 +352,8 @@ export default function PlaygroundContent({ project, onProject, route, onRoute, 
           />
         </Flow>
       )}
+      {/* the first read of whether it runs can take a couple of seconds: say so instead of a blank area */}
+      {!part && !none && route && !map ? <Loading title="Checking whether it runs" what="its address" /> : null}
       {!part && !none && map && running && !shot ? <Loading title="Loading the page" what={`a picture of ${page?.label ?? 'the page'}`} /> : null}
       <SendBar count={count} onSend={sendAll} sending={batch.sending} result={batch.result} failed={batch.failed} onDismiss={() => setBatch({ sending: false, result: null, failed: null })} />
 

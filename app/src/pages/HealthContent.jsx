@@ -224,9 +224,13 @@ function ContrastCoverage({ contrast }) {
   const names = (contrast.missing ?? []).map((m) => m.name ?? m);
   const plan = {
     title: `Declare contrast pairs for ${names.length} ${names.length === 1 ? 'part' : 'parts'}`,
+    // what is true once it lands, said in the drawer and the toast (her review, 24 Nov)
+    doneSays: `all ${contrast.of} parts have a contrast pair`,
     from: 'Health · Contrast coverage',
     summary: names.length ? `${contrast.pass} of ${contrast.of} parts declare the contrast pairs they use. Declaring the other ${names.length} takes coverage to 100%.` : 'Every part declares its pairs: coverage is 100%.',
-    brief: [`Add the missing contrast pairs for ${names.length} parts in BELLA, one commit:`, ...names.map((n) => `- ${n}: declare the text and background colours it uses as a contrast pair, then run BELLA's pairs check.`), "A part with no colours of its own needs no pair: leave it and say so in your summary.", 'Follow BELLA AGENTS.md; no new tokens.'].join('\n'),
+    // the brief names the file and the check (24 Nov: a run on four colourless parts changed nothing, rightly; a pair
+    // lives in PAIRS in scripts/contrast-pairs.mjs and only a part with colour tokens of its own has one)
+    brief: [`Add the missing contrast pairs for ${names.length} parts in BELLA, one commit. A pair is a line in PAIRS in scripts/contrast-pairs.mjs: [label, text token, surface token, minimum ratio].`, ...names.map((n) => `- ${n}: if src/components/${n}/${n}.module.css sets a text colour and a background of its own, add that text-on-surface pair to PAIRS; if it sets none (layout only, currentColor, or decorative), add nothing.`), 'Then run node scripts/contrast-pairs.mjs; it must pass in all four themes.', 'Follow BELLA AGENTS.md; no new tokens. Say in your summary which parts had no colours.'].join('\n'),
     minutes: measuredMinutes(runs),
     expect: 'a card on Work; works on a copy of BELLA; the pairs check runs first; nothing is pushed.',
   };
@@ -255,6 +259,7 @@ function ContrastCoverage({ contrast }) {
         source={{ from: "BELLA's declared contrast pairs for each part" }}
         footer={fix.footer}
         footerNote={fix.footerNote}
+        notice={fix.notice}
       >
         {names.length ? (
           <ReadingTable
@@ -437,6 +442,7 @@ function DriftCard({ components, d }) {
           ) : view === 'summary' ? fix.footer : undefined
         }
         footerNote={typeof view === 'object' ? 'Opens the plan; nothing runs until you approve it.' : view === 'summary' ? fix.footerNote : undefined}
+        notice={view === 'summary' ? fix.notice : undefined}
       >
         {view === 'summary' ? (
           <>
@@ -585,6 +591,7 @@ function GateCard({ gate, run, onOpen }) {
     gate && run?.state !== 'running' && (gate.failing.length || gate.notRun.length)
       ? ((of) => ({
         title: `Get the gate to ${of} of ${of}`,
+        doneSays: `all ${of} gate checks pass`,
         from: 'Health · Checks',
         summary: `${gate.failing.length ? `${gate.failing.length} failing` : ''}${gate.failing.length && gate.notRun.length ? ' and ' : ''}${gate.notRun.length ? `${gate.notRun.length} not run yet` : ''}: one agent run can fix what fails and run the rest.`,
         brief: ['Make every BELLA gate check pass, one commit:', ...gate.failing.map((n) => `- ${n}: find why it fails and fix it.`), ...gate.notRun.map((n) => `- ${n}: run it and report the result.`), 'Follow BELLA AGENTS.md; ask before changing a public API.'].join('\n'),
@@ -645,6 +652,7 @@ function GateCard({ gate, run, onOpen }) {
         source={{ from: "BELLA's gate, run before each commit", when: gate.when ? `oldest check ran ${gate.when}` : null, commit: gate.head }}
         footer={fix.footer}
         footerNote={fix.footerNote}
+        notice={fix.notice}
       >
         {/* the gate's checks as one compact table, state words as filter chips (23 Nov evening: tighter rows, one line each) */}
         <ReadingTable
@@ -927,6 +935,14 @@ function CheckDrawer({ row, n, onClose }) {
       setBusy(false);
     }
   };
+  const sendOne = async (part) => {
+    try {
+      onClose();
+      await handOff({ ...row, missing: [part] });
+    } catch (e) {
+      if (!e.shown) setNote(`Not sent: ${e.message}.`);
+    }
+  };
   if (!row) return null;
   return (
     <ReadingDrawer
@@ -937,10 +953,11 @@ function CheckDrawer({ row, n, onClose }) {
       answer={<><Marker>{`${row.missing.length} parts`}</Marker>{` ${row.some}.`}</>}
       picture={<Progress label={`Parts that pass ${row.short ?? row.title}`} value={`${row.pass} of ${n}`} fill={row.fill} tone={row.fill >= TARGET ? 'success' : 'danger'} target={TARGET} showTarget showTargetLabel={false} />}
       footer={row.action ? <Button variant="primary" busy={busy} onClick={busy ? undefined : sendAll}>{`Send all ${row.missing.length}`}</Button> : undefined}
-      footerNote={note ?? (row.action ? 'One plan for all; nothing runs until you approve.' : undefined)}
+      footerNote={note ?? (row.action ? 'Or open one part for its own plan.' : undefined)}
       source={{ from: "BELLA's own check of every part" }}
     >
-      <ReadingTable caption={`Parts that miss ${row.short ?? row.title}`} unit="parts" density="compact" rows={row.missing.map((p) => ({ key: p, part: p }))} columns={[{ key: 'part', label: 'Part' }]} />
+      {/* a part's row opens the plan for that part alone (24 Nov, the demo: one part, a real change, a run that passes) */}
+      <ReadingTable caption={`Parts that miss ${row.short ?? row.title}`} unit="parts" rows={row.missing.map((p) => ({ key: p, part: p }))} columns={[{ key: 'part', label: 'Part' }]} onOpen={row.action ? (p) => sendOne(p) : undefined} />
     </ReadingDrawer>
   );
 }

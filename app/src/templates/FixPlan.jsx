@@ -19,6 +19,16 @@ import Marker from '@bella/components/Marker/Marker';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import { planRun } from './RunPlan.jsx';
 import useCached from './useCached.js';
+import Notification from '@bella/components/Notification/Notification';
+import { openRun } from '../Runs.jsx';
+import { plainStop } from '../runClock.js';
+
+// a summary's first sentence, without markdown ticks or stars, for a one-line alert
+const firstSentence = (t) => {
+  // its first clause only, so the alert stays one line ("No pairs added, so I changed no files…" → "no pairs added")
+  const c = String(t ?? '').replace(/[`*]/g, '').trim().split(/(?<=[.!?])\s|[,;:]\s/)[0]?.replace(/\.$/, '') ?? '';
+  return c ? `${c[0].toLowerCase()}${c.slice(1)}` : '';
+};
 
 const post = (url, body) =>
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(async (r) => {
@@ -69,7 +79,7 @@ export function useFixPlan(plan, onBefore) {
     setDone(null);
     setEditing(false);
   }, [plan?.brief]);
-  if (!plan) return { body: null, footer: undefined, footerNote: undefined };
+  if (!plan) return { body: null, footer: undefined, footerNote: undefined, notice: null };
   const lines = brief.split('\n').map((l) => l.trim()).filter(Boolean);
   const lead = lines[0]?.startsWith('- ') ? null : lines[0];
   // a plan may give a short line per step for reading (plan.outline); the full brief is what Edit shows and what runs.
@@ -90,7 +100,7 @@ export function useFixPlan(plan, onBefore) {
   };
   const execute = () => {
     onBefore?.(); // the drawer closes first, so the plan sheet opens on top, never under it
-    setTimeout(() => planRun({ title: plan.title, from: plan.from, brief }).catch(() => {}), 150);
+    setTimeout(() => planRun({ title: plan.title, from: plan.from, brief, doneSays: plan.doneSays }).catch(() => {}), 150);
   };
   // a step list of "Part: what to do" lines reads as a compact table (part, the fix, the fields), not a sentence per part
   // (23 Nov evening, her Drift drawer: "super text heavy"); any other list stays short bullets
@@ -205,9 +215,11 @@ export function useFixPlan(plan, onBefore) {
   const idea = (live?.[1]?.board?.ideas ?? []).find((i) => i.title === plan.title);
   const lane = idea ? live?.[1]?.board?.place?.[idea.id]?.lane ?? 'next' : null;
   const ACTIVE = ['starting', 'running', 'gate'];
+  const LANDLESS = ['failed', 'login', 'nochange'];
   const LANE = { ideas: 'Ideas', next: 'Next', now: 'Now', shipped: 'Shipped', 'not-doing': 'Not doing' };
   let footer;
   let footerNote;
+  let alert = null;
   if (run && ACTIVE.includes(run.status)) {
     const doneSteps = (run.steps ?? []).filter((x) => x.status === 'done' || x.done).length;
     const of = run.stepCount || (run.steps ?? []).length;
@@ -216,7 +228,9 @@ export function useFixPlan(plan, onBefore) {
   } else if (run && ['passed', 'kept'].includes(run.status)) {
     footer = <Button variant="primary" onClick={open(run.id)}>See what changed</Button>;
     footerNote = run.status === 'kept' ? 'Done · kept on its branch' : 'Done · waiting for your Accept';
-  } else if (idea && !(run && run.status === 'failed' && String(run.startedAt) > String(idea.at ?? ''))) {
+    // what is now true, in the drawer where she acts (her review, 24 Nov): the plan's own line, else its title
+    alert = <Notification tone="success" message={plan.doneSays ? `${plan.doneSays[0].toUpperCase()}${plan.doneSays.slice(1)}.` : `Landed: ${plan.title}.`} />;
+  } else if (idea && !(run && LANDLESS.includes(run.status) && String(run.startedAt) > String(idea.at ?? ''))) {
     footer = <Button variant="primary" onClick={open(idea.id)}>Open it</Button>;
     footerNote = `On your board in ${LANE[lane] ?? 'Next'}`;
   } else {
@@ -226,11 +240,19 @@ export function useFixPlan(plan, onBefore) {
           Save for later
         </Button>
         <Button variant="primary" onClick={execute}>
-          Start
+          {run && LANDLESS.includes(run.status) ? 'Run again' : 'Start'}
         </Button>
       </>
     );
-    footerNote = done && done.tone !== 'success' ? done.text : run?.status === 'failed' ? 'The last run stopped; Start opens the plan again.' : 'Start opens the plan; saving puts a card in Next.';
+    footerNote = done && done.tone !== 'success' ? done.text : run && LANDLESS.includes(run.status) ? 'Run again opens the plan; nothing runs until you approve.' : 'Start opens the plan; saving puts a card in Next.';
+    // the last run did not land: what happened, in one line at the top of the drawer, and the run one click away
+    // (her review, 24 Nov: "since that is where she acts"; the Contrast plan looked empty next to the others)
+    if (run && LANDLESS.includes(run.status)) {
+      const why = run.status === 'nochange' ? `changed nothing${firstSentence(run.summary) ? ` (${firstSentence(run.summary)})` : ''}` : `did not land: ${plainStop(run.error ?? 'it stopped before it finished')}`;
+      alert = <Notification tone={run.status === 'nochange' ? 'attention' : 'danger'} message={`Last run ${why}`} action={{ label: 'See the run', onClick: () => (onBefore?.(), openRun(run.id)) }} />;
+    }
   }
-  return { body, footer, footerNote };
+  // notice: the one-line bar the drawer shows at the top of its content (ReadingDrawer `notice`; rule "Notices are
+  // one-line bars": top of the content, message left, action at the right edge)
+  return { body, footer, footerNote, notice: alert };
 }

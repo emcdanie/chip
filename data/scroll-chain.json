@@ -1,68 +1,68 @@
 {
- "at": "2026-11-24T15:02:54.740Z",
+ "at": "2026-11-24T16:18:00.917Z",
  "routes": {
   "#/work": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 24
   },
   "#/health": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 31
   },
   "#/system/components": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 12
   },
   "#/system/foundations": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 12
   },
   "#/system/history": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 12
   },
   "#/playground": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/system-map": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 10
   },
   "#/connectors": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/team": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/not-again": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/health/audits": {
-   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
+   "hash": "768ca47cf634f44bf9755afa0aa760a218d1cc55",
    "ok": true,
    "bad": 0,
    "total": 8

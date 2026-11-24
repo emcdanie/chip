@@ -91,11 +91,13 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
   // reserve: the window height the page keeps for what sits above and below the picture (the Workbench's title, row,
   // strip and Send all bar stay in the first view, as in Workbench A); otherwise 65% of the window
   const avail = reserve != null ? Math.max(288, vh - reserve) : Math.max(384, Math.round(vh * 0.65));
+  // Fit never draws a picture larger than its own pixels, so it stays sharp (her review, 24 Nov 15:20: "blurry pictures";
+  // a 1036-wide picture was drawn at 1096); zoom in still goes past 100% when she asks.
   // whole: the whole picture in view. With the page holding the zoom (the Workbench), Fit fills the stage's width from
   // the start and a tall picture scrolls inside the stage (her rule: "the picture fills the space (Fit) from the start");
   // the tool column's Fit then toggles to the whole picture
-  const whole = size?.w && room ? Math.min(2, Math.max(MIN, Math.min(room.w / size.w, avail / size.h))) : 1;
-  const fit = outside && size?.w && room ? Math.min(2, Math.max(MIN, room.w / size.w)) : whole;
+  const whole = size?.w && room ? Math.min(1, Math.max(MIN, Math.min(room.w / size.w, avail / size.h))) : 1;
+  const fit = outside && size?.w && room ? Math.min(1, Math.max(MIN, room.w / size.w)) : whole;
   const k = zoom ?? fit;
   useEffect(() => {
     onFitChange?.(fit, whole);

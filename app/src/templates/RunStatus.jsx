@@ -10,6 +10,8 @@ import Toast from '@bella/components/Toast/Toast';
 import RunIndicator from '@bella/components/RunIndicator/RunIndicator';
 import Toasts from './Toasts.jsx';
 import { openRun } from '../Runs.jsx';
+import { doneSaysOf } from './RunPlan.jsx';
+import { confetti } from './confetti.js';
 import { isGoing, lightOf } from '../runClock.js';
 import { openWork } from './WorkDock.jsx';
 
@@ -70,7 +72,10 @@ export default function RunStatus() {
     for (const r of runs) {
       if (before.current.get(r.id) && !isGoing(r)) {
         const bad = r.status === 'failed' || r.status === 'login' || r.status === 'nochange';
-        setToast({ id: r.id, tone: bad ? 'danger' : 'success', text: bad ? `Did not land: ${r.title}. ${r.status === 'nochange' ? 'It changed nothing.' : (r.error ?? '')}` : `Done: ${r.title}.` });
+        // landed and passed: what is now true (the plan's own line, kept at Approve), and a short burst (her review, 24 Nov)
+        const says = doneSaysOf(r.id);
+        setToast({ id: r.id, tone: bad ? 'danger' : 'success', text: bad ? `Did not land: ${r.title}. ${r.status === 'nochange' ? 'It changed nothing.' : (r.error ?? '')}` : says ? `${says[0].toUpperCase()}${says.slice(1)}. ${r.title} passed its gate.` : `Done: ${r.title}.` });
+        if (r.status === 'passed') confetti();
       }
       before.current.set(r.id, isGoing(r));
     }
@@ -98,12 +103,13 @@ export default function RunStatus() {
         stepDone={view.done}
         stepTotal={view.total}
         since={view.state === 'running' ? view.since : undefined}
-        onOpen={() => openWork('sessions')}
+        // a run that just ended ("Did not land: …", "Done: …") opens that run; otherwise the Sessions list (her review, 24 Nov)
+        onOpen={() => (view.state !== 'running' && view.state !== 'idle' && view.id ? openRun(view.id) : openWork('sessions'))}
         expanded={open}
       />
       {toast ? (
         <Toasts>
-          <Toast tone={toast.tone} onClose={() => setToast(null)} action={{ label: 'Open the card', onClick: () => (openRun(toast.id), setToast(null)) }}>
+          <Toast tone={toast.tone} onClose={() => setToast(null)} action={{ label: 'Open', onClick: () => (openRun(toast.id), setToast(null)) }}>
             {toast.text}
           </Toast>
         </Toasts>

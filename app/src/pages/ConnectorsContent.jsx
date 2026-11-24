@@ -16,7 +16,6 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
 import ListRow from '@bella/components/ListRow/ListRow';
-import IconWell from '@bella/components/IconWell/IconWell';
 import AppTile from '@bella/components/AppTile/AppTile';
 import ConnectorTile from '@bella/components/ConnectorTile/ConnectorTile';
 import Notification from '@bella/components/Notification/Notification';
@@ -41,7 +40,7 @@ const NOT_SET_UP = /^not configured|^add [A-Z_]+=|no server called|needs a token
 const stateOf = (n) => (n?.state !== 'ok' && NOT_SET_UP.test(String(n?.detail ?? '')) ? 'setup' : n?.state ?? 'unknown');
 const REACHES = [
   // Figma's App tiles: GitHub's mark on ink, git's branch on its orange, the agent on Claude's colour, the local model outlined
-  { id: 'ci', name: 'GitHub CI', tile: { tone: 'inverse', brand: 'github' }, ok: 'Ran' },
+  { id: 'ci', name: 'GitHub CI', tile: { tone: 'inverse', icon: 'GitHub' }, ok: 'Ran' },
   // git ok means CHIP can read BELLA's branch, never "up to date" (nothing measures that; data check, 22 Nov)
   { id: 'git', name: 'git', tile: { tone: 'git', icon: 'GitBranch' }, ok: 'Reads BELLA' },
   { id: 'claude', name: 'Agent', tile: { tone: 'claude', brand: 'claude' }, ok: 'Ready' },
@@ -73,11 +72,17 @@ function meta(r, gate) {
 }
 /* The published Figma's names (601:126716, 20 Nov): the tool each path is, as
    the developers and designers who set them up know it. */
+// each with Figma's own mark (review 24 Nov: the companies' marks, not drawn icons; BELLA Icon's tool marks)
 const PATHS = [
-  { id: 'figma', name: PLAIN.figma, icon: 'Activity' },
-  { id: 'figma-console', name: PLAIN['figma-console'], icon: 'Code' },
-  { id: 'figma-rest', name: PLAIN['figma-rest'], icon: 'Key' },
+  { id: 'figma', name: PLAIN.figma, mark: 'Figma' },
+  { id: 'figma-console', name: PLAIN['figma-console'], mark: 'Figma' },
+  { id: 'figma-rest', name: PLAIN['figma-rest'], mark: 'Figma' },
 ];
+// the mark for a connector in the Need setup list (Notion's own mark; a service BELLA has no mark for keeps a plain tile)
+const MARKS = { notion: 'Notion', ci: 'GitHub', 'figma-key': 'Figma' };
+/* One row for every connector (review 24 Nov): the company's mark on an App tile, the name, the status dot and its
+   word, and one action. */
+const Mark = ({ name }) => <AppTile tone="outline" size="sm" icon={name ?? 'EvPlug'} />;
 // plain names, never a slug (Elleta, 23 Nov: the drawer title said figma-rest)
 const NAMES = { 'figma-key': 'Figma key', ...PLAIN };
 const nameOf = (n) => NAMES[n?.id] ?? n?.name;
@@ -138,7 +143,8 @@ export default function ConnectorsContent() {
       if (n.action?.server) {
         const r = await fetch('/host/test', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ server: n.action.server }) });
         const d = await r.json().catch(() => ({}));
-        if (!r.ok) error = d.error || 'CHIP did not answer';
+        // a Figma path with no entry in CHIP's settings (the desktop app, the Bridge) is measured on the fresh map instead
+        if (!r.ok && !/no server called/i.test(String(d.error ?? ''))) error = d.error || 'CHIP did not answer';
       }
       const fresh = await fetch('/map').then((r) => r.json());
       const now = fresh.nodes?.find((x) => x.id === n.id);
@@ -252,7 +258,7 @@ export default function ConnectorsContent() {
               // the state is the status dot and its word under the name, never an arrow beside the button
               const s = stateOf(p.n);
               const act = s === 'setup' ? <Button variant="secondary" size="sm" ariaLabel={`Set up ${p.name}`} onClick={() => setSetup(p.n)}>Set up</Button> : testButton(p.n, 'Test', p.name);
-              return <ListRow key={p.id} iconWell={<IconWell icon={p.icon} tone="info" />} title={p.name} description={<StateTag state={s} okWord="Connected" />} actionButton={act} />;
+              return <ListRow key={p.id} iconWell={<Mark name={p.mark} />} title={p.name} description={<StateTag state={s} okWord="Connected" />} actionButton={act} />;
             })}
           </Flow>
           {compare ? (
@@ -272,7 +278,7 @@ export default function ConnectorsContent() {
                 setting it up unlocks, and one Set up (review 24 Nov: the row had an arrow and a button, and a line of its own) */}
             <Flow gap={8} as="ul" aria-label="Need setup">
               {needs.map((n) => (
-                <ListRow key={n.id} title={nameOf(n)} description={<StateTag state={stateOf(n)} />} actionButton={<Button variant="secondary" size="sm" ariaLabel={`Set up ${nameOf(n)}`} onClick={() => setSetup(n)}>Set up</Button>} />
+                <ListRow key={n.id} iconWell={<Mark name={MARKS[n.id]} />} title={nameOf(n)} description={<StateTag state={stateOf(n)} okWord="Connected" />} actionButton={<Button variant="secondary" size="sm" ariaLabel={`Set up ${nameOf(n)}`} onClick={() => setSetup(n)}>Set up</Button>} />
               ))}
             </Flow>
           </Flow>

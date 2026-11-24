@@ -24,6 +24,13 @@ import { answersUrl } from './needsYouModel.js';
 import Marker from '@bella/components/Marker/Marker';
 import Keyed from '../templates/Keyed.jsx';
 
+/* when a picture was made or she answered: "24 Nov 14:12" */
+const stamp = (t) => {
+  const d = new Date(t);
+  return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+};
+const SENDS = 'Accept tells the builder it looks right. Change sends your note and pins back to be fixed. Click the picture to pin a comment.';
+const SENDS_NOTE = 'Send change gives the builder your note and pins; the card comes back with new pictures.';
 const short = (t, n = 180) => (t.length > n ? `${t.slice(0, t.lastIndexOf(' ', n - 3))}…` : t);
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 
@@ -162,6 +169,10 @@ function FixesDecision({ card, onNotice, framed = true }) {
     }
   };
   const alt = `${a.title}, ${topic?.topic}${view?.width ? ` at ${view.width}` : ''}, ${side === 'before' ? 'before' : 'after'} the fix`;
+  // which version she is looking at (her app review, 24 Nov 15:20): "After, 24 Nov 14:12", the picture's own time
+  const at = side === 'before' ? view?.beforeAt : view?.at;
+  const version = `${side === 'before' ? 'Before' : 'After'}${at ? `, ${stamp(at)}` : ''}${view?.width ? ` · ${view.width} wide` : ''}`;
+  const said = card.answer;
   const here = pins.filter((p) => p.shot === src);
   const picture = src ? (
     <PicturePins
@@ -181,14 +192,10 @@ function FixesDecision({ card, onNotice, framed = true }) {
     />
   ) : null;
   const pinCount = pins.filter((p) => (p.note ?? '').trim()).length;
-  const helper = (
-    <TextStack
-      subtitle={[
-        noting ? 'Send change posts your note to the builder.' : 'Click the picture to comment on a spot. Accept: it looks right and can be handed over. Change: you write what to change, then send it.',
-        pinCount ? `${plural(pinCount, 'comment')} on the picture go${pinCount === 1 ? 'es' : ''} with your answer.` : null,
-      ].filter(Boolean).join(' ')}
-    />
-  );
+  // what each answer sends, in one line, before she presses it (her app review, 24 Nov 15:20: she could not tell)
+  const sends = noting ? SENDS_NOTE : SENDS;
+  const helperWords = [sends, pinCount ? `${plural(pinCount, 'comment')} on the picture go${pinCount === 1 ? 'es' : ''} with it.` : null].filter(Boolean).join(' ');
+  const helper = <TextStack subtitle={helperWords} />;
   const actions = (
       <Flow direction="row" gap={8} justify="end" wrap>
         {noting ? (
@@ -215,9 +222,10 @@ function FixesDecision({ card, onNotice, framed = true }) {
   const body = (
     <Flow gap={16}>
       <Flow gap={8}>
-        {framed ? <StatusDot tone="attention" label={card.status} /> : null}
+        {framed ? <StatusDot tone={card.tone === 'success' || card.tone === 'info' ? card.tone : 'attention'} label={card.status} /> : null}
         {framed ? <TextStack title={`${a.title}: does it look right?`} titleAs="h2" subtitle={a.bullets?.length ? undefined : a.line} /> : null}
         {a.bullets?.length ? <Bullets list={a.bullets} /> : null}
+        {said ? <TextStack subtitle={`You said ${said.answer === 'Change' ? 'Change' : 'Accept'}${said.sent ? `, ${stamp(said.sent)}` : ''}${said.note ? `: ${short(noQuotes(said.note), 140)}` : ''}`} /> : null}
         {a.topics.length > 1 ? (
           <Flow direction="row" gap={8} wrap aria-label="What changed">
             {a.topics.map((x, i) => (
@@ -231,13 +239,14 @@ function FixesDecision({ card, onNotice, framed = true }) {
           {topic?.views.length > 1 ? <SegmentedControl label="Width" value={String(w)} onChange={(v) => setW(Number(v))} options={topic.views.map((v, i) => ({ value: String(i), label: v.width ? `${v.width}` : `View ${i + 1}` }))} /> : null}
           {view?.before ? <SegmentedControl label="Before or after" value={side} onChange={setSide} options={[{ value: 'after', label: 'After' }, { value: 'before', label: 'Before' }]} /> : null}
         </Flow>
+        {src ? <TextStack subtitle={`Showing: ${version}`} /> : null}
       </Flow>
       {noting ? <Input label="What should change?" multiline value={note} onChange={setNote} placeholder="One line is enough" /> : null}
       {framed ? helper : null}
       {framed ? actions : null}
     </Flow>
   );
-  if (!framed) return { picture, body, helper: noting ? 'Send change posts your note to the builder.' : `Click the picture to comment on a spot. Accept: it looks right. Change: write what to change, then send it.${pinCount ? ` ${plural(pinCount, 'comment')} on the picture go${pinCount === 1 ? 'es' : ''} with your answer.` : ''}`, actions };
+  if (!framed) return { picture, body, helper: helperWords, actions };
   // the picture leads the card's body (not the Card's fixed 16:10 media well, which would cut off a comment's field)
   return (
     <Card>
@@ -340,19 +349,44 @@ export function useDecide({ onOpen, onReview, onSession, onTerminal, onNotice, o
   return { decide, busy };
 }
 
-/** cards: the board's cards that need her. onOpen(card, open) opens a drawer or the review; onNotice({tone,title,message}). */
-export default function NeedsYouList({ cards, onOpen, onReview, onSession, onTerminal, onNotice }) {
+/* The page's three views (her app review, 24 Nov 15:20, from the approved review design): what still needs her answer, what she
+   accepted, and what she asked to change (waiting on its builder). */
+const VIEWS = [
+  { id: 'open', label: 'Needs your answer', empty: { mark: '🍵', title: 'Nothing needs you', line: 'Every decision is made. New ones land here.' } },
+  { id: 'accepted', label: 'Answered', empty: { mark: '📭', title: 'Nothing answered yet', line: 'What you accept shows here until its builder hands it over.' } },
+  { id: 'change', label: 'Change asked', empty: { mark: '📭', title: 'No change asked', line: 'What you send back with Change waits here for its builder.' } },
+];
+
+/** cards: the board's cards that need her; answered: the review-fix areas she has answered. onOpen(card, open) opens a drawer
+ *  or the review; onNotice({tone,title,message}). */
+export default function NeedsYouList({ cards, answered = [], onOpen, onReview, onSession, onTerminal, onNotice }) {
   const { decide, busy } = useDecide({ onOpen, onReview, onSession, onTerminal, onNotice });
-  if (!cards.length) return <EmptyState size="page" mark="🍵" title="Nothing needs you" line="Every decision is made. New ones land here." />;
+  const [view, setView] = useState('open');
+  const lists = { open: cards, accepted: answered.filter((c) => c.answer?.answer !== 'Change'), change: answered.filter((c) => c.answer?.answer === 'Change') };
+  const v = VIEWS.find((x) => x.id === view);
+  const list = lists[view];
   return (
-    // the page width (24 Nov: cards sat in the left 750 with the right half empty): two columns where two cards of a readable
-    // width fit, one on a phone; cards in a row the same height
-    <Flow as="ul" direction="row" wrap fill gap={24} aria-label={`Needs you: ${plural(cards.length, 'decision')}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, calc(var(--spacing-64) * 8)), 1fr))' }}>
-      {cards.map((c) => (
-        <li key={c.id}>
-          {c.kind === 'fixes' ? <FixesDecision card={c} onNotice={onNotice} /> : <Decision card={c} onDecide={decide} busy={busy?.id === c.id ? busy.which : null} />}
-        </li>
-      ))}
+    <Flow gap={24}>
+      <Flow direction="row" gap={8} wrap role="group" aria-label="Show">
+        {VIEWS.map((x) => (
+          <FilterChip key={x.id} pressed={view === x.id} onClick={() => setView(x.id)}>
+            {`${x.label} · ${lists[x.id].length}`}
+          </FilterChip>
+        ))}
+      </Flow>
+      {!list.length ? (
+        <EmptyState size="page" mark={v.empty.mark} title={v.empty.title} line={v.empty.line} />
+      ) : (
+        // the page width (24 Nov: cards sat in the left 750 with the right half empty): two columns where two cards of a readable
+        // width fit, one on a phone; cards in a row the same height
+        <Flow as="ul" direction="row" wrap fill gap={24} aria-label={`${v.label}: ${plural(list.length, 'card')}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, calc(var(--spacing-64) * 8)), 1fr))' }}>
+          {list.map((c) => (
+            <li key={c.id}>
+              {c.kind === 'fixes' ? <FixesDecision card={c} onNotice={onNotice} /> : <Decision card={c} onDecide={decide} busy={busy?.id === c.id ? busy.which : null} />}
+            </li>
+          ))}
+        </Flow>
+      )}
     </Flow>
   );
 }

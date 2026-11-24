@@ -73,7 +73,8 @@ export function readArea(dir, slug, base) {
   for (const p of shown) {
     const t = topics.get(p.topic) ?? { topic: p.topic, views: [] };
     const before = pics.find((b) => b.role === 'before' && b.topic === p.topic && b.width === p.width) ?? pics.find((b) => b.role === 'before' && b.topic === p.topic) ?? null;
-    t.views.push({ width: p.width, src: p.src, before: before?.src ?? null });
+    // each picture's own time, so the card can say which version she is looking at (her app review, 24 Nov 15:20)
+    t.views.push({ width: p.width, src: p.src, at: new Date(p.mtime).toISOString(), before: before?.src ?? null, beforeAt: before ? new Date(before.mtime).toISOString() : null });
     topics.set(p.topic, t);
   }
   for (const t of topics.values()) t.views.sort((a, b) => (b.width ?? 0) - (a.width ?? 0));

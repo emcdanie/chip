@@ -19,8 +19,8 @@ import Toast from '@bella/components/Toast/Toast';
 import TaskCard from '@bella/components/TaskCard/TaskCard';
 import LastRun from '@bella/components/LastRun/LastRun';
 import { clockWords, tookWords } from '../runClock.js';
-import StatusDot from '@bella/components/StatusDot/StatusDot';
 import DataTable from '@bella/components/DataTable/DataTable';
+import Tag from '@bella/components/Tag/Tag';
 import TextStack from '@bella/components/TextStack/TextStack';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import SearchField from '@bella/components/SearchField/SearchField';
@@ -40,7 +40,18 @@ import NeedsYouView from './NeedsYouView.jsx';
 import NeedsYouList, { CardDrawer } from './NeedsYouList.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import useCached from '../templates/useCached.js';
-import { AREAS, LANES, LANE_DOT, LANE_NAMES, filterFromHash, going, needsOrder, tableArea, tableStatus, projectStats, runnable, saveMove, shown } from './workModel.js';
+import { AREAS, LANES, LANE_TAG, LANE_NAMES, filterFromHash, going, needsOrder, tableArea, tableStatus, projectStats, runnable, saveMove, shown } from './workModel.js';
+import { markOf } from '../templates/marks.js';
+import Loading from '../templates/Loading.jsx';
+
+// what the board waits for on its first read, in her words (the Loading view names the ones still coming)
+const BOARD_READS = [
+  { url: '/needs', label: 'what needs you' },
+  { url: '/runs', label: 'the runs' },
+  { url: '/gaps', label: 'the gaps' },
+  { url: '/work/lanes', label: 'the lanes' },
+  { url: '/work/board', label: 'the cards' },
+];
 
 export const VIEWS = [
   { value: 'board', label: 'Board' },
@@ -52,10 +63,11 @@ export const VIEWS = [
 // status sorts by urgency, not alphabet (second pass S5): failed, then waiting on her, then working, quiet, done
 const URGENCY = { danger: 0, attention: 1, info: 2, neutral: 3, success: 4 };
 const TABLE_COLUMNS = [
-  { key: 'title', label: 'Task', sortable: true },
-  // one state mark, each thing said once (24 Nov): the lane as a status dot and its word, the status only where it adds to
-  // the lane, the area read from the card
-  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <StatusDot tone={LANE_DOT[r.laneId] ?? 'neutral'} label={r.lane} /> },
+  // the Task column takes a share, not the rest of the width (her app review, 24 Nov 15:20)
+  { key: 'title', label: 'Task', sortable: true, width: '40%' },
+  // each thing said once (24 Nov): the lane in its own lane colour, as the board's count plates draw it (her app review,
+  // 24 Nov 15:20: Ideas ochre, not grey), the status only where it adds to the lane, the area read from the card
+  { key: 'lane', label: 'Lane', sortable: true, render: (r) => <Tag variant="solid" tone={LANE_TAG[r.laneId] ?? 'default'}>{r.lane}</Tag> },
   { key: 'status', label: 'Status', sortable: true, sortValue: (r) => URGENCY[r.tone] ?? 5, render: (r) => tableStatus(r) || null },
   { key: 'area', label: 'Area', sortable: true, sortValue: (r) => tableArea(r), render: (r) => tableArea(r) },
   { key: 'who', label: 'Who acts', sortable: true, render: (r) => (r.who ? r.who[0].toUpperCase() + r.who.slice(1) : null) },
@@ -138,7 +150,7 @@ function Lane({ lane, move, why, focus }) {
   });
   if (target && !over.before) items.push(target);
   return (
-    <BoardLane name={lane.name} lane={lane.kind} count={lane.cards.length} headingLevel={2} dropTarget={!!over} empty={<EmptyState size="lane" mark={e.mark} title={e.title} line={e.line} />}>
+    <BoardLane name={lane.name} lane={lane.kind} count={lane.cards.length} headingLevel={2} dropTarget={!!over} empty={<EmptyState size="lane" {...markOf(e.mark)} title={e.title} line={e.line} />}>
       {items.length ? items : null}
     </BoardLane>
   );
@@ -298,8 +310,13 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
   const checkAsked = useRef(false);
   // a menu that closes hands focus back to the button that opened it (second pass S10)
   const lastTool = useRef(null);
+  // (a press outside closes it too, 24 Nov: then focus stays where she pressed, unless nothing took it)
   useEffect(() => {
-    if (!tool && lastTool.current) document.querySelector(`[data-tool="${lastTool.current}"] button`)?.focus();
+    const was = lastTool.current;
+    if (!tool && was) requestAnimationFrame(() => {
+      if (document.activeElement && document.activeElement !== document.body) return;
+      document.querySelector(`[data-tool="${was}"] button`)?.focus();
+    });
     lastTool.current = tool === 'filter' || tool === 'sort' ? tool : null;
   }, [tool]);
   // Search opens as its field, ready to type in
@@ -604,7 +621,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
         />
       )}
       {!model ? (
-        <EmptyState size="lane" mark="⏳" title="Reading the board" line="Fetching the sessions, what needs you and the ideas." />
+        <Loading title="Reading the board" sources={BOARD_READS} />
       ) : (
         <>
           {/* on Needs you the Brief's check is already a card in Now: say it once (visual study, 23 Nov) */}
@@ -629,9 +646,9 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
               onNotice={(n) => move.setNotice({ tone: n.tone, message: `${n.title}. ${n.message}` })}
             />
           ) : deciding ? (
-            <NeedsYouList cards={needsOrder((model.lanes.find((l) => l.id === 'now')?.cards ?? []).filter((c) => c.needs))} {...handlers} />
+            <NeedsYouList cards={needsOrder((model.lanes.find((l) => l.id === 'now')?.cards ?? []).filter((c) => c.needs))} answered={all?.answered ?? []} {...handlers} />
           ) : projectName && stats.cards === 0 && !q ? (
-            <EmptyState size="page" mark="🔌" title={`Nothing from ${projectName} is on the board`} line={`No card is tagged ${projectName}. Start a task for it from New, or connect a Claude Code session working in its folder, and its cards show here.`} />
+            <EmptyState size="page" {...markOf('🔌')} title={`Nothing from ${projectName} is on the board`} line={`No card is tagged ${projectName}. Start a task for it from New, or connect a Claude Code session working in its folder, and its cards show here.`} />
           ) : model.total === 0 && (filter || q) ? (
             <NoResults
               noun="cards"
@@ -646,7 +663,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
             model.total ? (
               <DataTable caption="Every card on the board" columns={TABLE_COLUMNS} rows={model.lanes.flatMap((l) => l.cards.map((c) => ({ ...c, lane: l.name, laneId: l.id })))} rowKey="id" sort={tsort} onSortChange={setTsort} freezeFirst onOpen={(id) => { const c = model.lanes.flatMap((l) => l.cards).find((x) => x.id === id); if (c) open(c); }} />
             ) : (
-              <EmptyState size="lane" mark="🔍" title="No cards" line="Nothing on the board." />
+              <EmptyState size="lane" {...markOf('🔍')} title="No cards" line="Nothing on the board." />
             )
           ) : (
             <Flow board direction="row" gap={24} aria-label="Work board" onDragOver={onDragOver} onDrop={onDrop}>

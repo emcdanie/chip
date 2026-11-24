@@ -432,7 +432,10 @@ export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra
     });
   }
   const checks = needs.map(bNeed);
-  return { lanes, total: lanes.reduce((s, l) => s + l.cards.length, 0), brief: boardBrief(checks), why: boardWhy(board, extra), components: parts.length };
+  // the review-fix areas she has answered stay findable on Needs you under Answered and Change asked (her app review, 24 Nov
+  // 15:20), never on the board: an answered area waits on its builder, not on her
+  const answered = (board?.reviews?.areas ?? []).filter((a) => a.answered).map((a) => ({ ...bFixes(a), needs: false, answer: a.answered, status: a.answered.answer === 'Change' ? 'Change asked' : 'Accepted', tone: a.answered.answer === 'Change' ? 'info' : 'success' }));
+  return { lanes, total: lanes.reduce((s, l) => s + l.cards.length, 0), brief: boardBrief(checks), why: boardWhy(board, extra), components: parts.length, answered };
 }
 
 /* The Brief: CHIP's own checks, with the top one's next step. */
@@ -627,7 +630,8 @@ export function needsOrder(cards) {
 /* The Table says each thing once (24 Nov, her screenshot: a shipped row said "Shipped" three times): the lane as a status
    dot and its word, the Status column only where it adds to the lane (a running step, what waits on her, what did not
    land), and the area read from the card, "Not set" when unknown. */
-export const LANE_DOT = { ideas: 'neutral', next: 'neutral', now: 'info', shipped: 'success', 'not-doing': 'neutral' };
+/* the lane's own colour, as BoardLane's count plate draws it: Ideas ochre, Next navy, Now blue, Shipped green, Not doing pink */
+export const LANE_TAG = { ideas: 'ochre', next: 'navy', now: 'info', shipped: 'success', 'not-doing': 'pink' };
 export function tableStatus(c) {
   const p = c.progress;
   if (p?.state === 'working' && p.total) return `Running · step ${Math.min(p.total, p.done + 1)} of ${p.total}`;

@@ -6,6 +6,7 @@ import SearchField from '@bella/components/SearchField/SearchField';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import TextStack from '@bella/components/TextStack/TextStack';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
 import NoResults from '../templates/NoResults.jsx';
 import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
@@ -54,13 +55,23 @@ export default function DocsContent({ docs: given }) {
       next.focus();
     }
   };
+  // the one status line (her review, 24 Nov): how many, when the newest changed, and whether CHIP is reading them live
+  const newest = all?.map((d) => d.updated).filter(Boolean).sort((a, b) => new Date(b) - new Date(a))[0];
+  const when = newest ? new Date(newest).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(',', '') : null;
   if (!all) return <TextStack body={live.error ? 'CHIP could not read the docs folders.' : 'Reading the docs…'} />;
   return (
     <Flow gap={24}>
       <div ref={list} onKeyDown={onKey}>
         <Flow gap={16}>
+          <TextStack
+            body={
+              <>
+                {`${searching ? `${found.length} of ` : ''}${all.length} documents${when ? ` · updated ${when}` : ''} · `}
+                <StatusDot tone={live.stale ? 'attention' : 'success'} label={live.stale ? "Couldn't refresh" : 'Live'} />
+              </>
+            }
+          />
           <SearchField label="Search the docs" placeholder="Search titles and first lines…" showShortcut={false} value={q} onChange={setQ} />
-          <TextStack body={`${searching ? `${found.length} of ${all.length}` : all.length} docs, read from BELLA and CHIP’s folders.`} />
           {found.length ? (
             <Flow gap={8} role="group" aria-label="Docs by kind">
               {kinds.map((k) => {

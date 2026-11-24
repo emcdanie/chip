@@ -372,12 +372,13 @@ export default function Screen({ place, header, tabs, children }) {
                 <RunStatus />
                 {/* Mark up (Elleta, 23 Nov): every page markable like Figma comments; notes stay drafts until one Send all */}
                 <span data-markup-own>
-                  {/* the button says what it is (24 Nov, "I can't mark up": a pencil with no word was missed); on, it reads
-                      "Marking up · Done" in the selection blue (BELLA's pressed tertiary; "Done" on a phone, where the longer words
-                      wrapped onto three lines) and pressing it stops */}
-                  <Tooltip label={markup.on ? 'Stop marking up' : 'Comment on this page'}>
-                    <Button variant="tertiary" icon="EditPencil" leadingIcon ariaLabel={markup.on ? 'Mark up, on: press to stop' : 'Mark up'} ariaPressed={markup.on} onClick={() => markup.setOn((o) => !o)}>
-                      {markup.on ? (phone ? 'Done' : 'Marking up · Done') : 'Mark up'}
+                  {/* the button says what it is (24 Nov, "I can't mark up": a pencil with no word was missed). It only opens
+                      the floating Mark up toolbar at the foot of the screen, where the comment tool, Send all and Close live
+                      (her review, 24 Nov 15:20), so she never scrolls back up to switch it; pressed while the toolbar is open */}
+                  <Tooltip label="Open the Mark up toolbar">
+                    {/* on a phone the pencil alone, with its name for screen readers: the word wrapped onto three lines at 320 */}
+                    <Button variant="tertiary" icon="EditPencil" leadingIcon iconOnly={phone} ariaLabel="Mark up" ariaPressed={markup.open} onClick={markup.openBar}>
+                      {phone ? null : 'Mark up'}
                     </Button>
                   </Tooltip>
                 </span>
