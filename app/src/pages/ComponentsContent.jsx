@@ -56,7 +56,7 @@ import { forceAttr, installForcedStates } from '../forcedStates.js';
 import { ContractCard, StoryDrawer, StorySample } from './DocReader.jsx';
 import AllFixes from './AllFixes.jsx';
 import A11yStage, { controlOf, onStoryDrawn, storyPart, touchOf } from './A11yViews.jsx';
-import QualityPanel, { AccessMini, QualityCentre, useQuality, visiblePins } from './QualityPanel.jsx';
+import QualityPanel, { soft, AccessMini, QualityCentre, useQuality, visiblePins } from './QualityPanel.jsx';
 import FigmaSetup, { useFigma } from '../templates/FigmaSetup.jsx';
 import { day, usePartDetail, useStudio, studioChecks, studioFixes, studioDocs, studioProps } from './componentsModel.js';
 import { markOf } from '../templates/marks.js';
@@ -973,7 +973,7 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
           <SectionHead title="Every token" titleLevel={4} size="card" />
           <Flow as="ul" gap={0} aria-label={`${part.name}'s tokens`}>
             {part.doc.tokens.map((t) => (
-              <ListRow key={t} layout="inline" title={t} />
+              <ListRow key={t} layout="inline" title={soft(t)} />
             ))}
           </Flow>
         </Flow>
@@ -997,7 +997,7 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
           <SectionHead title="Motion" titleLevel={3} words="durations its tokens name" />
           <Flow as="ul" gap={0} aria-label="Motion tokens">
             {part.doc.tokens.filter((t) => /^--motion-/.test(t)).map((t) => (
-              <ListRow key={t} layout="inline" title={t} />
+              <ListRow key={t} layout="inline" title={soft(t)} />
             ))}
           </Flow>
         </Flow>
@@ -1018,7 +1018,7 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
       <Card>
         <Flow gap={0}>
           {q ? (
-            <Disclosure title="Accessibility" summary={`${q.facts.filter((f) => f.state === 'ok').length} of ${q.facts.length} pass`} defaultOpen>
+            <Disclosure title="Accessibility" summary={`${q.facts.filter((f) => f.state === 'ok').length} of ${q.facts.filter((f) => !f.na).length} pass`} defaultOpen>
               <Flow gap={8}>
                 <AccessMini q={q} onOpen={onQuality} bare />
                 <Flow direction="row" justify="end">
@@ -1492,7 +1492,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
           <StatusDot tone={status.tone} label={status.text} />
           {/* accessibility as a status (her review, 24 Nov: "it is a status, not a button"): the dot and its words, the same
               count the Accessibility tab shows; the tab is one click away beside it */}
-          {q?.facts.length ? <StatusDot tone={q.facts.every((f) => f.state === 'ok') ? 'success' : q.facts.some((f) => f.state === 'fail') ? 'danger' : 'attention'} label={`Accessibility ${q.facts.filter((f) => f.state === 'ok').length} of ${q.facts.length}`} /> : null}
+          {q?.facts.length ? <StatusDot tone={q.facts.filter((f) => !f.na).every((f) => f.state === 'ok') ? 'success' : q.facts.some((f) => f.state === 'fail') ? 'danger' : 'attention'} label={`Accessibility ${q.facts.filter((f) => f.state === 'ok').length} of ${q.facts.filter((f) => !f.na).length}`} /> : null}
         </Flow>
         {/* how fresh it is: when CHIP last checked, with refresh (her reading, 22 Nov) */}
         <Flow direction="row" gap={8} align="center" wrap>

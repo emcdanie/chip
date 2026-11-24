@@ -129,7 +129,7 @@ function FactsCard({ facts, all = facts, pins, open, setOpen }) {
   return (
     <Card>
       <Flow gap={8}>
-        <SectionHead title="Accessibility" titleLevel={3} number={all.filter((f) => f.state === 'ok').length} words={`of ${all.length} pass`} />
+        <SectionHead title="Accessibility" titleLevel={3} number={all.filter((f) => f.state === 'ok').length} words={`of ${all.filter((f) => !f.na).length} pass`} />
         {/* rows with room between them and no left bar: the number names the row, the status dot and its word say the
             state (her review, 24 Nov: "too squished"; one status mark) */}
         <Flow gap={8} role="group" aria-label="Accessibility facts">
@@ -141,7 +141,7 @@ function FactsCard({ facts, all = facts, pins, open, setOpen }) {
                   layout="inline"
                   title={`${pins.find((p) => p.key === f.id)?.n}. ${f.name}`}
                   description={f.what}
-                  valueLabel={<StatusDot tone={TONE[f.state]} label={WORD[f.state]} />}
+                  valueLabel={<StatusDot tone={TONE[f.state]} label={f.word ?? WORD[f.state]} />}
                   onClick={() => setOpen(on ? null : f.id)}
                   aria-expanded={on}
                 />
@@ -165,16 +165,16 @@ export function AccessMini({ q, onOpen, bare = false }) {
   const pass = q.facts.filter((f) => f.state === 'ok').length;
   const row = (
     <ListRowGroup ariaLabel="First accessibility fact">
-      <ListRow layout="inline" title={first.name} description={first.what} valueLabel={<StatusDot tone={TONE[first.state]} label={WORD[first.state]} />} onClick={onOpen} />
+      <ListRow layout="inline" title={first.name} description={first.what} valueLabel={<StatusDot tone={TONE[first.state]} label={first.word ?? WORD[first.state]} />} onClick={onOpen} />
     </ListRowGroup>
   );
   if (bare) return row;
   return (
     <Card>
       <Flow gap={8}>
-        <SectionHead title="Accessibility" titleLevel={3} number={pass} words={`of ${q.facts.length} pass`} action={<Button variant="tertiary" size="sm" onClick={onOpen}>See all</Button>} />
+        <SectionHead title="Accessibility" titleLevel={3} number={pass} words={`of ${q.facts.filter((f) => !f.na).length} pass`} action={<Button variant="tertiary" size="sm" onClick={onOpen}>See all</Button>} />
         <ListRowGroup ariaLabel="First accessibility fact">
-          <ListRow layout="inline" title={first.name} description={first.what} valueLabel={<StatusDot tone={TONE[first.state]} label={WORD[first.state]} />} onClick={onOpen} />
+          <ListRow layout="inline" title={first.name} description={first.what} valueLabel={<StatusDot tone={TONE[first.state]} label={first.word ?? WORD[first.state]} />} onClick={onOpen} />
         </ListRowGroup>
       </Flow>
     </Card>
@@ -305,6 +305,10 @@ function Scorecard({ card }) {
   );
 }
 
+/* A long code value or token name may wrap after its own punctuation (-, (, ,, /, .), so no column is wider than
+   the panel and no word is cut. */
+export const soft = (t) => String(t ?? '').replace(/([-(,/.:])(?=\S)/g, '$1\u200b');
+
 /* ---------------- C: Read it ---------------- */
 function ReadIt({ q }) {
   const [query, setQuery] = useState('');
@@ -329,7 +333,12 @@ function ReadIt({ q }) {
           const on = searching || open === i;
           return (
             <BranchGroup key={g.name} name={g.name} count={g.items.length} hue={g.hue} open={on} onToggle={() => setOpen(open === i ? -1 : i)}>
-              {g.items.map((it) => <ListRow key={it.name} layout="stacked" title={it.name} description={it.say} value={it.exact} />)}
+              {/* name, its note and its exact value read down one column (her screenshot, 24 Nov: the value column took
+                  the width and the names ran one letter a line): the value is the row's meta line, Geist Mono, wrapping
+                  at its own punctuation, inside BELLA's row grid */}
+              <ListRowGroup ariaLabel={g.name}>
+                {g.items.map((it) => <ListRow key={it.name} layout="stacked" title={soft(it.name)} description={it.say} meta={it.exact != null ? soft(String(it.exact)) : undefined} />)}
+              </ListRowGroup>
             </BranchGroup>
           );
         })}

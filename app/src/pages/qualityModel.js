@@ -52,12 +52,13 @@ export function a11yFacts({ a11y, anatomy = [], touch, propNames = [], rendersAs
   const text = String(a11y ?? '');
   const sents = sentences(text);
   const out = [];
-  const nonInteractive = /non-?interactive|no tab stop/i.test(text);
+  // the contract's own words for a part nothing presses (AppTile, 24 Nov: "not interactive", "not a tab stop", "not a control")
+  const nonInteractive = /non-?interactive|not interactive|no tab stop|not a tab stop|not a control/i.test(text);
 
   // 1 focus ring: the contract's ratios on the focus-ring sentence, against 3:1 for a mark
   const ringSent = sents.filter((s) => /focus/i.test(s) && /ring|outline|edge/i.test(s));
   const ringRatios = ringSent.flatMap(ratiosIn);
-  if (nonInteractive) out.push({ id: 'focus', state: 'none', value: null, how: 'Not interactive: it takes no focus.' });
+  if (nonInteractive) out.push({ id: 'focus', state: 'none', na: true, value: null, how: 'Not interactive: it takes no focus.' });
   else if (ringSent.length)
     out.push({ id: 'focus', state: ringRatios.length ? (Math.min(...ringRatios) >= 3 ? 'ok' : 'fail') : 'ok', value: ringRatios.length ? Math.min(...ringRatios) : null, unit: 'to 1', target: 3, targetUnit: ':1', how: ringRatios.length ? `Weakest ${Math.min(...ringRatios).toFixed(2)}:1 against the page. Needs 3:1 for a mark.` : 'Written in the contract; no ratio to measure.', source: 'contract a11y' });
   else out.push({ id: 'focus', state: 'none', value: null, how: 'The contract says nothing about the focus ring.' });
@@ -65,7 +66,7 @@ export function a11yFacts({ a11y, anatomy = [], touch, propNames = [], rendersAs
   // 2 touch target: live part first, then BELLA's own number
   const live = touch ? Math.min(touch.w, touch.h) : null;
   const tgt = live ?? (Number(minTarget) || null);
-  if (nonInteractive) out.push({ id: 'target', state: 'none', value: null, how: 'Not interactive: nothing to press.' });
+  if (nonInteractive) out.push({ id: 'target', state: 'none', na: true, value: null, how: 'Not interactive: nothing to press.' });
   else if (tgt != null) out.push({ id: 'target', state: tgt >= 44 ? 'ok' : 'fail', value: tgt, unit: 'px', target: 44, targetUnit: 'px', how: live != null ? `${touch.w} by ${touch.h} px measured on the live part. Needs 44.` : `${tgt} px, from the part's contract. Needs 44.`, source: live != null ? 'measured on the live part' : 'bella.json' });
   else out.push({ id: 'target', state: 'none', value: null, how: 'No live sample to measure.' });
 
@@ -83,7 +84,7 @@ export function a11yFacts({ a11y, anatomy = [], touch, propNames = [], rendersAs
   else out.push({ id: 'role', state: 'none', value: null, how: 'The spec does not say what it renders as.' });
 
   // 5 keyboard
-  if (nonInteractive) out.push({ id: 'keys', state: 'none', value: null, how: 'Not interactive: no tab stop.' });
+  if (nonInteractive) out.push({ id: 'keys', state: 'none', na: true, value: null, how: 'Not interactive: no tab stop.' });
   else if (rendersAs && NATIVE.test(String(rendersAs))) out.push({ id: 'keys', state: 'ok', value: 'native', unit: 'keys', how: `It renders as ${rendersAs}, so the browser supplies the keys.`, source: 'spec' });
   else if (/keyboard|tab stop|enter|arrow|focus/i.test(text)) out.push({ id: 'keys', state: 'ok', value: 'in contract', unit: 'keys', how: 'The contract names the keys.', source: 'contract a11y' });
   else out.push({ id: 'keys', state: 'none', value: null, how: 'No keyboard behaviour is written down.' });
@@ -97,7 +98,9 @@ export function a11yFacts({ a11y, anatomy = [], touch, propNames = [], rendersAs
     const has = propNames.some((p) => /^(busy|ariaBusy)$/.test(p));
     out.push({ id: 'busy', state: has ? 'ok' : 'gap', value: has ? 'busy' : 'none', unit: 'aria-busy', how: has ? 'A busy prop exists in the code and the contract.' : 'No busy prop in the contract. A gap in BELLA.', source: 'contract props' });
   }
-  return out.map((f) => ({ ...A11Y_COPY[f.id], ...f }));
+  // the word for a fact with no result: Does not apply (nothing to press), Not in its note (a note exists but says nothing
+  // on it), else Not measured; "Not measured" only when nothing exists (24 Nov)
+  return out.map((f) => ({ ...A11Y_COPY[f.id], ...f, ...(f.state === 'none' ? { word: f.na ? 'Does not apply' : text.trim() ? 'Not in its note' : 'Not measured' } : {}) }));
 }
 
 /** The facts as the stage's pins: numbered, each named by its own fact, set top or bottom by what it is. */
