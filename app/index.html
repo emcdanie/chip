@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="chip-light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,7 +11,10 @@
     <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
   </head>
   <body>
-    <div id="root"></div>
+    <!-- the frame's outline (CHIP / Screen: menu column, top row, content blocks), drawn from BELLA tokens in
+         templates/Screen.css; it stays invisible for the first second and is replaced the moment the app and its
+         fonts are ready, so text never shows in a fallback font (CLAUDE.md "Navigation", 23 Nov evening) -->
+    <div id="root"><div class="chip-boot" aria-hidden="true"><div class="chip-boot__menu"></div><div class="chip-boot__main"><div class="chip-boot__row"></div><div class="chip-boot__block"></div><div class="chip-boot__block"></div></div></div></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

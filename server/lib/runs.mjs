@@ -208,9 +208,15 @@ export function answeredOn(run, answers) {
   }
   return null;
 }
-export function closedWhy(run, all, probe, answers = null) {
+const STALE_FAIL_MS = 2 * 86400000;
+export function closedWhy(run, all, probe, answers = null, now = Date.now()) {
   const newer = all.find((o) => o.id !== run.id && o.title === run.title && Date.parse(o.startedAt) > Date.parse(run.startedAt));
-  if (TERMINAL_FAIL.includes(run.status)) return newer ? 'a newer run of the same job replaced it' : null;
+  if (TERMINAL_FAIL.includes(run.status)) {
+    if (newer) return 'a newer run of the same job replaced it';
+    // a stop nobody ran again within two days is history, not a request (24 Nov: a 21 Nov stop still sat in Now)
+    const age = now - Date.parse(run.startedAt);
+    return age > STALE_FAIL_MS ? `it stopped on ${new Date(run.startedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} and was not run again` : null;
+  }
   if (run.status !== 'passed') return null;
   const said = answeredOn(run, answers);
   if (said) return `you answered it on ${said}`;
@@ -224,10 +230,10 @@ export function closedWhy(run, all, probe, answers = null) {
   return null;
 }
 /** Closes every run that no longer asks anything of her (saved, so a restart reads the same). Returns how many it closed. */
-export function settle(list, probe, answers = null) {
+export function settle(list, probe, answers = null, now = Date.now()) {
   let n = 0;
   for (const r of [...list].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt)).reverse()) {
-    const why = closedWhy(r, list, probe, answers);
+    const why = closedWhy(r, list, probe, answers, now);
     if (!why) continue;
     Object.assign(r, { status: 'closed', closedFrom: r.status, closedWhy: why, step: null });
     n++;

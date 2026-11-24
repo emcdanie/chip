@@ -11,6 +11,7 @@
 // - the progress rings on the Checks tab and on Sending: BELLA has no circle loader / progress ring.
 // - the floating Terminal window: BELLA has no floating window (shell work, not this page).
 import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
@@ -23,11 +24,13 @@ import Tabs from '@bella/components/Tabs/Tabs';
 import Tag from '@bella/components/Tag/Tag';
 import Notification from '@bella/components/Notification/Notification';
 import Button from '@bella/components/Button/Button';
+import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Input from '@bella/components/Input/Input';
 import Stage from '@bella/components/Stage/Stage';
 import Stat from '@bella/components/Stat/Stat';
 import Progress from '@bella/components/Progress/Progress';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
+import IconWell from '@bella/components/IconWell/IconWell';
 import Step, { StepDay } from '@bella/components/Step/Step';
 import VariantTile from '@bella/components/VariantTile/VariantTile';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
@@ -52,14 +55,16 @@ import { planRun } from '../templates/RunPlan.jsx';
 import { SPECIMENS, PLAY } from '../specimens.jsx';
 import { forceAttr, installForcedStates } from '../forcedStates.js';
 import { ContractCard, StoryDrawer, StorySample } from './DocReader.jsx';
-import A11yStage from './A11yViews.jsx';
+import A11yStage, { controlOf, onStoryDrawn, storyPart, touchOf } from './A11yViews.jsx';
 import QualityPanel, { AccessMini, QualityCentre, useQuality, visiblePins } from './QualityPanel.jsx';
 import FigmaSetup, { useFigma } from '../templates/FigmaSetup.jsx';
 import { day, usePartDetail, useStudio, studioChecks, studioFixes, studioDocs, studioProps } from './componentsModel.js';
 
 const noop = () => {};
 export const FILTERS = ['all', 'needs', 'ready'];
+// Accessibility first (approved D, 23 Nov): the stage and the panel open on it, so what she asked to see is never two clicks away
 const TABS = [
+  { id: 'access', label: 'Accessibility' },
   { id: 'inspect', label: 'Inspect' },
   { id: 'quality', label: 'Quality' },
   { id: 'fix', label: 'Fix' },
@@ -91,7 +96,7 @@ function Keyed({ text, names }) {
 
 /* The live part, as the code renders it: the Playground's props when the part
    has them (variant and label follow the controls), else its specimen. */
-function LivePart({ part, variant, label, state }) {
+function LivePart({ part, variant, label, state, bare = false }) {
   const play = PLAY[part.name];
   if (play) {
     const { C, children, props } = play;
@@ -102,7 +107,7 @@ function LivePart({ part, variant, label, state }) {
     );
   }
   const Specimen = SPECIMENS[part.name];
-  return Specimen ? <Specimen /> : <StorySample name={part.name} />; // no hand specimen: its first story, drawn from BELLA's Storybook
+  return Specimen ? <Specimen /> : <StorySample name={part.name} bare={bare} />; // no hand specimen: its first story, drawn from BELLA's Storybook
 }
 
 /* a part drawn from its story: the frame's own elements are out of reach, so pins and measures say so */
@@ -537,7 +542,10 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   const stageId = useId();
   const liveId = useId();
   const shownId = useId();
-  useForcedState(shownId, shown);
+  // the focus ring is drawn while its leader is picked or pointed at (23 Nov: "Focus ring" pointed at a part with no ring):
+  // the part wears BELLA's own focus rule, so the dot on the ring has a ring to sit on
+  const ringKey = (detail?.anatomy ?? []).find((x) => x.kind === 'ring')?.key;
+  useForcedState(shownId, shown === 'default' && ringKey && (picked === ringKey || lit === ringKey) ? 'focus' : shown);
   useEffect(() => installForcedStates(), []);
   const anatomy = isSampled(part.name) ? [] : detail?.anatomy ?? [];
   const a = anatomy.find((x) => x.key === picked) ?? anatomy[0] ?? null;
@@ -632,13 +640,15 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
     });
     if ((layout.over && layout.s === scale) || (cut && changes.current >= 6)) setLegend(true);
   });
-  // the live part's touch target, unscaled: its own box or its hit area, whichever is larger
+  // the live part's touch target, unscaled: its own box or its hit area, whichever is larger. A part drawn from its story
+  // is measured inside the story's frame, never the frame's own width switch; a part with no control has none (null).
   useLayoutEffect(() => {
-    const el = document.getElementById(shownId)?.querySelector('button, a, input, [role]');
-    const px = (v) => (/px$/.test(v) ? parseFloat(v) : 0);
-    const hit = el ? ['::before', '::after'].map((p) => getComputedStyle(el, p)).filter((c) => c.position === 'absolute') : [];
-    onTouch(el ? { w: Math.round(Math.max(el.offsetWidth, ...hit.map((c) => px(c.width)))), h: Math.round(Math.max(el.offsetHeight, ...hit.map((c) => px(c.height)))) } : null);
-  }, [box, shownId, onTouch]);
+    const holder = document.getElementById(shownId);
+    if (!isSampled(part.name)) return void onTouch(touchOf(holder?.querySelector('button, a, input, [role]')));
+    const read = () => onTouch(touchOf(controlOf(storyPart(holder))));
+    read();
+    return onStoryDrawn(holder, read);
+  }, [box, shownId, onTouch, part.name]);
   const [measured, setMeasured] = useState({});
   const [themeTick, setThemeTick] = useState(0);
   useEffect(() => {
@@ -808,11 +818,10 @@ function Strip({ title, label, items, current, onPick, render }) {
    (Figma TreeItem "Needs work"). No Pinned group: CHIP keeps no pinned parts (the side menu pins pages,
    not parts). The list sits on the page, not in a Card: inside a Card's 24 padding, TreeItem's icon and
    dot leave about 90 for the name and long names broke mid-word; on the page 14 characters fit. */
-function PartList({ model, query, setQuery, filter, current, onPick, onHide, onFilter }) {
+function PartList({ model, query, setQuery, filter, current, onPick, onFilter, inMenu = false }) {
   const q = query.trim().toLowerCase();
   const match = (p) => !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
   const total = model.parts.length;
-  const needsN = model.parts.filter((p) => !p.ready).length;
   // one list of every component, A to Z; the chips narrow it (Elleta, 23 Nov: "how come i cant see all the components")
   const shown = model.parts
     .filter((p) => match(p) && (filter === 'needs' ? !p.ready : filter === 'ready' ? p.ready : true))
@@ -823,17 +832,18 @@ function PartList({ model, query, setQuery, filter, current, onPick, onHide, onF
   }, [current, filter, query]);
   // 14 characters fit the row beside TreeItem's icon and dot; a longer name is cut, its full name on hover
   // (TreeItem takes no accessible name or tooltip of its own: a BELLA gap, so a screen reader hears the cut name)
-  const row = (p) => <TreeItem key={p.id} kind="item" label={p.name.length > 14 ? <span title={p.name}>{`${p.name.slice(0, 13)}…`}</span> : p.name} needsWork={!p.ready} current={p.id === current} onClick={() => onPick(p.id)} />;
+  // in the menu the row is narrower (about 11 characters). The group's name says the state, so its rows carry no mark
+  // (a row of a kind carries the same mark as its neighbours: none)
+  const fit = inMenu ? 11 : 14;
+  const row = (p) => <TreeItem key={p.id} kind="item" label={p.name.length > fit ? <span title={p.name}>{`${p.name.slice(0, fit - 1)}…`}</span> : p.name} current={p.id === current} onClick={() => onPick(p.id)} />;
   return (
-    <Flow gap={16}>
-      {/* search and the chips stay at the top while the rows scroll under them */}
-      <Flow gap={16} sticky style={{ background: 'var(--color-background-default)', paddingBlockEnd: 'var(--spacing-8)' }}>
-        <SectionHead title={`${total} components`} titleLevel={2} action={onHide ? <Button variant="tertiary" iconOnly icon="SidebarCollapse" ariaLabel="Hide the component list" ariaExpanded onClick={onHide} /> : undefined} />
-        <SearchField label="Find a component" placeholder={`Filter ${total} components`} showShortcut={false} value={query} onChange={setQuery} />
-        <Flow direction="row" gap={8} wrap aria-label="Show">
-          <FilterChip size="compact" pressed={filter === 'all'} onClick={() => onFilter('all')}>{`All ${total}`}</FilterChip>
-          <FilterChip size="compact" pressed={filter === 'needs'} onClick={() => onFilter(filter === 'needs' ? 'all' : 'needs')}>{`Needs work ${needsN}`}</FilterChip>
-        </Flow>
+    <Flow gap={inMenu ? 8 : 16}>
+      {/* search first and always in view (15 Nov); the groups below are the filter (Needs work, Ready), so there are no
+          chips repeating them and no title or hide button repeating the menu (one control group, 22 Nov) */}
+      {/* stays at the top while the rows scroll; in the menu it also covers the menu scroll's ring room above it, so no row
+          shows through there */}
+      <Flow gap={8} sticky style={inMenu ? { background: 'var(--color-background-surface)', insetBlockStart: 'calc(-1 * (var(--focus-ring-width) + var(--focus-ring-offset)))', paddingBlock: 'calc(var(--focus-ring-width) + var(--focus-ring-offset)) var(--spacing-4)', zIndex: 1 } : { background: 'var(--color-background-default)', paddingBlockEnd: 'var(--spacing-4)' }}>
+        <SearchField label="Find a part" placeholder="Find a part" showShortcut={false} value={query} onChange={setQuery} />
         {/* what is on, how many it leaves, a way off (second pass S7) */}
         <ResultsBar
           applied={[
@@ -856,11 +866,12 @@ function PartList({ model, query, setQuery, filter, current, onPick, onHide, onF
           onClearAll={() => (setQuery(''), onFilter('all'))}
         />
       ) : null}
-      {/* grouped by her task: what needs work first, then the ready ones (second pass M22); a chip that narrows to one group shows it flat */}
-      <Flow as="nav" aria-label={`${shown.length} components`} gap={4} id="part-list">
+      {/* grouped by her task: what needs work first, then the ready ones (second pass M22); both open, so every part is in view
+          without a click (23 Nov: "how come i cant see all the components"; the grouping of d0d95e4 closed Ready, 70 parts) */}
+      <Flow as="nav" aria-label={`Components, ${shown.length} parts`} gap={4} id="part-list">
         {filter === 'all' && shown.some((p) => !p.ready) && shown.some((p) => p.ready) ? (
           [['Needs work', shown.filter((p) => !p.ready)], ['Ready', shown.filter((p) => p.ready)]].map(([name, list]) => (
-            <Disclosure key={name} title={name} summary={String(list.length)} defaultOpen={name === 'Needs work' || !!q || list.some((p) => p.id === current)}>
+            <Disclosure key={name} title={name} summary={String(list.length)} defaultOpen>
               <Flow gap={4}>{list.map(row)}</Flow>
             </Disclosure>
           ))
@@ -989,7 +1000,7 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
                 <ListRow key={u} title={u} {...(u.length > 32 ? { layout: tiny ? 'stacked' : 'inline' } : valued(part.name, true))} />
               ))}
               {instead.map((d) => (
-                <ListRow key={d.title} title={forJob(d.title)} {...valued(d.other.name, true)} trailing onClick={() => onPart(d.other.id)} />
+                <ListRow key={d.title} title={forJob(d.title)} {...valued(d.other.name, true)} trailing="NavArrowRight" onClick={() => onPart(d.other.id)} />
               ))}
             </Flow>
           ) : (
@@ -1001,10 +1012,10 @@ function InspectPanel({ part, detail, docs, props, measured, picked, onPick, var
         <Flow gap={8}>
           <SectionHead title="Hand off" titleLevel={3} />
           <Flow as="ul" gap={0} aria-label="Hand off">
-            <ListRow title="Properties" {...valued(props.length || 'Not measured', !props.length)} {...(props.length ? { trailing: true, onClick: () => setOpen('props') } : {})} />
-            <ListRow title="Tokens" {...valued(part.doc.tokens.length)} trailing onClick={() => setOpen('tokens')} />
-            <ListRow title="Code" {...valued('import', true)} trailing onClick={() => setOpen('code')} />
-            <ListRow title="Motion" {...valued(docs.motion.length ? `${docs.motion.join(' · ')} ms` : 'none')} {...(docs.motion.length ? { trailing: true, onClick: () => setOpen('motion') } : {})} />
+            <ListRow title="Properties" {...valued(props.length || 'Not measured', !props.length)} {...(props.length ? { trailing: 'NavArrowRight', onClick: () => setOpen('props') } : {})} />
+            <ListRow title="Tokens" {...valued(part.doc.tokens.length)} trailing="NavArrowRight" onClick={() => setOpen('tokens')} />
+            <ListRow title="Code" {...valued('import', true)} trailing="NavArrowRight" onClick={() => setOpen('code')} />
+            <ListRow title="Motion" {...valued(docs.motion.length ? `${docs.motion.join(' · ')} ms` : 'none')} {...(docs.motion.length ? { trailing: 'NavArrowRight', onClick: () => setOpen('motion') } : {})} />
           </Flow>
         </Flow>
       </Card>
@@ -1083,7 +1094,7 @@ function ChecksPanel({ part, rows, open, setOpen, onStory }) {
           </Flow>
           {row.id === 'story' || row.id === 'docs' ? (
             <Flow direction="row" justify="end">
-              <Button variant="secondary" onClick={() => onStory(row.id)}>{`Open ${row.title.toLowerCase()}`}</Button>
+              <Button variant="secondary" icon="Storybook" leadingIcon onClick={() => onStory(row.id)}>{row.id === 'story' ? 'Open story' : 'Open doc page'}</Button>
             </Flow>
           ) : null}
           {row.why ? (
@@ -1102,8 +1113,9 @@ function ChecksPanel({ part, rows, open, setOpen, onStory }) {
         <SectionHead title="Checks" titleLevel={3} number={measured.filter((r) => r.tone === 'success').length} words={[`of ${rows.length} pass`, measured.some((r) => r.tone !== 'success') ? `${measured.filter((r) => r.tone !== 'success').length} to fix` : null, rows.length - measured.length ? `${rows.length - measured.length} not measured` : null].filter(Boolean).join(' · ')} />
         <Flow as="ul" gap={4} aria-label={`${part.name}'s checks`}>
           {rows.map((r) => (
-            // when it last ran, from the check's own source (/checks, the spec's build, /figma-lint, /gaps); none stored: Not measured
-              <ListRow layout="inline" key={r.id} title={r.title} subValue={r.ran ? `${day(r.ran)}, ${new Date(r.ran).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Not measured'} {...val(r.value)} statusBar={r.tone} trailing onClick={() => setOpen(`check:${r.id}`)} />
+            // when it last ran, from the check's own source (/checks, the spec's build, /figma-lint, /gaps); none stored: Not
+            // measured. A line under the name at reading size (ListRow's subValue is 14, under BELLA's 16 floor)
+              <ListRow layout="inline" key={r.id} title={r.title} description={r.ran ? `Ran ${day(r.ran)}, ${new Date(r.ran).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Not measured'} {...val(r.value)} statusBar={r.tone} trailing="NavArrowRight" onClick={() => setOpen(`check:${r.id}`)} />
           ))}
         </Flow>
       </Flow>
@@ -1122,7 +1134,7 @@ function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, m
           <SectionHead title="Reaches" titleLevel={3} number={usedIn.length} words={`parts made with ${part.name}`} />
           <Flow as="ul" gap={4} aria-label={`Parts made with ${part.name}`}>
             {usedIn.map((n) => (
-              <ListRow layout="inline" key={n} title={n} trailing onClick={() => onPart(model.parts.find((p) => p.name === n).id)} />
+              <ListRow layout="inline" key={n} title={n} trailing="NavArrowRight" onClick={() => onPart(model.parts.find((p) => p.name === n).id)} />
             ))}
           </Flow>
         </Flow>
@@ -1131,7 +1143,7 @@ function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, m
   const quiet = figmaSays ? (
     <Flow direction="row" gap={8} align="center" wrap>
       <TextStack subtitle={figmaSays} />
-      <Button variant="tertiary" size="sm" onClick={onConnect}>
+      <Button variant="tertiary" size="sm" icon="Figma" leadingIcon onClick={onConnect}>
         Connect Figma
       </Button>
     </Flow>
@@ -1169,7 +1181,7 @@ function FixPanel({ part, fixes, chosen, setChosen, target, setTarget, onSend, m
         <Flow gap={8}>
           <SectionHead title="Send to" titleLevel={3} description={n ? `${n} ${n === 1 ? 'fix' : 'fixes'} picked. See the plan opens it to read first; nothing changes until you approve it.` : 'Pick a fix to see its plan.'} />
           <SegmentedControl label="Send to" value={target} onChange={setTarget} options={[{ value: 'code', label: 'Code' }, { value: 'figma', label: 'Figma' }, { value: 'both', label: 'Both' }]} />
-          <ListRow layout="inline" title="Reaches" {...val(usedIn.length ? `${usedIn.length} ${usedIn.length === 1 ? 'part' : 'parts'}` : 'only itself')} {...(usedIn.length ? { trailing: true, onClick: () => setOpen('reach') } : {})} />
+          <ListRow layout="inline" title="Reaches" {...val(usedIn.length ? `${usedIn.length} ${usedIn.length === 1 ? 'part' : 'parts'}` : 'only itself')} {...(usedIn.length ? { trailing: 'NavArrowRight', onClick: () => setOpen('reach') } : {})} />
         </Flow>
         </Flow>
       </Card>
@@ -1191,7 +1203,8 @@ function HistoryPanel({ part, detail, names, open, setOpen }) {
           <Flow as="ul" gap={0} aria-label="The record">
             <ListRow layout="stacked" title="Why" description={rec.whyAll ?? rec.why ?? 'The commit gives no reason.'} />
             {rec.types.length ? <ListRow layout="inline" title="Kind" {...val(rec.types.join(' · '))} /> : null}
-            <ListRow layout="inline" title="Commit" value={rec.id} trailing onClick={() => window.open(`https://github.com/emcdanie/bella/commit/${rec.id}`, '_blank', 'noopener')} />
+            {/* the one action here that leaves CHIP: it says where it goes, with GitHub's mark and the ↗ that means "leaves" */}
+            <ListRow layout="inline" iconWell={<IconWell icon="GitHub" tone="neutral" size="sm" />} title="Open the commit in GitHub" value={rec.id} trailing="ArrowUpRight" onClick={() => window.open(`https://github.com/emcdanie/bella/commit/${rec.id}`, '_blank', 'noopener')} />
           </Flow>
         </Flow>
       </Card>
@@ -1207,7 +1220,7 @@ function HistoryPanel({ part, detail, names, open, setOpen }) {
             {/* the mock's rows: the record's words in regular weight, the key words marked (never the area
                 before a colon or a part name), its day, ↗ */}
             {list.map((r) => (
-              <ListRow key={r.id} layout="inline" title={<Keyed text={r.title} names={names} />} value={day(r.date)} trailing onClick={() => setOpen(`rec:${r.id}`)} />
+              <ListRow key={r.id} layout="inline" title={<Keyed text={r.title} names={names} />} value={day(r.date)} trailing="NavArrowRight" onClick={() => setOpen(`rec:${r.id}`)} />
             ))}
           </Flow>
         ) : (
@@ -1228,16 +1241,32 @@ function FigmaKeyDrawer({ open, onClose, onSaved }) {
   );
 }
 
+/** The side menu's slot under System (templates/Screen.jsx), or null while the menu is hidden or in its drawer: the part
+ *  list goes there (approved A, 23 Nov), so the page has no second list column. */
+function useMenuSub() {
+  const find = () => document.querySelector('[data-chip-menu-sub]');
+  const [el, setEl] = useState(find);
+  useEffect(() => {
+    const look = () => setEl((was) => (was && was.isConnected ? was : find()));
+    look();
+    const mo = new MutationObserver(look);
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, []);
+  return el;
+}
+
 export default function ComponentsContent({ model, filter = 'all', onFilter, partId, onPart, onCheckAgain }) {
   const phone = useNarrow();
   const narrowHead = useNarrow(420);
-  // the list stands beside the stage where the studio has room (1440); narrower, it is a drawer
-  const listOut = useNarrow(1400);
-  const [listHidden, setListHidden] = useState(false);
+  // the list lives in the side menu under System; while the menu is hidden or in its drawer, a Components button opens it
+  // in a drawer of its own
+  const menuSub = useMenuSub();
+  const listOut = !menuSub;
   const [listOpen, setListOpen] = useState(false);
   // a view can be shared by its address: #/components/<id>?variant=…&tab=… (her reading, 22 Nov)
   const [shared] = useState(() => new URLSearchParams(window.location.hash.split('?')[1] ?? ''));
-  const [tab, setTab] = useState(() => (TABS.some((t) => t.id === shared.get('tab')) ? shared.get('tab') : 'inspect'));
+  const [tab, setTab] = useState(() => (TABS.some((t) => t.id === shared.get('tab')) ? shared.get('tab') : 'access'));
   const [sharedVariant, setSharedVariant] = useState(() => shared.get('variant'));
   const [open, setOpen] = useState(null);
   const [query, setQuery] = useState(() => (shared.get('q') ?? '').slice(0, 80));
@@ -1291,7 +1320,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
     if (filter !== 'all') qs.set('filter', filter);
     if (query.trim()) qs.set('q', query.trim());
     if (variant) qs.set('variant', variant);
-    if (tab !== 'inspect') qs.set('tab', tab);
+    if (tab !== 'access') qs.set('tab', tab);
     const next = `#/components/${encodeURIComponent(part.id)}${qs.toString() ? `?${qs}` : ''}`;
     if (window.location.hash !== next) window.history.replaceState(null, '', next);
   }, [part?.id, variant, tab, filter, query]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1305,13 +1334,6 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   useEffect(() => setChosen(fixes.map((f) => f.id)), [fixKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // the default target is where the fix applies: a Figma-parity fix touches both, anything else is code only
   useEffect(() => setTarget(fixes.some((f) => f.id.startsWith('parity-')) ? 'both' : 'code'), [fixKey]); // eslint-disable-line react-hooks/exhaustive-deps
-  // a part that has a fix opens on Fix, once per part, unless the address names a tab
-  const autoFix = useRef(shared.get('tab') ? new Set([part?.id]) : new Set());
-  useEffect(() => {
-    if (!part || !studio.ready || !fixes.length || autoFix.current.has(part.id)) return;
-    autoFix.current.add(part.id);
-    setTab('fix');
-  }, [part?.id, studio.ready, fixKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const docs = part ? studioDocs(part, detail) : null;
   const props = studioProps(studio.spec, { variant, label });
   const names = useMemo(() => parts.map((p) => p.name), [parts]);
@@ -1374,7 +1396,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
       : toFix
         ? { tone: 'attention', text: `${toFix} to fix` }
         : { tone: 'success', text: rows.some((r) => r.tone === 'neutral') ? 'No findings · some not measured' : 'No findings' };
-  const states = PLAY[part.name] ? part.states : [];
+  // every part CHIP draws by hand wears its states (Card: Default, Hover, Focus); a story-drawn part lists them in words
+  const states = PLAY[part.name] || SPECIMENS[part.name] ? part.states : [];
 
   const header = (
     <Flow direction="row" gap={16} wrap justify="between" align="center">
@@ -1382,6 +1405,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         <Flow direction="row" gap={12} wrap align="center">
           <Heading tier="section" as="h2">{part.name}</Heading>
           <StatusDot tone={status.tone} label={status.text} />
+          {/* the accessibility chip (approved D): its count, from the same facts the Accessibility tab shows, opens that tab */}
+          {q?.facts.length ? <ActionChip onClick={() => (setTab('access'), setOpen(null))}>{`Accessibility ${q.facts.filter((f) => f.state === 'ok').length} of ${q.facts.length}`}</ActionChip> : null}
         </Flow>
         {/* how fresh it is: when CHIP last checked, with refresh (her reading, 22 Nov) */}
         <Flow direction="row" gap={8} align="center" wrap>
@@ -1390,27 +1415,28 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         </Flow>
       </Flow>
       <Flow direction="row" gap={8} wrap align="end" grow={phone ? 'last' : undefined}>
-        <Button variant="secondary" onClick={() => setStoryOpen('story')}>Story</Button>
+        <Button variant="secondary" icon="Storybook" leadingIcon onClick={() => setStoryOpen('story')}>Open story</Button>
         <Input label="Ask BELLA" value={askText} onChange={setAskText} onSend={(t) => (onSearch(t), setAskText(''))} sendLabel="Ask" suggestion={detail ? questions(part, detail)[0] : undefined} />
       </Flow>
     </Flow>
   );
 
-  const list = <PartList model={model} query={query} setQuery={setQuery} filter={filter} current={part.id} onPick={pick} onFilter={onFilter} onHide={listOut ? undefined : () => setListHidden(true)} />;
-  const listInline = !listOut && !listHidden;
+  const list = <PartList model={model} query={query} setQuery={setQuery} filter={filter} current={part.id} onPick={pick} onFilter={onFilter} inMenu={!listOut} />;
   // the stage takes the column's spare height, so the part sits big in the middle (the strip keeps its own)
   const centre = (
     <Flow gap={16} grow="last">
-      <Flow direction="row" gap={16} wrap align="center">
-        {listInline ? null : <Button variant="secondary" icon="SidebarExpand" leadingIcon ariaExpanded={listOut ? listOpen : false} onClick={() => (listOut ? setListOpen(true) : setListHidden(false))}>Components</Button>}
-        {variants.length > 1 ? variants.length > 3 || phone ? <Select label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: cap(v) }))} /> : <SegmentedControl label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: v }))} /> : null}
+      {/* the variant control takes the rest of its row, its segments sharing it (BELLA stretch), so its right edge is the
+          stage column's and sits on the grid at every width (24 Nov sweep: a hugging control missed at 1440 to 900) */}
+      <Flow direction="row" gap={16} wrap align="center" grow="last">
+        {listOut ? <Button variant="secondary" icon="SidebarExpand" leadingIcon ariaExpanded={listOpen} onClick={() => setListOpen(true)}>Components</Button> : null}
+        {variants.length > 1 ? variants.length > 3 || phone ? <Select label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: cap(v) }))} /> : <SegmentedControl stretch label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: v }))} /> : null}
       </Flow>
-      {tab === 'quality' ? (
+      {tab === 'access' ? (
         <QualityCentre q={q} part={part} mode={qMode} setMode={setQMode}>
           {qMode === 'all' || !q ? (
             <StudioStage part={part} detail={{ anatomy: visiblePins(q, qMode) }} variant={variant} label={label} shown="default" picked={qPick ?? visiblePins(q, qMode)[0]?.key} onPick={setQPick} onMeasured={noop} onTouch={setTouch} />
           ) : (
-            <A11yStage part={part} mode={qMode} facts={q.facts} variant={variant} label={label} renderPart={() => <LivePart part={part} variant={variant} label={label} state="default" />} sampled={isSampled(part.name)} />
+            <A11yStage part={part} mode={qMode} facts={q.facts} variant={variant} label={label} renderPart={() => <LivePart part={part} variant={variant} label={label} state="default" bare />} sampled={isSampled(part.name)} onTouch={setTouch} />
           )}
         </QualityCentre>
       ) : (
@@ -1428,28 +1454,35 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
       ) : (
         // never other components (her bug, 22 Nov: "its meant to be states not take you to other components"): a part
         // whose states cannot be drawn says so and lists the states its contract names, as text cards
+        part.stateNames.length ? (
         <Strip
           title={`${part.name} · states`}
           label="state"
-          items={(part.stateNames.length ? part.stateNames : ['Default']).map((n) => ({ id: n, label: n }))}
+          items={part.stateNames.map((n) => ({ id: n, label: n }))}
           current={null}
           onPick={noop}
           render={(s) => (
             <VariantTile label={s.label}>
-              <TextStack subtitle={part.stateNames.length ? 'States not drawn yet' : 'No states in its contract'} />
+              <TextStack subtitle="Drawn in its story, not here yet" />
             </VariantTile>
           )}
         />
-      )}
+      ) : (
+        // a part with no states of its own says so (23 Nov, on Card: "not sure Card has states"), never a blank strip
+        <Flow gap={8} role="group" aria-label={`${part.name} · states: none of its own`} data-states-empty="">
+          <SectionHead title={`${part.name} · states`} titleLevel={3} />
+          <EmptyState size="lane" mark="🤷‍♀️" title="No states of its own" line={`${part.name} has no hover, focus or pressed state; it takes its children's.`} />
+        </Flow>
+      ))}
       </Flow>
       )}
     </Flow>
   );
   const panel =
-    tab === 'quality' ? (
-      <QualityPanel q={q} part={part} mode={qMode} pick={qPick} />
+    tab === 'access' || tab === 'quality' ? (
+      <QualityPanel q={q} part={part} mode={qMode} pick={qPick} view={tab === 'access' ? 'facts' : 'score'} />
     ) : tab === 'inspect' ? (
-      <InspectPanel part={part} detail={detail} docs={docs} props={props} measured={measured} picked={picked} onPick={setPicked} variant={variant} label={label} touch={touch} open={open} setOpen={setOpen} onFix={() => send([`finding-${picked}`])} onPart={pick} model={model} q={q} onQuality={() => (setTab('quality'), setOpen(null))} />
+      <InspectPanel part={part} detail={detail} docs={docs} props={props} measured={measured} picked={picked} onPick={setPicked} variant={variant} label={label} touch={touch} open={open} setOpen={setOpen} onFix={() => send([`finding-${picked}`])} onPart={pick} model={model} q={q} onQuality={() => (setTab('access'), setOpen(null))} />
     ) : tab === 'fix' ? (
       <FixPanel part={part} fixes={fixes} chosen={chosen} setChosen={setChosen} target={target} setTarget={setTarget} onSend={() => send()} model={model} onPart={pick} open={open} setOpen={setOpen} figmaSays={figmaSays} onConnect={() => setKeyOpen(true)} />
     ) : tab === 'checks' ? (
@@ -1465,7 +1498,7 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   ) : null;
   const right = (
     <Flow gap={16}>
-      <Tabs label={`${part.name}: inspect, quality, fix, checks, changes`} idBase="studio-view" value={tab} onChange={(t) => (setTab(t), setOpen(null))} tabs={TABS} />
+      <Tabs label={`${part.name}: accessibility, inspect, quality, fix, checks, changes`} idBase="studio-view" value={tab} onChange={(t) => (setTab(t), setOpen(null))} tabs={TABS} />
       <TabPanels tabs={{ idBase: 'studio-view', value: tab, items: TABS }}>
         <Flow gap={16} scroll={!phone}>
           {highlights}
@@ -1494,20 +1527,18 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         </Flow>
       ) : (
         // the studio fills the window under the header; the list, the stage column and the panel scroll on their own
-        // fit="rest" measures where the studio starts once: when the header grows (the Figma notice, an
-        // answer), the studio is drawn again so it still ends at the window's foot and nothing sits below the fold
-        <Flow fit="rest" span={12} id="studio" key={`${Boolean(detail)}-${Boolean(detail?.figmaBlind)}-${studio.ready}-${Boolean(thread)}`}>
+        // fit="rest" measures where the studio starts: when the header grows (the Figma notice, an answer), the part
+        // changes or the stage changes view (the accessibility view, once its facts load, is taller), fitKey has it
+        // measured again. Never a remount: that reloaded the story frame two or three times per part (23 Nov: "each
+        // component takes a long time to load")
+        <Flow fit="rest" span={12} id="studio" fitKey={`${part.id}-${Boolean(detail)}-${Boolean(detail?.figmaBlind)}-${studio.ready}-${Boolean(thread)}-${Boolean(q)}-${tab}-${qMode}`}>
           <Flow span={12} direction="row" gap={24}>
-            {listInline ? (
-              <Flow aside>
-                <Flow scroll>{list}</Flow>
-              </Flow>
-            ) : null}
             {centre}
             {right}
           </Flow>
         </Flow>
       )}
+      {menuSub ? createPortal(list, menuSub) : null}
       {listOut ? (
         <Drawer open={listOpen} onClose={() => setListOpen(false)} label="Components" side={phone ? 'bottom' : 'left'}>
           <Flow inset>{list}</Flow>

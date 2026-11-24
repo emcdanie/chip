@@ -10,6 +10,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { ROOT, PORT, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL, NOTES_DIR } from './lib/config.mjs';
 import { ask, askStream, setChipDataDeps, WEAK_SCORE } from './lib/ask.mjs';
+import { landedToday } from './lib/chipdata.mjs';
 import { warm } from './lib/llm.js';
 import { loadIndex, buildIndex, searchDocs } from './lib/index.mjs';
 import { listDocs, readDoc, saveDoc, STATUSES } from './lib/docs.mjs';
@@ -28,7 +29,8 @@ import { accept, fixableChecks, keep, readActions, reviewCard, reviewImage, undo
 import { closedLoops, plannedFixes, recurring } from './lib/not-again.mjs';
 import { fixesRoutes, readFixes } from './lib/fixes.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
-import { saveBoard, saveIdea, workBoard, workLanes } from './lib/lanes.mjs';
+import { dropBoardCache, workBoardLive } from './lib/progress-live.mjs';
+import { saveBoard, saveIdea, workLanes } from './lib/lanes.mjs';
 import { claudeReady, gateReady, getRun, keepRun, listRuns, runClock, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
@@ -604,10 +606,19 @@ app.post('/review/:check/keep', (req, res) => {
 // base: today's BELLA branch, so a card can say when a run started from another one (data check, 22 Nov)
 // Work's Agent, Gate and Ready lanes beyond CHIP's runs: open PRs by their CI, sessions at work (read only)
 app.get('/work/lanes', async (_req, res) => res.json(await workLanes()));
+// the bell's "Landed today": commits on chip/whole and chip/parts-dev since midnight, read only
+app.get('/work/landed', (_req, res) => {
+  try {
+    res.json({ landed: landedToday(), at: new Date().toISOString() });
+  } catch (e) {
+    errorOut(res, e, 500);
+  }
+});
 // the board in her Notion lanes: sessions and their steps, the progress board, components that need work, her order
 app.get('/work/board', (_req, res) => {
   try {
-    res.json(workBoard());
+    bellaWork.keepBellaFresh(); // the components that need work are read from the BELLA snapshot: re-sync it when BELLA moved
+    res.json(workBoardLive());
   } catch (e) {
     errorOut(res, e);
   }
@@ -616,7 +627,9 @@ app.get('/work/board', (_req, res) => {
 app.post('/work/board', (req, res) => {
   if (!sameApp(req, res)) return;
   try {
-    res.json({ board: saveBoard({ id: req.body?.id, lane: req.body?.lane ?? null, before: req.body?.before ?? null, paused: req.body?.paused === true }) });
+    const saved = { board: saveBoard({ id: req.body?.id, lane: req.body?.lane ?? null, before: req.body?.before ?? null, paused: req.body?.paused === true }) };
+    dropBoardCache();
+    res.json(saved);
   } catch (e) {
     errorOut(res, e);
   }
@@ -625,7 +638,9 @@ app.post('/work/board', (req, res) => {
 app.post('/work/ideas', (req, res) => {
   if (!sameApp(req, res)) return;
   try {
-    res.json(saveIdea({ title: req.body?.title, brief: req.body?.brief, lane: req.body?.lane ?? 'next' }));
+    const idea = saveIdea({ title: req.body?.title, brief: req.body?.brief, lane: req.body?.lane ?? 'next' });
+    dropBoardCache();
+    res.json(idea);
   } catch (e) {
     errorOut(res, e);
   }
@@ -717,6 +732,17 @@ setChipDataDeps({
   checks: () => listChecks({ waiting: waitingChecks() }),
   audits: readAudits,
   needs: () => Promise.race([keptRead('needs', READS.needs), new Promise((r) => setTimeout(() => r(null), 8000))]),
+  // the work (23 Nov): CHIP's runs, and the Work board as the board itself draws it (the same model, so the counts match)
+  runs: () => listRuns(),
+  workBoard: async () => {
+    const { boardModel } = await import('../app/src/pages/workModel.js');
+    const [needs, lanes] = await Promise.all([Promise.race([keptRead('needs', READS.needs), new Promise((r) => setTimeout(() => r(null), 8000))]), workLanes().catch(() => null)]);
+    let gaps = null;
+    try {
+      gaps = gapFixes()?.gaps ?? null;
+    } catch {}
+    return boardModel({ needs: needs?.items ?? [], runs: listRuns(), runBase: checksBase, board: workBoard(), gaps, lanes });
+  },
 });
 app.get('/needs', async (req, res) => {
   try {
@@ -776,6 +802,7 @@ app.get('/stories', async (_req, res) => res.json(await storyIndex()));
 // Do next: per component, what each Overview gap needs and the suggested fix
 app.get('/gaps', (_req, res) => {
   try {
+    bellaWork.keepBellaFresh(); // the gaps are read from the BELLA snapshot: re-sync it when BELLA moved
     res.json(gapFixes());
   } catch (e) {
     errorOut(res, e, 500);

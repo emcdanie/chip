@@ -47,7 +47,8 @@ for (const width of WIDTHS) {
       const nodes = [...dlg.querySelectorAll(blocks.map((b) => `[data-bella-component="${b}"]`).join(','))];
       // top-level blocks only: not inside another measured block (a row's text stack is the row's own padding)
       // a bulleted list's items sit in by their bullet, by design (a plan's steps), so they are not measured as blocks
-      const top = nodes.filter((n) => !nodes.some((o) => o !== n && o.contains(n)) && !n.closest('[data-bella-component="list-row"]') && !(n.closest('li') && getComputedStyle(n.closest('li')).display === 'list-item' && getComputedStyle(n.closest('li')).listStyleType !== 'none'));
+      // a block in a row (a list's count beside its Show all, 23 Nov evening) is part of that row, not a full-width block
+      const top = nodes.filter((n) => !nodes.some((o) => o !== n && o.contains(n)) && !n.closest('[data-bella-component="list-row"]') && !n.parentElement?.closest('.chip-flow--row') && !(n.closest('li') && getComputedStyle(n.closest('li')).display === 'list-item' && getComputedStyle(n.closest('li')).listStyleType !== 'none'));
       return { L: Math.round(L * 10) / 10, R: Math.round(R * 10) / 10, rows: top.map((n) => [n.dataset.bellaComponent, Math.round(r(n).left * 10) / 10, Math.round(r(n).right * 10) / 10]) };
     }, BLOCKS);
     if (!res) { console.log(`FAIL ${width} ${d.name}: drawer did not open`); bad++; continue; }
@@ -91,7 +92,25 @@ for (const width of WIDTHS) {
     await page.waitForTimeout(1200);
     const HEAD = 'dialog [data-bella-component="branch-group"] > button';
     const groups = await page.evaluate((h) => [...document.querySelectorAll(h)].map((x) => x.textContent.trim().slice(0, 24)), HEAD);
-    if (!groups.length) { console.log(`FAIL ${width} ${d.name} groups: no groups found, nothing measured`); bad++; continue; }
+    // a drawer whose list became one table (23 Nov evening, slice 3) has no groups to open: its body is scrolled to the
+    // end and read like any other; only a drawer with neither groups nor a table fails
+    if (!groups.length) {
+      const table = await page.evaluate(() => {
+        const d = [...document.querySelectorAll('dialog[open]')].at(-1);
+        const body = d?.querySelector(':scope > [role="region"]');
+        if (!body?.querySelector('[data-bella-component="data-table"]')) return null;
+        body.scrollTop = body.scrollHeight;
+        const B = body.getBoundingClientRect();
+        const last = [...body.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().height > 0).reduce((m, e) => Math.max(m, e.getBoundingClientRect().bottom), B.top);
+        const cut = [...body.querySelectorAll('td, th, p, li')].filter((e) => e.scrollWidth > e.clientWidth + 1 || /…$/.test(e.textContent.trim())).length;
+        return { empty: Math.round(B.bottom - last), cut };
+      });
+      if (!table) { console.log(`FAIL ${width} ${d.name} groups: no groups or table found, nothing measured`); bad++; continue; }
+      const off = table.empty > 160 || table.cut;
+      console.log(`${off ? 'FAIL' : 'ok  '} ${width} ${d.name}: a table, no groups; ${table.empty}px under the last content, ${table.cut} cut`);
+      if (off) bad++;
+      continue;
+    }
     const problems = [];
     for (let i = 0; i < groups.length; i++) {
       const sum = page.locator(HEAD).nth(i);
@@ -189,7 +208,8 @@ for (const width of WIDTHS) {
       const L = back ? r(back).left : r(dlg.querySelector('h1,h2,h3')).left;
       const R = r(dlg.querySelector('button[aria-label="Close"]')).right;
       const nodes = [...dlg.querySelectorAll(blocks.map((b) => `[data-bella-component="${b}"]`).join(','))].filter((n) => r(n).width > 0);
-      const top = nodes.filter((n) => !nodes.some((o) => o !== n && o.contains(n)) && !n.closest('[data-bella-component="list-row"]') && !n.closest('[data-bella-component="branch-group"]'));
+      // a block in a row (a list's count beside its Show all, 23 Nov evening) is part of that row, not a full-width block
+      const top = nodes.filter((n) => !nodes.some((o) => o !== n && o.contains(n)) && !n.closest('[data-bella-component="list-row"]') && !n.parentElement?.closest('.chip-flow--row') && !n.closest('[data-bella-component="branch-group"]'));
       return { step, L: Math.round(L * 10) / 10, R: Math.round(R * 10) / 10, rows: top.map((n) => [n.dataset.bellaComponent, Math.round(r(n).left * 10) / 10, Math.round(r(n).right * 10) / 10]) };
     }, [NEW_BLOCKS, name]);
   const report = async (name) => {

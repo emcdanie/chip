@@ -2,13 +2,13 @@
  * CSS: where the published BELLA parts sit, never how they look. Token values
  * only; no part is restyled here (scripts/on-system-guard.mjs).
  *
- * Side menu (SideMenu, her nav C pick, 22 Nov) | main column: the top bar,
- * then the page (header, tabs) on the surface and the content on the page
- * ground, with the BELLA container padding (16 on a phone, 32 from 800px) and
+ * Side menu (SideMenu, her nav C pick, 22 Nov, the Find field at its top) | main column: the page's one
+ * row (menu button, breadcrumb, actions) and its tabs on the surface, no top bar above them (her mark-up,
+ * 23 Nov), and the content on the page ground, with the BELLA container padding (16 on a phone, 32 from 800px) and
  * the 24 gutter. The side menu stays in view while the content scrolls.
  *
  * Below 1024px the side menu steps out so nothing scrolls sideways; the top
- * bar's Menu button opens it as a Drawer (a bottom sheet on a phone). */
+ * row's menu button opens it as a Drawer (a bottom sheet on a phone). */
 
 .chip-screen {
   display: grid;
@@ -40,20 +40,23 @@
   position: absolute;
   inset-block-start: calc(100% + var(--spacing-4));
   inset-inline-start: 0;
-  z-index: 20;
+  z-index: 60;
   /* as wide as its longest item */
   inline-size: max-content;
   /* a long menu scrolls inside the window instead of running past its foot */
   max-block-size: calc(var(--size-60) * 8);
   overflow-y: auto;
 }
+/* a menu that ends at its button's right edge (the Find field's filter, at the side menu's right) */
+.chip-pop__menu--end { inset-inline-start: auto; inset-inline-end: 0; }
 .chip-screen__logo {
-  /* the logotype closes the menu: the surface and right edge line as the menu's own; it ends where the rows end
-     (the menu's 12 side padding) so it lines up with the foot rows above it */
+  /* the logotype closes the menu: the surface and right edge line as the menu's own; its drawn left edge is the rows'
+     icons' left edge, 28 from the menu's edge (her mark-up, 23 Nov, mark 6): the menu's 12 side padding plus the Nav
+     item's own 16 inset, less the 4 of room the logotype's art keeps at its left (measured: box 28 put the ink at 32) */
   flex: none;
   display: flex;
-  justify-content: flex-end;
-  padding: var(--spacing-8) var(--spacing-12) var(--spacing-16);
+  justify-content: flex-start;
+  padding: var(--spacing-8) var(--spacing-12) var(--spacing-16) calc(var(--spacing-12) + var(--spacing-12));
   background: var(--color-background-surface);
   box-shadow: inset calc(-1 * var(--border-width-1)) 0 0 var(--color-border-default);
 }
@@ -86,22 +89,9 @@
   padding-inline: var(--layout-container-pad);
 }
 
-.chip-screen__topbar {
-  position: relative;
-}
-
 .chip-screen__menu { order: -1; }
 
 .chip-screen--collapsed { grid-template-columns: minmax(0, 1fr); }
-
-.chip-screen__lead {
-  position: absolute;
-  inset-block-start: calc(var(--spacing-12) / 2);
-  inset-inline-start: var(--spacing-8);
-  z-index: 1;
-  display: flex;
-  gap: var(--spacing-4);
-}
 
 .chip-screen__tabs {
   /* the tabs' own line runs the whole width of the page column and meets the frame at both edges: the part's root
@@ -112,10 +102,9 @@
 }
 
 .chip-screen__head--plain {
-  /* a page with no tabs: its title meets the scrolling content at a line, so text that scrolls under the title
-     is cut at a visible edge and not mid-letter against bare background (Elleta, 23 Nov) */
+  /* a page with no tabs: no line under the row (her mark-up, 23 Nov, mark 4): the surface row meeting the warm
+     page ground is the edge, so the frame stays quiet */
   padding-block-end: 0;
-  border-block-end: var(--border-width-1) solid var(--color-border-default);
 }
 
 .chip-screen__content {
@@ -262,6 +251,19 @@
 .chip-hold { white-space: nowrap; }
 .chip-flow--row { flex-direction: row; }
 .chip-flow--wrap { flex-wrap: wrap; }
+/* swipe (23 Nov evening, the Gaps drawer at 320: three chips stacked as three rows and pushed the table down): one
+   row that scrolls sideways instead of wrapping; 4 of padding, taken back by the margin, so a chip's focus ring is not
+   cut by the scroll box's edge */
+.chip-flow--swipe {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  padding: var(--spacing-4);
+  margin: calc(var(--spacing-4) * -1);
+  scroll-padding-inline: var(--spacing-4);
+}
+.chip-flow--swipe > * { flex: none; }
 .chip-flow--fill > * { flex: 1 1 auto; }
 /* cards: one grid, so the cards of a row share its height and their parts line up across it (the cards' own
    bodies start at the top and their footers sit on the bottom edge, BELLA); an odd last card takes the row */
@@ -418,7 +420,8 @@
   max-inline-size: calc(100% - 2 * var(--layout-gutter)); /* a fixed box's % is the window */
 }
 
-/* The top bar's search results (Search.jsx): under the field, its width, above the page.
+/* The Find field's results (Search.jsx), at the side menu's top: under the field, over the page, as wide as a toast
+   (360) so names keep their words; in the menu's Drawer (below 1024) the list sits under the field in the drawer.
    BELLA has no popover for SearchField yet (named gap); the Card is BELLA's. */
 .chip-screen__search { position: relative; inline-size: 100%; }
 .chip-screen__search-results {
@@ -426,20 +429,130 @@
   /* the list scrolls inside the window, never past its foot; the 12 of padding keeps the
      Card's shadow inside the scroll box (never clip a shadow), the offsets keep the Card where it was */
   inset-block-start: calc(100% + var(--spacing-8) - var(--spacing-12));
-  inset-inline: calc(-1 * var(--spacing-12));
+  inset-inline-start: calc(-1 * var(--spacing-12));
+  inline-size: calc(var(--size-60) * 6);
   padding: var(--spacing-12);
   z-index: 50;
-  /* runs to the window's foot, so no page text shows under its cut edge while it scrolls */
-  max-block-size: calc(100dvh - var(--h-control) - var(--spacing-8));
+  max-block-size: calc(100dvh - var(--size-60) * 2);
   overflow-y: auto;
 }
-/* a phone (below 800, the app's phone width): the field shares the bar with its buttons, so the list
-   spans the bar's width under it (audit 21 Nov: 196 wide at 320, 182 at 414; names broke mid-word) */
-@media (width < 800px) {
-  .chip-screen__search-results {
-    position: fixed;
-    inset-block-start: calc(var(--h-control) + var(--spacing-12) * 2 + var(--spacing-8) - var(--spacing-12));
-    inset-inline: calc(var(--layout-gutter) - var(--spacing-12));
-    max-block-size: calc(100dvh - var(--h-control) - var(--spacing-12) - var(--spacing-8));
-  }
+.chip-screen__search-results--inline {
+  position: static;
+  inline-size: auto;
+  max-block-size: none;
+  overflow: visible;
+  padding: var(--spacing-8) 0 0;
 }
+
+/* The start of the app (app/index.html): the frame's outline until the app and its fonts are ready. Nothing shows for
+   the first second (BELLA Progress: under 1 second, show nothing), then the menu column, the top row and two content
+   blocks in the page's own colours, never text in a fallback font (Elleta, 23 Nov evening). */
+.chip-boot {
+  display: grid;
+  grid-template-columns: calc(var(--spacing-80) * 3 - var(--spacing-8)) minmax(0, 1fr);
+  block-size: 100dvh;
+  opacity: 0;
+  animation: chip-boot-in 0s linear 1s forwards;
+}
+@keyframes chip-boot-in { to { opacity: 1; } }
+.chip-boot__menu {
+  background: var(--color-background-surface);
+  box-shadow: inset calc(-1 * var(--border-width-1)) 0 0 var(--color-border-default);
+}
+.chip-boot__main {
+  display: grid;
+  grid-template-rows: calc(var(--size-28) * 2) var(--spacing-80) minmax(0, 1fr);
+  gap: var(--layout-gutter);
+  padding-block-end: var(--layout-gutter);
+}
+.chip-boot__row { background: var(--color-background-surface); margin-block-end: calc(-1 * var(--layout-gutter)); }
+.chip-boot__block {
+  margin-inline: var(--layout-container-pad);
+  border-radius: var(--border-radius-20);
+  background: var(--color-background-subtle);
+}
+@media (width < 1024px) {
+  .chip-boot { grid-template-columns: minmax(0, 1fr); }
+  .chip-boot__menu { display: none; }
+}
+
+/* Flow grid: the CHIP / Screen 12 columns inside a block, so its parts sit on the page's columns (visual study, 22 Nov,
+   approved: "every block's edge on a column"); a child says how many columns it takes with style gridColumn 'span n'. */
+.chip-flow.chip-flow--grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--layout-gutter);
+  align-items: start;
+}
+
+/* Flow strip: a row of cards you pick from (Playground picks, Needs you; Workbench A, 23 Nov 2026; her note at 22:00:
+   "tighter", "use the card grid"). One grid row of equal cards that scrolls sideways and snaps; each card takes whole
+   columns of the page grid with the gutter between them (3 columns from a 1000 content width, 4 below, 10 on a phone,
+   so the next card peeks), as the Work board's lanes do. Three shared rows (title, line, status) that every item takes
+   through subgrid, so all cards are one height and each part sits at one height across the row, the status pinned to
+   the foot (TaskCard use="pick"). 16 of room inside so the cards' shadows, the selected outline and focus rings are
+   never cut; the negative margin keeps the first card on the grid's first column. */
+.chip-flow.chip-flow--strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100cqi - 11 * var(--layout-gutter)) / 3 + 3 * var(--layout-gutter));
+  grid-template-rows: auto auto 1fr;
+  column-gap: var(--layout-gutter);
+  row-gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--spacing-16);
+  padding: var(--spacing-16);
+  margin: calc(var(--spacing-16) * -1);
+  position: relative;
+}
+.chip-flow--strip > * {
+  grid-row: span 3;
+  display: grid;
+  grid-template-rows: subgrid;
+  min-inline-size: 0;
+  scroll-snap-align: start;
+}
+@container chip-content (width >= 1000px) {
+  .chip-flow.chip-flow--strip { grid-auto-columns: calc((100cqi - 11 * var(--layout-gutter)) / 4 + 2 * var(--layout-gutter)); }
+}
+@container chip-content (width < 500px) {
+  .chip-flow.chip-flow--strip { grid-auto-columns: calc((100cqi - 11 * var(--layout-gutter)) / 12 * 10 + 9 * var(--layout-gutter)); }
+}
+
+/* Glide (interaction study, 23 Nov): while a column comes or goes (glide() in Screen.jsx), the parts that move are
+   named for the browser's view transition, and only then. The column slides out to the left in 200ms or in from the
+   left in 250ms; the rest slides across to its new place in 250ms; all on the standard ease. The rest keeps its own
+   size while it moves (never stretched), so its words don't warp on the way. Reduced motion never gets here. */
+.chip-gliding-menu .chip-screen__menu { view-transition-name: chip-menu; }
+.chip-gliding-menu .chip-screen__main { view-transition-name: chip-main; }
+::view-transition-group(*) {
+  animation-duration: var(--motion-duration-250);
+  animation-timing-function: var(--motion-easing-standard);
+}
+/* a column gliding moves only its named parts; the rest of the window holds still */
+:root.chip-gliding-menu::view-transition-old(root),
+:root.chip-gliding-menu::view-transition-new(root) { animation: none; }
+/* a list that opens or closes in a drawer: each block of the drawer is its own picture, so the list grows into its
+   new size while the blocks under it slide down (or up) to their place, instead of jumping (interaction study: 0.016) */
+.chip-gliding-grow dialog[open] [data-glide='rows'] > * { view-transition-name: match-element; view-transition-group: nearest; }
+/* ...and they show only inside the drawer's scrolling body, never over its header or its pinned footer */
+.chip-gliding-grow dialog[open] [role='region']:has([data-glide='rows']) { view-transition-name: chip-drawer-body; }
+::view-transition-group(chip-drawer-body) { overflow: clip; }
+/* each moving column shows only inside its own box on the way, so it never slides over its neighbour */
+::view-transition-group(chip-main) { overflow: clip; }
+/* the rest is shown in its new layout from the first frame and only slides: no cross-fade, so no double image */
+::view-transition-new(chip-main) {
+  inline-size: auto;
+  block-size: 100%;
+  object-fit: none;
+  object-position: left top;
+  animation: none;
+}
+::view-transition-old(chip-main) { animation: none; opacity: 0; }
+::view-transition-old(chip-menu) { animation: chip-glide-out var(--motion-duration-200) var(--motion-easing-standard) both; }
+::view-transition-new(chip-menu) { animation: chip-glide-in var(--motion-duration-250) var(--motion-easing-standard) both; }
+@keyframes chip-glide-out { to { transform: translateX(-100%); opacity: 0; } }
+@keyframes chip-glide-in { from { transform: translateX(-100%); opacity: 0; } }

@@ -176,6 +176,8 @@ export default function useAsk({ thread = false, scope } = {}) {
               // CHIP's own measured data, with the real rows behind it, and whether only an agent can go on
               data: ev.data ?? null,
               needsAgent: ev.needsAgent === true,
+              // a request for work (23 Nov): the answer offers its plan, a plan first and nothing runs
+              offerPlan: ev.offerPlan === true,
               // who answered and why, in one line; Auto never runs a cloud model by itself, it asks first
               route: ev.route ?? null,
               needsConfirm: ev.needsConfirm ?? null,
@@ -469,6 +471,7 @@ export function NotAnswered({ a, onRetry, onAgent }) {
 export function briefOf(answer) {
   const { verdict, bullets } = answer.verdict ? { verdict: answer.verdict, bullets: answer.bullets ?? [] } : shapeReply(answer.reply ?? '');
   const clean = (t) => String(t).replace(/\*\*|\[\d+\]/g, '').trim();
+  if (answer.offerPlan) return [`Do this: ${clean(answer.q)}`, `Asked in CHIP: ${answer.q}`].join('\n');
   return [`Do this in BELLA: ${clean(verdict)}`, ...bullets.map((b) => `- ${clean(b)}`), answer.sources?.length ? `Sources: ${answer.sources.map((s) => s.title).join('; ')}` : null, `Asked in CHIP: ${answer.q}`]
     .filter(Boolean)
     .join('\n');

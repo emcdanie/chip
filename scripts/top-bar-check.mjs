@@ -1,9 +1,13 @@
 // Top bar check (Elleta, 23 Nov 2026, from her drawn-on Processes screenshot: the bell sat on the account's avatar at
-// about 2000 wide). On several pages at 2000, 1440, 1024, 768 and 320, with the Work panel closed and open, it measures
-// the boxes of the menu button, the search field, the bell, the account and the page's New task button and fails when
+// about 2000 wide). Since her header mark-up (23 Nov) there is no top bar: the page's one row holds the menu button, the
+// breadcrumb and the actions, and search is the Find field at the side menu's top. On several pages at 2000, 1440, 1024,
+// 768 and 320, with the Work panel closed and open, it measures the menu button, the Find field (where the menu shows),
+// the bell and the page's New button, and fails when
 //   - any two of them intersect,
 //   - two that sit on one row are closer than 8px,
-//   - any of them leaves the window (or the bar),
+//   - any of them leaves the window,
+//   - the page's title (its h1) is cut,
+//   - an avatar or a top bar is back in the frame,
 //   - the page scrolls sideways.
 // Usage: node scripts/top-bar-check.mjs [--app http://localhost:3160]
 // Needs a CHIP server and Playwright in BELLA_DIR (as stage-leader-check.mjs). Exit 1 on any failure.
@@ -26,19 +30,23 @@ const measure = () => {
     const r = e.getBoundingClientRect();
     return r.width && r.height ? { l: r.left, r: r.right, t: r.top, b: r.bottom } : null;
   };
-  const bar = document.querySelector('.chip-screen__topbar');
+  const head = document.querySelector('.chip-screen__head');
   const found = {
-    menu: bar?.querySelector('.chip-screen__lead button'),
-    search: bar?.querySelector('input[type=search], [role=search], input'),
-    bell: [...(bar?.querySelectorAll('button') ?? [])].find((b) => /things? need you|need you/i.test(b.getAttribute('aria-label') ?? '')),
-    account: [...(bar?.querySelectorAll('[aria-label], [class*=avatar]') ?? [])].find((b) => /account|Elleta|McDaniel/i.test(b.getAttribute('aria-label') ?? '') || /avatar/i.test(b.className?.toString() ?? '')),
-    'New task': [...document.querySelectorAll('main button, header button, .chip-screen button')].find((b) => /^New task$/.test(b.textContent.trim())),
+    menu: head?.querySelector('button[aria-label="Hide menu"], button[aria-label="Show menu"]'),
+    search: document.querySelector('.chip-screen__menu [role=search] input'),
+    bell: [...(head?.querySelectorAll('button') ?? [])].find((b) => /things? need you|need you/i.test(b.getAttribute('aria-label') ?? '')),
+    New: [...(head?.querySelectorAll('button') ?? [])].find((b) => /^\+?\s*New$/.test(b.textContent.trim())),
   };
   const boxes = Object.fromEntries(Object.entries(found).map(([k, e]) => [k, e ? box(e) : null]));
-  const phone = innerWidth < 600;
-  // on a phone the search is an icon button inside the bar: it is the one named "Search"
-  if (phone && !boxes.search) boxes.search = box([...(bar?.querySelectorAll('button') ?? [])].find((b) => /^search/i.test(b.getAttribute('aria-label') ?? b.textContent ?? '')) ?? document.body);
-  return { boxes, bar: bar ? box(bar) : null, sideways: document.documentElement.scrollWidth > innerWidth + 1, w: innerWidth };
+  const h1 = head?.querySelector('h1');
+  return {
+    boxes,
+    menuShown: !!document.querySelector('.chip-screen__menu'),
+    titleCut: h1 ? h1.scrollWidth > h1.clientWidth + 1 : true,
+    extra: document.querySelectorAll('[data-bella-component=avatar], [data-bella-component=top-bar]').length,
+    sideways: document.documentElement.scrollWidth > innerWidth + 1,
+    w: innerWidth,
+  };
 };
 
 const browser = await chromium.launch();
@@ -62,7 +70,9 @@ for (const width of WIDTHS) {
       await page.close();
       const issues = [];
       const names = Object.keys(m.boxes).filter((k) => m.boxes[k]);
-      for (const k of ['menu', 'search', 'bell', ...(m.w < 1000 ? [] : ['account'])]) if (!m.boxes[k]) issues.push(`${k} not found`);
+      for (const k of ['menu', 'bell', ...(m.menuShown ? ['search'] : [])]) if (!m.boxes[k]) issues.push(`${k} not found`);
+      if (m.titleCut) issues.push('the title is cut');
+      if (m.extra) issues.push('an avatar or a top bar is back');
       for (const k of names) {
         const a = m.boxes[k];
         if (a.l < -0.5 || a.r > m.w + 0.5) issues.push(`${k} leaves the window`);

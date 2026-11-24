@@ -1,22 +1,16 @@
 // The running indicator (Elleta, 23 Nov 2026: "she can never tell whether something is running"; CLAUDE.md "Running work is
 // always visible"). One pill, always there: Nothing running, or the run, its step and the time so far, then Done or Did not
-// land for 10 s. Clicking it opens Activity in a reading drawer: every run going or finished today, a Stop on the one
-// running. It reads the run records the Work board reads (/runs), so the two cannot disagree. PLACEMENT is the header's
-// (page-chrome owns Screen.jsx): put <RunStatus /> in the top bar's actions; it brings its own drawer and toast.
+// land for 10 s. Clicking it opens the Sessions panel (WorkDock): her Claude sessions as a live tree and CHIP's runs, a
+// Stop on the one running (CLAUDE.md "Sessions in CHIP like the Claude app's sidebar"; the Activity drawer it opened
+// before is that panel's runs list now). It reads the run records the Work board reads (/runs), so the two cannot
+// disagree. PLACEMENT is the header's: put <RunStatus /> in the top bar's actions; it brings its own toast.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Button from '@bella/components/Button/Button';
 import Toast from '@bella/components/Toast/Toast';
 import RunIndicator from '@bella/components/RunIndicator/RunIndicator';
-import TimelineRow from '@bella/components/TimelineRow/TimelineRow';
-import TextStack from '@bella/components/TextStack/TextStack';
-import ReadingDrawer from './ReadingDrawer.jsx';
-import Flow from './Flow.jsx';
 import Toasts from './Toasts.jsx';
 import { openRun } from '../Runs.jsx';
-import Progress from '@bella/components/Progress/Progress';
-import { activityRow, indicator, isGoing, usually, waitStage } from '../runClock.js';
-
-const JSON_HEADERS = { 'content-type': 'application/json' };
+import { indicator, isGoing } from '../runClock.js';
+import { openWork } from './WorkDock.jsx';
 
 /** The run records and the server's clock, kept fresh: every 2 s while one is going, every 10 s otherwise. */
 function useRunClock() {
@@ -37,11 +31,10 @@ function useRunClock() {
 }
 
 export default function RunStatus() {
-  const { runs, clock, going, reload } = useRunClock();
-  const [open, setOpen] = useState(false);
+  const { runs } = useRunClock();
+  const [open, setOpen] = useState(false); // the Sessions panel, told by WorkDock
   const [seen, setSeen] = useState(null);
   const [toast, setToast] = useState(null);
-  const [error, setError] = useState(null);
   const [tick, setTick] = useState(0);
   const before = useRef(new Map());
   const first = useRef(true);
@@ -71,18 +64,15 @@ export default function RunStatus() {
   // eslint-disable-next-line no-unused-expressions
   tick;
   const view = indicator(runs, { seen });
-  const rows = runs.slice(0, 12).map((r) => activityRow(r, clock?.usual));
-  const stop = async (id) => {
-    setError(null);
-    try {
-      const r = await fetch(`/runs/${id}/stop`, { method: 'POST', headers: JSON_HEADERS, body: '{}' });
-      if (!r.ok) throw new Error((await r.json()).error ?? 'Could not stop it');
-      reload();
-    } catch (e) {
-      setError(e.message);
-    }
-  };
-  const goingNow = runs.filter(isGoing);
+  useEffect(() => {
+    const on = (e) => {
+      setOpen(!!e.detail?.open);
+      // a finished run she has opened the panel on goes back to idle
+      if (!e.detail?.open && view.state !== 'running') setSeen(view.id ?? null);
+    };
+    window.addEventListener('chip:work-open', on);
+    return () => window.removeEventListener('chip:work-open', on);
+  }, [view.state, view.id]);
 
   return (
     <>
@@ -93,45 +83,9 @@ export default function RunStatus() {
         stepDone={view.done}
         stepTotal={view.total}
         since={view.state === 'running' ? view.since : undefined}
-        onOpen={() => setOpen((o) => !o)}
+        onOpen={() => openWork('sessions')}
         expanded={open}
       />
-      {open ? (
-        <ReadingDrawer
-          open
-          onClose={() => (setOpen(false), view.state !== 'running' && setSeen(view.id ?? null))}
-          label="Activity"
-          status={going ? `${goingNow.length} running` : 'Nothing running'}
-          lead={going ? `${goingNow[0].title} is going.${usually(clock?.usual) ? ` Runs like it are ${usually(clock.usual)}.` : ''}` : 'Everything CHIP ran, newest first. Open one to read how it ended.'}
-        >
-          <Flow gap={12} inset>
-            {error ? <TextStack body={`Not stopped: ${error}.`} /> : null}
-            {rows.length ? (
-              rows.map((row) => (
-                <Flow key={row.id} gap={8}>
-                  <TimelineRow title={row.title} line={row.line} state={row.state} stepDone={row.stepDone} stepTotal={row.stepTotal} onOpen={() => openRun(row.id)} />
-                  {row.state === 'running' && waitStage(Date.now() - Date.parse(row.startedAt)) !== 'none' ? (
-                    // long work (Friedman, CLAUDE.md Progress rule): a bar and a steps line, never a bar alone
-                    <Flow gap={8}>
-                      <Progress label="Steps done" value={`${row.stepDone} of ${row.stepTotal}`} fill={(row.stepDone / row.stepTotal) * 100} />
-                      <TextStack body={`${row.stepTotal - row.stepDone - 1} left after this step`} />
-                    </Flow>
-                  ) : null}
-                  {row.state === 'running' ? (
-                    <Flow direction="row" justify="end">
-                      <Button variant="secondary" size="sm" onClick={() => stop(row.id)}>
-                        Stop
-                      </Button>
-                    </Flow>
-                  ) : null}
-                </Flow>
-              ))
-            ) : (
-              <TextStack title="Nothing has run yet" body="A run shows here the moment you approve its plan." />
-            )}
-          </Flow>
-        </ReadingDrawer>
-      ) : null}
       {toast ? (
         <Toasts>
           <Toast tone={toast.tone} onClose={() => setToast(null)} action={{ label: 'Open the card', onClick: () => (openRun(toast.id), setToast(null)) }}>

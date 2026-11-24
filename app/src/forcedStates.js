@@ -50,9 +50,27 @@ function cloneRules(list, out) {
   }
 }
 
-/** Copies the interaction rules once the stylesheets are in. Safe to call again. */
-export function installForcedStates() {
+/** Copies the interaction rules once the stylesheets are in. Safe to call again. A Storybook frame (a part drawn from its
+ *  story) is its own document: pass it to give that part the same forced states. */
+export function installForcedStates(doc = document) {
   const out = [];
+  if (doc !== document) {
+    for (const sheet of doc.styleSheets) {
+      try {
+        cloneRules(sheet.cssRules, out);
+      } catch {
+        // a cross-origin sheet: nothing of BELLA's in it
+      }
+    }
+    let own = doc.getElementById('chip-forced-states');
+    if (!own) {
+      own = doc.createElement('style');
+      own.id = 'chip-forced-states';
+      doc.head.append(own);
+    }
+    own.textContent = out.join('\n');
+    return;
+  }
   for (const sheet of document.styleSheets) {
     if (sheet.ownerNode?.id === 'chip-forced-states') continue;
     let rules;

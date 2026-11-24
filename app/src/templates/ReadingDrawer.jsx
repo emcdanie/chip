@@ -22,6 +22,7 @@ import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
+import { glide } from './glide.js';
 
 /** A headed group: the heading takes the inset, the rows under it sit bare. */
 export function ReadingSection({ title, description, icon, iconTone, rows }) {
@@ -36,9 +37,9 @@ export function ReadingSection({ title, description, icon, iconTone, rows }) {
 }
 
 /** Non-row content: 16 in at the sides, on the title's edge. */
-export function Inset({ gap = 16, children }) {
+export function Inset({ gap = 16, children, ...rest }) {
   return (
-    <Flow inset gap={gap}>
+    <Flow inset gap={gap} {...rest}>
       {children}
     </Flow>
   );
@@ -83,6 +84,27 @@ export function SourceLine({ from, when, commit }) {
   );
 }
 
+/* The head of a list that shows part of itself (23 Nov evening, her Drift drawer: after See all, Show fewer sat at the
+   foot of 94 rows and she had to scroll to find it). One pattern for every drawer: the count at the left, the toggle at
+   the right, above the list, so the way back stays where she pressed. extra: more tertiary actions on the same row. */
+export function ListHead({ shown, total, unit, open, onToggle, extra }) {
+  const more = total > shown || open;
+  return (
+    <Flow direction="row" gap={8} justify="between" align="center" wrap>
+      <TextStack subtitle={more ? `Showing ${shown} of ${total} ${unit}` : `${total} ${unit}`} />
+      <Flow direction="row" gap={8} align="center" wrap>
+        {more ? (
+          // the list grows or shrinks and what is under it slides (glide, interaction study 23 Nov), never jumps
+          <Button variant="tertiary" size="sm" ariaExpanded={open} onClick={() => glide('grow', onToggle)}>
+            {open ? 'Show fewer' : `Show all ${total}`}
+          </Button>
+        ) : null}
+        {extra}
+      </Flow>
+    </Flow>
+  );
+}
+
 /* Grouped content as branch rows (Elleta, 23 Nov: "i really like the styling on this ... we could do that with some of the
    content in the drawers"): BELLA BranchGroup, a row with a colour bar at its left, the group's name, a count and a plus or
    minus, opening to its items, each a ListRow with a state mark (statusBar, the group's tone) and a short status line.
@@ -100,7 +122,7 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
   const toggle = (name) => {
     const on = !open.includes(name);
     asked.current = on ? name : null;
-    setOpen((was) => (single ? (on ? [name] : []) : on ? [...was, name] : was.filter((n) => n !== name)));
+    glide('grow', () => setOpen((was) => (single ? (on ? [name] : []) : on ? [...was, name] : was.filter((n) => n !== name))));
   };
   const box = useRef(null);
   const asked = useRef(null);
@@ -113,13 +135,18 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div ref={box}>
-      <Flow inset gap={8} as="div" role="group" aria-label={label}>
+      <Flow inset gap={8} as="div" role="group" aria-label={label} data-glide="rows">
         {shown.map((g, gi) => {
           const full = all.includes(g.name);
           const items = g.items ? (full ? g.items : g.items.slice(0, FIRST)) : [];
           return (
             <BranchGroup key={g.name} name={g.name} count={g.count ?? g.items.length} hue={g.hue ?? HUES[gi % HUES.length]} open={open.includes(g.name)} onToggle={() => toggle(g.name)}>
               {g.body ? <Inset>{g.body}</Inset> : null}
+              {g.items?.length > FIRST ? (
+                <Inset>
+                  <ListHead shown={items.length} total={g.items.length} unit={g.unit ?? 'items'} open={full} onToggle={() => setAll((a) => (full ? a.filter((n) => n !== g.name) : [...a, g.name]))} />
+                </Inset>
+              ) : null}
               {g.items ? <ListRowGroup ariaLabel={`${g.name}: ${g.items.length}`}>
                 {items.map((it, k) => (
                   <ListRow
@@ -138,13 +165,6 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
                   />
                 ))}
               </ListRowGroup> : null}
-              {g.items?.length > FIRST ? (
-                <Flow direction="row" justify="end">
-                  <Button variant="tertiary" size="sm" ariaExpanded={full} onClick={() => setAll((a) => (full ? a.filter((n) => n !== g.name) : [...a, g.name]))}>
-                    {full ? 'Show fewer' : `See all ${g.items.length}`}
-                  </Button>
-                </Flow>
-              ) : null}
             </BranchGroup>
           );
         })}
@@ -157,23 +177,35 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
    filter with those buttons, it's clear"). BELLA DataTable: sortable, its row opens the item's detail (onOpen), stacked
    under 480 (stack). filters: [{ value, label, test(row) }], each chip carrying its count; the first is the default.
    columns: DataTable columns (name first, the main number second). onOpen(key) opens the detail in the same drawer. */
-export function ReadingTable({ caption, rows, columns, rowKey = 'key', filters, defaultSort, onOpen }) {
+/* density="compact": a read-only list (no sort, no row to open) takes BELLA DataTable's compact rows, so a short list of
+   parts reads at a glance (23 Nov evening, Gaps: "tighter rows"). first: over this many rows the table shows that many,
+   then "Show 10 more" (second-pass review, pattern 1); every row shows when there are 20 or fewer. A column marked
+   byFilter (the state the chips filter on) is left out while a chip other than All is on: every row would repeat it.
+   The chips are one row that scrolls sideways (Flow swipe), so the table starts high at 320. */
+export function ReadingTable({ caption, rows, columns, rowKey = 'key', filters, defaultSort, onOpen, density, first = 20, unit = 'rows', headExtra, nested = false }) {
+  // nested: inside a block that already takes the 16 inset (a plan), so the table does not add a second one
+  const Box = nested ? Flow : Inset;
   const [f, setF] = useState(filters?.[0]?.value ?? null);
+  const [open, setOpen] = useState(false);
   const pick = filters?.find((x) => x.value === f);
-  const shown = pick?.test ? rows.filter(pick.test) : rows;
+  const all = pick?.test ? rows.filter(pick.test) : rows;
+  const shown = all.length > first && !open ? all.slice(0, first) : all;
+  // a chip that would show nothing is left out, and one chip alone is no filter
+  const chips = (filters ?? []).filter((x) => !x.test || rows.some(x.test));
   return (
-    <Inset gap={8}>
-      {filters?.length ? (
-        <Flow direction="row" gap={8} wrap align="center" role="group" aria-label={`Filter: ${caption}`}>
-          {filters.map((x) => (
-            <FilterChip key={x.value} size="compact" pressed={f === x.value} onClick={() => setF(x.value)}>
+    <Box gap={8}>
+      {chips.length > 1 ? (
+        <Flow direction="row" gap={8} swipe align="center" role="group" aria-label={`Filter: ${caption}`}>
+          {chips.map((x) => (
+            <FilterChip key={x.value} size="compact" pressed={f === x.value} onClick={() => (setF(x.value), setOpen(false))}>
               {`${x.label} ${x.test ? rows.filter(x.test).length : rows.length}`}
             </FilterChip>
           ))}
         </Flow>
       ) : null}
-      <DataTable caption={caption} columns={columns} rows={shown} rowKey={rowKey} defaultSort={defaultSort} onOpen={onOpen} stack />
-    </Inset>
+      {all.length > first || headExtra ? <ListHead shown={shown.length} total={all.length} unit={unit} open={open} onToggle={() => setOpen(!open)} extra={headExtra} /> : null}
+      <DataTable caption={caption} columns={pick?.test ? columns.filter((c) => !c.byFilter) : columns} rows={shown} rowKey={rowKey} defaultSort={defaultSort} onOpen={onOpen} density={density} stack />
+    </Box>
   );
 }
 

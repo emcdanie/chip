@@ -4,7 +4,14 @@
 // with a visible count. One "n marked · Send all" bar posts every note as ONE message to POST /answers (type
 // "markup", the shape markupBody in needsYouModel.js and the :3123 pages send), then says "Sent n notes · time".
 //
-// BELLA parts: Pin, Card, Input (multiline), Button, TextStack, Notification, Tooltip. BELLA GAP (named, not drawn):
+// Like Figma comments (her ask, 23 Nov 23:00: "click leave a comment and click out ... and then you can still move the
+// board around and you can highlight"): while Mark up is on, a click anywhere in the page's content drops a comment
+// (Shift+click uses a button there instead); the side menu, the tabs and the header keep working, so she moves between
+// pages and views without switching Mark up off; selecting words and scrolling work as ever; a click away from an open
+// comment keeps what she wrote as a draft and drops nothing. One
+// message about the whole page can go with the rest ("tell you all the things that were wrong on that page").
+//
+// BELLA parts: Pin (comment), Card, Avatar, Input, Button, TextStack, Notification, Tooltip. BELLA GAP (named, not drawn):
 // PicturePins takes one picture and pixel coordinates, so it cannot mark a live page; this file reuses its parts and
 // comment-box pattern, and a Comment popover with a pin is still the gap PicturePins names.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -12,9 +19,10 @@ import Button from '@bella/components/Button/Button';
 import Card from '@bella/components/Card/Card';
 import Input from '@bella/components/Input/Input';
 import Notification from '@bella/components/Notification/Notification';
-import Pin from '@bella/components/Pin/Pin';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
+import useNarrow from './useNarrow.js';
+import { CommentBubble, CommentPin, NewComment, PIN_AT } from './Comment.jsx';
 
 const KEY = 'chip.markup.drafts';
 const BOARD = 'http://localhost:3123';
@@ -59,8 +67,27 @@ const routeOf = () => window.location.hash || '#/';
 const wordsOf = (el) => (el?.innerText ?? el?.getAttribute?.('aria-label') ?? '').replace(/\s+/g, ' ').trim().slice(0, 80);
 
 /** The notes, the on/off switch and the send; one store for the toggle button and the layer. */
+// on or off stays the same when she moves to another page (each page draws its own screen, so the switch is kept here
+// and in this tab's session, not in the screen): she switches Mark up on once and marks page after page (23 Nov 23:00:
+// "I have to go back and click mark or unmark")
+const ON_KEY = 'chip.markup.on';
+const readOn = () => {
+  try {
+    return sessionStorage.getItem(ON_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
 export function useMarkUp() {
-  const [on, setOn] = useState(false);
+  const [on, setOnState] = useState(readOn);
+  const setOn = (next) =>
+    setOnState((was) => {
+      const v = typeof next === 'function' ? next(was) : next;
+      try {
+        sessionStorage.setItem(ON_KEY, v ? '1' : '0');
+      } catch {}
+      return v;
+    });
   const [notes, setNotes] = useState(read);
   const [sent, setSent] = useState(null); // { n, at } | { failed }
   const [sending, setSending] = useState(false);
@@ -74,7 +101,7 @@ export function useMarkUp() {
       page: `CHIP ${route}`,
       url: route,
       viewport: list[0].viewport,
-      notes: list.map((p, i) => ({ n: i + 1, note: p.note, on: p.on, section: p.path, x: p.x, y: p.y })),
+      notes: list.map((p, i) => ({ n: i + 1, note: p.note, on: p.on, section: p.path, x: p.x ?? null, y: p.y ?? null })),
     }));
     try {
       const r = await fetch(new URL('/answers', BOARD).href, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'batch', page: `Mark up · ${notes.length} notes`, url: '/markup', cards: [], markups }) });
@@ -112,12 +139,30 @@ export default function MarkUp({ markup }) {
     if (!on) setOpen(null);
   }, [on]);
 
-  // a click anywhere on the page (not on Mark up's own parts, not on the top bar's Mark up button) is a new pin
+  // the open comment, read by the page-wide click listener without re-binding it on every keystroke
+  const openRef = useRef(open);
+  openRef.current = open;
+  const commitRef = useRef(null);
+  // a click on the page's words or space is a new comment; a control keeps its job unless Shift is held; a selection or
+  // a drag is not a comment; a click away from an open comment keeps it (as a draft, if written) and drops nothing
   useEffect(() => {
     if (!on) return undefined;
+    const CONTROL = 'button, a[href], input, textarea, select, label, summary, [role="button"], [role="tab"], [role="link"], [role="menuitem"], [role="option"], [role="checkbox"], [role="switch"], [contenteditable="true"]';
     const drop = (e) => {
       const t = e.target;
       if (t.closest?.('[data-markup-own]')) return;
+      const cur = openRef.current;
+      if (cur) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (cur.id === 'new' && (cur.text ?? '').trim()) commitRef.current?.();
+        else setOpen(null);
+        return;
+      }
+      if (String(window.getSelection?.() ?? '').trim()) return; // she is selecting words
+      // the menu, tabs and header (outside the page's content) keep their jobs; in the content Shift+click uses a control
+      if (!t.closest?.('.chip-screen__content')) return;
+      if (e.shiftKey && t.closest?.(CONTROL)) return;
       e.preventDefault();
       e.stopPropagation();
       const rect = t.getBoundingClientRect();
@@ -144,12 +189,24 @@ export default function MarkUp({ markup }) {
   const here = notes.filter((p) => p.route === route);
   const shown = open?.id === 'new' ? at(open) : null;
   const commit = () => {
-    const text = open.text.trim();
+    const cur = openRef.current;
+    const text = (cur?.text ?? '').trim();
     if (!text) return;
-    const p = at(open);
-    setNotes((all) => [...all, { id: `m${Date.now()}`, route, path: open.path, on: open.on, fx: open.fx, fy: open.fy, x: Math.round(p?.left ?? 0), y: Math.round(p?.top ?? 0), viewport: `${window.innerWidth}x${window.innerHeight}`, note: text }]);
+    const p = at(cur);
+    setNotes((all) => [...all, { id: `m${Date.now()}`, route, path: cur.path, on: cur.on, fx: cur.fx, fy: cur.fy, x: Math.round(p?.left ?? 0), y: Math.round(p?.top ?? 0), viewport: `${window.innerWidth}x${window.innerHeight}`, note: text }]);
     setSent(null);
     setOpen(null);
+  };
+  commitRef.current = commit;
+  // one message about the whole page, with no spot: it goes with Send all like the rest
+  const [said, setSaid] = useState('');
+  const phone = useNarrow(640);
+  const sayPage = (text) => {
+    const words = (text ?? '').trim();
+    if (!words) return;
+    setNotes((all) => [...all, { id: `m${Date.now()}`, route, path: null, on: 'the page', fx: 0, fy: 0, x: null, y: null, viewport: `${window.innerWidth}x${window.innerHeight}`, note: words }]);
+    setSaid('');
+    setSent(null);
   };
   const number = (p) => notes.indexOf(p) + 1;
   const place = open ? (open.id === 'new' ? shown : at(notes.find((p) => p.id === open.id) ?? {})) : null;
@@ -158,7 +215,7 @@ export default function MarkUp({ markup }) {
   const now = open && open.id !== 'new' ? notes.find((p) => p.id === open.id) : null;
 
   useLayoutEffect(() => {
-    if (open && box.current) box.current.querySelector('textarea')?.focus();
+    if (open && box.current) box.current.querySelector('input, textarea')?.focus();
   }, [open?.id]);
 
   return (
@@ -168,14 +225,14 @@ export default function MarkUp({ markup }) {
           {here.map((p) => {
             const w = at(p);
             return w ? (
-              <span key={p.id} style={{ position: 'fixed', insetInlineStart: w.left, insetBlockStart: w.top, translate: '-50% -50%', pointerEvents: 'auto' }}>
-                <Pin number={number(p)} variant="red" pinStyle="solid" ariaLabel={`Note ${number(p)}`} onClick={() => setOpen({ id: p.id })} />
+              <span key={p.id} style={{ position: 'fixed', insetInlineStart: w.left, insetBlockStart: w.top, translate: PIN_AT, pointerEvents: 'auto' }}>
+                <CommentPin n={number(p)} onClick={() => setOpen({ id: p.id })} />
               </span>
             ) : null;
           })}
           {open?.id === 'new' && shown ? (
-            <span style={{ position: 'fixed', insetInlineStart: shown.left, insetBlockStart: shown.top, translate: '-50% -50%' }}>
-              <Pin number={notes.length + 1} variant="red" pinStyle="solid" />
+            <span style={{ position: 'fixed', insetInlineStart: shown.left, insetBlockStart: shown.top, translate: PIN_AT }}>
+              <CommentPin n={notes.length + 1} />
             </span>
           ) : null}
           {open && place ? (
@@ -190,42 +247,47 @@ export default function MarkUp({ markup }) {
                 }
               }}
             >
-              <Card>
-                <Flow gap={8}>
-                  {now ? (
+              {now ? (
+                <CommentBubble
+                  when="Draft, not sent yet"
+                  actions={
                     <>
-                      <Flow direction="row" gap={8} align="center">
-                        <Pin number={number(now)} variant="red" pinStyle="solid" />
-                        <TextStack subtitle="Draft, not sent yet" />
-                      </Flow>
-                      <TextStack body={now.note} />
-                      <Flow direction="row" gap={8} justify="end">
-                        <Button variant="tertiary" size="sm" onClick={() => setOpen(null)}>Close</Button>
-                        <Button variant="secondary" size="sm" onClick={() => (setNotes((all) => all.filter((x) => x.id !== now.id)), setOpen(null))}>Remove</Button>
-                      </Flow>
+                      <Button variant="tertiary" size="sm" onClick={() => setOpen(null)}>Close</Button>
+                      <Button variant="secondary" size="sm" onClick={() => (setNotes((all) => all.filter((x) => x.id !== now.id)), setOpen(null))}>Remove</Button>
                     </>
-                  ) : (
-                    <>
-                      <Input label={`Note ${notes.length + 1}`} multiline value={open.text} onChange={(v) => setOpen((o) => ({ ...o, text: v }))} placeholder="What should change?" />
-                      <Flow direction="row" gap={8} justify="end">
-                        <Button variant="tertiary" size="sm" onClick={() => setOpen(null)}>Cancel</Button>
-                        <Button variant="primary" size="sm" disabled={!open.text.trim()} onClick={commit}>Save</Button>
-                      </Flow>
-                    </>
-                  )}
-                </Flow>
-              </Card>
+                  }
+                >
+                  <TextStack body={now.note} />
+                </CommentBubble>
+              ) : (
+                <NewComment n={notes.length + 1} value={open.text} onChange={(v) => setOpen((o) => ({ ...o, text: v }))} onSend={commit} />
+              )}
             </div>
           ) : null}
         </div>
       ) : null}
-      {notes.length || sent ? (
+      {on || notes.length || sent ? (
         <div data-markup-own role="status" style={{ position: 'fixed', insetInline: 'var(--spacing-16)', insetBlockEnd: 'var(--spacing-16)', zIndex: 21, display: 'flex', justifyContent: 'center' }}>
           <div style={{ inlineSize: '100%', maxInlineSize: 'calc(var(--size-60) * 10)' }}>
           {sent?.failed ? (
             <Notification tone="danger" message="Not sent: the review server on localhost:3123 did not answer. Your notes are kept here." action={{ label: 'Try again', onClick: send }} />
-          ) : notes.length ? (
-            <Notification tone="info" message={`${notes.length} marked`} action={{ label: sending ? 'Sending' : 'Send all', onClick: send }} />
+          ) : on || notes.length ? (
+            <Card>
+              {/* one compact row: a message about the whole page (Enter or the field's Send adds it), then what is marked
+                  and Send all once there is something to send */}
+              <Flow direction="row" gap={12} align="center" wrap grow="first">
+                {on ? <Input label="About this page" labelPosition={phone ? 'top' : 'inline'} value={said} onChange={setSaid} onSend={sayPage} sendLabel="Add to my notes" placeholder="Say what’s wrong here" /> : <span />}
+                {notes.length ? (
+                  // the count and Send all end on the right edge, also when the row wraps (actions end on the right)
+                  <Flow direction="row" gap={12} align="center" style={{ marginInlineStart: 'auto' }}>
+                    <TextStack body={`${notes.length} marked`} />
+                    <Button variant="primary" busy={sending} onClick={send}>
+                      Send all
+                    </Button>
+                  </Flow>
+                ) : null}
+              </Flow>
+            </Card>
           ) : (
             <Notification tone="success" message={`Sent ${sent.n} notes · ${sent.at}`} onClose={() => setSent(null)} closeLabel="Close" />
           )}

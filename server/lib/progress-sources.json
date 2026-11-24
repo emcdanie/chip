@@ -1,0 +1,33 @@
+{
+  "_about": "Where each progress-board item is checked (23 Nov 2026): its stage is computed on load from these sources, never typed. Kinds: commit {repo, subject regex}, commits {repo, shas}, path {repo, file}, file (absolute or ~/), run {title, status[]}, pushed {repo, branch}, sessionsArchived [ids], driftZero, answered, all [..]. repo is chip (CHIP's chip/whole) or bella (chip/parts-dev). An item with only {unmeasured: why} is listed for the coordinator and shown as Not measured.",
+  "y1": { "run": { "title": "Fix CheckRow", "status": ["closed", "kept", "undone"] } },
+  "y2": { "commit": { "repo": "chip", "subject": "make a token in Figma" } },
+  "y3": { "commit": { "repo": "bella", "subject": "tertiary buttons in Chip are blue text" } },
+  "y4": { "commit": { "repo": "chip", "subject": "one project filter: All, CHIP, Site and BELLA" } },
+  "y5": { "unmeasured": "three parts (list in the side menu, smaller header, better chart): the list landed, no commit names the header or the chart" },
+  "y6": { "commit": { "repo": "chip", "subject": "Components has a Quality tab" } },
+  "y7": { "unmeasured": "no commit or file names the Workbench layout" },
+  "y8": { "all": [{ "path": { "repo": "chip", "file": "app/src/pages/notAgainModel.js" } }, { "commit": { "repo": "chip", "subject": "permanent-fix log" } }] },
+  "y9": { "all": [{ "path": { "repo": "chip", "file": "docs/reference/audit/2026-11-22/accessibility.md" } }, { "path": { "repo": "chip", "file": "docs/reference/audit/2026-11-22/agents-audit.md" } }] },
+  "y10": { "driftZero": true },
+  "y11": { "pushed": { "repo": "bella", "branch": "chip/parts-dev" } },
+  "y12": { "sessionsArchived": ["local_b9e06db5-3f56-4d64-a5c7-eb3b0650ca62", "local_2566caed-7754-4ea4-afe2-cf075052e7de", "local_88f5a023-637b-460a-ac69-5885823d4cfc", "local_0b943274-1a29-4d19-be13-df6ed0c4e373", "local_ef11355e-9980-42af-b57a-0e083cd662d1", "local_e68b1d25-633f-47bc-888f-d13b145af0d2", "local_59c23f83-5531-4bf6-a793-548d2e9afb00"] },
+  "y13": { "answered": true },
+  "y14": { "unmeasured": "no commit or page names the participant setup page" },
+  "y15": { "all": [
+    { "commit": { "repo": "chip", "subject": "Every drawer on Health now reads the same way" } },
+    { "commit": { "repo": "chip", "subject": "whether anything is running" } },
+    { "commit": { "repo": "chip", "subject": "ten-slide deck" } },
+    { "commit": { "repo": "chip", "subject": "page chrome|header indicator" } },
+    { "commit": { "repo": "chip", "subject": "Every list now shows what is on the same way" } }
+  ] },
+  "b1": { "unmeasured": "six changes in one line; only the lane washes and the crisp board edge have commits" },
+  "b2": { "commit": { "repo": "chip", "subject": "no longer shrink to a small strip that scrolls" } },
+  "b3": { "commit": { "repo": "chip", "subject": "Failing, Needs work and Healthy" } },
+  "b4": { "commit": { "repo": "bella", "subject": "empty states can show an animated mark" } },
+  "d1": { "commits": { "repo": "chip", "shas": ["152b29d", "4bf13c8", "ad9331e", "dad1fc2"] } },
+  "d2": { "commits": { "repo": "chip", "shas": ["e10933e", "2e1f25b", "c98d470", "da664df", "9d4d196", "d95347a", "bf6b79c"] } },
+  "d3": { "commits": { "repo": "bella", "shas": ["377a33c", "20737b9", "ccb8ff0", "fde70e1"] } },
+  "d4": { "file": "~/DEV/chip/docs/reference/screens/2026-11-23-guides/index.html" },
+  "f1": { "unmeasured": "an idea for after Tuesday; nothing to check yet" }
+}

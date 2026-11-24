@@ -90,6 +90,35 @@ test('only recent, unarchived sessions in a CHIP project reach the board', () =>
   assert.deepEqual(got.map((s) => [s.title, s.project, s.steps.length]), [['Task one', 'CHIP', 1]]);
 });
 
+test('what a session last said reaches Ask; a line naming a private term is left out, like a private title', () => {
+  const now = Date.parse('2026-11-22T12:00:00Z');
+  const sess = join(dir, 'sessions2', 'a', 'b');
+  const tr = join(dir, 'projects2', 'p');
+  mkdirSync(sess, { recursive: true });
+  mkdirSync(tr, { recursive: true });
+  const repo = join(dir, 'repo2');
+  mkdirSync(repo);
+  const rec = (id, o) => writeFileSync(join(sess, `local_${id}.json`), JSON.stringify({ sessionId: `local_${id}`, cliSessionId: id, cwd: repo, title: `Task ${id}`, lastActivityAt: now - 36e5, createdAt: now - 72e5, isArchived: false, model: 'claude-opus-5-5', lastTurnEdgeAt: now - 6e5, ...o }));
+  for (const id of ['said', 'hidden', 'private']) writeFileSync(join(tr, `${id}.jsonl`), use('mcp__ccd_turn__update_plan', { items: [{ content: 'Step', status: 'in_progress' }] }));
+  rec('said', { spawnedFrom: { sessionId: 'local_coord', name: 'drawers' }, turnWrapUp: { description: 'Footers moved. Two checks left.' }, postTurnSummary: { status_category: 'review_ready', status_detail: 'Footers moved', needs_action: '' } });
+  rec('hidden', { turnWrapUp: { description: 'Worked on the Zorblax account.' }, postTurnSummary: { status_category: 'blocked', status_detail: 'Zorblax login', needs_action: 'Sign in' } });
+  rec('private', { title: 'Zorblax pages' });
+  const got = sessionTasks([{ repo, short: 'CHIP' }], now, { dir: join(dir, 'sessions2'), transcripts: join(dir, 'projects2'), terms: ['zorblax'] });
+  assert.deepEqual(got.map((s) => s.title).sort(), ['Task hidden', 'Task said']);
+  const said = got.find((s) => s.title === 'Task said');
+  assert.equal(said.report, 'Footers moved. Two checks left.');
+  assert.deepEqual(said.status, { category: 'review_ready', detail: 'Footers moved', needs: null });
+  assert.equal(said.model, 'claude-opus-5-5');
+  // the tree: the session that started it
+  assert.equal(said.parentId, 'local_coord');
+  assert.equal(got.find((s) => s.title === 'Task hidden').parentId, null);
+  assert.equal(said.reportedAt, now - 6e5);
+  const hidden = got.find((s) => s.title === 'Task hidden');
+  assert.equal(hidden.report, null);
+  assert.equal(hidden.status.detail, null);
+  assert.equal(hidden.status.category, 'blocked');
+});
+
 test('progress links are made whole', () => {
   const p = join(dir, 'progress');
   mkdirSync(p);

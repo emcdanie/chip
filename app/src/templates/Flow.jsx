@@ -33,7 +33,10 @@ const GAPS = new Set([0, 4, 8, 12, 16, 24]);
  * columns (one on a phone; cards="bento": three, the first card two rows tall), so a row's cards take the row's height and their titles, numbers, bars, captions and
  * footers line up across it; an odd last card takes the whole row (Elleta, 23 Nov: cards that don't align and leave
  * white space); head: a row as tall as a card's head row (28, a title's line), so a card whose first
- * row is a Tag still has its title row level with the card beside it.
+ * row is a Tag still has its title row level with the card beside it; strip: a row of cards you pick from that scrolls
+ * sideways and snaps, each card a set width, the next one peeking (Elleta's Workbench A, 23 Nov: "the cards maybe can be
+ * on the bottom and scroll across and i can pick them"); grid: the page's 12 columns inside the block, each child
+ * placing itself with style gridColumn 'span n' (its edges on the page's columns, visual study 22 Nov).
  */
 /* fit: as tall as the page's own scroll box shows, less its padding and a foot where card shadows fade,
    so a list and its detail get the whole height under the tabs once the content scrolls them to the top
@@ -44,7 +47,9 @@ const GAPS = new Set([0, 4, 8, 12, 16, 24]);
 // never under 360 (a head and about two cards): in a short window the page scrolls instead of a list shrinking to a strip
 // that scrolls on its own (23 Nov, the page could not be scrolled to its end; Playground's Picks list was 290 of 1832 tall)
 const FIT_MIN = 360;
-function useFull(on) {
+// fitKey: measure again when it changes (what sits inside grew), without remounting the content (a remount reloads a
+// Storybook frame on the Components stage, about a second each time)
+function useFull(on, fitKey) {
   const ref = useRef(null);
   const [h, setH] = useState(null);
   useLayoutEffect(() => {
@@ -78,7 +83,7 @@ function useFull(on) {
     if (on === 'rest') ro.observe(document.body);
     window.addEventListener('resize', measure);
     return () => (ro.disconnect(), window.removeEventListener('resize', measure));
-  }, [on]);
+  }, [on, fitKey]);
   return [ref, on && h != null ? { blockSize: `${h}px`, ...(on === 'rest' ? { marginBlockEnd: 'var(--spacing-8)' } : {}) } : undefined];
 }
 
@@ -171,11 +176,11 @@ function useMore(ref, on) {
   return [more, step];
 }
 
-export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, fit = false, scroll = false, sticky = false, stretch = false, aside = false, bullets = false, inset = false, cards = false, head = false, children, ...rest }) {
+export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, swipe = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, fit = false, fitKey, scroll = false, sticky = false, stretch = false, aside = false, bullets = false, inset = false, cards = false, head = false, strip = false, grid = false, children, ...rest }) {
   const [boardRef, boardSize] = useToBottom(board);
-  const [fitRef, fitSize] = useFull(fit);
+  const [fitRef, fitSize] = useFull(fit, fitKey);
   if (!GAPS.has(gap)) throw new Error(`Flow: gap ${gap} is not on the spacing scale (0, 4, 8, 12, 16, 24)`);
-  const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', fit ? 'chip-flow--fit' : '', scroll ? 'chip-flow--scroll' : '', sticky ? 'chip-flow--sticky' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', cards ? 'chip-flow--cards' : '', cards === 'bento' ? 'chip-flow--bento' : '', head ? 'chip-flow--head' : '', `chip-span-${span}`]
+  const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', fit ? 'chip-flow--fit' : '', scroll ? 'chip-flow--scroll' : '', sticky ? 'chip-flow--sticky' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', swipe ? 'chip-flow--swipe' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', cards ? 'chip-flow--cards' : '', cards === 'bento' ? 'chip-flow--bento' : '', head ? 'chip-flow--head' : '', strip ? 'chip-flow--strip' : '', grid ? 'chip-flow--grid' : '', `chip-span-${span}`]
     .filter(Boolean)
     .join(' ');
   const [more, step] = useMore(boardRef, board);

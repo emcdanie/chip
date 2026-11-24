@@ -1,21 +1,21 @@
 {
- "at": "2026-11-23T21:10:10.553Z",
+ "at": "2026-11-24T03:07:09.428Z",
  "files": {
-  "app/src/templates/Flow.jsx": "53c277b130557d93a2ceb98537b29097ece9ed92",
-  "app/src/templates/Screen.jsx": "93ddde1c0ce75853d2a38cfbe2763e2df8223975",
-  "app/src/templates/Screen.css": "5fe008729489f35c661f091da219a5d37dcc501b",
-  "app/src/pages/AuditReportsContent.jsx": "44fc811b16f1e9485a3149a55f2c5739ccfac271",
-  "app/src/pages/ComponentsContent.jsx": "7d19bc21344b34a27f652ff84244c3ef1d743873",
+  "app/src/templates/Flow.jsx": "8764a71b1f2712cca45a1dd818dee16d2631fa54",
+  "app/src/templates/Screen.jsx": "c63552a4ecb6a66df320c060dc529607bc1c7310",
+  "app/src/templates/Screen.css": "9246a9ff897a698da362229f3b842439e53818f9",
+  "app/src/pages/AuditReportsContent.jsx": "145e98d973c1a3360e001c6ddf4fca695a46bc7e",
+  "app/src/pages/ComponentsContent.jsx": "7b7f0f2b88c61f46c7f0121c246df13b9b5a5c5e",
   "app/src/pages/ConnectorsContent.jsx": "b33d472003614200f1612fc3fa00b3c8f1f3369c",
   "app/src/pages/DocsContent.jsx": "b1e73ba0ff67aff7467a9c52cef5a811b6444868",
   "app/src/pages/FoundationsContent.jsx": "4d7056faf5567a5964ae437c8ee7388f49a7b20a",
-  "app/src/pages/HealthContent.jsx": "b2bafdcd94898e85c23ee1bdc9328150fe69fc7b",
+  "app/src/pages/HealthContent.jsx": "52bb12bb0280a7386877c64c4226279460d0e70b",
   "app/src/pages/HistoryContent.jsx": "440456813eeb09f8e9e05d3c21236fe6fcedc737",
-  "app/src/pages/NotAgainContent.jsx": "190f293a79361162e2fb72567bb6c2ba0bdfed76",
+  "app/src/pages/NotAgainContent.jsx": "9eb4995ded48a5d498c8b621b1622b25005fe5d4",
   "app/src/pages/PlaygroundContent.jsx": "698bbde7e14c1b624655fa38771582ded37f9ff2",
   "app/src/pages/SystemMapContent.jsx": "d82206e34450e12be7b5afa5e198ccad999c7f7f",
   "app/src/pages/TeamContent.jsx": "c1642a1a11e5f30da4b92add5c2df9c8aedc909d",
-  "app/src/pages/WorkContent.jsx": "54872ca7ffccf1684479d989bb621dfc650ee711"
+  "app/src/pages/WorkContent.jsx": "3ea5b9b0aacd39c9bd2125c7da408ab9e684021c"
  },
  "routes": {
   "#/work": true,
@@ -33,5 +33,5 @@
  "ok": true,
  "clean": 88,
  "total": 88,
- "texts": 12467
+ "texts": 11915
 }

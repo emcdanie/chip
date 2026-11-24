@@ -254,7 +254,7 @@ const prCounts = projects.map((p) => JSON.parse(sh('gh', ['pr', 'list', '--state
 {
   const ar = await fetch(`${APP}/audit-reports`).then((r) => r.json()).catch(() => null);
   if (ar?.ok) {
-    check('audit-reports', 'Benchmark, AGENTS.md against no file (all 10 jobs)', grab('audit-reports', /AGENTS\.md scores ([\d.]+) against ([\d.]+)/)?.slice(1, 3).join(' vs '), `${ar.bench.all10.md} vs ${ar.bench.all10.bare}`);
+    check('audit-reports', 'Benchmark, AGENTS.md against no file (all 10 jobs)', ((m, b) => (m && b ? `${m} vs ${b}` : undefined))(grab('audit-reports', /All 10 jobs[\s\S]*?\nAGENTS\.md\n([\d.]+)/)?.[1], grab('audit-reports', /All 10 jobs[\s\S]*?\nNo file\n([\d.]+)/)?.[1]), `${ar.bench.all10.md} vs ${ar.bench.all10.bare}`);
   } else check('audit-reports', 'Benchmark scores', null, null, 'server did not answer');
 }
 check('team', 'Open PRs', grab('team', /(\d+)\nopen PRs?/)?.[1], prCounts.every(Array.isArray) ? prCounts.reduce((a, l) => a + l.length, 0) : null);
@@ -337,7 +337,7 @@ if (board) {
   const place = board.board?.place ?? {};
   const busy = new Set(runs.filter((r) => ['starting', 'running', 'gate', 'passed'].includes(r.status)).map((r) => r.title));
   const ideas = [
-    ...board.progress.items.filter((i) => i.stage === 'To do').map((i) => [i.id, i.title]),
+    ...board.progress.items.filter((i) => ['To do', 'Not measured'].includes(i.stage)).map((i) => [i.id, i.title]),
     ...board.progress.tasks.map((t) => [t.id, t.title]),
     ...[...new Set(measured.flat())].map((n) => [`comp-${n}`, n]),
   ];
@@ -345,6 +345,63 @@ if (board) {
   const known = new Set([...(await json('/needs').catch(() => ({}))).items?.map((n) => n.id) ?? [], ...runs.map((r) => r.id), ...board.progress.items.map((i) => i.id), ...(board.sessions ?? []).map((x) => x.id)]);
   const ideasNow = ideas.filter(([id, t]) => (!place[id] || place[id].lane === 'ideas') && !busy.has(t)).length + Object.entries(place).filter(([id, p]) => p.lane === 'ideas' && !ideas.some(([i]) => i === id) && known.has(id)).length;
   check('work', 'Ideas: to-dos, your tasks and parts that need work', grab('work', /\bIdeas\n(\d+)/)?.[1], ideasNow);
+}
+
+// The board is live (23 Nov 2026: shipped cards sat in Ideas). Each progress item with a git source is checked here with
+// git itself, not through CHIP's own evaluator: if the commit or file is on the branch, the board must show it Done (so in
+// Shipped, whatever she once did with the card); if not, it must not. Items with no source are listed as Not measured.
+if (board) {
+  const sources = JSON.parse(readFileSync(join(ROOT, 'server/lib/progress-sources.json'), 'utf8'));
+  const progress = JSON.parse(readFileSync(join(process.env.HOME, 'DEV/chip/docs/reference/screens/progress/progress.json'), 'utf8')).items;
+  const dirs = { chip: [ROOT, sh('git', ['-C', ROOT, 'rev-parse', '--verify', '-q', 'chip/whole'], ROOT) ? 'chip/whole' : 'HEAD'], bella: [B, 'chip/parts-dev'] };
+  const landed = (src) => {
+    if (src.commit) { const [d, ref] = dirs[src.commit.repo]; const o = sh('git', ['-C', d, 'log', ref, '-1', '-i', '-E', `--grep=${src.commit.subject}`, '--format=%h'], d); return o === null ? null : o !== ''; }
+    if (src.commits) { const [d, ref] = dirs[src.commits.repo]; const rs = src.commits.shas.map((x) => sh('git', ['-C', d, 'merge-base', '--is-ancestor', x, ref], d) !== null); return rs.every(Boolean); }
+    if (src.path) { const [d, ref] = dirs[src.path.repo]; return sh('git', ['-C', d, 'cat-file', '-e', `${ref}:${src.path.file}`], d) !== null; }
+    return undefined;
+  };
+  const shown = new Map(board.progress.items.map((i) => [i.n, i]));
+  let wrong = 0;
+  let unchecked = 0;
+  progress.forEach((p, n) => {
+    const src = sources[p.id];
+    const truth = src ? landed(src) : undefined;
+    const card = shown.get(n);
+    if (truth === undefined || truth === null) { unchecked++; return; }
+    if ((card?.stage === 'Done') !== truth) wrong++;
+  });
+  check('work', 'Progress items that git says landed are Done, the rest are not (the ones git can check)', wrong, 0);
+  check('work', 'Progress items with no git source, listed as Not measured', board.progress.notMeasured?.length ?? 0, board.progress.items.filter((i) => i.stage === 'Not measured').length);
+  check('work', 'Board freshness is this read, not an old one', Math.abs(Date.now() - Date.parse(board.at)) < 60_000 ? 'now' : 'old', 'now');
+}
+
+// Ask about the work (23 Nov): the numbers in the Work panel's answers, against git and the records they read.
+// Every one of these answers is written from the facts with no model, so asking costs nothing.
+const asked = async (message) => {
+  try {
+    const r = await fetch(`${APP}/ask`, { method: 'POST', headers: { 'content-type': 'application/json', origin: APP }, body: JSON.stringify({ message, stream: true, scope: 'data' }) });
+    const done = (await r.text()).split('\n').filter(Boolean).map((l) => JSON.parse(l)).find((e) => e.type === 'done');
+    return done?.model === 'CHIP’s data' ? done.reply : null;
+  } catch {
+    return null;
+  }
+};
+{
+  const midnight = new Date();
+  midnight.setHours(0, 0, 0, 0);
+  const count = (dir, branch) => sh('git', ['-C', dir, 'log', branch, `--since=${midnight.toISOString()}`, '--no-merges', '--format=%h'], dir)?.split('\n').filter(Boolean).length ?? null;
+  const whole = count(ROOT, 'chip/whole');
+  const parts = count(B, 'chip/parts-dev');
+  const landed = await asked('What has landed today?');
+  check('ask', 'Landed today on chip/whole (git log)', landed?.match(/(\d+) on chip\/whole/)?.[1], whole);
+  check('ask', 'Landed today on chip/parts-dev (git log)', landed?.match(/(\d+) on chip\/parts-dev/)?.[1], parts);
+  const needsNow = await json('/needs').catch(() => null);
+  const waitingNow = needsNow ? (needsNow.items ?? []).filter((i) => /waiting/i.test(i.status ?? 'Waiting on you')).length : null;
+  const needsReply = await asked('What needs me?');
+  check('ask', 'Things waiting on you (Needs you)', needsReply ? (needsReply.match(/^\*\*(\d+) things?/)?.[1] ?? (/Nothing waits/.test(needsReply) ? '0' : null)) : null, waitingNow);
+  const boardNow = await json('/work/board').catch(() => null);
+  const runningReply = await asked('What is running right now?');
+  check('ask', 'Sessions working now (session records)', runningReply ? (runningReply.match(/^\*\*(\d+) sessions?\*\*/)?.[1] ?? (/Nothing is running/.test(runningReply) ? '0' : null)) : null, boardNow ? (boardNow.sessions ?? []).filter((x) => x.working).length : null);
 }
 
 // ---- report -----------------------------------------------------------------

@@ -158,7 +158,7 @@ for (const motion of ['normal', 'reduced']) {
 for (const part of parts) {
   for (const width of motion === 'reduced' ? [1440] : WIDTHS) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, colorScheme: 'light', reducedMotion: motion === 'reduced' ? 'reduce' : 'no-preference' });
-    await page.goto(`${APP}/#/components/${part.id ?? part.name.toLowerCase()}`, { waitUntil: 'load' });
+    await page.goto(`${APP}/#/components/${part.id ?? part.name.toLowerCase()}?tab=inspect`, { waitUntil: 'load' }); // the anatomy stage: a part opens on Accessibility (23 Nov)
     await page.waitForSelector('[data-stage-chip]', { timeout: 20000 }).catch(() => {});
     await page.waitForTimeout(1800); // the part settles into the largest size its labels fit
     // a leader that draws in (BELLA Leader draw map 900ms, pick 250ms) is measured once it has finished

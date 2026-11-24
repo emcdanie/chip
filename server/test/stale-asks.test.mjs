@@ -15,6 +15,7 @@ const { isAnswered } = await import('../lib/lanes.mjs');
 const { gitItems } = await import('../lib/needs.mjs');
 const { activityRow } = await import('../../app/src/runClock.js');
 
+const T = Date.parse('2026-11-22T12:00:00Z'); // the day the sample runs were made
 const run = (id, status, title, at, extra = {}) => ({ id, status, title, branch: `b-${id}`, startedAt: `2026-11-22T${at}:00.000Z`, ...extra });
 const open = { branch: true, ahead: 1, same: false, moved: null };
 
@@ -42,7 +43,7 @@ test('a failed run is closed once a newer run of the same job exists, and only t
   const mid = run('b', 'failed', 'Fix X', '10:00');
   const last = run('c', 'failed', 'Fix X', '11:00');
   const other = run('d', 'failed', 'Fix Y', '08:00');
-  settle([old, mid, last, other], () => open);
+  settle([old, mid, last, other], () => open, null, T);
   assert.deepEqual([old, mid, last, other].map((r) => r.status), ['closed', 'closed', 'failed', 'failed']);
   assert.match(old.closedWhy, /newer run/);
 });
@@ -50,12 +51,18 @@ test('a failed run is closed once a newer run of the same job exists, and only t
 test('a failed run replaced by a passed one is closed, and a passed run is not replaced by a newer failure', () => {
   const failed = run('a', 'failed', 'Fix X', '09:00');
   const passed = run('b', 'passed', 'Fix X', '10:00');
-  settle([failed, passed], () => open);
+  settle([failed, passed], () => open, null, T);
   assert.deepEqual([failed.status, passed.status], ['closed', 'passed']);
   const p2 = run('c', 'passed', 'Fix Z', '09:00');
   const f2 = run('d', 'failed', 'Fix Z', '10:00');
-  settle([p2, f2], () => open);
+  settle([p2, f2], () => open, null, T);
   assert.deepEqual([p2.status, f2.status], ['passed', 'failed'], 'the passed one can still be accepted');
+});
+
+test('a stop nobody ran again within two days is closed with its date; a recent one still asks', () => {
+  const stopped = run('a', 'failed', 'Fill a11y', '15:11', { startedAt: '2026-11-21T15:11:00.000Z', error: 'BELLA gate refused the commit' });
+  assert.equal(closedWhy(stopped, [stopped], () => open, null, Date.parse('2026-11-24T08:00:00Z')), 'it stopped on 21 Nov and was not run again');
+  assert.equal(closedWhy(stopped, [stopped], () => open, null, Date.parse('2026-11-22T12:00:00Z')), null);
 });
 
 test('a closed run offers no Accept and says why in its Activity row', () => {

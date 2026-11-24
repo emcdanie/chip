@@ -1,7 +1,8 @@
 // CHIP / Screen: the code twin of the Figma template (CHIP Dashboard
 // 601:112027). One shell for every new page: the side menu (her nav C pick,
-// 22 Nov), the top bar with where you are, then the page header, its tabs and
-// the content slot.
+// 22 Nov) with the Find field at its top, then one row with the menu button, the
+// breadcrumb and the page's actions (her mark-up, 23 Nov: no top bar), its tabs
+// and the content slot.
 // A page is this template plus one content component (Figma's slot fill);
 // pages pass words and parts, never styles (scripts/on-system-guard.mjs).
 //
@@ -13,7 +14,6 @@ import useCached from './useCached.js';
 import SideMenu from '@bella/components/SideMenu/SideMenu';
 import NavList from '@bella/components/NavList/NavList';
 import Menu, { MenuItem } from '@bella/components/Menu/Menu';
-import TopBar from '@bella/components/TopBar/TopBar';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
 import Drawer from '@bella/components/Drawer/Drawer';
@@ -21,13 +21,15 @@ import Button from '@bella/components/Button/Button';
 import Tooltip from '@bella/components/Tooltip/Tooltip';
 import Link from '@bella/components/Link/Link';
 import Icon from '@bella/components/Icon/Icon';
-import Avatar from '@bella/components/Avatar/Avatar';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
+import { glide } from './glide.js';
+
+export { glide };
 import { NewStart as NewTask } from './NewStart.jsx';
 import Search from './Search.jsx';
 import useNarrow from './useNarrow.js';
-import WorkDock, { openWork } from './WorkDock.jsx';
+import WorkDock, { openNotices } from './WorkDock.jsx';
 import MarkUp, { useMarkUp } from './MarkUp.jsx';
 import RunStatus from './RunStatus.jsx';
 import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
@@ -39,6 +41,57 @@ import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
 // link scrolls after this runs, so it still wins. The browser's own restore
 // (reload, Back) is off for the same reason.
 if (typeof history !== 'undefined' && 'scrollRestoration' in history) history.scrollRestoration = 'manual';
+/* Focus follows a page change (interaction study, 23 Nov: after a page or System tab change focus fell to the page
+   itself, so the keyboard started again at the menu and a screen reader heard nothing). When the page changes and
+   focus has nowhere to be (the control that held it went with the old page), it goes to the new page's title, which
+   a screen reader then reads. Focus still on something that stays (a side-menu item) is left where it is. Nothing
+   scrolls, and a mouse user sees no ring (the title is focused by script, not by a key). */
+export function focusPageTitle() {
+  let tries = 0;
+  const put = () => {
+    const lost = !document.activeElement || document.activeElement === document.body;
+    if (!lost) return;
+    const h = document.querySelector('.chip-screen__main h1');
+    if (!h) {
+      if (tries++ < 60) requestAnimationFrame(put);
+      return;
+    }
+    if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
+    h.focus({ preventScroll: true });
+  };
+  requestAnimationFrame(put);
+}
+
+/* Focus never falls off the page (interaction study, 23 Nov: See all, choosing Task in New and picking a part each
+   removed the button that held focus, and focus fell to the page itself). When the focused control leaves the page,
+   focus goes to the drawer it was in, or else to the page's title, so the keyboard carries on from where the change
+   happened. One rule for every page, here in the template. */
+// one watcher for the whole app: every page mounts its own Screen, so a watcher per Screen lost track at each page change
+let rescueOn = false;
+function useFocusRescue() {
+  useEffect(() => {
+    if (rescueOn) return;
+    rescueOn = true;
+    // the browser fires no focus event when a focused control is removed, so watch what holds focus and the page
+    let held = null;
+    const hold = (e) => {
+      held = e.target;
+    };
+    const rescue = () => {
+      if (!held || held.isConnected || (document.activeElement && document.activeElement !== document.body)) return;
+      held = null;
+      const dialogs = [...document.querySelectorAll('dialog[open], [role="dialog"]')].filter((d) => d.getClientRects().length);
+      const into = dialogs[dialogs.length - 1];
+      if (into) {
+        if (!into.hasAttribute('tabindex')) into.setAttribute('tabindex', '-1');
+        into.focus({ preventScroll: true });
+      } else focusPageTitle();
+    };
+    document.addEventListener('focusin', hold);
+    new MutationObserver(() => requestAnimationFrame(rescue)).observe(document.body, { childList: true, subtree: true });
+  }, []);
+}
+
 export function openAtTop() {
   window.scrollTo(0, 0);
   // the window no longer scrolls; the page's content does (READ FIRST, 22 Nov)
@@ -121,7 +174,7 @@ function Crumb({ trail, href, linked, compact }) {
     }
   };
   return (
-    <Flow as="nav" aria-label="Breadcrumb" direction="row" gap={8} align="center" {...(compact ? { 'data-no-separator': true } : {})}>
+    <Flow as="nav" aria-label="Breadcrumb" direction="row" gap={8} align="center" {...(compact && linked ? { 'data-no-separator': true } : {})}>
       {linked ? (
         <Tooltip label="Back">
           <span onClick={back}>
@@ -153,7 +206,7 @@ function Crumb({ trail, href, linked, compact }) {
    the old app's project page until theirs are rebuilt. */
 const projectOf = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('project');
 
-function menuModel({ place, tab, projects, needs, onSearch }) {
+function menuModel({ place, tab, projects, needs }) {
   const q = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
   const needsHere = place === 'work' && q.get('filter') === 'needs';
   const project = projectOf();
@@ -161,10 +214,10 @@ function menuModel({ place, tab, projects, needs, onSearch }) {
   const workHere = place === 'work' && !needsHere && !project;
   return {
     items: [
-      { label: 'Search', icon: 'Search', onClick: onSearch },
       { label: 'Work', href: '#/work', icon: 'CheckCircle', current: workHere },
       { label: 'Health', href: '#/health', icon: 'Activity', current: place === 'health' },
-      { label: 'System', href: '#/system/components', icon: 'ViewGrid', current: !!tab },
+      // on Components the part list opens under System (approved A, 23 Nov): the page portals it into this slot
+      { label: 'System', href: '#/system/components', icon: 'ViewGrid', current: !!tab, sub: tab === 'components' ? <div data-chip-menu-sub="" /> : undefined },
       { label: 'Playground', href: '#/playground', icon: 'Play', current: place === 'playground' },
       { label: 'Needs you', href: '#/work?filter=needs', icon: 'Bell', badge: needs || undefined, current: needsHere },
       { label: 'Not again', href: '#/not-again', icon: 'Book', current: place === 'not-again' },
@@ -219,22 +272,36 @@ export default function Screen({ place, header, tabs, children }) {
   });
   const toggleMenu = () => {
     if (menuOut) return setMenuOpen((o) => !o);
-    setCollapsed((c) => {
-      try {
-        window.localStorage.setItem('chip.menu.collapsed', c ? '0' : '1');
-      } catch {
-        /* private window: it just is not remembered */
-      }
-      return !c;
-    });
+    const c = collapsed;
+    glide('menu', () => setCollapsed(!c));
+    try {
+      window.localStorage.setItem('chip.menu.collapsed', c ? '0' : '1');
+    } catch {
+      /* private window: it just is not remembered */
+    }
     return undefined;
   };
-  // Cmd+\\ (Ctrl+\\) shows and hides the menu
+  // Cmd+\\ (Ctrl+\\) shows and hides the menu. Cmd+K (Ctrl+K) goes to the Find field at the menu's top, showing
+  // the menu first when it is hidden or out (below 1024 the Drawer, which takes focus as it opens, so it tries a few frames)
   useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key === '\\') {
         e.preventDefault();
         toggleMenu();
+      } else if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (menuOut) setMenuOpen(true);
+        else if (collapsed) toggleMenu();
+        let tries = 0;
+        const put = () => {
+          const input = document.querySelector('.chip-screen__search input');
+          if (input && document.activeElement !== input) {
+            input.focus();
+            input.select?.();
+          }
+          if (tries++ < 10) requestAnimationFrame(put);
+        };
+        requestAnimationFrame(put);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -243,9 +310,7 @@ export default function Screen({ place, header, tabs, children }) {
   const phone = useNarrow();
   const markup = useMarkUp();
   useRestoreScroll();
-  // below 400 the field would read "Sea": a search button that opens the field across the bar
-  const tiny = useNarrow(400);
-  const [searching, setSearching] = useState(false);
+  useFocusRescue();
   const [menuOpen, setMenuOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
   const tab = place === 'projects' ? tabs?.value : null;
@@ -257,13 +322,8 @@ export default function Screen({ place, header, tabs, children }) {
   useEffect(() => {
     document.title = [...trail.slice(1), trail[0]].filter(Boolean).join(' · ');
   }, [trail.join('|')]);
-  const onSearch = () => {
-    setMenuOpen(false);
-    if (tiny) setSearching(true);
-    else requestAnimationFrame(() => document.querySelector('.chip-screen__main [role="search"] input')?.focus());
-  };
-  const menu = menuModel({ place, tab, projects, needs, onSearch });
-  // the drawer holds the same rows as BELLA's NavList (Drawer's own content); Search is in the top bar there
+  const menu = menuModel({ place, tab, projects, needs });
+  // the drawer holds the Find field and the same rows as BELLA's NavList (Drawer's own content)
   const strip = ({ label, href, icon, badge, current }) => ({ label, href, icon, badge, current });
   const groups = [
     { items: menu.items.filter((i) => i.href).map(strip) },
@@ -274,28 +334,27 @@ export default function Screen({ place, header, tabs, children }) {
   return (
     <div className={`chip-screen${!menuOut && collapsed ? ' chip-screen--collapsed' : ''}`}>
       <div className="chip-screen__main">
-        {/* On a phone the ⌘ K legend steps out so the field keeps room for its words. */}
-        {/* The side-menu button is the first thing in the top bar, at its left end, and stays there whether the menu is
-            open or closed (Elleta, 23 Nov). BELLA's TopBar has no leading slot yet (gap for the parts session), so it sits
-            over the bar's own padding and comes first in the tab order. */}
-        <div className="chip-screen__topbar">
-          <span className="chip-screen__lead">
-            <Tooltip label={menuOut || collapsed ? 'Show menu' : 'Hide menu'}>
-              <Button variant="tertiary" iconOnly icon={menuOut || collapsed ? 'SidebarExpand' : 'SidebarCollapse'} ariaLabel={menuOut || collapsed ? 'Show menu' : 'Hide menu'} ariaExpanded={menuOut ? menuOpen : !collapsed} ariaHaspopup={menuOut ? 'dialog' : undefined} onClick={toggleMenu} />
-            </Tooltip>
-          </span>
-        <TopBar
-          // room at the left for the menu button (below)
-          style={{ paddingInlineStart: 'calc(var(--spacing-8) + var(--h-control) + var(--spacing-8))' }}
-          showPlace={false}
-          search={tiny && !searching ? <Button variant="tertiary" iconOnly icon="Search" ariaLabel="Search" onClick={() => setSearching(true)} /> : <Search showShortcut={!phone} autoFocus={tiny && searching} />}
-          right={
-            tiny && searching ? (
-              <Button variant="tertiary" iconOnly icon="Xmark" ariaLabel="Close search" onClick={() => setSearching(false)} />
-            ) : (
-              // straight into TopBar's right group (12 apart, its own spacing): a Flow there shrank and spilled
-              // its buttons past the edge at 320
-              <>
+        <div className="chip-screen__page">
+          <div className={`chip-screen__head${tabs ? '' : ' chip-screen__head--plain'}`}>
+            {/* the one row at the top (her mark-up, 23 Nov: no top bar above it, no line under it): the side-menu button at
+                the left, in place whether the menu is open or closed, then the breadcrumb, its last segment the page's h1; at
+                the right edge what is running, Mark up, the bell (notifications only) and the page's one action. Project
+                pages carry New; Not again passes its own. When the whole title and the actions don't fit on one row (a
+                phone, a long System title at 1024), the actions move under it, still at the right edge, so nothing is cut. */}
+            <Flow direction="row" wrap justify="end" align="center" gap={8} grow="first">
+              <PageHeader
+                size="bar"
+                title={trail[trail.length - 1]}
+                meta={
+                  <Flow as="span" direction="row" gap={8} align="center">
+                    <Tooltip label={menuOut || collapsed ? 'Show menu' : 'Hide menu'}>
+                      <Button variant="tertiary" iconOnly icon={menuOut || collapsed ? 'SidebarExpand' : 'SidebarCollapse'} ariaLabel={menuOut || collapsed ? 'Show menu' : 'Hide menu'} ariaExpanded={menuOut ? menuOpen : !collapsed} ariaHaspopup={menuOut ? 'dialog' : undefined} onClick={toggleMenu} />
+                    </Tooltip>
+                    <Crumb trail={trail} compact={phone} href={header?.back ?? (projectOf() ? `#/work?project=${projectOf()}` : '#/work')} linked={place !== 'work'} />
+                  </Flow>
+                }
+              />
+              <Flow direction="row" gap={8} align="center">
                 {/* whether anything is running, always visible (Elleta, 23 Nov); it brings its own drawer and toast */}
                 <RunStatus />
                 {/* Mark up (Elleta, 23 Nov): every page markable like Figma comments; notes stay drafts until one Send all */}
@@ -304,21 +363,14 @@ export default function Screen({ place, header, tabs, children }) {
                     <Button variant="tertiary" iconOnly icon="EditPencil" ariaLabel="Mark up" ariaPressed={markup.on} onClick={() => markup.setOn((o) => !o)} />
                   </Tooltip>
                 </span>
-                {/* the bell opens what needs you, in the Work panel (Figma Flow 12, screen 1); ⌘J opens it too */}
-                <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you, open the Work panel` : 'Nothing needs you, open the Work panel'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
-                {/* on a phone the place line needs the room: the avatar steps out (minimal chrome) */}
-                {phone ? null : <Avatar name="Elleta McDaniel" size="sm" />}
-              </>
-            )
-          }
-        />
-        </div>
-        <div className="chip-screen__page">
-          <div className={`chip-screen__head${tabs ? '' : ' chip-screen__head--plain'}`}>
-            {/* one 56 row (Elleta, 23 Nov, "page chrome is small"): the breadcrumb is the title, its last segment the page's
-                h1, and the page's one action sits at the right edge. Project pages carry New; Not again passes its own;
-                the others carry none. No lede or health line here: the cards say it. */}
-            <PageHeader size="bar" title={trail[trail.length - 1]} actions={header?.actions ?? (['projects', 'work', 'health', 'playground'].includes(place) ? <NewTask /> : undefined)} meta={<Crumb trail={trail} compact={phone} href={header?.back ?? (projectOf() ? `#/work?project=${projectOf()}` : '#/work')} linked={place !== 'work'} />} />
+                {/* the bell is notifications only (CLAUDE.md Navigation): what needs you, what finished, what landed today.
+                    The Sessions panel opens from the running indicator and ⌘J */}
+                <Tooltip label="Notifications">
+                  <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `Notifications: ${needs} ${needs === 1 ? 'thing needs' : 'things need'} you` : 'Notifications'} ariaHaspopup="dialog" onClick={openNotices} />
+                </Tooltip>
+                {header?.actions ?? (['projects', 'work', 'health', 'playground'].includes(place) ? <NewTask /> : null)}
+              </Flow>
+            </Flow>
             {tabs ? (
               <Tabs className="chip-screen__tabs" tabs={tabs.items} value={tabs.value} onChange={tabs.onChange} label={tabs.label} idBase={tabs.idBase} />
             ) : null}
@@ -333,14 +385,21 @@ export default function Screen({ place, header, tabs, children }) {
       {/* after the page in the source so the menu button, which is in the page, is the first stop for the keyboard; the grid puts the menu back on the left */}
       {menuOut ? (
         <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} label="Menu" side={phone ? 'bottom' : 'left'}>
-          <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />
+          {/* the Find field first, as in the menu at full width (her mark-up, 23 Nov), 16 above the rows like the menu's
+              own gap between groups (23 Nov evening: it sat on the selected row) */}
+          <Flow gap={16}>
+            <Flow role="search" direction="row" gap={4} align="start" grow="first">
+              <Search inDrawer />
+            </Flow>
+            <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />
+          </Flow>
         </Drawer>
       ) : collapsed ? null : (
         <div className="chip-screen__menu">
           <div className="chip-screen__menu-body">
-            <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
+            <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} search={<Search />} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
           </div>
-          {/* the CHIP logotype, bottom right of the menu, inset like the rows (Elleta, 23 Nov: "the logo should maybe be bottom right of the menu") */}
+          {/* the CHIP logotype closes the menu, its left edge on the rows' icons (her mark-up, 23 Nov) */}
           <div className="chip-screen__logo"><div className="chip-screen__logo-mark"><BrandWordmark word="CHIP" variant="logotype" size="full-bleed" /></div></div>
           {/* CHIP has one client, so its list says so */}
           {clientsOpen ? (

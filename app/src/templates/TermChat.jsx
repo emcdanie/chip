@@ -85,7 +85,8 @@ function AgentRun({ id, onOpen }) {
 /* A plan's steps are the run's own actions, read from the server (GET /runs/plan): check, branch, change,
    gate, your Accept, then specs, docs and Storybook. The answer only says what the change is. */
 async function planSteps(answer) {
-  const { verdict } = answer.verdict ? { verdict: answer.verdict } : shapeReply(answer.reply ?? '');
+  // a request for work is the brief itself: her words, not CHIP's reply about it
+  const { verdict } = answer.offerPlan ? { verdict: answer.q } : answer.verdict ? { verdict: answer.verdict } : shapeReply(answer.reply ?? '');
   const what = String(verdict).replace(/\*\*|\[\d+\]/g, '').replace(/\s+([.,;:!?])/g, '$1').trim();
   const r = await fetch('/runs/plan');
   if (!r.ok) throw new Error('CHIP couldn’t read what a run does');
@@ -172,7 +173,7 @@ function Turn({ turn, last, sent, onAgent, onRetry, onStop }) {
         </Flow>
       ) : null}
       {a?.status === 'answer' ? (
-        <Reply who={a.model ? `BELLA · ${a.model}` : 'BELLA'} disc="B" extra={!sent && !a.needsConfirm ? <ActionChip onClick={() => onAgent(turn)}>{a.needsAgent ? 'Ask an agent' : 'Send it to the agent'}</ActionChip> : null}>
+        <Reply who={a.model ? `BELLA · ${a.model}` : 'BELLA'} disc="B" extra={!sent && !a.needsConfirm ? <ActionChip onClick={() => onAgent(turn)}>{a.offerPlan ? 'See the plan' : a.needsAgent ? 'Ask an agent' : 'Send it to the agent'}</ActionChip> : null}>
           <Flow gap={12}>
             <AnswerLines shaped={shaped} onPin={openPin} />
             {a.data?.length ? <DataAnswer data={a.data} /> : null}

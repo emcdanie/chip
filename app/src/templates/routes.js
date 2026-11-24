@@ -16,8 +16,51 @@ const MOVED = {
 // the short-lived Health > Work address (23 Nov, before her pick) opens Work
 const WORK_UNDER_HEALTH = /^#\/health\/work(?=[?]|$)/;
 
-/** The address in its new form, or the same address when it is already new. */
+// The pages CHIP draws today, on the CHIP / Screen template (main.jsx renders exactly these). An address is current when
+// its path (before any ?query) is one of them, or starts with one that takes a part after it.
+export const CURRENT = ['work', 'health', 'health/audits', 'playground', 'not-again', 'system-map', 'team', 'connectors', 'system/components', 'system/foundations', 'system/docs', 'system/history', 'present'];
+const WITH_PART = ['system/components', 'present'];
+const pathOf = (hash) => String(hash || '').replace(/^#?\/?/, '').split('?')[0].replace(/\/$/, '');
+/** Whether an address opens a current page (never the retired app). */
+export function isCurrent(hash) {
+  const path = pathOf(hash);
+  return CURRENT.includes(path) || WITH_PART.some((c) => path.startsWith(`${c}/`));
+}
+
+// The retired app's addresses (App.jsx: Overview, Projects, Atlas, the old Docs, Runs, Checks, OBI, the Kit) and any
+// address CHIP does not know open the current page that took their place, never the old design (Elleta, 23 Nov
+// evening: a menu item opened an old page; CLAUDE.md "Navigation").
+const RETIRED = {
+  'health-old': 'health',
+  overview: 'health',
+  checks: 'health',
+  gaps: 'health',
+  drift: 'health',
+  obi: 'health',
+  runs: 'work',
+  projects: 'work',
+  play: 'playground',
+  'connectors-old': 'connectors',
+  settings: 'connectors',
+  'history-old': 'system/history',
+  docs: 'system/docs',
+  atlas: 'system/components',
+  kit: 'system/components',
+  map: 'system-map',
+};
+
+/** The address in its new form, or the same address when it is already new. Never an address of the retired app. */
 export function canon(hash) {
+  const to = moved(hash);
+  if (isCurrent(to)) return to;
+  const m = String(to || '').match(/^#?\/?([\w-]*)(\/[^?]*)?(\?.*)?$/);
+  const head = m?.[1] ?? '';
+  // a retired Atlas part opens the same part on System > Components (#/atlas/button)
+  if (head === 'atlas' && m?.[2]) return `#/system/components${m[2]}`;
+  return `#/${RETIRED[head] ?? 'work'}`;
+}
+
+function moved(hash) {
   // Needs you is Work's filter, so the old #/needs address opens it there
   if (/^#?\/?needs\/?(?=[?]|$)/.test(String(hash || ''))) return '#/work?filter=needs';
   if (WORK_UNDER_HEALTH.test(hash)) return String(hash).replace('#/health/work', '#/work');

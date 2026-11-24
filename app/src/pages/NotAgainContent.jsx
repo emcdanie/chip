@@ -151,13 +151,9 @@ function Banner({ state, data, busy, act }) {
         action={{ label: busy === 'undo' ? 'Undoing…' : 'Undo', onClick: () => act('undo', () => post(`/runs/${encodeURIComponent(data.run.id)}/undo`), `Undone: the branch ${data.run.branch} is gone.`) }}
       />
     );
-  return (
-    <Notification
-      tone="info"
-      title="What is Not again?"
-      message="What keeps failing, and the fixes that make it stop. Make a check permanent: the agent fixes the cause on a copy, a reviewer presses Accept, and the fix lands under Closed loops with its before and after."
-    />
-  );
+  // no explainer bar: "What keeps coming back" and "Closed loops" say what the page is in their own lines, so the list
+  // leads (visual study, 23 Nov: the four-line "What is Not again?" notice was the first thing seen)
+  return null;
 }
 
 /* CHIP's run log, this week: how many saved fixes ran and how many a maintainer kept. Only the runs of the
@@ -306,7 +302,31 @@ async function makePermanent(r, reload) {
 function Recurring() {
   const { data, reload } = useCached(['/not-again/recurring'], { live: true });
   const d = data?.[0];
-  if (!d) return null;
+  // while the gate's 14 days are read, the two cards already stand at about their size, so the page doesn't jump
+  // when the rows arrive (interaction study, 23 Nov: 0.20 layout shift on load). BELLA has no skeleton part yet
+  // (a named gap); the lane-size empty state holds the space and says what is happening.
+  if (!d) {
+    return (
+      <>
+        <Flow span={12} fill>
+          <Card>
+            <Flow gap={16}>
+              <SectionHead icon="Book" iconTone="info" title="What keeps coming back" description="The gate's failures in the last 14 days, most often first. Make it permanent opens a plan to approve first; nothing runs before." />
+              <EmptyState size="lane" mark="⏳" title="Reading the last 14 days" line="The gate's failures, most often first." />
+            </Flow>
+          </Card>
+        </Flow>
+        <Flow span={12} fill>
+          <Card>
+            <Flow gap={16}>
+              <SectionHead icon="CheckCircle" iconTone="success" title="Closed loops" description="Permanent fixes that landed; the tag counts failures in the 14 days before → after" />
+              <EmptyState size="lane" mark="⏳" title="Reading the fixes that landed" line="Each with its before and after." />
+            </Flow>
+          </Card>
+        </Flow>
+      </>
+    );
+  }
   const rows = d.recurring ?? [];
   const loops = d.loops ?? [];
   const planned = d.planned ?? [];

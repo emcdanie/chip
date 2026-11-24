@@ -13,6 +13,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT, BELLA_JSON, BELLA_DIR } from './config.mjs';
+import { sessionTasks, ACTIVE_MIN, SESSION_HOURS } from './lanes.mjs';
+import { projectList } from './projects.mjs';
 
 const iso = (ms) => new Date(ms).toISOString();
 const readJson = (f) => {
@@ -123,7 +125,12 @@ async function needs(ctx) {
   const n = await ctx.needs();
   if (!n?.items) return null;
   const waiting = n.items.filter((i) => /waiting/i.test(i.status ?? 'Waiting on you'));
+  const head = waiting.length
+    ? `**${plural(waiting.length, 'thing')} ${waiting.length === 1 ? 'waits' : 'wait'} on you** (Needs you, read ${hhmm(ctx.now())}).`
+    : `**Nothing waits on you** (Needs you, read ${hhmm(ctx.now())}).`;
+  const reply = [head, ...waiting.slice(0, 3).map((i) => `- ${i.title}${i.risk ? ` (${String(i.risk).toLowerCase()} risk)` : ''}.`), ...(waiting.length > 3 ? [`- ${waiting.length - 3} more in Needs you.`] : [])].join('\n');
   return {
+    reply,
     id: 'needs', title: 'Needs you', source: 'CHIP Needs you (git, PRs, checks)', at: ctx.now(),
     facts: [{ label: 'Items waiting on you', value: String(waiting.length), ok: waiting.length === 0 }, ...(n.gate ? [{ label: 'Gate', value: `${n.gate.passed} of ${n.gate.total} pass` }] : [])],
     columns: ['What', 'Kind', 'Risk'], rows: n.items.slice(0, 20).map((i) => ({ What: i.title, Kind: i.kind, Risk: i.risk })),
@@ -252,7 +259,166 @@ async function improve(ctx) {
   };
 }
 
-export const SOURCES = { onSystem, drift, gaps, health, audits, history, needs, contrast, sweep, designed, built, improve };
+/* ---------- the work: sessions, runs, what landed, the board, where a piece of work is ----------
+   Elleta, 23 Nov: every question in CHIP got "I don't have data for that"; she expected it to know the work.
+   These read the Claude app's own session records (read only, CHIP's projects only, private titles and lines left
+   out, as the Work board does), CHIP's runs, the two working branches' git logs and the Work board. Each one writes
+   its own answer from the facts (no model), with where it was read and when. */
+
+const ago = (t, now) => {
+  const m = Math.max(0, Math.round((now - t) / 60e3));
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
+};
+const RUN_LIVE = ['starting', 'running', 'gate'];
+const firstSentence = (t) => {
+  const one = String(t ?? '').replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s/)[0];
+  // a long subject keeps its lead: what changed, before the colon that explains it
+  const lead = one.length > 140 && one.indexOf(': ') > 30 ? `${one.slice(0, one.indexOf(': '))}.` : one;
+  return lead.length > 180 ? `${lead.slice(0, lead.lastIndexOf(' ', 177))}…` : lead;
+};
+// a session's state in her words, from the app's own record
+export function sessionState(s, now) {
+  if (s.asks || s.status?.category === 'blocked') return 'waiting on you';
+  if (s.working) return 'working';
+  if (s.status?.category === 'review_ready') return 'ready for your review';
+  if (s.status?.category === 'completed') return 'done';
+  return 'quiet';
+}
+const stepNow = (s) => {
+  const total = s.steps?.length ?? 0;
+  const done = (s.steps ?? []).filter((x) => x.status === 'completed').length;
+  const cur = (s.steps ?? []).find((x) => x.status === 'in_progress');
+  return total ? `step ${Math.min(done + 1, total)} of ${total}${cur ? `: ${cur.text}` : ''}` : 'no steps listed';
+};
+const lastSaid = (s) => firstSentence(s.report || s.status?.detail || '') || (s.steps?.length ? `no report yet, at ${stepNow(s)}` : 'no report yet');
+
+// What is running now: sessions that wrote in the last few minutes, and CHIP's own runs that are going.
+async function running(ctx) {
+  const sessions = await ctx.sessions();
+  const runs = (await ctx.runs()) ?? [];
+  if (!sessions) return null;
+  const now = ctx.now();
+  const live = sessions.filter((s) => s.working);
+  const asking = sessions.filter((s) => sessionState(s, now) === 'waiting on you');
+  const going = runs.filter((r) => RUN_LIVE.includes(r.status));
+  const when = hhmm(now);
+  const lines = live.slice(0, 4).map((s) => `- **${s.title}** (${s.project}): ${stepNow(s)}.`);
+  if (live.length > 4) lines.push(`- ${live.length - 4} more on the Work board.`);
+  for (const r of going.slice(0, 2)) lines.push(`- CHIP run **${r.title}**: ${r.step ?? r.status}.`);
+  const head = live.length || going.length
+    ? `**${plural(live.length, 'session')}** ${live.length === 1 ? 'is' : 'are'} working now${going.length ? ` and **${plural(going.length, 'CHIP run')}** ${going.length === 1 ? 'is' : 'are'} going` : ''}; ${plural(asking.length, 'session')} ${asking.length === 1 ? 'waits' : 'wait'} on you (session records, read ${when}).`
+    : `**Nothing is running now**: no session wrote in the last ${ctx.activeMin?.() ?? 10} minutes and no CHIP run is going; ${plural(asking.length, 'session')} ${asking.length === 1 ? 'waits' : 'wait'} on you (session records, read ${when}).`;
+  return {
+    reply: [head, ...lines].join('\n'), id: 'running', title: 'Running now', source: 'Claude app session records + CHIP runs', at: now,
+    facts: [{ label: 'Sessions working now', value: String(live.length) }, { label: 'CHIP runs going', value: String(going.length) }, { label: 'Sessions waiting on you', value: String(asking.length), ok: asking.length === 0 }],
+    columns: ['Session', 'Project', 'Where it is', 'Last wrote'], rows: [...live.map((s) => ({ Session: s.title, Project: s.project, 'Where it is': stepNow(s), 'Last wrote': ago(s.updatedAt, now) })), ...going.map((r) => ({ Session: `CHIP run: ${r.title}`, Project: 'BELLA', 'Where it is': r.step ?? r.status, 'Last wrote': r.startedAt ? ago(Date.parse(r.startedAt), now) : '' }))],
+  };
+}
+
+// What each session last reported: the app's own recap line for each session of the last day and a half.
+async function sessions(ctx) {
+  const list = await ctx.sessions();
+  if (!list) return null;
+  const now = ctx.now();
+  const by = (s) => s.reportedAt ?? s.updatedAt ?? 0;
+  const sorted = [...list].sort((a, b) => by(b) - by(a));
+  const count = (st) => list.filter((s) => sessionState(s, now) === st).length;
+  const states = ['working', 'waiting on you', 'ready for your review', 'done', 'quiet'].map((st) => [st, count(st)]).filter(([, n]) => n);
+  const head = list.length
+    ? `**${plural(list.length, 'session')}** in the last ${ctx.sessionHours?.() ?? 36} hours: ${states.map(([st, n]) => `${n} ${st}`).join(', ')} (session records, read ${hhmm(now)}).`
+    : `**No sessions** in CHIP's projects in the last ${ctx.sessionHours?.() ?? 36} hours (session records, read ${hhmm(now)}).`;
+  const lines = sorted.slice(0, 5).map((s) => `- **${s.title}**, ${sessionState(s, now)}, ${ago(by(s), now)}: ${lastSaid(s)}`);
+  if (sorted.length > 5) lines.push(`- ${sorted.length - 5} more in Show data.`);
+  return {
+    reply: [head, ...lines].join('\n'), id: 'sessions', title: 'Sessions', source: 'Claude app session records (recap and status lines)', at: now,
+    facts: [{ label: 'Sessions in the last day and a half', value: String(list.length) }, ...states.map(([st, n]) => ({ label: st[0].toUpperCase() + st.slice(1), value: String(n), ok: st === 'waiting on you' ? n === 0 : undefined }))],
+    columns: ['Session', 'State', 'Last report', 'When', 'Model'], rows: sorted.map((s) => ({ Session: s.title, State: sessionState(s, now), 'Last report': lastSaid(s), When: ago(by(s), now), Model: s.model ?? '' })),
+  };
+}
+
+// What landed today on the two working branches. The commit subjects are written for her, so they are the answer.
+async function landed(ctx) {
+  const rows = ctx.landedCommits(ctx.since());
+  if (!rows) return null;
+  const now = ctx.now();
+  const by = {};
+  for (const r of rows) by[r.branch] = (by[r.branch] ?? 0) + 1;
+  const branches = ctx.landedBranches?.() ?? Object.keys(by);
+  const head = rows.length
+    ? `**${plural(rows.length, 'change')} landed** since ${ctx.sinceLabel()}: ${branches.map((b) => `${by[b] ?? 0} on ${b}`).join(', ')} (git log, read ${hhmm(now)}).`
+    : `**Nothing landed** since ${ctx.sinceLabel()} on ${branches.join(' or ')} (git log, read ${hhmm(now)}).`;
+  const lines = rows.slice(0, 5).map((r) => `- ${r.when}, ${r.branch}: ${firstSentence(r.subject)}`);
+  if (rows.length > 5) lines.push(`- ${rows.length - 5} more in Show data.`);
+  return {
+    reply: [head, ...lines].join('\n'), id: 'landed', title: 'What landed', source: `git log of ${branches.join(' and ')}`, at: now,
+    facts: [{ label: `Changes landed since ${ctx.sinceLabel()}`, value: String(rows.length) }, ...branches.map((b) => ({ label: b, value: plural(by[b] ?? 0, 'change') }))],
+    columns: ['Branch', 'When', 'Change'], rows: rows.map((r) => ({ Branch: r.branch, When: r.when, Change: r.subject })),
+  };
+}
+
+// The Work board, lane by lane: the same model the board draws.
+async function board(ctx) {
+  const m = await ctx.workBoard();
+  if (!m?.lanes) return null;
+  const now = ctx.now();
+  const head = `**${plural(m.total, 'card')} on the Work board**: ${m.lanes.map((l) => `${l.name} ${l.cards.length}`).join(', ')} (Work board, read ${hhmm(now)}).`;
+  const lines = m.lanes.filter((l) => ['now', 'next'].includes(l.id) && l.cards.length).map((l) => `- **${l.name}:** ${l.cards.slice(0, 3).map((c) => c.title).join('; ')}${l.cards.length > 3 ? `; ${l.cards.length - 3} more` : ''}.`);
+  return {
+    reply: [head, ...lines].join('\n'), id: 'board', title: 'Work board', source: 'Work board (sessions, runs, pull requests, progress board, your placements)', at: now,
+    facts: m.lanes.map((l) => ({ label: l.name, value: plural(l.cards.length, 'card') })),
+    columns: ['Lane', 'Card', 'Status'], rows: m.lanes.flatMap((l) => l.cards.slice(0, 15).map((c) => ({ Lane: l.name, Card: c.title, Status: c.line ?? c.status ?? '' }))),
+  };
+}
+
+// Where a named piece of work is: her words searched in session titles, plans and reports, branch names and commit subjects.
+const STOP = new Set('a an and are as at be been by can could did do does done for from has have how i in is it its me my of on or our over please show tell that the then this to up was we were what when where which who why will with work working yet you your landed land finished ready status happened happening going chip bella merged merge shipped ship built fixed into today now there'.split(' '));
+export function searchWords(question) {
+  return [...new Set(String(question).toLowerCase().replace(/[’']s\b/g, '').match(/[a-z0-9][a-z0-9-]{2,}/g) ?? [])].filter((w) => !STOP.has(w));
+}
+const hits = (text, words) => {
+  const t = String(text ?? '').toLowerCase();
+  return words.filter((w) => t.includes(w.replace(/s$/, ''))).length;
+};
+async function find(ctx, question) {
+  const words = searchWords(question);
+  if (!words.length) return null;
+  const now = ctx.now();
+  const need = Math.min(words.length, 2);
+  const list = (await ctx.sessions()) ?? [];
+  const found = [];
+  for (const s of list) {
+    const n = Math.max(hits(s.title, words), hits(`${s.title} ${(s.steps ?? []).map((x) => x.text).join(' ')} ${s.report ?? ''}`, words) - 1);
+    if (n >= need) found.push({ kind: 'Session', name: s.title, where: `${sessionState(s, now)}, ${stepNow(s)}`, said: lastSaid(s), t: s.reportedAt ?? s.updatedAt ?? 0, n });
+  }
+  const recent = ctx.recentCommits() ?? [];
+  // the integrator lands a branch as a copy of its commit: the same subject on a working branch counts as landed
+  const copied = (subject) => recent.find((c) => c.subject.slice(0, 100) === String(subject ?? '').slice(0, 100))?.branch ?? null;
+  for (const b of ctx.branches() ?? []) {
+    const n = hits(b.name.replace(/[/_-]/g, ' '), words) + hits(b.subject, words);
+    const merged = b.merged ?? copied(b.subject);
+    if (n >= need) found.push({ kind: 'Branch', name: `${b.repo}: ${b.name}`, where: b.merged ? `merged into ${b.merged}` : merged ? `its change landed on ${merged}` : 'not merged yet', merged, said: b.subject, t: b.t, n });
+  }
+  for (const c of recent) {
+    const n = hits(c.subject, words);
+    if (n >= need) found.push({ kind: 'Landed', name: `${c.branch}, ${c.day}`, where: `landed on ${c.branch}`, branch: c.branch, said: c.subject, t: c.t, n });
+  }
+  found.sort((a, b) => b.n - a.n || b.t - a.t);
+  const top = found.slice(0, 4);
+  const said = `"${words.join(' ')}"`;
+  // the answer to "is it done": a change on a working branch or a merged branch says landed, whatever else matches as well
+  const lead = found.find((f) => f.n === found[0]?.n && (f.kind === 'Landed' || f.merged)) ?? found[0];
+  const head = top.length
+    ? `**${lead.kind === 'Landed' ? `It landed on ${lead.branch} ${ago(lead.t, now)}` : lead.merged ? `It landed on ${lead.merged}` : lead.kind === 'Session' ? `Not landed yet: a session has it, ${lead.where}` : 'Not landed yet: it is on a branch that is not merged'}** (searched sessions, branches and the last two weeks of commits for ${said}, read ${hhmm(now)}).`
+    : `**Nothing matches ${said}** in the sessions of the last day and a half, the branches or the last two weeks of commits (read ${hhmm(now)}).`;
+  const lines = top.map((f) => `- ${f.kind} **${f.name}**, ${ago(f.t, now)}: ${firstSentence(f.said)}`);
+  return {
+    reply: [head, ...lines].join('\n'), id: 'find', title: `Where ${said} is`, source: 'session records, git branches, git log of chip/whole and chip/parts-dev', at: now,
+    facts: [{ label: `Matches for ${said}`, value: String(found.length) }, ...top.map((f) => ({ label: `${f.kind}: ${f.name}`, value: f.where }))],
+    columns: ['Kind', 'Name', 'Where', 'When', 'Said'], rows: found.slice(0, 15).map((f) => ({ Kind: f.kind, Name: f.name, Where: f.where, When: ago(f.t, now), Said: firstSentence(f.said) })),
+  };
+}
+
+export const SOURCES = { onSystem, drift, gaps, health, audits, history, needs, contrast, sweep, designed, built, improve, running, sessions, landed, board, find };
 
 /* ---------- the router ---------- */
 
@@ -269,20 +435,39 @@ const TOPICS = [
   ['contrast', /\bcontrast\b|\bwcag\b|\baaa\b|\b7:1\b/i],
   ['sweep', /\bdata sweep\b|\bsweep\b|\b(is|are) (the|these) (numbers|data)\b|\breal data\b|\bnumbers (right|correct|match)\b/i],
   ['designed', /\bdesigned\b|\bfeatures?\b|\bapproved screens?\b/i],
+  // the work (23 Nov): her own phrasings, as she asks them
+  ['landed', /\bwhat (has |have )?(landed|merged|shipped|gone in)\b|\blanded\b|\bmerged\b|\bwhat got done\b|\bwhat (did|have) (we|you|they) (do|done|finish\w*)\b/i],
+  ['running', /\bwhat(?:'s|’s| is| are)? (running|going on|happening)\b|\bwho(?:'s|’s| is) working\b|\b(is )?anything running\b|\bwhat(?:'s|’s| is) being worked on\b|\bwhat are (the |my )?agents\b|\brunning now\b/i],
+  ['sessions', /\bsessions?\b|\b(last|latest) (report|update)s?\b|\bwhat did .* (say|report)\b|\bcoordinator\b|\bbuilders?\b/i],
+  ['board', /\bwork ?board\b|\bboard\b|\blanes?\b|\bin (now|next)\b|\bon the board\b/i],
 ];
-export const TOPIC_IDS = [...TOPICS.map(([id]) => id), 'component'];
+// "where are we": her three lines, done, waiting on you, what's going
+const WHERE_ARE_WE = /\bwhere are we\b|\bwhere do we stand\b|\bcatch me up\b|\bwhat'?s the status\b|^\s*status\??\s*$/i;
+// "is X done", "where is X", "did X land": her words searched across the work
+const FIND = /^\s*(is|are|has|have|did|was)\s+(?!(?:anything|everything|something|it|this|that)\b)(.+?)\s+(done|finished|ready|land(?:ed)?|merge[ds]?|ship(?:ped)?|built|working|fixed|in)\b|\bwhere(?:'s|’s| is| are)\s+(?!we\b)(?:the\s+)?(.+?)\??\s*$|\bwhat happened (to|with)\b|\bhow far (is|are|along)\b|\bstatus of\b/i;
+export const TOPIC_IDS = [...TOPICS.map(([id]) => id), 'component', 'find'];
 const MAX_SOURCES = 3;
 
 /** The source ids a question needs, by keywords; the part named in it, if any. */
 export function classify(question, partNames = []) {
   const q = String(question ?? '');
+  if (WHERE_ARE_WE.test(q)) return { ids: ['landed', 'needs', 'running'], part: null };
+  // a request for work is not a question for the data: it gets the plan (23 Nov: "make the side menu wider" read the Menu part)
+  if (WORK_REQUEST.test(q)) return { ids: [], part: null, work: true };
   let ids = TOPICS.filter(([, re]) => re.test(q)).map(([id]) => id);
+  // what landed is the two working branches; the older all-commits read would repeat it
+  if (ids.includes('landed')) ids = ids.filter((x) => x !== 'history');
+  if (ids.includes('running')) ids = ids.filter((x) => x !== 'sessions' && x !== 'health');
+  // a named piece of work: searched first; the topic words in it ("drift", "gate") still bring their own read
+  if (FIND.test(q) && searchWords(q).length) ids = ['find', ...ids.filter((x) => !['landed', 'history', 'designed', 'gaps'].includes(x))];
   // the two overview questions carry their own parts: no second source repeats what they already list
   if (ids.includes('built')) ids = ['built'];
   else if (ids.includes('improve')) ids = ids.filter((x) => !['gaps', 'drift', 'audits', 'designed'].includes(x));
   const part = partNames.find((n) => new RegExp(`\\b${n}\\b`, 'i').test(q)) ?? null;
   // a part named in the question is its own source, unless the question is about the whole app
-  if (part && !ids.includes('onSystem') && !ids.includes('built')) ids.unshift('component');
+  // "is the drawer footer done" is about the work, not the Drawer part: the part only when it is all she named
+  const onlyPart = part && searchWords(q).every((w) => part.toLowerCase().includes(w.replace(/s$/, '')));
+  if (part && !ids.includes('onSystem') && !ids.includes('built') && (!ids.includes('find') || onlyPart)) ids.unshift('component');
   return { ids: ids.slice(0, MAX_SOURCES), part };
 }
 
@@ -300,13 +485,13 @@ export async function pickWithModel(question, pick) {
 /** Run the reads a question needs. Returns { ids, results: [source result], failed: [ids that threw or had no data] }. */
 export async function gather(question, ctx, { pick } = {}) {
   const names = (ctx.bella()?.components ?? []).map((c) => c.name);
-  let { ids, part } = classify(question, names);
-  if (!ids.length) ids = await pickWithModel(question, pick);
+  let { ids, part, work } = classify(question, names);
+  if (!ids.length && !work) ids = await pickWithModel(question, pick);
   const results = [];
   const failed = [];
   for (const id of ids) {
     try {
-      const r = id === 'component' ? await component(ctx, part) : await SOURCES[id](ctx);
+      const r = id === 'component' ? await component(ctx, part) : id === 'find' ? await find(ctx, question) : await SOURCES[id](ctx);
       if (r) results.push(r);
       else failed.push(id);
     } catch {
@@ -323,7 +508,7 @@ export const DATA_SYSTEM = `You are BELLA, the assistant inside CHIP, for Elleta
 Answer ONLY from the DATA block in the message. Rules:
 - Two or three short sentences, plain words, no headings, no lists, no emoji, no offers. Start with the answer and its number; never explain what a word means.
 - Say the numbers exactly as the DATA gives them, with the source's name and when it was measured ("measured 16:49").
-- If the DATA does not answer the question, say "I don't have data for that." and stop.
+- If the DATA does not answer the question exactly, say what the DATA does show, in one sentence, with its number.
 - Never guess, never add general knowledge, never quote a document.
 - Never write numbers that are not in the DATA.`;
 
@@ -353,10 +538,24 @@ export function numbersHeld(reply, results) {
 // no model: the same answer from the facts alone (a model that is off, or one that wrote an unknown number)
 export function plainReply(results) {
   if (results.length === 1 && results[0].reply) return results[0].reply;
+  // several at once ("where are we"): each answer's lead line and its first two items, the rest is in Show data
+  if (results.length && results.every((r) => r.reply)) return results.map((r) => r.reply.split('\n').filter((l) => !/^- \d+ more\b/.test(l)).slice(0, 3).join('\n')).join('\n');
   return results.map((r) => `${r.title}: ${r.facts.slice(0, 3).map((f) => `${f.label.toLowerCase()} ${f.value}`).join('; ')}.`).join(' ');
 }
 
-export const NO_DATA = "I don't have data for that.";
+// When no read fits (23 Nov: "every time I ask a question it says I don't have data for that"): say what CHIP can
+// answer, in one line; a request for work gets the plan route (a plan first, nothing runs). Never "open a session".
+export const CAN_ANSWER = 'what is running, what each session last reported, what landed today, what needs you, the Work board, where a piece of work is, and BELLA’s checks (on system, drift, gaps, the gate, audits, contrast)';
+export const NO_DATA = `CHIP’s data doesn’t cover that. I can answer ${CAN_ANSWER}.`;
+// a request for work, not a question: her imperative, or "can you ..."
+export const WORK_REQUEST = /^\s*(please\s+)?(make|add|fix|build|change|update|create|write|remove|delete|rename|move|redo|rebuild|refactor|implement|draft|turn|put|set up|clean|tidy|run|start|send|open a (pr|pull request)|align|replace)\b|^\s*(can|could|would|will) you\s+(please\s+)?(make|add|fix|build|change|update|create|write|remove|rename|move|redo|rebuild|implement|draft|turn|put|set up|clean|tidy|run|start|align|replace)\b|^\s*(i want|i need|let'?s|we need to)\b(?!\s+(to\s+)?(know|see|understand|check|find out|hear|ask)\b)/i;
+export function noDataReply(question) {
+  return WORK_REQUEST.test(String(question ?? ''))
+    ? { reply: 'That is work for an agent, not a question CHIP’s data answers. See the plan: an agent’s steps for it, and nothing runs until you press Start.', offerPlan: true }
+    : { reply: NO_DATA, offerPlan: false };
+}
+// a model that says the data doesn't answer is replaced by the facts themselves
+export const SAYS_NO_DATA = /\b(don'?t|do not|doesn'?t|does not) (have|hold|show|say|contain|include)\b.*\b(data|that|this)\b|\bno data\b/i;
 
 /* ---------- the real readers ---------- */
 
@@ -381,6 +580,48 @@ function gitCommits(since) {
     } catch {}
   }
   return out.sort((a, b) => b.t - a.t);
+}
+
+// the two working branches (her words: "what landed today in chip/whole and chip/parts-dev"); env-tunable for a test checkout
+export const LANDED = [[process.env.CHIP_WHOLE_BRANCH || 'chip/whole', ROOT], [process.env.BELLA_PROPOSAL_BASE || 'chip/parts-dev', BELLA_DIR]];
+const gitText = (dir, args) => execFileSync('git', ['-C', dir, '--no-optional-locks', ...args], { encoding: 'utf8', timeout: 10_000, maxBuffer: 16 << 20, stdio: ['ignore', 'pipe', 'ignore'] });
+/** What landed since midnight on the two working branches, newest first (the bell's "Landed" list). */
+export const landedToday = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return (branchCommits(d.toISOString()) ?? []).map((c) => ({ ...c, subject: firstSentence(c.subject) }));
+};
+function branchCommits(since) {
+  const out = [];
+  let reached = false;
+  for (const [branch, dir] of LANDED) {
+    try {
+      const text = gitText(dir, ['log', branch, `--since=${since}`, '--no-merges', '--format=%h%x09%ct%x09%s']);
+      reached = true;
+      for (const l of text.split('\n').filter(Boolean)) {
+        const [hash, ct, ...s] = l.split('\t');
+        const t = +ct * 1000;
+        out.push({ branch, hash, t, when: hhmm(t), day: new Date(t).toISOString().slice(0, 10), subject: s.join(' ').slice(0, 220) });
+      }
+    } catch {}
+  }
+  return reached ? out.sort((a, b) => b.t - a.t) : null;
+}
+// local branches in both repos, newest first, each with whether a working branch already holds it
+function branchList() {
+  const out = [];
+  for (const [base, dir, repo] of [[LANDED[0][0], ROOT, 'CHIP'], [LANDED[1][0], BELLA_DIR, 'BELLA']]) {
+    try {
+      const merged = new Set(gitText(dir, ['branch', '--format=%(refname:short)', '--merged', base]).split('\n').filter(Boolean));
+      const text = gitText(dir, ['for-each-ref', '--sort=-committerdate', '--count=150', '--format=%(refname:short)%09%(committerdate:unix)%09%(subject)', 'refs/heads']);
+      for (const l of text.split('\n').filter(Boolean)) {
+        const [name, ct, ...s] = l.split('\t');
+        if (name === base) continue;
+        out.push({ repo, name, t: +ct * 1000, subject: s.join(' ').slice(0, 220), merged: merged.has(name) ? base : null });
+      }
+    } catch {}
+  }
+  return out;
 }
 
 function importedParts(src) {
@@ -490,6 +731,16 @@ export function defaultCtx(deps = {}) {
     },
     builtInfo,
     onSystemReport,
+    // the work: the app's session records (CHIP's projects only, private lines left out), CHIP's runs, the board, git
+    sessions: async () => (deps.sessions ? deps.sessions() : sessionTasks(projectList().filter((p) => existsSync(p.repo)))),
+    runs: async () => (deps.runs ? deps.runs() : []),
+    workBoard: async () => (deps.workBoard ? deps.workBoard() : null),
+    landedCommits: (since) => branchCommits(since),
+    landedBranches: () => LANDED.map(([b]) => b),
+    branches: () => branchList(),
+    recentCommits: () => branchCommits(new Date(Date.now() - 14 * 864e5).toISOString()),
+    activeMin: () => ACTIVE_MIN,
+    sessionHours: () => SESSION_HOURS,
     board: boardCounts,
     designedText: () => {
       const f = join(homedir(), 'DEV/chip/docs/reference/designed-features.md');

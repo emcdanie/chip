@@ -9,6 +9,7 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
+import IconWell from '@bella/components/IconWell/IconWell';
 import Tag from '@bella/components/Tag/Tag';
 import Button from '@bella/components/Button/Button';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
@@ -260,10 +261,32 @@ function useStoryTheme() {
  *  stage at a width you choose, light or dark with the page (Elleta, 23 Nov: "most of the components are missing, I just
  *  see the empty state"). No story says so and offers to add one. Measures that need the part's own elements (pins,
  *  target, focus, contrast, reader) cannot reach into the frame and say so. */
-export function StorySample({ name }) {
+export function StorySample({ name, bare = false }) {
   const story = useStory(name, 'story');
   const theme = useStoryTheme();
-  const [w, setW] = useState('fit');
+  // one preview frame for every part (23 Nov: "each component takes a long time to load"): the first part loads Storybook's
+  // preview; the next ones ask that loaded preview to show their story (its own channel, setCurrentStory), so a switch
+  // draws the new story without booting Storybook again. A theme change or a frame not ready yet loads the address.
+  const frame = useRef(null);
+  const [src, setSrc] = useState(null);
+  const loaded = useRef({ theme: null });
+  useEffect(() => {
+    if (story.state !== 'found') return;
+    const url = `${story.frame}&globals=theme:${theme}`;
+    let ch = null;
+    try {
+      ch = frame.current?.contentWindow?.__STORYBOOK_ADDONS_CHANNEL__ ?? null;
+    } catch {
+      ch = null;
+    }
+    if (src && ch && loaded.current.theme === theme) {
+      ch.emit('setCurrentStory', { storyId: story.id, viewMode: 'story' });
+      return;
+    }
+    loaded.current.theme = theme;
+    setSrc(url);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story.state, story.id, theme]);
   // Fit is the stage's own inner width (a shrink-wrapped parent would leave the frame at 300)
   const holder = useRef(null);
   const [room, setRoom] = useState(null);
@@ -287,10 +310,10 @@ export function StorySample({ name }) {
   if (story.state !== 'found') return <TextStack body="Reading BELLA’s Storybook index." />;
   return (
     <Flow gap={8} data-story-sample="found">
-      <div ref={holder}>
-        <SegmentedControl label="Sample width" value={w} onChange={setW} options={WIDTHS} />
-      </div>
-      <iframe title={`${name} in BELLA’s Storybook`} src={`${story.frame}&globals=theme:${theme}`} loading="lazy" style={{ inlineSize: w === 'fit' ? (room ? Math.max(0, room - 32) : '100%') : `min(${w}px, ${room ? Math.max(0, room - 32) : 9999}px)`, blockSize: 'calc(var(--spacing-80) * 4)', border: 0 }} />
+      {/* no width switch on the stage: one control group per page, and the story drawer has the widths. bare: the
+          accessibility views measure the part inside the frame, so the frame fills its holder */}
+      <div ref={holder} />
+      <iframe ref={frame} title={`${name} in BELLA’s Storybook`} src={src ?? undefined} style={{ inlineSize: bare ? '100%' : room ? Math.max(0, room - 32) : '100%', blockSize: 'calc(var(--spacing-80) * 4)', border: 0 }} />
     </Flow>
   );
 }
@@ -388,12 +411,13 @@ export function ContractCard({ name }) {
         ) : null}
         {c?.found ? (
           <Flow as="ul" gap={0} aria-label="Contract">
-            <ListRow title="Spec" layout="inline" statusBar={st.tone} valueLabel={st.word} trailing onClick={() => setOpen('Spec status')} />
+            <ListRow title="Spec" layout="inline" statusBar={st.tone} valueLabel={st.word} trailing="NavArrowRight" onClick={() => setOpen('Spec status')} />
             {rows.map((r) => (
-              <ListRow key={r.name} title={r.name} layout="inline" value={r.n} trailing onClick={() => setOpen(r.name)} />
+              <ListRow key={r.name} title={r.name} layout="inline" value={r.n} trailing="NavArrowRight" onClick={() => setOpen(r.name)} />
             ))}
-            <ListRow title="Open the story" layout="inline" trailing onClick={() => setOpen('story')} />
-            {c.spec ? <ListRow title="Open the spec" layout="inline" trailing onClick={() => setOpen('spec')} /> : null}
+            {/* Storybook opens inside CHIP, so its mark says which tool and › says it stays here (↗ is for leaving) */}
+            <ListRow title="Open story" layout="inline" iconWell={<IconWell icon="Storybook" tone="neutral" size="sm" />} trailing="NavArrowRight" onClick={() => setOpen('story')} />
+            {c.spec ? <ListRow title="Open the spec" layout="inline" trailing="NavArrowRight" onClick={() => setOpen('spec')} /> : null}
           </Flow>
         ) : null}
       </Flow>

@@ -23,7 +23,7 @@
 // must stay hits, three that must not): a rule that hides a real clip stops
 // the sweep. --self-test runs only that.
 //
-// Usage: node scripts/clip-sweep.mjs [--app http://localhost:3160] [--out dir]
+// Usage: node scripts/clip-sweep.mjs [--app http://localhost:3160] [--out dir] [--markup on]
 //        [--pages work,health] [--widths 1100] [--themes light] [--self-test]
 // Needs a CHIP server and Playwright in BELLA_DIR (as checkpoint.mjs).
 import { createRequire } from 'node:module';
@@ -42,6 +42,8 @@ const PAGES = arg('pages', 'work,health,components,foundations,history,playgroun
 const WIDTHS = arg('widths', '320,768,1024,1100,1440').split(',').map(Number);
 const THEMES = arg('themes', 'light,dark').split(',');
 const DRAWER = arg('drawer', 'closed,open').split(',');
+// --markup on: every page with Mark up switched on (its pins, comment box and bar drawn over the page), as she uses it
+const MARKUP = arg('markup', 'off') === 'on';
 
 const { chromium } = createRequire(join(bellaDir(), 'package.json'))('playwright');
 
@@ -137,7 +139,12 @@ function measure() {
     // gap from the box edge to the clip line, and the layer's push toward that side
     const sides = { l: [r.left - b.l, (l) => -l.x], r: [b.r - r.right, (l) => l.x], t: [r.top - b.t, (l) => -l.y], b: [b.b - r.bottom, (l) => l.y] };
     const out = [];
+    // the element's own clip-path inset(...) hides its shadow past a side clipped at the box (0 or more): nothing
+    // is drawn there to be cut (24 Nov: the drawer footer's shadow/md-up shows only upward)
+    const own = getComputedStyle(el).clipPath.match(/^inset\(([^)]*)\)/)?.[1].split(/\s+/).map(parseFloat);
+    const clipAt = own ? { t: own[0], r: own[1] ?? own[0], b: own[2] ?? own[0], l: own[3] ?? own[1] ?? own[0] } : null;
     for (const [k, [gap, push]] of Object.entries(sides)) {
+      if (clipAt && clipAt[k] >= 0) continue;
       if ((k === 'l' || k === 'r') && !c.x) continue;
       if ((k === 't' || k === 'b') && !c.y) continue;
       // a side the box can still scroll toward is a fold, not a clip: more content waits past it, as at the
@@ -287,6 +294,7 @@ for (const page of PAGES) {
     for (const w of WIDTHS) {
       for (const drawer of DRAWER) {
         const p = await browser.newPage({ viewport: { width: w, height: 900 } });
+        if (MARKUP) await p.addInitScript(() => { try { sessionStorage.setItem('chip.markup.on', '1'); } catch {} });
         await p.goto(`${APP}/#/${page}`);
         await p.waitForTimeout(2500);
         if (theme === 'dark') await p.evaluate(() => document.documentElement.setAttribute('data-theme', 'chip-dark'));

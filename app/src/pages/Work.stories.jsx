@@ -12,5 +12,3 @@ export default {
 export const Default = { args: { model: figmaModel } };
 /** Nothing on the board. */
 export const ClearDay = { name: 'Clear day', args: { model: clearModel } };
-/** Every card in one list. */
-export const List = { args: { model: figmaModel, view: 'list' } };

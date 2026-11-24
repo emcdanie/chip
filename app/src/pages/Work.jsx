@@ -12,7 +12,8 @@ export default function Work({ model: given, view: startView = 'board' }) {
   const live = useWork();
   const [view, setViewNow] = useState(() => {
     const v = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('view');
-    return ['board', 'table', 'list'].includes(v) ? v : startView;
+    // the List view is gone (23 Nov): an old ?view=list address opens the board
+    return ['board', 'table'].includes(v) ? v : startView;
   });
   // the view is part of the address (second pass S6), so a shared link opens the same one
   const setView = (v) => {
@@ -29,7 +30,7 @@ export default function Work({ model: given, view: startView = 'board' }) {
       // it waits rather than pointing somewhere it doesn't do.
       header={{ title: 'CHIP' }}
     >
-      <WorkContent model={given ?? live.model} filter={given ? {} : filterFromHash()} view={view} onView={setView} checked={given ? '10:29' : live.checked} last={given ? null : live.last} onCheck={live.reload} loading={!given && live.loading} />
+      <WorkContent model={given ?? live.model} filter={given ? {} : filterFromHash()} view={view} onView={setView} checked={given ? '10:29' : live.checked} unread={given ? [] : live.unread} last={given ? null : live.last} onCheck={live.reload} loading={!given && live.loading} />
     </Screen>
   );
 }

@@ -14,7 +14,9 @@ import FilterChip from '@bella/components/FilterChip/FilterChip';
 import Input from '@bella/components/Input/Input';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
-import { Facts, Inset } from './ReadingDrawer.jsx';
+import { Inset, ListHead, ReadingTable } from './ReadingDrawer.jsx';
+import Marker from '@bella/components/Marker/Marker';
+import SectionHead from '@bella/components/SectionHead/SectionHead';
 import { planRun } from './RunPlan.jsx';
 
 const post = (url, body) =>
@@ -23,6 +25,19 @@ const post = (url, body) =>
     if (!r.ok) throw new Error(j.error ?? 'CHIP did not answer');
     return j;
   });
+
+/* The keyword marker on the few words a skimmer needs (22 Nov rule): markLead marks a line's first count ("32 of 42
+   parts"); markPhrase marks one given phrase where it appears. Never a title or a part name. */
+export function markLead(text) {
+  const m = /\d+(?: of \d+)?(?: [a-z]+)?/.exec(text ?? '');
+  if (!m) return text;
+  return <>{text.slice(0, m.index)}<Marker>{m[0]}</Marker>{text.slice(m.index + m[0].length)}</>;
+}
+export function markPhrase(text, phrase) {
+  const i = (text ?? '').toLowerCase().indexOf(phrase);
+  if (i < 0) return text;
+  return <>{text.slice(0, i)}<Marker>{text.slice(i, i + phrase.length)}</Marker>{text.slice(i + phrase.length)}</>;
+}
 
 /** "About 6 min: the average of your last 4 runs", from the runs CHIP kept; null when none finished. */
 export function measuredMinutes(runs = []) {
@@ -71,14 +86,35 @@ export function useFixPlan(plan, onBefore) {
     onBefore?.(); // the drawer closes first, so the plan sheet opens on top, never under it
     setTimeout(() => planRun({ title: plan.title, from: plan.from, brief }).catch(() => {}), 150);
   };
+  // a step list of "Part: what to do" lines reads as a compact table (part, the fix, the fields), not a sentence per part
+  // (23 Nov evening, her Drift drawer: "super text heavy"); any other list stays short bullets
+  const parsed = steps.map((t, i) => {
+    const m = /^([^:]{1,40}):\s*(.+)$/.exec(t);
+    if (!m) return null;
+    const n = /\bon (\d+) fields?\b/.exec(m[2]);
+    const fix = m[2].replace(/\s*on \d+ fields?\b/, '').replace(/\.$/, '');
+    return { key: String(i), part: m[1], fix: fix[0].toUpperCase() + fix.slice(1), fields: n ? Number(n[1]) : null };
+  });
+  const rowsOk = parsed.filter(Boolean);
+  const asTable = !editing && rowsOk.length >= 3 && rowsOk.length >= steps.length * 0.8;
+  const others = steps.filter((_, i) => !parsed[i]); // a closing instruction ("Follow BELLA AGENTS.md…"): one bullet under the table
+  const edit = (
+    <Button variant="tertiary" size="sm" ariaExpanded={editing} onClick={() => setEditing(!editing)}>
+      {editing ? 'Done editing' : 'Edit the plan'}
+    </Button>
+  );
+  const first = (plan.summary ?? '').match(/^.+?[.!?](?=\s|$)/)?.[0] ?? plan.summary;
+  const [took, why] = (plan.minutes ?? '').split(/:\s*/);
   const body = (
-    <Inset gap={16}>
+    <Inset gap={16} data-glide="rows">
+      {/* the plan's own heading, one step under the drawer's title (SectionHead card size, 16/600), its one line with the
+          count marked; the rest of the summary is said by Expect below */}
       <Flow gap={4} id="fix-plan">
-        <TextStack title="Recommended plan" />
-        <TextStack body={plan.summary} />
+        <SectionHead size="card" titleLevel={3} title="Recommended plan" showInfo={false} />
+        {first ? <TextStack body={markLead(first)} /> : null}
       </Flow>
       {plan.scope ? (
-        <Flow direction="row" gap={8} wrap align="center" role="group" aria-label="What the plan covers">
+        <Flow direction="row" gap={8} swipe align="center" role="group" aria-label="What the plan covers">
           {plan.scope.options.map((o) => (
             <FilterChip key={o.value} size="compact" pressed={plan.scope.value === o.value} onClick={() => plan.scope.onChange(o.value)}>
               {o.label}
@@ -86,39 +122,71 @@ export function useFixPlan(plan, onBefore) {
           ))}
         </Flow>
       ) : null}
-      {editing ? (
-        <Input label="The plan: edit it" multiline value={brief} onChange={setBrief} />
-      ) : (
-        <Flow gap={8}>
-          {lead ? <TextStack body={lead} /> : null}
-          <Flow as="ol" gap={4} bullets aria-label="The plan's steps">
-            {(allSteps ? steps : steps.slice(0, SHOWN)).map((t, i) => (
-              <li key={i}>
-                <TextStack body={t} />
-              </li>
-            ))}
-          </Flow>
+      {asTable ? (
+        <ReadingTable
+          caption="The plan's steps"
+          unit="steps"
+          density="compact"
+          first={7}
+          headExtra={edit}
+          nested
+          rows={rowsOk}
+          columns={[
+            { key: 'part', label: 'Part' },
+            { key: 'fix', label: 'Fix', stackUnder: true },
+            ...(rowsOk.some((r) => r.fields != null) ? [{ key: 'fields', label: 'Fields', numeric: true, render: (r) => r.fields ?? '—' }] : []),
+          ]}
+        />
+      ) : null}
+      {asTable && others.length ? (
+        <Flow as="ul" gap={4} bullets aria-label="Also in the plan">
+          {others.map((t) => (
+            <li key={t}>
+              <TextStack body={t} />
+            </li>
+          ))}
         </Flow>
+      ) : null}
+      {asTable ? null : (
+        <>
+          {/* the steps' count and the toggles sit above the steps (ListHead), so Show fewer is where she pressed Show all */}
+          <ListHead
+            shown={editing ? steps.length : allSteps ? steps.length : Math.min(SHOWN, steps.length)}
+            total={steps.length}
+            unit="steps"
+            open={!editing && allSteps}
+            onToggle={editing ? undefined : () => setAllSteps(!allSteps)}
+            extra={edit}
+          />
+          {editing ? (
+            <Input label="The plan: edit it" multiline value={brief} onChange={setBrief} />
+          ) : (
+            <Flow gap={8}>
+              {lead ? <TextStack body={lead} /> : null}
+              <Flow as="ol" gap={4} bullets aria-label="The plan's steps">
+                {(allSteps ? steps : steps.slice(0, SHOWN)).map((t, i) => (
+                  <li key={i}>
+                    <TextStack body={t} />
+                  </li>
+                ))}
+              </Flow>
+            </Flow>
+          )}
+        </>
       )}
-      <Flow direction="row" gap={8} justify="end" wrap>
-        {!editing && steps.length > SHOWN ? (
-          <Button variant="tertiary" size="sm" ariaExpanded={allSteps} onClick={() => setAllSteps(!allSteps)}>
-            {allSteps ? 'Show fewer steps' : `Show all ${steps.length} steps`}
-          </Button>
-        ) : null}
-        <Button variant="tertiary" size="sm" ariaExpanded={editing} onClick={() => setEditing(!editing)}>
-          {editing ? 'Done editing' : 'Edit the plan'}
-        </Button>
+      {/* three short bullets, the label first, the key words marked (23 Nov evening: "even the starts of Takes, You do and
+          Expect could be bullets"; READ FIRST: short bullets with the few key words marked) */}
+      <Flow as="ul" gap={8} bullets aria-label="About this plan">
+        <li>
+          <TextStack body={<><strong>Takes:</strong> {plan.minutes ? <><Marker>{took}</Marker>{why ? `, ${why[0].toLowerCase()}${why.slice(1)}` : ''}</> : <>not timed yet; <Marker>the first run</Marker> sets it.</>}</>} />
+        </li>
+        <li>
+          <TextStack body={<><strong>You do:</strong> {plan.youDo ?? <>press <Marker>Start</Marker>, run it from the card, approve, then Accept or Undo.</>}</>} />
+        </li>
+        <li>
+          <TextStack body={<><strong>Expect:</strong> {markPhrase(plan.expect ?? 'a card on Work; nothing is pushed.', 'nothing is pushed')}</>} />
+        </li>
       </Flow>
-      {/* one card she approves whole (template plan): three inline lead-ins, not three headings */}
-      <Facts
-        label="About this plan"
-        facts={[
-          { label: 'Takes', value: plan.minutes ?? 'Not measured yet: CHIP has no finished run to time. The first one sets it.' },
-          { label: 'You do', value: plan.youDo },
-          { label: 'Expect', value: plan.expect },
-        ]}
-      />
     </Inset>
   );
   // after Start the footer says what happened and its primary becomes See it on the board; a failure says why
