@@ -446,7 +446,9 @@ function Record({ id, fit, landing }) {
   const [shown, setShown] = useState(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => (asker.clear(), setShown(null)), [id]);
-  if (!rec) return <Card><EmptyState size="lane" title="Opening the record" line="Reading it from git. Two ticks." /></Card>;
+  // a real loading state, said as one (aria-busy): readers hear it is coming, and the card check waits for it to end
+  // instead of measuring a half-drawn pane (24 Nov: a cold server held this record back about 3s behind Work's board)
+  if (!rec) return <Card><Flow aria-busy="true" aria-live="polite"><EmptyState size="lane" title="Opening the record" line="Reading it from git. Two ticks." /></Flow></Card>;
   const files = Array.isArray(rec.files) ? rec.files : [];
   // Ask about this change (her 22 Nov: "too hidden and doesnt come with suggestions"): up under the Why, four questions
   // built from this record's own data, the first as the grey ghost, the answer right under the field. The record's own
