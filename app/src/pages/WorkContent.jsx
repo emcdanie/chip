@@ -231,7 +231,7 @@ function useMove({ open }) {
   return { drag, over, setOver, menu, setMenu, start, end, drop, back, notice, setNotice, open };
 }
 
-export default function WorkContent({ model: all, filter: hashFilter = {}, view = 'board', onView, checked, last, onCheck, loading }) {
+export default function WorkContent({ model: all, filter: hashFilter = {}, view = 'board', onView, checked, unread = [], last, onCheck, loading }) {
   const phone = useNarrow();
   const { data: proj, reload: reloadProj } = useCached(['/projects']);
   useEffect(() => {
@@ -423,7 +423,7 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
         <Flow direction="row" gap={16} wrap align="center" justify={phone ? 'start' : 'end'}>
           <TextStack title={all ? `${working} at work · ${waiting} wait on you` : 'Reading the board'} />
           <Flow direction="row" gap={8} align="center">
-            {last ? <LastRun when={clockWords(last.at)} took={tookWords(last.tookMs)} result={last.found} /> : checked ? <TextStack subtitle={`Checked ${checked}`} /> : null}
+            {last ? <LastRun when={clockWords(last.at)} took={tookWords(last.tookMs)} result={last.found} /> : checked ? <TextStack subtitle={`Checked ${checked}${unread.length ? ` · could not read: ${[...new Set(unread.map((u) => u.why))].join('; ')}` : ''}`} /> : null}
             <Button variant="tertiary" size="sm" icon="RefreshDouble" leadingIcon busy={!!loading} onClick={() => ((checkAsked.current = true), onCheck?.())}>
               {loading ? 'Checking…' : 'Check again'}
             </Button>

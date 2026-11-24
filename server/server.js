@@ -28,7 +28,8 @@ import { accept, fixableChecks, keep, readActions, reviewCard, reviewImage, undo
 import { closedLoops, plannedFixes, recurring } from './lib/not-again.mjs';
 import { fixesRoutes, readFixes } from './lib/fixes.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
-import { saveBoard, saveIdea, workBoard, workLanes } from './lib/lanes.mjs';
+import { workBoardLive } from './lib/progress-live.mjs';
+import { saveBoard, saveIdea, workLanes } from './lib/lanes.mjs';
 import { claudeReady, gateReady, getRun, keepRun, listRuns, runClock, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
 import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
@@ -607,7 +608,8 @@ app.get('/work/lanes', async (_req, res) => res.json(await workLanes()));
 // the board in her Notion lanes: sessions and their steps, the progress board, components that need work, her order
 app.get('/work/board', (_req, res) => {
   try {
-    res.json(workBoard());
+    bellaWork.keepBellaFresh(); // the components that need work are read from the BELLA snapshot: re-sync it when BELLA moved
+    res.json(workBoardLive());
   } catch (e) {
     errorOut(res, e);
   }
@@ -776,6 +778,7 @@ app.get('/stories', async (_req, res) => res.json(await storyIndex()));
 // Do next: per component, what each Overview gap needs and the suggested fix
 app.get('/gaps', (_req, res) => {
   try {
+    bellaWork.keepBellaFresh(); // the gaps are read from the BELLA snapshot: re-sync it when BELLA moved
     res.json(gapFixes());
   } catch (e) {
     errorOut(res, e, 500);

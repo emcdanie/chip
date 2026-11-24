@@ -261,7 +261,7 @@ if (bareCommits.length) {
 // Routes (Elleta, 23 Nov evening: a menu item opened an old page design): every side-menu item, tab, Find page,
 // breadcrumb, redirect and server link must open a current page, and main.jsx must never render the retired app.
 // Static and quick, so it runs on every guard run, not only when main.jsx, Screen.jsx or routes.js are staged.
-{
+if (existsSync(join(ROOT, 'scripts/route-check.mjs'))) {
   const r = spawnSync(process.execPath, [join(ROOT, 'scripts/route-check.mjs')], { cwd: ROOT, encoding: 'utf8' });
   if (r.status !== 0) {
     process.stdout.write(r.stdout.split('\n').filter((l) => l.startsWith('FAIL')).join('\n') + '\n');

@@ -337,7 +337,7 @@ if (board) {
   const place = board.board?.place ?? {};
   const busy = new Set(runs.filter((r) => ['starting', 'running', 'gate', 'passed'].includes(r.status)).map((r) => r.title));
   const ideas = [
-    ...board.progress.items.filter((i) => i.stage === 'To do').map((i) => [i.id, i.title]),
+    ...board.progress.items.filter((i) => ['To do', 'Not measured'].includes(i.stage)).map((i) => [i.id, i.title]),
     ...board.progress.tasks.map((t) => [t.id, t.title]),
     ...[...new Set(measured.flat())].map((n) => [`comp-${n}`, n]),
   ];
@@ -345,6 +345,34 @@ if (board) {
   const known = new Set([...(await json('/needs').catch(() => ({}))).items?.map((n) => n.id) ?? [], ...runs.map((r) => r.id), ...board.progress.items.map((i) => i.id), ...(board.sessions ?? []).map((x) => x.id)]);
   const ideasNow = ideas.filter(([id, t]) => (!place[id] || place[id].lane === 'ideas') && !busy.has(t)).length + Object.entries(place).filter(([id, p]) => p.lane === 'ideas' && !ideas.some(([i]) => i === id) && known.has(id)).length;
   check('work', 'Ideas: to-dos, your tasks and parts that need work', grab('work', /\bIdeas\n(\d+)/)?.[1], ideasNow);
+}
+
+// The board is live (23 Nov 2026: shipped cards sat in Ideas). Each progress item with a git source is checked here with
+// git itself, not through CHIP's own evaluator: if the commit or file is on the branch, the board must show it Done (so in
+// Shipped, whatever she once did with the card); if not, it must not. Items with no source are listed as Not measured.
+if (board) {
+  const sources = JSON.parse(readFileSync(join(ROOT, 'server/lib/progress-sources.json'), 'utf8'));
+  const progress = JSON.parse(readFileSync(join(process.env.HOME, 'DEV/chip/docs/reference/screens/progress/progress.json'), 'utf8')).items;
+  const dirs = { chip: [ROOT, sh('git', ['-C', ROOT, 'rev-parse', '--verify', '-q', 'chip/whole'], ROOT) ? 'chip/whole' : 'HEAD'], bella: [B, 'chip/parts-dev'] };
+  const landed = (src) => {
+    if (src.commit) { const [d, ref] = dirs[src.commit.repo]; const o = sh('git', ['-C', d, 'log', ref, '-1', '-i', '-E', `--grep=${src.commit.subject}`, '--format=%h'], d); return o === null ? null : o !== ''; }
+    if (src.commits) { const [d, ref] = dirs[src.commits.repo]; const rs = src.commits.shas.map((x) => sh('git', ['-C', d, 'merge-base', '--is-ancestor', x, ref], d) !== null); return rs.every(Boolean); }
+    if (src.path) { const [d, ref] = dirs[src.path.repo]; return sh('git', ['-C', d, 'cat-file', '-e', `${ref}:${src.path.file}`], d) !== null; }
+    return undefined;
+  };
+  const shown = new Map(board.progress.items.map((i) => [i.n, i]));
+  let wrong = 0;
+  let unchecked = 0;
+  progress.forEach((p, n) => {
+    const src = sources[p.id];
+    const truth = src ? landed(src) : undefined;
+    const card = shown.get(n);
+    if (truth === undefined || truth === null) { unchecked++; return; }
+    if ((card?.stage === 'Done') !== truth) wrong++;
+  });
+  check('work', 'Progress items that git says landed are Done, the rest are not (the ones git can check)', wrong, 0);
+  check('work', 'Progress items with no git source, listed as Not measured', board.progress.notMeasured?.length ?? 0, board.progress.items.filter((i) => i.stage === 'Not measured').length);
+  check('work', 'Board freshness is this read, not an old one', Math.abs(Date.now() - Date.parse(board.at)) < 60_000 ? 'now' : 'old', 'now');
 }
 
 // ---- report -----------------------------------------------------------------

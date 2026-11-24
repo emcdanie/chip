@@ -1,5 +1,5 @@
 {
- "at": "2026-11-24T00:08:38.413Z",
+ "at": "2026-11-24T00:11:13.049Z",
  "files": {
   "app/src/templates/Flow.jsx": "84168f9dde567a3dc05299a930d04ae0d2896f20",
   "app/src/templates/Screen.jsx": "c5b34bed8e6ce5b4d1d7d493b11ffb84d01da2d8",
@@ -15,7 +15,7 @@
   "app/src/pages/PlaygroundContent.jsx": "698bbde7e14c1b624655fa38771582ded37f9ff2",
   "app/src/pages/SystemMapContent.jsx": "d82206e34450e12be7b5afa5e198ccad999c7f7f",
   "app/src/pages/TeamContent.jsx": "c1642a1a11e5f30da4b92add5c2df9c8aedc909d",
-  "app/src/pages/WorkContent.jsx": "f1d175a9746275232af719ba3940622d4119f6b5"
+  "app/src/pages/WorkContent.jsx": "d01bee019d9f3acd9e97fe217b5f2809895813ba"
  },
  "routes": {
   "#/work": true,
@@ -33,5 +33,5 @@
  "ok": true,
  "clean": 88,
  "total": 88,
- "texts": 12127
+ "texts": 12320
 }

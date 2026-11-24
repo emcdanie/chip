@@ -278,7 +278,11 @@ function bItem(i) {
   const area = AREA[i.track] ?? 'Components';
   const page = i.link ? { kind: 'page', href: i.link } : null;
   if (i.stage === 'Waiting on you') return { id: i.id, kind: 'review', title: i.title, line: `Review page · ${area}`, status: 'Needs you', tone: 'attention', needs: true, home: 'now', open: page, area, who: 'you', n: i.n };
-  if (i.stage === 'Done') return { id: i.id, kind: 'item', title: i.title, line: `Shipped · ${area}`, status: 'Shipped', tone: 'success', home: 'shipped', open: page, area, n: i.n };
+  // computed on the server from the item's own source (server/lib/progress-live.mjs): a landed item says when and in which commit
+  if (i.stage === 'Done') return { id: i.id, kind: 'item', title: i.title, line: ['Shipped', i.shipped?.date, area].filter(Boolean).join(' · '), commit: i.shipped?.commit ?? null, status: 'Shipped', tone: 'success', home: 'shipped', open: page, area, n: i.n };
+  // answered, its work not landed yet: Next, never "Your call"
+  if (i.stage === 'Next') return { id: i.id, kind: 'item', title: i.title, line: `Answered, not landed yet · ${area}`, status: 'Next', tone: 'info', home: 'next', open: page, area, n: i.n, brief: [i.title, i.detail].filter(Boolean).join('. ') };
+  if (i.stage === 'Not measured') return { id: i.id, kind: 'item', title: i.title, line: `Not measured · ${i.source ?? 'no source to check'}`, status: 'Not measured', tone: 'neutral', home: 'ideas', open: page, area, n: i.n };
   if (i.stage === 'To do') return { id: i.id, kind: 'idea', title: i.title, line: `Idea · ${area}`, status: 'Idea', tone: 'neutral', home: 'ideas', open: page, brief: [i.title, i.detail].filter(Boolean).join('. '), area, n: i.n };
   return null; // Building and Checking are the sessions' own words for work Now already reads from the session
 }
@@ -326,7 +330,8 @@ export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra
   for (const c of all) {
     if (c.kind !== 'run' && busy.has(c.title)) continue;
     const p = place[c.id];
-    const lane = p?.lane ?? c.home;
+    // a landed card leaves Ideas, Next and Now whatever she once did with it; her other placements stand
+    const lane = c.home === 'shipped' && ['ideas', 'next', 'now'].includes(p?.lane) ? 'shipped' : p?.lane ?? c.home;
     const card = p && p.lane !== c.home ? { ...c, moved: true, paused: !!p.paused } : c;
     if (card.paused && card.progress?.total) card.line = `Paused by you · ${card.progress.done} of ${card.progress.total}`;
     lanes.find((x) => x.id === lane)?.cards.push(card);
@@ -398,7 +403,7 @@ export function useWork() {
     return () => clearInterval(t);
   }, [busy]);
   const model = useMemo(() => (data ? boardModel({ needs: data[0].items ?? [], runs: runs?.runs ?? [], runBase: runs?.base ?? null, lanes: extra?.[0] ?? null, board, gaps: data[2]?.gaps ?? null }) : null), [data, runs, extra, board]);
-  return { model, error, loading, reload: () => (reload(), reloadExtra(), reloadBoard()), checked: at ? hhmm(at) : null, last };
+  return { model, error, loading, reload: () => (reload(), reloadExtra(), reloadBoard()), checked: board?.at ? hhmm(Date.parse(board.at)) : at ? hhmm(at) : null, unread: board?.unread ?? [], last };
 }
 
 /** Saves where she put a card and before which one (lane null: back where CHIP measured it). */
