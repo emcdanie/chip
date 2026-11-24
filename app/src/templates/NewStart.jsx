@@ -332,7 +332,6 @@ export function NewStart({ variant = 'primary' }) {
                         key={j.id}
                         layout="stacked"
                         selected={on}
-                        statusBar={g.hue === 'pink' ? 'attention' : g.hue === 'blue' ? 'info' : 'success'}
                         title={j.title}
                         description={can ? [j.line, j.target?.text].filter(Boolean).join(' · ') : `${j.line} · ${j.target?.text ?? 'Not measured'}`}
                         rightTag={on ? <Tag variant="line">Selected</Tag> : !can ? <Tag variant="line">Nothing to do</Tag> : undefined}
@@ -401,7 +400,7 @@ export function NewStart({ variant = 'primary' }) {
                 <Inset><SectionHead title="CHIP read these" description="Stated in what you gave it" showInfo={false} /></Inset>
                 <ListRowGroup ariaLabel="Read from what you gave CHIP">
                   {sure.map(([k, name]) => (
-                    <ListRow key={k} layout="stacked" statusBar="success" title={name} description={fields[k]} helperText={guesses[k].source} />
+                    <ListRow key={k} layout="stacked" title={name} description={fields[k]} helperText={guesses[k].source} />
                   ))}
                 </ListRowGroup>
               </Flow>
@@ -423,7 +422,7 @@ export function NewStart({ variant = 'primary' }) {
             <Inset><SectionHead icon="WarningCircle" iconTone="warning" title={`${plan.creates.length} things CHIP will make`} description="Nothing is made until you approve. Undo removes all of it." showInfo={false} /></Inset>
             <Flow as="ul" gap={0} aria-label="What CHIP will make">
               {plan.creates.map((c, i) => (
-                <ListRow key={c} layout="stacked" statusBar="attention" divider={i < plan.creates.length - 1} title={c} tag={<Tag variant="line">{`Step ${i + 1}`}</Tag>} />
+                <ListRow key={c} layout="stacked" divider={i < plan.creates.length - 1} title={c} tag={<Tag variant="line">{`Step ${i + 1}`}</Tag>} />
               ))}
             </Flow>
           </Flow>
@@ -435,7 +434,7 @@ export function NewStart({ variant = 'primary' }) {
             <Inset><SectionHead icon="CheckCircle" iconTone="success" title={`${made.name} is set up`} description="Accept keeps it. Undo removes everything CHIP made." showInfo={false} /></Inset>
             <Flow as="ul" gap={0} aria-label="What CHIP made">
               {(plan?.creates ?? []).map((c, i, a) => (
-                <ListRow key={c} layout="stacked" statusBar="success" divider={i < a.length - 1} title={c} tag={<Tag variant="line">Made</Tag>} />
+                <ListRow key={c} layout="stacked" divider={i < a.length - 1} title={c} tag={<Tag variant="line">Made</Tag>} />
               ))}
             </Flow>
           </Flow>

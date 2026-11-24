@@ -179,8 +179,14 @@ for (const width of WIDTHS) {
     await page.goto(`${APP}/${t.route}`);
     await page.reload();
     await page.waitForTimeout(2500);
+    // the page has settled before it is measured, as card-align-check (24 Nov: Health at 320, 768 and 1024 read
+    // "card not found" on a busy server): no loading notice, the reads quiet, nothing marked aria-busy
+    await page.waitForFunction(() => !/Reading BELLA|Counting every part|Loading/.test(document.body.innerText), null, { timeout: 30000 }).catch(() => {});
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => !document.querySelector('[aria-busy="true"]'), null, { timeout: 30000 }).catch(() => {});
     if (t.drawer) {
       const card = page.locator('button', { hasText: t.drawer }).first();
+      await card.waitFor({ timeout: 15000 }).catch(() => {});
       if (!(await card.count())) { console.log(`FAIL ${width} ${t.label}: card not found`); bad++; tally(t.route, false); continue; }
       await card.click();
       await page.waitForTimeout(1200);

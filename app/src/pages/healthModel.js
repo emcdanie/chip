@@ -173,5 +173,7 @@ export async function handOff(row) {
   if (!parts.length) throw new Error('CHIP has no brief for these yet, so there is nothing to hand over');
   const brief = [`Close BELLA's ${row.title} gap for ${parts.length} ${parts.length === 1 ? 'part' : 'parts'}. For each:`, ...parts.map((n) => `- ${gaps[n].brief}`), 'Change only what each line names. Ask before changing a token.'].join('\n');
   const steps = parts.map((n) => ({ id: n, title: `${row.action ?? row.title}: ${n}`, line: String(gaps[n].brief).split('\n').find((l) => /^Missing:/.test(l))?.replace(/^Missing:\s*/, '') }));
-  return planRun({ title: `${row.action}: ${names(parts)}`, from: 'Health', brief, steps, summary: `${row.title} check · ${parts.length} ${parts.length === 1 ? 'part' : 'parts'} missing it` });
+  // what is true once it lands, said by the drawer and the toast (her review, 24 Nov): one part names itself
+  const doneSays = parts.length === 1 ? `${parts[0]} now passes the ${row.short ?? row.title} check` : `${parts.length} more parts pass the ${row.short ?? row.title} check`;
+  return planRun({ title: `${row.action}: ${names(parts)}`, from: 'Health', brief, steps, doneSays, summary: `${row.title} check · ${parts.length} ${parts.length === 1 ? 'part' : 'parts'} missing it` });
 }

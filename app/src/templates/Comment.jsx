@@ -26,11 +26,15 @@ export function CommentPin({ n, onClick, sent }) {
 /** when: words for the time ("Draft, not sent", "Sent 22:14"); children: the words or the field; actions at the foot.
  *  flat: no card of its own, for a comment listed in a panel that is already a card (as Figma's comment list). */
 export function CommentBubble({ when, children, actions, flat = false }) {
+  // as Figma lists a comment: her avatar at the left; her name and when on one line beside it, her words under the
+  // name, the actions at the right edge (her review, 24 Nov: the comments panel "layout needs work")
   const body = (
-      <Flow gap={8}>
-        <Flow direction="row" gap={8} align="center">
-          <Avatar name={AUTHOR} size="xs" />
-          <TextStack title={AUTHOR.split(' ')[0]} subtitle={when} />
+    <Flow direction="row" gap={8} align="start" grow="last">
+      <Avatar name={AUTHOR} size="xs" />
+      <Flow gap={4}>
+        <Flow direction="row" gap={8} align="center" wrap>
+          <TextStack title={AUTHOR.split(' ')[0]} />
+          {when ? <TextStack meta={when} /> : null}
         </Flow>
         {children}
         {actions ? (
@@ -39,6 +43,7 @@ export function CommentBubble({ when, children, actions, flat = false }) {
           </Flow>
         ) : null}
       </Flow>
+    </Flow>
   );
   return flat ? body : <Card>{body}</Card>;
 }

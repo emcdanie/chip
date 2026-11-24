@@ -5,6 +5,7 @@ import Screen from '../templates/Screen.jsx';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import HealthContent from './HealthContent.jsx';
 import { useHealth } from './healthModel.js';
+import { markOf } from '../templates/marks.js';
 
 /** model and run: for stories; the page reads CHIP's data when they are not given. */
 export default function Health({ model: given, run }) {
@@ -16,7 +17,7 @@ export default function Health({ model: given, run }) {
       header={{ title: 'CHIP' }}
     >
       {live.error && !given ? (
-        <EmptyState size="lane" mark="🔌" title="CHIP's server isn't answering" line={live.error} />
+        <EmptyState size="lane" {...markOf('🔌')} title="CHIP's server isn't answering" line={live.error} />
       ) : (
         <HealthContent model={model} run={run} checked={given ? '10:29' : live.checked} last={given ? null : live.last} note={given ? null : live.note} stale={given ? null : live.stale} onCheck={live.reload} loading={!given && live.loading} />
       )}

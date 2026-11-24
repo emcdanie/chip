@@ -29,6 +29,7 @@ import { CommentBubble } from '../templates/Comment.jsx';
 import PicturePins from '../templates/PicturePins.jsx';
 import useNarrow from '../templates/useNarrow.js';
 import { answersUrl, countAnswers, decisionBody, isPicture, markupBody, parseReview, picturePage } from './needsYouModel.js';
+import { markOf } from '../templates/marks.js';
 
 const KEEP = 'chip:needs-you';
 const load = () => {
@@ -51,11 +52,11 @@ const letterOf = (label) => label.match(/^([A-E])\s*·/)?.[1] ?? label;
 
 /* the picture: fits the room, a click drops a pin and its comment box, like Figma comments (PicturePins, shared with
    Playground); a comment here is kept for Send all */
-function Picture({ card, shot, pins, onPins, page, zoom, onZoom, onFit, reserve }) {
+function Picture({ card, shot, pins, onPins, page, zoom, onZoom, reserve }) {
   // a review whose pictures are drawn by its own script has no img to show: the page itself opens here, inside CHIP
   // (the storyboard's scene 5: Component quality view); only a card with no page at all says there is no picture
   if (!shot && page) return <iframe title={`${card.title}, the review page`} src={page} width="100%" height="560" loading="lazy" />;
-  if (!shot) return <EmptyState size="lane" mark="🖼" title="No picture on this card" line="The decision is in the side pane." />;
+  if (!shot) return <EmptyState size="lane" {...markOf('🖼')} title="No picture on this card" line="The decision is in the side pane." />;
   return (
     <PicturePins
       key={shot.src}
@@ -66,7 +67,6 @@ function Picture({ card, shot, pins, onPins, page, zoom, onZoom, onFit, reserve 
       commitLabel="Save"
       zoom={zoom}
       onZoomChange={onZoom}
-      onFitChange={onFit}
       reserve={reserve}
       setPins={(next) =>
         onPins((all) => {
@@ -90,7 +90,6 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
   const [msg, setMsg] = useState(null);
   const [zoom, setZoom] = useState(null); // null = Fit; held here for the tool column
   const phone = useNarrow(640);
-  const [fit, setFit] = useState({ fit: 1, whole: 1 });
   const [sentAt, setSentAt] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(`${KEEP}:sent`) || '{}');
@@ -205,7 +204,7 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
     setSending(false);
   }
 
-  if (!current) return <EmptyState size="page" mark="✅" title="Nothing needs you" line="Every review is answered." actions={<Button variant="secondary" onClick={onBack}>Back to the board</Button>} />;
+  if (!current) return <EmptyState size="page" {...markOf('✅')} title="Nothing needs you" line="Every review is answered." actions={<Button variant="secondary" onClick={onBack}>Back to the board</Button>} />;
 
   const isReview = !!href;
   const { A = {}, T = {}, N = {} } = state;
@@ -224,7 +223,7 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
   ) : read?.error ? (
     <Notification tone="danger" title="The review page didn’t load" message="The review server on localhost:3123 did not answer." />
   ) : !page ? (
-    <EmptyState size="lane" mark="⏳" title="Reading the review page" line={current.title} />
+    <EmptyState size="lane" {...markOf('⏳')} title="Reading the review page" line={current.title} />
   ) : (
     <Flow gap={12}>
       {page.cards.length > 1 || shots.length > 1 ? (
@@ -249,7 +248,7 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
           ) : null}
         </Flow>
       ) : null}
-      <Picture card={shownCard} shot={shot} page={href} pins={pins} zoom={zoom} onZoom={setZoom} onFit={(f, w) => setFit({ fit: f, whole: w })} reserve={phone ? 360 : 580} onPins={(next) => setState((s) => ({ ...s, pins: typeof next === 'function' ? next(s.pins ?? []) : next }))} />
+      <Picture card={shownCard} shot={shot} page={href} pins={pins} zoom={zoom} onZoom={setZoom} reserve={phone ? 360 : 580} onPins={(next) => setState((s) => ({ ...s, pins: typeof next === 'function' ? next(s.pins ?? []) : next }))} />
     </Flow>
   );
 
@@ -301,7 +300,7 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
           <Button variant="tertiary" size="sm" iconOnly icon="Xmark" ariaLabel="Close comments" onClick={close} />
         </Flow>
         {pins.length ? (
-          <Flow as="ol" gap={12} aria-label="Comments">
+          <Flow as="ol" gap={16} aria-label="Comments">
             {/* each comment as Figma lists them (templates/Comment.jsx): her avatar and name, then her words, which she can
                 still change, and Remove at the right edge */}
             {pins.map((p, i) => (
@@ -351,7 +350,6 @@ export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNo
       subtitle={[current.line, shownCard?.options.length ? `${shownCard.options.map((o) => letterOf(o.label)).join(' or ')}?` : null].filter(Boolean).join(' · ')}
       count={pins.length}
       notes={isReview ? panel : null}
-      tools={isReview && shot ? { zoom, fit: fit.fit, whole: fit.whole, onZoom: setZoom } : null}
       picture={picture}
       row={row}
       strip={{

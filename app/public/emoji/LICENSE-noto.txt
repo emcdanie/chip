@@ -1,0 +1,4 @@
+Animated emoji: Noto Emoji Animation by Google, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+Source: https://googlefonts.github.io/noto-emoji-animation/
+The .webp files are Google's animated WebP at 512px, unchanged. The .png files are each animation's first frame at 128px,
+shown instead of the animation when the reader asks for reduced motion.

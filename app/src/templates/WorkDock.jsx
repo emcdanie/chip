@@ -15,16 +15,19 @@
 // Gaps named for BELLA, not drawn here: StatusDot has no steady pulse for "working" (it pulses once on a change); Drawer
 // has no tabs slot under its head (the tabs scroll with the body); Select has no option groups or disabled options.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Drawer from '@bella/components/Drawer/Drawer';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
+import Tooltip from '@bella/components/Tooltip/Tooltip';
 import ListRow from '@bella/components/ListRow/ListRow';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Step from '@bella/components/Step/Step';
-import TimelineRow from '@bella/components/TimelineRow/TimelineRow';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import Button from '@bella/components/Button/Button';
 import Input from '@bella/components/Input/Input';
-import Select from '@bella/components/Select/Select';
+import Menu, { MenuItem } from '@bella/components/Menu/Menu';
+import Sparkline from '@bella/components/Sparkline/Sparkline';
+import { GLYPHS } from '@bella/components/Icon/registry';
 import TextStack from '@bella/components/TextStack/TextStack';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Toast from '@bella/components/Toast/Toast';
@@ -37,10 +40,14 @@ import useAsk from './useAsk.jsx';
 import { workModel } from '../pages/workModel.js';
 import WorkDrawer from '../pages/WorkDrawer.jsx';
 import TermChat from './TermChat.jsx';
-import { openRun } from '../Runs.jsx';
-import { activityRow, isGoing } from '../runClock.js';
+import { planRun } from './RunPlan.jsx';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
+import { activityRow, isGoing, plainStop, splitRuns } from '../runClock.js';
+import { markOf } from './marks.js';
 
 const TAB_IDS = ['sessions', 'ask'];
+// BELLA's Microphone glyph (proposed with this change); the word until it is in BELLA's registry
+const MIC = 'Microphone' in GLYPHS;
 const KEY = 'chip-dock';
 const EXAMPLE = 'Where are we?';
 const JSON_HEADERS = { 'content-type': 'application/json' };
@@ -53,8 +60,52 @@ const ago = (t) => {
 /* The chat between pages: one per CHIP window, gone when the window closes. */
 const kept = { turns: [], past: [], answer: null };
 
-/** Open the Sessions panel from anywhere: openWork('sessions') or openWork('ask'). */
-export const openWork = (tab) => window.dispatchEvent(new CustomEvent('chip:work', { detail: { tab } }));
+/** Open the Sessions panel from anywhere: openWork('sessions') or openWork('ask'); openWork('sessions', id) on one session. */
+export const openWork = (tab, session = null) => window.dispatchEvent(new CustomEvent('chip:work', { detail: { tab, session } }));
+
+/* The bell's count, shared with BellButton in the header: what needs her plus the sessions that came back since she last
+   opened the notifications. */
+let bell = 0;
+const bellHear = new Set();
+const setBell = (n) => {
+  if (n === bell) return;
+  bell = n;
+  bellHear.forEach((f) => f(n));
+};
+/** The header's bell (CLAUDE.md Navigation: notifications only), with its count as BELLA's status dot and number beside
+ *  it when something is new (24 Nov: "a dot or count on the bell"). BELLA's Button has no badge; the dot sits beside it. */
+export function BellButton() {
+  const [n, setN] = useState(bell);
+  // on a phone the header row is full: the dot alone, the number in its spoken name (24 Nov, 320: the count ran under New)
+  const narrow = useNarrow();
+  useEffect(() => {
+    bellHear.add(setN);
+    return () => bellHear.delete(setN);
+  }, []);
+  return (
+    <Flow direction="row" gap={4} align="center">
+      <Tooltip label="Notifications">
+        <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={n ? `Notifications, ${n} new` : 'Notifications'} ariaHaspopup="dialog" onClick={openNotices} />
+      </Tooltip>
+      {n ? <StatusDot tone="attention" label={narrow ? `${n} new` : String(n)} showLabel={!narrow} /> : null}
+    </Flow>
+  );
+}
+const SEEN_KEY = 'chip-bell-seen';
+const readSeen = () => {
+  try {
+    const v = Number(localStorage.getItem(SEEN_KEY));
+    return v > 0 ? v : Date.now() - 36e5;
+  } catch {
+    return Date.now() - 36e5;
+  }
+};
+/* a long commit subject keeps its lead (what changed), never cut with an ellipsis */
+const leadOf = (t) => {
+  const one = firstSentence(t).replace(/\.$/, '');
+  const cut = one.search(/,\s|\s(so|and|while|because)\s|:\s/);
+  return cut > 24 ? one.slice(0, cut) : one;
+};
 /** Open the bell's notifications. */
 export const openNotices = () => window.dispatchEvent(new Event('chip:notices'));
 
@@ -103,36 +154,93 @@ export function sessionTree(list = []) {
 /* The browser's own speech to text, where it has it; it fills the field and never sends. */
 function useTalk(onText) {
   const rec = useRef(null);
+  const audio = useRef(null);
   const [on, setOn] = useState(false);
+  // the live level while listening (24 Nov 15:20: "live feedback ... from the browser's audio level"): the microphone's
+  // loudness, a value 0 to 100 every 100 ms, the last 24 kept for the waveform
+  const [levels, setLevels] = useState([]);
   const Speech = typeof window !== 'undefined' ? window.SpeechRecognition ?? window.webkitSpeechRecognition : null;
+  const stopAudio = () => {
+    const a = audio.current;
+    if (!a) return;
+    clearInterval(a.timer);
+    a.stream.getTracks().forEach((t) => t.stop());
+    a.ctx.close().catch(() => {});
+    audio.current = null;
+    setLevels([]);
+  };
+  const startAudio = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const ctx = new AudioContext();
+      ctx.resume?.().catch(() => {});
+      const an = ctx.createAnalyser();
+      an.fftSize = 512;
+      ctx.createMediaStreamSource(stream).connect(an);
+      const buf = new Uint8Array(an.fftSize);
+      const timer = setInterval(() => {
+        an.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (const v of buf) sum += ((v - 128) / 128) ** 2;
+        // a square-root scale: a quiet room still moves the bars, speech sits in the middle, a shout near the top
+        const level = Math.min(100, Math.round(Math.sqrt(Math.sqrt(sum / buf.length)) * 140));
+        setLevels((l) => [...l.slice(-23), level]);
+      }, 100);
+      audio.current = { stream, ctx, timer };
+    } catch {
+      // no level without the microphone's permission; the words still come through
+    }
+  };
+  useEffect(() => stopAudio, []);
   const toggle = () => {
     if (on) return rec.current?.stop();
     const r = new Speech();
     r.lang = 'en-GB';
     r.interimResults = true;
     r.onresult = (e) => onText(Array.from(e.results, (x) => x[0].transcript).join(''));
-    r.onend = () => setOn(false);
-    r.onerror = () => setOn(false);
+    r.onend = () => (setOn(false), stopAudio());
+    r.onerror = () => (setOn(false), stopAudio());
     rec.current = r;
     r.start();
     setOn(true);
+    startAudio();
   };
-  return { can: !!Speech, on, toggle };
+  return { can: !!Speech, on, toggle, levels };
 }
 
+/* Now and Earlier (24 Nov 15:20): a session that is working, or not done and active in the last 2 hours, is now;
+   done or quiet for longer is earlier. Each half is its own tree, working sessions first. */
+export function splitSessions(list = [], now = Date.now()) {
+  const recent = (x) => now - (x.working ? x.updatedAt : x.reportedAt ?? x.updatedAt ?? 0) <= 2 * 36e5;
+  const isNow = (x) => x.working || (recent(x) && sessionState(x)[0] !== 'Done');
+  const first = (a, b) => Number(b.working) - Number(a.working) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+  const tree = (xs) => sessionTree([...xs].sort(first));
+  return { now: tree(list.filter(isNow)), earlier: tree(list.filter((x) => !isNow(x))) };
+}
 
-/* One session as a row of the tree: the light and its state, the title, one line; a child sits in under its parent. */
+/* The tree as groups: each top session, then every session under it (any depth), in the tree's order. */
+export function sessionGroups(tree = []) {
+  const out = [];
+  for (const s of tree) {
+    if (s.depth === 0) out.push({ root: s, kids: [] });
+    else out.at(-1)?.kids.push(s);
+  }
+  return out;
+}
+
+/* One session as a row: the light and its state, the title, one line. Every row on one column under the section's title
+   (24 Nov: indented children broke the line with the coordinator); a session follows the one that started it, and its
+   overview names it. */
 function SessionRow({ s, onOpen }) {
   const [word, tone] = sessionState(s);
   return (
     <ListRow
       layout="stacked"
-      indent={s.depth > 0}
       statusDot={<StatusDot tone={tone} label={word} showLabel={false} />}
       title={s.title}
-      description={`${word} · ${sessionLine(s)}`}
-      // when it last wrote while it works, else when it last reported
-      meta={ago(s.working ? s.updatedAt : s.reportedAt ?? s.updatedAt)}
+      // the time in the sentence, in the reading face (24 Nov, 10:35: times in Geist Mono read as code): when it last
+      // wrote while it works, else when it last reported
+      description={`${word} · ${sessionLine(s)} · ${ago(s.working ? s.updatedAt : s.reportedAt ?? s.updatedAt)}`}
       trailing
       onClick={() => onOpen(s.id)}
     />
@@ -194,11 +302,19 @@ export default function WorkDock({ needs: shared }) {
   });
   const [picked, setPicked] = useState(null); // the session whose overview is open
   const [item, setItem] = useState(null); // what a row opens (WorkDrawer)
+  // openRun(id) from anywhere (a toast's Open, the pill after a run ends) opens that run's drawer here: the old
+  // run sheet that listened for it lives only in the legacy shell, so on these pages it opened nothing (her review, 24 Nov)
+  useEffect(() => {
+    const on = (e) => e.detail?.id && setItem({ kind: 'run', id: e.detail.id });
+    window.addEventListener('chip:run', on);
+    return () => window.removeEventListener('chip:run', on);
+  }, []);
   const [notice, setNotice] = useState(null);
   const [stopError, setStopError] = useState(null);
   const [model, setModel] = useState('auto');
   const [menu, setMenu] = useState(null);
   const [modelNote, setModelNote] = useState(null);
+  const [modelOpen, setModelOpen] = useState(false);
   useEffect(() => {
     let on = true;
     // refreshed when the panel opens, so "Claude x of 20 today" is today's
@@ -259,6 +375,7 @@ export default function WorkDock({ needs: shared }) {
       const t = e.detail?.tab;
       if (TAB_IDS.includes(t)) setTab(t);
       else if (t === 'term') setTab('ask');
+      setPicked(e.detail?.session ?? null);
       setNotices(false);
       setOpen(true);
     };
@@ -275,7 +392,7 @@ export default function WorkDock({ needs: shared }) {
 
   // read while either surface is open; the sessions every 15 seconds so the lights move on their own
   const live = open || notices;
-  const { data, reload } = useCached(['/needs', '/runs', '/work/board', '/work/landed']);
+  const { data, reload } = useCached(['/needs', '/runs', '/work/sessions', '/work/landed']);
   useEffect(() => {
     window.addEventListener('chip:changed', reload);
     return () => window.removeEventListener('chip:changed', reload);
@@ -294,9 +411,44 @@ export default function WorkDock({ needs: shared }) {
   const needs = shared ?? own;
   const tree = useMemo(() => (board?.sessions ? sessionTree(board.sessions) : null), [board]);
   const pickedSession = tree?.find((s) => s.id === picked) ?? null;
-  const working = tree?.filter((s) => s.working).length ?? 0;
+  // CHIP's own runs count as working too (24 Nov 15:20: "0 working" while a run was at step 3 of 4)
+  const working = (tree?.filter((s) => s.working).length ?? 0) + runs.filter(isGoing).length;
+  // now: working first, then the rest of the last 2 hours; done or quiet for over 2 hours folds under Earlier
+  const split = useMemo(() => (board?.sessions ? splitSessions(board.sessions) : null), [board]);
   const waiting = tree?.filter((s) => sessionState(s)[1] === 'attention').length ?? 0;
-  const runRows = runs.slice(0, 6).map((r) => activityRow(r, null));
+  const runSplit = useMemo(() => splitRuns(runs), [runs]);
+  // a run in her words: running, waiting for your Accept, did not land, or how it closed; the action on the row
+  const RUN_WORD = { running: ['Running', 'info'], passed: ['Waiting for your Accept', 'success'], failed: ['Did not land', 'danger'], login: ['Needs a sign-in', 'attention'] };
+  const runRow = (r) => {
+    const row = activityRow(r, null);
+    const [word, tone] = isGoing(r) ? RUN_WORD.running : RUN_WORD[r.status] ?? [r.status === 'kept' ? 'Kept' : r.status === 'undone' ? 'Undone' : 'Closed', 'neutral'];
+    const failedOpen = ['failed', 'login'].includes(r.status) && runSplit.open.includes(r);
+    // the line already says why it did not land ("Did not run: another program held the port it needs")
+    const line = /did not|closed/i.test(row.line) || row.line.toLowerCase().includes(word.toLowerCase()) ? row.line : `${word} · ${row.line}`;
+    return (
+      <ListRow
+        key={r.id}
+        layout="stacked"
+        statusDot={<StatusDot tone={tone} label={word} showLabel={false} />}
+        title={row.title}
+        description={line}
+        trailing
+        onClick={() => setItem({ kind: 'run', id: r.id })}
+        actionButton={
+          isGoing(r) ? (
+            <Button variant="secondary" size="sm" ariaLabel={`Stop ${row.title}`} onClick={() => stop(r.id)}>
+              Stop
+            </Button>
+          ) : failedOpen && r.brief ? (
+            // Run again opens its plan first; nothing starts without her Approve
+            <Button variant="tertiary" size="sm" ariaLabel={`Run ${row.title} again`} onClick={() => planRun({ title: r.title, brief: r.brief, from: r.from ?? 'Sessions', subtitle: 'Run again · the same brief, on a new branch' }).catch(() => {})}>
+              Run again
+            </Button>
+          ) : undefined
+        }
+      />
+    );
+  };
   const today = new Date().toDateString();
   const finished = runs.filter((r) => !isGoing(r) && r.endedAt && new Date(r.endedAt).toDateString() === today);
 
@@ -354,27 +506,65 @@ export default function WorkDock({ needs: shared }) {
   const suggestion = (asker.answer?.next ?? []).find((q) => !asked.has(q)) ?? (asked.has(EXAMPLE) ? undefined : EXAMPLE);
   const pickedModel = menu?.models.find((m) => m.id === model);
 
+  // one row (24 Nov 15:20): the model as a small menu at the start of the field (Input's menu slot), the field with Send
+  // in it, and the microphone; while listening, the live level as bars and what she said in the field as she speaks
+  const modelShort = model === 'auto' ? 'Auto' : pickedModel?.label ?? 'Auto';
+  // the menu opens upward over the panel: drawn at the dialog's own level (a portal), placed from the button, because
+  // the footer's layer sits under the session rows' click targets and the drawer is BELLA's, not restyled from here
+  const openModels = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const host = e.currentTarget.closest('dialog');
+    setModelOpen((o) => (o ? false : { host, left: Math.round(r.left), bottom: Math.round(window.innerHeight - r.top + 4) }));
+  };
+  const modelMenu = (
+    <span className="chip-pop">
+      <Button variant="tertiary" size="sm" label={modelShort} icon="NavArrowDown" ariaLabel={`Model: ${modelShort}`} ariaExpanded={!!modelOpen} onClick={openModels} />
+      {modelOpen?.host ? createPortal(
+        // placed from the button's measured position once it is drawn (a measurement, not a design value)
+        <div className="chip-pop__menu chip-pop__menu--up" ref={(el) => el && Object.assign(el.style, { position: 'fixed', left: `${modelOpen.left}px`, bottom: `${modelOpen.bottom}px` })}>
+          <Menu label="Model" onClose={() => setModelOpen(false)} autoFocus>
+            {modelOptions(menu).map((o) => (
+              <MenuItem key={o.value} label={o.label} icon={o.value === model ? 'Check' : undefined} onSelect={() => (pickModel(o.value), setModelOpen(false))} />
+            ))}
+          </Menu>
+        </div>,
+        modelOpen.host,
+      ) : null}
+    </span>
+  );
   const composer = (
-    <Flow gap={8}>
-      <Flow direction="row" gap={8} align="end" wrap grow="last">
-        <Select label="Model" value={model} onChange={pickModel} options={modelOptions(menu)} />
-        <Flow direction="row" gap={8} align="end" grow="first">
-          <Input label="Ask about the work" placeholder={tiny ? 'Your question' : 'Where are we?'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" suggestion={suggestion} />
-          {talk.can ? (
-            <Button variant="secondary" ariaExpanded={talk.on} onClick={talk.toggle}>
-              {talk.on ? 'Listening' : 'Talk'}
-            </Button>
-          ) : null}
-        </Flow>
+    // the footer hugs its content and sits at the right; the ask box takes the footer's whole width (the Drawer's lg
+    // width, min(100dvw, 640), less its 24 sides), so the field is never squeezed by a short model name
+    <Flow gap={8} style={{ inlineSize: 'min(calc(100dvw - var(--spacing-48)), calc(var(--spacing-80) * 8 - var(--spacing-48)))' }}>
+      <Flow direction="row" gap={8} align="end" grow="first">
+        <Input label="Ask about the work" placeholder={tiny ? 'Your question' : 'Where are we?'} value={draft} onChange={setDraft} onSend={send} sendLabel="Send" suggestion={suggestion} menu={modelMenu} />
+        {talk.can ? (
+          <Tooltip label={talk.on ? 'Stop listening' : 'Speak your question'}>
+            {MIC ? (
+              <Button variant={talk.on ? 'primary' : 'secondary'} iconOnly icon="Microphone" ariaLabel={talk.on ? 'Stop listening' : 'Speak your question'} ariaPressed={talk.on} onClick={talk.toggle} />
+            ) : (
+              <Button variant="secondary" ariaPressed={talk.on} onClick={talk.toggle}>
+                {talk.on ? 'Listening' : 'Talk'}
+              </Button>
+            )}
+          </Tooltip>
+        ) : null}
       </Flow>
-      {tiny && !modelNote ? null : <TextStack subtitle={modelNote ?? (pickedModel ? `${pickedModel.label}: ${pickedModel.note}` : `Auto ${menu ? menu.auto.note : 'picks by the question'}`)} />}
+      {talk.on ? (
+        <Flow direction="row" gap={12} align="center">
+          <Sparkline form="bars" series={talk.levels.length > 1 ? talk.levels : [0, 0]} label="Your voice level" summary="The microphone is listening" table={false} caption="Voice level" />
+          <TextStack subtitle={draft ? 'Listening. Your words are in the field.' : 'Listening. Say your question.'} />
+        </Flow>
+      ) : tiny && !modelNote ? null : (
+        <TextStack subtitle={modelNote ?? (pickedModel ? `${pickedModel.label}: ${pickedModel.note}` : `Auto ${menu ? menu.auto.note : 'picks by the question'}`)} />
+      )}
     </Flow>
   );
 
   const chatEmpty = (
     <EmptyState
       size="page"
-      mark="💬"
+      {...markOf('💬')}
       title="Ask about the work, in plain words"
       line="What is running, what landed, what needs you, where a piece of work is. I show where I read it."
       actions={
@@ -384,10 +574,32 @@ export default function WorkDock({ needs: shared }) {
       }
     />
   );
-  const sessionsBody = pickedSession ? (
-    <SessionOverview s={pickedSession} parent={tree.find((x) => x.id === pickedSession.parentId)} onAsk={() => send(`Where is ${pickedSession.title}?`)} />
-  ) : (
-    <Flow gap={24}>
+  // no indent (it moved the text but not the dot, 24 Nov 10:35): a session that started others is followed by one line,
+  // "Under <its title>", then its sessions on the same column
+  const groupsOf = (list, label) => (
+    <Flow gap={4} aria-label={label}>
+      {sessionGroups(list).map((g) => (
+        <Flow key={g.root.id} gap={4}>
+          <Flow as="ul" gap={4} aria-label={g.root.title}>
+            <SessionRow s={g.root} onOpen={setPicked} />
+          </Flow>
+          {g.kids.length ? (
+            <>
+              <Inset>
+                <TextStack subtitle={`Under ${g.root.title} · ${g.kids.length} ${g.kids.length === 1 ? 'session' : 'sessions'}`} />
+              </Inset>
+              <Flow as="ul" gap={4} aria-label={`Sessions under ${g.root.title}`}>
+                {g.kids.map((k) => (
+                  <SessionRow key={k.id} s={k} onOpen={setPicked} />
+                ))}
+              </Flow>
+            </>
+          ) : null}
+        </Flow>
+      ))}
+    </Flow>
+  );
+  const sessionsSection = (
       <ReadingSection
         title="Claude sessions"
         description="Read from the Claude app; CHIP can't send into them yet"
@@ -397,41 +609,85 @@ export default function WorkDock({ needs: shared }) {
               <TextStack body="Reading your sessions." />
             </Inset>
           ) : tree.length ? (
-            <Flow as="ul" gap={4} aria-label="Claude sessions">
-              {tree.map((s) => (
-                <SessionRow key={s.id} s={s} onOpen={setPicked} />
-              ))}
+            <Flow gap={8}>
+              {split.now.length ? groupsOf(split.now, 'Sessions now') : (
+                <Inset>
+                  <TextStack body="No session is working or active in the last 2 hours." />
+                </Inset>
+              )}
+              {split.earlier.length ? (
+                <Inset>
+                  <Disclosure flush title="Earlier" summary={`${split.earlier.length} ${split.earlier.length === 1 ? 'session' : 'sessions'}, done or quiet for 2 hours`}>
+                    {groupsOf(split.earlier, 'Earlier sessions')}
+                  </Disclosure>
+                </Inset>
+              ) : null}
             </Flow>
           ) : (
-            <EmptyState size="lane" mark="🍵" title="No sessions" line="None in CHIP’s projects in the last day and a half." />
+            <EmptyState size="lane" {...markOf('🍵')} title="No sessions" line="None in CHIP’s projects in the last day and a half." />
           )
         }
       />
+  );
+  const runsSection = (
       <ReadingSection
         title="CHIP’s runs"
         description="Fixes CHIP ran from a plan you approved"
         rows={
-          <Flow gap={12} inset>
-            {stopError ? <TextStack body={`Not stopped: ${stopError}.`} /> : null}
-            {runRows.length ? (
-              runRows.map((row) => (
-                <Flow key={row.id} gap={8}>
-                  <TimelineRow title={row.title} line={row.line} state={row.state} stepDone={row.stepDone} stepTotal={row.stepTotal} onOpen={() => openRun(row.id)} />
-                  {row.state === 'running' ? (
-                    <Flow direction="row" justify="end">
-                      <Button variant="secondary" size="sm" onClick={() => stop(row.id)}>
-                        Stop
-                      </Button>
-                    </Flow>
-                  ) : null}
-                </Flow>
-              ))
+          // flat rows with a status dot and its word, each opening its run's drawer (steps, what changed, Accept / Undo
+          // or Run again); open runs first, the rest under Earlier (24 Nov: "what is the point of them")
+          <Flow gap={8}>
+            {stopError ? (
+              <Inset>
+                <TextStack body={`Not stopped: ${stopError}.`} />
+              </Inset>
+            ) : null}
+            {runs.length ? (
+              <>
+                {runSplit.open.length ? (
+                  <Flow as="ul" gap={4} aria-label="Open runs">
+                    {runSplit.open.map((r) => runRow(r))}
+                  </Flow>
+                ) : (
+                  <Inset>
+                    <TextStack body="No run is open." />
+                  </Inset>
+                )}
+                {runSplit.earlier.length ? (
+                  <Inset>
+                    <Disclosure flush title="Earlier" summary={`${runSplit.earlier.length} ${runSplit.earlier.length === 1 ? 'run' : 'runs'}, closed or replaced`}>
+                      <Flow as="ul" gap={4} aria-label="Earlier runs">
+                        {runSplit.earlier.slice(0, 12).map((r) => runRow(r))}
+                      </Flow>
+                    </Disclosure>
+                  </Inset>
+                ) : null}
+              </>
             ) : (
-              <TextStack body="Nothing has run yet. Runs show here once approved." />
+              <Inset>
+                <TextStack body="Nothing has run yet. Runs show here once approved." />
+              </Inset>
             )}
           </Flow>
         }
       />
+  );
+  const sessionsBody = pickedSession ? (
+    <SessionOverview s={pickedSession} parent={tree.find((x) => x.id === pickedSession.parentId)} onAsk={() => send(`Where is ${pickedSession.title}?`)} />
+  ) : (
+    // a CHIP run that is going comes first (24 Nov 15:20: "put the running ones first")
+    <Flow gap={24}>
+      {runs.some(isGoing) ? (
+        <>
+          {runsSection}
+          {sessionsSection}
+        </>
+      ) : (
+        <>
+          {sessionsSection}
+          {runsSection}
+        </>
+      )}
     </Flow>
   );
   const body =
@@ -451,26 +707,55 @@ export default function WorkDock({ needs: shared }) {
       sessionsBody
     );
 
-  // the bell: what needs her, what finished today, what landed today; each opens where it lives
-  const noticeCount = (needs?.length ?? 0) + finished.length + (landed?.length ?? 0);
+  // the bell (24 Nov: "too much to read", "where does it take me"): short items, a status dot each, every one opens what
+  // it is about. Came back: sessions whose turn ended since she last opened it (their overview). Needs you: the item.
+  // Finished: the run. Landed: History at that change (a plain list, no state mark).
+  const [seenAt, setSeenAt] = useState(readSeen);
+  const cameBack = useMemo(() => (board?.sessions ?? []).filter((x) => x.turnDone && (x.reportedAt ?? 0) > seenAt).sort((a, b) => b.reportedAt - a.reportedAt), [board, seenAt]);
+  useEffect(() => setBell((needs?.length ?? 0) + cameBack.length), [needs, cameBack]);
+  const closeBell = () => {
+    setNotices(false);
+    const now = Date.now();
+    setSeenAt(now);
+    try {
+      localStorage.setItem(SEEN_KEY, String(now));
+    } catch {}
+  };
+  const go = (fn) => () => (closeBell(), fn());
+  const bellRead = !!(needs && data?.[1] && data?.[2] && data?.[3]);
+  const noticeCount = cameBack.length + (needs?.length ?? 0) + finished.length + (landed?.length ?? 0);
   const where = (branch) => (/parts/.test(branch) ? 'BELLA' : 'CHIP');
+  const dotRow = (key, tone, title, line, onClick, extra = {}) => (
+    <ListRow key={key} layout="stacked" statusDot={tone ? <StatusDot tone={tone} label={extra.word ?? tone} showLabel={false} /> : undefined} title={title} description={line} trailing onClick={onClick} {...extra.row} />
+  );
   const bellDrawer = (
     <ReadingDrawer
       open={notices}
-      onClose={() => setNotices(false)}
+      onClose={closeBell}
       side={phone ? 'bottom' : 'right'}
       label="Notifications"
-      status={needs == null ? 'Reading' : `${needs.length} need you · ${finished.length} finished · ${landed?.length ?? 0} landed today`}
-      source={{ from: 'Needs you, CHIP’s runs and the git logs of CHIP and BELLA', when: data?.[3]?.at ? `read ${hhmm(data[3].at)}` : null }}
+      status={!bellRead ? 'Reading what is new' : [cameBack.length ? `${cameBack.length} came back` : null, `${needs.length} need you`, `${landed?.length ?? 0} landed today`].filter(Boolean).join(' · ')}
+      source={{ from: 'Your sessions, Needs you, CHIP’s runs and the git logs of CHIP and BELLA', when: data?.[3]?.at ? `read ${hhmm(data[3].at)}` : null }}
     >
+      {cameBack.length ? (
+        <ReadingSection
+          title="Came back"
+          rows={
+            <Flow as="ul" gap={4} aria-label="Sessions that came back">
+              {cameBack.slice(0, 5).map((x) => {
+                const [word, tone] = sessionState(x);
+                return dotRow(x.id, tone, x.title, `${word} · ${ago(x.reportedAt)}`, go(() => openWork('sessions', x.id)), { word });
+              })}
+            </Flow>
+          }
+        />
+      ) : null}
       {needs?.length ? (
         <ReadingSection
           title="Needs you"
           rows={
             <Flow as="ul" gap={4} aria-label="Needs you">
-              {needs.map((c) => (
-                <ListRow key={c.id} layout="stacked" statusBar={c.tone} title={c.title} description={[c.status, c.line].filter(Boolean).join(' · ')} trailing={!!c.open} onClick={c.open ? () => setItem(c.open) : undefined} />
-              ))}
+              {needs.map((c) => dotRow(c.id, c.tone === 'strong' ? 'neutral' : c.tone, c.title, c.status ?? null, c.open ? go(() => setItem(c.open)) : undefined, { word: c.status ?? 'needs you' }))}
             </Flow>
           }
         />
@@ -482,7 +767,8 @@ export default function WorkDock({ needs: shared }) {
             <Flow as="ul" gap={4} aria-label="Finished today">
               {finished.slice(0, 5).map((r) => {
                 const row = activityRow(r, null);
-                return <ListRow key={r.id} layout="stacked" statusBar={row.state === 'failed' ? 'danger' : 'success'} title={row.title} description={row.line} trailing onClick={() => openRun(r.id)} />;
+                const failed = row.state === 'failed';
+                return dotRow(r.id, failed ? 'danger' : 'success', row.title, failed ? plainStop(r.error).split(':')[0] : 'Done', go(() => setItem({ kind: 'run', id: r.id })), { word: failed ? 'did not land' : 'done' });
               })}
             </Flow>
           }
@@ -494,14 +780,21 @@ export default function WorkDock({ needs: shared }) {
           description={`${landed.length} ${landed.length === 1 ? 'change' : 'changes'}, newest first`}
           rows={
             <Flow as="ul" gap={4} aria-label="Landed today">
-              {landed.slice(0, 5).map((c) => (
-                <ListRow key={`${c.branch}-${c.hash}`} layout="stacked" statusBar="success" title={c.subject} description={`${c.when} · ${where(c.branch)}`} trailing href={`#/system/history?q=${encodeURIComponent(c.hash)}`} onClick={() => setNotices(false)} />
-              ))}
+              {/* landed is a state (done): the same dot as the rows above, so every row keeps one column (24 Nov) */}
+              {landed.slice(0, 5).map((c) => dotRow(`${c.branch}-${c.hash}`, 'success', leadOf(c.subject), `${c.when} · ${where(c.branch)}`, closeBell, { word: 'landed', row: { href: `#/system/history?q=${encodeURIComponent(c.hash)}` } }))}
             </Flow>
           }
         />
       ) : null}
-      {needs && !noticeCount ? <EmptyState size="lane" mark="🍵" title="Nothing new" line="Nothing needs you, finished or landed today." /> : null}
+      {landed?.length > 5 ? (
+        <Inset>
+          <Flow direction="row" justify="end">
+            <ActionChip onClick={() => (closeBell(), (window.location.hash = '#/system/history'))}>{`See all ${landed.length} in History`}</ActionChip>
+          </Flow>
+        </Inset>
+      ) : null}
+      {/* nothing new only once every read is in: never an empty bell while it is still reading */}
+      {bellRead && !noticeCount ? <EmptyState size="lane" {...markOf('🍵')} title="Nothing new" line="Nothing came back, needs you or landed today." /> : null}
     </ReadingDrawer>
   );
 

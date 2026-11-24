@@ -256,11 +256,13 @@ export function useDrawerUrl(id) {
 }
 export { drawerOf };
 
-export default function ReadingDrawer({ answer, lead, picture, source, children, gap = 24, ...drawer }) {
+export default function ReadingDrawer({ answer, lead, picture, source, notice, children, gap = 24, ...drawer }) {
   const line = answer ?? lead;
   return (
     <Drawer side="right" size="lg" {...drawer}>
       <Flow gap={gap}>
+        {/* a one-line notice at the top of the content (a plan's last run that did not land, or what is now true) */}
+        {notice ? <Inset>{notice}</Inset> : null}
         {line || picture ? (
           <Inset gap={16}>
             {line ? <TextStack body={line} /> : null}

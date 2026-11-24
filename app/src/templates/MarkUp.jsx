@@ -1,15 +1,13 @@
 // Mark up, on every page (Elleta, 23 Nov 2026: "a markup button directly in the dashboard so I can go through it and
-// send all my notes"). One toggle in the top bar. On: a click anywhere drops a numbered pin with a small comment box
-// (Enter saves, Esc cancels), she moves between pages and keeps marking, and every note stays a draft on her machine
-// with a visible count. One "n marked · Send all" bar posts every note as ONE message to POST /answers (type
-// "markup", the shape markupBody in needsYouModel.js and the :3123 pages send), then says "Sent n notes · time".
+// send all my notes"). The top bar's Mark up opens a floating toolbar at the foot of the screen, as Figma's (24 Nov
+// 15:20). With its comment tool on, a click in the page's content drops a numbered pin with a small comment box (Enter
+// saves, Esc cancels); with it off, the page works as usual and the pins stay. She moves between pages and keeps marking;
+// every note stays a draft on her machine with a visible count. Send all posts every note as ONE message to POST
+// /answers (type "markup", the shape markupBody in needsYouModel.js and the :3123 pages send), then says "Sent n notes".
 //
-// Like Figma comments (her ask, 23 Nov 23:00: "click leave a comment and click out ... and then you can still move the
-// board around and you can highlight"): while Mark up is on, a click anywhere in the page's content drops a comment
-// (Shift+click uses a button there instead); the side menu, the tabs and the header keep working, so she moves between
-// pages and views without switching Mark up off; selecting words and scrolling work as ever; a click away from an open
-// comment keeps what she wrote as a draft and drops nothing. One
-// message about the whole page can go with the rest ("tell you all the things that were wrong on that page").
+// Like Figma comments (23 Nov 23:00): the side menu, the tabs and the header keep working with the tool on, Shift+click
+// uses a control in the content, selecting words and scrolling work as ever, and a click away from an open comment keeps
+// what she wrote as a draft and drops nothing. One message about the whole page goes in the toolbar's field.
 //
 // BELLA parts: Pin (comment), Card, Avatar, Input, Button, TextStack, Notification, Tooltip. BELLA GAP (named, not drawn):
 // PicturePins takes one picture and pixel coordinates, so it cannot mark a live page; this file reuses its parts and
@@ -20,6 +18,7 @@ import Card from '@bella/components/Card/Card';
 import Input from '@bella/components/Input/Input';
 import Notification from '@bella/components/Notification/Notification';
 import TextStack from '@bella/components/TextStack/TextStack';
+import Tooltip from '@bella/components/Tooltip/Tooltip';
 import Flow from './Flow.jsx';
 import useNarrow from './useNarrow.js';
 import { CommentBubble, CommentPin, NewComment, PIN_AT } from './Comment.jsx';
@@ -66,28 +65,41 @@ const find = (path) => {
 const routeOf = () => window.location.hash || '#/';
 const wordsOf = (el) => (el?.innerText ?? el?.getAttribute?.('aria-label') ?? '').replace(/\s+/g, ' ').trim().slice(0, 80);
 
-/** The notes, the on/off switch and the send; one store for the toggle button and the layer. */
-// on or off stays the same when she moves to another page (each page draws its own screen, so the switch is kept here
-// and in this tab's session, not in the screen): she switches Mark up on once and marks page after page (23 Nov 23:00:
-// "I have to go back and click mark or unmark")
-const ON_KEY = 'chip.markup.on';
-const readOn = () => {
+/** The notes, the toolbar, its comment tool and the send; one store for the top bar's button and the layer. */
+// Like Figma's bottom toolbar (her app review, 24 Nov 15:20: she had to scroll to the top to turn Mark up on and off, and
+// could click nothing on the board while marking): the top bar's Mark up only opens a floating toolbar at the foot of the
+// screen; the toolbar holds the comment tool (on: a click in the page drops a comment; off: the page works as usual), a
+// field for the whole page, Send all and Close. Open or closed, and the tool on or off, stay the same from page to page
+// (each page draws its own screen, so both are kept here and in this tab's session).
+const OPEN_KEY = 'chip.markup.on';
+const TOOL_KEY = 'chip.markup.tool';
+const readKey = (k, dflt) => {
   try {
-    return sessionStorage.getItem(ON_KEY) === '1';
+    const v = sessionStorage.getItem(k);
+    return v == null ? dflt : v === '1';
   } catch {
-    return false;
+    return dflt;
   }
 };
+const keep = (k, v) => {
+  try {
+    sessionStorage.setItem(k, v ? '1' : '0');
+  } catch {}
+};
 export function useMarkUp() {
-  const [on, setOnState] = useState(readOn);
-  const setOn = (next) =>
-    setOnState((was) => {
+  const [open, setOpenState] = useState(() => readKey(OPEN_KEY, false));
+  const [tool, setToolState] = useState(() => readKey(TOOL_KEY, true));
+  const setOpen = (v) => (keep(OPEN_KEY, v), setOpenState(v));
+  const setTool = (next) =>
+    setToolState((was) => {
       const v = typeof next === 'function' ? next(was) : next;
-      try {
-        sessionStorage.setItem(ON_KEY, v ? '1' : '0');
-      } catch {}
+      keep(TOOL_KEY, v);
       return v;
     });
+  // the top bar's button only opens the toolbar, with the comment tool picked, as Figma's comment shortcut does
+  const openBar = () => (setOpen(true), setTool(true));
+  // a click in the page drops a comment only while the toolbar is open and its comment tool is on
+  const on = open && tool;
   const [notes, setNotes] = useState(read);
   const [sent, setSent] = useState(null); // { n, at } | { failed }
   const [sending, setSending] = useState(false);
@@ -113,12 +125,12 @@ export function useMarkUp() {
     }
     setSending(false);
   };
-  return { on, setOn, notes, setNotes, sent, setSent, sending, send };
+  return { on, open, setOpen, openBar, tool, setTool, notes, setNotes, sent, setSent, sending, send };
 }
 
 /** The layer: pins for this page, the comment box, and the Send all bar. Rendered once in Screen. */
 export default function MarkUp({ markup }) {
-  const { on, notes, setNotes, sent, setSent, sending, send } = markup;
+  const { on, open: barOpen, setOpen: setBarOpen, tool, setTool, notes, setNotes, sent, setSent, sending, send } = markup;
   const [route, setRoute] = useState(routeOf());
   const [open, setOpen] = useState(null); // { id, ax, ay, text, ... }
   const [, tick] = useState(0);
@@ -151,6 +163,8 @@ export default function MarkUp({ markup }) {
     const drop = (e) => {
       const t = e.target;
       if (t.closest?.('[data-markup-own]')) return;
+      // a picture with its own pins (Playground, Needs you review cards) takes the click itself: the pin goes on the picture
+      if (t.closest?.('[data-picture-pins]')) return;
       const cur = openRef.current;
       if (cur) {
         e.preventDefault();
@@ -200,7 +214,6 @@ export default function MarkUp({ markup }) {
   commitRef.current = commit;
   // one message about the whole page, with no spot: it goes with Send all like the rest
   const [said, setSaid] = useState('');
-  const phone = useNarrow(640);
   const sayPage = (text) => {
     const words = (text ?? '').trim();
     if (!words) return;
@@ -214,13 +227,33 @@ export default function MarkUp({ markup }) {
   const boxTop = place ? Math.max(8, Math.min(place.top + 16, window.innerHeight - 280)) : 0;
   const now = open && open.id !== 'new' ? notes.find((p) => p.id === open.id) : null;
 
+  // the toolbar's parts: the comment tool (on, a click in the page drops a comment; off, the page works as usual) and one
+  // message about the whole page (Enter or the field's Send adds it to the notes); its label is for screen readers only
+  const phone = useNarrow(640);
+  const barRef = useRef(null);
+  const commentTool = (
+    <Tooltip label={tool ? 'Comment tool on: click the page to comment. Press to click as usual' : 'Comment tool: press, then click the page to comment'} placement="top">
+      <Button variant="tertiary" iconOnly icon="ChatBubbleEmpty" ariaLabel="Comment tool" ariaPressed={tool} onClick={() => setTool((t) => !t)} />
+    </Tooltip>
+  );
+  const field = <Input label={<span className="sr-only">About this page</span>} labelPosition="inline" value={said} onChange={setSaid} onSend={sayPage} sendLabel="Add to my notes" placeholder="Say what you’d change here" />;
+  // opened from the top bar, the toolbar takes focus in its field (so the button's tooltip does not stay over the page);
+  // a toolbar still open from the last page does not take focus
+  const wasOpen = useRef(barOpen);
+  useEffect(() => {
+    if (barOpen && !wasOpen.current) barRef.current?.querySelector('input')?.focus({ preventScroll: true });
+    wasOpen.current = barOpen;
+  }, [barOpen]);
+
   useLayoutEffect(() => {
-    if (open && box.current) box.current.querySelector('input, textarea')?.focus();
+    // the field takes focus without scrolling the page (24 Nov: the page jumped about 300px, so the pin landed away from the
+    // click); the box is fixed beside the pin, so it is already in view
+    if (open && box.current) box.current.querySelector('input, textarea')?.focus({ preventScroll: true });
   }, [open?.id]);
 
   return (
     <>
-      {on || here.length ? (
+      {barOpen || here.length ? (
         <div data-markup-own style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
           {here.map((p) => {
             const w = at(p);
@@ -266,32 +299,55 @@ export default function MarkUp({ markup }) {
           ) : null}
         </div>
       ) : null}
-      {on || notes.length || sent ? (
-        <div data-markup-own role="status" style={{ position: 'fixed', insetInline: 'var(--spacing-16)', insetBlockEnd: 'var(--spacing-16)', zIndex: 21, display: 'flex', justifyContent: 'center' }}>
-          <div style={{ inlineSize: '100%', maxInlineSize: 'calc(var(--size-60) * 10)' }}>
-          {sent?.failed ? (
-            <Notification tone="danger" message="Not sent: the review server on localhost:3123 did not answer. Your notes are kept here." action={{ label: 'Try again', onClick: send }} />
-          ) : on || notes.length ? (
-            <Card>
-              {/* one compact row: a message about the whole page (Enter or the field's Send adds it), then what is marked
-                  and Send all once there is something to send */}
-              <Flow direction="row" gap={12} align="center" wrap grow="first">
-                {on ? <Input label="About this page" labelPosition={phone ? 'top' : 'inline'} value={said} onChange={setSaid} onSend={sayPage} sendLabel="Add to my notes" placeholder="Say what’s wrong here" /> : <span />}
-                {notes.length ? (
-                  // the count and Send all end on the right edge, also when the row wraps (actions end on the right)
-                  <Flow direction="row" gap={12} align="center" style={{ marginInlineStart: 'auto' }}>
-                    <TextStack body={`${notes.length} marked`} />
-                    <Button variant="primary" busy={sending} onClick={send}>
-                      Send all
-                    </Button>
+      {barOpen || sent ? (
+        // the floating toolbar at the foot of the screen, as Figma's: it stays in reach wherever she has scrolled, and it
+        // follows her from page to page until she closes it
+        <div data-markup-own style={{ position: 'fixed', insetInline: 'var(--spacing-16)', insetBlockEnd: 'var(--spacing-16)', zIndex: 21, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+          <Flow gap={8} style={{ inlineSize: '100%', maxInlineSize: 'calc(var(--size-60) * 13)', pointerEvents: 'auto' }}>
+            <div role="status">
+              {sent?.failed ? (
+                <Notification tone="danger" message="Not sent: the review server on localhost:3123 did not answer. Your notes are kept here." action={{ label: 'Try again', onClick: send }} />
+              ) : sent ? (
+                <Notification tone="success" message={`Sent ${sent.n} notes · ${sent.at}`} onClose={() => setSent(null)} closeLabel="Close" />
+              ) : null}
+            </div>
+            {barOpen ? (
+              <Card>
+                {/* one row on a wide screen (the tool and the field, then what is marked, Send all and Close at the right
+                    edge); on a phone Send and Close sit under them, at the right edge */}
+                <div ref={barRef} role="toolbar" aria-label="Mark up">
+                  <Flow direction={phone ? 'column' : 'row'} gap={phone ? 8 : 12} align={phone ? undefined : 'center'} grow={phone ? undefined : 'first'}>
+                    <Flow direction="row" gap={8} align="center" grow="last">
+                      {commentTool}
+                      {field}
+                    </Flow>
+                    <Flow direction="row" gap={8} align="center" justify={phone ? 'end' : 'start'} style={phone ? undefined : { marginInlineStart: 'auto' }}>
+                      <Flow direction="row" gap={8} align="center">
+                        {notes.length ? (
+                          // on a phone the count rides in the button ("Send 2 notes"): beside it, "2 marked" broke letter by letter at 320
+                          phone ? (
+                            <Button variant="primary" busy={sending} onClick={send}>
+                              {`Send ${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`}
+                            </Button>
+                          ) : (
+                            <>
+                              <TextStack body={`${notes.length} marked`} />
+                              <Button variant="primary" busy={sending} onClick={send}>
+                                Send all
+                              </Button>
+                            </>
+                          )
+                        ) : null}
+                        <Tooltip label="Close Mark up (your drafts are kept)" placement="top">
+                          <Button variant="tertiary" iconOnly icon="Xmark" ariaLabel="Close Mark up" onClick={() => setBarOpen(false)} />
+                        </Tooltip>
+                      </Flow>
+                    </Flow>
                   </Flow>
-                ) : null}
-              </Flow>
-            </Card>
-          ) : (
-            <Notification tone="success" message={`Sent ${sent.n} notes · ${sent.at}`} onClose={() => setSent(null)} closeLabel="Close" />
-          )}
-          </div>
+                </div>
+              </Card>
+            ) : null}
+          </Flow>
         </div>
       ) : null}
     </>

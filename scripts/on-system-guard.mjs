@@ -210,6 +210,37 @@ if (leaving.length) {
   process.exit(1);
 }
 
+// One status mark: BELLA's status dot and its word (her review, 24 Nov, CHIP CLAUDE.md READ FIRST): no left status bar
+// (ListRow statusBar, barHierarchy), no StatusSquare, no StatusPill outside its own specimen, no diamond or square glyph,
+// in the files the app loads. A part that draws its own other mark and waits on a BELLA change goes in WAITING with its
+// reason and is printed on every run, never silently passed. Not a ratchet: one is enough to fail the commit.
+{
+  const MARK = /\bstatusBar=|\bbarHierarchy\b|<StatusSquare\b|@bella\/components\/StatusSquare\/|[◆◇◈■□▪▫◼◻⬥⬦]/;
+  const PILL = /@bella\/components\/StatusPill\/|<StatusPill\b/;
+  const WAITING = {}; // MapLeaf left this list when BELLA's MapLeaf drew the status dot (24 Nov)
+  // the files the app loads, from main.jsx through relative imports (retired pages are not judged)
+  const live = new Set();
+  const walk = (f) => {
+    if (live.has(f) || !existsSync(f)) return;
+    live.add(f);
+    for (const m of readFileSync(f, 'utf8').matchAll(/(?:import|from)\s*\(?\s*['"](\.{1,2}\/[^'"]+)['"]/g)) {
+      const p = join(dirname(f), m[1]);
+      const hit = [p, `${p}.jsx`, `${p}.js`, join(p, 'index.jsx'), join(p, 'index.js')].find((c) => existsSync(c) && statSync(c).isFile());
+      if (hit) walk(hit);
+    }
+  };
+  walk(join(SRC, 'main.jsx'));
+  const lines = [...live].filter((f) => /\.jsx?$/.test(f)).flatMap((f) => noComments(readFileSync(f, 'utf8')).split('\n').map((l, i) => [relative(ROOT, f), i + 1, l]));
+  const marks = lines.filter(([f, , l]) => MARK.test(l) || (PILL.test(l) && !f.endsWith('specimens.jsx')));
+  const waiting = Object.keys(WAITING).filter((k) => lines.some(([, , l]) => l.includes(`<${k}`)));
+  for (const k of waiting) console.log(`on-system-guard: waiting on BELLA, ${k}: ${WAITING[k]}.`);
+  if (marks.length) {
+    console.log('on-system-guard: a state mark that is not the status dot. Commit blocked (use BELLA StatusDot and its word; a plain list carries no mark).');
+    for (const [f, n, l] of marks) console.log(`  ${f}:${n}  ${l.trim().slice(0, 100)}`);
+    process.exit(1);
+  }
+}
+
 // Nor does a page or template open another tab or address (23 Nov): window.open, target="_blank" and a literal
 // http(s) href in app/src/pages and app/src/templates fail the commit. A link out that is deliberate or still waiting
 // for its page's owner goes on this list with its reason; anything else opens in the drawer or an in-app route.
@@ -223,6 +254,8 @@ const OUT_ALLOWED = [
   ['templates/ConnectorSetup.jsx', '<OpenPage', 'set up: opens the tool where the step happens'],
   ['templates/FigmaSetup.jsx', '<OpenPage', 'set up: opens Figma settings to make the token'],
   ['pages/ComponentsContent.jsx', 'github.com', 'the commit on GitHub; to open in CHIP once Components is free to edit'],
+  // Sources are the real thing (23 Nov): no in-CHIP reader for articles yet, so a clearly marked link
+  ['pages/AuditReportsContent.jsx', 'learn.thedesignsystem.guide/p/', 'the source article of two Benchmark tiles, marked "opens the site"'],
 ];
 const out = files(join(SRC, 'pages'))
   .concat(files(join(SRC, 'templates')))

@@ -34,14 +34,14 @@ const measure = () => {
   const found = {
     menu: head?.querySelector('button[aria-label="Hide menu"], button[aria-label="Show menu"]'),
     search: document.querySelector('.chip-screen__menu [role=search] input'),
-    bell: [...(head?.querySelectorAll('button') ?? [])].find((b) => /things? need you|need you/i.test(b.getAttribute('aria-label') ?? '')),
+    bell: [...(head?.querySelectorAll('button') ?? [])].find((b) => /notifications|things? need you|need you/i.test(b.getAttribute('aria-label') ?? '')),
     New: [...(head?.querySelectorAll('button') ?? [])].find((b) => /^\+?\s*New$/.test(b.textContent.trim())),
   };
   const boxes = Object.fromEntries(Object.entries(found).map(([k, e]) => [k, e ? box(e) : null]));
   const h1 = head?.querySelector('h1');
   return {
     boxes,
-    menuShown: !!document.querySelector('.chip-screen__menu'),
+    menuShown: !!document.querySelector('.chip-screen__menu') && !document.querySelector('.chip-screen__menu [data-bella-component="icon-rail"]'), // the icon rail (Components, 1024 and up) carries no Find field: the parts column has its own
     titleCut: h1 ? h1.scrollWidth > h1.clientWidth + 1 : true,
     extra: document.querySelectorAll('[data-bella-component=avatar], [data-bella-component=top-bar]').length,
     sideways: document.documentElement.scrollWidth > innerWidth + 1,
@@ -60,7 +60,7 @@ for (const width of WIDTHS) {
       await page.goto(`${APP}/${hash}`);
       await page.waitForTimeout(3500);
       if (panel) {
-        const bell = page.getByRole('button', { name: /need you/i }).first();
+        const bell = page.getByRole('button', { name: /notifications|need you/i }).first();
         if (await bell.count()) {
           await bell.click();
           await page.waitForTimeout(900);

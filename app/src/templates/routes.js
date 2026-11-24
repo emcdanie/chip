@@ -63,6 +63,9 @@ export function canon(hash) {
 function moved(hash) {
   // Needs you is Work's filter, so the old #/needs address opens it there
   if (/^#?\/?needs\/?(?=[?]|$)/.test(String(hash || ''))) return '#/work?filter=needs';
+  // the Playground's Your picks tab is gone (24 Nov: picks waiting on her are in Needs you, the Playground marks up
+  // pages), so an old picks link (?tab=picks, ?pick=<id>, or the plain address that opened on picks) opens Needs you
+  if (/^#?\/?playground\?(?:.*&)?(?:tab=picks|pick=)/.test(String(hash || ''))) return '#/work?filter=needs';
   if (WORK_UNDER_HEALTH.test(hash)) return String(hash).replace('#/health/work', '#/work');
   const m = String(hash || '').match(/^#?\/?([\w-]*)(\/[^?]*)?(\?.*)?$/);
   if (!m) return hash;

@@ -20,7 +20,8 @@ export default class PageGuard extends Component {
       <Flow gap={16} align="center" inset>
         <EmptyState size="page" title="This part of CHIP stopped" line={`It hit an error: ${String(this.state.error.message ?? this.state.error)}. Nothing was lost.`} />
         <Flow direction="row" gap={8} justify="center">
-          <Button variant="secondary" onClick={() => this.setState({ error: null })}>
+          {/* with onReset the page starts over in place (its own state, zoom and selection, cleared); without, it re-renders */}
+          <Button variant="secondary" onClick={() => (this.props.onReset ? this.props.onReset() : this.setState({ error: null }))}>
             Try again
           </Button>
           <Button variant="primary" onClick={() => window.location.reload()}>

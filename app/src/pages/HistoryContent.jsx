@@ -28,12 +28,14 @@ import Drawer from '@bella/components/Drawer/Drawer';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
 import TourStep from '@bella/components/TourStep/TourStep';
+import Loading from '../templates/Loading.jsx';
 import Flow from '../templates/Flow.jsx';
 import { parseDiff } from './WorkDrawer.jsx';
 import useCached from '../templates/useCached.js';
 import useAsk from '../templates/useAsk.jsx';
 import AskField from '../templates/AskField.jsx';
 import useNarrow from '../templates/useNarrow.js';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
 
 /* A commit's why in plain words: git trailers (Co-Authored-By, Signed-off-by,
    the tool's "Generated with" line) are bookkeeping, not reasons, and never
@@ -445,7 +447,9 @@ function Record({ id, fit, landing }) {
   const [shown, setShown] = useState(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => (asker.clear(), setShown(null)), [id]);
-  if (!rec) return <Card><EmptyState size="lane" title="Opening the record" line="Reading it from git. Two ticks." /></Card>;
+  // a real loading state, said as one (aria-busy): readers hear it is coming, and the card check waits for it to end
+  // instead of measuring a half-drawn pane (24 Nov: a cold server held this record back about 3s behind Work's board)
+  if (!rec) return <Card><Flow aria-busy="true" aria-live="polite"><EmptyState size="lane" title="Opening the record" line="Reading it from git. Two ticks." /></Flow></Card>;
   const files = Array.isArray(rec.files) ? rec.files : [];
   // Ask about this change (her 22 Nov: "too hidden and doesnt come with suggestions"): up under the Why, four questions
   // built from this record's own data, the first as the grey ghost, the answer right under the field. The record's own
@@ -547,7 +551,7 @@ function Record({ id, fit, landing }) {
                   key={what}
                   layout="stacked"
                   divider
-                  statusBar={STATUS_TONE[rec.status] ?? 'neutral'}
+                  statusDot={<StatusDot tone={STATUS_TONE[rec.status] ?? 'neutral'} label={String(rec.status)} showLabel={false} />}
                   title={what}
                   description={`${n === 1 ? '1 file' : `${n} files`} · ${String(rec.status).toLowerCase()}`}
                   trailing
@@ -641,42 +645,51 @@ export default function HistoryContent() {
       <Flow gap={24}>
         {/* Figma's content set opens with its lede (664:123672) */}
         <TextStack body="What we agreed, when and why, across BELLA and CHIP." />
-        {/* Search beside the field, lined up with its box (the label sits above); a phone stacks them */}
-        <Flow direction={phone ? 'column' : 'row'} gap={8} grow={phone ? undefined : 'first'} as="form" role="search" onSubmit={(e) => (e.preventDefault(), search(draft))}>
-          {/* Ask suggestions (Figma Flow 5, screen 2): the field opens matching parts and pages, then
-              Recent; picking one searches the record for it (screen 4, "Only the fixes for Button") */}
-          <Combobox
-            label="Ask about a change, in plain words"
-            search
-            value={draft}
-            onChange={setDraft}
-            groups={[
-              { id: 'match', label: 'Parts and pages', options: find(draft, parts).map((x) => ({ id: x.key, label: x.title, meta: x.where })) },
-              { id: 'recent', label: 'Recent', options: recent.filter((r) => !draft.trim() || r.toLowerCase().includes(draft.trim().toLowerCase())).map((r) => ({ id: `recent:${r}`, label: r })) },
-            ]}
-            onSelect={(o) => search(o.label)}
-          />
-          <Flow direction={phone ? 'row' : 'column'} justify="end">
-            {/* Figma (664:123671): Search, then Filters, both white, words only; the page's one blue action is New task */}
-            <Flow direction="row" gap={8} justify="end">
-              <Button variant="secondary" type="submit">
-                Search
-              </Button>
-              <Button variant="secondary" onClick={() => setFilters(true)} ariaHaspopup="dialog">
-                {extra ? `Filters · ${extra}` : 'Filters'}
-              </Button>
+        {/* One tools line (her review, 24 Nov: the search was too long and the filters sat on another line): a short
+            field (the template's 240 side width), Search and Filters, then the kind chips on the same line, scrolling
+            sideways when they run out of room; a phone stacks the field row and the chip row. The form is a plain
+            element so it keeps its own width beside the chips (a Flow may shrink to nothing). */}
+        <Flow direction={phone ? 'column' : 'row'} gap={16} align={phone ? undefined : 'center'} grow={phone ? undefined : 'last'}>
+          <form role="search" onSubmit={(e) => (e.preventDefault(), search(draft))}>
+            <Flow direction="row" gap={8} align="center" wrap={phone} grow={phone ? 'first' : undefined}>
+              <Flow aside={!phone}>
+                {/* Ask suggestions (Figma Flow 5, screen 2): the field opens matching parts and pages, then
+                    Recent; picking one searches the record for it (screen 4, "Only the fixes for Button") */}
+                <Combobox
+                  label="Ask about a change, in plain words"
+                  hideLabel
+                  placeholder="Search changes"
+                  search
+                  value={draft}
+                  onChange={setDraft}
+                  groups={[
+                    { id: 'match', label: 'Parts and pages', options: find(draft, parts).map((x) => ({ id: x.key, label: x.title, meta: x.where })) },
+                    { id: 'recent', label: 'Recent', options: recent.filter((r) => !draft.trim() || r.toLowerCase().includes(draft.trim().toLowerCase())).map((r) => ({ id: `recent:${r}`, label: r })) },
+                  ]}
+                  onSelect={(o) => search(o.label)}
+                />
+              </Flow>
+              {/* Figma (664:123671): Search, then Filters, both white, words only; the page's one blue action is New task */}
+              <Flow direction="row" gap={8}>
+                <Button variant="secondary" type="submit">
+                  Search
+                </Button>
+                <Button variant="secondary" onClick={() => setFilters(true)} ariaHaspopup="dialog">
+                  {extra ? `Filters · ${extra}` : 'Filters'}
+                </Button>
+              </Flow>
             </Flow>
-          </Flow>
-        </Flow>
-        <Flow direction="row" gap={8} wrap aria-label="Kinds">
-          <FilterChip size="compact" pressed={!kind} onClick={() => setKind(null)}>
-            All {all?.total ?? ''}
-          </FilterChip>
-          {KINDS.map((k) => (
-            <FilterChip key={k} size="compact" pressed={kind === k} onClick={() => setKind(kind === k ? null : k)}>
-              {k} {counts[k] ?? 0}
+          </form>
+          <Flow direction="row" gap={8} swipe aria-label="Kinds">
+            <FilterChip size="compact" pressed={!kind} onClick={() => setKind(null)}>
+              All {all?.total ?? ''}
             </FilterChip>
-          ))}
+            {KINDS.map((k) => (
+              <FilterChip key={k} size="compact" pressed={kind === k} onClick={() => setKind(kind === k ? null : k)}>
+                {k} {counts[k] ?? 0}
+              </FilterChip>
+            ))}
+          </Flow>
         </Flow>
       </Flow>
 
@@ -694,7 +707,7 @@ export default function HistoryContent() {
           }
         />
       ) : !data ? (
-        <EmptyState size="page" title="Reading the record" line="Pulling BELLA's and CHIP's git logs. Won't be a minute." />
+        <Loading size="page" title="Reading the record" sources={[{ url: `/history?${new URLSearchParams(params).toString()}`, label: "BELLA's and CHIP's git logs" }]} />
       ) : (
         // the list and the record fill the window and each scrolls on its own; the page never scrolls
         // (Elleta, 22 Nov: "I don't want to scroll the whole page"). A phone stacks them and scrolls.

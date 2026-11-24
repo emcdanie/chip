@@ -1,6 +1,6 @@
 // Where toasts sit (BELLA's Toast draws one; the page places and stacks it):
-// top centre of the work area, just under the top bar, newest last, above the page
-// (Work board 6b, her pick 22 Nov: one place on every page, clear of the board and the Work panel). Her rule: "every
+// bottom centre of the work area, newest last, above the page (her review, 24 Nov: toasts high in a corner are
+// missed; one place on every page). Her rule: "every
 // action gets feedback on the control itself, plus a toast".
 // A toast is a manual popover, so it joins the top layer after any open Drawer
 // (a modal dialog) and shows above it, its Undo still clickable (audit 21 Nov:
@@ -18,7 +18,7 @@ export default function Toasts({ children }) {
       const bar = document.querySelector('.chip-screen__main [data-bella-component="top-bar"]')?.getBoundingClientRect();
       if (!el || !main) return;
       el.style.insetInlineStart = `${main.left + main.width / 2}px`;
-      if (bar) el.style.insetBlockStart = `calc(${bar.bottom}px + var(--spacing-16))`;
+      // bottom centre (her review, 24 Nov): the work area's centre, 24 above the window's foot (Screen.css)
     };
     place();
     window.addEventListener('resize', place);

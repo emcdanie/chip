@@ -12,7 +12,7 @@
 //     shell opened in its repo with the command typed, not run.
 // Server calls are the old review sheet's (/review/:check, /runs/:id and
 // their accept, keep and undo), so nothing about what a click does changes.
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import FloatingPanel from '@bella/components/FloatingPanel/FloatingPanel';
 import Drawer from '@bella/components/Drawer/Drawer';
@@ -30,12 +30,14 @@ import Tag from '@bella/components/Tag/Tag';
 import StatCard from '@bella/components/StatCard/StatCard';
 import Progress from '@bella/components/Progress/Progress';
 import Flow from '../templates/Flow.jsx';
+import { plainStop } from '../runClock.js';
 import { afterSteps } from './workModel.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import { Words, AnswerLines } from '../templates/useAsk.jsx';
 import ActionChip from '@bella/components/ActionChip/ActionChip';
 import { TermScreen } from '../Terminal.jsx';
 import { keyPhrases } from '../templates/keyPhrase.js';
+import { markOf } from '../templates/marks.js';
 
 const POST = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' };
 // when it ran, with its day: "today 10:26", "20 Nov, 19:04"
@@ -148,36 +150,71 @@ function Change({ diff, proves, branch }) {
 }
 
 /* The agent's notes, in the chat answer's shape (her 21 Nov: "follow the pattern from history and
-   chat"; Figma Flow 12 Agent notes): its first sentence as the verdict with the key phrase bold, at
-   most three bullets (what it asks first, under its own bold label), a chip to say yes to it,
-   and the whole note folded. Everything is the agent's own words, cut, never rewritten. */
+   chat"; Figma Flow 12 Agent notes): its first sentence as the verdict with the key phrase bold, then
+   three bullets at most (what it asks first, then what it could not do, then the rest), a chip to say
+   yes to what it asks. The rest of the notes are lines to pick, the History pattern (her app review,
+   24 Nov 15:20: the notes were too long): one row per line with its label, and the row she picks
+   opens its words under it. Everything is the agent's own words, cut, never rewritten. */
+const unticked = (t) => String(t ?? '').replace(/`/g, '');
+const sentence1 = (t) => unticked(t).split(/(?<=[.!?])\s+/)[0];
+/** The notes as lines: each paragraph or "- " item, with its bold label (or its file, or its first words) and its words. */
+export function noteLines(text) {
+  const out = [];
+  let group = null;
+  for (const raw of String(text ?? '').split('\n')) {
+    const line = raw.trim();
+    if (!line) {
+      group = null;
+      continue;
+    }
+    const item = /^[-*]\s+/.test(line);
+    const body = line.replace(/^[-*]\s+/, '');
+    // "Files created (nothing else changed):" heads the items under it
+    if (!item && /:$/.test(body) && !/\*\*/.test(body)) {
+      group = body.replace(/:$/, '');
+      continue;
+    }
+    if (!item && !/^\s/.test(raw)) group = null;
+    const bold = body.match(/^\*\*(.+?)\*\*:?\s*(.*)$/);
+    const file = body.match(/^`([^`]+)`(?:\s*\([^)]*\))?:\s*(.*)$/);
+    const named = !bold && !file ? body.match(/^([A-Z][\w -]{1,24}):\s+(.+)$/) : null;
+    const label = bold ? bold[1].replace(/[.:]$/, '') : file ? file[1].split('/').pop() : named ? named[1] : null;
+    const words = (bold ? bold[2] : file ? file[2] : named ? named[2] : body).replace(/\*\*/g, '');
+    // "- **Biggest findings:**" with nothing after it heads the items under it
+    if (label && !words.trim()) {
+      group = label;
+      continue;
+    }
+    const short = label ?? unticked(words).split(/\s+/).slice(0, 7).join(' ').replace(/[.,:;]$/, '') + (unticked(words).split(/\s+/).length > 7 ? '…' : '');
+    out.push({ label: group && !label ? `${group}: ${short}` : short, named: !!label, words: unticked(words), group, ask: /your say|want you|should I|if you want|say if|\?\s*$/i.test(words), stuck: /could not|couldn.t|not done|not inspected|blocked/i.test(`${group ?? ''} ${label ?? ''} ${words}`) });
+  }
+  return out;
+}
+
 function shapeNotes(t) {
   const text = String(t ?? '').trim();
   if (!text) return null;
-  const [lead = '', ...rest] = text.split(/\n\s*\n/);
-  const sentences = lead.replace(/`/g, '').split(/(?<=[.!?])\s+/).filter(Boolean);
+  const lines = noteLines(text);
+  const sentences = unticked(text.split(/\n\s*\n/)[0]).split(/(?<=[.!?])\s+/).filter(Boolean);
   const verdict = sentences[0] ?? '';
-  const points = [];
-  const questions = [];
-  for (const block of rest) {
-    for (const line of block.split('\n')) {
-      const m = line.replace(/`/g, '').match(/^\s*-\s*\*\*(.+?)\*\*\s*(.*)$/);
-      if (!m) continue;
-      const label = m[1].replace(/[.:]$/, '');
-      const first = m[2].split(/(?<=[.!?])\s+/)[0];
-      if (/your say|want you|should I|\?\s*$/i.test(m[2])) questions.push({ label, line: first });
-      else points.push(`${label}: ${first}`);
-    }
-  }
+  const rest = lines.slice(1);
+  const questions = rest.filter((l) => l.ask).map((l) => ({ label: l.label, line: sentence1(l.words) }));
+  // the three that matter first: what it asks, what it could not do, then the rest in its own order; Applied and Changed
+  // are the report's footer, never a summary point
+  const footer = (l) => /^(applied|changed)\b/i.test(l.label) || /^(applied|changed):/i.test(l.words);
+  const pick = [...rest.filter((l) => l.ask), ...rest.filter((l) => !l.ask && l.stuck), ...rest.filter((l) => !l.ask && !l.stuck && !footer(l))];
+  const bullets = [...new Set(pick.map((l) => (l.named ? `**${l.label}**: ${sentence1(l.words)}` : sentence1(l.words))))];
+  // too few lines: the lead's next sentences say it
+  for (const x of sentences.slice(1)) if (bullets.length < 3) bullets.push(x);
   // the words that say the outcome, by the same rule as History (the marker marks what matters, 22 Nov)
   const key = keyPhrases(verdict, { max: 1 })[0];
   const bold = key ? `${verdict.slice(0, key.at)}**${key.text}**${verdict.slice(key.at + key.text.length)}` : verdict;
-  const asks = questions.map((q) => `${q.label}: ${q.line}`);
-  return { verdict: bold, bullets: [...asks, ...points, ...sentences.slice(1)].slice(0, 3), questions, all: text };
+  return { verdict: bold, bullets: bullets.slice(0, 3), questions, lines: rest.length ? lines : [] };
 }
 
 function Notes({ summary, onAnswer }) {
   const n = shapeNotes(summary);
+  const [picked, setPicked] = useState(null);
   if (!n) return null;
   return (
     <Flow gap={8}>
@@ -192,13 +229,23 @@ function Notes({ summary, onAnswer }) {
           ))}
         </Flow>
       ) : null}
-      <Disclosure flush title="All the agent’s notes">
-        <Flow gap={8}>
-          {n.all.split(/\n\s*\n/).map((para) => (
-            <TextStack key={para} body={<Words text={para.replace(/^\s*-\s*/gm, '').replace(/\n/g, ' ')} />} />
-          ))}
-        </Flow>
-      </Disclosure>
+      {n.lines.length ? (
+        <Disclosure flush title="Every line of the notes" summary={plural(n.lines.length, 'line')}>
+          {/* History's pattern: pick a line and it explains itself under it */}
+          <Flow gap={4} as="ul" aria-label="The agent’s notes, a line at a time">
+            {n.lines.map((l, i) => (
+              <Fragment key={i}>
+                <ListRow layout="stacked" divider title={l.label} selected={picked === i} onClick={() => setPicked(picked === i ? null : i)} />
+                {picked === i && l.words ? (
+                  <li aria-live="polite" style={{ listStyle: 'none' }}>
+                    <TextStack body={<Words text={l.words} />} />
+                  </li>
+                ) : null}
+              </Fragment>
+            ))}
+          </Flow>
+        </Disclosure>
+      ) : null}
     </Flow>
   );
 }
@@ -227,19 +274,23 @@ function shapeOf(item, d) {
   if (item.kind === 'run') {
     const waiting = d.status === 'passed';
     const failed = d.status === 'failed' || d.status === 'login';
+    // finished without changing a file (her contrast run, 24 Nov: the drawer said "Working." over a run long ended)
+    const nochange = d.status === 'nochange';
+    const going = ['starting', 'running', 'gate'].includes(d.status);
     return {
       title: d.title,
       status: ['Agent', d.from ? `from ${d.from}` : null, d.startedAt ? `ran ${when(d.startedAt)}` : null].filter(Boolean).join(' · '),
       // the outcome in one plain line: a gate stop names its tests and file; the agent's notes fold, whole
-      outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d).line : `Stopped: ${String(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}. **Nothing was kept.**`) : d.status === 'kept' ? 'Accepted: **the branch is kept**.' : d.status === 'passed' ? (firstLine(d.summary) ? `**Gate passed**: ${firstLine(d.summary)}` : '**The gate passed.**') : d.step || 'Working.',
+      outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d).line : `${plainStop(d.error ?? 'The run stopped before it finished')}. **Nothing was kept.**`) : d.status === 'kept' ? 'Accepted: **the branch is kept**.' : d.status === 'passed' ? (firstLine(d.summary) ? `**Gate passed**: ${firstLine(d.summary)}` : '**The gate passed.**') : nochange ? `**It changed nothing**${firstLine(d.summary) ? `: ${firstLine(d.summary)}` : '.'}` : d.step || 'Working.',
       gate: d.gate?.passed ? `Gate passed · ${d.sha ? '1 commit' : 'no commit'}` : failed && d.gate && d.gate.passed === false ? gateReason(d).facts : null,
       notes: d.summary ?? null,
       // what the change shows, in one line: what the agent wrote and what the gate made of it
       proves: `The agent ${failed ? 'wrote' : 'made'} ${plural(parseDiff(d.diff).length, 'file')}${d.gate ? (d.gate.passed ? '; BELLA’s gate ran on them and passed.' : '; BELLA’s gate didn’t pass them, so none of it is kept.') : '.'}`,
-      again: failed && d.brief ? { brief: d.brief, title: d.title, from: d.from } : null,
+      again: (failed || nochange) && d.brief ? { brief: d.brief, title: d.title, from: d.from } : null,
+      id: d.id,
       diff: d.diff ?? null,
       branch: d.branch,
-      can: waiting ? 'decide' : ['starting', 'running'].includes(d.status) ? 'stop' : null,
+      can: waiting ? 'decide' : going ? 'stop' : null,
       kept: d.status === 'kept',
       after: afterSteps(d),
     };
@@ -326,8 +377,14 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
         </Button>
       </>
     ) : s.can === 'stop' ? (
-      // a running run always has Stop: nothing is kept, the branch stays for a look
+      // a running run keeps its footer (her review, 24 Nov): Open on board (its card with the live steps) and Stop;
+      // nothing is kept on Stop, the branch stays for a look
       <>
+        {s.id ? (
+          <Button variant="tertiary" onClick={() => (onClose?.(), (window.location.hash = `#/work?card=${encodeURIComponent(s.id)}`))}>
+            Open on board
+          </Button>
+        ) : null}
         <Button variant="secondary" disabled={!!busy} onClick={() => act('stop', { title: 'Stopped', message: `${s.title}: the agent stopped. Nothing was kept.` })}>
           {busy === 'stop' ? 'Stopping…' : 'Stop'}
         </Button>
@@ -347,9 +404,11 @@ function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
   const footerNote =
     s.can === 'decide'
       ? `${s.merge ? 'Keep branch' : 'Accept'} keeps the branch; Undo deletes it.`
-      : s.can !== 'stop' && s.again
-        ? 'Opens the same plan; nothing runs until you approve it.'
-        : undefined;
+      : s.can === 'stop'
+        ? 'Running; Stop keeps nothing.'
+        : s.again
+          ? 'Opens the same plan; nothing runs until you approve it.'
+          : undefined;
   // Add it: a new run on the same brief with the agent's question and her answer added
   const answer = item.kind === 'run' && data.brief ? (q) => again({ title: `${data.title}: ${q.label}`, from: data.from, brief: `${data.brief}\n\n---\nThe last run asked: ${q.label}. ${q.line}\nElleta's answer: add it.` }) : undefined;
   return shell(s.title, s.status, <FixBody s={s} onAnswer={answer} />, footer ?? undefined, footer ? footerNote : undefined);
@@ -534,7 +593,7 @@ function SessionDrawer({ item, onClose }) {
             ))}
           </Flow>
         ) : (
-          <EmptyState size="lane" mark="📝" title="No steps yet" line="This session hasn’t listed its plan. Its steps show here once it does." />
+          <EmptyState size="lane" {...markOf('📝')} title="No steps yet" line="This session hasn’t listed its plan. Its steps show here once it does." />
         )}
         <TextStack subtitle="Read from the session’s own plan in the Claude app. CHIP shows it; it can’t stop or steer the session." />
       </Flow>

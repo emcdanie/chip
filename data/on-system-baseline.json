@@ -97,12 +97,10 @@
   },
   "app/src/ReviewSheet.jsx": {
    "<table>": 1,
-   "kit Sheet": 1,
-   "kit StatusPill": 1
+   "kit Sheet": 1
   },
   "app/src/Runs.jsx": {
-   "kit Sheet": 1,
-   "kit StatusPill": 1
+   "kit Sheet": 1
   },
   "app/src/SystemMap.jsx": {
    "<button>": 2,
@@ -134,10 +132,10 @@
    "<dialog>": 1,
    "<input>": 2,
    "<table>": 1,
-   "kit defines a BELLA duplicate": 7
+   "kit defines a BELLA duplicate": 6
   },
   "app/src/kit/kit.css": {
-   "css font-family literal": 19,
+   "css font-family literal": 18,
    "css raw size": 47
   },
   "app/src/kit/tokens.css": {

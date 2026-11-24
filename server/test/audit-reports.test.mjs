@@ -35,6 +35,7 @@ test('the newest run: means, the stopped job, the 8-job score, and each check\'s
   assert.deepEqual(r.bench.all10, { bare: 85, md: 67.5 });
   assert.equal(r.bench.stopped, 1);
   assert.deepEqual(r.bench.eight, { bare: 80, md: 90, n: 1 });
+  assert.ok(r.bench.adherence.n >= r.bench.adherence.pass); // agent adherence: AGENTS.md jobs that pass the gate
   assert.deepEqual(r.bench.series.md, [['2026-10-08', 75], ['2026-11-12', 67.5]]);
   const real = r.bench.checks.find((c) => c.id === 'apiFidelity');
   assert.equal(real.share, -12.5); // 0.25 x (50 - 100)
@@ -63,3 +64,17 @@ test('no benchmark run says so, with no number', () => {
     assert.match(r.why, /rubric|run/);
   });
 });
+
+test('cost per shippable output: recorded cost over the runs whose gate passed; none passed is not a number', async () => {
+  const { costOf } = await import('../lib/audit-reports.mjs');
+  const c = costOf([
+    { status: 'kept', cost: 1, startedAt: '2026-11-22T10:00:00Z' },
+    { status: 'closed', closedFrom: 'passed', cost: 0.5, startedAt: '2026-11-21T10:00:00Z' },
+    { status: 'failed', cost: 0.5, startedAt: '2026-11-20T10:00:00Z' },
+    { status: 'failed', cost: null },
+  ]);
+  assert.deepEqual(c, { runs: 4, costed: 3, shipped: 2, total: 2, per: 1, since: '2026-11-20' });
+  assert.equal(costOf([{ status: 'failed', cost: 1 }]).per, null);
+  assert.equal(costOf([]), null);
+});
+

@@ -13,6 +13,8 @@ import { useEffect, useState } from 'react';
 import useCached from './useCached.js';
 import SideMenu from '@bella/components/SideMenu/SideMenu';
 import NavList from '@bella/components/NavList/NavList';
+import IconRail from '@bella/components/IconRail/IconRail';
+import NavItem from '@bella/components/NavItem/NavItem';
 import Menu, { MenuItem } from '@bella/components/Menu/Menu';
 import PageHeader from '@bella/components/PageHeader/PageHeader';
 import Tabs, { tabPanelProps } from '@bella/components/Tabs/Tabs';
@@ -29,10 +31,10 @@ export { glide };
 import { NewStart as NewTask } from './NewStart.jsx';
 import Search from './Search.jsx';
 import useNarrow from './useNarrow.js';
-import WorkDock, { openNotices } from './WorkDock.jsx';
+import WorkDock, { BellButton } from './WorkDock.jsx';
 import MarkUp, { useMarkUp } from './MarkUp.jsx';
 import RunStatus from './RunStatus.jsx';
-import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
+import ChipWordmark from './ChipWordmark.jsx';
 
 // A page opens at its top with nothing scrolled or focused, unless a link
 // names a section (Elleta, 20 Nov 2026: "the pages open to weird places").
@@ -200,7 +202,7 @@ function Crumb({ trail, href, linked, compact }) {
 }
 
 /* The one side menu (her nav C pick, 22 Nov), in her words: where you go, what is pinned, the projects,
-   and Team and Settings at the foot. One current item, the page you are on (aria-current page): a pinned
+   and Team and Connectors at the foot. One current item, the page you are on (aria-current page): a pinned
    page wins over its project, so Components marks Components, the other CHIP tabs mark CHIP. Branches
    filter the board from Work's own control bar, so no branch name sits in the menu. Site and BELLA open
    the old app's project page until theirs are rebuilt. */
@@ -226,10 +228,13 @@ function menuModel({ place, tab, projects, needs }) {
     // every project opens the new board (23 Nov: "the old board show when i click projects like site")
     // the side menu's Projects set the Work board's project filter and put the project in the breadcrumb (picked A, 22 Nov:
     // one board with a project filter, no board per project)
-    projects: (projects ?? []).map((p) => ({ label: p.name, href: `#/work?project=${p.id}`, current: place === 'work' && !needsHere && p.id === project })),
+    // no Projects in the side menu for the demo (Elleta, 24 Nov morning review): the Work board's project chips pick a
+    // project; a project's address (#/work?project=) still works
+    projects: [],
     foot: [
       { label: 'Team', href: '#/team', icon: 'Group', current: place === 'team' },
-      { label: 'Settings', href: '#/connectors', icon: 'Settings', current: place === 'settings' },
+      // named for what it holds until there are settings (Elleta, 24 Nov morning review)
+      { label: 'Connectors', href: '#/connectors', icon: 'Network', current: place === 'settings' },
     ],
   };
 }
@@ -270,8 +275,15 @@ export default function Screen({ place, header, tabs, children }) {
       return false;
     }
   });
+  // System › Components shows the main places as an icon rail and its parts list in a column of its own (her lean B, 24
+  // Nov morning review: deep in a part she could not see where she was without scrolling the menu back up). The menu
+  // button, or Cmd+K, brings the full menu back for a while; leaving the page brings the rail back.
+  const [railOff, setRailOff] = useState(false);
+  const railPage = place === 'projects' && tabs?.value === 'components';
+  const rail = railPage && !menuOut && !collapsed && !railOff;
   const toggleMenu = () => {
     if (menuOut) return setMenuOpen((o) => !o);
+    if (railPage && !collapsed) return setRailOff((o) => !o);
     const c = collapsed;
     glide('menu', () => setCollapsed(!c));
     try {
@@ -292,6 +304,7 @@ export default function Screen({ place, header, tabs, children }) {
         e.preventDefault();
         if (menuOut) setMenuOpen(true);
         else if (collapsed) toggleMenu();
+        else if (rail) setRailOff(true);
         let tries = 0;
         const put = () => {
           const input = document.querySelector('.chip-screen__search input');
@@ -316,8 +329,8 @@ export default function Screen({ place, header, tabs, children }) {
   const tab = place === 'projects' ? tabs?.value : null;
   const view = PROJECT_VIEWS.find((v) => v.id === tab);
   const projectName = (projects ?? []).find((p) => p.id === projectOf())?.name ?? 'CHIP';
-  // the top bar says where you are: "CHIP › Work", "CHIP › System › Components", "CHIP › Team"
-  const trail = view ? [projectName, view.groupLabel, view.label] : header?.parent ? [projectName, header.parent, header.title] : [projectName, place === 'work' ? 'Work' : place === 'health' ? 'Health' : header?.title];
+  // the top bar says where you are (Needs you is its own place, 24 Nov: the menu and the title agree): "CHIP › Work", "CHIP › System › Components", "CHIP › Team"
+  const trail = view ? [projectName, view.groupLabel, view.label] : header?.parent ? [projectName, header.parent, header.title] : [projectName, place === 'work' ? (new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('filter') === 'needs' ? 'Needs you' : 'Work') : place === 'health' ? 'Health' : header?.title];
   // the tab's title says where you are ("Health · CHIP", "System · Components · CHIP"), so tabs and History tell apart
   useEffect(() => {
     document.title = [...trail.slice(1), trail[0]].filter(Boolean).join(' · ');
@@ -347,8 +360,8 @@ export default function Screen({ place, header, tabs, children }) {
                 title={trail[trail.length - 1]}
                 meta={
                   <Flow as="span" direction="row" gap={8} align="center">
-                    <Tooltip label={menuOut || collapsed ? 'Show menu' : 'Hide menu'}>
-                      <Button variant="tertiary" iconOnly icon={menuOut || collapsed ? 'SidebarExpand' : 'SidebarCollapse'} ariaLabel={menuOut || collapsed ? 'Show menu' : 'Hide menu'} ariaExpanded={menuOut ? menuOpen : !collapsed} ariaHaspopup={menuOut ? 'dialog' : undefined} onClick={toggleMenu} />
+                    <Tooltip label={menuOut || collapsed || rail ? 'Show menu' : 'Hide menu'}>
+                      <Button variant="tertiary" iconOnly icon={menuOut || collapsed || rail ? 'SidebarExpand' : 'SidebarCollapse'} ariaLabel={menuOut || collapsed || rail ? 'Show menu' : 'Hide menu'} ariaExpanded={menuOut ? menuOpen : !collapsed && !rail} ariaHaspopup={menuOut ? 'dialog' : undefined} onClick={toggleMenu} />
                     </Tooltip>
                     <Crumb trail={trail} compact={phone} href={header?.back ?? (projectOf() ? `#/work?project=${projectOf()}` : '#/work')} linked={place !== 'work'} />
                   </Flow>
@@ -359,15 +372,20 @@ export default function Screen({ place, header, tabs, children }) {
                 <RunStatus />
                 {/* Mark up (Elleta, 23 Nov): every page markable like Figma comments; notes stay drafts until one Send all */}
                 <span data-markup-own>
-                  <Tooltip label={markup.on ? 'Stop marking up' : 'Mark up'}>
-                    <Button variant="tertiary" iconOnly icon="EditPencil" ariaLabel="Mark up" ariaPressed={markup.on} onClick={() => markup.setOn((o) => !o)} />
+                  {/* the button says what it is (24 Nov, "I can't mark up": a pencil with no word was missed). It only opens
+                      the floating Mark up toolbar at the foot of the screen, where the comment tool, Send all and Close live
+                      (her review, 24 Nov 15:20), so she never scrolls back up to switch it; pressed while the toolbar is open */}
+                  <Tooltip label="Open the Mark up toolbar">
+                    {/* on a phone the pencil alone, with its name for screen readers: the word wrapped onto three lines at 320 */}
+                    <Button variant="tertiary" icon="EditPencil" leadingIcon iconOnly={phone} ariaLabel="Mark up" ariaPressed={markup.open} onClick={markup.openBar}>
+                      {phone ? null : 'Mark up'}
+                    </Button>
                   </Tooltip>
                 </span>
                 {/* the bell is notifications only (CLAUDE.md Navigation): what needs you, what finished, what landed today.
                     The Sessions panel opens from the running indicator and ⌘J */}
-                <Tooltip label="Notifications">
-                  <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `Notifications: ${needs} ${needs === 1 ? 'thing needs' : 'things need'} you` : 'Notifications'} ariaHaspopup="dialog" onClick={openNotices} />
-                </Tooltip>
+                {/* with its count beside it when a session came back or something needs her (24 Nov) */}
+                <BellButton />
                 {header?.actions ?? (['projects', 'work', 'health', 'playground'].includes(place) ? <NewTask /> : null)}
               </Flow>
             </Flow>
@@ -388,19 +406,39 @@ export default function Screen({ place, header, tabs, children }) {
           {/* the Find field first, as in the menu at full width (her mark-up, 23 Nov), 16 above the rows like the menu's
               own gap between groups (23 Nov evening: it sat on the selected row) */}
           <Flow gap={16}>
-            <Flow role="search" direction="row" gap={4} align="start" grow="first">
+            <Flow role="search" direction="row" gap={12} align="start" grow="first" style={{ maxInlineSize: 'calc(var(--layout-search-max-width) + var(--spacing-12) + var(--spacing-44))' }}>
               <Search inDrawer />
             </Flow>
             <NavList label="Main" groups={groups} onNavigate={() => setMenuOpen(false)} />
           </Flow>
         </Drawer>
-      ) : collapsed ? null : (
-        <div className="chip-screen__menu">
+      ) : collapsed ? null : rail ? (
+        // its own key (and the full menu its own), so switching builds new boxes: the Components page draws its list into
+        // this column's box, and a reused box carried the list into the menu's logo
+        <div key="rail" className="chip-screen__menu chip-screen__menu--rail">
+          {/* the main places as icons, each named by its tooltip; the current one marked as in the menu */}
+          <IconRail
+            label="Main"
+            // CHIP's wordmark (her new mark, 24 Nov), in the rail's width
+            logo={<div className="chip-screen__rail-logo"><ChipWordmark /></div>}
+            end={
+              <Flow gap={8} align="center">
+                {menu.foot.map((it) => <NavItem key={it.label} iconOnly label={it.label} icon={it.icon} href={it.href} current={it.current} />)}
+              </Flow>
+            }
+          >
+            {[...menu.items, ...menu.pinned].map((it) => <NavItem key={it.label} iconOnly label={it.badge ? `${it.label}, ${it.badge}` : it.label} icon={it.icon} href={it.href} current={it.current} />)}
+          </IconRail>
+          {/* System's list in its own column: the Components page draws it here (ComponentsContent useMenuSub) */}
+          <div className="chip-screen__list"><div className="chip-screen__list-body" data-chip-menu-sub="" /></div>
+        </div>
+      ) : (
+        <div key="menu" className="chip-screen__menu">
           <div className="chip-screen__menu-body">
             <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} search={<Search />} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
           </div>
-          {/* the CHIP logotype closes the menu, its left edge on the rows' icons (her mark-up, 23 Nov) */}
-          <div className="chip-screen__logo"><div className="chip-screen__logo-mark"><BrandWordmark word="CHIP" variant="logotype" size="full-bleed" /></div></div>
+          {/* CHIP's wordmark closes the menu (her new mark, 24 Nov), its left edge on the rows' icons (her mark-up, 23 Nov) */}
+          <div className="chip-screen__logo"><div className="chip-screen__logo-mark"><ChipWordmark /></div></div>
           {/* CHIP has one client, so its list says so */}
           {clientsOpen ? (
             <div className="chip-pop__menu">

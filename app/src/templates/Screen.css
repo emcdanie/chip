@@ -33,6 +33,29 @@
   flex-direction: column;
   block-size: 100dvh;
 }
+/* System › Components (B, 24 Nov): the icon rail, then the parts list in its own column, as wide as the side menu, with
+   the menu's surface and its visible line on the right; the list scrolls on its own */
+.chip-screen__menu--rail { flex-direction: row; }
+/* the logotype at the rail's top: the rail's 72 less 8 a side */
+.chip-screen__rail-logo { inline-size: calc(var(--spacing-48) + var(--spacing-8)); }
+.chip-screen__list {
+  display: flex;
+  flex-direction: column;
+  inline-size: calc(var(--spacing-80) * 3 - var(--spacing-8));
+  box-sizing: border-box;
+  block-size: 100dvh;
+  /* 16 above the list, 12 at the sides as the side menu, less the 8 the scroll keeps for focus rings */
+  padding: var(--spacing-8) var(--spacing-4) 0;
+  background: var(--color-background-surface);
+  box-shadow: inset calc(-1 * var(--border-width-1)) 0 0 var(--color-border-default);
+}
+/* the list's own scroll, with 8 of room for a row's focus ring (as SideMenu's rows) and 24 after the last row */
+.chip-screen__list-body {
+  flex: 1 1 0;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--spacing-8) var(--spacing-8) var(--spacing-24);
+}
 /* a Menu that opens under its button, over the page, never pushing it down: the client list under the
    side menu's switcher, the branch list under Work's Branch button */
 .chip-pop { position: relative; }
@@ -87,7 +110,11 @@
   flex-direction: column;
   gap: 0;
   padding-inline: var(--layout-container-pad);
+  /* 8 of room above the page's top row (Elleta, 24 Nov morning: it sat too close to the top of the page) */
+  padding-block-start: var(--spacing-8);
 }
+/* and 4 under it, so the row ends where the side menu's BELLA row ends (68) and the two read as one band */
+.chip-screen__head > .chip-flow:first-child { padding-block-end: var(--spacing-4); }
 
 .chip-screen__menu { order: -1; }
 
@@ -296,7 +323,9 @@
 .chip-flow--sticky {
   position: sticky;
   inset-block-start: 0;
-  z-index: 1;
+  /* above a table's frozen first column and its header (DataTable stacks them at 1 and 2), so a scrolled table passes
+     under the tools row, never over it (24 Nov: the Work table's Task cells drew over the tools) */
+  z-index: 3;
 }
 /* a column that scrolls on its own: its height comes from its frame, never from its content, and 8 of
    room inside so focus rings and selected rows are never cut at the edge */
@@ -396,7 +425,7 @@
   .chip-screen { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* Toasts (Toasts.jsx): bottom right, above the page, 24 from the edges, stacked 8 apart */
+/* Toasts (Toasts.jsx): bottom centre of the work area, above the page, stacked 8 apart */
 .chip-toasts {
   /* a manual popover (Toasts.jsx): the browser's popover box reset, our place kept */
   margin: 0;
@@ -406,10 +435,10 @@
   overflow: visible;
   inset: auto;
   position: fixed;
-  /* top centre of the work area, just under the top bar, in one place on every page (Work board
-     6b, her pick 22 Nov): it clears the board's scroll button, the last lane and the Work panel.
-     Toasts.jsx moves it to the measured work area; until then, the window's top centre. */
-  inset-block-start: var(--layout-gutter);
+  /* bottom centre of the work area, 24 above the window's foot (her review, 24 Nov: toasts high in a corner are
+     missed; Vitaly Friedman: never in a corner). Toasts.jsx moves it to the measured work area's centre; until then,
+     the window's centre. */
+  inset-block-end: var(--spacing-24);
   inset-inline-start: 50%;
   transform: translateX(-50%);
   z-index: 50;
@@ -556,3 +585,5 @@
 ::view-transition-new(chip-menu) { animation: chip-glide-in var(--motion-duration-250) var(--motion-easing-standard) both; }
 @keyframes chip-glide-out { to { transform: translateX(-100%); opacity: 0; } }
 @keyframes chip-glide-in { from { transform: translateX(-100%); opacity: 0; } }
+/* a menu that opens upward from a control at the foot of a panel (the Sessions panel's model menu) */
+.chip-pop__menu--up { inset-block-start: auto; inset-block-end: calc(100% + var(--spacing-4)); }

@@ -284,6 +284,12 @@ for (const route of routes) {
         // the page has read its data: no loading notice left (a card count of 0 on a loading screen proves nothing)
         await page.waitForFunction(() => !/Reading BELLA|Counting every part|Loading/.test(document.body.innerText), null, { timeout: 30000 }).catch(() => {});
         await page.waitForTimeout(1800);
+        // and no part of it says it is still loading (aria-busy, 24 Nov: History's record pane, held about 3s behind
+        // Work's board on a cold server, was measured as a card with 272px under its line). Asked after the page has
+        // drawn: at "load" nothing is drawn yet, so a wait there passes at once
+        // the page's reads have settled (a list arriving late draws its loading parts only then), then nothing is busy
+        await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+        await page.waitForFunction(() => !document.querySelector('[aria-busy="true"]'), null, { timeout: 30000 }).catch(() => {});
         const label = `${route} ${width}${menu ? ` menu-${menu}` : ''}${panel ? ' work-open' : ''}`;
         let cards = await page.evaluate(measure);
         // a page that drew nothing yet (or only cards not on screen yet: Work at 320 with the menu folded) gets up to six more looks before it counts as having no cards

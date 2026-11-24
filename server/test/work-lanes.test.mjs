@@ -101,7 +101,7 @@ test('what a session last said reaches Ask; a line naming a private term is left
   const rec = (id, o) => writeFileSync(join(sess, `local_${id}.json`), JSON.stringify({ sessionId: `local_${id}`, cliSessionId: id, cwd: repo, title: `Task ${id}`, lastActivityAt: now - 36e5, createdAt: now - 72e5, isArchived: false, model: 'claude-opus-5-5', lastTurnEdgeAt: now - 6e5, ...o }));
   for (const id of ['said', 'hidden', 'private']) writeFileSync(join(tr, `${id}.jsonl`), use('mcp__ccd_turn__update_plan', { items: [{ content: 'Step', status: 'in_progress' }] }));
   rec('said', { spawnedFrom: { sessionId: 'local_coord', name: 'drawers' }, turnWrapUp: { description: 'Footers moved. Two checks left.' }, postTurnSummary: { status_category: 'review_ready', status_detail: 'Footers moved', needs_action: '' } });
-  rec('hidden', { turnWrapUp: { description: 'Worked on the Zorblax account.' }, postTurnSummary: { status_category: 'blocked', status_detail: 'Zorblax login', needs_action: 'Sign in' } });
+  rec('hidden', { lastAssistantUuid: 'u9', postTurnSummaryFor: 'u9', turnWrapUp: { description: 'Worked on the Zorblax account.' }, postTurnSummary: { status_category: 'blocked', status_detail: 'Zorblax login', needs_action: 'Sign in' } });
   rec('private', { title: 'Zorblax pages' });
   const got = sessionTasks([{ repo, short: 'CHIP' }], now, { dir: join(dir, 'sessions2'), transcripts: join(dir, 'projects2'), terms: ['zorblax'] });
   assert.deepEqual(got.map((s) => s.title).sort(), ['Task hidden', 'Task said']);
@@ -113,10 +113,14 @@ test('what a session last said reaches Ask; a line naming a private term is left
   assert.equal(said.parentId, 'local_coord');
   assert.equal(got.find((s) => s.title === 'Task hidden').parentId, null);
   assert.equal(said.reportedAt, now - 6e5);
+  // a turn that ended (a summary for its last message) is not working, however fresh its file
+  assert.equal(said.turnDone, false);
   const hidden = got.find((s) => s.title === 'Task hidden');
   assert.equal(hidden.report, null);
   assert.equal(hidden.status.detail, null);
   assert.equal(hidden.status.category, 'blocked');
+  assert.equal(hidden.turnDone, true);
+  assert.equal(hidden.working, false);
 });
 
 test('progress links are made whole', () => {

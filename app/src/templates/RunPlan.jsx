@@ -42,7 +42,9 @@ function RunPlan({ plan, onDone }) {
       if (run.status === 'login' || run.status === 'failed') throw new Error(run.error || 'The agent could not start');
       window.dispatchEvent(new Event('chip:changed'));
       window.dispatchEvent(new CustomEvent('chip:run-started', { detail: { id: run.id } }));
-      onDone({ run, toast: { tone: 'success', text: `Sent to the agent: ${plan.title}. It works on a copy; its card is on Work, with Stop while it runs.` } });
+      // what is true once it lands, kept by run id for the toast that says so (RunStatus.jsx)
+      if (plan.doneSays) rememberDoneSays(run.id, plan.doneSays);
+      onDone({ run, toast: { tone: 'success', text: `Running: ${plan.title}. Its card is on Work with its steps.`, card: run.id } });
     } catch (e) {
       e.shown = true; // the plan's own toast says it; the page adds nothing
       onDone({ error: e, toast: { tone: 'danger', text: `Not sent: ${e.message.replace(/\.$/, '')}.` } });
@@ -90,6 +92,23 @@ function RunPlan({ plan, onDone }) {
   );
 }
 
+/* "What is now true" per run, kept in this browser (a convenience: the toast falls back to the run's title) */
+const DONE_KEY = 'chip-done-says';
+export function rememberDoneSays(id, text) {
+  try {
+    const all = JSON.parse(localStorage.getItem(DONE_KEY) ?? '{}');
+    all[id] = text;
+    localStorage.setItem(DONE_KEY, JSON.stringify(Object.fromEntries(Object.entries(all).slice(-40))));
+  } catch {}
+}
+export function doneSaysOf(id) {
+  try {
+    return JSON.parse(localStorage.getItem(DONE_KEY) ?? '{}')[id] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Mounted once at the root: shows the plan any page asked for, and its toast. */
 export default function RunPlanHost() {
   const [plan, setPlan] = useState(null);
@@ -111,7 +130,8 @@ export default function RunPlanHost() {
       {plan ? <RunPlan key={plan.title} plan={plan} onDone={done} /> : null}
       {toast ? (
         <Toasts>
-          <Toast tone={toast.tone} onClose={() => setToast(null)}>
+          {/* Take me to the board opens Work on this run's card: scrolled to, outlined, opened (#/work?card=<id>, her test 24 Nov) */}
+          <Toast tone={toast.tone} onClose={() => setToast(null)} action={toast.card ? { label: 'Take me to the board', onClick: () => ((window.location.hash = `#/work?card=${encodeURIComponent(toast.card)}`), setToast(null)) } : undefined}>
             {toast.text}
           </Toast>
         </Toasts>

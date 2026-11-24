@@ -34,7 +34,7 @@ export const PAGES = [
   { id: 'not-again', label: 'Not again', where: 'Page' },
   { id: 'team', label: 'Team', where: 'Page' },
   { id: 'system-map', label: 'System map', where: 'Page' },
-  { id: 'connectors', label: 'Connectors', where: 'Page · Settings' },
+  { id: 'connectors', label: 'Connectors', where: 'Page' },
 ];
 const MAX = 8;
 // a long part name may wrap where its words meet (Anatomy|Highlight), never mid-word: a <wbr>, which

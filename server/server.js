@@ -29,11 +29,12 @@ import { accept, fixableChecks, keep, readActions, reviewCard, reviewImage, undo
 import { closedLoops, plannedFixes, recurring } from './lib/not-again.mjs';
 import { fixesRoutes, readFixes } from './lib/fixes.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
-import { dropBoardCache, workBoardLive } from './lib/progress-live.mjs';
-import { saveBoard, saveIdea, workLanes } from './lib/lanes.mjs';
-import { claudeReady, gateReady, getRun, keepRun, listRuns, runClock, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
+import { dropBoardCache, warmBoard, workBoardLive } from './lib/progress-live.mjs';
+import { reviewsWaiting } from './lib/review-fixes.mjs';
+import { prDetail, saveBoard, saveIdea, sessionTasks, workLanes } from './lib/lanes.mjs';
+import { claudeReady, gateReady, getRun, keepRun, listRuns, runClock, startRun, stopRun, undoRun, closeRun, runPlan } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
-import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
+import { historyRecord, historyPicture, readyHistory, searchHistory } from './lib/history.mjs';
 import { ciReadAt, ciRuns, warmCi, systemMap } from './lib/map.mjs';
 import { notionState, saveNotionToken } from './lib/connections.mjs';
 import { readSource, sourceList } from './lib/sources.mjs';
@@ -340,7 +341,7 @@ app.get('/drift', (_req, res) => {
 // Audits: the latest saved report of each audit (docs/reference/audit/<date>/), read only
 app.get('/audits', (_req, res) => res.json(readAudits()));
 // The full report of all audits (benchmark runs, readiness score, every audit's history), read from the saved files
-app.get('/audit-reports', (_req, res) => res.json(readAuditReports()));
+app.get('/audit-reports', (_req, res) => res.json(readAuditReports({ runs: listRuns() })));
 app.get('/audits/:id/report', (req, res) => {
   const text = readAuditReport(String(req.params.id), req.query.day ? String(req.query.day) : undefined);
   if (text == null) return res.status(404).type('text/plain').send('No saved report');
@@ -606,6 +607,22 @@ app.post('/review/:check/keep', (req, res) => {
 // base: today's BELLA branch, so a card can say when a run started from another one (data check, 22 Nov)
 // Work's Agent, Gate and Ready lanes beyond CHIP's runs: open PRs by their CI, sessions at work (read only)
 app.get('/work/lanes', async (_req, res) => res.json(await workLanes()));
+// what waits on her look, read live from the review folders (24 Nov: everything waiting for her look is in Needs you)
+app.get('/needs/reviews', (_req, res) => {
+  try {
+    res.json(reviewsWaiting());
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+// one pull request, read inside CHIP: what it changes in plain words, its picture, how big (Needs you decisions, 24 Nov)
+app.get('/work/pr', (req, res) => {
+  try {
+    res.json(prDetail(String(req.query.project ?? ''), String(req.query.number ?? '')));
+  } catch (e) {
+    errorOut(res, e, 404);
+  }
+});
 // the bell's "Landed today": commits on chip/whole and chip/parts-dev since midnight, read only
 app.get('/work/landed', (_req, res) => {
   try {
@@ -615,10 +632,24 @@ app.get('/work/landed', (_req, res) => {
   }
 });
 // the board in her Notion lanes: sessions and their steps, the progress board, components that need work, her order
-app.get('/work/board', (_req, res) => {
+// her Claude sessions only (24 Nov): the header light, the Sessions panel and the bell read this every 15 s, so it is the
+// session records alone (about half a second warm), kept 10 s; the whole live board (/work/board) takes seconds
+let sessionsMemo = null;
+app.get('/work/sessions', (_req, res) => {
+  try {
+    if (!sessionsMemo || Date.now() - sessionsMemo.t > 10_000) {
+      const projects = projectList().filter((p) => existsSync(p.repo));
+      sessionsMemo = { t: Date.now(), body: { sessions: sessionTasks(projects), at: new Date().toISOString() } };
+    }
+    res.json(sessionsMemo.body);
+  } catch (e) {
+    errorOut(res, e);
+  }
+});
+app.get('/work/board', async (_req, res) => {
   try {
     bellaWork.keepBellaFresh(); // the components that need work are read from the BELLA snapshot: re-sync it when BELLA moved
-    res.json(workBoardLive());
+    res.json(await workBoardLive());
   } catch (e) {
     errorOut(res, e);
   }
@@ -676,7 +707,7 @@ app.post('/runs', async (req, res) => {
     errorOut(res, e);
   }
 });
-for (const [verb, fn] of [['stop', stopRun], ['keep', keepRun], ['undo', undoRun]]) {
+for (const [verb, fn] of [['stop', stopRun], ['keep', keepRun], ['undo', undoRun], ['close', closeRun]]) {
   app.post(`/runs/:id/${verb}`, (req, res) => {
     if (!sameApp(req, res)) return;
     try {
@@ -825,13 +856,15 @@ app.post('/gaps/decide', (req, res) => {
     errorOut(res, e);
   }
 });
-app.get('/history', (req, res) => res.json(searchHistory(req.query)));
-app.get('/history/record', (req, res) => {
+app.get('/history', async (req, res) => (await readyHistory().catch(() => {}), res.json(searchHistory(req.query))));
+app.get('/history/record', async (req, res) => {
+  await readyHistory().catch(() => {}); // on a git error the synchronous read below answers instead
   const r = historyRecord(String(req.query.id ?? ''));
   return r ? res.json(r) : res.status(404).json({ error: 'No such record' });
 });
 // a screenshot the record saved, before or after it (read only; the record must list the .png)
-app.get('/history/picture', (req, res) => {
+app.get('/history/picture', async (req, res) => {
+  await readyHistory().catch(() => {}); // on a git error the synchronous read below answers instead
   const png = historyPicture(String(req.query.id ?? ''), String(req.query.path ?? ''), req.query.side === 'before' ? 'before' : 'after');
   return png ? res.type('png').set('cache-control', 'private, max-age=86400').send(png) : res.status(404).end();
 });
@@ -955,6 +988,8 @@ app.get('/play/map', async (req, res) => {
 
 // Bound to localhost: nothing on the network can reach /ask, /cmd or /term.
 const server = app.listen(PORT, '127.0.0.1', () => {
+  // the first #/work after a start answers from warm caches (session transcripts are read in full only once)
+  setTimeout(warmBoard, 2000);
   console.log(`[CHIP] http://localhost:${PORT} · model ${CHIP_MODEL} · embeddings ${CHIP_EMBED_MODEL} · ${OLLAMA_URL}`);
   const t = Date.now();
   // Health's slow reads, ready before anyone opens it (GitHub's CI list, BELLA's contrast pairs)

@@ -2,8 +2,9 @@
 // 612:82090): default 612:81339, draft 612:81478, sent 612:81620, agent quiet
 // 612:81750. Built from BELLA parts and the template's Flow only; no page CSS.
 //
-// Data is CHIP's own: the agents, their asks and last report come from The
-// Bar (/bar/state, server/lib/bar.mjs), open PRs from /projects. A reply goes
+// Data is CHIP's own: her Claude Code sessions (/work/sessions, the app's own records, read only: who is working, what
+// each last reported, who waits on her; 24 Nov: Team read 0 working while a dozen sessions worked), CHIP's runs, the
+// relay agents, their asks and last report from The Bar (/bar/state, server/lib/bar.mjs), open PRs from /projects. A reply goes
 // to the progress board (localhost:3123/answers) like Mark up, where the
 // coordinator passes it on; CHIP has no send-to-agent route of its own.
 // CHIP writes no drafts yet, so the draft state shows only when a draft is
@@ -28,8 +29,13 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import Tag from '@bella/components/Tag/Tag';
 import Flow from '../templates/Flow.jsx';
 import { Reply } from '../templates/TermChat.jsx';
-import { workModel, laneState, daysQuiet, QUIET_DAYS, STATUS_Q, workStatus } from './workModel.js';
+import { laneState, daysQuiet, QUIET_DAYS, STATUS_Q, workStatus } from './workModel.js';
 import { AnswerLines } from '../templates/useAsk.jsx';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
+import ActionChip from '@bella/components/ActionChip/ActionChip';
+import { openWork, sessionLine, sessionState } from '../templates/WorkDock.jsx';
+import { activityRow, isGoing } from '../runClock.js';
+import { markOf } from '../templates/marks.js';
 
 export const BOARD = 'http://localhost:3123';
 const hhmm = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -53,8 +59,8 @@ export function useTeamData() {
   const [data, setData] = useState({ state: 'loading' });
   useEffect(() => {
     let live = true;
-    Promise.all([fetch('/bar/state').then((r) => (r.ok ? r.json() : Promise.reject())), fetch('/projects').then((r) => (r.ok ? r.json() : { projects: [] })), fetch('/runs').then((r) => (r.ok ? r.json() : { runs: [] }))])
-      .then(([bar, proj, runs]) => {
+    Promise.all([fetch('/bar/state').then((r) => (r.ok ? r.json() : Promise.reject())), fetch('/projects').then((r) => (r.ok ? r.json() : { projects: [] })), fetch('/runs').then((r) => (r.ok ? r.json() : { runs: [] })), fetch('/work/sessions').then((r) => (r.ok ? r.json() : { sessions: [] })).catch(() => ({ sessions: [] }))])
+      .then(([bar, proj, runs, ses]) => {
         if (!live) return;
         const lanes = bar.lanes ?? [];
         const asks = lanes.flatMap((l) => (l.status === 'waiting on you' ? (l.needs ?? []).map((n, i) => ({ id: `${l.id}-${i}`, agent: l.name, text: n.text, at: l.updated })) : []));
@@ -68,6 +74,14 @@ export function useTeamData() {
           })
           // only an agent's latest message carries "Waiting on you"
           .map((m, i, all) => ({ ...m, waiting: m.waiting && !all.slice(i + 1).some((n) => n.lane === m.lane) }));
+        const sessions = ses.sessions ?? [];
+        const going = (runs.runs ?? []).filter(isGoing);
+        // her sessions that wait on her are asks too: they open in the Sessions panel, where she reads what they need
+        const sessionAsks = sessions.filter((x) => sessionState(x)[1] === 'attention').map((x) => ({ id: `session-${x.id}`, session: x.id, agent: x.title, text: x.status?.needs || x.report || x.status?.detail || 'Waiting on you', at: x.reportedAt ?? x.updatedAt }));
+        // today's reports from her sessions join the chat, oldest first, each under its session's name
+        const reports = sessions
+          .filter((x) => x.report && x.reportedAt && new Date(x.reportedAt).toDateString() === today)
+          .map((x) => ({ id: `s-${x.id}`, at: x.reportedAt, lane: x.id, who: x.title, text: x.report.split(/(?<=[.!?])\s/)[0], waiting: sessionState(x)[1] === 'attention' }));
         const quiet = lanes
           .filter((l) => laneState(l) === 'quiet')
           .map((l) => ({ name: l.name, role: l.role, days: daysQuiet(l), at: l.updated }))
@@ -75,12 +89,17 @@ export function useTeamData() {
         setData({
           state: 'ready',
           agents: lanes.length,
-          // the board's Agent lane, counted the one way (workModel): runs at work and lanes still reporting
-          working: workModel({ runs: runs.runs ?? [], agents: lanes }).lanes.find((l) => l.id === 'agent').cards.length,
+          // the header light's count (runClock lightOf): sessions whose turn is open plus CHIP's runs going
+          working: sessions.filter((x) => x.working).length + going.length,
+          sessions,
+          going: going.map((r) => activityRow(r, null)),
+          sessionsAt: ses.at ?? null,
           prs: (proj.projects ?? []).reduce((n, p) => n + (typeof p.prs === 'number' ? p.prs : 0), 0),
-          asks,
-          thread,
-          quiet,
+          asks: [...sessionAsks, ...asks],
+          thread: [...thread, ...reports].sort((a, b) => a.at - b.at).slice(-8),
+          // a relay agent quiet for weeks is history, not news: the notice only within two weeks (24 Nov: it opened the
+          // page on "quiet for 40 days" while a dozen sessions worked)
+          quiet: quiet && quiet.days <= 14 ? quiet : null,
         });
       })
       .catch(() => live && setData({ state: 'error' }));
@@ -112,6 +131,8 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
   if (data.state === 'error')
     return <Notification tone="danger" title="The team" message="The Bar isn't answering, so CHIP can't read it. Start CHIP, then try again." action={{ label: 'Try again', onClick: () => window.location.reload() }} />;
 
+  // the review fixtures (teamFixture.js) carry no sessions
+  data = { sessions: [], going: [], ...data };
   const answered = new Set(sent.map((s) => s.ask?.id));
   const open = data.asks.filter((a) => !answered.has(a.id));
   // One count everywhere: like /needs (the panel's "Needs you"), an ask quiet
@@ -128,10 +149,17 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
       title={a.agent}
       // Figma: the ask and its date as one short Geist Mono line (ListRow meta)
       meta={`${short(a.text)} · ${dateOf(a.at)}`}
+      statusDot={a.session ? <StatusDot tone="attention" label="waiting on you" showLabel={false} /> : undefined}
       actionButton={
-        <Button variant="secondary" size="sm" ariaLabel={`Reply to ${a.agent}`} onClick={() => setReplyTo(a)}>
-          Reply
-        </Button>
+        a.session ? (
+          <Button variant="secondary" size="sm" ariaLabel={`Open ${a.agent}`} onClick={() => openWork('sessions', a.session)}>
+            Open
+          </Button>
+        ) : (
+          <Button variant="secondary" size="sm" ariaLabel={`Reply to ${a.agent}`} onClick={() => setReplyTo(a)}>
+            Reply
+          </Button>
+        )
       }
     />
   );
@@ -189,6 +217,34 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
         </li>
       </Flow>
 
+      {/* who is working now and what each last said: her sessions and CHIP's runs, one status dot each (24 Nov) */}
+      <Card>
+        <Flow gap={16}>
+          <SectionHead icon="Group" iconTone="info" title="Working now" number={data.working} words="at work" description={`Your Claude sessions and CHIP’s runs${data.sessionsAt ? `, read ${hhmm(data.sessionsAt)}` : ''}`} />
+          {data.sessions.length || data.going.length ? (
+            <Flow as="ul" gap={4} aria-label="Sessions and runs">
+              {data.going.map((r) => (
+                <ListRow key={r.id} layout="stacked" statusDot={<StatusDot tone="info" label="running" showLabel={false} />} title={`CHIP run: ${r.title}`} description={`Running · ${r.line}`} trailing onClick={() => openWork('sessions')} />
+              ))}
+              {[...data.sessions]
+                .sort((a, b) => Number(b.working) - Number(a.working) || (b.reportedAt ?? b.updatedAt ?? 0) - (a.reportedAt ?? a.updatedAt ?? 0))
+                .slice(0, 8)
+                .map((x) => {
+                  const [word, tone] = sessionState(x);
+                  return <ListRow key={x.id} layout="stacked" statusDot={<StatusDot tone={tone} label={word} showLabel={false} />} title={x.title} description={`${word} · ${sessionLine(x)} · ${dateOf(x.working ? x.updatedAt : x.reportedAt ?? x.updatedAt)}`} trailing onClick={() => openWork('sessions', x.id)} />;
+                })}
+            </Flow>
+          ) : (
+            <EmptyState size="lane" mark="🍵" title="No one at work" line="No session in CHIP’s projects in the last day and a half, and no CHIP run." />
+          )}
+          {data.sessions.length > 8 ? (
+            <Flow direction="row" justify="end">
+              <ActionChip onClick={() => openWork('sessions')}>{`All ${data.sessions.length} in Sessions`}</ActionChip>
+            </Flow>
+          ) : null}
+        </Flow>
+      </Card>
+
       {/* a list card hugs its rows (rule 15): its header stays at the top */}
       <Flow span={6}>
         <Card>
@@ -200,7 +256,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
               </Flow>
             ) : (
               // "every ask is answered" only when it is: older open asks are still asks (data sweep, 22 Nov)
-              <EmptyState size="lane" mark="🍻" title={older.length ? 'Nothing new this week' : "No one's waiting on you"} line={older.length ? `${older.length} older ${older.length === 1 ? 'ask is' : 'asks are'} still open, below.` : 'Every ask is answered. Put the kettle on.'} />
+              <EmptyState size="lane" {...markOf('🍻')} title={older.length ? 'Nothing new this week' : "No one's waiting on you"} line={older.length ? `${older.length} older ${older.length === 1 ? 'ask is' : 'asks are'} still open, below.` : 'Every ask is answered. Put the kettle on.'} />
             )}
             {older.length ? (
               // the summary is short meta on one line (T5); the why is the first line inside
@@ -221,7 +277,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
       <Flow span={6}>
         <Card>
           <Flow gap={16}>
-            <SectionHead icon="ChatBubbleEmpty" iconTone="info" title="Team chat" description="Today, with every agent" />
+            <SectionHead icon="ChatBubbleEmpty" iconTone="info" title="Team chat" description="Today, your sessions and every agent" />
             {data.thread.length || sent.length || status ? (
               // one chat (her 21 Nov answer 5 B): the same ChatThread as Ask BELLA and the Terminal.
               // Each agent's name sits over the first of its run of bubbles, its tail on the last;
@@ -265,7 +321,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
                 </Flow>
               </ChatThread>
             ) : (
-              <EmptyState size="lane" mark="🤫" title="Quiet today" line="No one has reported yet. Say something to get them going." />
+              <EmptyState size="lane" {...markOf('🤫')} title="Quiet today" line="No one has reported yet. Say something to get them going." />
             )}
             {isDraft ? <Tag variant="outline" tone="info">The agent’s draft, in your words · edit before sending</Tag> : null}
             {/* Figma: the send button sits in the field, as History's Ask */}
@@ -281,7 +337,7 @@ export default function TeamContent({ data, draft = null, sent: sentBefore = [],
           <Flow as="ul" gap={8} aria-label="Kinds of fix">
             <ListRow layout="stacked" title="Push and merge" body="Never moves up. Rule: earned trust, 11 Nov" tag={<Tag variant="outline" tone="attention">Always asks</Tag>} />
           </Flow>
-          <EmptyState size="lane" mark="📊" title="No fixes counted yet" line="Swapping a typed colour or size for its token starts counting once CHIP has read back through past fixes." />
+          <EmptyState size="lane" {...markOf('📊')} title="No fixes counted yet" line="Swapping a typed colour or size for its token starts counting once CHIP has read back through past fixes." />
         </Flow>
       </Card>
     </>

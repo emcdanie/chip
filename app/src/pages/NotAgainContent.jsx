@@ -15,10 +15,10 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Step from '@bella/components/Step/Step';
 import Tag from '@bella/components/Tag/Tag';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
-import StatCard from '@bella/components/StatCard/StatCard';
 import Toast from '@bella/components/Toast/Toast';
 import Flow from '../templates/Flow.jsx';
 import Toasts from '../templates/Toasts.jsx';
@@ -26,6 +26,7 @@ import useCached from '../templates/useCached.js';
 import { FIX, LIBRARY, stateOf, stepsOf, useNotAgain } from './notAgainModel.js';
 import { handOff } from './healthModel.js';
 import { planRun } from '../templates/RunPlan.jsx';
+import { markOf } from '../templates/marks.js';
 
 export const STATES = ['suggested', 'running', 'your-call', 'kept', 'gate-fails', 'library'];
 
@@ -36,6 +37,7 @@ export const COMMITS = new Set(['suggested', 'gate-fails', 'your-call']);
 
 const LEAD = { suggested: 'Suggested', running: 'Running', 'your-call': 'Maintainer’s call', kept: 'Kept', 'gate-fails': 'Stopped' };
 const plural = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
+const fixes = (n) => `${n} saved ${n === 1 ? 'fix' : 'fixes'}`;
 
 /* Start, stop, accept or undo a run, with feedback on the button and a toast. */
 function useAct(reload) {
@@ -109,9 +111,9 @@ function FixCard({ state, data, busy, act }) {
         {busy === 'run' ? 'Starting…' : state === 'gate-fails' ? 'Send back' : `Run on ${p}`}
       </Button>
     ) : undefined;
-  if (state === 'suggested' && !n) return <EmptyState size="lane" mark="🎉" title="Every part has a pair" line="The contrast check finds nothing for this fix today." />;
-  if (state === 'suggested' && !p)
-    return <EmptyState size="lane" mark="🎉" title="Nothing to pair" line={`The ${plural(n, 'part')} with no pair ${n === 1 ? 'has' : 'have'} no colours of ${n === 1 ? 'its' : 'their'} own.`} />;
+  // the Suggested card draws only with parts lacking a pair (designed-features, Not again); with none there is nothing to
+  // suggest, so nothing is drawn: never a loose "Nothing to pair" outside a card (review 24 Nov). The Library tab says it.
+  if (state === 'suggested' && !p) return null;
   const steps = stepsOf(state, p, run);
   return (
     // Figma's audited fix: the card's action sits in its footer, bottom right
@@ -156,93 +158,42 @@ function Banner({ state, data, busy, act }) {
   return null;
 }
 
-/* CHIP's run log, this week: how many saved fixes ran and how many a maintainer kept. Only the runs of the
-   fixes in the Library count, never every hand-off in the log; a run that found nothing to change is "no
-   change", not "stopped" (data check, 22 Nov). A run still going, waiting at the end, or stopped is named once. */
-const RUNNING = new Set(['starting', 'running', 'gate']);
-const STOPPED = new Set(['failed', 'login']);
-function useWeek() {
-  const { data } = useCached(['/runs']);
-  const runs = data?.[0]?.runs ?? [];
-  const monday = new Date();
-  monday.setHours(0, 0, 0, 0);
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-  const saved = (r) => LIBRARY.some((f) => String(r.title ?? '').startsWith(f.name));
-  const week = runs.filter((r) => saved(r) && new Date(r.startedAt) >= monday);
-  const count = (f) => week.filter((r) => f(r.status)).length;
-  const last = week.reduce((a, r) => (a && new Date(a) > new Date(r.startedAt) ? a : r.startedAt), null);
-  return {
-    total: week.length,
-    kept: count((x) => x === 'kept'),
-    undone: count((x) => x === 'undone'),
-    waiting: count((x) => x === 'passed'),
-    running: count((x) => RUNNING.has(x)),
-    stopped: count((x) => STOPPED.has(x)),
-    nochange: count((x) => x === 'nochange'),
-    last,
-  };
-}
-
-const lastRun = (at) => {
-  const d = new Date(at);
-  return d.toDateString() === new Date().toDateString() ? 'Last run today' : `Last run ${d.toLocaleDateString('en-GB', { weekday: 'long' })}`;
-};
-
-function Stats() {
-  const w = useWeek();
-  /* No run this week: the same Stat cards at zero, an empty bar and the footer
-     saying why (StatCard chart="empty"; no number before a measure, 22 Nov 19:08). */
-  if (w.total === 0)
-    return (
-      <>
-        <Flow span={6} fill>
-          {/* none run is a count, measured: 0 shows */}
-          <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={0} context="Saved fixes run since Monday" caption="Nothing run yet this week" href="#/system/history" />
-        </Flow>
-        <Flow span={6} fill>
-          <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Kept" value="Not measured" context="Accept a fix and it lands here" caption="Undone runs stay in History" href="#/system/history" />
-        </Flow>
-      </>
-    );
-  // Figma names the one thing besides undone: running, else stopped, else waiting
-  const besides = w.running ? `${w.running} running` : w.stopped ? `${w.stopped} stopped` : w.nochange ? `${w.nochange} made no change` : `${w.waiting} waiting on a maintainer`;
-  return (
-    <>
-      <Flow span={6} fill>
-        <StatCard icon="ShieldCheck" tone="neutral" chart="none" title="Runs this week" value={w.total} context="Saved fixes run since Monday" caption={lastRun(w.last)} href="#/system/history" />
-      </Flow>
-      <Flow span={6} fill>
-        <StatCard
-          icon="ShieldCheck"
-          tone="success"
-          title="Kept"
-          value={w.kept}
-          unit={`of ${w.total}`}
-          meter={{ fill: Math.round((w.kept / w.total) * 100), valueText: `${w.kept} of ${w.total}` }}
-          context={`${w.undone} undone · ${besides}`}
-          caption="Undone runs stay in History"
-          href="#/system/history"
-        />
-      </Flow>
-    </>
-  );
-}
-
 /* Every saved fix CHIP can run: its trigger, how often it ran and was kept
    (the run log, the stats' source), and Run on the parts its check finds now. */
+/* Run them all (review 24 Nov): one plan for every saved fix that has parts to work on now, one step per fix, opened to
+   approve, edit or close first; nothing runs before. Each part's own brief comes from /gaps, as a single fix's run does. */
+async function runAll(todo) {
+  const r = await fetch('/gaps');
+  const gaps = (await r.json().catch(() => ({}))).gaps ?? {};
+  const lines = todo.flatMap(({ f, parts }) => [`${f.name} (${plural(parts.length, 'part')}):`, ...parts.map((n) => `- ${gaps[f.check]?.[n]?.brief ?? `${f.name}: ${n}`}`)]);
+  const brief = [`Run ${fixes(todo.length)} from the Library, one after the other. For each part:`, ...lines, 'Change only what each line names. Ask before changing a token.'].join('\n');
+  const steps = todo.map(({ f, parts }) => ({ id: f.check, title: f.name, line: `${plural(parts.length, 'part')}: ${parts.slice(0, 4).join(', ')}${parts.length > 4 ? ` and ${parts.length - 4} more` : ''}` }));
+  const total = todo.reduce((s, x) => s + x.parts.length, 0);
+  const run = await planRun({ title: `Run ${fixes(todo.length)}`, from: 'Not again', brief, steps, summary: `${fixes(todo.length)} on ${plural(total, 'part')}, one run, its card on Work` });
+  return run ? { planned: run } : null;
+}
+
 function Library({ data, busy, act }) {
   // one log: every run the board shows is counted here, in its fix's row or under Other agent runs
   const other = data.runs.filter((r) => !LIBRARY.some((f) => String(r.title ?? '').startsWith(f.name)));
+  // the contrast fix acts only on parts with colours of their own (nothing to pair otherwise)
+  const partsOf = (f) => (f.check === FIX.check ? data.pairable : Object.keys(data.gaps[f.check] ?? {}));
+  const todo = LIBRARY.map((f) => ({ f, parts: partsOf(f) })).filter((x) => x.parts.length);
+  const allButton = (
+    // the plan opens first, as Make it permanent's does; nothing runs before it is approved
+    <Button variant="secondary" size="sm" disabled={!!busy || !todo.length} ariaLabel={todo.length ? `Run all ${fixes(todo.length)}` : 'Run all: nothing to fix now'} onClick={() => runAll(todo).then(() => data.reload?.()).catch(() => {})}>
+      Run all
+    </Button>
+  );
   return (
     <Card>
       <Flow gap={24}>
-        <SectionHead icon="Book" iconTone="info" title="Library" description="Fixes saved as steps" number={LIBRARY.length} words="fixes" />
+        <SectionHead icon="Book" iconTone="info" title="Library" description={todo.length ? `Fixes saved as steps · ${todo.length} with parts to work on now` : 'Fixes saved as steps · nothing to fix now'} number={LIBRARY.length} words="fixes" action={allButton} />
         <Flow as="ul" gap={8} aria-label="Saved fixes">
           {LIBRARY.map((f) => {
             const mine = data.mine(f.name);
             const kept = mine.filter((r) => r.status === 'kept').length;
-            // the contrast fix acts only on parts with colours of their own (nothing to pair otherwise)
-            const parts = f.check === FIX.check ? data.pairable : Object.keys(data.gaps[f.check] ?? {});
+            const parts = partsOf(f);
             const ran = mine.length ? `${plural(mine.length, 'run')} · ${kept} kept` : 'Not run yet';
             return (
               <ListRow
@@ -250,12 +201,12 @@ function Library({ data, busy, act }) {
                 layout="stacked"
                 title={f.name}
                 description={`When: ${f.trigger} · ${ran}${parts.length ? '' : ' · nothing to fix now'}`}
+                // every row has its button (review 24 Nov: Add contrast pair had none); with nothing to fix it is there, off,
+                // and the line says why
                 actionButton={
-                  parts.length ? (
-                    <Button variant="secondary" ariaLabel={`Run ${f.name} on ${plural(parts.length, 'part')}`} disabled={!!busy} onClick={() => act(f.name, () => start(f.check, parts, f.name), `Sent to the agent: ${f.name} on ${plural(parts.length, 'part')}. Its card is on Work.`)}>
-                      {busy === f.name ? 'Starting…' : 'Run'}
-                    </Button>
-                  ) : undefined
+                  <Button variant="secondary" ariaLabel={parts.length ? `Run ${f.name} on ${plural(parts.length, 'part')}` : `Run ${f.name}: nothing to fix now`} disabled={!!busy || !parts.length} onClick={() => act(f.name, () => start(f.check, parts, f.name), `Sent to the agent: ${f.name} on ${plural(parts.length, 'part')}. Its card is on Work.`)}>
+                    {busy === f.name ? 'Starting…' : parts.length ? `Run on ${parts.length}` : 'Run'}
+                  </Button>
                 }
               />
             );
@@ -312,7 +263,7 @@ function Recurring() {
           <Card>
             <Flow gap={16}>
               <SectionHead icon="Book" iconTone="info" title="What keeps coming back" description="The gate's failures in the last 14 days, most often first. Make it permanent opens a plan to approve first; nothing runs before." />
-              <EmptyState size="lane" mark="⏳" title="Reading the last 14 days" line="The gate's failures, most often first." />
+              <EmptyState size="lane" {...markOf('⏳')} title="Reading the last 14 days" line="The gate's failures, most often first." />
             </Flow>
           </Card>
         </Flow>
@@ -320,7 +271,7 @@ function Recurring() {
           <Card>
             <Flow gap={16}>
               <SectionHead icon="CheckCircle" iconTone="success" title="Closed loops" description="Permanent fixes that landed; the tag counts failures in the 14 days before → after" />
-              <EmptyState size="lane" mark="⏳" title="Reading the fixes that landed" line="Each with its before and after." />
+              <EmptyState size="lane" {...markOf('⏳')} title="Reading the fixes that landed" line="Each with its before and after." />
             </Flow>
           </Card>
         </Flow>
@@ -342,9 +293,9 @@ function Recurring() {
                   <ListRow
                     key={r.id}
                     layout="stacked"
-                    statusBar={r.trend === 'up' ? 'danger' : 'attention'}
                     title={r.name}
-                    description={`${r.count} ${r.count === 1 ? 'time' : 'times'} · last ${dayOf(r.last)} · ${TREND[r.trend]}`}
+                    statusDot={<StatusDot tone={r.trend === 'up' ? 'danger' : 'attention'} label={r.trend === 'up' ? 'Coming back more' : 'Still coming back'} showLabel={false} />}
+                    description={`${r.trend === 'up' ? 'Coming back more' : 'Still coming back'} · ${r.count} ${r.count === 1 ? 'time' : 'times'} · last ${dayOf(r.last)} · ${TREND[r.trend]}`}
                     actionButton={
                       <Flow direction="row" gap={8} wrap>
                         <Button variant="tertiary" size="sm" ariaLabel={`History of ${r.name}`} onClick={() => (window.location.hash = `#/system/history?q=${encodeURIComponent(r.name)}`)}>
@@ -359,7 +310,7 @@ function Recurring() {
                 ))}
               </ListRowGroup>
             ) : (
-              <EmptyState size="lane" mark="✅" title="Nothing came back" line="No gate check failed in the last 14 days." />
+              <EmptyState size="lane" {...markOf('✅')} title="Nothing came back" line="No gate check failed in the last 14 days." />
             )}
           </Flow>
         </Card>
@@ -371,21 +322,21 @@ function Recurring() {
             {loops.length || planned.length ? (
               <ListRowGroup ariaLabel="Closed loops">
                 {planned.map((p, i) => (
-                  <ListRow key={`p-${p.planned}-${i}`} layout="stacked" statusBar="attention" title={p.kind} description={`Planned ${dayOf(p.planned)} · closes ${p.closes} · not landed yet`} />
+                  <ListRow key={`p-${p.planned}-${i}`} layout="stacked" title={p.kind} statusDot={<StatusDot tone="attention" label="Planned" showLabel={false} />} description={`Planned ${dayOf(p.planned)} · closes ${p.closes} · not landed yet`} />
                 ))}
                 {loops.slice(0, 8).map((l, i) => (
                   <ListRow
                     key={`${l.landed}-${i}`}
                     layout="stacked"
-                    statusBar="success"
                     title={l.kind}
+                    statusDot={<StatusDot tone="success" label="Landed" showLabel={false} />}
                     description={`Landed ${dayOf(l.landed)} (${l.commit ?? 'no commit'}) · closes ${l.closes}${l.changed ? ` · ${l.changed}` : ''}`}
                     tag={<Tag variant="line">{!l.measured ? 'Not recorded' : l.after == null ? 'Too early' : `${l.before} → ${l.after}`}</Tag>}
                   />
                 ))}
               </ListRowGroup>
             ) : (
-              <EmptyState size="lane" mark="🕰️" title="Nothing landed yet" line="Make a recurring check permanent, accept the fix, and its before and after show here." />
+              <EmptyState size="lane" {...markOf('🕰️')} title="Nothing landed yet" line="Make a recurring check permanent, accept the fix, and its before and after show here." />
             )}
           </Flow>
         </Card>
@@ -397,7 +348,7 @@ function Recurring() {
 export default function NotAgainContent({ state: forced, tab = 'flow' }) {
   const data = useNotAgain();
   const { busy, act, toast } = useAct(data.reload);
-  if (!data.parts) return data.error ? <EmptyState size="lane" title="Not again isn’t answering" line="CHIP couldn’t read its checks just now. Refresh and I’ll try again." /> : <EmptyState size="lane" mark="⏳" title="Reading the fix" line="Fetching its parts and runs." />;
+  if (!data.parts) return data.error ? <EmptyState size="lane" title="Not again isn’t answering" line="CHIP couldn’t read its checks just now. Refresh and I’ll try again." /> : <EmptyState size="lane" {...markOf('⏳')} title="Reading the fix" line="Fetching its parts and runs." />;
   if (tab === 'library' || forced === 'library')
     return (
       <>
@@ -411,7 +362,6 @@ export default function NotAgainContent({ state: forced, tab = 'flow' }) {
       <Banner state={state} data={data} busy={busy} act={act} />
       <Recurring />
       <FixCard state={state} data={data} busy={busy} act={act} />
-      <Stats />
       {toast}
     </>
   );

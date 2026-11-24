@@ -36,6 +36,36 @@ export function indicator(runs, { now = Date.now(), fresh = 10_000, seen = null 
   return { state: 'idle', count: 0 };
 }
 
+/** Why a run did not land, in her words (24 Nov: her contrast run "failed on port 6006"): a held port is said as such. */
+export function plainStop(error) {
+  const e = String(error ?? '');
+  if (/port \d+ is in use|EADDRINUSE|address already in use/i.test(e)) return 'Did not run: another program held the port it needs';
+  return `Did not land: ${e.replace(/\.$/, '') || 'it stopped'}`;
+}
+/** Open runs first, the rest under Earlier (24 Nov): a run is open while it works, waits for her Accept, or is the
+ *  newest of its job that did not land; closed, kept, undone, changed-nothing and replaced runs are earlier. */
+export function splitRuns(runs = []) {
+  const newer = (r) => runs.some((o) => o.title === r.title && Date.parse(o.startedAt) > Date.parse(r.startedAt));
+  const open = (r) => isGoing(r) || r.status === 'passed' || (['failed', 'login'].includes(r.status) && !newer(r));
+  return { open: runs.filter(open), earlier: runs.filter((r) => !open(r)) };
+}
+
+/** The header light with her Claude sessions in it (24 Nov: it said "Nothing running" while sessions ran): CHIP's runs
+ *  going plus the sessions whose turn is open. One thing: its own name and step; more: how many. Nothing going: what the
+ *  runs alone say (idle, or a run that just ended). Sessions come from /work/board (server/lib/lanes.mjs sessionTasks). */
+export function lightOf(runs, sessions = [], opts = {}) {
+  const base = indicator(runs, opts);
+  const working = (sessions ?? []).filter((s) => s.working);
+  const goingRuns = runs.filter(isGoing);
+  const count = goingRuns.length + working.length;
+  if (!working.length) return base;
+  if (count > 1) return { state: 'running', count, title: `${count} running`, id: null };
+  const s = working[0];
+  const total = s.steps?.length ?? 0;
+  const done = (s.steps ?? []).filter((x) => x.status === 'completed').length;
+  return { state: 'running', count: 1, id: s.id, title: s.title, ...(total ? { done, total } : {}) };
+}
+
 /** "usually 4 to 7 min" from the server's range ({ n, minMs, maxMs }); nothing under three finished runs. */
 export function usually(usual) {
   if (!usual || usual.minMs == null) return null;
@@ -59,7 +89,7 @@ export function activityRow(r, usual) {
     : r.status === 'closed'
       ? [clock(r.startedAt), `Closed: ${r.closedWhy ?? 'nothing is left to decide'}`].join(' · ')
     : failed
-      ? [clock(r.startedAt), `Did not land: ${r.error ?? 'it stopped'}`].join(' · ')
+      ? [clock(r.startedAt), plainStop(r.error)].join(' · ')
       : r.status === 'nochange'
         ? [clock(r.startedAt), r.durationMs != null ? took(r.durationMs) : null, 'Did not land: it changed nothing'].filter(Boolean).join(' · ')
         : [clock(r.startedAt), r.durationMs != null ? took(r.durationMs) : null, { passed: 'waiting for your Accept', kept: 'kept, not merged', undone: 'undone', dry: 'stopped before the agent' }[r.status] ?? r.status].filter(Boolean).join(' · ');

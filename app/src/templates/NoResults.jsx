@@ -4,6 +4,7 @@
 // onClearAll: take everything off. Counts are measured by the page from its own data; omit `would` when unknown.
 import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Button from '@bella/components/Button/Button';
+import { markOf } from './marks.js';
 
 export default function NoResults({ what, noun = 'results', on = [], onClearAll, size = 'lane', mark = '🔍' }) {
   const title = what ? `Nothing matches ${what}` : `No ${noun}`;
@@ -18,5 +19,5 @@ export default function NoResults({ what, noun = 'results', on = [], onClearAll,
       {on.length > 1 && onClearAll ? <Button variant="tertiary" onClick={onClearAll}>Clear all</Button> : null}
     </>
   ) : undefined;
-  return <EmptyState size={size} mark={mark} title={title} line={line} actions={actions} />;
+  return <EmptyState size={size} {...markOf(mark)} title={title} line={line} actions={actions} />;
 }

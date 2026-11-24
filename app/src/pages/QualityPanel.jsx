@@ -17,6 +17,7 @@ import Card from '@bella/components/Card/Card';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Tag from '@bella/components/Tag/Tag';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Stat from '@bella/components/Stat/Stat';
 import Progress, { TargetMark } from '@bella/components/Progress/Progress';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
@@ -30,6 +31,7 @@ import EmptyState from '@bella/components/EmptyState/EmptyState';
 import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import { A11Y_MODES, a11yFacts, a11yPins, barOf, rawText, readGroups, scorecard, searchGroups } from './qualityModel.js';
+import { markOf } from '../templates/marks.js';
 
 const TONE = { ok: 'success', gap: 'attention', fail: 'danger', none: 'neutral' };
 const WORD = { ok: 'Passes', gap: 'Needs you', fail: 'Fails', none: 'Not measured' };
@@ -127,18 +129,19 @@ function FactsCard({ facts, all = facts, pins, open, setOpen }) {
   return (
     <Card>
       <Flow gap={8}>
-        <SectionHead title="Accessibility" titleLevel={3} number={all.filter((f) => f.state === 'ok').length} words={`of ${all.length} pass`} />
-        <Flow gap={0} role="group" aria-label="Accessibility facts">
+        <SectionHead title="Accessibility" titleLevel={3} number={all.filter((f) => f.state === 'ok').length} words={`of ${all.filter((f) => !f.na).length} pass`} />
+        {/* rows with room between them and no left bar: the number names the row, the status dot and its word say the
+            state (her review, 24 Nov: "too squished"; one status mark) */}
+        <Flow gap={8} role="group" aria-label="Accessibility facts">
           {facts.map((f) => {
             const on = open === f.id;
             return (
-              <Flow gap={0} key={f.id}>
+              <Flow gap={8} key={f.id}>
                 <ListRow
                   layout="inline"
-                  statusBar={TONE[f.state]}
                   title={`${pins.find((p) => p.key === f.id)?.n}. ${f.name}`}
                   description={f.what}
-                  valueLabel={WORD[f.state]}
+                  valueLabel={<StatusDot tone={TONE[f.state]} label={f.word ?? WORD[f.state]} />}
                   onClick={() => setOpen(on ? null : f.id)}
                   aria-expanded={on}
                 />
@@ -154,17 +157,24 @@ function FactsCard({ facts, all = facts, pins, open, setOpen }) {
 
 /** The first fact, small, for the Inspect tab: accessibility is not behind a tab (Elleta, 22 Nov: "the accessibility is too
  *  hidden"). It names the fact that needs her first (a fail, then a gap), else the first one. */
-export function AccessMini({ q, onOpen }) {
+/** bare: the fact row only, for a section of another card (Inspect's accordions, whose title carries the count). */
+export function AccessMini({ q, onOpen, bare = false }) {
   if (!q) return null;
   const first = q.facts.find((f) => f.state === 'fail') ?? q.facts.find((f) => f.state === 'gap') ?? q.facts[0];
   if (!first) return null;
   const pass = q.facts.filter((f) => f.state === 'ok').length;
+  const row = (
+    <ListRowGroup ariaLabel="First accessibility fact">
+      <ListRow layout="inline" title={first.name} description={first.what} valueLabel={<StatusDot tone={TONE[first.state]} label={first.word ?? WORD[first.state]} />} onClick={onOpen} />
+    </ListRowGroup>
+  );
+  if (bare) return row;
   return (
     <Card>
       <Flow gap={8}>
-        <SectionHead title="Accessibility" titleLevel={3} number={pass} words={`of ${q.facts.length} pass`} action={<Button variant="tertiary" size="sm" onClick={onOpen}>See all</Button>} />
+        <SectionHead title="Accessibility" titleLevel={3} number={pass} words={`of ${q.facts.filter((f) => !f.na).length} pass`} action={<Button variant="tertiary" size="sm" onClick={onOpen}>See all</Button>} />
         <ListRowGroup ariaLabel="First accessibility fact">
-          <ListRow layout="inline" statusBar={TONE[first.state]} title={first.name} description={first.what} valueLabel={WORD[first.state]} onClick={onOpen} />
+          <ListRow layout="inline" title={first.name} description={first.what} valueLabel={<StatusDot tone={TONE[first.state]} label={first.word ?? WORD[first.state]} />} onClick={onOpen} />
         </ListRowGroup>
       </Flow>
     </Card>
@@ -181,7 +191,7 @@ export function currentFact(q, mode, pick) {
 
 /** Title, the tools (what to show) and the stage the page passes in; the fact card sits at the top of the right panel. */
 export function QualityCentre({ q, part, mode, setMode, children }) {
-  if (!q) return <EmptyState size="lane" mark="⏳" title={`Reading ${part.name}`} line="Fetching its contract and checks." />;
+  if (!q) return <EmptyState size="lane" {...markOf('⏳')} title={`Reading ${part.name}`} line="Fetching its contract and checks." />;
   return (
     <Flow gap={16} grow="last">
       <Flow gap={8}>
@@ -208,11 +218,10 @@ function ScoreCard({ card }) {
       <Flow gap={16}>
         <Flow gap={8}>
           <Stat label="Score, weighted by how much it matters" value={`${pct} of 100`} />
-          <Flow direction="row" gap={8} wrap align="center">
-            <Tag tone={band.tone} showDot>{band.label}</Tag>
-          </Flow>
+          <StatusDot tone={band.tone} label={band.label} />
         </Flow>
-        <Progress drawIn label={`Score ${pct} of 100, Meets starts at 90`} showLabel={false} showTarget tone={band.tone === 'success' ? 'success' : 'attention'} fill={pct} target={90} />
+        {/* the target as a thin tick, no Target tag (22 Nov); the state as the status dot and its word (24 Nov) */}
+        <TickBar label={`Score ${pct} of 100, Meets starts at 90`} tone={band.tone === 'success' ? 'success' : 'attention'} fill={pct} target={90} />
         <Flow as="ul" gap={4} bullets aria-label="How the score is read">
           <li>Needs work under <Marker>70</Marker>, mostly meets 70 to 89, meets 90 and up.</li>
           <li>Accessibility counts 3, machine readability 2, stories and parity 1.</li>
@@ -249,25 +258,26 @@ function result(r) {
 function Row({ r, open, onOpen }) {
   const bar = barOf(r);
   const lines = sentencesOf(`${r.line}${r.source ? ` Source: ${String(r.source).replace(/T.*$/, '')}.` : ''}`);
+  // the row and its open detail are both items of the group's grid, the detail across all its columns: wrapped in one
+  // box they became the grid's columns and the words broke one letter a line (her review, 24 Nov, Quality broken)
   return (
-    <Flow gap={0}>
+    <>
       <ListRow
         layout="stacked"
-        statusBar={TONE[r.state]}
         title={r.title}
-        description={result(r)}
+        description={<StatusDot tone={TONE[r.state]} label={result(r)} />}
         progress={r.state === 'none' ? undefined : <TickBar label={r.title} tone={r.state === 'ok' ? 'success' : 'attention'} fill={Math.round(bar.fill)} target={bar.target != null ? Math.round(bar.target) : null} />}
         onClick={onOpen}
         aria-expanded={open}
       />
       {open ? (
-        <Flow inset>
+        <Flow as="li" inset style={{ gridColumn: '1 / -1' }}>
           <Flow as="ul" gap={4} bullets aria-label={`${r.title}: how it was measured`}>
             {lines.map((x, i) => <li key={i}>{marked(x)}</li>)}
           </Flow>
         </Flow>
       ) : null}
-    </Flow>
+    </>
   );
 }
 
@@ -276,7 +286,8 @@ function Scorecard({ card }) {
   return (
     <Flow gap={24}>
       <ScoreCard card={card} />
-      {card.areas.map((area) => {
+      {/* accessibility has its own tab: the scorecard lists the other areas (her review, 24 Nov), its score still counts it */}
+      {card.areas.filter((area) => area !== 'Accessibility').map((area) => {
         const rows = card.rows.filter((r) => r.area === area);
         return (
           <Card key={area}>
@@ -293,6 +304,10 @@ function Scorecard({ card }) {
     </Flow>
   );
 }
+
+/* A long code value or token name may wrap after its own punctuation (-, (, ,, /, .), so no column is wider than
+   the panel and no word is cut. */
+export const soft = (t) => String(t ?? '').replace(/([-(,/.:])(?=\S)/g, '$1\u200b');
 
 /* ---------------- C: Read it ---------------- */
 function ReadIt({ q }) {
@@ -312,13 +327,18 @@ function ReadIt({ q }) {
         </Flow>
       </Flow>
       {raw ? <CodeBlock language="json" title="Raw: the contract's props, slots and tokens" code={rawText(q.contract, q.groups.find((g) => g.name === 'Tokens used')?.items.map((i) => i.name) ?? [])} copy /> : null}
-      {!groups.length ? <EmptyState size="lane" mark="🤷‍♀️" title="Nothing matches" line="No property or token has that word. Clear the search." /> : null}
+      {!groups.length ? <EmptyState size="lane" {...markOf('🤷‍♀️')} title="Nothing matches" line="No property or token has that word. Clear the search." /> : null}
       <Flow gap={8}>
         {groups.map((g, i) => {
           const on = searching || open === i;
           return (
             <BranchGroup key={g.name} name={g.name} count={g.items.length} hue={g.hue} open={on} onToggle={() => setOpen(open === i ? -1 : i)}>
-              {g.items.map((it) => <ListRow key={it.name} layout="stacked" title={it.name} description={it.say} value={it.exact} />)}
+              {/* name, its note and its exact value read down one column (her screenshot, 24 Nov: the value column took
+                  the width and the names ran one letter a line): the value is the row's meta line, Geist Mono, wrapping
+                  at its own punctuation, inside BELLA's row grid */}
+              <ListRowGroup ariaLabel={g.name}>
+                {g.items.map((it) => <ListRow key={it.name} layout="stacked" title={soft(it.name)} description={it.say} meta={it.exact != null ? soft(String(it.exact)) : undefined} />)}
+              </ListRowGroup>
             </BranchGroup>
           );
         })}
@@ -331,14 +351,14 @@ function ReadIt({ q }) {
 /** The facts, the picked one (a pin on the stage, or the first) open; picking another pin opens that one. */
 function FactsOpen({ facts, all, pins, first }) {
   const [open, setOpen] = useState(first);
-  if (!facts.length) return <EmptyState size="lane" mark="🤷‍♀️" title="Nothing here" line="No accessibility fact belongs to that view for this part. Pick All." />;
+  if (!facts.length) return <EmptyState size="lane" {...markOf('🤷‍♀️')} title="Nothing here" line="No accessibility fact belongs to that view for this part. Pick All." />;
   return <FactsCard facts={facts} all={all} pins={pins} open={open} setOpen={setOpen} />;
 }
 
 /** The right panel. view "facts": the Accessibility tab, the facts with the picked one open. view "score": the Quality tab,
  *  the scorecard (B) then Read it (C). */
 export default function QualityPanel({ q, part, mode, pick, view = 'facts' }) {
-  if (!q) return <EmptyState size="lane" mark="⏳" title={`Reading ${part.name}`} line="Fetching its contract and checks." />;
+  if (!q) return <EmptyState size="lane" {...markOf('⏳')} title={`Reading ${part.name}`} line="Fetching its contract and checks." />;
   const shownPins = visiblePins(q, mode);
   const facts = q.facts.filter((f) => shownPins.some((p) => p.key === f.id));
   const first = currentFact(q, mode, pick)?.id ?? null;
