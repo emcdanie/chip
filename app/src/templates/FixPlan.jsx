@@ -18,6 +18,7 @@ import { Inset, ListHead, ReadingTable } from './ReadingDrawer.jsx';
 import Marker from '@bella/components/Marker/Marker';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import { planRun } from './RunPlan.jsx';
+import useCached from './useCached.js';
 
 const post = (url, body) =>
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(async (r) => {
@@ -58,6 +59,10 @@ export function useFixPlan(plan, onBefore) {
   // was a 144px box to scroll inside)
   const [editing, setEditing] = useState(false);
   const [allSteps, setAllSteps] = useState(false);
+  // where this plan is now: a run of it (by its title) or its card on the board, read live, so a plan that is already on
+  // the board or running says so in the footer and offers no second Start (her test, 24 Nov 10:05)
+  const where = useCached(['/runs', '/work/board']);
+  const live = where.data;
   // choosing a scope writes a new plan; her edits are kept until she does
   useEffect(() => {
     setBrief(plan?.brief ?? '');
@@ -76,7 +81,8 @@ export function useFixPlan(plan, onBefore) {
     try {
       await post('/work/ideas', { title: plan.title, brief, lane: 'next' });
       window.dispatchEvent(new Event('chip:changed'));
-      setDone({ tone: 'success', text: 'On your Work board, in Next, with this plan. Nothing has run.' });
+      await where.reload?.(); // the footer turns to "On your board in Next · Open it" at once
+      setDone({ tone: 'success', text: 'Saved on your board in Next; nothing runs.' });
     } catch (e) {
       setDone({ tone: 'danger', text: `Not added: ${e.message.replace(/\.$/, '')}.` });
     }
@@ -189,22 +195,42 @@ export function useFixPlan(plan, onBefore) {
       </Flow>
     </Inset>
   );
-  // after Start the footer says what happened and its primary becomes See it on the board; a failure says why
-  const footer = done?.tone === 'success' ? (
-    <Button variant="primary" onClick={() => (onBefore?.(), (window.location.hash = '#/work'))}>
-      See it on the board
-    </Button>
-  ) : (
-    <>
-      <Button variant="secondary" onClick={execute}>
-        Execute now
-      </Button>
-      <Button variant="primary" busy={busy} onClick={start}>
-        Start
-      </Button>
-    </>
-  );
-  // what the buttons do, before she presses them (second-pass review S17), on the buttons' row
-  const footerNote = done ? done.text : 'Start puts it on Work; nothing runs yet.';
+  // ONE start (her test, 24 Nov: "what is the difference" between Start and Execute now; rule "Fix plans": one Start):
+  // Start opens the plan to approve; approved, it runs and its card is on Work with its live steps. Save for later puts
+  // the card in Next and runs nothing, a small tertiary with its effect said in the note. Once a run of this plan or its
+  // card exists, the footer says where it is instead and offers Open it (#/work?card=<id>: the board scrolls to the
+  // card, outlines it and opens it).
+  const open = (id) => () => (onBefore?.(), (window.location.hash = `#/work?card=${encodeURIComponent(id)}`));
+  const run = (live?.[0]?.runs ?? []).filter((r) => r.title === plan.title).sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))[0];
+  const idea = (live?.[1]?.board?.ideas ?? []).find((i) => i.title === plan.title);
+  const lane = idea ? live?.[1]?.board?.place?.[idea.id]?.lane ?? 'next' : null;
+  const ACTIVE = ['starting', 'running', 'gate'];
+  const LANE = { ideas: 'Ideas', next: 'Next', now: 'Now', shipped: 'Shipped', 'not-doing': 'Not doing' };
+  let footer;
+  let footerNote;
+  if (run && ACTIVE.includes(run.status)) {
+    const doneSteps = (run.steps ?? []).filter((x) => x.status === 'done' || x.done).length;
+    const of = run.stepCount || (run.steps ?? []).length;
+    footer = <Button variant="primary" onClick={open(run.id)}>Open it</Button>;
+    footerNote = of ? `Running · step ${Math.min(doneSteps + 1, of)} of ${of}` : 'Running';
+  } else if (run && ['passed', 'kept'].includes(run.status)) {
+    footer = <Button variant="primary" onClick={open(run.id)}>See what changed</Button>;
+    footerNote = run.status === 'kept' ? 'Done · kept on its branch' : 'Done · waiting for your Accept';
+  } else if (idea && !(run && run.status === 'failed' && String(run.startedAt) > String(idea.at ?? ''))) {
+    footer = <Button variant="primary" onClick={open(idea.id)}>Open it</Button>;
+    footerNote = `On your board in ${LANE[lane] ?? 'Next'}`;
+  } else {
+    footer = (
+      <>
+        <Button variant="tertiary" busy={busy} onClick={busy ? undefined : start}>
+          Save for later
+        </Button>
+        <Button variant="primary" onClick={execute}>
+          Start
+        </Button>
+      </>
+    );
+    footerNote = done && done.tone !== 'success' ? done.text : run?.status === 'failed' ? 'The last run stopped; Start opens the plan again.' : 'Start opens the plan; saving puts a card in Next.';
+  }
   return { body, footer, footerNote };
 }

@@ -42,7 +42,7 @@ function RunPlan({ plan, onDone }) {
       if (run.status === 'login' || run.status === 'failed') throw new Error(run.error || 'The agent could not start');
       window.dispatchEvent(new Event('chip:changed'));
       window.dispatchEvent(new CustomEvent('chip:run-started', { detail: { id: run.id } }));
-      onDone({ run, toast: { tone: 'success', text: `Sent to the agent: ${plan.title}. It works on a copy; its card is on Work, with Stop while it runs.` } });
+      onDone({ run, toast: { tone: 'success', text: `Running: ${plan.title}. Its card is on Work with its steps.`, card: run.id } });
     } catch (e) {
       e.shown = true; // the plan's own toast says it; the page adds nothing
       onDone({ error: e, toast: { tone: 'danger', text: `Not sent: ${e.message.replace(/\.$/, '')}.` } });
@@ -111,7 +111,8 @@ export default function RunPlanHost() {
       {plan ? <RunPlan key={plan.title} plan={plan} onDone={done} /> : null}
       {toast ? (
         <Toasts>
-          <Toast tone={toast.tone} onClose={() => setToast(null)}>
+          {/* See it on the board opens Work on this run's card: scrolled to, outlined, opened (#/work?card=<id>, her test 24 Nov) */}
+          <Toast tone={toast.tone} onClose={() => setToast(null)} action={toast.card ? { label: 'See it on the board', onClick: () => ((window.location.hash = `#/work?card=${encodeURIComponent(toast.card)}`), setToast(null)) } : undefined}>
             {toast.text}
           </Toast>
         </Toasts>
