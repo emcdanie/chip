@@ -29,12 +29,12 @@ import { accept, fixableChecks, keep, readActions, reviewCard, reviewImage, undo
 import { closedLoops, plannedFixes, recurring } from './lib/not-again.mjs';
 import { fixesRoutes, readFixes } from './lib/fixes.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
-import { dropBoardCache, workBoardLive } from './lib/progress-live.mjs';
+import { dropBoardCache, warmBoard, workBoardLive } from './lib/progress-live.mjs';
 import { reviewsWaiting } from './lib/review-fixes.mjs';
 import { prDetail, saveBoard, saveIdea, sessionTasks, workLanes } from './lib/lanes.mjs';
 import { claudeReady, gateReady, getRun, keepRun, listRuns, runClock, startRun, stopRun, undoRun, closeRun, runPlan } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
-import { historyRecord, historyPicture, searchHistory } from './lib/history.mjs';
+import { historyRecord, historyPicture, readyHistory, searchHistory } from './lib/history.mjs';
 import { ciReadAt, ciRuns, warmCi, systemMap } from './lib/map.mjs';
 import { notionState, saveNotionToken } from './lib/connections.mjs';
 import { readSource, sourceList } from './lib/sources.mjs';
@@ -646,10 +646,10 @@ app.get('/work/sessions', (_req, res) => {
     errorOut(res, e);
   }
 });
-app.get('/work/board', (_req, res) => {
+app.get('/work/board', async (_req, res) => {
   try {
     bellaWork.keepBellaFresh(); // the components that need work are read from the BELLA snapshot: re-sync it when BELLA moved
-    res.json(workBoardLive());
+    res.json(await workBoardLive());
   } catch (e) {
     errorOut(res, e);
   }
@@ -856,13 +856,15 @@ app.post('/gaps/decide', (req, res) => {
     errorOut(res, e);
   }
 });
-app.get('/history', (req, res) => res.json(searchHistory(req.query)));
-app.get('/history/record', (req, res) => {
+app.get('/history', async (req, res) => (await readyHistory().catch(() => {}), res.json(searchHistory(req.query))));
+app.get('/history/record', async (req, res) => {
+  await readyHistory().catch(() => {}); // on a git error the synchronous read below answers instead
   const r = historyRecord(String(req.query.id ?? ''));
   return r ? res.json(r) : res.status(404).json({ error: 'No such record' });
 });
 // a screenshot the record saved, before or after it (read only; the record must list the .png)
-app.get('/history/picture', (req, res) => {
+app.get('/history/picture', async (req, res) => {
+  await readyHistory().catch(() => {}); // on a git error the synchronous read below answers instead
   const png = historyPicture(String(req.query.id ?? ''), String(req.query.path ?? ''), req.query.side === 'before' ? 'before' : 'after');
   return png ? res.type('png').set('cache-control', 'private, max-age=86400').send(png) : res.status(404).end();
 });
@@ -986,6 +988,8 @@ app.get('/play/map', async (req, res) => {
 
 // Bound to localhost: nothing on the network can reach /ask, /cmd or /term.
 const server = app.listen(PORT, '127.0.0.1', () => {
+  // the first #/work after a start answers from warm caches (session transcripts are read in full only once)
+  setTimeout(warmBoard, 2000);
   console.log(`[CHIP] http://localhost:${PORT} · model ${CHIP_MODEL} · embeddings ${CHIP_EMBED_MODEL} · ${OLLAMA_URL}`);
   const t = Date.now();
   // Health's slow reads, ready before anyone opens it (GitHub's CI list, BELLA's contrast pairs)

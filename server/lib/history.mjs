@@ -4,7 +4,7 @@
 // a component name, a type word ("decision", "visual", "contract", "fix"),
 // "breaking", a month, or anything else, matched against title and body.
 // Nothing here calls a model.
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT } from './config.mjs';
@@ -33,10 +33,11 @@ function typeOf(subject, files = []) {
   return 'Visual';
 }
 
-function gitRecords(dir, repo, ref) {
-  const sep = '\x1f';
-  // every commit, so "All" is all (data check, 22 Nov: CHIP's newest 400 of 467 showed as All)
-  const raw = git(dir, ['log', ref, '--no-merges', '--date=iso-strict', `--format=%h${sep}%ad${sep}%an${sep}%s${sep}%b${sep}`, '--name-only']);
+const SEP = '\x1f';
+// every commit, so "All" is all (data check, 22 Nov: CHIP's newest 400 of 467 showed as All)
+const logArgs = (ref) => ['log', ref, '--no-merges', '--date=iso-strict', `--format=%h${SEP}%ad${SEP}%an${SEP}%s${SEP}%b${SEP}`, '--name-only'];
+function gitRecords(dir, repo, ref, raw = git(dir, logArgs(ref))) {
+  const sep = SEP;
   const out = [];
   for (const block of raw.split(/\n(?=[0-9a-f]{7,}\x1f)/)) {
     const parts = block.split(sep);
@@ -140,18 +141,57 @@ function actionRecords() {
 }
 
 let cache = { key: null, records: [] };
-function allRecords() {
-  const key = [git(BELLA, ['rev-parse', BASE]).trim(), git(ROOT, ['rev-parse', 'HEAD']).trim(), readActions().length].join(':');
-  if (cache.key === key) return cache.records;
+// when readyHistory last confirmed the cache against both repos: within this, allRecords answers from the cache
+// without asking git again (two synchronous rev-parses on every request)
+let checkedAt = 0;
+let building = null;
+const FRESH_MS = 5000;
+
+function buildRecords(bellaLog, chipLog) {
   const names = components();
-  const records = [...decisionRecords(), ...changelogRecords(), ...gitRecords(BELLA, 'bella', BASE), ...gitRecords(ROOT, 'chip', 'HEAD'), ...actionRecords()].map((r) => {
+  const records = [...decisionRecords(), ...changelogRecords(), ...gitRecords(BELLA, 'bella', BASE, bellaLog), ...gitRecords(ROOT, 'chip', 'HEAD', chipLog), ...actionRecords()].map((r) => {
     const text = `${r.title} ${r.why ?? ''} ${r.body ?? ''} ${(r.files ?? []).join(' ')}`;
     const comps = names.filter((n) => new RegExp(`\\b${n}\\b`).test(text));
     return { ...r, components: comps.slice(0, 6), text: text.toLowerCase() };
   });
   records.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
-  cache = { key, records };
   return records;
+}
+
+function allRecords() {
+  if (cache.records.length && Date.now() - checkedAt < FRESH_MS) return cache.records;
+  const key = [git(BELLA, ['rev-parse', BASE]).trim(), git(ROOT, ['rev-parse', 'HEAD']).trim(), readActions().length].join(':');
+  if (cache.key === key) return cache.records;
+  cache = { key, records: buildRecords() };
+  return cache.records;
+}
+
+/* The routes' way in (24 Nov: Health's Audits page waited about 10 s on :3160 because BELLA's full git log, 1.6 s,
+   was read synchronously and held every other request). Git is asked without blocking the server, both repos at
+   once; once records exist, a newer commit rebuilds them in the background while the last ones are served, so no
+   request waits on the log after the first. */
+const gitAsync = (dir, args) =>
+  new Promise((ok, fail) => execFile('git', ['-C', dir, '--no-optional-locks', ...args], { encoding: 'utf8', maxBuffer: 1 << 26 }, (e, out) => (e ? fail(e) : ok(out))));
+export async function readyHistory() {
+  const [bella, chip] = await Promise.all([gitAsync(BELLA, ['rev-parse', BASE]), gitAsync(ROOT, ['rev-parse', 'HEAD'])]);
+  const key = [bella.trim(), chip.trim(), readActions().length].join(':');
+  if (cache.key === key) {
+    checkedAt = Date.now();
+    return;
+  }
+  building ??= Promise.all([gitAsync(BELLA, logArgs(BASE)), gitAsync(ROOT, logArgs('HEAD'))])
+    .then(([bellaLog, chipLog]) => {
+      cache = { key, records: buildRecords(bellaLog, chipLog) };
+      checkedAt = Date.now();
+    })
+    .finally(() => {
+      building = null;
+    });
+  if (cache.records.length) {
+    checkedAt = Date.now(); // the last records stand while the new ones are read
+    return;
+  }
+  await building;
 }
 
 const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];

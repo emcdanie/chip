@@ -7,7 +7,7 @@
 // may edit and run the build in that worktree only; it never commits, pushes
 // or merges, and her BELLA checkout is never touched.
 import { plainError } from './plain-error.mjs';
-import { execFileSync, spawn } from 'node:child_process';
+import { execFile, execFileSync, spawn } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { createServer } from 'node:net';
@@ -263,19 +263,54 @@ export const bellaProbe = (run, { base = BASE, dir = BELLA } = {}) => {
     moved: movedFiles.length ? `${movedFiles[0].split('/').at(-1)}${movedFiles.length > 1 ? ` and ${movedFiles.length - 1} more` : ''}` : null,
   };
 };
-let settledAt = 0;
-const settleNow = () => {
-  // BELLA is read at most every 10 s; a closed run is saved, so it is never read again
-  if (Date.now() - settledAt < 10_000) return;
-  settledAt = Date.now();
+/* bellaProbe without holding the server (24 Nov: listRuns ran git synchronously inside every board read): the same facts,
+   each git call its own process, the calls of one run side by side. */
+const gitAsync = (dir, args) => new Promise((done) => execFile('git', ['-C', dir, '--no-optional-locks', ...args], { encoding: 'utf8', timeout: 8000 }, (e, out) => done(e ? null : out.trim())));
+export async function bellaProbeAsync(run, { base = BASE, dir = BELLA } = {}) {
+  if (!existsSync(dir) || (await gitAsync(dir, ['rev-parse', '--verify', '-q', base])) === null) return { branch: null, ahead: null, same: null, moved: null };
+  if ((await gitAsync(dir, ['rev-parse', '--verify', '-q', `refs/heads/${run.branch}`])) === null) return { branch: false, ahead: null, same: null, moved: null };
+  const [ahead, fork] = await Promise.all([gitAsync(dir, ['rev-list', '--count', `${base}..${run.branch}`]), gitAsync(dir, ['merge-base', base, run.branch])]);
+  const files = fork ? ((await gitAsync(dir, ['diff', '--name-only', fork, run.branch])) ?? '').split('\n').filter(Boolean) : [];
+  const [differs, moved] = files.length ? await Promise.all([gitAsync(dir, ['diff', '--name-only', base, run.branch, '--', ...files]), gitAsync(dir, ['diff', '--name-only', fork, base, '--', ...files])]) : [null, ''];
+  const movedFiles = (moved ?? '').split('\n').filter(Boolean);
+  return {
+    branch: true,
+    ahead: ahead === null ? null : Number(ahead),
+    same: differs === null ? null : differs === '',
+    moved: movedFiles.length ? `${movedFiles[0].split('/').at(-1)}${movedFiles.length > 1 ? ` and ${movedFiles.length - 1} more` : ''}` : null,
+  };
+}
+const answersNow = () => {
+  try {
+    return JSON.parse(readFileSync(join(PROGRESS_DIR, 'answers.json'), 'utf8'));
+  } catch {
+    return null;
+  }
+};
+const settleWith = (facts) => {
   const all = [...runs.values()];
   const before = new Map(all.map((r) => [r.id, r.status]));
-  let answers = null;
-  try {
-    answers = JSON.parse(readFileSync(join(PROGRESS_DIR, 'answers.json'), 'utf8'));
-  } catch {}
-  settle(all, bellaProbe, answers);
+  settle(all, (r) => facts.get(r.id) ?? null, answersNow());
   for (const r of all) if (r.status !== before.get(r.id)) save(r);
+};
+let settledAt = 0;
+let settling = null;
+// a list read never waits for BELLA: it answers from the runs as they stand and starts a settle in the background (at most
+// every 10 s); what that settle closes shows on the next read. A closed run is saved, so it is never read again.
+const settleNow = () => {
+  if (settling || Date.now() - settledAt < 10_000) return;
+  settledAt = Date.now();
+  const passed = [...runs.values()].filter((r) => r.status === 'passed');
+  settling = Promise.all(passed.map(async (r) => [r.id, await bellaProbeAsync(r)]))
+    .then((pairs) => settleWith(new Map(pairs)))
+    .catch(() => {})
+    .finally(() => (settling = null));
+};
+// Accept settles first and waits for it (one run, on her click): it must never keep a run that has closed
+const settleSync = () => {
+  settledAt = Date.now();
+  const facts = new Map([...runs.values()].filter((r) => r.status === 'passed').map((r) => [r.id, bellaProbe(r)]));
+  settleWith(facts);
 };
 export const getRun = (id) => {
   settleNow();
@@ -473,8 +508,7 @@ export function stopRun(id) {
 
 /** POST /runs/:id/keep: Accept. The branch waits for her to merge. */
 export function keepRun(id) {
-  settledAt = 0;
-  settleNow();
+  settleSync();
   const run = runs.get(id);
   if (run?.status === 'closed') throw new Error(`This run is closed: ${run.closedWhy}`);
   if (run?.status !== 'passed') throw new Error('Only a run whose gate passed can be accepted');

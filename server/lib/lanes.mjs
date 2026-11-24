@@ -8,6 +8,7 @@
 // A PR whose CI failed, or that has no CI, is left out here; it is named in the lane's empty line.
 import { execFile, execFileSync } from 'node:child_process';
 import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { promises as fsp } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { projectList } from './projects.mjs';
@@ -139,7 +140,29 @@ export function prCards(byProject, now = Date.now(), contains = gitContains) {
   return { cards, left };
 }
 
+/* A project's checkouts (its worktrees), kept 60 s and read without holding the server (24 Nov: the cold board took 3 to 9 s
+   and held every other request): warmCheckouts reads them in the background before a board read; checkouts answers from
+   that, and only a project never read (tests, a first read) is read on the spot. */
+const trees = new Map(); // repo -> { at, paths }
+export function warmCheckouts(projects, now = Date.now()) {
+  return Promise.all(
+    projects.map(
+      (p) =>
+        new Promise((done) => {
+          const hit = trees.get(p.repo);
+          if (hit && now - hit.at < 60e3) return done();
+          execFile('git', ['-C', p.repo, 'worktree', 'list', '--porcelain'], { encoding: 'utf8', timeout: 4000 }, (err, out) => {
+            const paths = err ? [] : [...out.matchAll(/^worktree (.+)$/gm)].map((m) => m[1]);
+            trees.set(p.repo, { at: now, paths: paths.length ? paths : [p.repo] });
+            done();
+          });
+        }),
+    ),
+  );
+}
 const checkouts = (repo) => {
+  const hit = trees.get(repo);
+  if (hit) return hit.paths;
   try {
     const out = execFileSync('git', ['-C', repo, 'worktree', 'list', '--porcelain'], { encoding: 'utf8', timeout: 4000, stdio: ['ignore', 'pipe', 'ignore'] });
     const paths = [...out.matchAll(/^worktree (.+)$/gm)].map((m) => m[1]);
@@ -330,6 +353,29 @@ const planOf = (path) => {
   return { steps: p.rest ? replayLine(p.steps.map((x) => ({ ...x })), p.rest) : p.steps, mtime: st.mtimeMs };
 };
 
+/* A transcript's plan read the first time without holding the server (24 Nov: the first board read after a start spent about
+   5 s reading whole transcripts, and every other request waited): the file is read asynchronously and its lines replayed in
+   batches, giving way between them; planOf then finds it kept and reads only what was added since. */
+const giveWay = () => new Promise((done) => setImmediate(done));
+export async function primePlan(path) {
+  if (plans.has(path)) return;
+  let st;
+  try {
+    st = await fsp.stat(path);
+  } catch {
+    return;
+  }
+  const text = await fsp.readFile(path, 'utf8');
+  const lines = text.split('\n');
+  const rest = lines.pop();
+  let steps = [];
+  for (let i = 0; i < lines.length; i += 2000) {
+    steps = lines.slice(i, i + 2000).reduce(replayLine, steps);
+    await giveWay();
+  }
+  if (!plans.has(path)) plans.set(path, { size: Buffer.byteLength(text), steps, rest });
+}
+
 // the app's session records, read again only when they change; only the fields the board uses are kept
 const recs = new Map();
 const recordOf = (file) => {
@@ -346,7 +392,7 @@ const recordOf = (file) => {
   }
 };
 /** The sessions of the last SESSION_HOURS in CHIP's projects, each with its plan. */
-export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, transcripts = PROJECTS_DIR, terms = null } = {}) {
+export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, transcripts = PROJECTS_DIR, terms = null, onlyPaths = null } = {}) {
   if (!existsSync(dir)) return [];
   const roots = projects.flatMap((p) => checkouts(p.repo).map((path) => ({ path, project: p.short ?? p.name })));
   const where = (cwd) => roots.find((r) => cwd === r.path || cwd?.startsWith(`${r.path}/`));
@@ -386,6 +432,10 @@ export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, t
     if (!title || nda.some((t) => t.test(title))) continue;
     const path = files.get(r.lastAssistantCliSessionId) ?? files.get(r.cliSessionId);
     if (!path) continue;
+    if (onlyPaths) {
+      onlyPaths.push(path);
+      continue;
+    }
     let plan;
     try {
       plan = planOf(path);
@@ -513,4 +563,15 @@ export function saveIdea({ title, brief, lane = 'next' }, file = BOARD) {
 export function workBoard(now = Date.now()) {
   const projects = projectList().filter((p) => existsSync(p.repo));
   return { sessions: sessionTasks(projects, now), progress: progressItems(), board: readBoard(), activeMin: ACTIVE_MIN, sessionHours: SESSION_HOURS, at: new Date(now).toISOString() };
+}
+
+/** Reads the transcripts the board will show, ahead of the board read and without holding the server (see primePlan). */
+export async function warmSessions(projects, now = Date.now(), opts = {}) {
+  const paths = [];
+  sessionTasks(projects, now, { ...opts, onlyPaths: paths });
+  for (const p of paths) {
+    await primePlan(p);
+    await giveWay();
+  }
+  return paths.length;
 }

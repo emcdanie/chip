@@ -25,7 +25,7 @@ function screens() {
   return root;
 }
 
-test('a picture says what it shows: after or before, its width, its topic, whichever order the builder named it', () => {
+test('a picture says what it shows: after or before, its width, its topic, whichever order the builder named it', async () => {
   assert.deepEqual(pictureOf('after-1440-motion.png'), { path: 'after-1440-motion.png', role: 'after', width: 1440, topic: 'motion' });
   assert.deepEqual(pictureOf('quality-before-1440.png'), { path: 'quality-before-1440.png', role: 'before', width: 1440, topic: 'quality' });
   assert.equal(pictureOf('gaps-drawer-after-320.png').topic, 'gaps drawer');
@@ -33,7 +33,7 @@ test('a picture says what it shows: after or before, its width, its topic, which
   assert.equal(plainName('status-marks'), 'Status marks');
 });
 
-test('an area is one card: each topic with its widths, the before of the same width behind it', () => {
+test('an area is one card: each topic with its widths, the before of the same width behind it', async () => {
   const root = screens();
   const a = readArea(join(root, FIXES_DIR, 'needs-you'), 'needs-you', `${REVIEW}../${FIXES_DIR}/needs-you/`);
   assert.equal(a.title, 'Needs you');
@@ -44,7 +44,7 @@ test('an area is one card: each topic with its widths, the before of the same wi
   assert.match(a.line, /What changed: board, quality/);
 });
 
-test('an answered area leaves Needs you, and comes back when a picture changes after her answer', () => {
+test('an answered area leaves Needs you, and comes back when a picture changes after her answer', async () => {
   const root = screens();
   const sent = new Date(Date.now() + 60_000);
   writeFileSync(join(root, 'progress', 'answers.json'), JSON.stringify([{ sent: sent.toISOString(), answers: { page: 'Review fixes · Needs you', url: `/screens/${FIXES_DIR}/needs-you/`, cards: [{ from: 'x', title: 'Needs you', answer: 'Accept' }] } }]));
@@ -56,7 +56,7 @@ test('an answered area leaves Needs you, and comes back when a picture changes a
   assert.equal(again.changedSinceAnswer, true);
 });
 
-test('a waiting A/B page counts the questions she has not picked yet', () => {
+test('a waiting A/B page counts the questions she has not picked yet', async () => {
   const root = screens();
   mkdirSync(join(root, '2026-11-24-tools-row'));
   writeFileSync(join(root, '2026-11-24-tools-row', 'index.html'), '<h1>Work: where the project chips go</h1><section class="part"><h2>Chips</h2><img src="A-1440.png"></section><section class="part"><h2>Sort</h2></section>');
@@ -66,7 +66,7 @@ test('a waiting A/B page counts the questions she has not picked yet', () => {
   assert.match(p.img, /\/screens\/2026-11-24-tools-row\/A-1440\.png$/);
 });
 
-test('on the board: an unanswered area and a page with picks left are cards that need her, with Accept and Change', () => {
+test('on the board: an unanswered area and a page with picks left are cards that need her, with Accept and Change', async () => {
   const root = screens();
   const reviews = reviewsWaiting({ screens: root, review: REVIEW });
   reviews.pages = [{ id: 'page-x', title: 'Tools row', url: 'http://localhost:3123/screens/x/', img: null, questions: 2, open: 1 }, { id: 'page-done', title: 'Done', url: 'u', questions: 1, open: 0 }];
@@ -89,13 +89,13 @@ test('GET /needs/reviews answers CHIP only (the guard every route sits behind)',
   assert.equal((await get()).status, 200);
 });
 
-test('while she reviews, Needs you opens on her looks: newest pictures first, then the A/B pages, then her runs, then the rest', () => {
+test('while she reviews, Needs you opens on her looks: newest pictures first, then the A/B pages, then her runs, then the rest', async () => {
   const c = (id, kind, startedAt = 0) => ({ id, kind, startedAt });
   const order = needsOrder([c('pr', 'pr'), c('run', 'run'), c('page', 'review'), c('old-area', 'fixes', 1), c('new-area', 'fixes', 2), c('need', 'need')]).map((x) => x.id);
   assert.deepEqual(order, ['new-area', 'old-area', 'page', 'run', 'pr', 'need']);
 });
 
-test('the Table says each thing once: status only where it adds to the lane, the area from the card or Not set', () => {
+test('the Table says each thing once: status only where it adds to the lane, the area from the card or Not set', async () => {
   assert.equal(tableStatus({ status: 'Shipped', tone: 'success' }), '');
   assert.equal(tableStatus({ status: 'Idea', tone: 'neutral' }), '');
   assert.equal(tableStatus({ kind: 'session', progress: { state: 'working', done: 1, total: 4 } }), 'Running · step 2 of 4');
@@ -106,14 +106,14 @@ test('the Table says each thing once: status only where it adds to the lane, the
   assert.equal(tableArea({ area: null }), 'Not set');
 });
 
-test("a change's area comes from the files it touched, most of them; none known is null", () => {
+test("a change's area comes from the files it touched, most of them; none known is null", async () => {
   assert.equal(areaOfFiles(['tokens/bella.json', 'tokens/chip.css', 'docs/a.md']), 'Tokens');
   assert.equal(areaOfFiles(['src/components/Button/Button.tsx', 'specs/components/Button.spec.yaml']), 'Components');
   assert.equal(areaOfFiles(['app/src/pages/WorkContent.jsx', 'server/server.js']), 'Tooling & gate');
   assert.equal(areaOfFiles(['README.md']), null);
 });
 
-test("a pull request's area is read once per head commit, and Not set when gh fails", () => {
+test("a pull request's area is read once per head commit, and Not set when gh fails", async () => {
   let calls = 0;
   const read = () => (calls++, ['tokens/bella.json', 'tokens/chip.css', 'docs/maintaining.md']);
   assert.equal(prArea('/repo', { number: 72, headRefOid: 'h1' }, read), 'Tokens');

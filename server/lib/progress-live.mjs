@@ -4,47 +4,59 @@
 // (progress-sources.json, or a `doneWhen` on the item itself): a commit, a file, a run, a push, archived sessions, drift 0,
 // her answer. A landed item is Done with its date and commit; an answered one whose work has not landed is Next; an item
 // with no checkable source is Not measured and listed, never guessed. A source that cannot be read says which.
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT } from './config.mjs';
 import { BELLA } from './bella-work.mjs';
 import { BASE } from './checks.mjs';
-import { SESSIONS_DIR, areaOfFiles, isAnswered, workBoard } from './lanes.mjs';
+import { SESSIONS_DIR, areaOfFiles, isAnswered, warmCheckouts, warmSessions, workBoard } from './lanes.mjs';
+import { projectList } from './projects.mjs';
 import { listRuns } from './runs.mjs';
 import { readDrift } from './drift.mjs';
 import { reviewsWaiting } from './review-fixes.mjs';
 
 const SOURCES = JSON.parse(readFileSync(new URL('./progress-sources.json', import.meta.url), 'utf8'));
-const git = (dir, args, timeout = 8000) => {
-  try {
-    return execFileSync('git', ['-C', dir, '--no-optional-locks', ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout }).trim();
-  } catch {
-    return null;
-  }
-};
+// git never holds the server (24 Nov: execFileSync here held every other request about 3 s on a cold board load, History's
+// record took 3.25 s instead of 0.1 s): each read runs as its own process, and the reads of one board run side by side
+const git = (dir, args, timeout = 8000) =>
+  new Promise((resolve) => {
+    execFile('git', ['-C', dir, '--no-optional-locks', ...args], { encoding: 'utf8', timeout, maxBuffer: 32 << 20 }, (err, out) => resolve(err ? null : out.trim()));
+  });
 const ok = (git_ = null) => git_ !== null;
 
+/* What GitHub holds for a branch, asked at most once a minute (a network call: 0.5 s or more each board read otherwise). */
+const heads = new Map(); // dir|remote|branch -> { at, out }
+async function remoteHeads(dir, remote, branch, now = Date.now()) {
+  const k = `${dir}|${remote}|${branch}`;
+  const hit = heads.get(k);
+  if (hit && now - hit.at < 60e3) return hit.out;
+  const out = await git(dir, ['ls-remote', '--heads', remote, `refs/heads/${branch}`], 4000);
+  if (out !== null) heads.set(k, { at: now, out });
+  return out;
+}
+
 /** The repos a source can name: CHIP's own (chip/whole when this checkout has it) and BELLA's chip/parts-dev. */
-export function reposFor({ chipDir = ROOT, bellaDir = BELLA, base = BASE } = {}) {
-  const has = (dir, ref) => ok(git(dir, ['rev-parse', '--verify', '-q', ref]));
+export async function reposFor({ chipDir = ROOT, bellaDir = BELLA, base = BASE } = {}) {
+  const has = async (dir, ref) => ok(await git(dir, ['rev-parse', '--verify', '-q', ref]));
+  const [whole, parts] = await Promise.all([has(chipDir, 'chip/whole'), has(bellaDir, base)]);
   return {
-    chip: { dir: chipDir, ref: has(chipDir, 'chip/whole') ? 'chip/whole' : 'HEAD', name: 'CHIP' },
-    bella: { dir: bellaDir, ref: has(bellaDir, base) ? base : 'HEAD', name: 'BELLA' },
+    chip: { dir: chipDir, ref: whole ? 'chip/whole' : 'HEAD', name: 'CHIP' },
+    bella: { dir: bellaDir, ref: parts ? base : 'HEAD', name: 'BELLA' },
   };
 }
 export { areaOfFiles } from './lanes.mjs';
-const filesOf = (dir, sha) => (sha ? (git(dir, ['show', '--name-only', '--format=', sha]) ?? '').split('\n').filter(Boolean) : []);
+const filesOf = async (dir, sha) => (sha ? ((await git(dir, ['show', '--name-only', '--format=', sha])) ?? '').split('\n').filter(Boolean) : []);
 const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const done = (repo, sha, iso) => ({ state: 'done', repo, sha, at: iso ?? null, date: iso ? day(iso) : null });
 
 /** Checks one source: { state: 'done' | 'open' | 'unmeasured', sha?, at?, why? }. `ctx` carries repos, runs, answers, item. */
-export function check(src, ctx) {
+export async function check(src, ctx) {
   if (src?.unmeasured) return { state: 'unmeasured', why: src.unmeasured };
   if (!src) return { state: 'unmeasured', why: 'no source says where to check it' };
   if (src.all) {
-    const rs = src.all.map((s) => check(s, ctx));
+    const rs = await Promise.all(src.all.map((s) => check(s, ctx)));
     if (rs.some((r) => r.state === 'open')) return { state: 'open' };
     if (rs.some((r) => r.state === 'unmeasured')) return rs.find((r) => r.state === 'unmeasured');
     const last = [...rs].sort((a, b) => Date.parse(b.at ?? 0) - Date.parse(a.at ?? 0))[0];
@@ -53,30 +65,32 @@ export function check(src, ctx) {
   const repoOf = (name) => ctx.repos[name];
   if (src.commit) {
     const r = repoOf(src.commit.repo);
-    const out = r && git(r.dir, ['log', r.ref, '-1', '-i', '-E', `--grep=${src.commit.subject}`, '--format=%h%x09%cI']);
+    const out = r && (await git(r.dir, ['log', r.ref, '-1', '-i', '-E', `--grep=${src.commit.subject}`, '--format=%h%x09%cI']));
     if (out === null || !r) return { state: 'unmeasured', why: `${r?.name ?? src.commit.repo}'s history could not be read` };
     if (!out) return { state: 'open' };
     const [sha, at] = out.split('\t');
-    return { ...done(r.name, sha, at), area: areaOfFiles(filesOf(r.dir, sha)) };
+    return { ...done(r.name, sha, at), area: areaOfFiles(await filesOf(r.dir, sha)) };
   }
   if (src.commits) {
     const r = repoOf(src.commits.repo);
     if (!r) return { state: 'unmeasured', why: `${src.commits.repo}'s history could not be read` };
-    let last = null;
-    for (const sha of src.commits.shas) {
-      const known = git(r.dir, ['cat-file', '-t', sha]);
-      if (known === null) return { state: 'unmeasured', why: `${r.name}'s history could not be read` };
-      if (git(r.dir, ['merge-base', '--is-ancestor', sha, r.ref]) === null) return { state: 'open' };
-      const at = git(r.dir, ['log', '-1', '--format=%cI', sha]);
-      if (!last || Date.parse(at) > Date.parse(last.at)) last = { sha, at };
-    }
-    return { ...done(r.name, last.sha, last.at), area: areaOfFiles(src.commits.shas.flatMap((x) => filesOf(r.dir, x))) };
+    const each = await Promise.all(
+      src.commits.shas.map(async (sha) => {
+        const [known, inside, at, files] = await Promise.all([git(r.dir, ['cat-file', '-t', sha]), git(r.dir, ['merge-base', '--is-ancestor', sha, r.ref]), git(r.dir, ['log', '-1', '--format=%cI', sha]), filesOf(r.dir, sha)]);
+        return { sha, known, inside, at, files };
+      }),
+    );
+    if (each.some((x) => x.known === null)) return { state: 'unmeasured', why: `${r.name}'s history could not be read` };
+    if (each.some((x) => x.inside === null)) return { state: 'open' };
+    const last = each.reduce((a, b) => (!a || Date.parse(b.at) > Date.parse(a.at) ? b : a), null);
+    return { ...done(r.name, last.sha, last.at), area: areaOfFiles(each.flatMap((x) => x.files)) };
   }
   if (src.path) {
     const r = repoOf(src.path.repo);
     if (!r) return { state: 'unmeasured', why: `${src.path.repo}'s history could not be read` };
-    if (git(r.dir, ['cat-file', '-e', `${r.ref}:${src.path.file}`]) === null) return { state: 'open' };
-    const out = git(r.dir, ['log', r.ref, '-1', '--format=%h%x09%cI', '--', src.path.file]) ?? '';
+    const [there, log] = await Promise.all([git(r.dir, ['cat-file', '-e', `${r.ref}:${src.path.file}`]), git(r.dir, ['log', r.ref, '-1', '--format=%h%x09%cI', '--', src.path.file])]);
+    if (there === null) return { state: 'open' };
+    const out = log ?? '';
     const [sha, at] = out.split('\t');
     return { ...done(r.name, sha || null, at || null), area: areaOfFiles([src.path.file]) };
   }
@@ -92,16 +106,16 @@ export function check(src, ctx) {
   }
   if (src.pushed) {
     const r = repoOf(src.pushed.repo);
-    const up = r && git(r.dir, ['rev-parse', '--abbrev-ref', `${src.pushed.branch}@{upstream}`]);
+    const up = r && (await git(r.dir, ['rev-parse', '--abbrev-ref', `${src.pushed.branch}@{upstream}`]));
     if (!up) return { state: 'unmeasured', why: `${src.pushed.branch} has no upstream to compare with` };
     const [remote, ...rest] = up.split('/');
-    const out = git(r.dir, ['ls-remote', '--heads', remote, `refs/heads/${rest.join('/')}`], 4000);
+    const out = await remoteHeads(r.dir, remote, rest.join('/'));
     if (out === null) return { state: 'unmeasured', why: 'GitHub did not answer' };
     const tip = out.split(/\s/)[0];
     if (!tip) return { state: 'open' };
-    if (git(r.dir, ['cat-file', '-e', `${tip}^{commit}`]) === null) return { state: 'open' }; // GitHub holds commits this machine lacks
-    const same = git(r.dir, ['merge-base', '--is-ancestor', src.pushed.branch, tip]);
-    return same === null ? { state: 'open' } : { ...done(r.name, tip.slice(0, 7), git(r.dir, ['log', '-1', '--format=%cI', tip])) };
+    if ((await git(r.dir, ['cat-file', '-e', `${tip}^{commit}`])) === null) return { state: 'open' }; // GitHub holds commits this machine lacks
+    const same = await git(r.dir, ['merge-base', '--is-ancestor', src.pushed.branch, tip]);
+    return same === null ? { state: 'open' } : { ...done(r.name, tip.slice(0, 7), await git(r.dir, ['log', '-1', '--format=%cI', tip])) };
   }
   if (src.sessionsArchived) {
     const found = new Map();
@@ -142,9 +156,9 @@ export function check(src, ctx) {
 }
 
 /** One item's stage from its source: Done, Next (answered, work not landed), its typed stage while open, or Not measured. */
-export function liveItem(item, ctx, typed) {
+export async function liveItem(item, ctx, typed) {
   const src = typed?.doneWhen ?? SOURCES[typed?.id];
-  const r = check(src, { ...ctx, item });
+  const r = await check(src, { ...ctx, item });
   const answered = item.stage === 'Answered' || /^Answered\b/i.test(item.detail ?? '') || isAnswered(item, ctx.answers);
   if (r.state === 'done') return { ...item, stage: 'Done', shipped: { date: r.date, at: r.at, commit: r.sha, where: r.repo, area: r.area ?? null }, source: 'checked' };
   if (r.state === 'unmeasured') return { ...item, stage: 'Not measured', source: r.why };
@@ -154,11 +168,24 @@ export function liveItem(item, ctx, typed) {
 
 /** What landed in the last `days` days, newest first: each commit on CHIP's chip/whole and BELLA's chip/parts-dev with its
  *  date, one card each (24 Nov: Shipped read 0 while dozens of pieces had landed the night before). `cap` keeps the lane readable. */
-export function landedCommits(repos, now = Date.now(), { days = 14, cap = 60 } = {}) {
+const landedLogs = new Map(); // dir|ref|days -> { tip, log }
+export async function landedCommits(repos, now = Date.now(), { days = 14, cap = 60 } = {}) {
   const since = new Date(now - days * 86400000).toISOString();
   const out = [];
-  for (const [key, r] of Object.entries(repos)) {
-    const log = git(r.dir, ['log', r.ref, '--no-merges', '-n', '400', '--name-only', '--format=%x1e%h%x09%cI%x09%s']); // the cut-off is applied below, on the commit's own date
+  // one git log per repo, read again only when its tip moves (it lists every file of the last 400 commits: about 1.3 s); not
+  // --since, which stops at the first older commit and would hide newer ones after a rebase or cherry-pick
+  const logs = await Promise.all(
+    Object.entries(repos).map(async ([key, r]) => {
+      const tip = await git(r.dir, ['rev-parse', r.ref]);
+      const k = `${r.dir}|${r.ref}|${days}`;
+      const hit = landedLogs.get(k);
+      if (tip && hit?.tip === tip) return [key, r, hit.log];
+      const log = await git(r.dir, ['log', r.ref, '--no-merges', '-n', '400', '--name-only', '--format=%x1e%h%x09%cI%x09%s']);
+      if (tip && log !== null) landedLogs.set(k, { tip, log });
+      return [key, r, log];
+    }),
+  ); // the exact cut-off is applied below, on the commit's own date
+  for (const [key, r, log] of logs) {
     if (log === null) continue;
     for (const block of log.split('\x1e').filter((b) => b.trim())) {
       const [l, ...files] = block.split('\n').filter(Boolean);
@@ -182,19 +209,25 @@ const safeReviews = (now) => {
 };
 
 let memo = null;
+let pending = null; // a computation on its way: a second read waits for it instead of starting another
 /** Drops the kept answer (a card was moved, so the next read shows it). */
 export const dropBoardCache = () => (memo = null);
-/** GET /work/board with the progress items computed now (kept 5 s: the read walks git and takes about 1.5 s). `at` is when this computation ran. */
-export function workBoardLive(now = Date.now(), over = {}) {
-  // kept 5 s, or ten times as long as the read took when it is slow: the read is synchronous, so a 3 s read every 5 s
-  // would leave the server answering nothing else for more than half of the time (24 Nov: History sat on "Opening the record")
-  if (!over.repos && memo && now - memo.now < Math.max(5000, memo.took * 10) && now >= memo.now) return memo.board;
-  const t0 = Date.now();
-  const board = computeBoard(now, over);
-  if (!over.repos) memo = { now, board, took: Date.now() - t0 };
-  return board;
+/** GET /work/board with the progress items computed now (kept 5 s: the read walks git). `at` is when this computation ran. */
+export async function workBoardLive(now = Date.now(), over = {}) {
+  if (over.repos) return computeBoard(now, over);
+  if (memo && now - memo.now < 5000 && now >= memo.now) return memo.board;
+  if (pending) return pending;
+  pending = computeBoard(now, over)
+    .then((board) => ((memo = { now, board }), board))
+    .finally(() => (pending = null));
+  return pending;
 }
-function computeBoard(now, over) {
+async function computeBoard(now, over) {
+  if (!over.repos) {
+    const projects = projectList().filter((p) => existsSync(p.repo));
+    await warmCheckouts(projects, now);
+    await warmSessions(projects, now);
+  }
   const board = workBoard(now);
   let raw = null;
   let answers = null;
@@ -204,13 +237,19 @@ function computeBoard(now, over) {
     answers = JSON.parse(readFileSync(join(dir, 'answers.json'), 'utf8'));
   } catch {}
   const unread = [];
-  const repos = over.repos ?? reposFor();
+  const repos = over.repos ?? (await reposFor());
   for (const r of Object.values(repos)) if (!existsSync(r.dir)) unread.push({ name: `${r.name}'s checkout`, why: `${r.dir} is not there` });
   if (!board.progress.reached) unread.push({ name: 'The progress board', why: 'progress.json could not be read' });
   const ctx = { repos, runs: over.runs ?? listRuns(), answers, sessionsDir: over.sessionsDir ?? SESSIONS_DIR, bellaDir: over.bellaDir ?? BELLA };
   const byIndex = raw ?? [];
-  const items = board.progress.items.map((it) => liveItem(it, ctx, { ...byIndex[it.n], id: byIndex[it.n]?.id }));
+  const [items, landed] = await Promise.all([Promise.all(board.progress.items.map((it) => liveItem(it, ctx, { ...byIndex[it.n], id: byIndex[it.n]?.id }))), landedCommits(repos, now)]);
   for (const i of items) if (i.stage === 'Not measured' && /could not be read|did not answer|not there|no upstream/.test(i.source ?? '')) unread.push({ name: i.title, why: i.source });
   const notMeasured = items.filter((i) => i.stage === 'Not measured').map((i) => ({ id: i.id, title: i.title, why: i.source }));
-  return { ...board, progress: { ...board.progress, items, notMeasured }, landed: landedCommits(repos, now), reviews: over.reviews ?? safeReviews(now), unread, at: new Date(now).toISOString() };
+  return { ...board, progress: { ...board.progress, items, notMeasured }, landed, reviews: over.reviews ?? safeReviews(now), unread, at: new Date(now).toISOString() };
+}
+
+/** Reads the board once in the background, so the first #/work after a start answers from warm caches (24 Nov: she opens it
+ *  live on stage). Session transcripts are read in full the first time (about 2.5 s); later reads only read what was added. */
+export function warmBoard() {
+  workBoardLive().catch(() => {});
 }
