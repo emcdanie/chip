@@ -12,6 +12,7 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Marker from '@bella/components/Marker/Marker';
 import Stat from '@bella/components/Stat/Stat';
+import ScoreTile from '@bella/components/ScoreTile/ScoreTile';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
@@ -49,25 +50,36 @@ function Source({ children }) {
 /* A short written answer under a title, as the mock's note and summary lines. */
 const Note = ({ children }) => <TextStack body={children} />;
 
-function Pairs({ b }) {
-  const pair = (what, unit, bare, md) => (
-    <Flow gap={8}>
-      <TextStack title={what} meta={unit} />
-      <Flow direction="row" gap={24} wrap>
-        <Stat label="No file" value={bare} />
-        <Stat label="AGENTS.md" value={md} />
-      </Flow>
-    </Flow>
+/* The four benchmark scores as BELLA ScoreTiles (her note, 24 Nov: the big numbers read off centre): two by two on the
+   card's grid (one column on a phone), the label above, the number centred; the tint has one meaning: No file is the
+   base (neutral), AGENTS.md is green ahead, yellow behind, grey under 3 points (the chart rule), with its word.
+   A tile is a toggle: it highlights what it is about in the charts below (her idea, 24 Nov). */
+// a No file tile lights the rings (the base), an AGENTS.md tile the dots and gaps, and in the checks the ones that cost points
+const lightOf = (pick) => (!pick ? null : pick.endsWith('bare') ? 'base' : 'value');
+function Pairs({ b, pick, onPick }) {
+  const md = (bare, mdv) => {
+    const gap = Math.round((mdv - bare) * 10) / 10;
+    return gap >= 3 ? ['success', `ahead by ${gap}`] : gap <= -3 ? ['attention', `behind by ${Math.abs(gap)}`] : ['neutral', 'no real change'];
+  };
+  const [t10, w10] = md(b.all10.bare, b.all10.md);
+  const [t8, w8] = md(b.eight.bare, b.eight.md);
+  const tile = (key, label, value, tone, word) => (
+    <ScoreTile key={key} label={label} value={value} tone={tone} word={word} selected={pick === key} onSelect={() => onPick(pick === key ? null : key)} />
   );
   return (
-    <Flow gap={24} cards>
-      {pair('All 10 jobs', 'Score out of 100', b.all10.bare, b.all10.md)}
-      {pair(`The ${b.eight.n} jobs BELLA can do`, 'Score out of 100, computed from results.json', b.eight.bare, b.eight.md)}
+    <Flow gap={8}>
+      <Flow gap={16} cards role="group" aria-label="Benchmark scores, out of 100. Pick one to highlight it in the charts below">
+        {tile('all-bare', 'All 10 jobs · No file', b.all10.bare, 'neutral', 'the base')}
+        {tile('all-md', 'All 10 jobs · AGENTS.md', b.all10.md, t10, w10)}
+        {tile('eight-bare', `The ${b.eight.n} jobs BELLA can do · No file`, b.eight.bare, 'neutral', 'the base')}
+        {tile('eight-md', `The ${b.eight.n} jobs BELLA can do · AGENTS.md`, b.eight.md, t8, w8)}
+      </Flow>
+      <Source>{`Scores out of 100. The ${b.eight.n} jobs BELLA can do: computed from results.json.`}</Source>
     </Flow>
   );
 }
 
-function BenchmarkCard({ b, onReport }) {
+function BenchmarkCard({ b, onReport, pick, onPick }) {
   const gapRows = (arr) =>
     arr.map((r) => ({
       id: r.id,
@@ -104,11 +116,11 @@ function BenchmarkCard({ b, onReport }) {
           action={<Button variant="secondary" size="sm" onClick={onReport}>Report</Button>}
         />
         <Note>{NOTE}</Note>
-        <Pairs b={b} />
-        <Flow gap={8}>
+        <Pairs b={b} pick={pick} onPick={onPick} />
+        <Flow gap={8} id="bench-run-by-run">
           <TextStack title="Run by run" titleAs="h3" />
           <Note>{runsSum}</Note>
-          <GapChart label="AGENTS.md against no file, by run" rows={runRows} baseLabel="No file" valueLabel="AGENTS.md" />
+          <GapChart label="AGENTS.md against no file, by run" rows={runRows} baseLabel="No file" valueLabel="AGENTS.md" highlight={lightOf(pick)} />
         </Flow>
         <Source>{`Source: Open Design System Benchmark runs of ${dirs}, results.json of each. One run per job, so a hint, not proof. Last run ${dayWords(b.day)}.`}</Source>
       </Flow>
@@ -116,7 +128,7 @@ function BenchmarkCard({ b, onReport }) {
   );
 }
 
-function JobsCard({ b }) {
+function JobsCard({ b, pick }) {
   const behind = b.jobs.filter((j) => j.gap <= -3).length;
   const level = b.jobs.filter((j) => Math.abs(j.gap) < 3).length;
   const ahead = b.jobs.filter((j) => j.gap >= 3).length;
@@ -127,7 +139,7 @@ function JobsCard({ b }) {
     <Card>
       <Flow gap={24}>
         <SectionHead icon="CheckCircle" iconTone="info" title={`The ${b.jobs.length} jobs, one by one`} showInfo={false} description={`Sorted from most behind to most ahead. ${behind} jobs are behind by 3 or more, ${level} are level, ${ahead} are ahead. The agent's own words are behind each Why button.`} />
-        <GapChart label="Each job, no file against AGENTS.md" rows={rows} baseLabel="No file" valueLabel="AGENTS.md" />
+        <GapChart label="Each job, no file against AGENTS.md" rows={rows} baseLabel="No file" valueLabel="AGENTS.md" highlight={lightOf(pick)} />
         <Flow gap={12}>
           <TextStack title="Which checks cost the points" titleAs="h3" />
           <Note>{`Each bar is a check's weighted share of the ${sgn(gap)} gap between ${b.all10.bare} and ${b.all10.md}. Worst first; zero in the middle. Bar length is the weighted share; colour follows the raw score change, grey under 3 points.`}</Note>
@@ -136,7 +148,7 @@ function JobsCard({ b }) {
             <Stat label="AGENTS.md" value={b.all10.md} />
             <Stat label="The gap" value={sgn(gap)} />
           </Flow>
-          <ShareBars label="Each check's share of the gap" rows={sh} />
+          <ShareBars label="Each check's share of the gap" rows={sh} highlight={lightOf(pick) === 'value' ? sh.filter((x) => x.share < 0).map((x) => x.id) : null} />
         </Flow>
         <Source>{`Source: results.json of the ${dayWords(b.day)} run (scores, compiler errors) and each job's transcript.jsonl (the agent's words). "Quality of the result" is the model-graded check.`}</Source>
       </Flow>
@@ -403,6 +415,18 @@ export default function AuditReportsContent() {
     window.history.replaceState(null, '', `#/health/audits${s ? `?${s}` : ''}`);
   }, [filter, open, auditAsked]);
   const rep = useMemo(() => (d?.ok ? buildReport(d) : null), [d]);
+  // a picked score tile (her idea, 24 Nov): a second click or Esc clears it; the chart it lights scrolls into view when it
+  // is out of view, at once under reduced motion
+  const [pick, setPick] = useState(null);
+  useEffect(() => {
+    if (!pick) return undefined;
+    const chart = document.getElementById('bench-run-by-run');
+    const r = chart?.getBoundingClientRect();
+    if (r && (r.top < 0 || r.bottom > window.innerHeight)) chart.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    const esc = (e) => e.key === 'Escape' && setPick(null);
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [pick]);
 
   if (error && !d) return <EmptyState size="lane" {...markOf('🔌')} title="CHIP's server isn't answering" line={error} />;
   if (!d) return <Loading title="Reading the audits" sources={[{ url: '/audit-reports', label: "each audit's saved report and the benchmark runs" }]} />;
@@ -485,8 +509,8 @@ export default function AuditReportsContent() {
 
       {/* the approved mock's order (her review, 24 Nov: the charts read as gone when the audit list led); one audit at a
           time with the audit chips instead of scrolling past the rest */}
-      {!filter && (!audit || audit === 'bench') ? <BenchmarkCard b={b} onReport={() => setOpen('bench')} /> : null}
-      {!filter && (!audit || audit === 'bench') ? <JobsCard b={b} /> : null}
+      {!filter && (!audit || audit === 'bench') ? <BenchmarkCard b={b} onReport={() => setOpen('bench')} pick={pick} onPick={setPick} /> : null}
+      {!filter && (!audit || audit === 'bench') ? <JobsCard b={b} pick={pick} /> : null}
       {shownChanges.length && !audit ? <ChangedCard rows={shownChanges} rd={d.readiness} /> : null}
       {shownChanges.length ? <AuditsCard d={d} rows={changes} line={line} onReport={(a) => (a.id === 'bench' ? setOpen('bench') : a.id === 'ready' ? setOpen('ready') : report(a))} onPlan={plan} filter={filter} only={audit} /> : null}
       {shownChanges.length ? <RunsCard d={d} filter={filter} kinds={kinds} only={audit} onOpen={(k) => (k.startsWith('bench') ? setOpen('bench') : k.startsWith('ready') ? setOpen('ready') : openRun(k))} /> : null}

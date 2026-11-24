@@ -1,19 +1,19 @@
 {
- "at": "2026-11-24T10:50:34.446Z",
+ "at": "2026-11-24T12:20:52.503Z",
  "files": {
   "app/src/templates/Flow.jsx": "8764a71b1f2712cca45a1dd818dee16d2631fa54",
   "app/src/templates/Screen.jsx": "36a8a5ff19b4c1abfc4a47403c4a6acfa28a6ad8",
   "app/src/templates/Screen.css": "8dd1d26717508d1d4670db4f0fff11acf998adb8",
-  "app/src/pages/AuditReportsContent.jsx": "07966843a8a35a0ddf9ad057ff10a306a9854f42",
+  "app/src/pages/AuditReportsContent.jsx": "53d2d28de48cfc03d1f218172e00d83d0f15e75b",
   "app/src/pages/ComponentsContent.jsx": "d1181d6c21836e23a69027844eda65f2d321d3d8",
   "app/src/pages/ConnectorsContent.jsx": "c871f7343c0ad4eb7d151f9ac9f256896a871706",
   "app/src/pages/DocsContent.jsx": "b1e73ba0ff67aff7467a9c52cef5a811b6444868",
   "app/src/pages/FoundationsContent.jsx": "df00f1b4c317aa4ed0207b5e36671a4511e42bb3",
   "app/src/pages/HealthContent.jsx": "6be19bb4e73ff6dea7832b65a8277d5e9240f5bc",
-  "app/src/pages/HistoryContent.jsx": "b60d5e05de5e1f3690abf69d77bd48941d2bde36",
+  "app/src/pages/HistoryContent.jsx": "cca15e0d914c14ad8dbef4dfd8e3973d7192fdd8",
   "app/src/pages/NotAgainContent.jsx": "f6e07804b5fd510a3f0246de6f244294bf07c66d",
   "app/src/pages/PlaygroundContent.jsx": "56796964b5dd178e94d67bef821b950d3c6402f5",
-  "app/src/pages/SystemMapContent.jsx": "574cee86d8ab319eb98c6e8e81ec500703874152",
+  "app/src/pages/SystemMapContent.jsx": "693805f2844c928c612af8182f19ff9b635953ca",
   "app/src/pages/TeamContent.jsx": "5c0fb5c69527f7ab3c62508c1371e4fbf10d886b",
   "app/src/pages/WorkContent.jsx": "733f018fe41f2fc325ac3bdbbb5cf557d9d6d65a"
  },
@@ -33,5 +33,5 @@
  "ok": true,
  "clean": 88,
  "total": 88,
- "texts": 11732
+ "texts": 13956
 }
