@@ -223,6 +223,8 @@ const OUT_ALLOWED = [
   ['templates/ConnectorSetup.jsx', '<OpenPage', 'set up: opens the tool where the step happens'],
   ['templates/FigmaSetup.jsx', '<OpenPage', 'set up: opens Figma settings to make the token'],
   ['pages/ComponentsContent.jsx', 'github.com', 'the commit on GitHub; to open in CHIP once Components is free to edit'],
+  // Sources are the real thing (23 Nov): no in-CHIP reader for articles yet, so a clearly marked link
+  ['pages/AuditReportsContent.jsx', 'learn.thedesignsystem.guide/p/', 'the source article of two Benchmark tiles, marked "opens the site"'],
 ];
 const out = files(join(SRC, 'pages'))
   .concat(files(join(SRC, 'templates')))

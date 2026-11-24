@@ -15,6 +15,7 @@ import Marker from '@bella/components/Marker/Marker';
 import ScoreTile from '@bella/components/ScoreTile/ScoreTile';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Button from '@bella/components/Button/Button';
+import Link from '@bella/components/Link/Link';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import EmptyState from '@bella/components/EmptyState/EmptyState';
@@ -90,7 +91,13 @@ function Pairs({ b, pick, onPick }) {
         <ScoreTile key="cost" label="Cost per shippable output · a run that passed its gate" {...cost(b.cost)} />
       </Flow>
       <Source>{`Scores out of 100. The ${b.eight.n} jobs BELLA can do: computed from results.json.${costLine(b.cost)}`}</Source>
-      <Source>Agent adherence and cost per shippable output: Romina Kavcic, “Half my design system metrics don't work anymore”, learn.thedesignsystem.guide, 24 Oct 2026.</Source>
+      <Source>
+        Agent adherence and cost per shippable output: Romina Kavcic,{' '}
+        <Link href="https://learn.thedesignsystem.guide/p/half-my-design-system-metrics-dont" external>
+          “Half my design system metrics don't work anymore” (opens the site)
+        </Link>
+        , learn.thedesignsystem.guide, 24 Oct 2026.
+      </Source>
     </Flow>
   );
 }
