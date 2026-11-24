@@ -34,7 +34,7 @@ import useNarrow from './useNarrow.js';
 import WorkDock, { BellButton } from './WorkDock.jsx';
 import MarkUp, { useMarkUp } from './MarkUp.jsx';
 import RunStatus from './RunStatus.jsx';
-import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
+import ChipWordmark from './ChipWordmark.jsx';
 
 // A page opens at its top with nothing scrolled or focused, unless a link
 // names a section (Elleta, 20 Nov 2026: "the pages open to weird places").
@@ -419,8 +419,8 @@ export default function Screen({ place, header, tabs, children }) {
           {/* the main places as icons, each named by its tooltip; the current one marked as in the menu */}
           <IconRail
             label="Main"
-            // the whole CHIP logotype, never the mark alone (CLAUDE.md, the installed app's mark), in the rail's width
-            logo={<div className="chip-screen__rail-logo"><BrandWordmark word="CHIP" variant="logotype" size="full-bleed" /></div>}
+            // CHIP's wordmark (her new mark, 24 Nov), in the rail's width
+            logo={<div className="chip-screen__rail-logo"><ChipWordmark /></div>}
             end={
               <Flow gap={8} align="center">
                 {menu.foot.map((it) => <NavItem key={it.label} iconOnly label={it.label} icon={it.icon} href={it.href} current={it.current} />)}
@@ -437,8 +437,8 @@ export default function Screen({ place, header, tabs, children }) {
           <div className="chip-screen__menu-body">
             <SideMenu client="BELLA" clientExpanded={clientsOpen} onClientClick={() => setClientsOpen((o) => !o)} search={<Search />} items={menu.items} pinned={menu.pinned} projects={menu.projects} foot={menu.foot} />
           </div>
-          {/* the CHIP logotype closes the menu, its left edge on the rows' icons (her mark-up, 23 Nov) */}
-          <div className="chip-screen__logo"><div className="chip-screen__logo-mark"><BrandWordmark word="CHIP" variant="logotype" size="full-bleed" /></div></div>
+          {/* CHIP's wordmark closes the menu (her new mark, 24 Nov), its left edge on the rows' icons (her mark-up, 23 Nov) */}
+          <div className="chip-screen__logo"><div className="chip-screen__logo-mark"><ChipWordmark /></div></div>
           {/* CHIP has one client, so its list says so */}
           {clientsOpen ? (
             <div className="chip-pop__menu">

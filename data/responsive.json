@@ -1,8 +1,8 @@
 {
- "at": "2026-11-24T16:55:22.041Z",
+ "at": "2026-11-24T17:52:54.609Z",
  "files": {
   "app/src/templates/Flow.jsx": "8764a71b1f2712cca45a1dd818dee16d2631fa54",
-  "app/src/templates/Screen.jsx": "18bf4e710648007c86b671a30879a080139bfb8d",
+  "app/src/templates/Screen.jsx": "6cd85d0c713e2cf2a47e4852bad980b37db7c5f6",
   "app/src/templates/Screen.css": "18e734403ae753fc6c1989776d60608410600779",
   "app/src/pages/AuditReportsContent.jsx": "4bfb0a2475db83c8b5b781194da9591c42735b48",
   "app/src/pages/ComponentsContent.jsx": "ab024d26f2fadb3e4b5b3f577805bfb4e982bcf9",
@@ -33,5 +33,5 @@
  "ok": true,
  "clean": 88,
  "total": 88,
- "texts": 11809
+ "texts": 10139
 }
