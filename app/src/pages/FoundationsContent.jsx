@@ -427,6 +427,9 @@ function Tiers({ bella }) {
   const [tier, setTier] = useState('component');
   const [q, setQ] = useState('');
   const [allParts, setAllParts] = useState(false);
+  // where the six rows start; set by the first click and cleared when the search or the tier changes
+  const [win, setWin] = useState(null);
+  useEffect(() => setWin(null), [q, tier]);
   if (!data) return null;
   const { tokens, byName } = data;
   const pick = byName.get(picked) ?? tokens.find((t) => t.tier === 'component');
@@ -463,9 +466,12 @@ function Tiers({ bella }) {
 
   // the picker: search and tier, six rows at most
   const words1 = q.trim().toLowerCase().replace(/[\s/]+/g, '-');
-  // the picked token leads its own tier, so the selected row is always in view
-  const matches = tokens.filter((t) => t.tier === tier && (!words1 || t.name.includes(words1))).sort((a, b) => (b.name === pick.name) - (a.name === pick.name));
-  const rows = matches.slice(0, 6);
+  // the list keeps its order and stays put: a click only highlights (her 24 Nov review: clicking moved the list up). Six
+  // rows at most; the first window shows the picked token, and picking inside it never moves it
+  const matches = tokens.filter((t) => t.tier === tier && (!words1 || t.name.includes(words1)));
+  const at = matches.findIndex((t) => t.name === pick.name);
+  const from = win ?? (at >= 6 ? at - 5 : 0);
+  const rows = matches.slice(from, from + 6);
   const tierJob = TIERS.find(([k]) => k === tier)?.[2];
 
   return (
@@ -492,17 +498,18 @@ function Tiers({ bella }) {
             {rows.length ? (
               <Flow as="ul" gap={4} aria-label={`${tier} tokens`}>
                 {rows.map((t) => (
-                  // a long group may break after a slash, never mid-word (320)
-                  <ListRow key={t.name} layout="stacked" swatch={`var(${t.name})`} title={words(t).title} description={slashBreaks(words(t).sub)} selected={t.name === pick.name} trailing onClick={() => setPicked(t.name)} />
+                  // a long group may break after a slash, never mid-word (320); no ↗: picking selects here, it doesn't go anywhere
+                  <ListRow key={t.name} layout="stacked" swatch={`var(${t.name})`} title={words(t).title} description={slashBreaks(words(t).sub)} selected={t.name === pick.name} onClick={() => (setWin(from), setPicked(t.name))} />
                 ))}
               </Flow>
             ) : (
               <NoResults noun="tokens" what={`“${q.trim()}” in this tier`} on={q.trim() ? [{ key: 'q', label: `search “${q.trim()}”`, onRemove: () => setQ('') }] : []} />
             )}
-            {matches.length > rows.length ? <TextStack body={`Showing ${rows.length} of ${matches.length}. Type to narrow it down.`} /> : null}
+            {matches.length > rows.length ? <TextStack body={`Showing ${from + 1} to ${from + rows.length} of ${matches.length}. Type to narrow it down.`} /> : null}
           </Flow>
-          <Flow gap={16}>
-            <TextStack title={words(pick).title} subtitle={pick.name.replace(/^--/, '')} />
+          {/* the picked token's chain reads as the secondary half: behind a visible line, under a small label */}
+          <Flow gap={16} style={narrow ? { borderBlockStart: 'var(--border-width-1) solid var(--color-border-default)', paddingBlockStart: 'var(--spacing-24)' } : { borderInlineStart: 'var(--border-width-1) solid var(--color-border-default)', paddingInlineStart: 'var(--spacing-24)' }}>
+            <TextStack overline="Its chain" title={words(pick).title} subtitle={pick.name.replace(/^--/, '')} />
             <Flow as="ol" gap={0} aria-label="Where this token comes from and where it goes">
               <Step
                 state="pending" showConnector={false}
