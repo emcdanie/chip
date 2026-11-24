@@ -3,6 +3,7 @@
 // rebuild reuses them instead of inventing its own. Styles in kit.css.
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
 import './kit.css';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
@@ -57,16 +58,14 @@ export function LinkButton({ className, children, ...rest }) {
   );
 }
 
-/* ---------- the status tag: red fail, yellow needs you, green pass, grey neutral; ink text on every fill ---------- */
-const MARK = { pass: '✓', fail: '!', needs: '●' };
-export function StatusPill({ tone = 'neutral', children }) {
-  return (
-    <span className={cx('k-pill', tone !== 'neutral' && tone)}>
-      {MARK[tone] && <span aria-hidden="true">{MARK[tone]}</span>}
-      <span>{children}</span>
-    </span>
-  );
+/* ---------- the status: BELLA's status dot and its word (her review, 24 Nov: one status mark in CHIP; the kit's
+   tinted pill with a tick, bang or bullet is retired) ---------- */
+const DOT_TONE = { pass: 'success', fail: 'danger', needs: 'attention', neutral: 'neutral' };
+export function StateDot({ tone = 'neutral', children }) {
+  return <StatusDot tone={DOT_TONE[tone] ?? 'neutral'} label={children} />;
 }
+/* the old name, for the retired pages that still import it (not loaded by the app) */
+export const StatusPill = StateDot;
 
 /* ---------- page header: meta or a breadcrumb, the H1 with status badges
    beside it, a lede, actions on the right ---------- */

@@ -62,6 +62,9 @@ import { day, usePartDetail, useStudio, studioChecks, studioFixes, studioDocs, s
 import { markOf } from '../templates/marks.js';
 import Loading from '../templates/Loading.jsx';
 
+// the word each state tone carries (her review, 24 Nov: one status mark, the dot and its word)
+const STATE_WORD = { success: 'Healthy', attention: 'Needs work', danger: 'Failing', info: 'Note', neutral: 'Not measured' };
+
 const noop = () => {};
 export const FILTERS = ['all', 'needs', 'ready'];
 // Accessibility first (approved D, 23 Nov): the stage and the panel open on it, so what she asked to see is never two clicks away

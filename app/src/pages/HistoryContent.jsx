@@ -35,6 +35,7 @@ import useCached from '../templates/useCached.js';
 import useAsk from '../templates/useAsk.jsx';
 import AskField from '../templates/AskField.jsx';
 import useNarrow from '../templates/useNarrow.js';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
 
 /* A commit's why in plain words: git trailers (Co-Authored-By, Signed-off-by,
    the tool's "Generated with" line) are bookkeeping, not reasons, and never
@@ -550,7 +551,7 @@ function Record({ id, fit, landing }) {
                   key={what}
                   layout="stacked"
                   divider
-                  statusBar={STATUS_TONE[rec.status] ?? 'neutral'}
+                  statusDot={<StatusDot tone={STATUS_TONE[rec.status] ?? 'neutral'} label={String(rec.status)} showLabel={false} />}
                   title={what}
                   description={`${n === 1 ? '1 file' : `${n} files`} · ${String(rec.status).toLowerCase()}`}
                   trailing

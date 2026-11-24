@@ -7,7 +7,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
-import { Sheet, StatusPill } from './kit/index.jsx';
+import { Sheet, StateDot } from './kit/index.jsx';
 import { changed } from './ReviewSheet.jsx';
 import { planRun } from './templates/RunPlan.jsx';
 
@@ -159,7 +159,7 @@ export default function RunSheet() {
       ) : (
         <div className="gr run">
           <p className="run-verdict">
-            <StatusPill tone={tone}>{word}</StatusPill> <b>{say(run)}</b>
+            <StateDot tone={tone}>{word}</StateDot> <b>{say(run)}</b>
           </p>
           {error ? (
             <p className="dn-caveat" role="alert">

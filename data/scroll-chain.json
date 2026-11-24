@@ -1,68 +1,68 @@
 {
- "at": "2026-11-24T14:26:57.730Z",
+ "at": "2026-11-24T15:02:54.740Z",
  "routes": {
   "#/work": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
    "total": 24
   },
   "#/health": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
-   "total": 32
+   "total": 31
   },
   "#/system/components": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
-   "total": 8
+   "total": 12
   },
   "#/system/foundations": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
    "total": 12
   },
   "#/system/history": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
    "total": 12
   },
   "#/playground": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/system-map": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
    "total": 10
   },
   "#/connectors": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/team": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/not-again": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
    "total": 8
   },
   "#/health/audits": {
-   "hash": "f5b2e6526d78a3e4e8c7b17a6eb0c659ad321bb4",
+   "hash": "d5093886e56522f7e405d56e3741c57d7356803f",
    "ok": true,
    "bad": 0,
    "total": 8

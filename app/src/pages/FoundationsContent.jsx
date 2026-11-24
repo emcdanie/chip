@@ -168,7 +168,7 @@ function Roles({ roles, empty, onOpen }) {
                 <Flow key={g.name} gap={12} aria-label={g.name}>
                   {/* a section description is in the reading face (Fonts rule) */}
                   {/* the group's head ends in ↗, opening its colours in the table (Figma Flow 4, screen 1) */}
-                  <ListRow as="div" layout="stacked" barHierarchy title={g.name} description={g.job} trailing="ArrowUpRight" onClick={() => onOpen(g.name)} />
+                  <ListRow as="div" layout="stacked" title={g.name} description={g.job} trailing="ArrowUpRight" onClick={() => onOpen(g.name)} />
                   {/* equal columns, as Figma; a short last row keeps the column widths */}
                   {/* each row is its own list, so every <li> sits in a <ul> (audit 21 Nov) */}
                   <Flow gap={8} role="group" aria-label={`${g.name} colours`}>

@@ -73,7 +73,7 @@ export default function DocsContent({ docs: given }) {
                       <TextStack body={BLURB[k] ?? ''} />
                       <ListRowGroup ariaLabel={`${k}: ${rows.length}`}>
                         {rows.map((d) => (
-                          <ListRow key={d.id} layout="stacked" statusBar="neutral" title={d.title} description={d.line || undefined} body={`updated ${day(d.updated)} · ${size(d.bytes)}`} trailing onClick={() => setDoc(d.id)} />
+                          <ListRow key={d.id} layout="stacked" title={d.title} description={d.line || undefined} body={`updated ${day(d.updated)} · ${size(d.bytes)}`} trailing onClick={() => setDoc(d.id)} />
                         ))}
                       </ListRowGroup>
                     </Flow>

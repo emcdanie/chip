@@ -41,10 +41,6 @@
 .k-iconbtn:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 
 /* the status tag, one look in four states: ink text on every fill, sans; the mark says it without colour */
-.k-pill { display: inline-flex; align-items: center; gap: var(--s-4); width: fit-content; padding: 0 var(--s-8); border-radius: var(--r); background: var(--neutral); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; }
-.k-pill.pass { background: color-mix(in srgb, var(--pass) 24%, var(--card)); }
-.k-pill.fail { background: color-mix(in srgb, var(--fail) 22%, var(--card)); }
-.k-pill.needs { background: color-mix(in srgb, var(--needs) 30%, var(--card)); }
 
 /* filter chips */
 .k-chips { display: flex; flex-wrap: wrap; gap: var(--s-8); }

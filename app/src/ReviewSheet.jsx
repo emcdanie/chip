@@ -9,7 +9,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Disclosure from '@bella/components/Disclosure/Disclosure';
-import { Facts, Sheet, SheetPart, StatusPill } from './kit/index.jsx';
+import { Facts, Sheet, SheetPart, StateDot } from './kit/index.jsx';
 import { startRun } from './Runs.jsx';
 
 const JSON_HEADERS = { 'content-type': 'application/json' };
@@ -172,7 +172,7 @@ export default function ReviewSheet() {
             <p>{card.change ? 'CHIP’s fix for a failing check: one exact change, committed through BELLA’s gate on a local branch that you merge yourself.' : card.noFix ? 'A failing check CHIP has no one-click fix for. It writes a brief for a session instead.' : `The ${card.check} check.`}</p>
           </SheetPart>
 
-          <SheetPart label="State" pill={<StatusPill tone={st.tone}>{st.word}</StatusPill>}>
+          <SheetPart label="State" pill={<StateDot tone={st.tone}>{st.word}</StateDot>}>
             <Facts
               rows={[
                 ['Checked', card.ranAt ? `${when(card.ranAt)} on ${card.base ?? 'BELLA'} @ ${card.commit}${card.target?.kind === 'staged' ? `, plus ${card.target.files} staged files` : ''}` : null],

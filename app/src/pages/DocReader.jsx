@@ -28,6 +28,9 @@ import useCached from '../templates/useCached.js';
 import { planRun } from '../templates/RunPlan.jsx';
 import { markOf } from '../templates/marks.js';
 
+// the word each state tone carries (her review, 24 Nov: one status mark, the dot and its word)
+const STATE_WORD = { success: 'Healthy', attention: 'Needs work', danger: 'Failing', info: 'Note', neutral: 'Not measured' };
+
 export const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null);
 export const size = (b) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`);
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
