@@ -9,6 +9,7 @@
 //   plan                the work orders as one plan to Start
 //   source              the saved report and the day it ran
 // Every number comes from the report (auditReport.js); nothing is typed. BELLA parts only.
+import Marker from '@bella/components/Marker/Marker';
 import { useEffect, useState } from 'react';
 import Button from '@bella/components/Button/Button';
 import Notification from '@bella/components/Notification/Notification';
@@ -46,7 +47,7 @@ function ReadMore({ text }) {
 
 /* Why the score moved and what 100 takes, in one line: each number says what it counts. */
 function answerOf(a, orders) {
-  const score = a.value == null ? null : <strong>{`${a.value} ${a.unit ?? ''}`.trim()}</strong>;
+  const score = a.value == null ? null : <Marker>{`${a.value} ${a.unit ?? ''}`.trim()}</Marker>;
   const moved = a.prev ? (a.prev.value === a.value ? `, the same as on ${dayOf(a.prev.day)}` : `, ${a.value > a.prev.value ? 'up' : 'down'} from ${a.prev.value} on ${dayOf(a.prev.day)}`) : ', the first report kept';
   const reach = orders ? ` Reaching ${a.unit === 'of 100' ? '100' : 'the top'} means the ${orders === 1 ? 'work order' : `${orders} work orders`} below, most important first.` : '';
   return score ? <>{score}{`${moved}.${reach}`}</> : `No score in the report.${reach}`;
@@ -60,8 +61,7 @@ function auditPlan(a, r, day, runs) {
     summary: `${r.orders.length} work orders from the report, most important first. Doing them and running the audit again moves the score.`,
     brief: [`Work through the ${a.title} audit's work orders (the saved report of ${day}), most important first, one commit each:`, ...r.orders.map((o) => `- ${o.title}${o.move ? `: ${up(o.move)}` : ''}`), 'Then run the audit again, read only, and save its report.'].join('\n'),
     minutes: measuredMinutes(runs),
-    youDo: 'Press Start to put the plan on your board. When you want it done, run it from the card and approve the agent run; then Accept or Undo the result.',
-    expect: 'A card on Work with its steps. Nothing is pushed; the audit is run again at the end so the card shows the new score.',
+    expect: 'a card on Work; the audit runs again for the new score; nothing is pushed.',
   };}
 
 export default function AuditReading({ a, day, lights, open, onClose }) {

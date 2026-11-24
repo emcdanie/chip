@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@bella/fonts.css';
 import '@bella/tokens.css';
@@ -18,7 +18,7 @@ import Work from './pages/Work.jsx';
 import Components from './pages/Components.jsx';
 import Present from './pages/Present.jsx';
 import { warmPages } from './templates/useCached.js';
-import { openAtTop } from './templates/Screen.jsx';
+import { openAtTop, focusPageTitle } from './templates/Screen.jsx';
 import RunPlanHost from './templates/RunPlan.jsx';
 import PageGuard from './templates/PageGuard.jsx';
 import { canon } from './templates/routes.js';
@@ -44,6 +44,12 @@ function Page({ hash }) {
   // (#/components/Button, #/history?…) keeps its place
   const page = hash.match(/^#\/(system\/[\w-]+|[\w-]+)/)?.[1] ?? '';
   useLayoutEffect(openAtTop, [page]);
+  // the first page of a visit keeps the browser's own start; every later page change hands focus to its title
+  const firstPage = useRef(true);
+  useEffect(() => {
+    if (firstPage.current) firstPage.current = false;
+    else focusPageTitle();
+  }, [page]);
   // Work and Health are their own items (her pick B, 23 Nov); Components, Foundations and History are one System place
   // (Elleta, 23 Nov). The old addresses redirect in Root (templates/routes.js), so only new ones arrive here.
   const at = hash.split('?')[0];

@@ -154,7 +154,13 @@ function MoveMenu({ card, lane, move }) {
   const i = lane.cards.findIndex((c) => c.id === card.id);
   const pick = (fn) => () => (move.setMenu(null), fn());
   return (
-    <Menu label={`Move ${card.title}`} onClose={() => move.setMenu(null)}>
+    // closing hands focus back to the card's Move to… button, as BELLA Menu asks of its opener (interaction study,
+    // 23 Nov: Esc left focus on the page itself); after a move it is the same card's button in its new place
+    <Menu label={`Move ${card.title}`} onClose={() => (move.setMenu(null), requestAnimationFrame(() => {
+      // a plan that opened (a move into Now) keeps the focus it took
+      if (document.activeElement && document.activeElement !== document.body) return;
+      document.querySelector(`[data-card="${CSS.escape(card.id)}"] [aria-label="Move to…"]`)?.focus();
+    }))}>
       {i > 0 ? <MenuItem label="Move up" onSelect={pick(() => move.drop(card, lane.id, lane.id, lane.cards[i - 1].id))} /> : null}
       {i >= 0 && i < lane.cards.length - 1 ? <MenuItem label="Move down" onSelect={pick(() => move.drop(card, lane.id, lane.id, lane.cards[i + 2]?.id ?? null))} /> : null}
       {i > 0 || i < lane.cards.length - 1 ? <MenuDivider /> : null}
@@ -446,8 +452,11 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
         {/* the project filter (New, 23 Nov): one chip per project, read from /projects: CHIP, Site, BELLA and the ones made
             in New. Inside the sticky tools block, so it stays in view and never scrolls under the tools row (24 Nov: it
             showed cut off under it). Not on the tools line itself: at 1440 the tools and the four chips need about 1200
-            of the 1144 there is. */}
+            of the 1144 there is. Where the picked project stands (its numbers and a bar, counted from its cards) sits at
+            the end of the chip row, so picking a project changes the row's words, not the page: the board no longer drops
+            when a chip is pressed (interaction study, 23 Nov; page chrome rule: a filter that is on shows in the same line). */}
         {!all || (projects?.length ?? 0) < 2 ? null : (
+          <Flow direction="row" gap={16} wrap align="center">
           <Flow direction="row" gap={8} wrap align="center" role="group" aria-label="Project">
             <FilterChip pressed={!project} onClick={() => project && setProject(null)}>
               All
@@ -458,12 +467,14 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
               </FilterChip>
             ))}
           </Flow>
+          {!projectName || stats.cards === 0 ? null : (
+            <div style={{ flex: '1 1 0', minInlineSize: 'min(100%, calc(var(--spacing-48) * 6))' }}>
+              <Progress label={projectName} value={phone ? `${stats.shipped} of ${stats.total} shipped` : `${stats.shipped} shipped · ${stats.now} now · ${stats.waiting} waiting on you`} fill={stats.total ? Math.round((100 * stats.shipped) / stats.total) : 0} tone="success" summary={`${projectName}: ${stats.shipped} shipped, ${stats.now} now, ${stats.waiting} waiting on you.`} />
+            </div>
+          )}
+          </Flow>
         )}
       </Flow>}
-      {/* where the picked project stands: its own numbers and a bar, counted from its cards; on a phone the short form (the line above already says now and waiting) */}
-      {reviewing || !all || !projectName || stats.cards === 0 ? null : (
-        <Progress label={projectName} value={phone ? `${stats.shipped} of ${stats.total} shipped` : `${stats.shipped} shipped · ${stats.now} now · ${stats.waiting} waiting on you`} fill={stats.total ? Math.round((100 * stats.shipped) / stats.total) : 0} tone="success" summary={`${projectName}: ${stats.shipped} shipped, ${stats.now} now, ${stats.waiting} waiting on you.`} />
-      )}
       {/* what is on, with a way off, and how much of the board it leaves (feedback for Filter, Sort and Search) */}
       {reviewing || !all || !(filter || sortOn || q) ? null : (
         <ResultsBar

@@ -542,7 +542,10 @@ function StudioStage({ part, detail, variant, label, shown, picked, onPick, onMe
   const stageId = useId();
   const liveId = useId();
   const shownId = useId();
-  useForcedState(shownId, shown);
+  // the focus ring is drawn while its leader is picked or pointed at (23 Nov: "Focus ring" pointed at a part with no ring):
+  // the part wears BELLA's own focus rule, so the dot on the ring has a ring to sit on
+  const ringKey = (detail?.anatomy ?? []).find((x) => x.kind === 'ring')?.key;
+  useForcedState(shownId, shown === 'default' && ringKey && (picked === ringKey || lit === ringKey) ? 'focus' : shown);
   useEffect(() => installForcedStates(), []);
   const anatomy = isSampled(part.name) ? [] : detail?.anatomy ?? [];
   const a = anatomy.find((x) => x.key === picked) ?? anatomy[0] ?? null;
@@ -863,11 +866,12 @@ function PartList({ model, query, setQuery, filter, current, onPick, onFilter, i
           onClearAll={() => (setQuery(''), onFilter('all'))}
         />
       ) : null}
-      {/* grouped by her task: what needs work first, then the ready ones (second pass M22); a chip that narrows to one group shows it flat */}
+      {/* grouped by her task: what needs work first, then the ready ones (second pass M22); both open, so every part is in view
+          without a click (23 Nov: "how come i cant see all the components"; the grouping of d0d95e4 closed Ready, 70 parts) */}
       <Flow as="nav" aria-label={`Components, ${shown.length} parts`} gap={4} id="part-list">
         {filter === 'all' && shown.some((p) => !p.ready) && shown.some((p) => p.ready) ? (
           [['Needs work', shown.filter((p) => !p.ready)], ['Ready', shown.filter((p) => p.ready)]].map(([name, list]) => (
-            <Disclosure key={name} title={name} summary={String(list.length)} defaultOpen={name === 'Needs work' || !!q || list.some((p) => p.id === current)}>
+            <Disclosure key={name} title={name} summary={String(list.length)} defaultOpen>
               <Flow gap={4}>{list.map(row)}</Flow>
             </Disclosure>
           ))
@@ -1392,7 +1396,8 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
       : toFix
         ? { tone: 'attention', text: `${toFix} to fix` }
         : { tone: 'success', text: rows.some((r) => r.tone === 'neutral') ? 'No findings · some not measured' : 'No findings' };
-  const states = PLAY[part.name] ? part.states : [];
+  // every part CHIP draws by hand wears its states (Card: Default, Hover, Focus); a story-drawn part lists them in words
+  const states = PLAY[part.name] || SPECIMENS[part.name] ? part.states : [];
 
   const header = (
     <Flow direction="row" gap={16} wrap justify="between" align="center">
@@ -1420,9 +1425,11 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
   // the stage takes the column's spare height, so the part sits big in the middle (the strip keeps its own)
   const centre = (
     <Flow gap={16} grow="last">
-      <Flow direction="row" gap={16} wrap align="center">
+      {/* the variant control takes the rest of its row, its segments sharing it (BELLA stretch), so its right edge is the
+          stage column's and sits on the grid at every width (24 Nov sweep: a hugging control missed at 1440 to 900) */}
+      <Flow direction="row" gap={16} wrap align="center" grow="last">
         {listOut ? <Button variant="secondary" icon="SidebarExpand" leadingIcon ariaExpanded={listOpen} onClick={() => setListOpen(true)}>Components</Button> : null}
-        {variants.length > 1 ? variants.length > 3 || phone ? <Select label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: cap(v) }))} /> : <SegmentedControl label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: v }))} /> : null}
+        {variants.length > 1 ? variants.length > 3 || phone ? <Select label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: cap(v) }))} /> : <SegmentedControl stretch label="Variant" value={variant} onChange={setVariant} options={variants.map((v) => ({ value: v, label: v }))} /> : null}
       </Flow>
       {tab === 'access' ? (
         <QualityCentre q={q} part={part} mode={qMode} setMode={setQMode}>
@@ -1447,19 +1454,26 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
       ) : (
         // never other components (her bug, 22 Nov: "its meant to be states not take you to other components"): a part
         // whose states cannot be drawn says so and lists the states its contract names, as text cards
+        part.stateNames.length ? (
         <Strip
           title={`${part.name} · states`}
           label="state"
-          items={(part.stateNames.length ? part.stateNames : ['Default']).map((n) => ({ id: n, label: n }))}
+          items={part.stateNames.map((n) => ({ id: n, label: n }))}
           current={null}
           onPick={noop}
           render={(s) => (
             <VariantTile label={s.label}>
-              <TextStack subtitle={part.stateNames.length ? 'States not drawn yet' : 'No states in its contract'} />
+              <TextStack subtitle="Drawn in its story, not here yet" />
             </VariantTile>
           )}
         />
-      )}
+      ) : (
+        // a part with no states of its own says so (23 Nov, on Card: "not sure Card has states"), never a blank strip
+        <Flow gap={8} role="group" aria-label={`${part.name} · states: none of its own`} data-states-empty="">
+          <SectionHead title={`${part.name} · states`} titleLevel={3} />
+          <EmptyState size="lane" mark="🤷‍♀️" title="No states of its own" line={`${part.name} has no hover, focus or pressed state; it takes its children's.`} />
+        </Flow>
+      ))}
       </Flow>
       )}
     </Flow>
@@ -1513,10 +1527,11 @@ export default function ComponentsContent({ model, filter = 'all', onFilter, par
         </Flow>
       ) : (
         // the studio fills the window under the header; the list, the stage column and the panel scroll on their own
-        // fit="rest" measures where the studio starts once: when the header grows (the Figma notice, an
-        // answer) or the stage changes view (the accessibility view, once its facts load, is taller), the studio is
-        // drawn again so it holds its content and the page's 64 below it
-        <Flow fit="rest" span={12} id="studio" key={`${Boolean(detail)}-${Boolean(detail?.figmaBlind)}-${studio.ready}-${Boolean(thread)}-${Boolean(q)}-${tab}-${qMode}`}>
+        // fit="rest" measures where the studio starts: when the header grows (the Figma notice, an answer), the part
+        // changes or the stage changes view (the accessibility view, once its facts load, is taller), fitKey has it
+        // measured again. Never a remount: that reloaded the story frame two or three times per part (23 Nov: "each
+        // component takes a long time to load")
+        <Flow fit="rest" span={12} id="studio" fitKey={`${part.id}-${Boolean(detail)}-${Boolean(detail?.figmaBlind)}-${studio.ready}-${Boolean(thread)}-${Boolean(q)}-${tab}-${qMode}`}>
           <Flow span={12} direction="row" gap={24}>
             {centre}
             {right}

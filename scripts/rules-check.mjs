@@ -11,7 +11,9 @@
 //   drawers  drawer actions sit in BELLA Drawer's footer only, in one row (23 Nov evening): opens every drawer it can reach
 //            without starting anything and FAILS on a primary or secondary Button in a drawer's body, on footer text under
 //            the buttons, on a primary that is not the last button, and at 1440 on a footer helper not on the buttons'
-//            row. --shots <dir> [--tag before] also saves a picture of each open drawer, for the audit page.
+//            row, on table text cut or touching its neighbour, on a paragraph over 40 words, and on a drawer that
+//            explains in sentences with no key word marked (BELLA Marker). --shots <dir> [--tag before] also saves a
+//            picture of each open drawer, for the audit page.
 // Every failure prints rule, page, width and element. Usage:
 //   node scripts/rules-check.mjs [--app http://localhost:3160] [--rule edge,notices] [--route '#/work'] [--width 1440]
 // Needs a CHIP server and Playwright in BELLA_DIR. Exit 1 on any failure. Static rules (source) run once, not per width.
@@ -315,6 +317,18 @@ const drawerJs = () => {
     if (!ta.length || !tb.length) return false;
     return ta.some((x) => tb.some((y) => x.top < y.bottom - 1 && y.top < x.bottom - 1 && y.left - x.right < 8));
   }).map((c) => (c.textContent ?? '').trim().slice(0, 30));
+  // explain-scannable (23 Nov evening, her Drift drawer: "super text heavy", nothing marked): a block of text is short,
+  // and a drawer that explains marks the few key words with BELLA's Marker
+  const blocks = [...(body?.querySelectorAll('p, li') ?? [])].filter((e) => vis(e) && !e.querySelector('p, li') && !e.closest('table, [data-bella-component="list-row"], [data-bella-component="button"]'));
+  const words = (e) => (e.textContent ?? '').trim().split(/\s+/).filter(Boolean).length;
+  out.longText = blocks.filter((e) => words(e) > 40).map((e) => `${words(e)} words: "${e.textContent.trim().slice(0, 50)}"`);
+  out.explains = blocks.some((e) => words(e) >= 12);
+  out.marked = Boolean(body?.querySelector('[data-bella-component="marker"]'));
+  out.words = blocks.reduce((n, e) => n + words(e), 0);
+  // words a reader sees without scrolling: every text in the body's visible box, tables and rows included
+  const B = body?.getBoundingClientRect();
+  const leaves = [...(body?.querySelectorAll('*') ?? [])].filter((e) => vis(e) && [...e.childNodes].some((x) => x.nodeType === 3 && x.textContent.trim()) && getComputedStyle(e).clipPath === 'none');
+  out.wordsInView = B ? leaves.filter((e) => { const r = e.getBoundingClientRect(); return r.top >= B.top && r.bottom <= B.bottom; }).reduce((n, e) => n + [...e.childNodes].filter((x) => x.nodeType === 3).map((x) => x.textContent).join(' ').trim().split(/\s+/).filter(Boolean).length, 0) : 0;
   const rows = [...(body?.querySelectorAll('[data-bella-component="list-row"]') ?? [])].filter(vis);
   out.rows = rows.length;
   out.twoLine = rows.filter((r) => r.getBoundingClientRect().height > 72).length;
@@ -350,6 +364,8 @@ if (RULES.includes('drawers')) {
       const where = `${d.name} (${d.file})`;
       for (const x of m.inBody) add('drawers', d.route, width, where, `${x} sits in the drawer's body; actions go in the footer`);
       for (const x of m.under) add('drawers', d.route, width, where, `footer text under the buttons: "${x}"; it goes at the left of the buttons' row (footerNote)`);
+      for (const x of m.longText ?? []) add('drawers', d.route, width, where, `a paragraph over 40 words (${x}); say it in short bullets`);
+      if (m.explains && !m.marked) add('drawers', d.route, width, where, 'explains in sentences but marks no key word (BELLA Marker)');
       for (const x of m.clipped ?? []) add('drawers', d.route, width, where, `table text cut or touching its neighbour: "${x}"`);
       if (!m.primaryLast) add('drawers', d.route, width, where, 'the primary is not the last button in the footer');
       if (width >= 1440 && m.row === false) add('drawers', d.route, width, where, `footer helper "${m.note}" is not on the buttons' row`);

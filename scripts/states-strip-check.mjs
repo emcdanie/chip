@@ -23,8 +23,11 @@ for (const width of [1440, 320]) {
   for (const name of names.filter((n) => !ONLY || n === ONLY)) {
     await page.goto(`${APP}/#/system/components/${name}?tab=inspect`, { waitUntil: 'load' }).catch(() => {});
     await page.waitForFunction((n) => document.querySelector('h2')?.textContent?.trim() === n, name, { timeout: 15000 }).catch(() => {});
-    await page.waitForSelector('[role="group"][aria-label*="arrow keys"]', { timeout: 8000 }).catch(() => {});
+    await page.waitForSelector('[role="group"][aria-label*="arrow keys"], [data-states-empty]', { timeout: 8000 }).catch(() => {});
     const strip = await page.evaluate(() => {
+      // a part with no states of its own shows BELLA's empty state in the strip's place (24 Nov): a strip, with no cards
+      const none = document.querySelector('[data-states-empty]');
+      if (none) return none.querySelector('[data-bella-component="empty-state"]') ? { title: none.getAttribute('aria-label').replace(/: none of its own$/, ''), labels: [], empty: true } : null;
       const g = document.querySelector('[role="group"][aria-label*="arrow keys"]');
       if (!g) return null;
       const title = g.getAttribute('aria-label').replace(/: arrow keys.*$/, '');

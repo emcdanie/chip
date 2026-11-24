@@ -351,7 +351,7 @@ export function NewStart({ variant = 'primary' }) {
             <Inset>
               <Input
                 label={job?.id === 'component' ? 'Name and one-line purpose' : 'Anything else?'}
-                hint={job?.id === 'component' ? 'For example: Stepper, a control for moving through numbered steps' : 'One line for a job that is not listed; it also ends in the plan'}
+                hint={job?.id === 'component' ? 'For example: Stepper, a control for moving through numbered steps' : 'A job not listed above; it ends in a plan too'}
                 value={free}
                 onChange={setFree}
                 required={job?.id === 'component'}

@@ -427,7 +427,7 @@ export default function WorkDock({ needs: shared }) {
                 </Flow>
               ))
             ) : (
-              <TextStack body="Nothing has run yet. A run shows here the moment you approve its plan." />
+              <TextStack body="Nothing has run yet. Runs show here once approved." />
             )}
           </Flow>
         }

@@ -22,6 +22,7 @@ import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
+import { glide } from './glide.js';
 
 /** A headed group: the heading takes the inset, the rows under it sit bare. */
 export function ReadingSection({ title, description, icon, iconTone, rows }) {
@@ -36,9 +37,9 @@ export function ReadingSection({ title, description, icon, iconTone, rows }) {
 }
 
 /** Non-row content: 16 in at the sides, on the title's edge. */
-export function Inset({ gap = 16, children }) {
+export function Inset({ gap = 16, children, ...rest }) {
   return (
-    <Flow inset gap={gap}>
+    <Flow inset gap={gap} {...rest}>
       {children}
     </Flow>
   );
@@ -93,7 +94,8 @@ export function ListHead({ shown, total, unit, open, onToggle, extra }) {
       <TextStack subtitle={more ? `Showing ${shown} of ${total} ${unit}` : `${total} ${unit}`} />
       <Flow direction="row" gap={8} align="center" wrap>
         {more ? (
-          <Button variant="tertiary" size="sm" ariaExpanded={open} onClick={onToggle}>
+          // the list grows or shrinks and what is under it slides (glide, interaction study 23 Nov), never jumps
+          <Button variant="tertiary" size="sm" ariaExpanded={open} onClick={() => glide('grow', onToggle)}>
             {open ? 'Show fewer' : `Show all ${total}`}
           </Button>
         ) : null}
@@ -120,7 +122,7 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
   const toggle = (name) => {
     const on = !open.includes(name);
     asked.current = on ? name : null;
-    setOpen((was) => (single ? (on ? [name] : []) : on ? [...was, name] : was.filter((n) => n !== name)));
+    glide('grow', () => setOpen((was) => (single ? (on ? [name] : []) : on ? [...was, name] : was.filter((n) => n !== name))));
   };
   const box = useRef(null);
   const asked = useRef(null);
@@ -133,7 +135,7 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div ref={box}>
-      <Flow inset gap={8} as="div" role="group" aria-label={label}>
+      <Flow inset gap={8} as="div" role="group" aria-label={label} data-glide="rows">
         {shown.map((g, gi) => {
           const full = all.includes(g.name);
           const items = g.items ? (full ? g.items : g.items.slice(0, FIRST)) : [];
@@ -180,7 +182,9 @@ export function ReadingGroups({ groups, single = true, openFirst = false, label 
    then "Show 10 more" (second-pass review, pattern 1); every row shows when there are 20 or fewer. A column marked
    byFilter (the state the chips filter on) is left out while a chip other than All is on: every row would repeat it.
    The chips are one row that scrolls sideways (Flow swipe), so the table starts high at 320. */
-export function ReadingTable({ caption, rows, columns, rowKey = 'key', filters, defaultSort, onOpen, density, first = 20, unit = 'rows' }) {
+export function ReadingTable({ caption, rows, columns, rowKey = 'key', filters, defaultSort, onOpen, density, first = 20, unit = 'rows', headExtra, nested = false }) {
+  // nested: inside a block that already takes the 16 inset (a plan), so the table does not add a second one
+  const Box = nested ? Flow : Inset;
   const [f, setF] = useState(filters?.[0]?.value ?? null);
   const [open, setOpen] = useState(false);
   const pick = filters?.find((x) => x.value === f);
@@ -189,7 +193,7 @@ export function ReadingTable({ caption, rows, columns, rowKey = 'key', filters, 
   // a chip that would show nothing is left out, and one chip alone is no filter
   const chips = (filters ?? []).filter((x) => !x.test || rows.some(x.test));
   return (
-    <Inset gap={8}>
+    <Box gap={8}>
       {chips.length > 1 ? (
         <Flow direction="row" gap={8} swipe align="center" role="group" aria-label={`Filter: ${caption}`}>
           {chips.map((x) => (
@@ -199,9 +203,9 @@ export function ReadingTable({ caption, rows, columns, rowKey = 'key', filters, 
           ))}
         </Flow>
       ) : null}
-      {all.length > first ? <ListHead shown={shown.length} total={all.length} unit={unit} open={open} onToggle={() => setOpen(!open)} /> : null}
+      {all.length > first || headExtra ? <ListHead shown={shown.length} total={all.length} unit={unit} open={open} onToggle={() => setOpen(!open)} extra={headExtra} /> : null}
       <DataTable caption={caption} columns={pick?.test ? columns.filter((c) => !c.byFilter) : columns} rows={shown} rowKey={rowKey} defaultSort={defaultSort} onOpen={onOpen} density={density} stack />
-    </Inset>
+    </Box>
   );
 }
 

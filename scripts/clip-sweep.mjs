@@ -139,7 +139,12 @@ function measure() {
     // gap from the box edge to the clip line, and the layer's push toward that side
     const sides = { l: [r.left - b.l, (l) => -l.x], r: [b.r - r.right, (l) => l.x], t: [r.top - b.t, (l) => -l.y], b: [b.b - r.bottom, (l) => l.y] };
     const out = [];
+    // the element's own clip-path inset(...) hides its shadow past a side clipped at the box (0 or more): nothing
+    // is drawn there to be cut (24 Nov: the drawer footer's shadow/md-up shows only upward)
+    const own = getComputedStyle(el).clipPath.match(/^inset\(([^)]*)\)/)?.[1].split(/\s+/).map(parseFloat);
+    const clipAt = own ? { t: own[0], r: own[1] ?? own[0], b: own[2] ?? own[0], l: own[3] ?? own[1] ?? own[0] } : null;
     for (const [k, [gap, push]] of Object.entries(sides)) {
+      if (clipAt && clipAt[k] >= 0) continue;
       if ((k === 'l' || k === 'r') && !c.x) continue;
       if ((k === 't' || k === 'b') && !c.y) continue;
       // a side the box can still scroll toward is a fold, not a clip: more content waits past it, as at the

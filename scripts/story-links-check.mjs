@@ -30,6 +30,11 @@ for (const e of Object.values(entries)) {
 }
 const bad = [];
 const none = [];
+// every part in view without a click (23 Nov, a repeat: "not every component is available to see"; d0d95e4 grouped the
+// list and closed Ready, so 70 of 108 parts sat behind a click while this check passed): the list's groups open by default
+const page = readFileSync(new URL('../app/src/pages/ComponentsContent.jsx', import.meta.url), 'utf8');
+const groups = page.match(/<Disclosure key=\{name\}[^>]*>/);
+if (!groups || !/defaultOpen(>|\s|=\{true\})/.test(groups[0])) bad.push('the component list closes a group by default, so some parts are hidden behind a click');
 // hand specimens: the keys of SPECIMENS and PLAY in specimens.jsx
 const spec = readFileSync(new URL('../app/src/specimens.jsx', import.meta.url), 'utf8');
 const block = (start) => {

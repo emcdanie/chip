@@ -47,7 +47,9 @@ const GAPS = new Set([0, 4, 8, 12, 16, 24]);
 // never under 360 (a head and about two cards): in a short window the page scrolls instead of a list shrinking to a strip
 // that scrolls on its own (23 Nov, the page could not be scrolled to its end; Playground's Picks list was 290 of 1832 tall)
 const FIT_MIN = 360;
-function useFull(on) {
+// fitKey: measure again when it changes (what sits inside grew), without remounting the content (a remount reloads a
+// Storybook frame on the Components stage, about a second each time)
+function useFull(on, fitKey) {
   const ref = useRef(null);
   const [h, setH] = useState(null);
   useLayoutEffect(() => {
@@ -81,7 +83,7 @@ function useFull(on) {
     if (on === 'rest') ro.observe(document.body);
     window.addEventListener('resize', measure);
     return () => (ro.disconnect(), window.removeEventListener('resize', measure));
-  }, [on]);
+  }, [on, fitKey]);
   return [ref, on && h != null ? { blockSize: `${h}px`, ...(on === 'rest' ? { marginBlockEnd: 'var(--spacing-8)' } : {}) } : undefined];
 }
 
@@ -174,9 +176,9 @@ function useMore(ref, on) {
   return [more, step];
 }
 
-export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, swipe = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, fit = false, scroll = false, sticky = false, stretch = false, aside = false, bullets = false, inset = false, cards = false, head = false, strip = false, grid = false, children, ...rest }) {
+export default function Flow({ as: Tag = 'div', direction = 'column', gap = 16, wrap = false, swipe = false, fill = false, equal = false, grow, justify = 'start', align, span = 12, board = false, fit = false, fitKey, scroll = false, sticky = false, stretch = false, aside = false, bullets = false, inset = false, cards = false, head = false, strip = false, grid = false, children, ...rest }) {
   const [boardRef, boardSize] = useToBottom(board);
-  const [fitRef, fitSize] = useFull(fit);
+  const [fitRef, fitSize] = useFull(fit, fitKey);
   if (!GAPS.has(gap)) throw new Error(`Flow: gap ${gap} is not on the spacing scale (0, 4, 8, 12, 16, 24)`);
   const cls = ['chip-flow', `chip-flow--${direction}`, board ? 'chip-flow--board' : '', fit ? 'chip-flow--fit' : '', scroll ? 'chip-flow--scroll' : '', sticky ? 'chip-flow--sticky' : '', `chip-flow--gap-${gap}`, wrap ? 'chip-flow--wrap' : '', swipe ? 'chip-flow--swipe' : '', fill ? 'chip-flow--fill' : '', equal ? 'chip-flow--equal' : '', grow ? `chip-flow--grow-${grow}` : '', justify !== 'start' ? `chip-flow--${justify}` : '', align === 'center' ? 'chip-flow--center-items' : align === 'start' ? 'chip-flow--start-items' : align === 'end' ? 'chip-flow--end-items' : '', stretch ? 'chip-flow--stretch' : '', aside ? 'chip-flow--aside' : '', bullets ? 'chip-flow--bullets' : '', inset ? 'chip-flow--inset' : '', cards ? 'chip-flow--cards' : '', cards === 'bento' ? 'chip-flow--bento' : '', head ? 'chip-flow--head' : '', strip ? 'chip-flow--strip' : '', grid ? 'chip-flow--grid' : '', `chip-span-${span}`]
     .filter(Boolean)

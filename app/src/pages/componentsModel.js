@@ -16,7 +16,7 @@ const LINK_WORDS = { story: 'Open story', docs: 'Open docs', contract: 'Matches 
 const MISSING_WORDS = { story: 'No story', docs: 'No doc page', contract: "Doesn't match", dsds: 'Not in the spec', contrast: 'No pair', a11y: 'No checks' };
 const ORDER = ['story', 'docs', 'contract', 'dsds', 'contrast', 'a11y'];
 /* The contract's state names in Figma's words. */
-const STATE_WORDS = { default: 'Default', hover: 'Hover', active: 'Pressed', pressed: 'Pressed', focus: 'Focus', disabled: 'Disabled' };
+const STATE_WORDS = { default: 'Default', resting: 'Default', rest: 'Default', hover: 'Hover', active: 'Pressed', pressed: 'Pressed', focus: 'Focus', disabled: 'Disabled' };
 
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 export const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null);
@@ -37,7 +37,8 @@ export function componentsModel({ components = [], gaps = {}, version, checkedAt
         category: c.category ?? 'Other',
         lede: firstSentence(c.description),
         variants: c.variants ?? [],
-        states: (c.states ?? []).filter((s) => STATE_WORDS[s]).map((s) => ({ id: s, label: STATE_WORDS[s] })),
+        // resting and rest are the contract's words for default: one Default tile, worn as the part at rest
+        states: [...new Map((c.states ?? []).filter((s) => STATE_WORDS[s]).map((s) => [STATE_WORDS[s], { id: ['resting', 'rest'].includes(s) ? 'default' : s, label: STATE_WORDS[s] }])).values()],
         // every state the contract names, as words, for a part whose states cannot be drawn
         stateNames: [...new Set((c.states ?? []).map((s) => cap(String(s).replace(/[-_]+/g, ' '))))],
         storyUrl: c.storyUrl ?? null,

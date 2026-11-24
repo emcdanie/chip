@@ -23,6 +23,9 @@ import Link from '@bella/components/Link/Link';
 import Icon from '@bella/components/Icon/Icon';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from './Flow.jsx';
+import { glide } from './glide.js';
+
+export { glide };
 import { NewStart as NewTask } from './NewStart.jsx';
 import Search from './Search.jsx';
 import useNarrow from './useNarrow.js';
@@ -38,6 +41,57 @@ import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
 // link scrolls after this runs, so it still wins. The browser's own restore
 // (reload, Back) is off for the same reason.
 if (typeof history !== 'undefined' && 'scrollRestoration' in history) history.scrollRestoration = 'manual';
+/* Focus follows a page change (interaction study, 23 Nov: after a page or System tab change focus fell to the page
+   itself, so the keyboard started again at the menu and a screen reader heard nothing). When the page changes and
+   focus has nowhere to be (the control that held it went with the old page), it goes to the new page's title, which
+   a screen reader then reads. Focus still on something that stays (a side-menu item) is left where it is. Nothing
+   scrolls, and a mouse user sees no ring (the title is focused by script, not by a key). */
+export function focusPageTitle() {
+  let tries = 0;
+  const put = () => {
+    const lost = !document.activeElement || document.activeElement === document.body;
+    if (!lost) return;
+    const h = document.querySelector('.chip-screen__main h1');
+    if (!h) {
+      if (tries++ < 60) requestAnimationFrame(put);
+      return;
+    }
+    if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1');
+    h.focus({ preventScroll: true });
+  };
+  requestAnimationFrame(put);
+}
+
+/* Focus never falls off the page (interaction study, 23 Nov: See all, choosing Task in New and picking a part each
+   removed the button that held focus, and focus fell to the page itself). When the focused control leaves the page,
+   focus goes to the drawer it was in, or else to the page's title, so the keyboard carries on from where the change
+   happened. One rule for every page, here in the template. */
+// one watcher for the whole app: every page mounts its own Screen, so a watcher per Screen lost track at each page change
+let rescueOn = false;
+function useFocusRescue() {
+  useEffect(() => {
+    if (rescueOn) return;
+    rescueOn = true;
+    // the browser fires no focus event when a focused control is removed, so watch what holds focus and the page
+    let held = null;
+    const hold = (e) => {
+      held = e.target;
+    };
+    const rescue = () => {
+      if (!held || held.isConnected || (document.activeElement && document.activeElement !== document.body)) return;
+      held = null;
+      const dialogs = [...document.querySelectorAll('dialog[open], [role="dialog"]')].filter((d) => d.getClientRects().length);
+      const into = dialogs[dialogs.length - 1];
+      if (into) {
+        if (!into.hasAttribute('tabindex')) into.setAttribute('tabindex', '-1');
+        into.focus({ preventScroll: true });
+      } else focusPageTitle();
+    };
+    document.addEventListener('focusin', hold);
+    new MutationObserver(() => requestAnimationFrame(rescue)).observe(document.body, { childList: true, subtree: true });
+  }, []);
+}
+
 export function openAtTop() {
   window.scrollTo(0, 0);
   // the window no longer scrolls; the page's content does (READ FIRST, 22 Nov)
@@ -218,14 +272,13 @@ export default function Screen({ place, header, tabs, children }) {
   });
   const toggleMenu = () => {
     if (menuOut) return setMenuOpen((o) => !o);
-    setCollapsed((c) => {
-      try {
-        window.localStorage.setItem('chip.menu.collapsed', c ? '0' : '1');
-      } catch {
-        /* private window: it just is not remembered */
-      }
-      return !c;
-    });
+    const c = collapsed;
+    glide('menu', () => setCollapsed(!c));
+    try {
+      window.localStorage.setItem('chip.menu.collapsed', c ? '0' : '1');
+    } catch {
+      /* private window: it just is not remembered */
+    }
     return undefined;
   };
   // Cmd+\\ (Ctrl+\\) shows and hides the menu. Cmd+K (Ctrl+K) goes to the Find field at the menu's top, showing
@@ -257,6 +310,7 @@ export default function Screen({ place, header, tabs, children }) {
   const phone = useNarrow();
   const markup = useMarkUp();
   useRestoreScroll();
+  useFocusRescue();
   const [menuOpen, setMenuOpen] = useState(false);
   const [clientsOpen, setClientsOpen] = useState(false);
   const tab = place === 'projects' ? tabs?.value : null;

@@ -521,3 +521,38 @@
 @container chip-content (width < 500px) {
   .chip-flow.chip-flow--strip { grid-auto-columns: calc((100cqi - 11 * var(--layout-gutter)) / 12 * 10 + 9 * var(--layout-gutter)); }
 }
+
+/* Glide (interaction study, 23 Nov): while a column comes or goes (glide() in Screen.jsx), the parts that move are
+   named for the browser's view transition, and only then. The column slides out to the left in 200ms or in from the
+   left in 250ms; the rest slides across to its new place in 250ms; all on the standard ease. The rest keeps its own
+   size while it moves (never stretched), so its words don't warp on the way. Reduced motion never gets here. */
+.chip-gliding-menu .chip-screen__menu { view-transition-name: chip-menu; }
+.chip-gliding-menu .chip-screen__main { view-transition-name: chip-main; }
+::view-transition-group(*) {
+  animation-duration: var(--motion-duration-250);
+  animation-timing-function: var(--motion-easing-standard);
+}
+/* a column gliding moves only its named parts; the rest of the window holds still */
+:root.chip-gliding-menu::view-transition-old(root),
+:root.chip-gliding-menu::view-transition-new(root) { animation: none; }
+/* a list that opens or closes in a drawer: each block of the drawer is its own picture, so the list grows into its
+   new size while the blocks under it slide down (or up) to their place, instead of jumping (interaction study: 0.016) */
+.chip-gliding-grow dialog[open] [data-glide='rows'] > * { view-transition-name: match-element; view-transition-group: nearest; }
+/* ...and they show only inside the drawer's scrolling body, never over its header or its pinned footer */
+.chip-gliding-grow dialog[open] [role='region']:has([data-glide='rows']) { view-transition-name: chip-drawer-body; }
+::view-transition-group(chip-drawer-body) { overflow: clip; }
+/* each moving column shows only inside its own box on the way, so it never slides over its neighbour */
+::view-transition-group(chip-main) { overflow: clip; }
+/* the rest is shown in its new layout from the first frame and only slides: no cross-fade, so no double image */
+::view-transition-new(chip-main) {
+  inline-size: auto;
+  block-size: 100%;
+  object-fit: none;
+  object-position: left top;
+  animation: none;
+}
+::view-transition-old(chip-main) { animation: none; opacity: 0; }
+::view-transition-old(chip-menu) { animation: chip-glide-out var(--motion-duration-200) var(--motion-easing-standard) both; }
+::view-transition-new(chip-menu) { animation: chip-glide-in var(--motion-duration-250) var(--motion-easing-standard) both; }
+@keyframes chip-glide-out { to { transform: translateX(-100%); opacity: 0; } }
+@keyframes chip-glide-in { from { transform: translateX(-100%); opacity: 0; } }
