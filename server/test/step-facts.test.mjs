@@ -27,7 +27,7 @@ test('a path or a skill not in the table is never read', async () => {
   }
 });
 
-test('a step with nothing behind it says so, and a known one answers', async () => {
+test('a step with nothing behind it says so, and a known one answers', { skip: process.env.CI && 'reads the CHIP checkout in her home folder' }, async () => {
   assert.ok(stepFacts('pipeline', 'gate').gaps.some((g) => /No skill or script/.test(g)));
   const r = await get('/step-file?id=script:chip:scripts/data-sweep.mjs', own);
   assert.equal(r.status, 200);

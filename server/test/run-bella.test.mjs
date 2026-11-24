@@ -18,7 +18,7 @@ test('only bella-parts on chip/parts-dev', () => {
   assert.match(runBellaProblem({ dir: '/Users/x/DEV/bella-parts', base: 'feat/chip-components' }), /not feat\/chip-components/);
 });
 
-test('a dry run makes the worktree on bella-parts and stops before the model call', async () => {
+test('a dry run makes the worktree on bella-parts and stops before the model call', { skip: process.env.CI && 'needs Claude Code signed in on her Mac' }, async () => {
   const r = await startRun({ brief: 'Dry run from the test: change nothing at all.', title: 'Dry run test', from: 'test', approved: true, dryRun: true });
   let run = getRun(r.id);
   for (let i = 0; i < 200 && !['dry', 'failed', 'login'].includes(run.status); i++) {
@@ -102,7 +102,7 @@ test('packages: bella-parts’ own, with the one documented link to bella-chip-t
   }
 });
 
-test('gate ready: the harness passes in CHIP’s own environment, FORCE_COLOR=1 included, with no model call', async () => {
+test('gate ready: the harness passes in CHIP’s own environment, FORCE_COLOR=1 included, with no model call', { skip: process.env.CI && 'needs BELLA’s own commit hook, installed on her Mac only' }, async () => {
   const was = process.env.FORCE_COLOR;
   process.env.FORCE_COLOR = '1';
   try {
