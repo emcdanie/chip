@@ -29,7 +29,7 @@ import { accept, fixableChecks, keep, readActions, reviewCard, reviewImage, undo
 import { closedLoops, plannedFixes, recurring } from './lib/not-again.mjs';
 import { fixesRoutes, readFixes } from './lib/fixes.mjs';
 import { needsYou, pushPreview } from './lib/needs.mjs';
-import { workBoardLive } from './lib/progress-live.mjs';
+import { dropBoardCache, workBoardLive } from './lib/progress-live.mjs';
 import { saveBoard, saveIdea, workLanes } from './lib/lanes.mjs';
 import { claudeReady, gateReady, getRun, keepRun, listRuns, runClock, startRun, stopRun, undoRun, runPlan } from './lib/runs.mjs';
 import { declaredPairs, decideGap, gapFixes, gapReport } from './lib/gaps.mjs';
@@ -627,7 +627,9 @@ app.get('/work/board', (_req, res) => {
 app.post('/work/board', (req, res) => {
   if (!sameApp(req, res)) return;
   try {
-    res.json({ board: saveBoard({ id: req.body?.id, lane: req.body?.lane ?? null, before: req.body?.before ?? null, paused: req.body?.paused === true }) });
+    const saved = { board: saveBoard({ id: req.body?.id, lane: req.body?.lane ?? null, before: req.body?.before ?? null, paused: req.body?.paused === true }) };
+    dropBoardCache();
+    res.json(saved);
   } catch (e) {
     errorOut(res, e);
   }
@@ -636,7 +638,9 @@ app.post('/work/board', (req, res) => {
 app.post('/work/ideas', (req, res) => {
   if (!sameApp(req, res)) return;
   try {
-    res.json(saveIdea({ title: req.body?.title, brief: req.body?.brief, lane: req.body?.lane ?? 'next' }));
+    const idea = saveIdea({ title: req.body?.title, brief: req.body?.brief, lane: req.body?.lane ?? 'next' });
+    dropBoardCache();
+    res.json(idea);
   } catch (e) {
     errorOut(res, e);
   }

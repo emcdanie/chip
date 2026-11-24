@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.BELLA_DIR ??= join(process.env.HOME, 'DEV', 'bella-parts');
-const { check, liveItem } = await import('../lib/progress-live.mjs');
+const { check, liveItem, landedCommits } = await import('../lib/progress-live.mjs');
 const { boardModel } = await import('../../app/src/pages/workModel.js');
 
 const sh = (cwd, ...a) => execFileSync('git', ['-C', cwd, '-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -129,4 +129,35 @@ test('a part whose pieces now exist drops out of Ideas the moment the gaps no lo
   const ideas = (gaps) => boardModel({ gaps, board: { progress: { reached: true, items: [], tasks: [] }, board: { place: {}, order: {} } }, now: Date.now() }).lanes.find((l) => l.id === 'ideas').cards.map((c) => c.title);
   assert.deepEqual(ideas({ story: { Kbd: 1 }, a11y: { Kbd: 1 } }), ['Kbd']);
   assert.deepEqual(ideas({ story: {}, a11y: {} }), []);
+});
+
+test('Shipped lists what landed in the last 14 days, newest first, each with its date and commit; older work is left out', () => {
+  const r = repo('landed');
+  const day = (iso, msg) => {
+    writeFileSync(join(r, `${msg}.txt`), msg);
+    sh(r, 'add', '.');
+    execFileSync('git', ['-C', r, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', msg, '--date', iso], { env: { ...process.env, GIT_COMMITTER_DATE: iso }, stdio: 'ignore' });
+  };
+  day('2026-11-23T21:00:00Z', 'Needs you shows only what is open. More words follow.');
+  day('2026-11-10T09:00:00Z', 'Landed twelve days ago');
+  day('2026-10-01T09:00:00Z', 'Landed in October');
+  const now = Date.parse('2026-11-24T08:00:00Z');
+  const list = landedCommits({ chip: { dir: r, ref: 'main', name: 'CHIP' } }, now).filter((c) => c.title !== 'first change'); // repo() makes one commit dated today
+  assert.deepEqual(list.map((c) => c.title), ['Needs you shows only what is open.', 'Landed twelve days ago']);
+  assert.match(list[0].at, /^2026-11-23/);
+  assert.ok(list[0].sha);
+  const cards = boardModel({ board: { landed: list, progress: { reached: true, items: [], tasks: [] }, board: { place: {}, order: {} } }, now }).lanes.find((l) => l.id === 'shipped').cards;
+  assert.equal(cards.length, 2);
+  assert.match(cards[0].line, /^Landed · 23 Nov · CHIP/);
+  assert.equal(cards[0].title, 'Needs you shows only what is open.');
+});
+
+test('the cap keeps the Shipped lane readable', () => {
+  const r = repo('cap');
+  for (let i = 0; i < 5; i++) {
+    writeFileSync(join(r, `f${i}`), `${i}`);
+    sh(r, 'add', '.');
+    sh(r, 'commit', '-qm', `change ${i}`);
+  }
+  assert.equal(landedCommits({ chip: { dir: r, ref: 'main', name: 'CHIP' } }, Date.now(), { cap: 3 }).length, 3);
 });

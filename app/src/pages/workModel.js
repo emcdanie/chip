@@ -279,13 +279,15 @@ function bItem(i) {
   const page = i.link ? { kind: 'page', href: i.link } : null;
   if (i.stage === 'Waiting on you') return { id: i.id, kind: 'review', title: i.title, line: `Review page · ${area}`, status: 'Needs you', tone: 'attention', needs: true, home: 'now', open: page, area, who: 'you', n: i.n };
   // computed on the server from the item's own source (server/lib/progress-live.mjs): a landed item says when and in which commit
-  if (i.stage === 'Done') return { id: i.id, kind: 'item', title: i.title, line: ['Shipped', i.shipped?.date, area].filter(Boolean).join(' · '), commit: i.shipped?.commit ?? null, status: 'Shipped', tone: 'success', home: 'shipped', open: page, area, n: i.n };
+  if (i.stage === 'Done') return { id: i.id, kind: 'item', title: i.title, line: ['Shipped', i.shipped?.date, area].filter(Boolean).join(' · '), commit: i.shipped?.commit ?? null, status: 'Shipped', tone: 'success', home: 'shipped', open: page, area, n: i.n, startedAt: i.shipped?.at ? Date.parse(i.shipped.at) : undefined };
   // answered, its work not landed yet: Next, never "Your call"
   if (i.stage === 'Next') return { id: i.id, kind: 'item', title: i.title, line: `Answered, not landed yet · ${area}`, status: 'Next', tone: 'info', home: 'next', open: page, area, n: i.n, brief: [i.title, i.detail].filter(Boolean).join('. ') };
   if (i.stage === 'Not measured') return { id: i.id, kind: 'item', title: i.title, line: `Not measured · ${i.source ?? 'no source to check'}`, status: 'Not measured', tone: 'neutral', home: 'ideas', open: page, area, n: i.n };
   if (i.stage === 'To do') return { id: i.id, kind: 'idea', title: i.title, line: `Idea · ${area}`, status: 'Idea', tone: 'neutral', home: 'ideas', open: page, brief: [i.title, i.detail].filter(Boolean).join('. '), area, n: i.n };
   return null; // Building and Checking are the sessions' own words for work Now already reads from the session
 }
+/* What landed in the last 14 days, one card per commit with its date (server/lib/progress-live.mjs landedCommits). */
+const bLanded = (c) => ({ id: c.id, kind: 'item', title: c.title, line: ['Landed', new Date(c.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), c.repo].join(' · '), commit: c.sha, status: 'Shipped', tone: 'success', home: 'shipped', area: 'Shipped', project: c.project, startedAt: Date.parse(c.at), n: -1 });
 const bTask = (t) => ({ id: t.id, kind: 'idea', title: t.title, line: 'Idea · from you', status: 'Idea', tone: 'neutral', home: 'ideas', brief: t.title, area: 'Your call', project: 'CHIP' });
 /* Components that need work, from CHIP's gap checks (/gaps), the count Health and Components show */
 const GAP_WORDS = { story: 'story', docs: 'doc page description', contract: 'contract', dsds: 'spec', contrast: 'contrast pair', a11y: 'accessibility notes' };
@@ -319,6 +321,7 @@ export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra
     ...(board?.sessions ?? []).map((s) => bSession(s, now)),
     ...(board?.progress?.items ?? []).map(bItem).filter(Boolean),
     ...(board?.progress?.tasks ?? []).map(bTask),
+    ...(board?.landed ?? []).map(bLanded),
     ...(board?.board?.ideas ?? []).map((i) => ({ id: i.id, kind: 'idea', title: i.title, line: 'Idea · from Talk', status: 'Idea', tone: 'neutral', home: 'ideas', brief: i.brief, area: 'Your call' })),
     ...parts.map(bComponent),
   ].filter((c) => c.home);
@@ -344,7 +347,7 @@ export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra
       // (so one finishing first never makes another look lost)
       if (l.id === 'now' && !!a.needs !== !!b.needs) return a.needs ? -1 : 1;
       if (rank(a) !== rank(b)) return rank(a) - rank(b);
-      if (l.id === 'shipped') return (b.n ?? -1) - (a.n ?? -1);
+      if (l.id === 'shipped') return (b.startedAt ?? 0) - (a.startedAt ?? 0) || (b.n ?? -1) - (a.n ?? -1);
       if (l.id === 'now') return (a.startedAt ?? 0) - (b.startedAt ?? 0);
       return 0;
     });
@@ -374,8 +377,8 @@ function boardWhy(board, extra) {
 /** Reads the board's data (kept between pages); it is read again every 15 seconds, so progress moves on its own. */
 export function useWork() {
   const { data, error, at, loading, reload, last } = useCached(['/needs', '/runs', '/gaps']);
-  const { data: extra, reload: reloadExtra } = useCached(['/work/lanes']);
-  const { data: boardData, reload: reloadBoard } = useCached(['/work/board']);
+  const { data: extra, error: extraError, reload: reloadExtra } = useCached(['/work/lanes']);
+  const { data: boardData, error: boardError, reload: reloadBoard } = useCached(['/work/board']);
   const [live, setLive] = useState(null);
   const [runsLive, setRunsLive] = useState(null);
   useEffect(() => setLive(null), [boardData]);
@@ -403,7 +406,9 @@ export function useWork() {
     const t = setInterval(() => document.hidden || fetch('/runs').then((r) => (r.ok ? r.json() : null)).then((r) => r && setRunsLive(r)).catch(() => {}), 3000);
     return () => clearInterval(t);
   }, [busy]);
-  const model = useMemo(() => (data ? boardModel({ needs: data[0].items ?? [], runs: runs?.runs ?? [], runBase: runs?.base ?? null, lanes: extra?.[0] ?? null, board, gaps: data[2]?.gaps ?? null }) : null), [data, runs, extra, board]);
+  // the board is drawn only once everything it is made of has answered or failed: lanes drawn from some of it read as empty (24 Nov: "Shipped 0" while /work/board was still loading)
+  const ready = !!data && (!!board || !!boardError) && (!!extra || !!extraError);
+  const model = useMemo(() => (ready ? boardModel({ needs: data[0].items ?? [], runs: runs?.runs ?? [], runBase: runs?.base ?? null, lanes: extra?.[0] ?? null, board, gaps: data[2]?.gaps ?? null }) : null), [ready, data, runs, extra, board]);
   return { model, error, loading, reload: () => (reload(), reloadExtra(), reloadBoard()), checked: board?.at ? hhmm(Date.parse(board.at)) : at ? hhmm(at) : null, unread: board?.unread ?? [], last };
 }
 

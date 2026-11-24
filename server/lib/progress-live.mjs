@@ -149,8 +149,36 @@ export function liveItem(item, ctx, typed) {
   return { ...item, stage: answered && !['Building', 'Checking'].includes(item.stage) ? 'Next' : item.stage, source: 'checked, not landed yet' };
 }
 
-/** GET /work/board with the progress items computed now. `at` is when this computation ran. */
+/** What landed in the last `days` days, newest first: each commit on CHIP's chip/whole and BELLA's chip/parts-dev with its
+ *  date, one card each (24 Nov: Shipped read 0 while dozens of pieces had landed the night before). `cap` keeps the lane readable. */
+export function landedCommits(repos, now = Date.now(), { days = 14, cap = 60 } = {}) {
+  const since = new Date(now - days * 86400000).toISOString();
+  const out = [];
+  for (const [key, r] of Object.entries(repos)) {
+    const log = git(r.dir, ['log', r.ref, '--no-merges', '-n', '400', '--format=%h%x09%cI%x09%s']); // the cut-off is applied below, on the commit's own date
+    if (log === null) continue;
+    for (const l of log.split('\n').filter(Boolean)) {
+      const [sha, at, ...rest] = l.split('\t');
+      if (Date.parse(at) < Date.parse(since)) continue;
+      const subject = rest.join('\t');
+      const first = subject.split(/(?<=[.:?!])\s/)[0];
+      out.push({ id: `landed-${key}-${sha}`, sha, at, repo: r.name, project: key === 'bella' ? 'BELLA' : 'CHIP', title: first.length > 96 ? `${first.slice(0, first.lastIndexOf(' ', 93))}…` : first, subject });
+    }
+  }
+  return out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, cap);
+}
+
+let memo = null;
+/** Drops the kept answer (a card was moved, so the next read shows it). */
+export const dropBoardCache = () => (memo = null);
+/** GET /work/board with the progress items computed now (kept 5 s: the read walks git and takes about 1.5 s). `at` is when this computation ran. */
 export function workBoardLive(now = Date.now(), over = {}) {
+  if (!over.repos && memo && now - memo.now < 5000 && now >= memo.now) return memo.board;
+  const board = computeBoard(now, over);
+  if (!over.repos) memo = { now, board };
+  return board;
+}
+function computeBoard(now, over) {
   const board = workBoard(now);
   let raw = null;
   let answers = null;
@@ -168,5 +196,5 @@ export function workBoardLive(now = Date.now(), over = {}) {
   const items = board.progress.items.map((it) => liveItem(it, ctx, { ...byIndex[it.n], id: byIndex[it.n]?.id }));
   for (const i of items) if (i.stage === 'Not measured' && /could not be read|did not answer|not there|no upstream/.test(i.source ?? '')) unread.push({ name: i.title, why: i.source });
   const notMeasured = items.filter((i) => i.stage === 'Not measured').map((i) => ({ id: i.id, title: i.title, why: i.source }));
-  return { ...board, progress: { ...board.progress, items, notMeasured }, unread, at: new Date(now).toISOString() };
+  return { ...board, progress: { ...board.progress, items, notMeasured }, landed: landedCommits(repos, now), unread, at: new Date(now).toISOString() };
 }
