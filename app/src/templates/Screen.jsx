@@ -372,8 +372,13 @@ export default function Screen({ place, header, tabs, children }) {
                 <RunStatus />
                 {/* Mark up (Elleta, 23 Nov): every page markable like Figma comments; notes stay drafts until one Send all */}
                 <span data-markup-own>
-                  <Tooltip label={markup.on ? 'Stop marking up' : 'Mark up'}>
-                    <Button variant="tertiary" iconOnly icon="EditPencil" ariaLabel="Mark up" ariaPressed={markup.on} onClick={() => markup.setOn((o) => !o)} />
+                  {/* the button says what it is (24 Nov, "I can't mark up": a pencil with no word was missed); on, it reads
+                      "Marking up · Done" in the selection blue (BELLA's pressed tertiary; "Done" on a phone, where the longer words
+                      wrapped onto three lines) and pressing it stops */}
+                  <Tooltip label={markup.on ? 'Stop marking up' : 'Comment on this page'}>
+                    <Button variant="tertiary" icon="EditPencil" leadingIcon ariaLabel={markup.on ? 'Mark up, on: press to stop' : 'Mark up'} ariaPressed={markup.on} onClick={() => markup.setOn((o) => !o)}>
+                      {markup.on ? (phone ? 'Done' : 'Marking up · Done') : 'Mark up'}
+                    </Button>
                   </Tooltip>
                 </span>
                 {/* the bell is notifications only (CLAUDE.md Navigation): what needs you, what finished, what landed today.

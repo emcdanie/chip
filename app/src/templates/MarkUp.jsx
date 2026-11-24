@@ -151,6 +151,8 @@ export default function MarkUp({ markup }) {
     const drop = (e) => {
       const t = e.target;
       if (t.closest?.('[data-markup-own]')) return;
+      // a picture with its own pins (Playground, Needs you review cards) takes the click itself: the pin goes on the picture
+      if (t.closest?.('[data-picture-pins]')) return;
       const cur = openRef.current;
       if (cur) {
         e.preventDefault();
@@ -215,7 +217,9 @@ export default function MarkUp({ markup }) {
   const now = open && open.id !== 'new' ? notes.find((p) => p.id === open.id) : null;
 
   useLayoutEffect(() => {
-    if (open && box.current) box.current.querySelector('input, textarea')?.focus();
+    // the field takes focus without scrolling the page (24 Nov: the page jumped about 300px, so the pin landed away from the
+    // click); the box is fixed beside the pin, so it is already in view
+    if (open && box.current) box.current.querySelector('input, textarea')?.focus({ preventScroll: true });
   }, [open?.id]);
 
   return (

@@ -16,10 +16,13 @@ import SegmentedControl from '@bella/components/SegmentedControl/SegmentedContro
 import StatusDot from '@bella/components/StatusDot/StatusDot';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Flow from '../templates/Flow.jsx';
+import PicturePins from '../templates/PicturePins.jsx';
 import { planRun } from '../templates/RunPlan.jsx';
 import ReadingDrawer from '../templates/ReadingDrawer.jsx';
 import { decisionOf, noQuotes, saveMove } from './workModel.js';
 import { answersUrl } from './needsYouModel.js';
+import Marker from '@bella/components/Marker/Marker';
+import Keyed from '../templates/Keyed.jsx';
 
 const short = (t, n = 180) => (t.length > n ? `${t.slice(0, t.lastIndexOf(' ', n - 3))}…` : t);
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
@@ -96,9 +99,28 @@ function Answers({ card, d, onDecide, busy }) {
   );
 }
 
+/* One bullet of what changed: **word** is the builder's own key word; without one, the keyword marker finds it. */
+function Bullet({ text }) {
+  const t = noQuotes(text);
+  if (!/\*\*[^*]+\*\*/.test(t)) return <Keyed text={t} />;
+  return <>{t.split(/(\*\*[^*]+\*\*)/).map((x, i) => (/^\*\*[^*]+\*\*$/.test(x) ? <Marker key={i}>{x.slice(2, -2)}</Marker> : x))}</>;
+}
+const Bullets = ({ list }) => (
+  <Flow as="ul" gap={4} bullets aria-label="What changed">
+    {list.map((b) => (
+      <li key={b}>
+        <TextStack subtitle={<Bullet text={b} />} />
+      </li>
+    ))}
+  </Flow>
+);
+
 /* A review-fix area (24 Nov 10:40, "everything waiting for her look is in Needs you"): the after picture large, the before of
    the same view one click away, each thing that changed as a chip, each width it was checked at, then Accept or Change with a
-   note. The answer goes to the review server's POST /answers in the review pages' own shape, so the builder reads it there. */
+   note. The answer goes to the review server's POST /answers in the review pages' own shape, so the builder reads it there.
+   She comments on the picture like Figma (24 Nov 13:35, "can't comment on the review cards' pictures"): a click drops a pin with
+   her initials and a field (templates/PicturePins.jsx, Comment.jsx), Enter keeps it, Esc cancels; the pins go with her answer,
+   Accept or Change, in the same post: in the card's note as words, and as a pins list beside it. */
 function FixesDecision({ card, onNotice, framed = true }) {
   const a = card.fixes;
   const [t, setT] = useState(0);
@@ -107,6 +129,7 @@ function FixesDecision({ card, onNotice, framed = true }) {
   const [noting, setNoting] = useState(false);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(null);
+  const [pins, setPins] = useState([]); // her pins on the pictures of this card: { id, x, y, note, shot, topic, width, side }
   const topic = a.topics[t] ?? a.topics[0];
   const view = topic?.views[Math.min(w, (topic?.views.length ?? 1) - 1)];
   const src = side === 'before' && view?.before ? view.before : view?.src;
@@ -114,12 +137,22 @@ function FixesDecision({ card, onNotice, framed = true }) {
     setBusy(answer);
     try {
       const path = new URL(a.url).pathname;
+      const said = pins.filter((p) => (p.note ?? '').trim());
+      const where = (p) => [p.topic, p.width ? String(p.width) : null, p.side === 'before' ? 'before' : null].filter(Boolean).join(' · ');
+      const words = [note.trim() || null, ...said.map((p, i) => `pin ${i + 1}${where(p) ? ` (${where(p)})` : ''}: ${p.note.trim()}`)].filter(Boolean).join(' · ') || null;
       const r = await fetch(answersUrl(a.url), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page: `Review fixes · ${a.title}`, url: path, cards: [{ from: path, title: a.title, answer, thumb: null, note: note.trim() || null }] }),
+        body: JSON.stringify({
+          page: `Review fixes · ${a.title}`,
+          url: path,
+          cards: [{ from: path, title: a.title, answer, thumb: null, note: words, pins: said.length ? said.map((p, i) => ({ n: i + 1, note: p.note.trim(), x: p.x, y: p.y, picture: p.shot, topic: p.topic, width: p.width ?? null, side: p.side })) : undefined }],
+        }),
       });
       if (!r.ok) throw new Error('The review server did not take it');
+      setPins([]);
+      setNote('');
+      setNoting(false);
       onNotice({ tone: 'success', title: answer === 'Accept' ? 'Accepted' : 'Change sent', message: a.title });
       window.dispatchEvent(new Event('chip:changed'));
     } catch (e) {
@@ -128,8 +161,34 @@ function FixesDecision({ card, onNotice, framed = true }) {
       setBusy(null);
     }
   };
-  const picture = src ? <img src={src} alt={`${a.title}, ${topic.topic}${view.width ? ` at ${view.width}` : ''}, ${side === 'before' ? 'before' : 'after'} the fix`} loading="lazy" /> : null;
-  const helper = <TextStack subtitle={noting ? 'Send change posts your note to the builder.' : 'Accept: it looks right and can be handed over. Change: you write what to change, then send it.'} />;
+  const alt = `${a.title}, ${topic?.topic}${view?.width ? ` at ${view.width}` : ''}, ${side === 'before' ? 'before' : 'after'} the fix`;
+  const here = pins.filter((p) => p.shot === src);
+  const picture = src ? (
+    <PicturePins
+      key={src}
+      src={src}
+      alt={alt}
+      pins={here}
+      numberOf={(p) => (p.isNew ? pins.length + 1 : pins.indexOf(p) + 1)}
+      commitLabel="Keep"
+      setPins={(next) =>
+        setPins((all) => {
+          const mine = all.filter((p) => p.shot === src);
+          const out = (typeof next === 'function' ? next(mine) : next).map((p) => (p.shot ? p : { ...p, shot: src, topic: topic?.topic, width: view?.width, side }));
+          return [...all.filter((p) => p.shot !== src), ...out];
+        })
+      }
+    />
+  ) : null;
+  const pinCount = pins.filter((p) => (p.note ?? '').trim()).length;
+  const helper = (
+    <TextStack
+      subtitle={[
+        noting ? 'Send change posts your note to the builder.' : 'Click the picture to comment on a spot. Accept: it looks right and can be handed over. Change: you write what to change, then send it.',
+        pinCount ? `${plural(pinCount, 'comment')} on the picture go${pinCount === 1 ? 'es' : ''} with your answer.` : null,
+      ].filter(Boolean).join(' ')}
+    />
+  );
   const actions = (
       <Flow direction="row" gap={8} justify="end" wrap>
         {noting ? (
@@ -137,7 +196,7 @@ function FixesDecision({ card, onNotice, framed = true }) {
             <Button variant="secondary" disabled={!!busy} onClick={() => (setNoting(false), setNote(''))}>
               Back
             </Button>
-            <Button variant="primary" disabled={!!busy || !note.trim()} onClick={() => send('Change')}>
+            <Button variant="primary" disabled={!!busy || (!note.trim() && !pinCount)} onClick={() => send('Change')}>
               {busy === 'Change' ? 'Sending…' : 'Send change'}
             </Button>
           </>
@@ -157,7 +216,8 @@ function FixesDecision({ card, onNotice, framed = true }) {
     <Flow gap={16}>
       <Flow gap={8}>
         {framed ? <StatusDot tone="attention" label={card.status} /> : null}
-        {framed ? <TextStack title={`${a.title}: does it look right?`} titleAs="h2" subtitle={a.line} /> : null}
+        {framed ? <TextStack title={`${a.title}: does it look right?`} titleAs="h2" subtitle={a.bullets?.length ? undefined : a.line} /> : null}
+        {a.bullets?.length ? <Bullets list={a.bullets} /> : null}
         {a.topics.length > 1 ? (
           <Flow direction="row" gap={8} wrap aria-label="What changed">
             {a.topics.map((x, i) => (
@@ -177,8 +237,16 @@ function FixesDecision({ card, onNotice, framed = true }) {
       {framed ? actions : null}
     </Flow>
   );
-  if (!framed) return { picture, body, helper: noting ? 'Send change posts your note to the builder.' : 'Accept: it looks right. Change: write what to change, then send it.', actions };
-  return <Card media={picture ?? undefined}>{body}</Card>;
+  if (!framed) return { picture, body, helper: noting ? 'Send change posts your note to the builder.' : `Click the picture to comment on a spot. Accept: it looks right. Change: write what to change, then send it.${pinCount ? ` ${plural(pinCount, 'comment')} on the picture go${pinCount === 1 ? 'es' : ''} with your answer.` : ''}`, actions };
+  // the picture leads the card's body (not the Card's fixed 16:10 media well, which would cut off a comment's field)
+  return (
+    <Card>
+      <Flow gap={16}>
+        {picture}
+        {body}
+      </Flow>
+    </Card>
+  );
 }
 
 const dotTone = (card) => (card.tone === 'danger' ? 'danger' : card.tone === 'success' ? 'success' : card.tone === 'info' ? 'info' : card.tone === 'neutral' ? 'neutral' : 'attention');
@@ -212,7 +280,7 @@ export function CardDrawer({ card, onClose, handlers }) {
 function FixesDrawer({ card, onClose, onNotice }) {
   const { picture, body, helper, actions } = FixesDecision({ card, onNotice, framed: false });
   return (
-    <ReadingDrawer open onClose={onClose} label={`${card.title}: does it look right?`} status={card.status} answer={card.fixes.line} picture={picture} footer={actions} footerNote={helper}>
+    <ReadingDrawer open onClose={onClose} label={`${card.title}: does it look right?`} status={card.status} answer={card.fixes.bullets?.length ? undefined : card.fixes.line} picture={picture} footer={actions} footerNote={helper}>
       <Flow gap={16} inset>
         {body}
       </Flow>

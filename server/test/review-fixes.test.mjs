@@ -10,7 +10,7 @@ import { join } from 'node:path';
 process.env.BELLA_DIR ??= join(process.env.HOME, 'DEV', 'bella-parts');
 const { areaOfFiles } = await import('../lib/progress-live.mjs');
 const { prArea } = await import('../lib/lanes.mjs');
-const { pictureOf, plainName, readArea, readPage, reviewsWaiting, FIXES_DIR } = await import('../lib/review-fixes.mjs');
+const { readBullets, pictureOf, plainName, readArea, readPage, reviewsWaiting, FIXES_DIR } = await import('../lib/review-fixes.mjs');
 const { boardModel, decisionOf, needsOrder, tableStatus, tableArea } = await import('../../app/src/pages/workModel.js');
 const { appOrigins, onlyChip } = await import('../lib/origin.mjs');
 
@@ -123,4 +123,15 @@ test("a pull request's area is read once per head commit, and Not set when gh fa
   assert.equal(calls, 2, 'a new head is read once');
   assert.equal(prArea('/repo', { number: 9, headRefOid: 'h3' }, () => { throw new Error('gh failed'); }), null);
   assert.equal(prArea('/repo', { number: 9, headRefOid: 'h3' }, () => ['src/components/Button/Button.tsx']), 'Components', 'a failure is not kept: the next read asks again');
+});
+
+test('what changed, in plain words: up to five bullets from what-changed.md, else the line stands', async () => {
+  const root = screens();
+  const dir = join(root, FIXES_DIR, 'needs-you');
+  const base = `${REVIEW}../${FIXES_DIR}/needs-you/`;
+  assert.deepEqual(readArea(dir, 'needs-you', base).bullets, []);
+  writeFileSync(join(dir, 'what-changed.md'), '# Needs you\n\n- Cards ask **one question** each\n* Yes and No at the right edge\nnot a bullet\n- 3\n- 4\n- 5\n- 6 is one too many\n');
+  const a = readArea(dir, 'needs-you', base);
+  assert.deepEqual(a.bullets, ['Cards ask **one question** each', 'Yes and No at the right edge', '3', '4', '5']);
+  assert.deepEqual(readBullets(join(dir, 'missing.md')), []);
 });

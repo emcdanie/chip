@@ -35,6 +35,21 @@ export function pictureOf(path) {
   return { path, role, width, topic };
 }
 
+/** Up to five bullets ("- ..." or "* ..." lines) from a what-changed.md, or [] when there is none. **word** marks a key word. */
+export function readBullets(file, max = 5) {
+  let text;
+  try {
+    text = readFileSync(file, 'utf8');
+  } catch {
+    return [];
+  }
+  return text
+    .split('\n')
+    .map((l) => l.match(/^\s*[-*]\s+(.+?)\s*$/)?.[1])
+    .filter(Boolean)
+    .slice(0, max);
+}
+
 /** An area folder as one card: its pictures paired before and after by topic and width, its newest change, its page line. */
 export function readArea(dir, slug, base) {
   const files = [];
@@ -68,6 +83,9 @@ export function readArea(dir, slug, base) {
     const html = readFileSync(page, 'utf8');
     lede = (html.match(/<h1[^>]*>([^<]+)/)?.[1] ?? '').trim() || null;
   }
+  // what changed, in plain words: up to five "- " bullets from the folder's what-changed.md (24 Nov: "What changed: motion,
+  // shape and space…" was file keywords, not what changed); without the file, the line below stands
+  const bullets = readBullets(join(dir, 'what-changed.md'));
   const changedAt = files.length ? Math.max(...files.map((f) => f.mtime)) : null;
   return {
     id: `fixes-${slug}`,
@@ -76,6 +94,7 @@ export function readArea(dir, slug, base) {
     url: base,
     page: existsSync(page) ? `${base}index.html` : null,
     line: lede ?? (topics.size ? `What changed: ${[...topics.keys()].join(', ')}` : 'No pictures yet'),
+    bullets,
     topics: [...topics.values()],
     pictures: files.length,
     changedAt: changedAt ? new Date(changedAt).toISOString() : null,

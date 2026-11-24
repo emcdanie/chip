@@ -64,12 +64,6 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
   const [open, setOpen] = useState(null); // { id, x, y, text } : a new comment ('new') or a pin you opened
   const [panning, setPanning] = useState(false);
   const [place, setPlace] = useState(null);
-  const [saved, setSaved] = useState(false); // "Saved" for 2 seconds after a comment is saved
-  useEffect(() => {
-    if (!saved) return undefined;
-    const t = setTimeout(() => setSaved(false), 2000);
-    return () => clearTimeout(t);
-  }, [saved]);
   const space = useRef(false);
   const over = useRef(false);
   const quiet = useRef(false); // a drag just ended: its click is not a new pin
@@ -230,7 +224,8 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
     return () => sc.removeEventListener('scroll', at);
   }, [open?.id, open?.x, open?.y, k, size?.w, room?.w]);
   useEffect(() => {
-    if (open) wrap.current?.querySelector('[data-comment-box] input, [data-comment-box] textarea')?.focus();
+    // focus the field without scrolling the page, so the picture stays where she clicked (24 Nov)
+    if (open) wrap.current?.querySelector('[data-comment-box] input, [data-comment-box] textarea')?.focus({ preventScroll: true });
   }, [open?.id, !!place]);
   useEffect(() => setOpen(null), [src]);
 
@@ -274,7 +269,6 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
     const pin = { id: `p${Date.now()}`, x: open.x, y: open.y, note: text };
     setPins((all) => [...all, pin]);
     setOpen(null);
-    setSaved(true);
     onCommit?.(pin);
   };
   const onKeys = (e) => {
@@ -304,6 +298,7 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
     <Stage grid="none" label={summary ?? alt}>
       <div
         ref={wrap}
+        data-picture-pins
         style={{ position: 'relative', inlineSize: '100%' }}
         onPointerEnter={() => (over.current = true)}
         onPointerLeave={() => (over.current = false)}
@@ -354,11 +349,8 @@ export default function PicturePins({ src, alt, pins, setPins, onCommit, numberO
         ) : null}
         {/* the picture's tools sit on the picture (her review, 24 Nov: the column was "too wide and sits oddly at the
             side"): BELLA ToolColumn at its top-left corner; under the picture, in a row, when the picture is narrow */}
-        {outside || !saved ? null : (
-          <div role="status" style={{ position: 'absolute', insetBlockEnd: 'var(--spacing-16)', insetInlineEnd: 'var(--spacing-16)' }}>
-            <TextStack body="Saved" />
-          </div>
-        )}
+        {/* no floating "Saved" on the picture (her review, 24 Nov: loose text on the picture); the pin itself, and the page's own
+            line or bar (the card's helper, the Send all bar), say a comment is kept */}
         {open && place ? (
           <div
             data-comment-box
