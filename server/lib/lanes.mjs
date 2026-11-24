@@ -213,7 +213,7 @@ const recordOf = (file) => {
     const hit = recs.get(file);
     if (hit?.m === m) return hit.r;
     const d = JSON.parse(readFileSync(file, 'utf8'));
-    const r = { sessionId: d.sessionId, cliSessionId: d.cliSessionId, lastAssistantCliSessionId: d.lastAssistantCliSessionId, cwd: d.cwd, title: d.title, isArchived: d.isArchived, lastActivityAt: d.lastActivityAt, createdAt: d.createdAt, interruptedAwaitingPerson: d.interruptedAwaitingPerson, spawnedFrom: d.spawnedFrom ? { name: d.spawnedFrom.name } : null, model: d.model ?? null, lastTurnEdgeAt: d.lastTurnEdgeAt ?? null, report: d.turnWrapUp?.description ?? null, status: d.postTurnSummary ? { category: d.postTurnSummary.status_category ?? null, detail: d.postTurnSummary.status_detail ?? null, needs: d.postTurnSummary.needs_action ?? null } : null };
+    const r = { sessionId: d.sessionId, cliSessionId: d.cliSessionId, lastAssistantCliSessionId: d.lastAssistantCliSessionId, cwd: d.cwd, title: d.title, isArchived: d.isArchived, lastActivityAt: d.lastActivityAt, createdAt: d.createdAt, interruptedAwaitingPerson: d.interruptedAwaitingPerson, spawnedFrom: d.spawnedFrom ? { name: d.spawnedFrom.name, sessionId: d.spawnedFrom.sessionId ?? null } : null, model: d.model ?? null, lastTurnEdgeAt: d.lastTurnEdgeAt ?? null, report: d.turnWrapUp?.description ?? null, status: d.postTurnSummary ? { category: d.postTurnSummary.status_category ?? null, detail: d.postTurnSummary.status_detail ?? null, needs: d.postTurnSummary.needs_action ?? null } : null };
     recs.set(file, { m, r });
     return r;
   } catch {
@@ -277,6 +277,8 @@ export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, t
       working: now - plan.mtime < ACTIVE_MIN * 60e3,
       asks: !!r.interruptedAwaitingPerson,
       parent: r.spawnedFrom?.name ?? null,
+      // the session that started this one, for the Sessions panel's tree (the app's sidebar nests them the same way)
+      parentId: r.spawnedFrom?.sessionId ?? null,
       // what the session last said, as the app's own records hold it (its wrap-up recap and one-line status); Ask reads these
       model: r.model,
       reportedAt: r.lastTurnEdgeAt,

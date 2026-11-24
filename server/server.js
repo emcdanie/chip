@@ -10,6 +10,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { ROOT, PORT, CHIP_MODEL, CHIP_EMBED_MODEL, OLLAMA_URL, NOTES_DIR } from './lib/config.mjs';
 import { ask, askStream, setChipDataDeps, WEAK_SCORE } from './lib/ask.mjs';
+import { landedToday } from './lib/chipdata.mjs';
 import { warm } from './lib/llm.js';
 import { loadIndex, buildIndex, searchDocs } from './lib/index.mjs';
 import { listDocs, readDoc, saveDoc, STATUSES } from './lib/docs.mjs';
@@ -605,6 +606,14 @@ app.post('/review/:check/keep', (req, res) => {
 // base: today's BELLA branch, so a card can say when a run started from another one (data check, 22 Nov)
 // Work's Agent, Gate and Ready lanes beyond CHIP's runs: open PRs by their CI, sessions at work (read only)
 app.get('/work/lanes', async (_req, res) => res.json(await workLanes()));
+// the bell's "Landed today": commits on chip/whole and chip/parts-dev since midnight, read only
+app.get('/work/landed', (_req, res) => {
+  try {
+    res.json({ landed: landedToday(), at: new Date().toISOString() });
+  } catch (e) {
+    errorOut(res, e, 500);
+  }
+});
 // the board in her Notion lanes: sessions and their steps, the progress board, components that need work, her order
 app.get('/work/board', (_req, res) => {
   try {

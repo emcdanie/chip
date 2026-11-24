@@ -1,7 +1,8 @@
 // Work · content: the Work board in her Notion lanes (approved page
 // /screens/2026-11-22-workboard/, 22 Nov): Ideas, Next, Now, Shipped, Not doing.
 // Built from BELLA parts and Flow only, on real data (workModel.js boardModel).
-// - Tools row (her pick, section 3): Filter, Sort, Search, then Board · Table · List;
+// - Tools row (her pick, section 3): Filter, Sort, Search, then Board · Table (List taken out, 23 Nov: it added nothing
+//   beside the board and the table, only an extra button);
 //   Check again and the Brief kept. New task is the page header's.
 // - Cards (section 4, her short-card pick still open): progress as "n of m" and the step now,
 //   in TaskCard's line until BELLA's TaskCard has its progress zone (named gap); the whole plan
@@ -12,8 +13,6 @@
 //   it (saved, my pick A still open); back into Now picks it up. Order and pause are saved.
 // - A card that needs her opens its review page in full (her pick B, section 7).
 import Notification from '@bella/components/Notification/Notification';
-import Card from '@bella/components/Card/Card';
-import Disclosure from '@bella/components/Disclosure/Disclosure';
 import BoardLane, { BoardLaneDropSpace } from '@bella/components/BoardLane/BoardLane';
 import Menu, { MenuDivider, MenuItem } from '@bella/components/Menu/Menu';
 import Toast from '@bella/components/Toast/Toast';
@@ -21,9 +20,7 @@ import TaskCard from '@bella/components/TaskCard/TaskCard';
 import LastRun from '@bella/components/LastRun/LastRun';
 import { clockWords, tookWords } from '../runClock.js';
 import Tag from '@bella/components/Tag/Tag';
-import ListRow from '@bella/components/ListRow/ListRow';
 import DataTable from '@bella/components/DataTable/DataTable';
-import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
 import SearchField from '@bella/components/SearchField/SearchField';
@@ -46,10 +43,9 @@ import { AREAS, LANES, LANE_NAMES, filterFromHash, going, projectStats, runnable
 export const VIEWS = [
   { value: 'board', label: 'Board' },
   { value: 'table', label: 'Table' },
-  { value: 'list', label: 'List' },
 ];
 
-/* the List and Table views show the lane in its own tint's tone */
+/* the Table view shows the lane in its own tint's tone */
 // the lane tags follow the lane washes (23 Nov): Ideas ochre, Next navy, Now blue, Shipped green, Not doing pink
 const LANE_TONE = { ideas: 'ochre', next: 'navy', now: 'info', shipped: 'success', 'not-doing': 'pink' };
 const tagTone = (t) => (t === 'neutral' ? 'default' : t);
@@ -506,27 +502,6 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
             ) : (
               <EmptyState size="lane" mark="🔍" title="No cards" line="Nothing on the board." />
             )
-          ) : view === 'list' ? (
-            <Card>
-              <Flow gap={16}>
-                <SectionHead icon="Clock" iconTone="info" title="Every card" description="The board, as rows" number={model.total} words={model.total === 1 ? 'card' : 'cards'} />
-                {model.total ? (
-                  <Flow gap={8} aria-label="All cards, grouped by lane">
-                    {model.lanes.filter((l) => l.cards.length).map((l) => (
-                      <Disclosure key={l.id} title={l.name} summary={`${l.cards.length} ${l.cards.length === 1 ? 'card' : 'cards'}`} defaultOpen>
-                        <Flow as="ul" gap={8} aria-label={`${l.name}: ${l.cards.length}`}>
-                          {l.cards.map((c) => (
-                            <ListRow key={c.id} layout="stacked" divider statusBar={LANE_TONE[l.id]} title={c.title} description={c.line} trailing={c.open || c.kind === 'session' ? true : undefined} onClick={c.open || c.kind === 'session' ? () => open(c) : undefined} />
-                          ))}
-                        </Flow>
-                      </Disclosure>
-                    ))}
-                  </Flow>
-                ) : (
-                  <EmptyState size="lane" mark="🔍" title="No cards" line="Nothing on the board." />
-                )}
-              </Flow>
-            </Card>
           ) : (
             <Flow board direction="row" gap={24} aria-label="Work board" onDragOver={onDragOver} onDrop={onDrop}>
               {model.lanes.map((l) => (

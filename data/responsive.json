@@ -1,8 +1,8 @@
 {
- "at": "2026-11-24T00:11:13.049Z",
+ "at": "2026-11-24T00:14:47.232Z",
  "files": {
   "app/src/templates/Flow.jsx": "84168f9dde567a3dc05299a930d04ae0d2896f20",
-  "app/src/templates/Screen.jsx": "c5b34bed8e6ce5b4d1d7d493b11ffb84d01da2d8",
+  "app/src/templates/Screen.jsx": "bd89ab5ae6f09e3dcb0a9ba142b87de94a2ec8a7",
   "app/src/templates/Screen.css": "96ae388f695ce9a2dcc7340227bd5053cafe661e",
   "app/src/pages/AuditReportsContent.jsx": "44fc811b16f1e9485a3149a55f2c5739ccfac271",
   "app/src/pages/ComponentsContent.jsx": "7d19bc21344b34a27f652ff84244c3ef1d743873",
@@ -15,7 +15,7 @@
   "app/src/pages/PlaygroundContent.jsx": "698bbde7e14c1b624655fa38771582ded37f9ff2",
   "app/src/pages/SystemMapContent.jsx": "d82206e34450e12be7b5afa5e198ccad999c7f7f",
   "app/src/pages/TeamContent.jsx": "c1642a1a11e5f30da4b92add5c2df9c8aedc909d",
-  "app/src/pages/WorkContent.jsx": "d01bee019d9f3acd9e97fe217b5f2809895813ba"
+  "app/src/pages/WorkContent.jsx": "34f01dcd660e2a50c6c0025fa3617b5081f2ae9d"
  },
  "routes": {
   "#/work": true,
@@ -33,5 +33,5 @@
  "ok": true,
  "clean": 88,
  "total": 88,
- "texts": 12320
+ "texts": 15389
 }

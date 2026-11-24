@@ -585,6 +585,12 @@ function gitCommits(since) {
 // the two working branches (her words: "what landed today in chip/whole and chip/parts-dev"); env-tunable for a test checkout
 export const LANDED = [[process.env.CHIP_WHOLE_BRANCH || 'chip/whole', ROOT], [process.env.BELLA_PROPOSAL_BASE || 'chip/parts-dev', BELLA_DIR]];
 const gitText = (dir, args) => execFileSync('git', ['-C', dir, '--no-optional-locks', ...args], { encoding: 'utf8', timeout: 10_000, maxBuffer: 16 << 20, stdio: ['ignore', 'pipe', 'ignore'] });
+/** What landed since midnight on the two working branches, newest first (the bell's "Landed" list). */
+export const landedToday = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return (branchCommits(d.toISOString()) ?? []).map((c) => ({ ...c, subject: firstSentence(c.subject) }));
+};
 function branchCommits(since) {
   const out = [];
   let reached = false;

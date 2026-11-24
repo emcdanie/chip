@@ -261,8 +261,9 @@ const DRAWERS = [
   { id: 'audit-product', name: 'CHIP app audit', file: 'pages/AuditReading.jsx', route: '#/health', open: card(/^CHIP app/) },
   { id: 'audit-all', name: 'Every work order', file: 'pages/AuditReading.jsx', route: '#/health', open: async (p) => { await card(/^BELLA system/)(p); await click('button', /^See all \d+ work orders/)(p); } },
   { id: 'plan', name: 'A plan (Plan the build)', file: 'templates/RunPlan.jsx', route: '#/health', open: async (p) => { await card(/^Gaps/)(p); await click('button', 'Plan the build')(p); await p.waitForTimeout(800); } },
-  { id: 'activity', name: 'Activity', file: 'templates/RunStatus.jsx', route: '#/work', open: click('button', /^(Nothing running|Running|Done|Did not land)/) },
-  { id: 'work-panel', name: 'Work panel', file: 'templates/WorkDock.jsx', route: '#/work', open: click('button', /open the Work panel/) },
+  // the running light opens the Sessions panel; the bell opens only the notifications (23 Nov)
+  { id: 'sessions', name: 'Sessions panel', file: 'templates/WorkDock.jsx', route: '#/work', open: click('button', /^(Nothing running|Running|Done|Did not land)/) },
+  { id: 'notifications', name: 'Notifications', file: 'templates/WorkDock.jsx', route: '#/work', open: click('button', /^Notifications/) },
   { id: 'new', name: 'New', file: 'templates/NewStart.jsx', route: '#/work', open: click('button', /^\+?\s*New$/) },
   { id: 'new-task', name: 'New task', file: 'templates/NewStart.jsx', route: '#/work', open: async (p) => { await click('button', /^\+?\s*New$/)(p); await p.waitForTimeout(500); await p.locator('dialog[open] button', { hasText: /^Task/ }).first().click(); } },
   { id: 'work-card', name: 'A Work card', file: 'pages/WorkDrawer.jsx', route: '#/work', open: async (p) => { const b = p.locator('[data-bella-component="task-card"] button[aria-label^="Open"]').first(); await b.waitFor({ timeout: 30000 }); await b.click(); } },

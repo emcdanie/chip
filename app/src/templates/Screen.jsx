@@ -26,7 +26,7 @@ import Flow from './Flow.jsx';
 import { NewStart as NewTask } from './NewStart.jsx';
 import Search from './Search.jsx';
 import useNarrow from './useNarrow.js';
-import WorkDock, { openWork } from './WorkDock.jsx';
+import WorkDock, { openNotices } from './WorkDock.jsx';
 import MarkUp, { useMarkUp } from './MarkUp.jsx';
 import RunStatus from './RunStatus.jsx';
 import BrandWordmark from '@bella/components/BrandWordmark/BrandWordmark';
@@ -308,9 +308,10 @@ export default function Screen({ place, header, tabs, children }) {
                     <Button variant="tertiary" iconOnly icon="EditPencil" ariaLabel="Mark up" ariaPressed={markup.on} onClick={() => markup.setOn((o) => !o)} />
                   </Tooltip>
                 </span>
-                {/* the bell opens what needs you, in the Work panel (Figma Flow 12, screen 1); ⌘J opens it too */}
+                {/* the bell is notifications only (CLAUDE.md Navigation): what needs you, what finished, what landed today.
+                    The Sessions panel opens from the running indicator and ⌘J */}
                 <Tooltip label="Notifications">
-                  <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `${needs} things need you, open the Work panel` : 'Nothing needs you, open the Work panel'} ariaHaspopup="dialog" onClick={() => openWork('needs')} />
+                  <Button variant="tertiary" iconOnly icon="Bell" ariaLabel={needs ? `Notifications: ${needs} ${needs === 1 ? 'thing needs' : 'things need'} you` : 'Notifications'} ariaHaspopup="dialog" onClick={openNotices} />
                 </Tooltip>
                 {header?.actions ?? (['projects', 'work', 'health', 'playground'].includes(place) ? <NewTask /> : null)}
               </Flow>
