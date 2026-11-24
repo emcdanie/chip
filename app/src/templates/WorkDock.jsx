@@ -379,7 +379,7 @@ export default function WorkDock({ needs: shared }) {
             </Button>
           ) : failedOpen && r.brief ? (
             // Run again opens its plan first; nothing starts without her Approve
-            <Button variant="secondary" size="sm" ariaLabel={`Run ${row.title} again`} onClick={() => planRun({ title: r.title, brief: r.brief, from: r.from ?? 'Sessions', subtitle: 'Run again · the same brief, on a new branch' }).catch(() => {})}>
+            <Button variant="tertiary" size="sm" ariaLabel={`Run ${row.title} again`} onClick={() => planRun({ title: r.title, brief: r.brief, from: r.from ?? 'Sessions', subtitle: 'Run again · the same brief, on a new branch' }).catch(() => {})}>
               Run again
             </Button>
           ) : undefined
