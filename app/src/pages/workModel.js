@@ -357,7 +357,8 @@ export function boardModel({ needs = [], runs = [], runBase = null, lanes: extra
 function boardBrief(checks) {
   const top = [...checks].sort((a, b) => Number(b.tone === 'danger') - Number(a.tone === 'danger'))[0];
   if (!top) return null;
-  return { message: `${checks.length} of CHIP’s checks ${checks.length === 1 ? 'needs' : 'need'} you; the top one is ${top.title}${top.tone === 'danger' ? ', which failed' : ''}.`, action: top.action ?? (top.open ? (top.tone === 'danger' ? 'See why it failed' : 'Open it') : undefined), open: top.open };
+  // one line (notices are one-line bars, 16 Nov; visual study 23 Nov: the titled Brief led the board)
+  return { message: `${checks.length === 1 ? 'A check needs you' : `${checks.length} checks need you`}: ${top.title}${top.tone === 'danger' ? ', which failed' : ''}`, action: top.action ?? (top.open ? (top.tone === 'danger' ? 'See why it failed' : 'Open it') : undefined), open: top.open };
 }
 
 /* Why an empty lane is empty, from what was measured (her rule: an empty lane says why). */

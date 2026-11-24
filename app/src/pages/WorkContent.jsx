@@ -311,6 +311,22 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
     return () => window.removeEventListener('keydown', onKey);
   });
   const model = shown(all, { filter, project, sort, q });
+  // Work opens with Now in view (visual study, 23 Nov: at 1100 Ideas and Next filled the width and the running work sat off
+  // to the right): once the board is drawn, if Now starts past the right edge, the lanes scroll so Now is the first one in
+  // view; Ideas and Next stay a chevron away. Once per visit, so her own scrolling is never undone.
+  const toNow = useRef(false);
+  useEffect(() => {
+    if (toNow.current || view !== 'board' || !model?.lanes?.length) return;
+    const board = document.querySelector('.chip-flow--board[aria-label="Work board"]');
+    const now = [...(board?.querySelectorAll('[data-bella-component="board-lane"]') ?? [])].find((l) => l.querySelector('h2')?.textContent === 'Now');
+    if (!board || !now) return;
+    toNow.current = true;
+    const b = board.getBoundingClientRect();
+    const n = now.getBoundingClientRect();
+    // land on the grid's columns: the lanes start after the board's own inline padding, as the chevrons do
+    const pad = parseFloat(getComputedStyle(board).paddingInlineStart) || 0;
+    if (n.right > b.right + 1) board.scrollLeft += n.left - b.left - pad;
+  });
   // every Filter item says how many cards it would show with the project and search that are on (second pass M21)
   const count = (f) => shown(all, { filter: f, project, q }).total;
   const tcol = tsort && TABLE_COLUMNS.find((c) => c.key === tsort.key);
@@ -465,8 +481,9 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
         <EmptyState size="lane" mark="⏳" title="Reading the board" line="Fetching the sessions, what needs you and the ideas." />
       ) : (
         <>
-          {model.brief && !briefShut && !reviewing ? (
-            <Notification tone="info" title="Brief · from CHIP’s checks" message={model.brief.message} action={model.brief.action && model.brief.open ? { label: model.brief.action, onClick: () => open({ open: model.brief.open }) } : undefined} onClose={() => setBriefShut(true)} closeLabel="Hide the brief" />
+          {/* on Needs you the Brief's check is already a card in Now: say it once (visual study, 23 Nov) */}
+          {model.brief && !briefShut && !reviewing && filter !== 'needs' ? (
+            <Notification tone="info" message={model.brief.message} action={model.brief.action && model.brief.open ? { label: model.brief.action, onClick: () => open({ open: model.brief.open }) } : undefined} onClose={() => setBriefShut(true)} closeLabel="Hide the brief" />
           ) : null}
           {move.notice ? (
             <Toasts>
@@ -504,7 +521,8 @@ export default function WorkContent({ model: all, filter: hashFilter = {}, view 
             )
           ) : (
             <Flow board direction="row" gap={24} aria-label="Work board" onDragOver={onDragOver} onDrop={onDrop}>
-              {model.lanes.map((l) => (
+              {/* with a filter or a search on, only lanes that hold something (visual study, 23 Nov: Needs you opened on three empty lanes); a drag shows them all again as places to drop */}
+              {((filter || q) && !move.drag && model.lanes.some((l) => l.cards.length) ? model.lanes.filter((l) => l.cards.length) : model.lanes).map((l) => (
                 <Lane key={l.id} lane={l} move={move} why={model.why?.[l.id]} />
               ))}
             </Flow>

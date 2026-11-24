@@ -151,13 +151,9 @@ function Banner({ state, data, busy, act }) {
         action={{ label: busy === 'undo' ? 'Undoing…' : 'Undo', onClick: () => act('undo', () => post(`/runs/${encodeURIComponent(data.run.id)}/undo`), `Undone: the branch ${data.run.branch} is gone.`) }}
       />
     );
-  return (
-    <Notification
-      tone="info"
-      title="What is Not again?"
-      message="What keeps failing, and the fixes that make it stop. Make a check permanent: the agent fixes the cause on a copy, a reviewer presses Accept, and the fix lands under Closed loops with its before and after."
-    />
-  );
+  // no explainer bar: "What keeps coming back" and "Closed loops" say what the page is in their own lines, so the list
+  // leads (visual study, 23 Nov: the four-line "What is Not again?" notice was the first thing seen)
+  return null;
 }
 
 /* CHIP's run log, this week: how many saved fixes ran and how many a maintainer kept. Only the runs of the

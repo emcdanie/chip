@@ -413,7 +413,8 @@ export default function AuditReportsContent() {
   const kinds = Object.fromEntries(changes.map((c) => [c.id, c.kind]));
   const shownChanges = filter ? changes.filter((c) => c.kind === filter) : changes;
   const b = d.bench;
-  const stopsStory = b.all10.md < b.all10.bare && b.stopped > 0;
+  const worse = changes.filter((c) => c.kind === 'real' && c.delta < 0).sort((x, y) => x.delta - y.delta);
+  const better = changes.filter((c) => c.kind === 'real' && c.delta > 0);
 
   const plan = (a) => {
     const orders = a.proposals ?? a.orders ?? [];
@@ -435,15 +436,17 @@ export default function AuditReportsContent() {
   return (
     <Flow span={12} gap={24}>
       <Flow gap={12}>
+        {/* the lead says what to do first; the benchmark's numbers are said once, in its card (visual study, 23 Nov: the lead
+            repeated the card's four numbers and was the loudest block on the page) */}
         <TextStack
           body={
-            stopsStory ? (
+            worse.length ? (
               <>
-                <Marker>{`AGENTS.md scores ${b.all10.md} against ${b.all10.bare} for no file, because ${b.stopped} of ${b.jobs.length} jobs wrote nothing`}</Marker>: BELLA has no part for them and the file says to stop and ask. On the {b.eight.n} jobs BELLA can do, AGENTS.md is ahead, {b.eight.md} to {b.eight.bare}.
+                <Marker>{`Start with ${worse[0].name}`}</Marker>: it fell {Math.abs(worse[0].delta)} points since its last run, the biggest real drop of the {n.all} measures. {better.length ? `${better.length} rose by 3 or more.` : ''}
               </>
             ) : (
               <>
-                <Marker>{`AGENTS.md scores ${b.all10.md} against ${b.all10.bare} for no file`}</Marker> on all {b.jobs.length} jobs; on the {b.eight.n} jobs BELLA can do, {b.eight.md} to {b.eight.bare}.
+                <Marker>No measure fell by 3 points or more</Marker> since its last run; each audit's top finding and plan are below.
               </>
             )
           }
@@ -470,10 +473,11 @@ export default function AuditReportsContent() {
         <NoResults noun="audits" on={[{ key: 'f', label: FILTERS.find((f) => f.id === filter).label, would: n.all, onRemove: () => setFilter(null) }]} onClearAll={() => setFilter(null)} />
       ) : null}
 
+      {/* what to do first leads: every audit and its plan, then the benchmark's detail (visual study, 23 Nov: it began 6,100px down) */}
+      {shownChanges.length ? <AuditsCard d={d} rows={changes} line={line} onReport={(a) => (a.id === 'bench' ? setOpen('bench') : a.id === 'ready' ? setOpen('ready') : report(a))} onPlan={plan} filter={filter} /> : null}
       {!filter ? <BenchmarkCard b={b} onReport={() => setOpen('bench')} /> : null}
       {!filter ? <JobsCard b={b} /> : null}
       {shownChanges.length ? <ChangedCard rows={shownChanges} rd={d.readiness} /> : null}
-      {shownChanges.length ? <AuditsCard d={d} rows={changes} line={line} onReport={(a) => (a.id === 'bench' ? setOpen('bench') : a.id === 'ready' ? setOpen('ready') : report(a))} onPlan={plan} filter={filter} /> : null}
       {shownChanges.length ? <RunsCard d={d} filter={filter} kinds={kinds} onOpen={(k) => (k.startsWith('bench') ? setOpen('bench') : k.startsWith('ready') ? setOpen('ready') : openRun(k))} /> : null}
 
       <BenchDrawer open={open === 'bench'} onClose={() => setOpen(null)} d={d} />
