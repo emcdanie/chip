@@ -21,7 +21,7 @@ for (const width of [1440, 320]) {
   await ctx.addInitScript(() => { try { localStorage.setItem('chip-work', JSON.stringify({ open: false, chosen: true })); } catch {} });
   const page = await ctx.newPage();
   for (const name of names.filter((n) => !ONLY || n === ONLY)) {
-    await page.goto(`${APP}/#/system/components/${name}`, { waitUntil: 'load' }).catch(() => {});
+    await page.goto(`${APP}/#/system/components/${name}?tab=inspect`, { waitUntil: 'load' }).catch(() => {});
     await page.waitForFunction((n) => document.querySelector('h2')?.textContent?.trim() === n, name, { timeout: 15000 }).catch(() => {});
     await page.waitForSelector('[role="group"][aria-label*="arrow keys"]', { timeout: 8000 }).catch(() => {});
     const strip = await page.evaluate(() => {

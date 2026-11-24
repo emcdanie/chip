@@ -48,8 +48,14 @@ const tokenValue = (t) => {
 /** Everything the Quality tab shows for one part, computed from what CHIP reads (call at the top of the page). */
 export function useQuality({ part, detail, studio, touch }) {
   const name = part?.name ?? null;
-  const { data } = useCached(name ? [`/system-docs/contract/${name}`, '/data/checks/visual.json', '/data/checks/contract.json'] : []);
-  const [contract, visual, contractCheck] = data ?? [];
+  // the contract is needed; the two saved check results only add rows, so a missing one (a new checkout has no
+  // data/checks/visual.json) leaves its rows "Not measured" instead of holding the whole view on "Reading"
+  const { data } = useCached(name ? [`/system-docs/contract/${name}`] : []);
+  const { data: v } = useCached(name ? ['/data/checks/visual.json'] : []);
+  const { data: cc } = useCached(name ? ['/data/checks/contract.json'] : []);
+  const [contract] = data ?? [];
+  const [visual] = v ?? [];
+  const [contractCheck] = cc ?? [];
   return useMemo(() => {
     if (!part || !detail || !contract) return null;
     const propNames = (contract.props ?? []).map((p) => p.name);
@@ -116,11 +122,12 @@ function FactBullets({ fact }) {
 /** The facts as an accordion in a Card: each row names the fact, says what it is in one line and its state; the picked one
  *  (or the first) is open with its bullets. Nothing hides behind a pin click (Elleta, 22 Nov: "why does the text only show
  *  when i click"). */
-function FactsCard({ facts, pins, open, setOpen }) {
+function FactsCard({ facts, all = facts, pins, open, setOpen }) {
+  // one count, the same as the header's chip: how many of all the part's facts pass, whichever view is picked
   return (
     <Card>
       <Flow gap={8}>
-        <SectionHead title="Accessibility" titleLevel={3} number={facts.length} words={facts.length === 1 ? 'fact on the part' : 'facts on the part'} />
+        <SectionHead title="Accessibility" titleLevel={3} number={all.filter((f) => f.state === 'ok').length} words={`of ${all.length} pass`} />
         <Flow gap={0} role="group" aria-label="Accessibility facts">
           {facts.map((f) => {
             const on = open === f.id;
@@ -322,23 +329,24 @@ function ReadIt({ q }) {
 }
 
 /** The facts, the picked one (a pin on the stage, or the first) open; picking another pin opens that one. */
-function FactsOpen({ facts, pins, first }) {
+function FactsOpen({ facts, all, pins, first }) {
   const [open, setOpen] = useState(first);
   if (!facts.length) return <EmptyState size="lane" mark="🤷‍♀️" title="Nothing here" line="No accessibility fact belongs to that view for this part. Pick All." />;
-  return <FactsCard facts={facts} pins={pins} open={open} setOpen={setOpen} />;
+  return <FactsCard facts={facts} all={all} pins={pins} open={open} setOpen={setOpen} />;
 }
 
-/** The right panel: the scorecard (B), then Read it (C). */
-export default function QualityPanel({ q, part, mode, pick }) {
+/** The right panel. view "facts": the Accessibility tab, the facts with the picked one open. view "score": the Quality tab,
+ *  the scorecard (B) then Read it (C). */
+export default function QualityPanel({ q, part, mode, pick, view = 'facts' }) {
   if (!q) return <EmptyState size="lane" mark="⏳" title={`Reading ${part.name}`} line="Fetching its contract and checks." />;
   const shownPins = visiblePins(q, mode);
   const facts = q.facts.filter((f) => shownPins.some((p) => p.key === f.id));
   const first = currentFact(q, mode, pick)?.id ?? null;
   return (
     <Flow gap={24}>
-      <FactsOpen key={`${mode}-${first}`} facts={facts} pins={q.pins} first={first} />
-      <Scorecard card={q.card} />
-      <ReadIt q={q} />
+      {view === 'facts' ? <FactsOpen key={`${mode}-${first}`} facts={facts} all={q.facts} pins={q.pins} first={first} /> : null}
+      {view === 'score' ? <Scorecard card={q.card} /> : null}
+      {view === 'score' ? <ReadIt q={q} /> : null}
     </Flow>
   );
 }

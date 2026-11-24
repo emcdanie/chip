@@ -162,7 +162,8 @@ function menuModel({ place, tab, projects, needs }) {
     items: [
       { label: 'Work', href: '#/work', icon: 'CheckCircle', current: workHere },
       { label: 'Health', href: '#/health', icon: 'Activity', current: place === 'health' },
-      { label: 'System', href: '#/system/components', icon: 'ViewGrid', current: !!tab },
+      // on Components the part list opens under System (approved A, 23 Nov): the page portals it into this slot
+      { label: 'System', href: '#/system/components', icon: 'ViewGrid', current: !!tab, sub: tab === 'components' ? <div data-chip-menu-sub="" /> : undefined },
       { label: 'Playground', href: '#/playground', icon: 'Play', current: place === 'playground' },
       { label: 'Needs you', href: '#/work?filter=needs', icon: 'Bell', badge: needs || undefined, current: needsHere },
       { label: 'Not again', href: '#/not-again', icon: 'Book', current: place === 'not-again' },
