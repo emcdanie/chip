@@ -719,6 +719,17 @@ setChipDataDeps({
   checks: () => listChecks({ waiting: waitingChecks() }),
   audits: readAudits,
   needs: () => Promise.race([keptRead('needs', READS.needs), new Promise((r) => setTimeout(() => r(null), 8000))]),
+  // the work (23 Nov): CHIP's runs, and the Work board as the board itself draws it (the same model, so the counts match)
+  runs: () => listRuns(),
+  workBoard: async () => {
+    const { boardModel } = await import('../app/src/pages/workModel.js');
+    const [needs, lanes] = await Promise.all([Promise.race([keptRead('needs', READS.needs), new Promise((r) => setTimeout(() => r(null), 8000))]), workLanes().catch(() => null)]);
+    let gaps = null;
+    try {
+      gaps = gapFixes()?.gaps ?? null;
+    } catch {}
+    return boardModel({ needs: needs?.items ?? [], runs: listRuns(), runBase: checksBase, board: workBoard(), gaps, lanes });
+  },
 });
 app.get('/needs', async (req, res) => {
   try {

@@ -375,6 +375,35 @@ if (board) {
   check('work', 'Board freshness is this read, not an old one', Math.abs(Date.now() - Date.parse(board.at)) < 60_000 ? 'now' : 'old', 'now');
 }
 
+// Ask about the work (23 Nov): the numbers in the Work panel's answers, against git and the records they read.
+// Every one of these answers is written from the facts with no model, so asking costs nothing.
+const asked = async (message) => {
+  try {
+    const r = await fetch(`${APP}/ask`, { method: 'POST', headers: { 'content-type': 'application/json', origin: APP }, body: JSON.stringify({ message, stream: true, scope: 'data' }) });
+    const done = (await r.text()).split('\n').filter(Boolean).map((l) => JSON.parse(l)).find((e) => e.type === 'done');
+    return done?.model === 'CHIP’s data' ? done.reply : null;
+  } catch {
+    return null;
+  }
+};
+{
+  const midnight = new Date();
+  midnight.setHours(0, 0, 0, 0);
+  const count = (dir, branch) => sh('git', ['-C', dir, 'log', branch, `--since=${midnight.toISOString()}`, '--no-merges', '--format=%h'], dir)?.split('\n').filter(Boolean).length ?? null;
+  const whole = count(ROOT, 'chip/whole');
+  const parts = count(B, 'chip/parts-dev');
+  const landed = await asked('What has landed today?');
+  check('ask', 'Landed today on chip/whole (git log)', landed?.match(/(\d+) on chip\/whole/)?.[1], whole);
+  check('ask', 'Landed today on chip/parts-dev (git log)', landed?.match(/(\d+) on chip\/parts-dev/)?.[1], parts);
+  const needsNow = await json('/needs').catch(() => null);
+  const waitingNow = needsNow ? (needsNow.items ?? []).filter((i) => /waiting/i.test(i.status ?? 'Waiting on you')).length : null;
+  const needsReply = await asked('What needs me?');
+  check('ask', 'Things waiting on you (Needs you)', needsReply ? (needsReply.match(/^\*\*(\d+) things?/)?.[1] ?? (/Nothing waits/.test(needsReply) ? '0' : null)) : null, waitingNow);
+  const boardNow = await json('/work/board').catch(() => null);
+  const runningReply = await asked('What is running right now?');
+  check('ask', 'Sessions working now (session records)', runningReply ? (runningReply.match(/^\*\*(\d+) sessions?\*\*/)?.[1] ?? (/Nothing is running/.test(runningReply) ? '0' : null)) : null, boardNow ? (boardNow.sessions ?? []).filter((x) => x.working).length : null);
+}
+
 // ---- report -----------------------------------------------------------------
 writeFileSync(join(OUT, 'results.json'), JSON.stringify(results, null, 2));
 const bad = results.filter((r) => r.ok === false);

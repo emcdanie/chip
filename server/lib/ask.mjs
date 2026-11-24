@@ -14,7 +14,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { listChecks } from './checks.mjs';
 import { reviewCard, waitingChecks } from './review.mjs';
 import { BELLA_JSON, CHIP_CONTEXT_WORDS, CONTEXT_PACK, CHIP_MODEL, CHIP_CLAUDE_DAILY } from './config.mjs';
-import { defaultCtx, gather, dataPrompt, shapeData, numbersHeld, plainReply, DATA_SYSTEM, NO_DATA } from './chipdata.mjs';
+import { defaultCtx, gather, dataPrompt, shapeData, numbersHeld, plainReply, DATA_SYSTEM, noDataReply, SAYS_NO_DATA } from './chipdata.mjs';
 
 // The Cowork context pack opens every local-model prompt (background on
 // BELLA, CHIP and how Elleta works). Read fresh each time: it is small and
@@ -562,12 +562,13 @@ export async function* dataStream(message, sessionId, opts = {}) {
   const model = String(pickedId ?? '').startsWith('local:') ? pickedId.slice('local:'.length) : undefined;
   const modelName = model || (await providers.local.list().catch(() => [])).find((x) => x.isDefault)?.label || CHIP_MODEL;
   if (!results.length) {
+    const none = noDataReply(message);
     yield { type: 'provider', id: 'data', place: 'data', model: 'CHIP’s data' };
-    yield { type: 'done', reply: toAgent ? AGENT_LINE : NO_DATA, sessionId: id, sources: [], data: [], needsAgent: true, next: [], provider: 'data', place: 'data', model: 'CHIP’s data', route: opts.routed ? { why: opts.routed.why } : { why: 'Answered from CHIP’s data, no model' }, tokens: { prompt: 0, output: 0 } };
+    yield { type: 'done', reply: toAgent ? AGENT_LINE : none.reply, sessionId: id, sources: [], data: [], needsAgent: toAgent || none.offerPlan, offerPlan: toAgent || none.offerPlan, next: none.offerPlan ? [] : ['What is running?', 'What landed today?'], provider: 'data', place: 'data', model: 'CHIP’s data', route: opts.routed ? { why: opts.routed.why } : { why: 'Answered from CHIP’s data, no model' }, tokens: { prompt: 0, output: 0 } };
     return;
   }
-  // the record answers itself (how it was built, where to improve): written from the facts, no model, so it can't drift
-  const own = results.length === 1 && results[0].reply ? results[0].reply : null;
+  // the record answers itself (how it was built, where to improve, the work): written from the facts, no model, so it can't drift
+  const own = results.every((r) => r.reply) ? plainReply(results) : null;
   const shaped = shapeData(results);
   yield { type: 'sources', sources: shaped.sources, sessionId: id };
   yield { type: 'provider', id: own ? 'data' : 'local', place: 'data', model: own ? 'CHIP’s data' : modelName };
@@ -592,7 +593,7 @@ export async function* dataStream(message, sessionId, opts = {}) {
   reply = reply.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   // a model that is off, empty, or wrote a number the data does not hold: the same answer from the facts alone
   if (own) reply = own;
-  else if (!reply || !numbersHeld(reply, results)) reply = plainReply(results);
+  else if (!reply || !numbersHeld(reply, results) || SAYS_NO_DATA.test(reply)) reply = plainReply(results);
   if (toAgent) reply = `${reply}\n${AGENT_LINE}`;
   yield { type: 'done', reply, sessionId: id, sources: shaped.sources, data: shaped.data, needsAgent: toAgent, next: [], provider: own ? 'data' : 'local', place: 'data', model: own ? 'CHIP’s data' : slow?.to ?? modelName, route: own ? { why: 'Answered from the record, no model, free' } : opts.routed ? { why: slow ? `${opts.routed.why}; ${slow.from} did not start in ${Math.round(FIRST_MS() / 1000)} seconds, so ${slow.to} answered` : opts.routed.why, id: opts.routed.id, alt: opts.routed.alt ?? null } : { why: `Local ${modelName} says it from CHIP’s data, free` }, tokens: { prompt: stats.prompt ?? 0, output: stats.output ?? 0 } };
 }

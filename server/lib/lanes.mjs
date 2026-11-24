@@ -213,7 +213,7 @@ const recordOf = (file) => {
     const hit = recs.get(file);
     if (hit?.m === m) return hit.r;
     const d = JSON.parse(readFileSync(file, 'utf8'));
-    const r = { sessionId: d.sessionId, cliSessionId: d.cliSessionId, lastAssistantCliSessionId: d.lastAssistantCliSessionId, cwd: d.cwd, title: d.title, isArchived: d.isArchived, lastActivityAt: d.lastActivityAt, createdAt: d.createdAt, interruptedAwaitingPerson: d.interruptedAwaitingPerson, spawnedFrom: d.spawnedFrom ? { name: d.spawnedFrom.name } : null };
+    const r = { sessionId: d.sessionId, cliSessionId: d.cliSessionId, lastAssistantCliSessionId: d.lastAssistantCliSessionId, cwd: d.cwd, title: d.title, isArchived: d.isArchived, lastActivityAt: d.lastActivityAt, createdAt: d.createdAt, interruptedAwaitingPerson: d.interruptedAwaitingPerson, spawnedFrom: d.spawnedFrom ? { name: d.spawnedFrom.name } : null, model: d.model ?? null, lastTurnEdgeAt: d.lastTurnEdgeAt ?? null, report: d.turnWrapUp?.description ?? null, status: d.postTurnSummary ? { category: d.postTurnSummary.status_category ?? null, detail: d.postTurnSummary.status_detail ?? null, needs: d.postTurnSummary.needs_action ?? null } : null };
     recs.set(file, { m, r });
     return r;
   } catch {
@@ -221,7 +221,7 @@ const recordOf = (file) => {
   }
 };
 /** The sessions of the last SESSION_HOURS in CHIP's projects, each with its plan. */
-export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, transcripts = PROJECTS_DIR } = {}) {
+export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, transcripts = PROJECTS_DIR, terms = null } = {}) {
   if (!existsSync(dir)) return [];
   const roots = projects.flatMap((p) => checkouts(p.repo).map((path) => ({ path, project: p.short ?? p.name })));
   const where = (cwd) => roots.find((r) => cwd === r.path || cwd?.startsWith(`${r.path}/`));
@@ -233,7 +233,9 @@ export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, t
       } catch {}
     }
   } catch {}
-  const nda = ndaTerms();
+  const nda = terms ? terms.map((t) => new RegExp(`\\b${t}\\b`, 'i')) : ndaTerms();
+  // a line that names a private term is left out, like a private title
+  const said = (t) => (t && !nda.some((re) => re.test(String(t))) ? String(t).slice(0, 300) : null);
   const out = [];
   const records = [];
   for (const a of readdirSync(dir)) {
@@ -275,6 +277,11 @@ export function sessionTasks(projects, now = Date.now(), { dir = SESSIONS_DIR, t
       working: now - plan.mtime < ACTIVE_MIN * 60e3,
       asks: !!r.interruptedAwaitingPerson,
       parent: r.spawnedFrom?.name ?? null,
+      // what the session last said, as the app's own records hold it (its wrap-up recap and one-line status); Ask reads these
+      model: r.model,
+      reportedAt: r.lastTurnEdgeAt,
+      report: said(r.report),
+      status: r.status ? { category: r.status.category, detail: said(r.status.detail), needs: said(r.status.needs) } : null,
     });
   }
   return out.sort((x, y) => (x.startedAt ?? 0) - (y.startedAt ?? 0));
