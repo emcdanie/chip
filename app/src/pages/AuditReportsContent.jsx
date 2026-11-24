@@ -12,7 +12,7 @@ import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Marker from '@bella/components/Marker/Marker';
 import Stat from '@bella/components/Stat/Stat';
-import Tag from '@bella/components/Tag/Tag';
+import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Button from '@bella/components/Button/Button';
 import FilterChip from '@bella/components/FilterChip/FilterChip';
 import ListRow, { ListRowGroup } from '@bella/components/ListRow/ListRow';
@@ -30,7 +30,7 @@ import { planRun } from '../templates/RunPlan.jsx';
 import AuditReading from './AuditReading.jsx';
 import { AUDIT_NAME, FILTERS, buildReport, changeTone, changeWord, counts, dayWords, sgn } from './auditReportsModel.js';
 
-const TAG = { success: 'success', danger: 'danger', warning: 'attention', neutral: 'default', info: 'info' };
+const DOT = { success: 'success', danger: 'danger', warning: 'attention', neutral: 'neutral', info: 'info' };
 const q = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '');
 const NOTE = 'When BELLA has no part for a job, AGENTS.md tells the agent to stop and ask. The Open Design System Benchmark scores that as zero. This is intended (decided 12 Nov).';
 // proposals only, nothing started (benchmark-answers-2026-11-23.md, section 7)
@@ -157,11 +157,10 @@ function ChangedCard({ rows, rd }) {
               <ListRow
                 key={r.id}
                 layout="stacked"
-                statusBar={r.kind === 'first' ? 'info' : r.kind === 'none' ? 'neutral' : r.delta < 0 ? 'danger' : 'success'}
                 title={r.name}
                 meta={r.kind === 'first' ? `${dayWords(r.day)}` : `${dayWords(r.from)} to ${dayWords(r.to)}`}
                 value={r.kind === 'first' ? (r.value ?? '') : `${r.delta > 0 ? '+' : r.delta < 0 ? '−' : ''}${Math.abs(r.delta)}`}
-                tag={<Tag tone={TAG[changeTone(r)]}>{changeWord(r)}</Tag>}
+                tag={<StatusDot tone={DOT[changeTone(r)]} label={changeWord(r)} />}
               />
             ))}
           </ListRowGroup>
@@ -185,15 +184,15 @@ function Mini({ title, p, line, target, summary }) {
   );
 }
 
-function AuditsCard({ d, rows, line, onReport, onPlan, filter }) {
+function AuditsCard({ d, rows, line, onReport, onPlan, filter, only }) {
   const by = Object.fromEntries(rows.map((r) => [r.id, r]));
-  const show = (ids) => !filter || ids.some((i) => by[i]?.kind === filter);
+  const show = (ids, group) => (!only || only === group) && (!filter || ids.some((i) => by[i]?.kind === filter));
   const b = d.bench;
   const benchWord = by['bench-md'];
   const sources = (a) => `Source: ${a.file ? `the saved ${a.title} report of ${dayWords(a.ran)}` : 'no saved report'}`;
   const rd = d.readiness;
-  const tagOf = (c) => <Tag tone={TAG[changeTone(c)]}>{c.kind === 'real' ? `${changeWord(c)}, ${c.delta > 0 ? '+' : '−'}${Math.abs(c.delta)}` : changeWord(c)}</Tag>;
-  const bar = (c) => (c.kind === 'first' ? 'info' : c.kind === 'none' ? 'neutral' : c.delta < 0 ? 'danger' : 'success');
+  // state is BELLA's status dot and its word (her review, 24 Nov: one status mark, lighter than the left bar)
+  const tagOf = (c) => <StatusDot tone={DOT[changeTone(c)]} label={c.kind === 'real' ? `${changeWord(c)}, ${c.delta > 0 ? '+' : '−'}${Math.abs(c.delta)}` : changeWord(c)} />;
   const actions = (a, plan = true) => (
     <Flow direction="row" gap={8} wrap justify="end">
       <Button variant="secondary" onClick={() => onReport(a)}>Report</Button>
@@ -207,13 +206,12 @@ function AuditsCard({ d, rows, line, onReport, onPlan, filter }) {
       {acts}
     </Flow>
   );
-  if (show(['bench-md', 'bench-bare'])) {
+  if (show(['bench-md', 'bench-bare'], 'bench')) {
     const gap = Math.round((b.all10.md - b.all10.bare) * 10) / 10;
     items.push(wrap("bench",
       <ListRow
           as="div"
         layout="stacked"
-        statusBar={bar(benchWord)}
         title="Benchmark (AGENTS.md against no file)"
         value={b.all10.md}
         meta="out of 100"
@@ -233,14 +231,13 @@ function AuditsCard({ d, rows, line, onReport, onPlan, filter }) {
       />,
 actions({ id: 'bench', title: 'Benchmark', proposals: PROPOSALS, gap })));
   }
-  if (show(['ready-composite', 'ready-static'])) {
+  if (show(['ready-composite', 'ready-static'], 'ready')) {
     const cmp = rd.composite.p;
     const top = rd.failures[0]?.replace(/^[^:]+: /, '') ?? null;
     items.push(wrap("ready",
       <ListRow
           as="div"
         layout="stacked"
-        statusBar={bar(by['ready-composite'])}
         title="Readiness score (with the agent run)"
         value={cmp[cmp.length - 1]?.[1]}
         meta="out of 100"
@@ -258,13 +255,12 @@ actions({ id: 'ready', title: 'Readiness score', orders: rd.failures })));
   }
   for (const a of d.audits.filter((x) => x.ran)) {
     const c = by[`audit-${a.id}`];
-    if (!show([`audit-${a.id}`])) continue;
+    if (!show([`audit-${a.id}`], a.id)) continue;
     const same = (a.runs ?? []).filter((r) => r.unit === a.unit);
     items.push(wrap(a.id,
       <ListRow
           as="div"
         layout="stacked"
-        statusBar={bar(c)}
         title={AUDIT_NAME[a.id] ?? a.title}
         value={a.value}
         meta={a.unit}
@@ -294,7 +290,7 @@ actions(a)));
   );
 }
 
-function RunsCard({ d, filter, onOpen, kinds }) {
+function RunsCard({ d, filter, onOpen, kinds, only }) {
   const rows = useMemo(() => {
     const out = [];
     for (const a of d.audits) for (const r of a.runs ?? []) out.push({ key: `${a.id}:${r.day}`, day: r.day, audit: AUDIT_NAME[a.id] ?? a.title, score: `${r.value} ${r.unit ?? ''}`.trim(), kind: kinds[`audit-${a.id}`], sort: r.day });
@@ -302,7 +298,7 @@ function RunsCard({ d, filter, onOpen, kinds }) {
     d.readiness.composite.p.forEach(([day, v]) => out.push({ key: `ready:${day}`, day, audit: 'Readiness score (with the agent run)', score: `${v} out of 100`, kind: kinds['ready-composite'], sort: day }));
     return out.sort((x, y) => y.sort.localeCompare(x.sort));
   }, [d, kinds]);
-  const shown = filter ? rows.filter((r) => r.kind === filter) : rows;
+  const shown = rows.filter((r) => (!filter || r.kind === filter) && (!only || r.key.split(':')[0] === only));
   const [more, setMore] = useState(10);
   const list = shown.slice(0, more);
   return (
@@ -336,7 +332,7 @@ function RunsCard({ d, filter, onOpen, kinds }) {
 function BenchDrawer({ open, onClose, d }) {
   const h = d.bench.how;
   const gap = Math.round((d.bench.all10.md - d.bench.all10.bare) * 10) / 10;
-  const row = (title, value) => <ListRow key={title} layout="stacked" statusBar="neutral" title={title} value={value} />;
+  const row = (title, value) => <ListRow key={title} layout="stacked" title={title} value={value} />;
   return (
     <ReadingDrawer open={open} onClose={onClose} label="Benchmark run" status={`Ran ${dayWords(h.day)} · ${h.jobs} jobs`}>
       <Inset gap={16}>
@@ -371,7 +367,7 @@ function ReadyDrawer({ open, onClose, d }) {
       {rd.parts ? (
         <ListRowGroup ariaLabel="The checks behind the readiness score">
           {Object.entries(rd.parts).map(([k, v]) => (
-            <ListRow key={k} layout="stacked" statusBar={v == null ? 'neutral' : v >= 70 ? 'success' : 'attention'} title={k} value={v == null ? 'Not measured' : v} />
+            <ListRow key={k} layout="stacked" title={k} value={v == null ? 'Not measured' : v} tag={v == null ? undefined : <StatusDot tone={v >= 70 ? 'success' : 'attention'} label={v >= 70 ? 'Healthy' : 'Needs work'} />} />
           ))}
         </ListRowGroup>
       ) : null}
@@ -395,13 +391,15 @@ export default function AuditReportsContent() {
   const [filter, setFilter] = useState(() => (FILTERS.some((f) => f.id === q().get('filter')) ? q().get('filter') : null));
   const [open, setOpen] = useState(() => q().get('report'));
   const [how, setHow] = useState(false);
+  const [auditAsked, setAudit] = useState(() => q().get('audit'));
   useEffect(() => {
     const p = q();
     filter ? p.set('filter', filter) : p.delete('filter');
     open ? p.set('report', open) : p.delete('report');
+    auditAsked ? p.set('audit', auditAsked) : p.delete('audit');
     const s = p.toString();
     window.history.replaceState(null, '', `#/health/audits${s ? `?${s}` : ''}`);
-  }, [filter, open]);
+  }, [filter, open, auditAsked]);
   const rep = useMemo(() => (d?.ok ? buildReport(d) : null), [d]);
 
   if (error && !d) return <EmptyState size="lane" mark="🔌" title="CHIP's server isn't answering" line={error} />;
@@ -411,10 +409,13 @@ export default function AuditReportsContent() {
   const { changes, line } = rep;
   const n = counts(changes);
   const kinds = Object.fromEntries(changes.map((c) => [c.id, c.kind]));
-  const shownChanges = filter ? changes.filter((c) => c.kind === filter) : changes;
+  const groupOf = (c) => (c.id.startsWith('bench') ? 'bench' : c.id.startsWith('ready') ? 'ready' : c.group);
+  const audits = [{ id: 'bench', label: 'Benchmark' }, { id: 'ready', label: 'Readiness' }, ...d.audits.filter((a) => a.ran).map((a) => ({ id: a.id, label: a.id === 'figma' ? 'Figma screens' : a.title }))];
+  // an audit the address names that has no report reads as All
+  const audit = audits.some((x) => x.id === auditAsked) ? auditAsked : null;
+  const shownChanges = changes.filter((c) => (!filter || c.kind === filter) && (!audit || groupOf(c) === audit));
   const b = d.bench;
-  const worse = changes.filter((c) => c.kind === 'real' && c.delta < 0).sort((x, y) => x.delta - y.delta);
-  const better = changes.filter((c) => c.kind === 'real' && c.delta > 0);
+  const stopsStory = b.all10.md < b.all10.bare && b.stopped > 0;
 
   const plan = (a) => {
     const orders = a.proposals ?? a.orders ?? [];
@@ -436,17 +437,15 @@ export default function AuditReportsContent() {
   return (
     <Flow span={12} gap={24}>
       <Flow gap={12}>
-        {/* the lead says what to do first; the benchmark's numbers are said once, in its card (visual study, 23 Nov: the lead
-            repeated the card's four numbers and was the loudest block on the page) */}
         <TextStack
           body={
-            worse.length ? (
+            stopsStory ? (
               <>
-                <Marker>{`Start with ${worse[0].name}`}</Marker>: it fell {Math.abs(worse[0].delta)} points since its last run, the biggest real drop of the {n.all} measures. {better.length ? `${better.length} rose by 3 or more.` : ''}
+                <Marker>{`AGENTS.md scores ${b.all10.md} against ${b.all10.bare} for no file, because ${b.stopped} of ${b.jobs.length} jobs wrote nothing`}</Marker>: BELLA has no part for them and the file says to stop and ask. On the {b.eight.n} jobs BELLA can do, AGENTS.md is ahead, {b.eight.md} to {b.eight.bare}.
               </>
             ) : (
               <>
-                <Marker>No measure fell by 3 points or more</Marker> since its last run; each audit's top finding and plan are below.
+                <Marker>{`AGENTS.md scores ${b.all10.md} against ${b.all10.bare} for no file`}</Marker> on all {b.jobs.length} jobs; on the {b.eight.n} jobs BELLA can do, {b.eight.md} to {b.eight.bare}.
               </>
             )
           }
@@ -455,17 +454,26 @@ export default function AuditReportsContent() {
           <TextStack subtitle={`Read from the saved reports and benchmark runs at ${new Date(d.read).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}.`} />
           <Button variant="tertiary" size="sm" onClick={() => setHow(true)}>How was this measured?</Button>
         </Flow>
-        <Flow direction="row" gap={8} wrap role="group" aria-label="Filter">
-          <FilterChip pressed={!filter} onClick={() => setFilter(null)}>{`All ${n.all}`}</FilterChip>
-          {FILTERS.map((f) => (
-            <FilterChip key={f.id} pressed={filter === f.id} onClick={() => setFilter(filter === f.id ? null : f.id)}>{`${f.label} ${n[f.id]}`}</FilterChip>
+        {/* one audit at a time (her review, 24 Nov): chips filter, one on at a time, as History and Processes do */}
+        <Flow direction="row" gap={8} swipe role="group" aria-label="Audit">
+          <FilterChip pressed={!audit} onClick={() => setAudit(null)}>All audits</FilterChip>
+          {audits.map((x) => (
+            <FilterChip key={x.id} pressed={audit === x.id} onClick={() => (setAudit(audit === x.id ? null : x.id), setFilter(null))}>{x.label}</FilterChip>
           ))}
         </Flow>
+        {!audit ? (
+          <Flow direction="row" gap={8} swipe role="group" aria-label="Change">
+            <FilterChip pressed={!filter} onClick={() => setFilter(null)}>{`All ${n.all}`}</FilterChip>
+            {FILTERS.map((f) => (
+              <FilterChip key={f.id} pressed={filter === f.id} onClick={() => setFilter(filter === f.id ? null : f.id)}>{`${f.label} ${n[f.id]}`}</FilterChip>
+            ))}
+          </Flow>
+        ) : null}
         <ResultsBar
-          applied={filter ? [{ key: 'f', label: FILTERS.find((f) => f.id === filter).label, onRemove: () => setFilter(null) }] : []}
+          applied={[filter && { key: 'f', label: FILTERS.find((f) => f.id === filter).label, onRemove: () => setFilter(null) }, audit && { key: 'a', label: audits.find((x) => x.id === audit)?.label ?? audit, onRemove: () => setAudit(null) }].filter(Boolean)}
           shown={shownChanges.length}
           total={n.all}
-          onClearAll={() => setFilter(null)}
+          onClearAll={() => (setFilter(null), setAudit(null))}
         />
       </Flow>
 
@@ -473,12 +481,13 @@ export default function AuditReportsContent() {
         <NoResults noun="audits" on={[{ key: 'f', label: FILTERS.find((f) => f.id === filter).label, would: n.all, onRemove: () => setFilter(null) }]} onClearAll={() => setFilter(null)} />
       ) : null}
 
-      {/* what to do first leads: every audit and its plan, then the benchmark's detail (visual study, 23 Nov: it began 6,100px down) */}
-      {shownChanges.length ? <AuditsCard d={d} rows={changes} line={line} onReport={(a) => (a.id === 'bench' ? setOpen('bench') : a.id === 'ready' ? setOpen('ready') : report(a))} onPlan={plan} filter={filter} /> : null}
-      {!filter ? <BenchmarkCard b={b} onReport={() => setOpen('bench')} /> : null}
-      {!filter ? <JobsCard b={b} /> : null}
-      {shownChanges.length ? <ChangedCard rows={shownChanges} rd={d.readiness} /> : null}
-      {shownChanges.length ? <RunsCard d={d} filter={filter} kinds={kinds} onOpen={(k) => (k.startsWith('bench') ? setOpen('bench') : k.startsWith('ready') ? setOpen('ready') : openRun(k))} /> : null}
+      {/* the approved mock's order (her review, 24 Nov: the charts read as gone when the audit list led); one audit at a
+          time with the audit chips instead of scrolling past the rest */}
+      {!filter && (!audit || audit === 'bench') ? <BenchmarkCard b={b} onReport={() => setOpen('bench')} /> : null}
+      {!filter && (!audit || audit === 'bench') ? <JobsCard b={b} /> : null}
+      {shownChanges.length && !audit ? <ChangedCard rows={shownChanges} rd={d.readiness} /> : null}
+      {shownChanges.length ? <AuditsCard d={d} rows={changes} line={line} onReport={(a) => (a.id === 'bench' ? setOpen('bench') : a.id === 'ready' ? setOpen('ready') : report(a))} onPlan={plan} filter={filter} only={audit} /> : null}
+      {shownChanges.length ? <RunsCard d={d} filter={filter} kinds={kinds} only={audit} onOpen={(k) => (k.startsWith('bench') ? setOpen('bench') : k.startsWith('ready') ? setOpen('ready') : openRun(k))} /> : null}
 
       <BenchDrawer open={open === 'bench'} onClose={() => setOpen(null)} d={d} />
       <ReadyDrawer open={open === 'ready'} onClose={() => setOpen(null)} d={d} />
