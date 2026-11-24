@@ -254,7 +254,7 @@ const prCounts = projects.map((p) => JSON.parse(sh('gh', ['pr', 'list', '--state
 {
   const ar = await fetch(`${APP}/audit-reports`).then((r) => r.json()).catch(() => null);
   if (ar?.ok) {
-    check('audit-reports', 'Benchmark, AGENTS.md against no file (all 10 jobs)', grab('audit-reports', /AGENTS\.md scores ([\d.]+) against ([\d.]+)/)?.slice(1, 3).join(' vs '), `${ar.bench.all10.md} vs ${ar.bench.all10.bare}`);
+    check('audit-reports', 'Benchmark, AGENTS.md against no file (all 10 jobs)', ((m, b) => (m && b ? `${m} vs ${b}` : undefined))(grab('audit-reports', /All 10 jobs[\s\S]*?\nAGENTS\.md\n([\d.]+)/)?.[1], grab('audit-reports', /All 10 jobs[\s\S]*?\nNo file\n([\d.]+)/)?.[1]), `${ar.bench.all10.md} vs ${ar.bench.all10.bare}`);
   } else check('audit-reports', 'Benchmark scores', null, null, 'server did not answer');
 }
 check('team', 'Open PRs', grab('team', /(\d+)\nopen PRs?/)?.[1], prCounts.every(Array.isArray) ? prCounts.reduce((a, l) => a + l.length, 0) : null);
