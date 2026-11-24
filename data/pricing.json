@@ -1,0 +1,7 @@
+{
+  "$comment": "Reference rates for the Usage card's line about API-rate value. Elleta fills these in from Anthropic's published Claude pricing (USD per million tokens). CHIP hard-codes no rate; with nulls the card says the rates are not set. She is on a plan, so this is a value at API rates, not a bill.",
+  "model": "Claude Sonnet",
+  "currency": "USD",
+  "inputPerMillion": null,
+  "outputPerMillion": null
+}

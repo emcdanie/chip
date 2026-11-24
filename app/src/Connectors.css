@@ -1,0 +1,88 @@
+/* Connectors (chip-mock-03 "page: panel:connectors"), rule for rule from the
+ * mock with its .map, .mcanvas, .mnode2, .mcard and .mpill under a cn- prefix.
+ * Values come from kit/tokens.css only. */
+
+/* the page: the mock's .content, header, tabs, panel */
+.cn-page { display: grid; gap: var(--s-32); grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.cn-panel { min-width: 0; }
+
+/* the map's controls, top right of the header */
+
+.cn-zoom { display: inline-flex; gap: var(--s-4); }
+.cn-keys { width: min(320px, 80vw); margin: 0; padding-left: var(--s-16); display: grid; gap: var(--s-4); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
+.cn-keys kbd { font: 400 var(--fs-14)/var(--lh-body) var(--typography-font-family-geist-mono); border: 1px solid var(--line); border-radius: var(--r); padding: 0 var(--s-4); }
+
+/* the map: one sentence, then the canvas */
+.cn-map { display: grid; gap: var(--s-12); container: map / inline-size; }
+.cn-sub { margin: 0; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.cn-canvas { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r); background-color: var(--card); background-image: radial-gradient(color-mix(in srgb, var(--ink) 14%, transparent) 1px, transparent 1px); background-size: 18px 18px; cursor: grab; touch-action: none; }
+.cn-canvas.grab { cursor: grabbing; }
+.cn-canvas:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.cn-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.cn-links { position: absolute; left: 0; top: 0; overflow: visible; }
+.cn-links path { fill: none; stroke: color-mix(in srgb, var(--ink) 30%, var(--card)); stroke-width: 1.6; }
+.cn-links path.bl { stroke: var(--fail); stroke-dasharray: 4 4; }
+/* Every working link flows on its own, so the map reads as live without a
+   click (Elleta, 4 Nov). A blocked link stays still and red: nothing moves
+   past a failing part. Selecting a card brightens its own links. */
+.cn-links path.run { stroke-dasharray: 6 6; animation: cn-flow 1.6s linear infinite; }
+.cn-links path.flow { stroke: var(--action); stroke-width: 2.4; animation-duration: 0.9s; }
+@keyframes cn-flow { to { stroke-dashoffset: -24; } }
+@media (prefers-reduced-motion: reduce) { .cn-links path.run { animation: none; } }
+
+/* a card: icon, name, the short line, the pill; the toggle hangs below it */
+.cn-nodes { margin: 0; padding: 0; list-style: none; }
+.cn-node { position: absolute; width: 184px; }
+.cn-card { box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: var(--h-compact) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: var(--s-8); width: 184px; min-height: 92px; margin: 0; padding: var(--s-12) var(--s-12) var(--s-8) var(--s-8); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); font: inherit; text-align: left; }
+.cn-card:has(.cn-open:hover) { border-color: var(--action); }
+.cn-card:has(.cn-open:focus-visible) { outline: var(--focus); outline-offset: 2px; }
+.cn-open { grid-column: 2; grid-row: 1 / span 2; display: grid; align-content: start; gap: var(--s-4); min-width: 0; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.cn-open:focus-visible { outline: none; }
+.cn-node:not(:has(.cn-tog)) .cn-open { grid-column: 1 / -1; padding-left: calc(var(--h-compact) + var(--s-8)); margin-left: 0; }
+.cn-open .k-pill { justify-self: start; }
+.cn-node.bad .cn-card { border-color: var(--fail); } /* a full edge, never one side (guideline 9) */
+.cn-node.blocked .cn-card { background: repeating-linear-gradient(-45deg, var(--card) 0 7px, color-mix(in srgb, var(--fail) 7%, var(--card)) 7px 9px); }
+.cn-node.near .cn-card { border-color: var(--action); }
+.cn-ic { grid-column: 1; grid-row: 1; display: grid; place-items: center; width: var(--h-compact); height: var(--h-compact); border-radius: var(--r-control); background: var(--inset); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
+.cn-tx { display: grid; min-width: 0; }
+.cn-tx b { font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-tx small { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-tog { grid-column: 1; grid-row: 2; align-self: end; display: grid; place-items: center; width: var(--h-compact); height: 32px; padding: 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--muted); cursor: pointer; }
+.cn-tog:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
+.cn-tog:focus-visible { outline: var(--focus); outline-offset: 2px; }
+.cn-tog svg { transition: transform 0.2s ease-out; }
+.cn-tog[aria-expanded='true'] svg { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .cn-tog svg { transition: none; } }
+
+/* the sheets: a status line, the parts of a group, the steps to try */
+.cn-reach { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-8); }
+.cn-reach code { overflow-wrap: anywhere; }
+.cn-steps { margin: 0; padding: 0; list-style: none; counter-reset: st; display: grid; gap: var(--s-12); }
+.cn-steps li { counter-increment: st; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--s-4) var(--s-12); }
+.cn-steps li::before { content: counter(st); grid-row: 1 / span 3; width: 28px; height: 28px; border-radius: var(--r-control); display: grid; place-items: center; background: var(--neutral); font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
+.cn-steps b { font-weight: 600; color: var(--ink); }
+.cn-steps li > span { font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); }
+.cn-cmd { display: flex; gap: var(--s-8); align-items: center; margin-top: var(--s-4); }
+.cn-cmd code { flex: 1; min-width: 0; padding: var(--s-8) var(--s-12); background: color-mix(in srgb, var(--ink) 5%, var(--card)); border-radius: var(--r); overflow-x: auto; white-space: nowrap; }
+
+/* the list tab: Figma's three read paths and its baseline, above the table */
+.cn-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-24); align-content: start; }
+.cn-for { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-width: 14em; color: var(--body); }
+.cn-muted { color: var(--muted); }
+.cn-paths { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-12); }
+.cn-paths li { display: grid; grid-template-columns: minmax(176px, auto) minmax(0, 1fr) auto; gap: var(--s-12); align-items: center; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); }
+.cn-paths .k-pill { justify-self: start; }
+.cn-paths b { color: var(--ink); font-weight: 600; }
+.cn-base { display: grid; gap: var(--s-12); margin-top: var(--s-16); padding-top: var(--s-16); border-top: 1px solid var(--line); }
+.cn-base p { margin: 0; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); }
+.cn-base b { color: var(--ink); font-weight: 600; }
+.cn-more { justify-self: start; }
+.cn-worst { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-8); }
+.cn-worst li { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--body); }
+.cn-score { display: inline-block; min-width: 4ch; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) { .cn-paths li { grid-template-columns: minmax(0, 1fr); } }
+/* a narrow card: tag and Details on one line, the words under them at full width */
+@container kcard (max-width: 560px) {
+  .cn-paths li { grid-template-columns: minmax(0, 1fr) auto; }
+  .cn-paths li > span:not(.k-pill) { grid-column: 1 / -1; grid-row: 2; }
+}

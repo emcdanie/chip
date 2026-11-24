@@ -1,0 +1,73 @@
+// The one config. Secrets and model names come from server/.env; the port
+// default lives here and nowhere else (the bridge talks to the server it was
+// served from, so it never needs to know the port).
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { homedir } from 'node:os';
+import dotenv from 'dotenv';
+import { bellaDir } from '../../scripts/lib/bella-dir.mjs';
+
+export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+dotenv.config({ path: join(ROOT, 'server', '.env'), quiet: true });
+
+const env = process.env;
+// 3100, not 3000: the portfolio's Next dev server owns 3000 (2026-10-03)
+export const PORT = Number(env.PORT || 3100);
+export const OLLAMA_URL = (env.OLLAMA_URL || 'http://localhost:11434').replace(/\/$/, '');
+export const CHIP_MODEL = env.CHIP_MODEL || 'qwen3:8b';
+export const CHIP_EMBED_MODEL = env.CHIP_EMBED_MODEL || 'nomic-embed-text';
+// Speed: keep the model resident, cap the context window, cap retrieved words.
+// Prompt evaluation runs ~210 tokens/s on an M1 Max with qwen3:8b, so time to
+// first word grows with the context sent; CHIP_CONTEXT_WORDS is the main knob.
+export const CHIP_KEEP_ALIVE = env.CHIP_KEEP_ALIVE || '30m';
+export const CHIP_NUM_CTX = Number(env.CHIP_NUM_CTX || 4096);
+export const CHIP_CONTEXT_WORDS = Number(env.CHIP_CONTEXT_WORDS || 450);
+// how many questions a day Auto may send to Claude (manual picks still go through)
+export const CHIP_CLAUDE_DAILY = Number(env.CHIP_CLAUDE_DAILY || 20);
+// the Claude Code binary OBI runs headless
+export const CHIP_CLAUDE_BIN = env.CHIP_CLAUDE_BIN || 'claude';
+
+// chip.config.local.json (gitignored; chip.config.example.json shows the
+// shape). claudeModel: a lighter model than the plan's strongest, so OBI's
+// Claude answers spend less of the plan (Elleta, 2026-10-03).
+const localConfig = (() => {
+  try {
+    return JSON.parse(readFileSync(join(ROOT, 'chip.config.local.json'), 'utf8'));
+  } catch {
+    return {};
+  }
+})();
+export const CHIP_CLAUDE_MODEL = env.CHIP_CLAUDE_MODEL || localConfig.claudeModel || 'sonnet';
+export const NOTION_API_TOKEN = env.NOTION_API_TOKEN || '';
+export const BELLA_DIR = bellaDir();
+
+export const DATA_DIR = join(ROOT, 'data');
+export const NOTION_DIR = join(DATA_DIR, 'notion');
+export const INDEX_FILE = join(DATA_DIR, 'index', 'chunks.json');
+export const BELLA_JSON = join(DATA_DIR, 'bella.json');
+
+// Cowork exports (local only, gitignored): every .md is indexed as
+// "Cowork · <title>"; context-pack.md also opens every local-model prompt.
+export const COWORK_DIR = join(ROOT, 'docs', 'reference', 'cowork');
+export const CONTEXT_PACK = join(COWORK_DIR, 'context-pack.md');
+export const CONTEXT_PACK_MAX_TOKENS = 1500;
+
+// OBI Docs: private markdown notes, outside the public repo. The folder comes
+// from chip.config.local.json ("notesDir"); never committed, never sent to the
+// cloud without the per-session yes.
+function notesDir() {
+  try {
+    const d = JSON.parse(readFileSync(join(ROOT, 'chip.config.local.json'), 'utf8')).notesDir;
+    if (typeof d === 'string' && d) return d.replace(/^~\//, `${homedir()}/`);
+  } catch {}
+  return join(homedir(), 'DEV', 'obi-notes');
+}
+export const NOTES_DIR = notesDir();
+export const INBOX_DIR = join(ROOT, 'docs', 'reference', 'inbox');
+
+/* The environment for any process CHIP starts that may run BELLA's commit hook or its gate. CHIP's own server runs
+   with FORCE_COLOR=1, and NO_COLOR does not beat it: the hook captures a free port with `node -e "console.log(port)"`,
+   which Node then colours, so the gate's `wait-on tcp:127.0.0.1:<port>` got an escape sequence for a port and crashed
+   ("object null is not iterable") before any test ran: every run failed there (22 Nov). Plain text always. */
+export const plainEnv = (extra = {}) => ({ ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', ...extra });

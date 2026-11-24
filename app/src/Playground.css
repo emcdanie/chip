@@ -1,0 +1,103 @@
+/* The Playground (docs/plans/playground.md), in the mock's language: the page
+ * header, a stage on the canvas ground with the live page in a card, the
+ * inspector on the right. Markup is pink (--note: annotations only); the
+ * section outlines take the status colours. Values from kit/tokens.css only. */
+
+.pg-page { container: pg / inline-size; display: grid; gap: var(--s-24); grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.pg-actions { display: flex; flex-wrap: wrap; gap: var(--s-12); align-items: end; }
+.pg-error { margin: 0; padding: var(--s-12) var(--s-16); border: 1px solid var(--fail); border-radius: var(--r); background: color-mix(in srgb, var(--fail) 8%, var(--card)); color: var(--ink); }
+
+.pg-work { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: var(--s-24); align-items: start; min-width: 0; }
+/* the inspector stays beside the page down to 900px, so a component can be dragged across */
+@container pg (max-width: 900px) { .pg-work { grid-template-columns: minmax(0, 1fr); } }
+
+/* the stage */
+.pg-stagecol { display: grid; gap: var(--s-12); min-width: 0; }
+.pg-bar { display: flex; flex-wrap: wrap; gap: var(--s-12) var(--s-16); align-items: center; }
+.pg-src { display: inline-flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; margin-left: auto; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
+.pg-src code, .pg-sub code, .pg-row code, .pg-source code { font: 400 var(--fs-14)/var(--lh-body) var(--typography-font-family-geist-mono); color: var(--ink); }
+.pg-stage { min-width: 0; padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--canvas); }
+.pg-scaled { position: relative; margin: 0 auto; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
+.pg-frame { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.pg-frame iframe { display: block; border: 0; background: var(--card); }
+.pg-cap { margin: 0; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
+
+/* the overlay: invisible to the pointer while she uses the page */
+.pg-over { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.pg-over.drop { pointer-events: auto; }
+.pg-sec { position: absolute; box-sizing: border-box; border: 2px dashed transparent; }
+.pg-sec.on { border-color: color-mix(in srgb, var(--ink) 40%, transparent); }
+.pg-sec.on.k-copy { border-color: var(--needs); }
+.pg-sec.on.k-bella { border-color: var(--pass); }
+.pg-sec.on { background: color-mix(in srgb, var(--action) 6%, transparent); }
+.pg-tag { position: absolute; left: 0; top: 0; padding: var(--s-4) var(--s-8); background: var(--ink); color: var(--card); font: 400 var(--fs-16)/var(--lh-body) var(--typography-font-family-geist-mono); border-radius: 0 0 var(--r) 0; }
+.pg-hit { position: absolute; box-sizing: border-box; outline: 3px solid var(--fail); outline-offset: 2px; background: color-mix(in srgb, var(--fail) 10%, transparent); }
+.pg-pin { position: absolute; left: calc(-1 * var(--s-16)); top: calc(-1 * var(--s-16)); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--note); color: var(--ink); font: 700 var(--fs-16)/1 var(--typography-body-default-font-family); box-shadow: var(--shadow); }
+.pg-pin.static { position: static; flex: none; box-shadow: none; }
+.pg-pin.prop { width: auto; min-width: 32px; padding: 0 var(--s-8); border-radius: var(--r-control); font-size: var(--fs-14); }
+
+/* a placed BELLA component: drawn for real, outlined in the annotation style.
+   Its insides don't take the pointer, so a drag always moves the box */
+.pg-prop { position: absolute; box-sizing: border-box; display: grid; place-items: center; padding: var(--s-8); border: 3px dashed var(--note); border-radius: var(--r); background: color-mix(in srgb, var(--card) 88%, transparent); pointer-events: auto; cursor: grab; touch-action: none; overflow: visible; }
+.pg-prop:active { cursor: grabbing; }
+.pg-prop.on, .pg-prop:focus-visible { border-style: solid; }
+.pg-prop.fail { border-color: var(--fail); }
+.pg-prop .pg-pin { left: calc(-1 * var(--s-12)); top: calc(-1 * var(--s-16)); }
+.pg-prop.fail .pg-pin { background: var(--fail); }
+.pg-prop-b { max-width: 100%; max-height: 100%; overflow: hidden; pointer-events: none; }
+.pg-grip { position: absolute; right: -8px; bottom: -8px; width: 20px; height: 20px; border-radius: 50%; background: var(--note); border: 2px solid var(--card); cursor: nwse-resize; }
+.pg-nospec { font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
+/* a section a placement replaces: hidden in the preview, and labelled */
+.pg-sec.gone { background: var(--canvas); border: 2px dashed var(--note); }
+.pg-gone { position: absolute; right: var(--s-8); bottom: var(--s-8); padding: var(--s-4) var(--s-8); border-radius: var(--r); background: var(--ink); color: var(--card); font: 400 var(--fs-16)/var(--lh-body) var(--typography-font-family-geist-mono); }
+
+/* the inspector */
+.pg-insp { display: grid; gap: var(--s-16); align-content: start; min-width: 0; padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); }
+@container pg (min-width: 901px) { .pg-insp { position: sticky; top: calc(var(--frame-top) + var(--s-16)); max-height: calc(100vh - var(--frame-top) - var(--s-32)); overflow: auto; } }
+.pg-insp > .k-seg { justify-self: start; flex-wrap: nowrap; }
+.pg-insp > .k-seg button { padding: 0 var(--s-12); white-space: nowrap; }
+.pg-panel { display: grid; gap: var(--s-16); min-width: 0; }
+.pg-sub, .pg-key { margin: 0; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
+.pg-key b { color: var(--ink); font-weight: 600; }
+.pg-list { display: grid; gap: var(--s-12); margin: 0; padding: 0; list-style: none; }
+.pg-row { display: grid; gap: var(--s-8); padding: var(--s-12); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
+.pg-row:hover { border-color: var(--action); }
+.pg-row p { margin: 0; }
+.pg-rowhead { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; justify-content: space-between; }
+.pg-rowhead > b { color: var(--ink); font-weight: 600; }
+.pg-comps { display: grid; gap: var(--s-8); margin: 0; padding: 0; list-style: none; }
+.pg-comps li { display: flex; gap: var(--s-12); align-items: center; justify-content: space-between; }
+.pg-cn { display: grid; min-width: 0; }
+.pg-cn b { color: var(--ink); font-weight: 600; }
+.pg-cn small, .pg-where small { font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
+.pg-f.fail { box-shadow: inset 3px 0 0 var(--fail); }
+.pg-f.needs { box-shadow: inset 3px 0 0 var(--needs); }
+.pg-instead b { color: var(--ink); font-weight: 600; }
+.pg-source { font-size: var(--fs-14); color: var(--muted); }
+.pg-where { display: grid; min-width: 0; }
+.pg-empty { display: grid; gap: var(--s-4); padding: var(--s-24) var(--s-16); border: 1px dashed var(--line); border-radius: var(--r); text-align: center; color: var(--body); }
+.pg-empty b { color: var(--ink); }
+.pg-empty p { margin: 0; }
+
+/* a note's purpose: where it sits, the rule there, the suggestion, its actions */
+.pg-where > span { color: var(--ink); }
+.pg-noteacts { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-12); align-items: center; }
+.pg-h { margin: var(--s-8) 0 0; font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
+.pg-propctl { display: flex; flex-wrap: wrap; gap: var(--s-12); }
+.pg-prules { display: grid; gap: var(--s-8); margin: 0; padding: 0; list-style: none; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
+.pg-prules li.fail { padding-left: var(--s-12); box-shadow: inset 3px 0 0 var(--fail); }
+/* the send footer: one button, what it does, the brief it will write */
+
+/* the components list: grouped as the left nav groups them, each one draggable */
+.pg-group { display: grid; gap: var(--s-8); }
+.pg-group h3 { margin: 0; font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--muted); }
+.pg-parts { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.pg-parts li { display: flex; gap: var(--s-12); align-items: center; justify-content: space-between; min-height: 48px; padding: var(--s-4) 0; border-bottom: 1px solid var(--line); cursor: grab; }
+.pg-parts li:hover { background: color-mix(in srgb, var(--action) 6%, var(--card)); }
+.pg-down { display: grid; gap: var(--s-12); justify-items: start; margin-bottom: var(--s-16); padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--ink); font-size: var(--fs-16); line-height: var(--lh-body); }
+.pg-down p { margin: 0; max-width: 70ch; }
+
+/* Skip preview: hidden until a keyboard reaches it, just before the iframe */
+.pg-skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pg-skip:focus { display: inline-flex; align-items: center; justify-self: start; min-height: var(--h-control); padding: 0 var(--s-16); border-radius: var(--r); background: var(--card); color: var(--ink); }
+.pg-insp:focus { outline: none; }

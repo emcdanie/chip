@@ -1,0 +1,558 @@
+/* CHIP / Screen grid (Figma CHIP Dashboard 601:112027). The template's only
+ * CSS: where the published BELLA parts sit, never how they look. Token values
+ * only; no part is restyled here (scripts/on-system-guard.mjs).
+ *
+ * Side menu (SideMenu, her nav C pick, 22 Nov, the Find field at its top) | main column: the page's one
+ * row (menu button, breadcrumb, actions) and its tabs on the surface, no top bar above them (her mark-up,
+ * 23 Nov), and the content on the page ground, with the BELLA container padding (16 on a phone, 32 from 800px) and
+ * the 24 gutter. The side menu stays in view while the content scrolls.
+ *
+ * Below 1024px the side menu steps out so nothing scrolls sideways; the top
+ * row's menu button opens it as a Drawer (a bottom sheet on a phone). */
+
+.chip-screen {
+  display: grid;
+  /* the side menu sets its own width (SideMenu, 232); the main column takes the rest */
+  grid-template-columns: auto minmax(0, 1fr);
+  /* the window never scrolls as a whole page (READ FIRST, 22 Nov): the shell is the window's height and
+     only the content (and the lists and panes inside it) scrolls, so the header, tabs and page actions
+     stay where they are */
+  block-size: 100dvh;
+  background: var(--color-background-default);
+  /* The shell sets its own reading face and ink, so it looks the same in
+     the app and in Storybook (the ⌘ K hint fell back to Times there). */
+  color: var(--color-content-default);
+  font-family: var(--typography-body-default-font-family);
+}
+
+/* the side menu keeps the window's height while the content scrolls */
+.chip-screen__menu {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  block-size: 100dvh;
+}
+/* a Menu that opens under its button, over the page, never pushing it down: the client list under the
+   side menu's switcher, the branch list under Work's Branch button */
+.chip-pop { position: relative; }
+.chip-pop__menu {
+  position: absolute;
+  inset-block-start: calc(100% + var(--spacing-4));
+  inset-inline-start: 0;
+  z-index: 60;
+  /* as wide as its longest item */
+  inline-size: max-content;
+  /* a long menu scrolls inside the window instead of running past its foot */
+  max-block-size: calc(var(--size-60) * 8);
+  overflow-y: auto;
+}
+/* a menu that ends at its button's right edge (the Find field's filter, at the side menu's right) */
+.chip-pop__menu--end { inset-inline-start: auto; inset-inline-end: 0; }
+.chip-screen__logo {
+  /* the logotype closes the menu: the surface and right edge line as the menu's own; its drawn left edge is the rows'
+     icons' left edge, 28 from the menu's edge (her mark-up, 23 Nov, mark 6): the menu's 12 side padding plus the Nav
+     item's own 16 inset, less the 4 of room the logotype's art keeps at its left (measured: box 28 put the ink at 32) */
+  flex: none;
+  display: flex;
+  justify-content: flex-start;
+  padding: var(--spacing-8) var(--spacing-12) var(--spacing-16) calc(var(--spacing-12) + var(--spacing-12));
+  background: var(--color-background-surface);
+  box-shadow: inset calc(-1 * var(--border-width-1)) 0 0 var(--color-border-default);
+}
+/* readable size: 96 wide, 65 tall (the drawn 94 by 64), larger than the 40 tall nav size */
+.chip-screen__logo-mark { inline-size: calc(var(--spacing-80) + var(--spacing-16)); }
+.chip-screen__menu-body { flex: 1 1 0; min-block-size: 0; }
+.chip-screen__menu > .chip-pop__menu { inset-block-start: var(--h-control); inset-inline-start: var(--spacing-12); }
+
+.chip-screen__main {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+.chip-screen__page {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  /* the header is one 56 row; no air above it (23 Nov, page chrome is small) */
+  background: var(--color-background-surface);
+}
+
+.chip-screen__head {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-inline: var(--layout-container-pad);
+}
+
+.chip-screen__menu { order: -1; }
+
+.chip-screen--collapsed { grid-template-columns: minmax(0, 1fr); }
+
+.chip-screen__tabs {
+  /* the tabs' own line runs the whole width of the page column and meets the frame at both edges: the part's root
+     reaches out over the header's side padding and takes it back as its own (Elleta, 23 Nov: "broken lines") */
+  margin-inline: calc(-1 * var(--layout-container-pad));
+  padding-inline: var(--layout-container-pad);
+  max-inline-size: none;
+}
+
+.chip-screen__head--plain {
+  /* a page with no tabs: no line under the row (her mark-up, 23 Nov, mark 4): the surface row meeting the warm
+     page ground is the edge, so the frame stays quiet */
+  padding-block-end: 0;
+}
+
+.chip-screen__content {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--layout-gutter);
+  align-content: start;
+  flex: 1;
+  min-block-size: 0;
+  /* the page's own scroll: everything under the tabs; positioned, so parts' absolute bits (screen-reader
+     labels, progress targets) stay inside it and never stretch the window */
+  position: relative;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* a control focused by keyboard scrolls in with room for its whole focus ring (4 wide, 4 out) */
+  scroll-padding-block: var(--spacing-12);
+  padding: var(--layout-gutter) var(--layout-container-pad);
+  /* 64 of room after the last content, so scrolling can bring it clear of the window's foot (Elleta, 22 Nov: "the
+     padding at the bottom of the page need to be bigger for scrolling"); the cards' own 24 gap is a different thing */
+  padding-block-end: var(--spacing-64);
+  background: var(--color-background-default);
+}
+/* the Work board fills the window to its foot and does not scroll as a page */
+.chip-screen__content:has(> .chip-board) { padding-block-end: var(--layout-gutter); }
+/* ...unless the board is at its minimum height and the page scrolls: then the page's 64 of end room applies (22 Nov rule) */
+.chip-screen__content[data-board-tight]:has(> .chip-board) { padding-block-end: calc(var(--spacing-64) + var(--layout-gutter)); } /* the lanes' own shadow room hangs one gutter below them, so a full 64 shows below the lane */
+
+:is(.chip-screen__content, .chip-tabpanel) > * {
+  grid-column: 1 / -1;
+}
+
+/* Flow (Flow.jsx): the one layout primitive pages use. */
+
+/* The Work board: the window's height from where it starts (Flow sets the
+   block size), sideways scroll when the lanes don't fit, each lane scrolling
+   on its own. Lanes keep at least Figma's lane width, 240 (the panel width
+   less a gutter: BELLA has no lane width token), so a lane name never breaks
+   mid-word and four lanes fit at 1440. */
+.chip-board {
+  position: relative;
+  display: flex;
+  min-inline-size: 0;
+}
+
+.chip-board > .chip-flow--board {
+  flex: 1 1 auto;
+  /* a lane is as tall as its cards, never stretched to the window; a full lane stops at the
+     board's foot and its cards scroll inside it (Elleta, 22 Nov: the lanes looked too big) */
+  align-items: flex-start;
+  /* the foot room below is extra height, so the lanes still end where they did */
+  block-size: calc(100% + var(--layout-gutter));
+  /* room for the end lanes' card shadows inside the sideways scroll: the page's own padding
+     (32, 16 on a phone), given back by the margin so the lanes stay lined up with the header
+     and tabs and the page never scrolls sideways (audit 3, way A, 21 Nov) */
+  padding-inline: var(--layout-container-pad);
+  margin-inline: calc(var(--layout-container-pad) * -1);
+  /* and below the lanes, down to the window's foot: the page's own bottom padding (the
+     gutter), so the board's clip no longer cuts the last card's shadow at the lane's foot
+     (clip-sweep, 21 Nov) and the page never scrolls further */
+  padding-block-end: var(--layout-gutter);
+  margin-block-end: calc(var(--layout-gutter) * -1);
+}
+
+/* the cue at an end with more lanes: a chevron button only. A fade over the lanes washed out the first letters of cards (Elleta, 22 Nov), so the scroller clips at one crisp edge */
+.chip-board__more {
+  position: absolute;
+  inset-block: 0;
+  display: flex;
+  /* inside the lanes' 40 of bottom padding (BoardLane), so never over a card's › or a lane's title,
+     even in the tallest lane (audit 21 Nov: 16 up, a 32 arrow reached 8 into the last card) */
+  align-items: flex-end;
+  padding-block-end: var(--spacing-4);
+  inline-size: var(--spacing-48);
+  pointer-events: none;
+}
+
+.chip-board__more > * { pointer-events: auto; }
+
+.chip-board__more--start {
+  inset-inline-start: 0;
+  justify-content: flex-start;
+}
+
+.chip-board__more--end {
+  inset-inline-end: 0;
+  justify-content: flex-end;
+}
+
+.chip-flow--board {
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+  align-items: stretch;
+  overscroll-behavior-x: contain;
+  position: relative; /* so the parts' screen-reader-only labels stay inside the scroll box */
+}
+
+/* Lanes span whole columns of the CHIP / Screen grid (visual study, 22 Nov,
+   approved: "ok i approve"): 3 columns each where the content is 1000 or
+   wider (all four in view at 1440), 6 below that (two in view at 1100, the
+   board scrolls by two, 1024 included), 12 under 500 (one lane, the phone). The width is the
+   board's layout, not the lane part's: 100cqi is the chip-content grid's
+   width, and the board's gap is the grid's gutter, so every lane edge sits on
+   a column edge. The board selector outranks the lane part's min-inline-size: 0. */
+.chip-board > .chip-flow--board > * {
+  /* 6 columns: half the grid less half a gutter */
+  flex: 0 0 calc((100cqi - 11 * var(--layout-gutter)) / 2 + 5 * var(--layout-gutter));
+  min-inline-size: calc((100cqi - 11 * var(--layout-gutter)) / 2 + 5 * var(--layout-gutter));
+  min-block-size: 0;
+  max-block-size: 100%;
+  /* no scroll of its own: BoardLane's card list scrolls, so the lane head stays put
+     and the lane never cuts its cards' shadows (audit 3, way A) */
+  position: relative;
+}
+@container chip-content (width >= 1000px) {
+  /* 3 columns */
+  .chip-board > .chip-flow--board > * {
+    flex-basis: calc((100cqi - 11 * var(--layout-gutter)) / 4 + 2 * var(--layout-gutter));
+    min-inline-size: calc((100cqi - 11 * var(--layout-gutter)) / 4 + 2 * var(--layout-gutter));
+  }
+}
+@container chip-content (width < 500px) {
+  /* 12 columns: the whole grid, where 6 would be under 240 (a phone) */
+  .chip-board > .chip-flow--board > * {
+    flex-basis: 100cqi;
+    min-inline-size: 100cqi;
+  }
+}
+.chip-flow {
+  display: flex;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* content in a Drawer body: 16 in, so it shares the Drawer title's 24 edge (Drawer body 8 + 16) */
+.chip-flow--inset { padding-inline: var(--spacing-16); }
+
+.chip-flow--column { flex-direction: column; }
+/* the marker on the text's left edge, the words 12 in (Figma Flow 12 Agent notes; her chat mock) */
+.chip-flow--bullets { list-style: disc; padding-inline-start: var(--spacing-12); }
+.chip-flow--bullets > li { display: list-item; }
+/* a word and the pins after it stay on one line (useAsk Words): a pin never starts a line */
+.chip-hold { white-space: nowrap; }
+.chip-flow--row { flex-direction: row; }
+.chip-flow--wrap { flex-wrap: wrap; }
+/* swipe (23 Nov evening, the Gaps drawer at 320: three chips stacked as three rows and pushed the table down): one
+   row that scrolls sideways instead of wrapping; 4 of padding, taken back by the margin, so a chip's focus ring is not
+   cut by the scroll box's edge */
+.chip-flow--swipe {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  padding: var(--spacing-4);
+  margin: calc(var(--spacing-4) * -1);
+  scroll-padding-inline: var(--spacing-4);
+}
+.chip-flow--swipe > * { flex: none; }
+.chip-flow--fill > * { flex: 1 1 auto; }
+/* cards: one grid, so the cards of a row share its height and their parts line up across it (the cards' own
+   bodies start at the top and their footers sit on the bottom edge, BELLA); an odd last card takes the row */
+.chip-flow--cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+.chip-flow--bento { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* the first card is two rows tall and the last takes a whole row, so every row spans the same width */
+.chip-flow--bento > :first-child { grid-row: span 2; }
+.chip-flow--bento > :last-child:nth-child(even) { grid-column: 1 / -1; }
+.chip-flow--head { min-block-size: var(--size-28); }
+.chip-flow--cards > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+/* fit (Flow.jsx): the 12 columns again, filling the window from where it starts (Flow sets the block
+   size); each column keeps the window's height and its card scrolls inside it */
+.chip-flow--fit {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--layout-gutter);
+  align-items: stretch;
+  min-block-size: 0;
+}
+.chip-flow--fit > .chip-span-12 { grid-column: 1 / -1; }
+.chip-flow--fit > .chip-span-5 { grid-column: span 5; }
+.chip-flow--fit > .chip-span-7 { grid-column: span 7; }
+.chip-flow--fit > * { min-block-size: 0; }
+.chip-flow--fit > * > * { flex: 1 1 0; min-block-size: 0; }
+/* stays put at the top of its scroll box (Flow sticky): a walk-through step over the code it explains */
+.chip-flow--sticky {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+}
+/* a column that scrolls on its own: its height comes from its frame, never from its content, and 8 of
+   room inside so focus rings and selected rows are never cut at the edge */
+.chip-flow--scroll {
+  flex: 1 1 0;
+  block-size: 0;
+  min-block-size: 0;
+  overflow-y: auto;
+  /* auto, not contain (Elleta, 22 Nov: scrolling a card to its end stopped and the page would not move): at its end the
+     scroll passes to the page, as the web's own rule for a scroll box inside a page; only drawers and the Work panel contain */
+  overscroll-behavior: auto;
+  scroll-padding-block: var(--spacing-12);
+  /* 8 for focus rings, then 64 of room after the last content (Elleta, 22 Nov) */
+  padding: var(--spacing-8);
+  padding-block-end: calc(var(--spacing-8) + var(--spacing-64));
+  margin: calc(var(--spacing-8) * -1);
+}
+/* the container's full width, even inside one that centres its child (Stage) */
+.chip-flow--stretch { inline-size: 100%; }
+/* a side column of a set width beside a growing first child (the part card beside the stage) */
+.chip-flow--aside { flex: 0 0 calc(var(--spacing-40) * 6); min-inline-size: 0; }
+/* equal shares a row; a stacked (column) Flow keeps each child its own height, or rows collapse and overlap on a phone */
+.chip-flow--row.chip-flow--equal > * { flex: 1 1 0; min-inline-size: 0; }
+.chip-flow--grow-first > :first-child,
+.chip-flow--grow-last > :last-child { flex: 1 1 auto; min-inline-size: 0; }
+.chip-flow--between { justify-content: space-between; }
+.chip-flow--end { justify-content: flex-end; }
+.chip-flow--center-items { align-items: center; }
+.chip-flow--start-items { align-items: flex-start; }
+.chip-flow--end-items { align-items: flex-end; }
+.chip-flow--gap-0 { gap: 0; }
+.chip-flow--gap-4 { gap: var(--spacing-4); }
+.chip-flow--gap-8 { gap: var(--spacing-8); }
+.chip-flow--gap-12 { gap: var(--spacing-12); }
+.chip-flow--gap-16 { gap: var(--spacing-16); }
+.chip-flow--gap-24 { gap: var(--spacing-24); }
+
+/* Spans reflow by the content's own width (a container query), not the
+   window's: with the panel open, a 1100 window leaves about 700 of content
+   (Elleta, 20 Nov, at her real width: "did you put the breakpoints in").
+   Third-width groups: three across from 1000, two across from 640, one below.
+   Halves (span 6): side by side from 640. History's 5 / 7: side by side from
+   800, so its steps keep room. */
+.chip-screen__content { container: chip-content / inline-size; }
+/* a tab's panel (Tabs' aria-controls lands on it) that leaves the page grid as it is */
+.chip-tabpanel { display: contents; }
+
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-8 { grid-column: span 8; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-7 { grid-column: span 7; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-6 { grid-column: span 6; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-5 { grid-column: span 5; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 { grid-column: span 4; }
+/* a main card with a side column (Components' History | Ask and Checks, Figma 690:491763): 7 / 5 */
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-8:has(+ .chip-span-4) { grid-column: span 7; }
+:is(.chip-screen__content, .chip-tabpanel) > .chip-span-8 + .chip-span-4 { grid-column: span 5; }
+
+@container chip-content (width < 1000px) {
+  .chip-flow--bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chip-flow--bento > :first-child { grid-row: auto; grid-column: 1 / -1; }
+  /* a third-width card beside a card grid (Health: System health | the five figures) shares the row's width, one above the other */
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4:has(+ .chip-span-8),
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 + .chip-span-8 { grid-column: 1 / -1; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 { grid-column: span 6; }
+  /* History's list and record share the row in halves, so the list's titles never break mid-word (1100: "Component s") */
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-5,
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-7,
+  .chip-flow--fit > .chip-span-5,
+  .chip-flow--fit > .chip-span-7 { grid-column: span 6; }
+  /* the third of three third-width groups takes the row and lays its cards side by side */
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; flex-direction: row; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) > * { flex: 1 1 0; min-inline-size: 0; }
+}
+
+@container chip-content (width < 800px) {
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8:not(:has(+ .chip-span-4)) { grid-column: 1 / -1; }
+  /* a main card and its side column share the row in halves, so the side column's rows keep their words and › on one line (21 Nov: Components' Checks was 213 wide at 800) */
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8:has(+ .chip-span-4),
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8 + .chip-span-4 { grid-column: span 6; }
+}
+
+@container chip-content (width < 640px) {
+  .chip-flow--cards, .chip-flow--bento { grid-template-columns: minmax(0, 1fr); }
+  /* the main card and its side column stack only on phones (coordinator, 20 Nov: the bento from 1100 up) */
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8:has(+ .chip-span-4),
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-8 + .chip-span-4 { grid-column: 1 / -1; }
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-6,
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 { grid-column: 1 / -1; }
+  /* History's list and record (5 / 7) stay side by side down to a phone, so the record you pick opens beside it at 1100 (audit 9) */
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-7,
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-5 { grid-column: 1 / -1; }
+  /* as specific as the row rule above, or it loses and a phone gets two 160 wide cards side by side (21 Nov: Health scrolled 18 sideways at 375) */
+  :is(.chip-screen__content, .chip-tabpanel) > .chip-span-4 + .chip-span-4 + .chip-span-4:not(:has(+ .chip-span-4)) { flex-direction: column; }
+}
+
+@media (width < 1024px) {
+  /* the side menu steps out behind the top bar's Menu button (Screen.jsx) */
+  .chip-screen { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Toasts (Toasts.jsx): bottom right, above the page, 24 from the edges, stacked 8 apart */
+.chip-toasts {
+  /* a manual popover (Toasts.jsx): the browser's popover box reset, our place kept */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  inset: auto;
+  position: fixed;
+  /* top centre of the work area, just under the top bar, in one place on every page (Work board
+     6b, her pick 22 Nov): it clears the board's scroll button, the last lane and the Work panel.
+     Toasts.jsx moves it to the measured work area; until then, the window's top centre. */
+  inset-block-start: var(--layout-gutter);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  inline-size: calc(var(--size-60) * 6);
+  max-inline-size: calc(100% - 2 * var(--layout-gutter)); /* a fixed box's % is the window */
+}
+
+/* The Find field's results (Search.jsx), at the side menu's top: under the field, over the page, as wide as a toast
+   (360) so names keep their words; in the menu's Drawer (below 1024) the list sits under the field in the drawer.
+   BELLA has no popover for SearchField yet (named gap); the Card is BELLA's. */
+.chip-screen__search { position: relative; inline-size: 100%; }
+.chip-screen__search-results {
+  position: absolute;
+  /* the list scrolls inside the window, never past its foot; the 12 of padding keeps the
+     Card's shadow inside the scroll box (never clip a shadow), the offsets keep the Card where it was */
+  inset-block-start: calc(100% + var(--spacing-8) - var(--spacing-12));
+  inset-inline-start: calc(-1 * var(--spacing-12));
+  inline-size: calc(var(--size-60) * 6);
+  padding: var(--spacing-12);
+  z-index: 50;
+  max-block-size: calc(100dvh - var(--size-60) * 2);
+  overflow-y: auto;
+}
+.chip-screen__search-results--inline {
+  position: static;
+  inline-size: auto;
+  max-block-size: none;
+  overflow: visible;
+  padding: var(--spacing-8) 0 0;
+}
+
+/* The start of the app (app/index.html): the frame's outline until the app and its fonts are ready. Nothing shows for
+   the first second (BELLA Progress: under 1 second, show nothing), then the menu column, the top row and two content
+   blocks in the page's own colours, never text in a fallback font (Elleta, 23 Nov evening). */
+.chip-boot {
+  display: grid;
+  grid-template-columns: calc(var(--spacing-80) * 3 - var(--spacing-8)) minmax(0, 1fr);
+  block-size: 100dvh;
+  opacity: 0;
+  animation: chip-boot-in 0s linear 1s forwards;
+}
+@keyframes chip-boot-in { to { opacity: 1; } }
+.chip-boot__menu {
+  background: var(--color-background-surface);
+  box-shadow: inset calc(-1 * var(--border-width-1)) 0 0 var(--color-border-default);
+}
+.chip-boot__main {
+  display: grid;
+  grid-template-rows: calc(var(--size-28) * 2) var(--spacing-80) minmax(0, 1fr);
+  gap: var(--layout-gutter);
+  padding-block-end: var(--layout-gutter);
+}
+.chip-boot__row { background: var(--color-background-surface); margin-block-end: calc(-1 * var(--layout-gutter)); }
+.chip-boot__block {
+  margin-inline: var(--layout-container-pad);
+  border-radius: var(--border-radius-20);
+  background: var(--color-background-subtle);
+}
+@media (width < 1024px) {
+  .chip-boot { grid-template-columns: minmax(0, 1fr); }
+  .chip-boot__menu { display: none; }
+}
+
+/* Flow grid: the CHIP / Screen 12 columns inside a block, so its parts sit on the page's columns (visual study, 22 Nov,
+   approved: "every block's edge on a column"); a child says how many columns it takes with style gridColumn 'span n'. */
+.chip-flow.chip-flow--grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--layout-gutter);
+  align-items: start;
+}
+
+/* Flow strip: a row of cards you pick from (Playground picks, Needs you; Workbench A, 23 Nov 2026; her note at 22:00:
+   "tighter", "use the card grid"). One grid row of equal cards that scrolls sideways and snaps; each card takes whole
+   columns of the page grid with the gutter between them (3 columns from a 1000 content width, 4 below, 10 on a phone,
+   so the next card peeks), as the Work board's lanes do. Three shared rows (title, line, status) that every item takes
+   through subgrid, so all cards are one height and each part sits at one height across the row, the status pinned to
+   the foot (TaskCard use="pick"). 16 of room inside so the cards' shadows, the selected outline and focus rings are
+   never cut; the negative margin keeps the first card on the grid's first column. */
+.chip-flow.chip-flow--strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100cqi - 11 * var(--layout-gutter)) / 3 + 3 * var(--layout-gutter));
+  grid-template-rows: auto auto 1fr;
+  column-gap: var(--layout-gutter);
+  row-gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--spacing-16);
+  padding: var(--spacing-16);
+  margin: calc(var(--spacing-16) * -1);
+  position: relative;
+}
+.chip-flow--strip > * {
+  grid-row: span 3;
+  display: grid;
+  grid-template-rows: subgrid;
+  min-inline-size: 0;
+  scroll-snap-align: start;
+}
+@container chip-content (width >= 1000px) {
+  .chip-flow.chip-flow--strip { grid-auto-columns: calc((100cqi - 11 * var(--layout-gutter)) / 4 + 2 * var(--layout-gutter)); }
+}
+@container chip-content (width < 500px) {
+  .chip-flow.chip-flow--strip { grid-auto-columns: calc((100cqi - 11 * var(--layout-gutter)) / 12 * 10 + 9 * var(--layout-gutter)); }
+}
+
+/* Glide (interaction study, 23 Nov): while a column comes or goes (glide() in Screen.jsx), the parts that move are
+   named for the browser's view transition, and only then. The column slides out to the left in 200ms or in from the
+   left in 250ms; the rest slides across to its new place in 250ms; all on the standard ease. The rest keeps its own
+   size while it moves (never stretched), so its words don't warp on the way. Reduced motion never gets here. */
+.chip-gliding-menu .chip-screen__menu { view-transition-name: chip-menu; }
+.chip-gliding-menu .chip-screen__main { view-transition-name: chip-main; }
+::view-transition-group(*) {
+  animation-duration: var(--motion-duration-250);
+  animation-timing-function: var(--motion-easing-standard);
+}
+/* a column gliding moves only its named parts; the rest of the window holds still */
+:root.chip-gliding-menu::view-transition-old(root),
+:root.chip-gliding-menu::view-transition-new(root) { animation: none; }
+/* a list that opens or closes in a drawer: each block of the drawer is its own picture, so the list grows into its
+   new size while the blocks under it slide down (or up) to their place, instead of jumping (interaction study: 0.016) */
+.chip-gliding-grow dialog[open] [data-glide='rows'] > * { view-transition-name: match-element; view-transition-group: nearest; }
+/* ...and they show only inside the drawer's scrolling body, never over its header or its pinned footer */
+.chip-gliding-grow dialog[open] [role='region']:has([data-glide='rows']) { view-transition-name: chip-drawer-body; }
+::view-transition-group(chip-drawer-body) { overflow: clip; }
+/* each moving column shows only inside its own box on the way, so it never slides over its neighbour */
+::view-transition-group(chip-main) { overflow: clip; }
+/* the rest is shown in its new layout from the first frame and only slides: no cross-fade, so no double image */
+::view-transition-new(chip-main) {
+  inline-size: auto;
+  block-size: 100%;
+  object-fit: none;
+  object-position: left top;
+  animation: none;
+}
+::view-transition-old(chip-main) { animation: none; opacity: 0; }
+::view-transition-old(chip-menu) { animation: chip-glide-out var(--motion-duration-200) var(--motion-easing-standard) both; }
+::view-transition-new(chip-menu) { animation: chip-glide-in var(--motion-duration-250) var(--motion-easing-standard) both; }
+@keyframes chip-glide-out { to { transform: translateX(-100%); opacity: 0; } }
+@keyframes chip-glide-in { from { transform: translateX(-100%); opacity: 0; } }

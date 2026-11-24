@@ -1,0 +1,225 @@
+/* CHIP's shared pieces, ported rule for rule from the approved mock
+ * (chip-mock-03). Every class has a k- prefix so the pages built before the
+ * mock keep their own .chips, .sheet and .empty until they are rebuilt; after
+ * the prefix, each name is the mock's (k-dt is the mock's .dt, k-card its
+ * .wx-card, k-seg its .iconseg, k-pill its .pillk, k-head its .chead). Values
+ * come from tokens.css only. */
+
+/* page frame: the mock's .main and .content */
+.k-main { display: grid; gap: var(--s-32); padding: var(--s-32) var(--gutter) var(--s-48); grid-template-columns: minmax(0, 1fr); min-width: 0; margin-inline: auto; width: 100%; max-width: 1240px; }
+.k-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.k-sub { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-h3 { margin: 0; font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
+.k-main code, .k-sheet code { font-family: var(--code); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
+
+/* page header (the mock's .chead, .meta, h1, .lede) */
+.k-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--s-12) var(--s-24); }
+.k-head > div:first-child { flex: 1 1 420px; }
+.k-head-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-8); align-items: center; padding-top: var(--s-8); margin-left: auto; }
+.k-meta { margin: 0; color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-meta b { color: var(--ink); font-weight: 600; }
+.k-meta + .k-h1, .k-meta + .k-tline { margin-top: var(--s-12); }
+.k-tline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8) var(--s-16); }
+.k-h1 { margin: 0; font: 400 var(--fs-40)/var(--lh-head) var(--display); color: var(--ink); }
+.k-h1:focus { outline: none; }
+.k-lede { margin: var(--s-8) 0 0; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--body); max-width: 34em; }
+
+/* disclosure toggle (Columns, Filters): the quiet button's look on a native
+   button, because it carries aria-expanded. Every other button is BELLA's. */
+.k-toggle { display: inline-flex; align-items: center; gap: var(--s-8); min-height: var(--h-control); padding: 0 var(--s-16); border-radius: var(--r-control); border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; cursor: pointer; }
+.k-toggle:hover, .k-toggle[aria-expanded='true'] { background: color-mix(in srgb, var(--action) 8%, var(--card)); border-color: var(--action); }
+/* overflow: the ⋯ button and its panel */
+.k-ovf { position: relative; display: inline-flex; }
+.k-ovf-btn.icon { justify-content: center; width: var(--h-control); padding: 0; font-size: var(--fs-20); }
+.k-ovf-p { position: absolute; top: calc(100% + var(--s-4)); z-index: 30; display: grid; gap: var(--s-12); min-width: max-content; padding: var(--s-12); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); }
+.k-ovf-p.end { right: 0; }
+.k-ovf-p.start { left: 0; }
+.k-ovf-p { justify-items: start; }
+.k-ovf-p > b { font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
+.k-link { border: 0; background: none; padding: var(--s-8) var(--s-4); min-height: 32px; font: 400 var(--fs-14)/var(--lh-body) var(--sans); text-decoration: underline; text-underline-offset: 3px; color: var(--ink); cursor: pointer; }
+.k-iconbtn { display: inline-flex; align-items: center; gap: var(--s-8); height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; cursor: pointer; }
+.k-iconbtn:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+
+/* the status tag, one look in four states: ink text on every fill, sans; the mark says it without colour */
+.k-pill { display: inline-flex; align-items: center; gap: var(--s-4); width: fit-content; padding: 0 var(--s-8); border-radius: var(--r); background: var(--neutral); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); white-space: nowrap; }
+.k-pill.pass { background: color-mix(in srgb, var(--pass) 24%, var(--card)); }
+.k-pill.fail { background: color-mix(in srgb, var(--fail) 22%, var(--card)); }
+.k-pill.needs { background: color-mix(in srgb, var(--needs) 30%, var(--card)); }
+
+/* filter chips */
+.k-chips { display: flex; flex-wrap: wrap; gap: var(--s-8); }
+.k-chip { display: inline-flex; align-items: center; gap: var(--s-8); min-height: var(--size-32); margin: var(--s-8) 0; padding: 0 var(--s-16); border-radius: var(--r-control); border: 1px solid var(--line); background: var(--card); color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
+.k-chip[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--card); }
+.k-chip .n { font-family: var(--typography-number-font-family); font-weight: 400; font-variant-numeric: tabular-nums; color: var(--muted); }
+.k-chip[aria-pressed='true'] .n { color: color-mix(in srgb, var(--card) 85%, transparent); }
+
+/* segmented control (the mock's .iconseg): a tablist; top right in a card head */
+.k-seg { display: inline-flex; flex-wrap: wrap; gap: var(--s-4); padding: var(--s-4); border-radius: var(--r-control); flex: none; background: color-mix(in srgb, var(--ink) 6%, var(--card)); }
+.k-seg button { display: inline-flex; align-items: center; gap: var(--s-8); height: var(--h-compact); padding: 0 var(--s-16); border: 0; border-radius: var(--r-control); background: transparent; color: var(--ink); font: 600 var(--fs-14)/var(--lh-body) var(--sans); cursor: pointer; }
+.k-seg button:is([aria-selected='true'], [aria-checked='true']) { background: var(--card); box-shadow: var(--shadow); }
+.k-seg button:focus-visible { outline-offset: -3px; }
+.k-seg svg { width: 20px; height: 20px; }
+.k-seg svg :is(rect, path) { fill: none; stroke: currentColor; stroke-width: 2; }
+
+/* card with head (the mock's .wx-card): the head is title left, control right,
+   and stacks only when the card itself is narrow */
+.k-card { container: kcard / inline-size; background: var(--card); border: 1px solid var(--line); padding: var(--s-24); overflow: hidden; border-radius: var(--r); }
+.k-card-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--s-16); margin-bottom: var(--s-16); }
+.k-card-head > :last-child:not(:first-child) { justify-self: end; }
+.k-card-t { margin: 0; font: 600 var(--fs-20)/var(--lh-head) var(--sans); color: var(--ink); }
+.k-card-s { margin: var(--s-4) 0 0; color: var(--ink); }
+@container kcard (max-width: 560px) {
+  .k-card-head { grid-template-columns: minmax(0, 1fr); }
+  .k-card-head > :last-child:not(:first-child) { justify-self: start; }
+}
+
+/* data table: toolbar, then a table that scrolls inside itself */
+.k-tbar { display: flex; flex-wrap: wrap; gap: var(--s-12) var(--s-16); align-items: center; margin-bottom: var(--s-12); }
+.k-tbar .k-chips { margin: 0; }
+@container kdt (max-width: 760px) {
+  .k-tbar .k-search { flex: 1 1 0; min-width: 0; }
+  .k-tbar .k-search { order: -3; }
+  .k-tbar .k-count { order: -2; margin-left: 0; }
+  .k-tbar .k-cols { order: -1; }
+}
+/* a phone: the filter takes its own row so its words show whole; Columns stays at the right */
+@container kdt (max-width: 480px) {
+  .k-tbar .k-search { flex-basis: 100%; }
+  .k-tbar .k-cols { margin-left: auto; }
+}
+.k-search { display: flex; align-items: center; gap: var(--s-8); min-width: min(320px, 100%); min-height: var(--h-control); margin: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-search input { flex: 1; min-width: 0; min-height: var(--h-control); border: 0; border-radius: var(--r); background: transparent; padding: 0 var(--s-16); font: 400 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
+.k-count { margin-left: auto; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-cols { position: relative; }
+.k-cols .n { font: 400 var(--fs-14)/var(--lh-body) var(--typography-number-font-family); color: var(--muted); }
+.k-colsp { position: absolute; z-index: 6; left: 0; top: calc(100% + 4px); min-width: 220px; display: grid; padding: var(--s-12) var(--s-16); background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
+.k-colsp .k-chk { min-height: var(--h-compact); font-size: var(--fs-14); }
+.k-colsp .k-link { justify-self: start; min-height: var(--h-compact); }
+.k-chk { display: inline-flex; gap: var(--s-12); align-items: center; min-height: var(--h-control); color: var(--ink); cursor: pointer; }
+.k-chk .n { margin-left: auto; font-family: var(--typography-number-font-family); color: var(--muted); font-size: var(--fs-14); }
+/* checkbox: its edge is muted, not --line, so the box itself holds 3:1 */
+.k-chk input { appearance: none; display: inline-grid; place-content: center; flex: none; width: 20px; height: 20px; margin: 0; border: 1px solid var(--muted); border-radius: var(--r); background: var(--card); cursor: pointer; }
+.k-chk input::before { content: ''; width: 10px; height: 5px; margin-top: -3px; border: solid var(--ink); border-width: 0 0 2px 2px; transform: rotate(-45deg); opacity: 0; }
+.k-chk input:checked { background: var(--action); border-color: var(--action); }
+.k-chk input:checked::before { opacity: 1; }
+
+.k-dt { max-height: min(640px, 70vh); overflow: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); overscroll-behavior: auto; }
+.k-dt table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-dt th { position: sticky; top: 0; z-index: 1; padding: 0; border-bottom: 1px solid var(--line); background: var(--card); text-align: left; white-space: nowrap; }
+.k-dt th > span, .k-dt th button { display: flex; align-items: center; gap: var(--s-8); width: 100%; min-height: var(--h-control); padding: 0 var(--s-16); border: 0; background: none; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); text-align: left; }
+.k-dt th button { cursor: pointer; }
+.k-dt th button:focus-visible { outline-offset: -3px; }
+.k-dt th svg { width: var(--icon); height: var(--icon); flex: none; color: var(--muted); }
+.k-dt th[aria-sort='ascending'] svg, .k-dt th[aria-sort='descending'] svg { color: var(--sort-on); }
+.k-dt td { padding: var(--s-8) var(--s-16); border-bottom: 1px solid var(--line); vertical-align: middle; color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-dt td:first-child { position: sticky; left: 0; background: var(--card); border-right: 1px solid var(--line); }
+.k-dt th:first-child { left: 0; z-index: 2; }
+/* an action column sticks to the right edge, so it is never scrolled away */
+.k-dt .k-pin { position: sticky; right: 0; background: var(--card); }
+.k-dt th.k-pin { z-index: 2; }
+/* the scroll edge: a shadow beside the sticky column on the side with more table */
+.k-dt.k-ovl :is(td, th):first-child { box-shadow: var(--s-8) 0 var(--s-8) calc(-1 * var(--s-4)) var(--edge); }
+.k-dt.k-ovr :is(td, th).k-pin { box-shadow: calc(-1 * var(--s-8)) 0 var(--s-8) calc(-1 * var(--s-4)) var(--edge); }
+.k-dt.k-ovr:not(:has(.k-pin)) { box-shadow: inset calc(-1 * var(--s-12)) 0 var(--s-12) calc(-1 * var(--s-8)) var(--edge); }
+/* column priority: the table drops its least needed columns before it scrolls */
+.k-dtwrap { container: kdt / inline-size; }
+@container kdt (max-width: 760px) { .k-dt [data-prio='3'] { display: none; } }
+@container kdt (max-width: 560px) { .k-dt [data-prio='2'] { display: none; } }
+.k-dt tbody tr:last-child td { border-bottom: 0; }
+.k-dt tbody tr:hover td { background: color-mix(in srgb, var(--action) 7%, var(--card)); }
+.k-dt tbody tr:hover td:first-child { background: color-mix(in srgb, var(--action) 5%, var(--card)); }
+.k-dt .k-end { text-align: right; width: 1%; white-space: nowrap; }
+.k-dt th.k-end > span { justify-content: flex-end; }
+.k-dt .k-empty { padding: var(--s-24) var(--s-16); color: var(--muted); }
+.k-dt tr.k-rowlink { cursor: pointer; }
+.k-rowbtn { min-height: 28px; padding: 0; border: 0; background: none; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); text-decoration: underline; text-underline-offset: 3px; text-align: left; cursor: pointer; }
+/* a short label ("git", "16") still gets a 24px target; a count in an end column gets a full one */
+.k-rowbtn { min-width: var(--s-24); }
+.k-dt .k-end .k-rowbtn { font-family: var(--typography-number-font-family); min-width: var(--h-control); min-height: var(--h-compact); text-align: right; }
+
+/* side sheet: one modal for every "select it to see more"; Esc closes, focus returns */
+.k-sheet { margin: 0 0 0 auto; width: min(560px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; padding: 0; border: 0; border-left: 1px solid var(--line); background: var(--card); color: var(--body); overflow: hidden; }
+.k-sheet::backdrop { background: var(--scrim); }
+.k-sheet[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+.k-sheet-h { position: sticky; top: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-12); padding: var(--s-24) var(--s-16) var(--s-16) var(--s-32); border-bottom: 1px solid var(--line); background: var(--card); }
+.k-sheet-t { display: grid; gap: var(--s-4); min-width: 0; }
+.k-sheet-k { margin: 0; color: var(--muted); font: 600 var(--fs-14)/var(--lh-body) var(--sans); }
+.k-sheet-h h2 { margin: 0; font: 600 var(--fs-20)/var(--lh-head) var(--sans); color: var(--ink); overflow-wrap: anywhere; }
+.k-sheet-h h2:focus { outline: none; }
+.k-sheet-h .k-iconbtn { margin-top: calc(-1 * var(--s-4)); flex: none; }
+.k-sheet-b { display: grid; gap: var(--s-16); align-content: start; min-width: 0; padding: var(--s-24) var(--s-32) var(--s-48); overflow: auto; overscroll-behavior: contain; font-size: var(--fs-16); line-height: var(--lh-body); }
+.k-sheet-b > * { min-width: 0; }
+.k-sheet-b p { margin: 0; }
+.k-sheet-b h3 { margin: 0; font: 600 var(--fs-16)/var(--lh-body) var(--sans); color: var(--ink); }
+.k-sheet-b dl { margin: 0; display: grid; grid-template-columns: minmax(96px, auto) minmax(0, 1fr); gap: var(--s-8) var(--s-16); }
+.k-sheet-b dt { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-sheet-b dd { margin: 0; min-width: 0; color: var(--ink); font-size: var(--fs-14); line-height: var(--lh-body); overflow-wrap: anywhere; }
+.k-sheet-b pre { margin: 0; padding: var(--s-16); border-radius: var(--r); background: var(--code-ground); color: var(--code-ink); font: 400 var(--fs-14)/var(--lh-body) var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
+.k-sheet-b code { overflow-wrap: anywhere; }
+/* lists of named rows inside a sheet (the mock's ul.plain), for every caller */
+.k-sheet-b :is(ul.plain, ul.sheet-list) { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.k-sheet-b :is(ul.plain, ul.sheet-list) > li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--s-4) var(--s-12); min-height: 44px; padding: var(--s-8) 0; border-bottom: 1px solid var(--line); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
+.k-sheet-f { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-12); padding: var(--s-16) var(--s-32) var(--s-24); border-top: 1px solid var(--line); background: var(--card); }
+
+/* the parts of an explaining sheet: what, state, why, what to do */
+.k-part { display: grid; gap: var(--s-12); min-width: 0; }
+.k-part + .k-part { padding-top: var(--s-24); border-top: 1px solid var(--line); }
+.k-sheet-b:has(> .k-part) { gap: var(--s-24); }
+.k-part-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-8) var(--s-12); }
+.k-sheet-b .k-part-h h3 { color: var(--muted); font: 600 var(--fs-14)/var(--lh-body) var(--sans); }
+.k-part > p, .k-part li { color: var(--body); }
+:where(.k-part) :where(ol, ul) { display: grid; gap: var(--s-8); margin: 0; padding-left: var(--s-24); }
+.k-part-src { display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-8); align-items: baseline; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-part-src > span:first-child { font-weight: 600; color: var(--ink); }
+/* the recommended fix: the one highlighted part */
+.k-part-fix { padding: var(--s-16) var(--s-24) var(--s-24); border-radius: var(--r); background: var(--sel); box-shadow: inset 0 0 0 var(--border-width-1) var(--action); }
+.k-part + .k-part-fix { margin-top: 0; padding-top: var(--s-16); border-top: 0; }
+.k-sheet-b .k-part-fix .k-part-h h3 { color: var(--ink); }
+.k-part-fix > p { color: var(--ink); }
+/* the evidence: label and value rows on hairlines */
+.k-sheet-b dl.k-facts { gap: 0; border-top: 1px solid var(--line); }
+.k-facts > :is(dt, dd) { padding: var(--s-8) 0; border-bottom: 1px solid var(--line); }
+.k-facts > dt { padding-right: var(--s-16); }
+.k-nm { color: var(--muted); font-style: italic; }
+/* what each button changes and how to undo it: the last part of the body */
+.k-terms dd { display: grid; gap: var(--s-4); color: var(--body); }
+.k-terms dt { color: var(--ink); font-weight: 600; }
+.k-terms b { font-weight: 600; color: var(--ink); }
+.k-facts > :is(dt, dd):nth-last-child(-n + 2) { border-bottom: 0; }
+
+/* drawer: the same sheet, holding filters (the mock's .hdrawer) */
+.k-drawer .k-sheet-b { gap: var(--s-24); }
+.k-drawer fieldset { display: grid; margin: 0; padding: 0; border: 0; }
+.k-drawer legend { padding: 0; font: 600 var(--fs-14)/var(--lh-body) var(--sans); color: var(--ink); }
+.k-drawer .k-chk { min-height: 40px; font-size: var(--fs-16); }
+
+/* a list of named rows with a status on the right (the mock's .cklist) */
+.k-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.k-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-4) var(--s-16); padding: var(--s-12) 0; font-size: var(--fs-16); line-height: var(--lh-body); color: var(--ink); }
+.k-list li + li { border-top: 1px solid var(--line); }
+
+/* a status line under the page title (the mock's .note) */
+.k-note { margin: 0; padding: var(--s-8) var(--s-8) var(--s-8) var(--s-16); border-radius: var(--r); background: color-mix(in srgb, var(--ink) 5%, var(--card)); color: var(--ink); font-size: var(--fs-16); line-height: var(--lh-body); }
+
+/* #/kit only: sections, rows of specimens, and narrow columns for the card head */
+.k-sec { display: grid; gap: var(--s-16); }
+.k-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-12); }
+.k-narrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--s-16); align-items: start; }
+
+/* a wide sheet for working panels (OBI, Claude, the terminal) */
+.k-sheet.k-wide { width: min(880px, 100vw); }
+.k-sheet.k-wide .k-sheet-b { padding: 0; gap: 0; overflow: hidden; }
+
+/* ---------- tap area: every small kit and page control keeps a 44 target ----------
+   As BELLA's Button sm: the plate stays small (32 to 36), an invisible ::after
+   reaches 44 in both directions around its centre (WCAG 2.5.5, her AAA rule). */
+:where(.k-chip, .k-rowbtn, .k-link, .k-toggle, .rowbtn, .cn-tog, .pj-rowlink, .pj-list a, .dm-plist button) { position: relative; }
+:is(.k-chip, .k-rowbtn, .k-link, .k-toggle, .rowbtn, .cn-tog, .dm-anno, .pj-rowlink, .pj-list a, .dm-plist button)::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  inline-size: max(100%, var(--spacing-44));
+  block-size: max(100%, var(--spacing-44));
+  translate: -50% -50%;
+}

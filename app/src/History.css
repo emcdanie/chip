@@ -1,0 +1,169 @@
+/* History, ported rule for rule from the approved mock (chip-mock-03,
+ * "page: panel:history" and the shared .hcardr, .hsum, .hline2 rules). The
+ * mock's class names are kept so the two can be read side by side; every rule
+ * sits under .hist so nothing leaks into other pages. Values: tokens.css. */
+
+.hist { display: grid; gap: var(--s-32); grid-template-columns: minmax(0, 1fr); align-content: start; min-width: 0; }
+.hist p { margin: 0; }
+.hist .sub2 { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.hist .rk { display: block; margin: 0; font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
+.hist .k-link { font-weight: 400; }
+.hist code { font-family: var(--typography-font-family-geist-mono); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
+
+/* ask in plain words */
+.hq { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--s-12); }
+.hql { width: 100%; font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
+.hqbox { position: relative; flex: 1 1 18em; min-width: 0; display: flex; }
+.hqbox input { flex: 1; min-width: 0; min-height: 48px; padding: 0 var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); color: var(--ink); font: 400 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); }
+.hqsug { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: var(--s-8) 0; list-style: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); }
+.hqo { display: flex; gap: var(--s-12); align-items: baseline; min-height: var(--h-control); padding: var(--s-8) var(--s-16); color: var(--ink); cursor: pointer; }
+.hqo[aria-selected='true'], .hqo:hover { background: var(--sel); }
+.hqk { flex: none; min-width: 52px; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.hq + .hblock { margin-top: calc(-1 * var(--s-4)); }
+
+/* the results block */
+.hblock { display: grid; gap: var(--s-24); min-width: 0; }
+.hquick { display: flex; flex-wrap: wrap; gap: var(--s-12) var(--s-16); align-items: center; }
+.hquick > :last-child { margin-left: auto; } /* Filters, at the end; Breaking only sits beside the type chips */
+.hquick > .k-chip { margin: 0; }
+.hquick .k-chip .n { margin-left: var(--s-4); }
+.hecho { margin-top: calc(-1 * var(--s-8)) !important; color: var(--muted); font-size: var(--fs-16); line-height: var(--lh-body); }
+
+/* did you mean, related searches */
+.hrefine { display: grid; gap: var(--s-12); font-size: var(--fs-14); line-height: var(--lh-body); color: var(--muted); }
+.dym { display: grid; gap: var(--s-4); }
+.dym p:first-child { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
+.dym .rk { display: inline; margin-right: var(--s-4); }
+.dchip { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--s-12); border-radius: var(--r-control); background: var(--ink); color: var(--card); font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); }
+.relq { display: flex; flex-wrap: wrap; gap: 0 var(--s-8); align-items: center; }
+.relq .sub2 { margin-right: var(--s-4); }
+
+/* applied filters, each removable */
+
+/* the summary */
+.hdet summary { cursor: pointer; font-size: var(--fs-14); line-height: var(--lh-body); color: var(--ink); }
+.hdet ol { display: grid; gap: var(--s-4); margin: var(--s-8) 0 0; padding-left: var(--s-24); font-size: var(--fs-14); line-height: var(--lh-body); }
+.hdet a { color: var(--ink); }
+
+/* the card track, after the Learning timeline on Elleta's site: a pinned
+ * strip of dated cards on a rail; the page scroll moves it sideways
+ * (History.jsx writes --rx and --ry, the first dot's x and the dots' y).
+ * Only .htx scrolls sideways, on purpose. */
+.hrun { min-width: 0; }
+.hpin { position: sticky; top: calc(var(--frame-top) + var(--s-8)); display: grid; gap: var(--s-12); min-width: 0; }
+.hkey { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8) var(--s-24); color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.hcount { min-width: 22ch; color: var(--ink); font-variant-numeric: tabular-nums; }
+.hlegend { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s-4) var(--s-16); }
+.hlegend i { display: inline-block; width: 12px; height: 12px; margin-right: var(--s-8); border: 2px solid var(--ink); border-radius: 50%; vertical-align: -1px; }
+.hlegend i[data-dec] { border-color: var(--action); }
+.cite { padding: 0 var(--s-4); font: 600 var(--fs-14)/var(--lh-body) var(--typography-font-family-geist-mono); color: var(--ink); text-decoration: none; vertical-align: 1px; }
+.cite:hover { text-decoration: underline; }
+.hjump { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-8); }
+.hjump .k-chip { margin: 0; }
+.hwrap { --rx: 0px; --ry: 0px; position: relative; display: grid; min-width: 0; }
+.hwrap > * { grid-area: 1 / 1; min-width: 0; }
+/* the rail: pale ahead of the marker, ink behind it */
+.hrail, .hfill { z-index: 1; align-self: start; justify-self: start; height: 0; border-top: 2px solid var(--line); translate: var(--rx) calc(var(--ry) - 1px); pointer-events: none; }
+.hrail { width: calc(100% - var(--rx)); scale: 0 1; transform-origin: left; transition: scale 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s; }
+.hfill { width: 0; border-top-color: var(--ink); opacity: 0; transition: opacity 0.3s; }
+/* the marker: an action-blue ring, the "you are here" */
+.hhead { z-index: 3; align-self: start; justify-self: start; width: 26px; height: 26px; margin: -13px 0 0 -13px; border: 2px solid var(--action); border-radius: 50%; box-shadow: 0 0 0 5px color-mix(in srgb, var(--action) 22%, transparent); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.hrun[data-reached] .hrail { scale: 1 1; }
+.hrun[data-reached] .hfill, .hrun[data-reached] .hhead { opacity: 1; }
+.htx { position: relative; overflow: auto hidden; padding: 0 0 var(--s-24); scrollbar-width: thin; overscroll-behavior-x: contain; }
+.hrun[data-scrub] .htx { scrollbar-width: none; }
+.hrun[data-scrub] .htx::-webkit-scrollbar { display: none; }
+.htx:focus-visible { outline: var(--focus); outline-offset: 2px; }
+/* whole cards only: three, two or one fill the visible width exactly (each W/n less one gap),
+   and every card in the row is as tall as the tallest (guideline 15) */
+.htx { container: htx / inline-size; }
+.htrack { display: grid; grid-auto-flow: column; grid-auto-columns: calc(100cqi / 3 - var(--s-16)); align-items: stretch; gap: var(--s-16); width: max-content; margin: 0; padding: 0 var(--s-8); list-style: none; }
+@container htx (max-width: 900px) { .htrack { grid-auto-columns: calc(100cqi / 2 - var(--s-16)); } }
+@container htx (max-width: 560px) { .htrack { grid-auto-columns: calc(100cqi - var(--s-16)); } }
+.hitem { display: grid; grid-template-rows: auto auto var(--s-12) 1fr; justify-items: start; min-width: 0; }
+.hmon { min-height: 1.3em; margin-bottom: var(--s-8); font: 400 var(--fs-20)/var(--lh-head) var(--display); color: var(--ink); }
+/* the dot on the rail: fills once the marker has passed it; an action-blue ring is a decision record */
+.hdot { position: relative; z-index: 2; width: 16px; height: 16px; margin-left: var(--s-12); border: 2px solid var(--ink); border-radius: 50%; background: var(--canvas); transition: background 0.3s; }
+.hitem[data-dec] .hdot { border-color: var(--action); }
+.hitem[data-passed] .hdot { background: var(--ink); }
+.hitem[data-dec][data-passed] .hdot { background: var(--action); }
+.hitem::after { content: ''; grid-row: 3; justify-self: start; margin-left: calc(var(--s-12) + 7px); border-left: 1px solid var(--ink); }
+.hcard { grid-row: 4; justify-self: stretch; display: grid; align-content: start; gap: var(--s-8); min-width: 0; padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); transform-origin: 50% 0; transition: border-color 0.25s, box-shadow 0.35s, scale 0.35s cubic-bezier(0.3, 1.4, 0.5, 1); }
+/* the lit card: forward, a little bigger, an ink edge, its details open */
+.hitem[data-now] .hcard { position: relative; z-index: 1; background: var(--sel); border-color: var(--action); box-shadow: var(--shadow); scale: 1.03; }
+.hcard h3 { margin: 0; }
+.hct { display: block; width: 100%; min-height: var(--h-control); padding: 0; border: 0; background: none; color: var(--ink); font: 600 var(--fs-20)/var(--lh-head) var(--typography-body-default-font-family); text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.hct:hover { text-decoration: underline; }
+.hcard.seen .hct { color: var(--muted); }
+.hcd { display: grid; gap: var(--s-12); }
+.hcd .hsumm { display: block; white-space: normal; }
+.hcd .hwhy b { color: var(--ink); }
+.hcd[hidden] { display: none; }
+.hcd .hfiles { display: grid; min-width: 0; }
+/* one line per file, the full path on hover */
+.hcd .hfiles code { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hcd .hacts { margin-top: 0 !important; }
+@media (prefers-reduced-motion: reduce) {
+  .hrail, .hfill, .hhead, .hdot, .hcard { transition: none; }
+  .hitem[data-now] .hcard { scale: none; }
+}
+
+/* sort */
+
+/* on the cards: type, status, the why */
+.hchips { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
+.hwhy { display: grid; gap: var(--s-4); padding: var(--s-8) var(--s-12); border-radius: var(--r); background: color-mix(in srgb, var(--action) 6%, var(--card)); }
+.hwhy .rk span { font-weight: 400; }
+.hsumm { max-width: 70ch; color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); overflow-wrap: anywhere; white-space: pre-line; }
+.hrefdl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--s-4) var(--s-16); margin: 0; padding: var(--s-8) var(--s-12); border-radius: var(--r); background: color-mix(in srgb, var(--ink) 3%, var(--card)); font-size: var(--fs-14); line-height: var(--lh-body); }
+.hrefdl dt { color: var(--muted); }
+.hrefdl dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.hsrc2 { display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-16); color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.hacts { display: flex; flex-wrap: wrap; gap: var(--s-4) var(--s-24); }
+.hacts .k-link { min-height: var(--h-control); padding: 0; }
+
+/* written down */
+.dlt { margin: 0; font: 600 var(--fs-20)/var(--lh-head) var(--typography-body-default-font-family); color: var(--ink); }
+.layers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-12); margin: 0; padding: 0; list-style: none; }
+.layers li { display: grid; grid-template-columns: 32px minmax(0, 1fr); grid-template-rows: auto auto; gap: var(--s-8) var(--s-12); padding: var(--s-16); border: 1px solid var(--line); border-radius: var(--r); background: var(--card); min-width: 0; }
+.layers b { display: block; font: 600 var(--fs-16)/var(--lh-body) var(--typography-body-default-font-family); color: var(--ink); }
+.layers code { color: var(--muted); }
+.layers p { margin-top: var(--s-4); color: var(--body); font-size: var(--fs-16); line-height: var(--lh-body); }
+.layers .lv { grid-column: 2; color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+.layers .lv b { display: inline; font: 600 var(--fs-20)/var(--lh-head) var(--typography-number-font-family); }
+.ln2 { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-control); background: var(--ink); color: var(--card); font: 600 var(--fs-16)/var(--lh-body) var(--typography-number-font-family); }
+.dtitle { display: grid; gap: var(--s-4); max-width: 46ch; }
+.dtitle .k-rowbtn { font-size: var(--fs-16); }
+.dtitle span { color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }
+.hist .k-dt td { vertical-align: top; }
+.agy { display: inline-flex; gap: var(--s-8); align-items: center; color: var(--ink); font-size: var(--fs-14); line-height: var(--lh-body); }
+.agy .av { display: inline-grid; place-items: center; flex: none; width: 18px; height: 18px; border-radius: var(--r-control); background: var(--pass); color: var(--ink); font: 600 var(--fs-14)/1 var(--typography-body-default-font-family); font-style: normal; }
+.agn { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }
+
+/* the filters drawer */
+.hpre { display: flex; flex-wrap: wrap; gap: var(--s-8); align-items: center; }
+.hpre .k-chip { margin: 0; }
+.mine { display: inline-flex; align-items: center; }
+.rmmine { width: var(--h-compact); padding: 0; justify-content: center; }
+.lgrow { display: flex; align-items: center; justify-content: space-between; gap: var(--s-8); }
+.lgrow legend { float: left; }
+.hist .info { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--card); color: var(--muted); font: 600 var(--fs-14)/var(--lh-body) var(--typography-body-default-font-family); cursor: pointer; }
+.hist .info[aria-expanded='true'] { background: var(--ink); color: var(--card); }
+.infob { margin: var(--s-4) 0 var(--s-8) !important; color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }
+.k-drawer .k-chk .n { margin-left: auto; }
+.k-drawer .k-chips { gap: var(--s-4); }
+.k-drawer .k-chips .k-chip { margin: 0; min-height: 32px; padding: var(--s-4) var(--s-12); }
+
+/* the record and doc sheets: rows keep their content height, so the diff isn't squeezed */
+.hrec .k-sheet-b { grid-auto-rows: max-content; }
+.hrec .hmeta2 { display: flex; flex-wrap: wrap; gap: var(--s-8) var(--s-12); align-items: center; color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }
+.hrec dl.kv dd { font-family: var(--typography-body-default-font-family); overflow-wrap: anywhere; white-space: pre-line; }
+.hrec .hbody { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--body); font-size: var(--fs-14); line-height: var(--lh-body); }
+.hrec .hdet .hbody { margin-top: var(--s-8); }
+.hrec pre.kdiff { max-height: 50vh; overflow: auto; padding: var(--s-8) 0; background: color-mix(in srgb, var(--ink) 3%, var(--card)); color: var(--ink); white-space: pre; }
+.kdiff > span { display: block; padding: 0 var(--s-12); }
+.kdiff .del { background: color-mix(in srgb, var(--fail) 14%, transparent); }
+.kdiff .add { background: color-mix(in srgb, var(--action) 14%, transparent); }
+.kdiff .hd { color: var(--muted); }
+.hvers { display: flex; flex-wrap: wrap; gap: 0 var(--s-12); align-items: center; }
+.will { color: var(--muted); font-size: var(--fs-14); line-height: var(--lh-body); }

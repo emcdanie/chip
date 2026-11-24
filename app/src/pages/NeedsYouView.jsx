@@ -1,0 +1,377 @@
+// The Needs you view: a card that needs her opens its review page inside CHIP, over the board (Elleta, 23 Nov
+// 2026, picked A: "i thought we were going to be able to select in needs you and mark up from the work board..
+// also be able to select all and mark up in bulk"), laid out as her Workbench A (23 Nov, the same as Playground picks,
+// templates/Workbench.jsx): the picture big in the middle with the tool column fixed beside it, one row under it (the
+// choice, thumbs, one comment box, one Send for this card), the comments as a thin panel from the count, and every
+// card that needs her as a strip of board cards along the bottom with Back and Next. Choose one or all for one pass of
+// thumbs or a comment on every chosen card; one Send all posts every answer to the review server's own POST /answers
+// (the shape decide.js and markup.js send), so nothing sends her out of CHIP.
+//
+// BELLA parts: PicturePins (Stage, Pin, Card; the picture and its comment boxes), Workbench (ToolColumn, TaskCard,
+// SectionHead), SegmentedControl (the options), Button (thumbs), FilterChip (choose, cards and pictures on a page),
+// Input, Card, TextStack, Tag, EmptyState, Notification.
+// BELLA GAPS (named for the coordinator, none drawn here): a checkbox for choosing cards (a FilterChip stands in); see
+// PicturePins for the comment popover gap.
+import { useEffect, useMemo, useState } from 'react';
+import Button from '@bella/components/Button/Button';
+import Card from '@bella/components/Card/Card';
+import EmptyState from '@bella/components/EmptyState/EmptyState';
+import FilterChip from '@bella/components/FilterChip/FilterChip';
+import Input from '@bella/components/Input/Input';
+import Notification from '@bella/components/Notification/Notification';
+import SectionHead from '@bella/components/SectionHead/SectionHead';
+import SegmentedControl from '@bella/components/SegmentedControl/SegmentedControl';
+import TextStack from '@bella/components/TextStack/TextStack';
+import Flow from '../templates/Flow.jsx';
+import SendBar from '../templates/SendBar.jsx';
+import Workbench from '../templates/Workbench.jsx';
+import { CommentBubble } from '../templates/Comment.jsx';
+import PicturePins from '../templates/PicturePins.jsx';
+import useNarrow from '../templates/useNarrow.js';
+import { answersUrl, countAnswers, decisionBody, isPicture, markupBody, parseReview, picturePage } from './needsYouModel.js';
+
+const KEEP = 'chip:needs-you';
+const load = () => {
+  try {
+    return JSON.parse(localStorage.getItem(KEEP) || '{}');
+  } catch {
+    return {};
+  }
+};
+const keep = (v) => {
+  try {
+    localStorage.setItem(KEEP, JSON.stringify(v));
+  } catch {
+    /* a private window keeps nothing: the answers still send */
+  }
+};
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+// an option's short name on the segmented control: its letter ("A · Tools fixed" -> A), else its words
+const letterOf = (label) => label.match(/^([A-E])\s*·/)?.[1] ?? label;
+
+/* the picture: fits the room, a click drops a pin and its comment box, like Figma comments (PicturePins, shared with
+   Playground); a comment here is kept for Send all */
+function Picture({ card, shot, pins, onPins, page, zoom, onZoom, onFit, reserve }) {
+  // a review whose pictures are drawn by its own script has no img to show: the page itself opens here, inside CHIP
+  // (the storyboard's scene 5: Component quality view); only a card with no page at all says there is no picture
+  if (!shot && page) return <iframe title={`${card.title}, the review page`} src={page} width="100%" height="560" loading="lazy" />;
+  if (!shot) return <EmptyState size="lane" mark="🖼" title="No picture on this card" line="The decision is in the side pane." />;
+  return (
+    <PicturePins
+      key={shot.src}
+      src={shot.src}
+      alt={shot.alt || shot.caption || card.title}
+      pins={pins.filter((p) => p.shot === shot.src)}
+      numberOf={(p) => (p.isNew ? pins.length + 1 : pins.indexOf(p) + 1)}
+      commitLabel="Save"
+      zoom={zoom}
+      onZoomChange={onZoom}
+      onFitChange={onFit}
+      reserve={reserve}
+      setPins={(next) =>
+        onPins((all) => {
+          const here = all.filter((p) => p.shot === shot.src);
+          const out = (typeof next === 'function' ? next(here) : next).map((p) => (p.shot ? p : { ...p, shot: shot.src, on: shot.caption || card.title, section: card.title }));
+          return [...all.filter((p) => p.shot !== shot.src), ...out];
+        })
+      }
+    />
+  );
+}
+
+export default function NeedsYouView({ cards, startId, onBack, onOpenOther, onNotice }) {
+  const [at, setAt] = useState(Math.max(0, cards.findIndex((c) => c.id === startId)));
+  const [pages, setPages] = useState({}); // href -> { page } | { error }
+  const [answers, setAnswers] = useState(() => load()); // page path -> { A, T, N, pins }
+  const [picked, setPicked] = useState(() => new Set());
+  const [shotAt, setShotAt] = useState({}); // card id -> picture index
+  const [cardAt, setCardAt] = useState({}); // page path -> which of its cards shows
+  const [sending, setSending] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [zoom, setZoom] = useState(null); // null = Fit; held here for the tool column
+  const phone = useNarrow(640);
+  const [fit, setFit] = useState({ fit: 1, whole: 1 });
+  const [sentAt, setSentAt] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`${KEEP}:sent`) || '{}');
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${KEEP}:sent`, JSON.stringify(sentAt));
+    } catch {}
+  }, [sentAt]);
+
+  const current = cards[Math.min(at, cards.length - 1)];
+  const href = current?.open?.kind === 'page' ? current.open.href : null;
+  // read this card's page, then the rest quietly so a Next is instant
+  const links = cards.map((c) => (c.open?.kind === 'page' ? `${c.id}=${c.open.href}` : '')).join('\n'); // the board refreshes: only a changed list reads again
+  useEffect(() => {
+    const todo = [href, ...cards.map((c) => (c.open?.kind === 'page' ? c.open.href : null))].filter((h, i, all) => h && all.indexOf(h) === i && !pages[h]);
+    let live = true;
+    todo.forEach((h) =>
+      (isPicture(h) ? Promise.resolve(null) : fetch(h).then((r) => (r.ok ? r.text() : Promise.reject(new Error(`${r.status}`)))))
+        .then((html) => live && setPages((p) => ({ ...p, [h]: { page: html == null ? picturePage(h, cards.find((c) => c.open?.href === h)?.title ?? h) : parseReview(html, h) } })))
+        .catch(() => live && setPages((p) => ({ ...p, [h]: { error: true } }))),
+    );
+    return () => {
+      live = false;
+    };
+  }, [href, links, pages]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => keep(answers), [answers]);
+
+  const read = href ? pages[href] : null;
+  const page = read?.page;
+  const state = (page && answers[page.src]) || {};
+  const setState = (next) => setAnswers((a) => ({ ...a, [page.src]: typeof next === 'function' ? next(a[page.src] ?? {}) : next }));
+  const shownCard = page ? page.cards[Math.min(cardAt[page.src] ?? 0, page.cards.length - 1)] : null;
+  const shots = shownCard?.shots ?? [];
+  const shot = shots[Math.min(shotAt[shownCard?.id] ?? 0, shots.length - 1)];
+  const pins = state.pins ?? [];
+  // a new card or picture opens fitted
+  useEffect(() => setZoom(null), [current?.id, shownCard?.id, shot?.src]);
+
+  const pageOf = (c) => (c.open?.kind === 'page' ? pages[c.open.href]?.page : null);
+  const touched = useMemo(() => Object.entries(answers).filter(([, s]) => countAnswers(s) > 0), [answers]);
+
+  // one pass for the ones she chose: a thumb, or one comment, on every card of every chosen page
+  const reviewCards = cards.filter((c) => c.open?.kind === 'page');
+  const chosen = reviewCards.filter((c) => picked.has(c.id) && pageOf(c));
+  const allIn = reviewCards.length > 0 && reviewCards.every((c) => picked.has(c.id));
+  const bulkSet = (patch) =>
+    setAnswers((a) => {
+      const out = { ...a };
+      chosen.forEach((c) => {
+        const p = pageOf(c);
+        const s = out[p.src] ?? {};
+        out[p.src] = { ...s, ...Object.fromEntries(Object.entries(patch).map(([m, v]) => [m, { ...s[m], ...Object.fromEntries(p.cards.map((k) => [k.id, v])) }])) };
+      });
+      return out;
+    });
+  const [bulkNote, setBulkNote] = useState('');
+  const bulk = chosen.length ? (
+    <Card>
+      <Flow gap={12} role="group" aria-label="Mark up the chosen cards in one pass">
+        <TextStack overline={plural(chosen.length, 'card') + ' chosen'} title="Mark up all at once" subtitle="Applies to every picture on each chosen card" titleAs="h3" />
+        <Flow direction="row" gap={8} wrap>
+          <Button variant="secondary" icon="ThumbsUp" leadingIcon onClick={() => bulkSet({ T: 'up' })}>
+            Thumbs up all
+          </Button>
+          <Button variant="secondary" icon="ThumbsDown" leadingIcon onClick={() => bulkSet({ T: 'down' })}>
+            Thumbs down all
+          </Button>
+        </Flow>
+        <Input label="One comment for all" multiline value={bulkNote} onChange={setBulkNote} />
+        <Flow direction="row" justify="end">
+          <Button variant="secondary" disabled={!bulkNote.trim()} onClick={() => (bulkSet({ N: bulkNote.trim() }), setBulkNote(''))}>
+            Add the comment to all
+          </Button>
+        </Flow>
+      </Flow>
+    </Card>
+  ) : null;
+
+  // one POST for the pages given: the row's Send (this card's page) or Send all (every page with a mark); the agent gets one message
+  async function send(list) {
+    if (sending || !list.length) return;
+    setSending(true);
+    setMsg(null);
+    const byPath = new Map(Object.values(pages).filter((p) => p.page).map((p) => [p.page.src, p]));
+    const first = reviewCards.find((c) => list.some(([src]) => pageOf(c)?.src === src));
+    const cardsOut = [];
+    const markups = [];
+    for (const [src, s] of list) {
+      const p = byPath.get(src);
+      if (!p) continue;
+      if (Object.keys({ ...s.A, ...s.T }).length || Object.values(s.N ?? {}).some((n) => (n ?? '').trim())) cardsOut.push(...decisionBody(p.page, s).cards.filter((c) => c.answer || c.thumb || c.note));
+      if ((s.pins ?? []).some((x) => x.note.trim())) markups.push(markupBody(p.page, s.pins.filter((x) => x.note.trim()), `${window.innerWidth}x${window.innerHeight}`));
+    }
+    const n = list.reduce((k, [, s]) => k + countAnswers(s), 0);
+    try {
+      const r = await fetch(answersUrl(first.open.href), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'batch', page: `Needs you · ${plural(n, 'answer')}`, url: '/needs-you', cards: cardsOut, markups }) });
+      if (!r.ok) throw new Error('refused');
+      const done = new Date();
+      const srcs = new Set(list.map(([src]) => src));
+      setSentAt((m) => ({ ...m, ...Object.fromEntries([...srcs].map((src) => [src, true])) }));
+      setAnswers((a) => Object.fromEntries(Object.entries(a).filter(([src]) => !srcs.has(src))));
+      setPicked(new Set());
+      setMsg({ result: { n, at: done.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) } });
+      onNotice?.({ tone: 'success', title: 'Sent', message: `${plural(n, 'answer')} on ${plural(list.length, 'page')} reached the coordinator in one message.` });
+    } catch {
+      setMsg({ failed: 'Not sent: the review server on localhost:3123 did not answer. Your marks are kept here.' });
+    }
+    setSending(false);
+  }
+
+  if (!current) return <EmptyState size="page" mark="✅" title="Nothing needs you" line="Every review is answered." actions={<Button variant="secondary" onClick={onBack}>Back to the board</Button>} />;
+
+  const isReview = !!href;
+  const { A = {}, T = {}, N = {} } = state;
+  const toggle = (map, key, v) => setState((s) => ({ ...s, [map]: { ...s[map], [key]: s[map]?.[key] === v ? undefined : v } }));
+
+  // what is on the stage: the picture, the page itself when its pictures are drawn by a script, or the card's summary
+  const picture = !isReview ? (
+    <Card>
+      <Flow gap={16}>
+        <TextStack overline={current.status} title={current.title} titleAs="h3" subtitle={current.line} />
+        <Flow direction="row" justify="end">
+          <Button variant="primary" onClick={() => onOpenOther(current)}>Open it</Button>
+        </Flow>
+      </Flow>
+    </Card>
+  ) : read?.error ? (
+    <Notification tone="danger" title="The review page didn’t load" message="The review server on localhost:3123 did not answer." />
+  ) : !page ? (
+    <EmptyState size="lane" mark="⏳" title="Reading the review page" line={current.title} />
+  ) : (
+    <Flow gap={12}>
+      {page.cards.length > 1 || shots.length > 1 ? (
+        <Flow direction="row" gap={8} wrap align="center">
+          {page.cards.length > 1 ? (
+            <Flow direction="row" gap={8} wrap role="group" aria-label={`Cards on this page, ${Math.min(cardAt[page.src] ?? 0, page.cards.length - 1) + 1} of ${page.cards.length}`}>
+              {page.cards.map((k, i) => (
+                <FilterChip key={k.id} pressed={k === shownCard} ariaLabel={`Card ${i + 1}: ${k.title}`} onClick={() => setCardAt((m) => ({ ...m, [page.src]: i }))}>
+                  {`Card ${i + 1}`}
+                </FilterChip>
+              ))}
+            </Flow>
+          ) : null}
+          {shots.length > 1 ? (
+            <Flow direction="row" gap={8} wrap role="group" aria-label="Pictures on this card">
+              {shots.map((sh, i) => (
+                <FilterChip key={sh.src} pressed={sh === shot} ariaLabel={`Picture ${i + 1}${sh.caption ? `: ${sh.caption}` : ''}`} onClick={() => setShotAt((m) => ({ ...m, [shownCard.id]: i }))}>
+                  {shots.length <= 3 ? sh.caption.split('·')[0].trim().slice(0, 24) || String(i + 1) : String(i + 1)}
+                </FilterChip>
+              ))}
+            </Flow>
+          ) : null}
+        </Flow>
+      ) : null}
+      <Picture card={shownCard} shot={shot} page={href} pins={pins} zoom={zoom} onZoom={setZoom} onFit={(f, w) => setFit({ fit: f, whole: w })} reserve={phone ? 360 : 580} onPins={(next) => setState((s) => ({ ...s, pins: typeof next === 'function' ? next(s.pins ?? []) : next }))} />
+    </Flow>
+  );
+
+  // one row under the picture: the options, thumbs, one comment box and one Send for this card's page
+  const mine = page ? touched.filter(([src]) => src === page.src) : [];
+  // the feedback sits after Send (Workbench A); on a phone on its own line under the row
+  const saidHere = (
+    <Flow role="status" gap={0}>
+      {mine.length ? <TextStack body="Saved, not sent yet" /> : page && sentAt[page.src] ? <TextStack body="Sent" /> : null}
+    </Flow>
+  );
+  const row =
+    isReview && shownCard ? (
+      <Flow gap={12}>
+        <Flow direction="row" gap={12} align="end" wrap grow="last" role="group" aria-label={`Your answer for ${shownCard.title}`}>
+          {shownCard.options.length ? (
+            <SegmentedControl
+              label="Option"
+              stretch={phone}
+              value={A[shownCard.id] ?? ''}
+              onChange={(v) => toggle('A', shownCard.id, v)}
+              options={shownCard.options.map((o) => ({ value: o.label, label: letterOf(o.label), ariaLabel: o.pick ? `${o.label}, recommended` : o.label }))}
+            />
+          ) : null}
+          <Flow direction="row" gap={8} align="center">
+            <Button variant="secondary" iconOnly icon="ThumbsUp" ariaLabel="Looks right" ariaPressed={T[shownCard.id] === 'up'} onClick={() => toggle('T', shownCard.id, 'up')} />
+            <Button variant="secondary" iconOnly icon="ThumbsDown" ariaLabel="Change it" ariaPressed={T[shownCard.id] === 'down'} onClick={() => toggle('T', shownCard.id, 'down')} />
+          </Flow>
+          <Flow as="form" direction="row" gap={8} align="end" grow="first" onSubmit={(e) => (e.preventDefault(), send(mine))}>
+            <Input label="Comment" labelPosition={phone ? 'top' : 'inline'} value={N[shownCard.id] ?? ''} onChange={(v) => setState((s) => ({ ...s, N: { ...s.N, [shownCard.id]: v } }))} placeholder="Say what you think…" />
+            <Button variant="primary" type="submit" busy={sending} disabled={!mine.length}>
+              Send
+            </Button>
+            {phone ? null : saidHere}
+          </Flow>
+          {phone ? saidHere : null}
+        </Flow>
+        {shownCard.change ? <TextStack overline="What changes" body={shownCard.change} /> : null}
+        {bulk}
+      </Flow>
+    ) : null;
+
+  // the comments panel: the notes pinned on the picture, numbered as the pins, each editable and removable
+  const panel = (close) => (
+    <Card>
+      <Flow gap={12}>
+        <Flow direction="row" gap={8} align="center" justify="between">
+          <SectionHead title="Comments" number={pins.length || undefined} titleLevel={2} />
+          <Button variant="tertiary" size="sm" iconOnly icon="Xmark" ariaLabel="Close comments" onClick={close} />
+        </Flow>
+        {pins.length ? (
+          <Flow as="ol" gap={12} aria-label="Comments">
+            {/* each comment as Figma lists them (templates/Comment.jsx): her avatar and name, then her words, which she can
+                still change, and Remove at the right edge */}
+            {pins.map((p, i) => (
+              <li key={p.id}>
+                <CommentBubble
+                  flat
+                  when="Draft, not sent yet"
+                  actions={
+                    <Button variant="tertiary" size="sm" onClick={() => setState((s) => ({ ...s, pins: s.pins.filter((x) => x.id !== p.id) }))}>
+                      Remove
+                    </Button>
+                  }
+                >
+                  <Input label={`Comment ${i + 1}`} multiline value={p.note} onChange={(v) => setState((s) => ({ ...s, pins: s.pins.map((x) => (x.id === p.id ? { ...x, note: v } : x)) }))} />
+                </CommentBubble>
+              </li>
+            ))}
+          </Flow>
+        ) : (
+          <TextStack subtitle="No comments yet. Click the picture where something should change." />
+        )}
+      </Flow>
+    </Card>
+  );
+
+  const top = (
+    <Flow direction="row" gap={12} align="center" justify="between" wrap>
+      <Flow direction="row" gap={8} align="center" wrap>
+        <Button variant="tertiary" icon="NavArrowLeft" leadingIcon onClick={onBack}>
+          Work board
+        </Button>
+        <TextStack title={`${cards.length} need you · ${chosen.length ? `${chosen.length} chosen` : 'showing all'}`} />
+      </Flow>
+      {isReview && page ? (
+        <FilterChip pressed={picked.has(current.id)} onClick={() => setPicked((x) => (x.has(current.id) ? new Set([...x].filter((y) => y !== current.id)) : new Set([...x, current.id])))}>
+          {picked.has(current.id) ? 'Chosen for mark-up' : 'Choose for mark-up'}
+        </FilterChip>
+      ) : null}
+    </Flow>
+  );
+
+  return (
+    <Workbench
+      id="needs-stage"
+      top={top}
+      title={shownCard?.title ?? current.title}
+      subtitle={[current.line, shownCard?.options.length ? `${shownCard.options.map((o) => letterOf(o.label)).join(' or ')}?` : null].filter(Boolean).join(' · ')}
+      count={pins.length}
+      notes={isReview ? panel : null}
+      tools={isReview && shot ? { zoom, fit: fit.fit, whole: fit.whole, onZoom: setZoom } : null}
+      picture={picture}
+      row={row}
+      strip={{
+        title: 'Needs you',
+        currentId: current.id,
+        onPick: (id) => setAt(Math.max(0, cards.findIndex((c) => c.id === id))),
+        action: reviewCards.length ? (
+          <FilterChip pressed={allIn} onClick={() => setPicked(allIn ? new Set() : new Set(reviewCards.map((c) => c.id)))}>
+            {allIn ? 'All chosen' : `Choose all ${reviewCards.length}`}
+          </FilterChip>
+        ) : null,
+        items: cards.map((c) => {
+          const p = pageOf(c);
+          const n = p ? countAnswers(answers[p.src]) : 0;
+          return c.open?.kind === 'page'
+            ? { id: c.id, title: c.title, line: [picked.has(c.id) ? 'Chosen for mark-up' : 'Review page', n ? plural(n, 'mark') : null].filter(Boolean).join(' · '), status: n ? 'Marked' : p && sentAt[p.src] ? 'Sent' : 'Needs you', tone: n || !(p && sentAt[p.src]) ? 'attention' : 'success' }
+            : { id: c.id, title: c.title, line: c.line, status: c.status ?? 'Needs you', tone: c.tone ?? 'attention' };
+        }),
+      }}
+      bar={<SendBar count={touched.length} onSend={() => send(touched)} sending={sending} result={msg?.result} failed={msg?.failed} onBack={onBack} onDismiss={() => setMsg(null)} inFlow />}
+    />
+  );
+}

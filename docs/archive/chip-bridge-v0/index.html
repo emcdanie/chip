@@ -1,0 +1,1774 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CHIP — Bridge for agentic design systems</title>
+
+
+  <!-- Tier 1.4 fonts (Fraunces + Atkinson Hyperlegible + IBM Plex Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Stage 6 split — load order: tokens → layout → components -->
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="layout.css">
+  <link rel="stylesheet" href="components.css">
+</head>
+
+<body data-phase="loaded" data-space="bridge" data-logged-in="false" data-inclusion="pass">
+
+<!-- ============ LOGIN SPLASH (Tier 2.1: JARVIS briefing) ============ -->
+<div class="splash" id="splash" role="dialog" aria-labelledby="splash-welcome" aria-modal="true">
+  <div class="splash__card">
+    <p class="splash__wordmark">CHIP</p>
+    <p class="splash__tagline">Bridge for agentic design systems</p>
+    <div class="splash__avatar" aria-hidden="true">E</div>
+    <h1 id="splash-welcome" class="splash__welcome">Morning, Elleta.</h1>
+    <p class="splash__brief">
+      Three things on your plate today: cross-platform landscape audit, Q3 roadmap draft,
+      Friday review prep. I'd start with the audit — it's blocking two squads.
+    </p>
+    <button type="button" class="splash__enter" id="enter-btn" autofocus>Enter Bridge</button>
+    <p class="splash__hint">Press <kbd>⌘K</kbd> to jump anywhere · <kbd>?</kbd> for shortcuts</p>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div class="shell">
+
+  <!-- sidebar -->
+  <aside class="side" aria-label="Primary navigation">
+    <div class="side__section">
+      <p class="side__eyebrow">Spaces</p>
+      <nav class="side__nav">
+        <button type="button" class="side__link" data-space-target="bridge" aria-current="page">
+          <span class="side__link__icon">◉</span>
+          <span class="side__link__label">Bridge</span>
+          <span class="side__link__chip">live</span>
+        </button>
+        <button type="button" class="side__link" data-space-target="research">
+          <span class="side__link__icon">◈</span>
+          <span class="side__link__label">Research library</span>
+          <span class="side__link__chip">47</span>
+        </button>
+        <button type="button" class="side__link" data-space-target="friction">
+          <span class="side__link__icon">◊</span>
+          <span class="side__link__label">Friction log</span>
+          <span class="side__link__chip">3</span>
+        </button>
+        <button type="button" class="side__link" data-space-target="bella">
+          <span class="side__link__icon">◇</span>
+          <span class="side__link__label">AI-native BELLA</span>
+          <span class="side__link__chip">6</span>
+        </button>
+        <button type="button" class="side__link" data-space-target="component">
+          <span class="side__link__icon">◇</span>
+          <span class="side__link__label">Component map</span>
+          <span class="side__link__chip">12</span>
+        </button>
+        <button type="button" class="side__link" data-space-target="map">
+          <span class="side__link__icon">◬</span>
+          <span class="side__link__label">System map</span>
+          <span class="side__link__chip">v0</span>
+        </button>
+        <button type="button" class="side__link" data-space-target="steward">
+          <span class="side__link__icon">◯</span>
+          <span class="side__link__label">Coming up</span>
+          <span class="side__link__chip">6</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="side__section">
+      <p class="side__eyebrow">Private</p>
+      <nav class="side__nav">
+        <button type="button" class="side__link" disabled aria-disabled="true" title="Behind NDA wall">
+          <span class="side__link__icon">◐</span>
+          <span class="side__link__label">Co-parenting</span>
+          <span class="side__link__chip">🔒</span>
+        </button>
+        <button type="button" class="side__link" disabled aria-disabled="true" title="Behind NDA wall">
+          <span class="side__link__icon">◐</span>
+          <span class="side__link__label">Subscriptions</span>
+          <span class="side__link__chip">🔒</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="side__footer">
+      <p class="side__footer__line">CHIP v0 · 2026-04-26</p>
+      <p class="side__footer__line">Brain: Opus 4.7</p>
+      <p class="side__footer__line">Skin: BELLA</p>
+    </div>
+  </aside>
+
+  <!-- main column -->
+  <div class="main">
+    <!-- topbar -->
+    <header class="top">
+      <div class="top__brand">
+        <span class="top__wordmark">CHIP</span>
+        <span class="top__crumb" id="crumb">Bridge</span>
+      </div>
+      <div class="top__right">
+        <button type="button" class="audit-count-chip chip chip--muted" id="audit-count-chip" hidden aria-label="Audit ribbon — jump to ribbon">
+          Audit · <span id="audit-count-num">0</span> today
+        </button>
+        <button type="button" class="a11y-pill" id="theme-toggle" aria-pressed="false">
+          Theme: <span id="theme-label">Light</span>
+        </button>
+        <button type="button" class="icon-btn" id="settings-btn" aria-label="Settings" title="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <button type="button" class="avatar" aria-label="Elleta — operator" title="Elleta">E</button>
+      </div>
+    </header>
+
+    <!-- content -->
+    <main class="content">
+
+      <!-- ======== BRIDGE SPACE — Cross-platform landscape audit ======== -->
+      <section class="space space--bridge" aria-labelledby="bridge-title">
+        <div class="mapek" id="mapek" aria-label="MAPE-K loop status">
+          <span class="mapek__phase mapek__phase--active" data-phase-marker="monitor">
+            <span class="mapek__dot" aria-hidden="true"></span>Monitor
+          </span>
+          <span class="mapek__connector" aria-hidden="true"></span>
+          <span class="mapek__phase" data-phase-marker="analyze">
+            <span class="mapek__dot" aria-hidden="true"></span>Analyze
+          </span>
+          <span class="mapek__connector" aria-hidden="true"></span>
+          <span class="mapek__phase" data-phase-marker="plan">
+            <span class="mapek__dot" aria-hidden="true"></span>Plan
+          </span>
+          <span class="mapek__connector" aria-hidden="true"></span>
+          <span class="mapek__phase" data-phase-marker="execute">
+            <span class="mapek__dot" aria-hidden="true"></span>Execute
+          </span>
+          <span class="mapek__connector" aria-hidden="true"></span>
+          <span class="mapek__phase" data-phase-marker="knowledge">
+            <span class="mapek__dot" aria-hidden="true"></span>Knowledge
+          </span>
+        </div>
+
+        <header class="space__header space__header--with-actions">
+          <div class="space__header__main">
+            <p class="space__eyebrow">Cross-platform · Landscape audit</p>
+            <h1 class="space__title" id="bridge-title">BELLA parity is 38% across Web, iOS, Android.</h1>
+            <p class="space__subtitle">Three platform squads, three priorities. The roadmap below is a proposal — review and approve to file the tickets and notify the leads.</p>
+            <p class="bridge-action" id="bridge-action">Action — review the roadmap below, press Approve to file 23 Jira tickets and notify Web/iOS/Android leads.</p>
+          </div>
+          <div class="space__header__actions" id="bridge-header-actions">
+            <button type="button" class="btn" id="btn-drift">Open audit</button>
+            <button type="button" class="btn" id="btn-reset" disabled>Reset demo</button>
+          </div>
+        </header>
+
+        <!-- 8.1 sticky parity strip — superseded by Stage 18.2 persist-strip; retained as hidden empty placeholder -->
+        <div class="parity-strip" id="parity-strip" aria-hidden="true"></div>
+
+        <!-- Stage 18.2 — persistent status strip during drift/approved -->
+        <aside class="persist-strip" id="persist-strip" aria-label="Audit process status">
+          <div class="persist-strip__row1">
+            <button type="button" id="persist-strip-btn" style="background:transparent;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;">
+              <span class="persist-strip__metric">Parity 38%</span>
+            </button>
+            <span class="persist-strip__divider" aria-hidden="true">·</span>
+            <span class="persist-strip__platform"><span class="persist-strip__icon persist-strip__icon--sync" aria-hidden="true">✓</span> Web in sync</span>
+            <span class="persist-strip__divider" aria-hidden="true">·</span>
+            <span class="persist-strip__platform"><span class="persist-strip__icon persist-strip__icon--drift" aria-hidden="true">◐</span> iOS drift</span>
+            <span class="persist-strip__divider" aria-hidden="true">·</span>
+            <span class="persist-strip__platform"><span class="persist-strip__icon persist-strip__icon--drift" aria-hidden="true">◐</span> Android drift</span>
+          </div>
+          <div class="persist-strip__row2">
+            <span class="persist-strip__phase" data-persist-phase="monitor"><span class="persist-strip__dot"></span>Monitor</span>
+            <span class="persist-strip__divider" aria-hidden="true">—</span>
+            <span class="persist-strip__phase" data-persist-phase="analyze"><span class="persist-strip__dot"></span>Analyze</span>
+            <span class="persist-strip__divider" aria-hidden="true">—</span>
+            <span class="persist-strip__phase" data-persist-phase="plan"><span class="persist-strip__dot"></span>Plan</span>
+            <span class="persist-strip__divider" aria-hidden="true">—</span>
+            <span class="persist-strip__phase" data-persist-phase="execute"><span class="persist-strip__dot"></span>Execute</span>
+            <span class="persist-strip__divider" aria-hidden="true">—</span>
+            <span class="persist-strip__phase" data-persist-phase="knowledge"><span class="persist-strip__dot"></span>Knowledge</span>
+          </div>
+        </aside>
+
+        <!-- Stage 14.1 Bridge bento layout -->
+        <div class="bridge-bento">
+
+        <article class="meter-card bento-hero-meter">
+          <p class="card__eyebrow">Parity</p>
+          <span class="chip chip--muted demo-label">Demo scenario · synthetic data</span>
+          <p class="meter-card__subject">BELLA design system · Web + iOS + Android · live</p>
+          <div class="meter" id="on-spec-meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="38" aria-label="BELLA parity score across platforms" style="--meter-value:38;">
+            <div class="meter__row">
+              <span class="meter__value" id="meter-value-text">38%</span>
+              <span class="meter__delta" id="meter-delta" aria-live="polite">−56% since landscape shipped</span>
+            </div>
+            <div class="meter__bar"><span class="meter__fill"></span></div>
+          </div>
+
+          <!-- Stage 18.6 — Parity breakdown: per-platform coverage + components-in-spec counts -->
+          <ul class="parity-breakdown" id="parity-breakdown">
+            <li class="parity-breakdown__row" data-platform="web">
+              <span class="parity-breakdown__label">Web</span>
+              <span class="parity-breakdown__bar" aria-hidden="true">
+                <span class="parity-breakdown__fill" style="--p:100"></span>
+              </span>
+              <span class="parity-breakdown__count">47 / 47</span>
+              <span class="parity-breakdown__chip chip chip--success">In sync</span>
+            </li>
+            <li class="parity-breakdown__row" data-platform="ios">
+              <span class="parity-breakdown__label">iOS</span>
+              <span class="parity-breakdown__bar" aria-hidden="true">
+                <span class="parity-breakdown__fill" style="--p:49"></span>
+              </span>
+              <span class="parity-breakdown__count">23 / 47</span>
+              <span class="parity-breakdown__chip chip chip--accent">Drift</span>
+            </li>
+            <li class="parity-breakdown__row" data-platform="android">
+              <span class="parity-breakdown__label">Android</span>
+              <span class="parity-breakdown__bar" aria-hidden="true">
+                <span class="parity-breakdown__fill" style="--p:0"></span>
+              </span>
+              <span class="parity-breakdown__count">0 / 47</span>
+              <span class="parity-breakdown__chip chip chip--accent">Drift</span>
+            </li>
+          </ul>
+
+          <dl class="parity-summary">
+            <div class="parity-summary__item">
+              <dt>Components in spec</dt>
+              <dd><span class="parity-summary__num">12</span> <span class="parity-summary__total">/ 47</span></dd>
+            </div>
+            <div class="parity-summary__item">
+              <dt>Needs attention</dt>
+              <dd><span class="parity-summary__num parity-summary__num--warn">24</span></dd>
+            </div>
+            <div class="parity-summary__item">
+              <dt>Critical</dt>
+              <dd><span class="parity-summary__num parity-summary__num--crit">11</span></dd>
+            </div>
+            <div class="parity-summary__item">
+              <dt>Last sync</dt>
+              <dd>14m ago</dd>
+            </div>
+          </dl>
+        </article>
+
+        <!-- Stage 10.2 — Agent card (persistent CHIP presence) -->
+        <article class="agent-card bento-hero-agent" aria-labelledby="agent-card-eyebrow">
+          <p id="agent-card-eyebrow" class="card__eyebrow">Agent · Standing by</p>
+          <h2 class="card__headline">CHIP — your design systems daemon.</h2>
+          <dl class="agent-card__meta">
+            <dt>Status</dt><dd>Watching · last sync 3m ago</dd>
+            <dt>Phase</dt><dd>Monitor (MAPE-K)</dd>
+            <dt>Pending</dt><dd>1 proposal · 3 inbox · 2 reviews</dd>
+            <dt>Last action</dt><dd>Drift detected · 14m ago</dd>
+          </dl>
+          <form class="agent-card__ask" id="agent-ask" autocomplete="off">
+            <input type="text" id="agent-ask-input" class="agent-card__input"
+                   placeholder="Ask anything — search system, draft a reply, file a ticket…"
+                   aria-label="Ask CHIP" />
+            <button type="submit" class="agent-card__send" aria-label="Send">→</button>
+          </form>
+          <!-- Stage 18.13 — Vitaly-style predefined prompts -->
+          <div class="agent-card__suggestions" id="agent-suggestions" role="list" aria-label="Suggested prompts">
+            <button type="button" class="agent-card__suggestion" data-suggestion="What needs my attention right now? Use my BELLA bridge state to ground the answer.">What needs my attention</button>
+            <button type="button" class="agent-card__suggestion" data-suggestion="Search my Notion for what Vitaly Friedman says about expert dashboards. Quote a line from the page.">What does Vitaly say about dashboards</button>
+            <button type="button" class="agent-card__suggestion" data-suggestion="Walk me through BELLA's cross-platform parity gaps. Name the platform, name the component, name the next step.">Walk me through the parity gaps</button>
+            <button type="button" class="agent-card__suggestion" data-suggestion="Search my Notion for Brad Frost's atomic agentic systems work. Summarize his governance argument.">Brad Frost on governance</button>
+            <button type="button" class="agent-card__suggestion" data-suggestion="Search my Notion for Nathan Curtis's specs-cli essay. What's his three-layer contract?">Nathan Curtis · specs-cli</button>
+          </div>
+          <div class="toast" id="ask-toast" role="status" aria-live="polite" hidden>
+            Report generation is v1. The simulation is real.
+          </div>
+          <div class="agent-card__chat" id="ask-chat" aria-live="polite" aria-atomic="false"></div>
+          <div class="agent-card__chat-controls" id="ask-controls" hidden>
+            <button type="button" id="btn-new-chat" class="agent-card__new-chat">New conversation</button>
+            <span class="agent-card__chat-meta" id="ask-meta"></span>
+          </div>
+        </article>
+
+        <!-- Alerts panel — moved from System map: "what needs attention now" is a Bridge question -->
+        <article class="card alerts-panel bento-full" aria-labelledby="alerts-eyebrow">
+          <header class="alerts-panel__header">
+            <p id="alerts-eyebrow" class="card__eyebrow">Alerts · 4 potential divergences flagged</p>
+            <span class="chip chip--muted demo-label">Demo scenario · synthetic data</span>
+            <span class="alerts-panel__hint">CHIP scans repos, Figma, Storybook, Zeroheight every 14m. v1 will scan Slack and Jira too.</span>
+          </header>
+          <ul class="alerts-panel__list" role="list">
+            <li class="alerts-panel__row alerts-panel__row--critical" data-alert-id="android-button-drift">
+              <span class="alerts-panel__sev">CRIT</span>
+              <span class="alerts-panel__what">
+                <strong>Android Button drift</strong> · 47 components committed without parity check
+                <span class="alerts-panel__meta">android-bella · last commit 2h ago · Android Lead</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Open BELLA-1267 in Jira, assign Android Lead, block landscape merge until parity check passes.
+                </p>
+              </span>
+              <span class="alerts-panel__action">
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
+              </span>
+            </li>
+            <li class="alerts-panel__row alerts-panel__row--warning" data-alert-id="ios-focus-order">
+              <span class="alerts-panel__sev">WARN</span>
+              <span class="alerts-panel__what">
+                <strong>iOS focus-order divergence</strong> · Modal landscape variant
+                <span class="alerts-panel__meta">ios-bella · BELLA-1247 · iOS Lead · 2h ago</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Swap iOS focus order to match Web tab sequence in Modal landscape variant.
+                </p>
+              </span>
+              <span class="alerts-panel__action">
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
+              </span>
+            </li>
+            <li class="alerts-panel__row alerts-panel__row--warning" data-alert-id="zh-card-stale">
+              <span class="alerts-panel__sev">WARN</span>
+              <span class="alerts-panel__what">
+                <strong>Zeroheight Card page stale</strong> · 6 days behind Storybook deploy
+                <span class="alerts-panel__meta">zeroheight · Card v2.14.3 not reflected in docs</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Regenerate Zeroheight Card page from Storybook v2.14.3 deploy.
+                </p>
+              </span>
+              <span class="alerts-panel__action">
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
+              </span>
+            </li>
+            <li class="alerts-panel__row alerts-panel__row--info" data-alert-id="amber-30-token">
+              <span class="alerts-panel__sev">INFO</span>
+              <span class="alerts-panel__what">
+                <strong>tokens.css edited</strong> · amber-30 darkened by 4% · not yet propagated to iOS / Android
+                <span class="alerts-panel__meta">bella/tokens · Elleta · 1d ago</span>
+                <p class="alerts-panel__rec">
+                  <span class="alerts-panel__rec-label">CHIP recommends</span>
+                  Propagate amber-30 token change to ios-bella/Tokens.swift and android-bella/tokens.kt; flag platform leads for review.
+                </p>
+              </span>
+              <span class="alerts-panel__action">
+                <button type="button" class="btn btn--sm btn--success" data-alert-action="approve">Approve fix</button>
+                <button type="button" class="btn btn--sm btn--neutral" data-alert-action="decline">Decline</button>
+                <button type="button" class="btn btn--sm btn--ghost" data-alert-action="triage">Triage manually</button>
+              </span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Stage 14.1 — 4 stat cards -->
+        <button type="button" class="bento-stat" data-stat-target="diag-card">
+          <p class="bento-stat__eyebrow">Pending</p>
+          <p class="bento-stat__num">1 proposal</p>
+          <p class="bento-stat__sub">audit awaiting approval</p>
+        </button>
+        <button type="button" class="bento-stat" data-stat-target="inbox-card">
+          <p class="bento-stat__eyebrow">Inbox</p>
+          <p class="bento-stat__num">3 awaiting</p>
+          <p class="bento-stat__sub">email · slack · linear</p>
+        </button>
+        <button type="button" class="bento-stat" data-stat-target="today-card">
+          <p class="bento-stat__eyebrow">Today</p>
+          <p class="bento-stat__num">3 events</p>
+          <p class="bento-stat__sub">next at 10:00</p>
+        </button>
+        <button type="button" class="bento-stat" data-stat-target="upcoming-card">
+          <p class="bento-stat__eyebrow">Coming up</p>
+          <p class="bento-stat__num">Friday 10:00</p>
+          <p class="bento-stat__sub">parity review · 23 components</p>
+        </button>
+
+        <article class="card diag bento-banner" id="diag-card" role="article" aria-labelledby="diag-headline">
+          <button type="button" class="tighten-link" id="btn-tighten">Tighten constraints</button>
+          <p class="card__eyebrow">Proposal · Auto</p>
+          <span class="chip chip--muted demo-label">Demo scenario · synthetic data</span>
+          <h2 class="card__headline" id="diag-headline">Landscape mode shipped on Web. iOS partial. Android missing.</h2>
+          <div class="card__body">
+            <p>47 Web components updated for landscape last sprint. iOS squad shipped 23. Android squad shipped 0. Each squad chose their own priority without coordination.</p>
+            <p>Proposal: ranked roadmap of 23 components to align, Jira tickets filed, Storybook + Figma updated, dev leads pinged for approve-gate.</p>
+          </div>
+          <p class="card__meta">Platforms: 3 · Components out of parity: 23 · Dev leads: Web, iOS, Android · Detected: live</p>
+
+          <div class="platform-table" aria-label="Platform parity table">
+            <div class="platform-table__row platform-table__row--head">
+              <span>Platform</span>
+              <span>Landscape coverage</span>
+              <span>Lead</span>
+            </div>
+            <div class="platform-table__row">
+              <span>Web</span>
+              <span>47 / 47 components</span>
+              <span>Web Lead</span>
+            </div>
+            <div class="platform-table__row">
+              <span>iOS</span>
+              <span>23 / 47 components</span>
+              <span>iOS Lead</span>
+            </div>
+            <div class="platform-table__row">
+              <span>Android</span>
+              <span>&nbsp;0 / 47 components</span>
+              <span>Android Lead</span>
+            </div>
+          </div>
+          <p class="platform-table__resolved">23 Jira tickets filed · 3 dev leads notified · roadmap acknowledged.</p>
+
+          <button type="button" class="diag__expand" id="btn-expand">View full roadmap →</button>
+
+          <!-- Stage 18.3 — Vitaly readiness checklist -->
+          <section class="readiness" aria-labelledby="readiness-title">
+            <p id="readiness-title" class="readiness__title">Before you approve</p>
+            <div class="readiness__cols">
+              <div class="readiness__col readiness__col--done">
+                <p class="readiness__col-label">Done</p>
+                <ul class="readiness__list" id="readiness-done">
+                  <li><span class="readiness__glyph">✓</span><span>Inclusion check</span></li>
+                  <li><span class="readiness__glyph">✓</span><span>Trust level: Junior</span></li>
+                  <li><span class="readiness__glyph">✓</span><span>Budget reviewed</span></li>
+                  <li><span class="readiness__glyph">✓</span><span>Confidence 0.95</span></li>
+                </ul>
+              </div>
+              <div class="readiness__col readiness__col--todo">
+                <p class="readiness__col-label">To do</p>
+                <ul class="readiness__list" id="readiness-todo">
+                  <li><span class="readiness__glyph">□</span><span>Confirm with Web Lead before Friday deploy</span></li>
+                  <li><span class="readiness__glyph">□</span><span>Schedule deploy window with iOS</span></li>
+                </ul>
+              </div>
+              <div class="readiness__col readiness__col--ready">
+                <p class="readiness__col-label">Ready</p>
+                <ul class="readiness__list">
+                  <li><span class="readiness__glyph">◆</span><span>23 tickets templated</span></li>
+                  <li><span class="readiness__glyph">◆</span><span>Dev leads notified</span></li>
+                </ul>
+              </div>
+            </div>
+            <div class="readiness__time">
+              <p class="readiness__time-label">Estimated time</p>
+              <ul class="readiness__time-list">
+                <li><span>Approve action</span><span>~2 min</span></li>
+                <li><span>File 23 tickets</span><span>~30 sec</span></li>
+                <li><span>Notify 3 leads</span><span>~1 min</span></li>
+                <li><span>Update Storybook</span><span>~5 min</span></li>
+                <li><span>Total</span><span>~9 min</span></li>
+              </ul>
+            </div>
+          </section>
+
+          <div class="approve-row" id="approve-row">
+            <div class="approve-row__chips">
+              <span class="chip chip--info">Confidence 0.95</span>
+              <span class="chip chip--accent">Propose roadmap · Await approval</span>
+              <span class="chip chip--success" id="inclusion-chip" title="A11y AA · 24 languages · ethics review clear">Inclusion · pass</span>
+              <span class="chip chip--info" title="Junior — fixes minimal in scope, requires explicit approve.">Trust · Junior</span>
+            </div>
+            <div class="approve-row__actions">
+              <button type="button" class="btn" id="btn-reject" aria-keyshortcuts="R">Reject</button>
+              <button type="button" class="btn" id="btn-modify" aria-keyshortcuts="M">Modify</button>
+              <button type="button" class="btn btn--primary" id="btn-approve" aria-keyshortcuts="A Meta+Shift+A">Approve</button>
+            </div>
+          </div>
+
+          <!-- Stage 18.5 — action feedback panels: every action visible -->
+          <section class="action-fb" id="action-fb" hidden aria-live="polite">
+            <!-- Reject form -->
+            <form class="action-fb__form" id="reject-form" hidden>
+              <p class="action-fb__eyebrow">Reject roadmap · reason required</p>
+              <h3 class="action-fb__headline">Why are you rejecting this proposal?</h3>
+              <textarea class="action-fb__textarea" id="reject-reason" rows="3"
+                placeholder="e.g., iOS squad is in the middle of a release branch — defer until next sprint."
+                aria-label="Rejection reason" required></textarea>
+              <div class="action-fb__row">
+                <button type="button" class="btn" data-action-cancel>Cancel</button>
+                <button type="submit" class="btn btn--primary">Confirm rejection</button>
+              </div>
+            </form>
+
+            <!-- Modify form -->
+            <form class="action-fb__form" id="modify-form" hidden>
+              <p class="action-fb__eyebrow">Modify roadmap · note your constraints</p>
+              <h3 class="action-fb__headline">What needs to change?</h3>
+              <textarea class="action-fb__textarea" id="modify-notes" rows="3"
+                placeholder="e.g., split into Web-only first, hold iOS until landscape variants are signed off."
+                aria-label="Modification notes" required></textarea>
+              <div class="action-fb__row">
+                <button type="button" class="btn" data-action-cancel>Cancel</button>
+                <button type="submit" class="btn btn--primary">Save changes &amp; re-propose</button>
+              </div>
+            </form>
+
+            <!-- Confirmation panel — populated by JS -->
+            <div class="action-fb__confirm" id="action-fb-confirm" hidden>
+              <p class="action-fb__eyebrow" id="action-fb-eyebrow"></p>
+              <h3 class="action-fb__headline" id="action-fb-headline"></h3>
+              <ul class="action-fb__list" id="action-fb-list"></ul>
+              <p class="action-fb__note" id="action-fb-note"></p>
+              <div class="action-fb__row">
+                <button type="button" class="btn" id="action-fb-reset">Reset demo</button>
+              </div>
+            </div>
+          </section>
+
+          <details class="inclusion-issues" id="inclusion-issues">
+            <summary>3 inclusion issues</summary>
+            <ul>
+              <li>Web · Button focus state contrast 3.8:1 (needs 4.5:1)</li>
+              <li>iOS · Card animation 280ms (vendor accessibility max 250ms)</li>
+              <li>All platforms · 3 strings missing translations for FR-CA · DE · IT</li>
+            </ul>
+          </details>
+          <p class="inclusion-explainer" id="inclusion-explainer">
+            Approve gated until inclusion issues resolved or operator overrides.
+            <button type="button" class="override-link" id="btn-override">Override with logged exception</button>
+          </p>
+
+          <p class="resolved-line">
+            Roadmap accepted · 23 tickets filed to Jira · 3 dev leads notified · 2026-04-26 14:03
+          </p>
+        </article>
+
+        <!-- Stage 18.11 — Half cards in 2-column masonry wrapper (true column-pack) -->
+        <div class="bridge-halves bento-full">
+        <!-- Tier 2.2 — top-3 priorities -->
+        <article class="priorities" aria-labelledby="priorities-eyebrow">
+          <p id="priorities-eyebrow" class="card__eyebrow">Today</p>
+          <ul class="priorities__list" role="list">
+            <li class="priorities__row" tabindex="0">
+              <span class="priorities__name">Landscape audit</span>
+              <span class="chip chip--accent">Blocking</span>
+              <span class="priorities__detail">Web + iOS squads stalled</span>
+            </li>
+            <li class="priorities__row" tabindex="0">
+              <span class="priorities__name">Q3 roadmap draft</span>
+              <span class="chip chip--info">Due Friday</span>
+              <span class="priorities__detail">Review with leads</span>
+            </li>
+            <li class="priorities__row" tabindex="0">
+              <span class="priorities__name">Friday review prep</span>
+              <span class="chip chip--muted">14 tickets</span>
+              <span class="priorities__detail">Triage queue</span>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Stage 10.3 — Inbox glance (column-count's natural fill puts this in col 1 with priorities) -->
+        <article class="card inbox-card" id="inbox-card" aria-labelledby="inbox-eyebrow">
+          <p id="inbox-eyebrow" class="card__eyebrow">Inbox · 3 awaiting reply</p>
+          <span class="chip chip--muted demo-label">Demo scenario · synthetic data</span>
+          <h3 class="card__headline">Pending replies across email, Slack, Linear.</h3>
+          <ul class="inbox-card__list" role="list">
+            <li class="inbox-card__row">
+              <div class="inbox-card__body">
+                <p class="inbox-card__source">Email · Web Lead</p>
+                <p class="inbox-card__quote">"Reviewed your landscape audit — one concern about the button focus ring on iOS. Can we sync Friday?"</p>
+                <p class="inbox-card__meta">14m ago · BELLA-landscape-thread</p>
+              </div>
+              <div class="inbox-card__actions">
+                <button type="button" class="btn btn--sm btn--info inbox-card__chip" data-inbox-action="reply">Reply</button>
+                <button type="button" class="btn btn--sm btn--neutral inbox-card__chip" data-inbox-action="defer">Defer</button>
+                <button type="button" class="btn btn--sm btn--success inbox-card__chip" data-inbox-action="done">Done</button>
+              </div>
+              <div class="inbox-card__compose" data-compose hidden></div>
+            </li>
+            <li class="inbox-card__row">
+              <div class="inbox-card__body">
+                <p class="inbox-card__source">Slack · #ds-leads</p>
+                <p class="inbox-card__quote">"@elleta — quick Q: are we shipping the Modal landscape variant this sprint or next?"</p>
+                <p class="inbox-card__meta">2h ago · iOS Lead</p>
+              </div>
+              <div class="inbox-card__actions">
+                <button type="button" class="btn btn--sm btn--info inbox-card__chip" data-inbox-action="reply">Reply</button>
+                <button type="button" class="btn btn--sm btn--neutral inbox-card__chip" data-inbox-action="defer">Defer</button>
+                <button type="button" class="btn btn--sm btn--success inbox-card__chip" data-inbox-action="done">Done</button>
+              </div>
+              <div class="inbox-card__compose" data-compose hidden></div>
+            </li>
+            <li class="inbox-card__row">
+              <div class="inbox-card__body">
+                <p class="inbox-card__source">Linear · BELLA-1233</p>
+                <p class="inbox-card__quote">You were @mentioned by Android Lead in: "Component freeze for Q3 release — are we good?"</p>
+                <p class="inbox-card__meta">yesterday · BELLA project</p>
+              </div>
+              <div class="inbox-card__actions">
+                <button type="button" class="btn btn--sm btn--info inbox-card__chip" data-inbox-action="reply">Reply</button>
+                <button type="button" class="btn btn--sm btn--neutral inbox-card__chip" data-inbox-action="defer">Defer</button>
+                <button type="button" class="btn btn--sm btn--success inbox-card__chip" data-inbox-action="done">Done</button>
+              </div>
+              <div class="inbox-card__compose" data-compose hidden></div>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Stage 10.4 — Today calendar glance (column 2 first tile) -->
+        <article class="card today-card" id="today-card" aria-labelledby="today-eyebrow">
+          <p id="today-eyebrow" class="card__eyebrow">Today · 3 events</p>
+          <h3 class="card__headline">Saturday April 25 · DS leads sync at 10:00.</h3>
+          <ul class="today-card__list" role="list">
+            <li class="today-card__row">
+              <span class="today-card__time">10:00 — 11:30</span>
+              <span class="today-card__title">DS leads sync</span>
+              <button type="button" class="btn btn--sm btn--neutral today-card__open"
+                data-event-title="DS leads sync"
+                data-event-time="10:00 — 11:30"
+                data-event-attendees="Web Lead, iOS Lead, Android Lead">Open</button>
+            </li>
+            <li class="today-card__row">
+              <span class="today-card__time">13:30 — 14:00</span>
+              <span class="today-card__title">1:1 with Web Lead</span>
+              <button type="button" class="btn btn--sm btn--neutral today-card__open"
+                data-event-title="1:1 with Web Lead"
+                data-event-time="13:30 — 14:00"
+                data-event-attendees="Web Lead">Open</button>
+            </li>
+            <li class="today-card__row">
+              <span class="today-card__time">16:00 — 17:00</span>
+              <span class="today-card__title">Friday review prep</span>
+              <button type="button" class="btn btn--sm btn--neutral today-card__open"
+                data-event-title="Friday review prep"
+                data-event-time="16:00 — 17:00"
+                data-event-attendees="solo · 14 tickets to triage">Open</button>
+            </li>
+          </ul>
+          <p class="today-card__next-label">Next — tomorrow</p>
+          <ul class="today-card__list" role="list">
+            <li class="today-card__row today-card__row--next">
+              <span class="today-card__time">09:00 — 09:30</span>
+              <span class="today-card__title">Quick standup</span>
+              <button type="button" class="btn btn--sm btn--neutral today-card__open"
+                data-event-title="Quick standup"
+                data-event-time="09:00 — 09:30 · tomorrow"
+                data-event-attendees="full DS team">Open</button>
+            </li>
+          </ul>
+        </article>
+
+        <!-- Stage 14.2 — Coming up preview (column 2 second tile) -->
+        <article class="card upcoming-card" id="upcoming-card" aria-labelledby="upcoming-eyebrow">
+          <p id="upcoming-eyebrow" class="card__eyebrow">Coming up · 3 surface in your bridge this week</p>
+          <ul class="upcoming-card__list" role="list">
+            <li class="upcoming-card__row">
+              <span class="upcoming-card__when">Fri 10:00</span>
+              <span class="upcoming-card__what">CHIP will surface 23 components for parity review.</span>
+            </li>
+            <li class="upcoming-card__row">
+              <span class="upcoming-card__when">Fri 14:00</span>
+              <span class="upcoming-card__what">Research digest with 3 new sources for review.</span>
+            </li>
+            <li class="upcoming-card__row">
+              <span class="upcoming-card__when">Mon 09:00</span>
+              <span class="upcoming-card__what">elleta.design publish queue: 2 pages awaiting approval.</span>
+            </li>
+          </ul>
+          <button type="button" class="upcoming-card__more" id="upcoming-card-more">→ See all 6 in Coming up</button>
+        </article>
+        </div><!-- /.bridge-halves -->
+
+        <!-- Stage 10.5 — surfaces shelf with compact-mode toggle -->
+        <article class="card surfaces surfaces--compact bento-full" aria-labelledby="surfaces-eyebrow">
+          <div class="surfaces__header">
+            <p id="surfaces-eyebrow" class="card__eyebrow">Watching</p>
+            <button type="button" class="surfaces__toggle" id="surfaces-toggle" aria-pressed="false">Compact</button>
+          </div>
+          <ul class="surfaces__list" role="list" id="surfaces-list">
+            <li class="surfaces__head" role="row">
+              <button type="button" class="surfaces__sort" data-sort-col="0">Surface</button>
+              <button type="button" class="surfaces__sort" data-sort-col="1">Status</button>
+              <button type="button" class="surfaces__sort" data-sort-col="2">Detail</button>
+            </li>
+            <li class="surfaces__row"><span class="surfaces__name">Web repo</span><span class="chip chip--info">In sync</span><span class="surfaces__detail">last pull 14m ago</span><span class="surfaces__spark" data-spark="web"></span></li>
+            <li class="surfaces__row"><span class="surfaces__name">iOS repo</span><span class="chip chip--accent">Drift</span><span class="surfaces__detail">23 components behind</span><span class="surfaces__spark" data-spark="ios"></span></li>
+            <li class="surfaces__row"><span class="surfaces__name">Android repo</span><span class="chip chip--accent">Drift</span><span class="surfaces__detail">47 components behind</span><span class="surfaces__spark" data-spark="android"></span></li>
+            <li class="surfaces__row"><span class="surfaces__name">Figma library</span><span class="chip chip--info">In sync</span><span class="surfaces__detail">master branch clean</span><span class="surfaces__spark" data-spark="figma"></span></li>
+            <li class="surfaces__row"><span class="surfaces__name">Storybook</span><span class="chip chip--info">In sync</span><span class="surfaces__detail">89 stories · last deploy 2h</span><span class="surfaces__spark" data-spark="storybook"></span></li>
+            <li class="surfaces__row"><span class="surfaces__name">Zeroheight docs</span><span class="chip chip--muted">Stale</span><span class="surfaces__detail">last update 6 days ago</span><span class="surfaces__spark" data-spark="docs"></span></li>
+            <li class="surfaces__row"><span class="surfaces__name">Jira backlog</span><span class="chip chip--info">Active</span><span class="surfaces__detail">3 tickets awaiting triage</span><span class="surfaces__spark" data-spark="jira"></span></li>
+            <li class="surfaces__row"><span class="surfaces__name">Dev lead channel</span><span class="chip chip--info">Active</span><span class="surfaces__detail">2 threads open</span><span class="surfaces__spark" data-spark="channel"></span></li>
+            <li class="surfaces__row"><span class="surfaces__name">Research library</span><span class="chip chip--info">Living map</span><span class="surfaces__detail">47 sources · 6 primary voices</span><span class="surfaces__spark" data-spark="research"></span></li>
+            <li class="surfaces__row"><span class="surfaces__name">Friction log</span><span class="chip chip--info">Active</span><span class="surfaces__detail">3 open notes</span><span class="surfaces__spark" data-spark="friction"></span></li>
+          </ul>
+        </article>
+
+        </div><!-- /.bridge-bento -->
+      </section>
+
+      <!-- ======== RESEARCH SPACE ======== -->
+      <section class="space space--research" aria-labelledby="research-title">
+        <header class="space__header">
+          <p class="space__eyebrow">Research · Living map</p>
+          <h1 class="space__title" id="research-title">AI-ready design systems — six primary voices.</h1>
+          <p class="space__subtitle">47 sources tracked. The map updates when anyone in the cohort publishes. Click an entry to pull the full piece into the reader pane.</p>
+        </header>
+
+        <!-- 8.5 — Research toolbar: search + voice chips + tag chips + sort -->
+        <div class="research-toolbar" role="group" aria-label="Research filters">
+          <input
+            type="search"
+            class="research-toolbar__search"
+            id="research-search"
+            placeholder="Search 47 sources…"
+            autocomplete="off"
+            aria-label="Search research entries"
+          />
+          <div class="research-toolbar__chips" data-filter-group="voice" aria-label="Filter by voice">
+            <span class="research-toolbar__chip-label">Voice</span>
+            <button type="button" class="chip chip--info research-toolbar__chip" data-filter-value="all" aria-pressed="true">All</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="appleton" aria-pressed="false">Appleton</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="campbell" aria-pressed="false">Campbell</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="cianfrani" aria-pressed="false">Cianfrani</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="curtis" aria-pressed="false">Curtis</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="friedman" aria-pressed="false">Friedman</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="frost" aria-pressed="false">Frost</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="if_team" aria-pressed="false">IF</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="kavcic" aria-pressed="false">Kavčič</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="pandya" aria-pressed="false">Pandya</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="pitre" aria-pressed="false">Pitre</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="wattenberger" aria-pressed="false">Wattenberger</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="wroblewski" aria-pressed="false">Wroblewski</button>
+          </div>
+          <div class="research-toolbar__chips" data-filter-group="tag" aria-label="Filter by tag">
+            <span class="research-toolbar__chip-label">Tag</span>
+            <button type="button" class="chip chip--info research-toolbar__chip" data-filter-value="all" aria-pressed="true">All</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="agents" aria-pressed="false">agents</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="patterns" aria-pressed="false">patterns</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="trust" aria-pressed="false">trust</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="tokens" aria-pressed="false">tokens</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="governance" aria-pressed="false">governance</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="compression" aria-pressed="false">compression</button>
+            <button type="button" class="chip chip--muted research-toolbar__chip" data-filter-value="embeddings" aria-pressed="false">embeddings</button>
+          </div>
+          <div class="research-toolbar__view" role="group" aria-label="Research view">
+            <button type="button" class="view-toggle view-toggle--active" data-research-view="timeline" aria-pressed="true">Timeline</button>
+            <button type="button" class="view-toggle" data-research-view="table" aria-pressed="false">Table</button>
+            <button type="button" class="view-toggle" data-research-view="map" aria-pressed="false">Map</button>
+          </div>
+          <div class="research-toolbar__sort">
+            <label class="research-toolbar__sort-label" for="research-sort">Sort</label>
+            <select id="research-sort" class="research-toolbar__sort-select">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="alpha">Alphabetical by author</option>
+              <option value="connections">Most-connected first</option>
+            </select>
+          </div>
+          <button type="button" class="research-toolbar__clear" id="research-clear" hidden>Clear filters</button>
+        </div>
+
+        <p class="research-toolbar__empty" id="research-empty" hidden>
+          No voices match. Try clearing the filter or searching by tag.
+        </p>
+
+        <div class="voices-map" id="voices-map" hidden>
+          <div class="voices-map__grid">
+            <svg class="voices-map__svg" id="voices-map-svg" viewBox="0 0 640 500" role="img" aria-label="Voices map: 12 research voices arranged in a ring with connection lines."></svg>
+            <aside class="voices-map__detail" id="voices-map-detail" aria-live="polite">
+              <p class="voices-map__empty" id="voices-map-empty">Select a voice to see who they cite and who cites them.</p>
+              <div id="voices-map-detail-content"></div>
+            </aside>
+          </div>
+        </div>
+
+        <div class="research-table-wrapper" id="research-table-wrapper" hidden>
+          <table class="research-table">
+            <thead>
+              <tr>
+                <th><button type="button" data-sort-col="date">Date</button></th>
+                <th><button type="button" data-sort-col="author">Author</button></th>
+                <th><button type="button" data-sort-col="title">Title</button></th>
+                <th>Tags</th>
+                <th><button type="button" data-sort-col="connections">Connections</button></th>
+              </tr>
+            </thead>
+            <tbody id="research-table-body"></tbody>
+          </table>
+        </div>
+
+        <div class="research-grid">
+          <div class="timeline" id="timeline">
+            <svg class="timeline__lines" id="timeline-lines" aria-hidden="true"></svg>
+            <button type="button" class="timeline__entry" data-research="appleton">
+              <p class="timeline__date">2026-04-22</p>
+              <p class="timeline__author">Maggie Appleton</p>
+              <h3 class="timeline__title">LM Sketchbook: Mental models for LLM systems</h3>
+              <p class="timeline__quote">"Daemons run quietly until summoned."</p>
+              <div class="timeline__tags"><span class="tag">agents</span><span class="tag">daemons</span><span class="tag">mental-models</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="curtis">
+              <p class="timeline__date">2026-04-20</p>
+              <p class="timeline__author">Nathan Curtis</p>
+              <h3 class="timeline__title">specs-cli — 99.25% Figma compression</h3>
+              <p class="timeline__quote">"AI belongs downstream of a mechanical spec."</p>
+              <div class="timeline__tags"><span class="tag">specs</span><span class="tag">compression</span><span class="tag">mechanical-first</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="campbell">
+              <p class="timeline__date">2026-04-18</p>
+              <p class="timeline__author">Emily Campbell — Shape of AI</p>
+              <h3 class="timeline__title">AI interaction pattern library</h3>
+              <p class="timeline__quote">"Patterns let us speak the same language."</p>
+              <div class="timeline__tags"><span class="tag">patterns</span><span class="tag">vocabulary</span><span class="tag">libraries</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="friedman">
+              <p class="timeline__date">2026-04-15</p>
+              <p class="timeline__author">Vitaly Friedman</p>
+              <h3 class="timeline__title">Five Levels of Context Engineering</h3>
+              <p class="timeline__quote">"Shared work needs shared context. The right compression of a brief is the brief."</p>
+              <div class="timeline__tags"><span class="tag">context</span><span class="tag">shared-work</span><span class="tag">briefs</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="if_team">
+              <p class="timeline__date">2026-04-12</p>
+              <p class="timeline__author">Projects By IF</p>
+              <h3 class="timeline__title">Trust Patterns Catalogue</h3>
+              <p class="timeline__quote">"Trust is built in the small moments."</p>
+              <div class="timeline__tags"><span class="tag">trust</span><span class="tag">transparency</span><span class="tag">ethics</span><span class="tag">gates</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="pandya">
+              <p class="timeline__date">2026-04-10</p>
+              <p class="timeline__author">Hardik Pandya</p>
+              <h3 class="timeline__title">LLM Design Systems — the three-layer contract</h3>
+              <p class="timeline__quote">"Spec files, token layer, audit script, sync. Four pieces. One loop."</p>
+              <div class="timeline__tags"><span class="tag">three-layer</span><span class="tag">loops</span><span class="tag">contract</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="frost">
+              <p class="timeline__date">2026-04-05</p>
+              <p class="timeline__author">Brad Frost</p>
+              <h3 class="timeline__title">Atomic agentic systems</h3>
+              <p class="timeline__quote">"The system is not the components. The system is the rules that govern the components."</p>
+              <div class="timeline__tags"><span class="tag">atomic</span><span class="tag">governance</span><span class="tag">rules</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="wattenberger">
+              <p class="timeline__date">2026-04-05</p>
+              <p class="timeline__author">Amelia Wattenberger</p>
+              <h3 class="timeline__title">Yay, Embeddings, Math!</h3>
+              <p class="timeline__quote">"Semantic search is similarity made navigable."</p>
+              <div class="timeline__tags"><span class="tag">embeddings</span><span class="tag">semantic-search</span><span class="tag">explainer</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="wroblewski">
+              <p class="timeline__date">2026-03-28</p>
+              <p class="timeline__author">Luke Wroblewski</p>
+              <h3 class="timeline__title">Ask LukeW · Structured AI search interface</h3>
+              <p class="timeline__quote">"Structured answers beat free-form chat for expertise."</p>
+              <div class="timeline__tags"><span class="tag">search</span><span class="tag">structured-answers</span><span class="tag">expert-UX</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="kavcic">
+              <p class="timeline__date">2026-03-25</p>
+              <p class="timeline__author">Romina Kavčič</p>
+              <h3 class="timeline__title">Design systems as infrastructure</h3>
+              <p class="timeline__quote">"Operating principles first, components later. The principles are the product."</p>
+              <div class="timeline__tags"><span class="tag">infrastructure</span><span class="tag">operating-principles</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="cianfrani">
+              <p class="timeline__date">2026-03-15</p>
+              <p class="timeline__author">Mark Cianfrani</p>
+              <h3 class="timeline__title">Designer as agent-operator</h3>
+              <p class="timeline__quote">"The operator is the contract. What they approve is the system."</p>
+              <div class="timeline__tags"><span class="tag">operator</span><span class="tag">agents</span><span class="tag">approve-gate</span></div>
+            </button>
+            <button type="button" class="timeline__entry" data-research="pitre">
+              <p class="timeline__date">2026-03-04</p>
+              <p class="timeline__author">TJ Pitre</p>
+              <h3 class="timeline__title">Tokens as the primary contract</h3>
+              <p class="timeline__quote">"If the tokens aren't right, nothing downstream can be right."</p>
+              <div class="timeline__tags"><span class="tag">tokens</span><span class="tag">contract</span></div>
+            </button>
+          </div>
+
+          <aside class="research-detail" id="research-detail" aria-live="polite" aria-label="Selected research entry detail">
+            <p class="research-detail__empty" id="research-detail-empty">Select an entry to inspect.</p>
+            <div id="research-detail-content"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ======== FRICTION SPACE ======== -->
+      <section class="space space--friction" aria-labelledby="friction-title">
+        <header class="space__header">
+          <p class="space__eyebrow">Friction log · 3 open</p>
+          <h1 class="space__title" id="friction-title">Things I don't like yet.</h1>
+          <p class="space__subtitle">Every tool I use is logged here when it breaks my flow. Open entries are dogfooding debt. Resolved entries keep their audit trail. Pink entries are wishlists.</p>
+        </header>
+
+        <article class="friction-aggregate" aria-labelledby="friction-aggregate-eyebrow">
+          <p id="friction-aggregate-eyebrow" class="card__eyebrow">Friction log · Aggregate</p>
+          <div class="friction-aggregate__grid">
+            <button type="button" class="friction-aggregate__cell" data-friction-stat="open">
+              <span class="friction-aggregate__num">3</span>
+              <span class="friction-aggregate__label">Open</span>
+            </button>
+            <button type="button" class="friction-aggregate__cell" data-friction-stat="resolved">
+              <span class="friction-aggregate__num">2</span>
+              <span class="friction-aggregate__label">Resolved</span>
+            </button>
+            <button type="button" class="friction-aggregate__cell" data-friction-stat="pink">
+              <span class="friction-aggregate__num">1</span>
+              <span class="friction-aggregate__label">Wishlist</span>
+            </button>
+            <button type="button" class="friction-aggregate__cell" data-friction-stat="all">
+              <span class="friction-aggregate__num">6</span>
+              <span class="friction-aggregate__label">Total</span>
+            </button>
+          </div>
+          <p class="friction-aggregate__sub">50% resolution rate · oldest open: 11 days · last resolved: 7 days ago</p>
+        </article>
+
+        <div class="friction-toolbar" role="group" aria-label="Friction view">
+          <button type="button" class="view-toggle view-toggle--active" data-friction-view="cards" aria-pressed="true">Cards</button>
+          <button type="button" class="view-toggle" data-friction-view="table" aria-pressed="false">Table</button>
+        </div>
+
+        <p class="friction__empty" id="friction-empty" hidden>
+          All quiet. Even your design system's a bit bored. That's good.
+        </p>
+
+        <div class="friction-table-wrapper" id="friction-table-wrapper" hidden>
+          <table class="friction-table">
+            <thead>
+              <tr>
+                <th><button type="button" data-sort-col="date">Date</button></th>
+                <th><button type="button" data-sort-col="status">Status</button></th>
+                <th><button type="button" data-sort-col="source">Source</button></th>
+                <th><button type="button" data-sort-col="headline">Headline</button></th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="friction-table-body"></tbody>
+          </table>
+        </div>
+
+        <div class="friction-grid">
+          <ul class="friction__list">
+          <li class="friction__entry" data-status="open" data-friction="sidebar" tabindex="0" role="button" aria-label="Friction entry: sidebar">
+            <div class="friction__meta">
+              <span class="friction__date">2026-04-24</span>
+              <span class="chip chip--accent">Open</span>
+              <span class="chip chip--muted">Cowork</span>
+            </div>
+            <h3 class="friction__headline">The sidebar is too wide — and it just stays open.</h3>
+            <p class="friction__body">I click a file, it opens in the sidebar, I try to read my code, I lose my place. I don't need it to close. I need it to get out of the way or be narrow enough that reading the main column isn't a fight.</p>
+          </li>
+          <li class="friction__entry" data-status="open" data-friction="finder" tabindex="0" role="button" aria-label="Friction entry: finder">
+            <div class="friction__meta">
+              <span class="friction__date">2026-04-24</span>
+              <span class="chip chip--accent">Open</span>
+              <span class="chip chip--muted">Cowork</span>
+            </div>
+            <h3 class="friction__headline">"Show in Finder" is an ejection seat.</h3>
+            <p class="friction__body">I'm reading a doc, I want to see the next doc. I don't want to be teleported to the OS. Inline preview, same surface, stay with me.</p>
+          </li>
+          <li class="friction__entry" data-status="resolved" data-friction="darkmode" tabindex="0" role="button" aria-label="Friction entry: darkmode">
+            <div class="friction__meta">
+              <span class="friction__date">2026-04-24</span>
+              <span class="chip chip--success">Resolved</span>
+              <span class="chip chip--muted">CHIP bridge</span>
+            </div>
+            <h3 class="friction__headline">Dark mode had invisible button text.</h3>
+            <p class="friction__body">BELLA's <code>[data-theme="dark"]</code> block only flipped semantic tokens. Component foregrounds stayed at <code>#111</code>. SIMULATE DRIFT rendered as an amber box with no label inside.</p>
+            <p class="friction__resolution">Resolved · hotfix 2d.5 · 25 component-token overrides · commit <code>cdd396d</code></p>
+          </li>
+          <li class="friction__entry" data-status="open" data-friction="coparent" tabindex="0" role="button" aria-label="Friction entry: coparent">
+            <div class="friction__meta">
+              <span class="friction__date">2026-04-22</span>
+              <span class="chip chip--accent">Open</span>
+              <span class="chip chip--muted">Notion</span>
+            </div>
+            <h3 class="friction__headline">Conversations with my co-parent should render as meetings.</h3>
+            <p class="friction__body">A Saturday text exchange that negotiates custody for the next week is a meeting. It has attendees, decisions, outcomes. It should generate a Notion-style meeting page, not live buried in iMessage.</p>
+          </li>
+          <li class="friction__entry" data-status="resolved" data-friction="approval" tabindex="0" role="button" aria-label="Friction entry: approval">
+            <div class="friction__meta">
+              <span class="friction__date">2026-04-18</span>
+              <span class="chip chip--success">Resolved</span>
+              <span class="chip chip--muted">CHIP bridge</span>
+            </div>
+            <h3 class="friction__headline">The four-click approval dance.</h3>
+            <p class="friction__body">Old flow: click to open proposal, scroll, click diff, click approve, click confirm. Four clicks to say yes. One decision should be one key.</p>
+            <p class="friction__resolution">Resolved · stage 2e · single-key approve · <kbd>A</kbd> anywhere in scope</p>
+          </li>
+          <li class="friction__entry" data-status="pink" data-friction="pink" tabindex="0" role="button" aria-label="Friction entry: pink">
+            <div class="friction__meta">
+              <span class="friction__date">2026-04-15</span>
+              <span class="chip chip--dusk">Wishlist</span>
+              <span class="chip chip--muted">CHIP</span>
+            </div>
+            <h3 class="friction__headline">One day I want it to be pink.</h3>
+            <p class="friction__body">Not urgent. Not rational. Not necessary. But one day. When everything else is shipped and the tokens are clean and the rituals are humming — one day the accent will be pink and no one will stop me.</p>
+          </li>
+          </ul>
+
+          <aside class="friction-detail" id="friction-detail" aria-live="polite" aria-label="Selected friction entry detail">
+            <p class="friction-detail__empty" id="friction-detail-empty">Select a friction entry to inspect.</p>
+            <div id="friction-detail-content"></div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ======== AI-NATIVE BELLA SPACE ======== -->
+      <section class="space space--bella" aria-labelledby="bella-title">
+        <header class="space__header">
+          <p class="space__eyebrow">AI-native BELLA · 6 primitives</p>
+          <h1 class="space__title" id="bella-title">Components BELLA needed when CHIP started talking.</h1>
+          <p class="space__subtitle">BELLA already had buttons, cards, chips. Then CHIP needed to render proposals. Diffs. Audit entries. Each primitive below is a moment the system demanded new vocabulary — evidence that an AI-native design system grows from real agent interactions, not aesthetic ambition.</p>
+        </header>
+
+        <p class="primitive-grid__empty" hidden>No primitives drafted yet. CHIP will name them as the agent needs them.</p>
+        <div class="primitive-grid">
+          <article class="primitive">
+            <span class="primitive__type">Surface</span>
+            <span class="primitive__name">AI Card</span>
+            <div class="primitive__preview">
+              <div class="mini-card">
+                <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);letter-spacing:var(--ls-wider);">Proposal · Auto</div>
+                <div style="font-family:var(--font-display);font-size:13px;font-weight:bold;margin-top:4px;">Proposed fix</div>
+              </div>
+            </div>
+            <p class="primitive__usage">Proposal surface. Eyebrow, headline, body, confidence chip, three-button row. One proposal per card.</p>
+            <p class="primitive__born">Born when the agent first proposed a fix.</p>
+            <span class="primitive__status">Drafted · awaiting promotion</span>
+          </article>
+          <article class="primitive">
+            <span class="primitive__type">Diff</span>
+            <span class="primitive__name">AI Diff</span>
+            <div class="primitive__preview">
+              <div class="mini-diff">+ git mv tokens/semantic.light.json</div>
+            </div>
+            <p class="primitive__usage">Inline diff with resolved-variant swap. Same geometry collapses drift lines to success message on approve.</p>
+            <p class="primitive__born">Born when "what changed" needed to read at a glance.</p>
+            <span class="primitive__status">Drafted · awaiting promotion</span>
+          </article>
+          <article class="primitive">
+            <span class="primitive__type">Log</span>
+            <span class="primitive__name">AI Audit Entry</span>
+            <div class="primitive__preview">
+              <div class="mini-audit">2026-04-26 14:03 · Tokens resolved · commit cdd396d</div>
+            </div>
+            <p class="primitive__usage">Single-line mono. Timestamp · change · actor. Never wraps. Always visible.</p>
+            <p class="primitive__born">Born when "who approved what" became load-bearing.</p>
+            <span class="primitive__status">Shipped in v0</span>
+          </article>
+          <article class="primitive">
+            <span class="primitive__type">Measure</span>
+            <span class="primitive__name">AI Meter</span>
+            <div class="primitive__preview">
+              <div class="mini-meter">38<span style="font-size:18px;">%</span></div>
+            </div>
+            <p class="primitive__usage">Value with drift-state color flip. Ink at rest, amber on drift, sage on approve.</p>
+            <p class="primitive__born">Born when "how on-spec" became a single number.</p>
+            <span class="primitive__status">Shipped in v0</span>
+          </article>
+          <article class="primitive">
+            <span class="primitive__type">Identity</span>
+            <span class="primitive__name">AI Label</span>
+            <div class="primitive__preview">
+              <span class="mini-label"><span class="chip chip--info" style="min-height:auto;padding:2px 8px;font-size:11px;">Auto</span><span style="color:var(--text-2);">agent-generated</span></span>
+            </div>
+            <p class="primitive__usage">Eyebrow + chip combo. Tells the reader this came from the agent, not the operator. Non-optional on AI content.</p>
+            <p class="primitive__born">Born when human and agent content needed to be told apart.</p>
+            <span class="primitive__status">Drafted · awaiting promotion</span>
+          </article>
+          <article class="primitive">
+            <span class="primitive__type">State</span>
+            <span class="primitive__name">AI Skeleton</span>
+            <div class="primitive__preview">
+              <div class="mini-skeleton"></div>
+            </div>
+            <p class="primitive__usage">In-flight state. Shimmer only. Never more than 3 seconds without a proposal or an "observing" message.</p>
+            <p class="primitive__born">Born when the agent needed to say "thinking" without lying about progress.</p>
+            <span class="primitive__status">Drafted · awaiting promotion</span>
+          </article>
+        </div>
+      </section>
+
+      <!-- ======== COMPONENT MAP SPACE ======== -->
+      <section class="space space--component" aria-labelledby="component-title">
+        <header class="space__header">
+          <p class="space__eyebrow">Atomic design · <span data-bella-count>18</span> components · BELLA</p>
+          <h1 class="space__title" id="component-title">The components, every variant CHIP can see.</h1>
+          <p class="space__subtitle">Atoms are single-purpose primitives. Molecules compose atoms into functional patterns. Organisms are AI-native surfaces — born when the agent needed new vocabulary. Parity gaps at any level propagate upward.</p>
+        </header>
+
+        <!-- Concentric rings canvas -->
+        <div class="cmap-canvas-wrap" id="cmap-canvas-wrap">
+          <canvas id="cmap-canvas" aria-label="BELLA atomic design concentric rings" role="img"></canvas>
+
+          <!-- HUD — top left -->
+          <div class="cmap-hud" id="cmap-hud" aria-hidden="true">
+            <div class="cmap-hud__card">
+              <p class="cmap-hud__eyebrow">CHIP · BELLA System Map</p>
+              <p class="cmap-hud__count"><span data-bella-count>18</span> components across 3 atomic levels</p>
+              <div class="cmap-hud__legend" id="cmap-legend"></div>
+            </div>
+            <div class="cmap-controls">
+              <button type="button" class="cmap-ctrl-btn" id="cmap-recenter">⊕ Recenter</button>
+              <button type="button" class="cmap-ctrl-btn cmap-ctrl-btn--icon" id="cmap-zoom-in" aria-label="Zoom in">+</button>
+              <button type="button" class="cmap-ctrl-btn cmap-ctrl-btn--icon" id="cmap-zoom-out" aria-label="Zoom out">−</button>
+            </div>
+          </div>
+
+          <!-- Hint — bottom center -->
+          <p class="cmap-hint" aria-hidden="true">Shift+scroll to zoom · Drag to pan · Click a node to inspect</p>
+
+          <!-- Detail panel — right side, shown on node select -->
+          <aside class="cmap-rings-detail" id="cmap-rings-detail" hidden aria-live="polite" aria-label="Component detail">
+            <button type="button" class="cmap-rings-detail__close" id="cmap-rings-close" aria-label="Close detail">×</button>
+            <div id="cmap-rings-detail-body"></div>
+          </aside>
+        </div>
+
+        <!-- Components matrix table (moved from System map) -->
+        <article class="card components-matrix" aria-labelledby="components-matrix-eyebrow" style="margin-top:var(--s6)">
+          <p id="components-matrix-eyebrow" class="card__eyebrow">Components · BELLA health matrix</p>
+          <div class="matrix-filter">
+            <label class="matrix-filter__label" for="matrix-filter-input">Filter:</label>
+            <input type="search" id="matrix-filter-input" class="matrix-filter__input"
+              placeholder="Type to filter (component, check, status)…"
+              autocomplete="off" aria-label="Filter components" />
+            <span class="matrix-filter__count" id="matrix-filter-count" aria-live="polite"></span>
+            <button type="button" class="matrix-view-toggle" id="matrix-view-toggle" aria-pressed="false">Heatmap</button>
+          </div>
+          <ul class="components-matrix__list" role="list">
+            <li class="components-matrix__head" role="row">
+              <button type="button" class="components-matrix__sort" data-sort-col="0" aria-label="Sort by component">Component</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="1" aria-label="Sort by Story">Story</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="2" aria-label="Sort by Docs">Docs</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="3" aria-label="Sort by Contract">Contract</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="4" aria-label="Sort by Contrast">Contrast</button>
+              <button type="button" class="components-matrix__sort" data-sort-col="5" aria-label="Sort by Tokens">Tokens</button>
+            </li>
+          </ul>
+          <p class="components-matrix__legend" id="components-matrix-legend">pass · fail · — not covered by a check. Tokens = custom properties the component reads. Source: data/bella.json (npm run sync:bella).</p>
+        </article>
+      </section>
+
+      <!-- ======== SYSTEM MAP SPACE (Tier 2.4 + Stage 4) ======== -->
+      <section class="space space--map" aria-labelledby="map-title" data-selected="">
+        <header class="space__header">
+          <p class="space__eyebrow">Infrastructure · Dependency map</p>
+          <h1 class="space__title" id="map-title">The system, every wire CHIP can see.</h1>
+          <p class="space__subtitle">Hierarchical view of BELLA's surfaces. Click any node to inspect its health, last sync, and key metrics. Status colour reflects current parity.</p>
+        </header>
+
+        <!-- Stage 18.15 — dense dependency tree -->
+        <div class="dep-map" id="dep-map">
+          <div class="dep-map__tree" id="dep-map-tree" role="tree" aria-label="BELLA dependency tree">
+            <!-- Root -->
+            <div class="dep-map__row dep-map__row--root">
+              <button type="button" class="dep-node dep-node--root" data-dep-node="bella" data-dep-status="healthy" role="treeitem" aria-selected="false">
+                <span class="dep-node__icon" aria-hidden="true">◆</span>
+                <span class="dep-node__body">
+                  <span class="dep-node__title">BELLA design system</span>
+                  <span class="dep-node__meta">Web · live</span>
+                </span>
+                <span class="dep-node__chip dep-node__chip--healthy">Healthy</span>
+                <span class="dep-node__pct">38%</span>
+              </button>
+            </div>
+            <span class="dep-map__connector dep-map__connector--down" aria-hidden="true"></span>
+
+            <!-- Branches + grandchildren — 4 columns each with a vertical sub-tree -->
+            <div class="dep-map__row dep-map__row--children">
+
+              <!-- Branch 1: Component library -->
+              <div class="dep-branch" role="group" aria-label="Component library branch">
+                <button type="button" class="dep-node" data-dep-node="components" data-dep-status="warning" role="treeitem">
+                  <span class="dep-node__icon" aria-hidden="true">▦</span>
+                  <span class="dep-node__body">
+                    <span class="dep-node__title">Component library</span>
+                    <span class="dep-node__meta"><span data-bella-count>18</span> components</span>
+                  </span>
+                  <span class="dep-node__chip dep-node__chip--warning">Drift</span>
+                  <span class="dep-node__pct">66%</span>
+                </button>
+                <div class="dep-grandchildren">
+                  <button type="button" class="dep-node dep-node--small" data-dep-node="comp-atoms" data-dep-space-link="component" role="treeitem" aria-label="Atoms — open Component map">
+                    <span class="dep-node__body">
+                      <span class="dep-node__title">Atoms</span>
+                      <span class="dep-node__meta">6 components</span>
+                    </span>
+                    <span class="dep-node__chip dep-node__chip--warning">Drift</span>
+                  </button>
+                  <button type="button" class="dep-node dep-node--small" data-dep-node="comp-molecules" data-dep-space-link="component" role="treeitem">
+                    <span class="dep-node__body">
+                      <span class="dep-node__title">Molecules</span>
+                      <span class="dep-node__meta">3 components</span>
+                    </span>
+                    <span class="dep-node__chip dep-node__chip--healthy">In sync</span>
+                  </button>
+                  <button type="button" class="dep-node dep-node--small" data-dep-node="comp-organisms" data-dep-space-link="component" role="treeitem">
+                    <span class="dep-node__body">
+                      <span class="dep-node__title">Organisms</span>
+                      <span class="dep-node__meta">3 components</span>
+                    </span>
+                    <span class="dep-node__chip dep-node__chip--healthy">In sync</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Branch 2: Platform repos -->
+              <div class="dep-branch" role="group" aria-label="Platform repos branch">
+                <button type="button" class="dep-node" data-dep-node="platforms" data-dep-status="critical" role="treeitem">
+                  <span class="dep-node__icon" aria-hidden="true">⌬</span>
+                  <span class="dep-node__body">
+                    <span class="dep-node__title">Platform repos</span>
+                    <span class="dep-node__meta">1 platform · web</span>
+                  </span>
+                  <span class="dep-node__chip dep-node__chip--healthy" id="dep-platforms-chip">Web only</span>
+                </button>
+                <div class="dep-grandchildren">
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="plat-web" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Web</span>
+                        <span class="dep-node__meta" id="dep-web-meta">bella · React</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--healthy">Real data</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Branch 3: Sources of truth -->
+              <div class="dep-branch" role="group" aria-label="Sources of truth branch">
+                <button type="button" class="dep-node" data-dep-node="sources" data-dep-status="warning" role="treeitem">
+                  <span class="dep-node__icon" aria-hidden="true">⌭</span>
+                  <span class="dep-node__body">
+                    <span class="dep-node__title">Sources of truth</span>
+                    <span class="dep-node__meta">Figma · Storybook · Zeroheight</span>
+                  </span>
+                  <span class="dep-node__chip dep-node__chip--warning">Stale</span>
+                  <span class="dep-node__pct">76%</span>
+                </button>
+                <div class="dep-grandchildren">
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="src-figma" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Figma</span>
+                        <span class="dep-node__meta">master clean</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--healthy">In sync</span>
+                    </button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="src-storybook" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Storybook</span>
+                        <span class="dep-node__meta">89 stories</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--healthy">In sync</span>
+                    </button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="src-zeroheight" data-dep-alert="warn" title="Alert: Zeroheight Card page stale · 6 days behind" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Zeroheight</span>
+                        <span class="dep-node__meta">docs · 6d stale</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--warning">Stale</span>
+                    </button>
+                    <button type="button" class="dep-alert-dot dep-alert-dot--warn" data-alert-nav="bridge" aria-label="Alert: Zeroheight Card page stale — view in Bridge" title="Zeroheight Card page stale · click to view alert in Bridge">⚠</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Branch 4: Connected systems -->
+              <div class="dep-branch" role="group" aria-label="Connected systems branch">
+                <button type="button" class="dep-node" data-dep-node="connected" data-dep-status="healthy" role="treeitem">
+                  <span class="dep-node__icon" aria-hidden="true">⌖</span>
+                  <span class="dep-node__body">
+                    <span class="dep-node__title">Connected systems</span>
+                    <span class="dep-node__meta">Notion live · Slack/Gmail v1</span>
+                  </span>
+                  <span class="dep-node__chip dep-node__chip--healthy">Healthy</span>
+                  <span class="dep-node__pct">25%</span>
+                </button>
+                <div class="dep-grandchildren">
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="conn-notion" data-dep-alert="info" title="Info: tokens.css amber-30 edited · not yet propagated" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Notion</span>
+                        <span class="dep-node__meta">live MCP</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--healthy">Live</span>
+                    </button>
+                    <button type="button" class="dep-alert-dot dep-alert-dot--info" data-alert-nav="bridge" aria-label="Info: tokens.css edited — view in Bridge" title="tokens.css amber-30 edited · click to view in Bridge">ℹ</button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="conn-slack" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Slack</span>
+                        <span class="dep-node__meta">v1 planned</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--muted">Pending</span>
+                    </button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="conn-gmail" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Gmail</span>
+                        <span class="dep-node__meta">v1 planned</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--muted">Pending</span>
+                    </button>
+                  </div>
+                  <div class="dep-gc-wrap">
+                    <button type="button" class="dep-node dep-node--small" data-dep-node="conn-jira" role="treeitem">
+                      <span class="dep-node__body">
+                        <span class="dep-node__title">Jira</span>
+                        <span class="dep-node__meta">v1 planned</span>
+                      </span>
+                      <span class="dep-node__chip dep-node__chip--muted">Pending</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <p class="dep-map__hint">
+              <span aria-hidden="true">→</span> Click any node to inspect its detail. Status colour reflects parity.
+              <strong>Healthy</strong> = in sync · <strong>Stale</strong> = sync overdue ·
+              <strong>Drift</strong> = behind master · <strong>Critical</strong> = blocking ship.
+            </p>
+          </div>
+
+          <aside class="dep-map__detail" id="dep-detail" aria-live="polite">
+            <header class="dep-map__detail-head">
+              <h3 class="dep-map__detail-title" id="dep-detail-title">BELLA design system</h3>
+              <button type="button" class="dep-map__detail-close" id="dep-detail-close" aria-label="Close detail">×</button>
+            </header>
+            <p class="dep-map__detail-meta" id="dep-detail-meta">Web · live</p>
+            <span class="dep-node__chip dep-node__chip--healthy" id="dep-detail-chip">Healthy</span>
+
+            <section class="dep-map__detail-section">
+              <p class="dep-map__detail-label">Description</p>
+              <p class="dep-map__detail-desc" id="dep-detail-desc">The full design system: tokens, primitives, patterns, and platform implementations. CHIP watches every surface for divergence and surfaces it here.</p>
+            </section>
+
+            <div class="dep-map__detail-grid">
+              <div>
+                <p class="dep-map__detail-label">Last updated</p>
+                <p class="dep-map__detail-val" id="dep-detail-updated">14m ago</p>
+              </div>
+              <div>
+                <p class="dep-map__detail-label">Next review</p>
+                <p class="dep-map__detail-val" id="dep-detail-next">Friday 10:00</p>
+              </div>
+            </div>
+
+            <section class="dep-map__detail-section">
+              <p class="dep-map__detail-label">Performance trend · last 7 days</p>
+              <svg class="dep-map__detail-spark" id="dep-detail-spark" viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true">
+                <polyline points="0,40 30,38 60,32 90,30 120,28 150,22 180,18 200,12" fill="none" stroke="var(--sage)" stroke-width="2" />
+              </svg>
+            </section>
+
+            <section class="dep-map__detail-section">
+              <p class="dep-map__detail-label">Overall availability <span class="dep-map__detail-availpct" id="dep-detail-avail-pct">38%</span></p>
+              <div class="dep-map__detail-bar"><span class="dep-map__detail-bar-fill" id="dep-detail-bar-fill" style="width:38%"></span></div>
+            </section>
+
+            <section class="dep-map__detail-section">
+              <p class="dep-map__detail-label">Key metrics</p>
+              <dl class="dep-map__detail-metrics" id="dep-detail-metrics">
+                <div><dt>Components</dt><dd>12</dd></div>
+                <div><dt>In sync</dt><dd>1 / 3 platforms</dd></div>
+                <div><dt>Open alerts</dt><dd>4</dd></div>
+                <div><dt>Audit entries today</dt><dd>1</dd></div>
+              </dl>
+            </section>
+
+            <footer class="dep-map__detail-foot">
+              <button type="button" class="btn btn--sm btn--neutral">Open</button>
+              <button type="button" class="btn btn--sm btn--neutral">Triage</button>
+              <button type="button" class="btn btn--sm btn--primary">View history</button>
+            </footer>
+          </aside>
+        </div>
+
+        <!-- Stage 18.14 — Infrastructure status board (replaces decorative atomic rings) -->
+        <article class="card infra-board" aria-labelledby="infra-eyebrow">
+          <header class="infra-board__header">
+            <p id="infra-eyebrow" class="card__eyebrow">Surfaces · live status</p>
+            <span class="infra-board__hint">11 surfaces · 7 in sync · 2 drift · 1 stale · 1 not yet wired</span>
+          </header>
+          <ul class="infra-board__list" role="list">
+            <li class="infra-board__head" role="row">
+              <span>Surface</span>
+              <span>Source</span>
+              <span>Status</span>
+              <span>Last sync</span>
+              <span>Divergence</span>
+              <span>Action</span>
+            </li>
+            <li class="infra-board__row" data-status="sync">
+              <span class="infra-board__name"><strong>Storybook</strong></span>
+              <span class="infra-board__source">storybook · main</span>
+              <span class="infra-board__chip"><span class="chip chip--success">In sync</span></span>
+              <span class="infra-board__when">2h ago · 89 stories</span>
+              <span class="infra-board__div">—</span>
+              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Open</button></span>
+            </li>
+            <li class="infra-board__row" data-status="sync">
+              <span class="infra-board__name"><strong>Figma library</strong></span>
+              <span class="infra-board__source">figma · master</span>
+              <span class="infra-board__chip"><span class="chip chip--success">In sync</span></span>
+              <span class="infra-board__when">14m ago · master clean</span>
+              <span class="infra-board__div">—</span>
+              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Open</button></span>
+            </li>
+            <li class="infra-board__row" data-status="stale">
+              <span class="infra-board__name"><strong>Zeroheight</strong></span>
+              <span class="infra-board__source">zeroheight · docs</span>
+              <span class="infra-board__chip"><span class="chip chip--muted">Stale</span></span>
+              <span class="infra-board__when">6 days ago</span>
+              <span class="infra-board__div"><span class="infra-board__div-num">3</span> pages out of date</span>
+              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Triage</button></span>
+            </li>
+            <li class="infra-board__row" data-status="sync">
+              <span class="infra-board__name"><strong>Web repo</strong></span>
+              <span class="infra-board__source">react-bella-web · main</span>
+              <span class="infra-board__chip"><span class="chip chip--success">In sync</span></span>
+              <span class="infra-board__when">14m ago · CI green</span>
+              <span class="infra-board__div">—</span>
+              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Open</button></span>
+            </li>
+            <li class="infra-board__row" data-status="sync">
+              <span class="infra-board__name"><strong>Jira backlog</strong></span>
+              <span class="infra-board__source">jira · BELLA project</span>
+              <span class="infra-board__chip"><span class="chip chip--info">Active</span></span>
+              <span class="infra-board__when">5m ago</span>
+              <span class="infra-board__div"><span class="infra-board__div-num">3</span> awaiting triage</span>
+              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Open</button></span>
+            </li>
+            <li class="infra-board__row" data-status="sync">
+              <span class="infra-board__name"><strong>Dev lead channel</strong></span>
+              <span class="infra-board__source">slack · #ds-leads</span>
+              <span class="infra-board__chip"><span class="chip chip--info">Active</span></span>
+              <span class="infra-board__when">2h ago</span>
+              <span class="infra-board__div"><span class="infra-board__div-num">2</span> open threads</span>
+              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Open</button></span>
+            </li>
+            <li class="infra-board__row" data-status="sync">
+              <span class="infra-board__name"><strong>Research library</strong></span>
+              <span class="infra-board__source">notion · live</span>
+              <span class="infra-board__chip"><span class="chip chip--success">Living</span></span>
+              <span class="infra-board__when">14m ago</span>
+              <span class="infra-board__div">47 sources · 6 voices</span>
+              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Open</button></span>
+            </li>
+            <li class="infra-board__row" data-status="sync">
+              <span class="infra-board__name"><strong>Friction log</strong></span>
+              <span class="infra-board__source">notion · live</span>
+              <span class="infra-board__chip"><span class="chip chip--info">Active</span></span>
+              <span class="infra-board__when">14m ago</span>
+              <span class="infra-board__div"><span class="infra-board__div-num">3</span> open notes</span>
+              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral">Open</button></span>
+            </li>
+            <li class="infra-board__row" data-status="planned">
+              <span class="infra-board__name"><strong>Email · Gmail</strong></span>
+              <span class="infra-board__source">v1 · OAuth pending</span>
+              <span class="infra-board__chip"><span class="chip chip--muted">v1 planned</span></span>
+              <span class="infra-board__when">—</span>
+              <span class="infra-board__div">—</span>
+              <span class="infra-board__act"><button type="button" class="btn btn--sm btn--neutral" disabled>Connect</button></span>
+            </li>
+          </ul>
+          <p class="infra-board__footnote">CHIP queries Notion via the Cloud Managed Agent + Notion MCP today. Storybook, Figma, Zeroheight, Slack, Jira, Gmail are post-submission engineering — same pattern, same audit-ribbon discipline. Click any row to drill into its history.</p>
+        </article>
+
+        <article class="card sync-cadence" aria-labelledby="sync-cadence-eyebrow">
+          <p id="sync-cadence-eyebrow" class="card__eyebrow">Sync cadence · last 7 days</p>
+          <div class="sync-cadence__grid" id="sync-cadence-grid"></div>
+          <p class="sync-cadence__caption">Sync cadence is the heartbeat of parity. Silent platforms drift first.</p>
+        </article>
+
+      </section>
+
+      <!-- ======== COMING UP SPACE (was Steward) ======== -->
+      <section class="space space--steward" aria-labelledby="steward-title">
+        <header class="space__header">
+          <p class="space__eyebrow">Coming up · Reviews CHIP will surface</p>
+          <h1 class="space__title" id="steward-title">Coming up</h1>
+          <p class="space__subtitle">Reviews CHIP will bring to your bridge. Each row is a future moment of attention.</p>
+        </header>
+
+        <!-- Stage 18.10 — Visual week calendar -->
+        <section class="rituals-cal" aria-label="This week's rituals">
+          <header class="rituals-cal__header">
+            <p class="rituals-cal__eyebrow">This week · 6 rituals scheduled</p>
+            <p class="rituals-cal__title">April 26 — May 2, 2026</p>
+          </header>
+          <ol class="rituals-cal__week" role="list">
+            <li class="rituals-cal__day rituals-cal__day--today">
+              <p class="rituals-cal__dow">Sun</p>
+              <p class="rituals-cal__date">26</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item rituals-cal__item--maintenance" data-ritual-jump="miseenplace">
+                  <span class="rituals-cal__time">18:00</span>
+                  <span class="rituals-cal__title">Mise en place</span>
+                  <span class="rituals-cal__detail">sweep stale entries</span>
+                </li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day">
+              <p class="rituals-cal__dow">Mon</p>
+              <p class="rituals-cal__date">27</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item" data-ritual-jump="publish">
+                  <span class="rituals-cal__time">09:00</span>
+                  <span class="rituals-cal__title">Publish queue</span>
+                  <span class="rituals-cal__detail">elleta.design · 2 pages</span>
+                </li>
+                <li class="rituals-cal__item" data-ritual-jump="subscriptions">
+                  <span class="rituals-cal__time">11:00</span>
+                  <span class="rituals-cal__title">Subscription sweep</span>
+                  <span class="rituals-cal__detail">1 idle tool flagged</span>
+                </li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day">
+              <p class="rituals-cal__dow">Tue</p>
+              <p class="rituals-cal__date">28</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item rituals-cal__item--empty">—</li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day">
+              <p class="rituals-cal__dow">Wed</p>
+              <p class="rituals-cal__date">29</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item" data-ritual-jump="friction">
+                  <span class="rituals-cal__time">10:00</span>
+                  <span class="rituals-cal__title">Friction triage</span>
+                  <span class="rituals-cal__detail">3 open notes</span>
+                </li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day">
+              <p class="rituals-cal__dow">Thu</p>
+              <p class="rituals-cal__date">30</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item rituals-cal__item--empty">—</li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day rituals-cal__day--anchor">
+              <p class="rituals-cal__dow">Fri</p>
+              <p class="rituals-cal__date">1</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item rituals-cal__item--anchor" data-ritual-jump="parity">
+                  <span class="rituals-cal__time">10:00</span>
+                  <span class="rituals-cal__title">Parity review</span>
+                  <span class="rituals-cal__detail">23 components · all platforms</span>
+                </li>
+                <li class="rituals-cal__item" data-ritual-jump="research">
+                  <span class="rituals-cal__time">14:00</span>
+                  <span class="rituals-cal__title">Research digest</span>
+                  <span class="rituals-cal__detail">3 new sources</span>
+                </li>
+              </ul>
+            </li>
+            <li class="rituals-cal__day">
+              <p class="rituals-cal__dow">Sat</p>
+              <p class="rituals-cal__date">2</p>
+              <ul class="rituals-cal__items" role="list">
+                <li class="rituals-cal__item rituals-cal__item--empty">—</li>
+              </ul>
+            </li>
+          </ol>
+          <p class="rituals-cal__footnote">Click any tile to jump to its detail below.</p>
+        </section>
+
+        <ul class="rituals">
+          <li class="ritual" data-ritual="parity" tabindex="0" role="button" aria-expanded="false">
+            <span class="ritual__when">Friday 10:00</span>
+            <span class="ritual__what">CHIP will surface 23 components for parity review.</span>
+          </li>
+          <li class="ritual" data-ritual="research" tabindex="0" role="button" aria-expanded="false">
+            <span class="ritual__when">Friday 14:00</span>
+            <span class="ritual__what">Research digest with 3 new sources for review.</span>
+          </li>
+          <li class="ritual" data-ritual="publish" tabindex="0" role="button" aria-expanded="false">
+            <span class="ritual__when">Monday 09:00</span>
+            <span class="ritual__what">elleta.design publish queue: 2 pages awaiting approval.</span>
+          </li>
+          <li class="ritual" data-ritual="subscriptions" tabindex="0" role="button" aria-expanded="false">
+            <span class="ritual__when">Monday 11:00</span>
+            <span class="ritual__what">Subscription sweep flags 1 idle tool.</span>
+          </li>
+          <li class="ritual" data-ritual="friction" tabindex="0" role="button" aria-expanded="false">
+            <span class="ritual__when">Wednesday 10:00</span>
+            <span class="ritual__what">Friction triage on 3 open notes.</span>
+          </li>
+          <li class="ritual ritual--maintenance" data-ritual="miseenplace" tabindex="0" role="button" aria-expanded="false">
+            <span class="ritual__when">Sunday 18:00</span>
+            <span class="ritual__what">Mise en place: sweep stale entries, prune dormant tokens.</span>
+          </li>
+        </ul>
+        <p class="rituals__empty" hidden>Nothing on the calendar. Add a ritual to begin.</p>
+      </section>
+
+      <!-- Tier 7.6 — lineage citation; visible only on bridge space -->
+      <p class="bridge-lineage">
+        In the lineage of <em>Maggie Appleton</em>'s daemon · <em>Projects By IF</em>'s trust patterns · <em>Shape of AI</em>'s vocabulary · <em>Amelia Wattenberger</em>'s embeddings · <em>Luke Wroblewski</em>'s structured search · <em>Vitaly Friedman</em>'s expert-user dashboards.
+      </p>
+
+      <!-- audit ribbon (global) -->
+      <aside class="audit" role="log" aria-live="polite" aria-label="Approval audit ribbon">
+        <p class="audit__eyebrow">Audit · Today</p>
+        <ol class="audit__list" id="audit-log">
+          <li class="audit__empty" id="audit-empty">No approvals yet today.</li>
+        </ol>
+      </aside>
+
+    </main>
+  </div>
+</div>
+
+
+<!-- Stage 9 modals — Settings, Help, About -->
+<div class="modal" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="modal-settings-title" hidden>
+  <div class="modal__backdrop" data-modal-close="settings"></div>
+  <div class="modal__panel">
+    <h2 class="modal__title" id="modal-settings-title">Settings</h2>
+    <div class="modal__body">
+      <div class="settings-row">
+        <span class="settings-row__label">Theme</span>
+        <div class="seg" role="group" aria-label="Theme">
+          <button type="button" class="seg__opt seg__opt--active" data-setting="theme" data-value="light">Light</button>
+          <button type="button" class="seg__opt" data-setting="theme" data-value="dark">Dark</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-row__label">Motion</span>
+        <div class="seg" role="group" aria-label="Motion">
+          <button type="button" class="seg__opt seg__opt--active" data-setting="motion" data-value="full">Full</button>
+          <button type="button" class="seg__opt" data-setting="motion" data-value="reduced">Reduced</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <span class="settings-row__label">Density</span>
+        <div class="seg" role="group" aria-label="Density">
+          <button type="button" class="seg__opt seg__opt--active" data-setting="density" data-value="comfortable">Comfortable</button>
+          <button type="button" class="seg__opt" data-setting="density" data-value="compact">Compact</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label class="settings-row__label" for="set-fontsize">Font size</label>
+        <input type="range" id="set-fontsize" min="90" max="120" step="5" value="100" class="settings-row__slider" />
+        <span class="settings-row__readout" id="set-fontsize-readout">100%</span>
+      </div>
+      <div class="settings-row">
+        <label class="settings-row__label" for="set-language">Language</label>
+        <select id="set-language" class="settings-row__select">
+          <option value="en-US">English (en-US)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="modal__link" id="open-about">About CHIP</button>
+      <button type="button" class="btn btn--primary" data-modal-close="settings">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal-help" role="dialog" aria-modal="true" aria-labelledby="modal-help-title" hidden>
+  <div class="modal__backdrop" data-modal-close="help"></div>
+  <div class="modal__panel">
+    <h2 class="modal__title" id="modal-help-title">Keyboard shortcuts</h2>
+    <div class="modal__body">
+      <dl class="shortcuts">
+        <dt><kbd>A</kbd></dt><dd>Approve current proposal (drift phase, Bridge space)</dd>
+        <dt><kbd>R</kbd></dt><dd>Reject current proposal</dd>
+        <dt><kbd>M</kbd></dt><dd>Modify current proposal</dd>
+        <dt><kbd>⌘⇧A</kbd></dt><dd>Approve with override-auth</dd>
+        <dt><kbd>Enter</kbd></dt><dd>Dismiss splash</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Clear selection · close modal</dd>
+        <dt><kbd>?</kbd></dt><dd>Toggle this help</dd>
+        <dt><kbd>,</kbd></dt><dd>Open settings</dd>
+        <dt><kbd>⌘K</kbd></dt><dd>Open command palette</dd>
+      </dl>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--primary" data-modal-close="help">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal modal--wide" id="modal-about" role="dialog" aria-modal="true" aria-labelledby="modal-about-title" hidden>
+  <div class="modal__backdrop" data-modal-close="about"></div>
+  <div class="modal__panel">
+    <h2 class="modal__title" id="modal-about-title">About CHIP</h2>
+    <div class="modal__body about">
+      <p class="about__headline">Bridge for agentic design systems.</p>
+      <p class="about__tagline">Most design system assistants answer questions. We intervene at the moment decisions are made.</p>
+
+      <p class="about__section-label">What it is</p>
+      <p class="about__body">
+        CHIP is the bridge a design-systems lead opens when their system has drifted across platforms. The agent watches every surface — repos, Figma, Storybook, docs, ticket queues, dev-lead channels — and proposes a roadmap when parity slips. The operator approves, edits, or rejects. Tickets file themselves. Audit logs itself.
+      </p>
+
+      <dl class="about__meta">
+        <dt>Brain</dt><dd>Claude Opus 4.7</dd>
+        <dt>Skin</dt><dd>BELLA — Elleta's personal design system</dd>
+        <dt>Built for</dt><dd>Built with Opus 4.7 hackathon · 2026-04-24 → 2026-04-26</dd>
+        <dt>Operator</dt><dd>Elleta · self-employed AI design systems engineer · single mom · this bridge was built for me, by me</dd>
+      </dl>
+
+      <p class="about__section-label">Inspiration</p>
+      <p class="about__body">
+        Command palette: Linear / Raycast / Arc lineage. Dense data viz: a UN agency's data platform, Hitparade.ch, Nadieh Bremer, howmanyplants.com. Tables: Finviz.
+      </p>
+
+      <p class="about__section-label">In the lineage of</p>
+      <p class="about__body about__lineage">
+        <em>Maggie Appleton</em>'s daemon · <em>Projects By IF</em>'s trust patterns · <em>Shape of AI</em>'s vocabulary · <em>Hardik Pandya</em>'s three-layer contract · <em>Nathan Curtis</em>'s mechanical specs · <em>Romina Kavčič</em>'s MAPE-K loop · <em>Vitaly Friedman</em>'s expert-user dashboards.
+      </p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--primary" data-modal-close="about">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 13 — global command palette -->
+<div class="modal palette" id="palette-modal" role="dialog" aria-modal="true" aria-labelledby="palette-input" hidden>
+  <div class="modal__backdrop" data-modal-close="palette"></div>
+  <div class="modal__panel palette__panel">
+    <input
+      type="text"
+      class="palette__input"
+      id="palette-input"
+      placeholder="Jump to anything — space, audit, voice, component, friction, ritual, action…"
+      role="combobox"
+      aria-expanded="true"
+      aria-autocomplete="list"
+      aria-controls="palette-results"
+      autocomplete="off"
+    />
+    <ul class="palette__results" id="palette-results" role="listbox" aria-label="Command palette results"></ul>
+    <div class="palette__footer">
+      <span><kbd>↵</kbd> activate</span>
+      <span><kbd>↑↓</kbd> navigate</span>
+      <span><kbd>esc</kbd> close</span>
+      <span><kbd>⌘K</kbd> toggle</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 6 split — data.js loads first; app.js IIFE reads its globals -->
+<script src="../../../data/bella.js" defer></script>
+<script src="data.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>

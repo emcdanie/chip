@@ -1,0 +1,139 @@
+/* CHIP's one token sheet, ported from the approved mock (chip-mock-03, 4 Nov
+ * 2026). Every value in app/src lives here and nowhere else. Colours are the
+ * mock's, written as rgb() because the local pre-commit hook blocks hex in
+ * app/src. BELLA's own tokens still load for the BELLA components CHIP shows;
+ * CHIP's chrome reads only these. */
+:root {
+  /* colour: one token per role */
+  --ground: rgb(247 247 245);
+  --card: rgb(255 255 255);
+  --ink: rgb(29 32 48);
+  --body: rgb(43 47 61);
+  --muted: rgb(71 76 94);
+  --line: rgb(31 28 25 / 0.22);
+  --neutral: color-mix(in srgb, var(--ink) 7%, var(--card)); /* counts and resting chips */
+  --action: rgb(47 155 224); /* action, CTA, selection */
+  --pass: rgb(43 154 87); /* passed: 3.6:1 on card as a mark; ink text on its fills */
+  --fail: rgb(226 71 59); /* failed */
+  --needs: rgb(233 184 32); /* needs you */
+  --note: rgb(229 139 187); /* annotations only */
+  --sel: color-mix(in srgb, var(--action) 12%, var(--card));
+  --canvas: rgb(244 245 248);
+  --inset: rgb(236 238 243);
+  --sort-on: rgb(24 101 187); /* the sorted column's arrow */
+  --code-ground: rgb(29 32 48); /* code blocks in a sheet */
+  --code-ink: rgb(236 238 243);
+  --scrim: rgb(29 32 48 / 0.32); /* behind a sheet */
+  --edge: rgb(29 32 48 / 0.18); /* the shadow at a scroll region's edge when more is past it */
+
+  /* type: 14 / 16 / 20 / 28 / 40, weights 400 and 600 */
+  --display: var(--typography-headline-sm-font-family); /* H1 only: BELLA's role token (Lexend in Chip) */
+  --sans: var(--typography-body-default-font-family);
+  --code: var(--typography-font-family-geist-mono);
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+  --fs-28: 28px;
+  --fs-40: 40px;
+  --lh-body: 1.5;
+  --lh-head: 1.25;
+
+  /* space: 4 / 8 / 12 / 16 / 24 / 32 / 48 */
+  --s-4: 4px;
+  --s-8: 8px;
+  --s-12: 12px;
+  --s-16: 16px;
+  --s-24: 24px;
+  --s-32: 32px;
+  --s-48: 48px;
+  --gutter: 32px; /* the one content gutter */
+
+  /* shape */
+  --r: 2px; /* boxes, cards, tables, inputs, code, status chips */
+  --r-control: 999px; /* buttons, tabs, chips, the Work panel's one field: flip to 2px for square */
+  --h-control: 44px;
+  --h-compact: 36px;
+  --icon: 18px;
+  --shadow: 0 1px 4px rgb(29 32 48 / 0.18); /* the floating selected tab, nothing else */
+  --focus-ring: rgb(30 120 200); /* the action blue, darker: 3.9:1 or more on card, canvas, ground and inside a segmented control */
+  --focus: 3px solid var(--focus-ring);
+
+  /* BELLA components inside CHIP take CHIP's focus ring and link colours */
+  --ring-focus-color: var(--focus-ring);
+  --component-link-default-foreground: var(--ink);
+  --component-link-default-foreground-hover: var(--ink);
+  --component-tabs-indicator: var(--action);
+
+  --on-action: rgb(29 32 48); /* text on the action blue, in every theme: 5.3:1 */
+  --on-note: rgb(10 12 20); /* text on the annotation pink, in every theme: 8.1:1 (ink was 6.7) */
+  --frame-nav: 256px; /* the left nav; 104px as an icon rail */
+  --frame-rail: 104px;
+  --frame-top: 64px;
+}
+
+/* BELLA's Button, in the mock's colours: the primary keycap is the action
+   blue with dark text, the secondary is the card with a hairline. The label
+   roll, the keycap press and reduced motion stay BELLA's. Only CHIP's own
+   chrome takes it: the top bar, the Work panel (k-chrome), every sheet and any page root
+   marked k-chrome. A BELLA specimen outside those keeps BELLA's own Button. */
+.top, .k-sheet, .k-chrome {
+  --component-button-primary-fill-hi: var(--action);
+  --component-button-primary-fill-lo: var(--action);
+  --component-button-primary-fill-hi-hover: color-mix(in srgb, var(--action) 70%, rgb(255 255 255));
+  --component-button-primary-fill-lo-hover: color-mix(in srgb, var(--action) 70%, rgb(255 255 255));
+  /* Flat blue, as in the mock: no key edge, drop shadow or gloss (Elleta,
+     4 Nov: the keycap shadow looks wrong in blue). The label roll and the
+     press stay BELLA's. */
+  --component-button-primary-edge: var(--action);
+  --component-button-primary-gloss: linear-gradient(transparent, transparent);
+  --component-button-primary-gloss-pressed: linear-gradient(transparent, transparent);
+  --shadow-key-resting: none;
+  --shadow-key-hover: none;
+  --shadow-key-pressed: none;
+  --component-button-primary-foreground: var(--on-action);
+  --component-button-primary-font-size: var(--fs-14);
+  --component-button-primary-padding-x: var(--s-16);
+  --component-button-secondary-background: var(--card);
+  --component-button-secondary-background-hover: color-mix(in srgb, var(--action) 8%, var(--card));
+  --component-button-secondary-background-active: color-mix(in srgb, var(--action) 14%, var(--card));
+  --component-button-secondary-foreground: var(--ink);
+  --component-button-secondary-border: var(--line);
+  --component-button-secondary-border-hover: var(--action);
+  --component-button-secondary-padding-x: var(--s-16);
+  --component-button-tertiary-foreground: var(--ink);
+  --component-button-shape-default: var(--r-control);
+  /* BELLA's Select in the same chrome: the kit's input box, 14px, 44px tall */
+  --component-select-border-radius: var(--r);
+  --component-select-font-size: var(--fs-14);
+  --component-select-label-font-family: var(--sans);
+  --component-select-label-font-size: var(--fs-14);
+  --component-select-min-height: var(--h-control);
+}
+
+/* dark: the mock has no dark theme; these are BELLA's dark roles (cool 975,
+   950, 50, 300) under the mock's names. Status hues stay; their fills mix
+   with the dark card, so ink (now light) stays readable on them. */
+:root[data-theme="dark"] {
+  --ground: rgb(15 17 23);
+  --card: rgb(23 26 34);
+  --ink: rgb(236 238 243);
+  --body: rgb(214 218 228);
+  --muted: rgb(177 183 199);
+  --line: rgb(236 238 243 / 0.2);
+  --canvas: rgb(29 32 48);
+  --inset: rgb(38 42 53);
+  --sort-on: rgb(110 182 240);
+  --code-ground: rgb(15 17 23);
+  --scrim: rgb(0 0 0 / 0.5);
+  --edge: rgb(0 0 0 / 0.6);
+  --focus-ring: var(--action); /* the bright blue already clears 3:1 on the dark grounds */
+  --shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  color-scheme: dark;
+}
+
+/* base */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--ground); color: var(--body); font: 400 var(--fs-16)/var(--lh-body) var(--sans); }
+:focus-visible { outline: var(--focus); outline-offset: 2px; }
+[hidden] { display: none !important; }

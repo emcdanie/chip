@@ -1,0 +1,552 @@
+// Work's drawer, in the new shell: what a board card opens, so no click on
+// Work or Health leaves for the old app (user test 21 Nov, item 1). Built from
+// published CHIP · Dashboard:
+//   - a fix to review: Flow 12 "3 · A session's run: Accept or Undo"
+//     (791:264033): title, who and when, the one-line outcome, the gate, the
+//     change, and Undo then Accept at the bottom right. Undo is secondary,
+//     never the primary blue; Accept keeps the branch (merging stays a
+//     maintainer's own step, so the drawer says so).
+//   - a check that failed: the same drawer, its why and the change CHIP
+//     proposes, with Run the fix (CHIP makes the branch, through the gate).
+//   - a pull or other command: Flow 12 "4 · Terminal" (791:264846), the
+//     shell opened in its repo with the command typed, not run.
+// Server calls are the old review sheet's (/review/:check, /runs/:id and
+// their accept, keep and undo), so nothing about what a click does changes.
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import FloatingPanel from '@bella/components/FloatingPanel/FloatingPanel';
+import Drawer from '@bella/components/Drawer/Drawer';
+import ReadingDrawer, { ReadingGroups } from '../templates/ReadingDrawer.jsx';
+import Button from '@bella/components/Button/Button';
+import CodeBlock from '@bella/components/CodeBlock/CodeBlock';
+import EmptyState from '@bella/components/EmptyState/EmptyState';
+import TextStack from '@bella/components/TextStack/TextStack';
+import SectionHead from '@bella/components/SectionHead/SectionHead';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
+import ListRow from '@bella/components/ListRow/ListRow';
+import TourStep from '@bella/components/TourStep/TourStep';
+import Step from '@bella/components/Step/Step';
+import Tag from '@bella/components/Tag/Tag';
+import StatCard from '@bella/components/StatCard/StatCard';
+import Progress from '@bella/components/Progress/Progress';
+import Flow from '../templates/Flow.jsx';
+import { afterSteps } from './workModel.js';
+import { planRun } from '../templates/RunPlan.jsx';
+import { Words, AnswerLines } from '../templates/useAsk.jsx';
+import ActionChip from '@bella/components/ActionChip/ActionChip';
+import { TermScreen } from '../Terminal.jsx';
+import { keyPhrases } from '../templates/keyPhrase.js';
+
+const POST = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' };
+// when it ran, with its day: "today 10:26", "20 Nov, 19:04"
+const when = (t) => {
+  if (!t) return null;
+  const d = new Date(t);
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return d.toDateString() === new Date().toDateString() ? `today ${time}` : `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${time}`;
+};
+// an agent's report reads as words: no markdown marks or code ticks, every sentence kept
+const plainNotes = (t) => String(t ?? '').replace(/\*\*|`/g, '').replace(/^\s*-\s*/gm, '').replace(/\s+/g, ' ').trim();
+const firstLine = (t) => plainNotes(t).split(/(?<=\.)\s/)[0];
+/* Why the gate stopped a run, from its own log, in the approved drawer's shape (Flow 12, 791:264033):
+   one strong line, then the facts on one meta line (how many tests, which file, whether the agent
+   touched it). Plain words, never the log. */
+function gateReason(d) {
+  const log = String(d.gate?.log ?? '');
+  const files = [...new Set([...log.matchAll(/at (src\/[\w./-]+\.(?:tsx?|jsx?))/g)].map((m) => m[1]))];
+  const n = Number(log.match(/Test Suites:\s*(\d+) failed/)?.[1] ?? 0);
+  const what = n ? `${n} story ${n === 1 ? 'test' : 'tests'} ${/timeout/i.test(log) ? 'timed out' : 'failed'}` : 'a gate check failed';
+  const touched = files.some((f) => (d.files ?? []).some((c) => String(c).endsWith(f)));
+  return {
+    line: 'BELLA’s **gate stopped** the commit. Nothing was kept.',
+    facts: [what, ...files.map((f) => f.split('/').pop()), files.length && !touched ? 'not a file the agent changed' : null].filter(Boolean).join(' · '),
+  };
+}
+const said = async (r) => {
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'CHIP did not answer');
+  return d;
+};
+
+/* A unified diff, file by file: its path, new / deleted / changed, lines added and removed, and the
+   hunks only (the git headers become the file row, so the code starts at the change). */
+export function parseDiff(diff) {
+  return String(diff ?? '')
+    .split(/^(?=diff --git )/m)
+    .filter((f) => f.startsWith('diff --git'))
+    .map((f) => {
+      const path = f.match(/^\+\+\+ b\/(.+)$/m)?.[1] ?? f.match(/^--- a\/(.+)$/m)?.[1] ?? f.match(/^diff --git a\/(\S+)/)?.[1];
+      const body = f.slice(f.search(/^@@/m) >= 0 ? f.search(/^@@/m) : f.length).trimEnd();
+      const lines = body.split('\n');
+      const add = lines.filter((l) => l.startsWith('+')).length;
+      const del = lines.filter((l) => l.startsWith('-')).length;
+      const kind = /^new file mode/m.test(f) ? 'new' : /^deleted file mode/m.test(f) ? 'deleted' : 'changed';
+      return { path, kind, add, del, body };
+    });
+}
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const fileLine = (f) => (f.kind === 'new' ? `new · ${plural(f.add, 'line')}` : f.kind === 'deleted' ? `deleted · ${plural(f.del, 'line')}` : `${f.add} added · ${f.del} removed`);
+
+/* "Help me understand" for a diff (her mock, 19 Nov): what each part of the change means, a step at a
+   time, numbered. Only the parts this diff has. */
+function diffSteps(f) {
+  const hunk = f.body.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,(\d+))? @@/m);
+  return [
+    'The line above the code is the file the change is in. Each / is a folder inside the one before.',
+    hunk ? `The line starting @@ says where the change sits: from line ${hunk[2]} of the file${hunk[3] ? `, ${hunk[3]} lines` : ''}.` : null,
+    f.add ? `Lines starting + are added. They have the green band.` : null,
+    f.del ? `Lines starting − are taken out. They have the red band.` : null,
+    'Lines with neither mark are unchanged, there to show where it sits.',
+  ].filter(Boolean);
+}
+
+function Tour({ steps, onClose }) {
+  const [i, setI] = useState(0);
+  const end = i === steps.length - 1;
+  return (
+    <TourStep number={i + 1} count={`${i + 1} of ${steps.length}`} isEnd={end} onBack={i ? () => setI(i - 1) : undefined} onNext={() => (end ? onClose() : setI(i + 1))} onClose={onClose}>
+      {steps[i]}
+    </TourStep>
+  );
+}
+
+/* Code as proof (her 21 Nov: "apply the design from the help me understand and things like we did in
+   the history"): one plain line on what the change shows, then the change folded: a row per file
+   (name, new · 57 lines), each file's code with its added and removed bands, and Help me understand. */
+function Change({ diff, proves, branch }) {
+  const files = parseDiff(diff);
+  const [tour, setTour] = useState(null);
+  if (!files.length) return null;
+  return (
+    <Flow gap={8}>
+      {/* Figma Flow 12 heads each drawer group with a Section head (parts-motion read 791:264033) */}
+      <SectionHead title="What changed" titleLevel={3} />
+      <TextStack body={proves} />
+      {branch ? <TextStack subtitle={`Branch ${branch}`} /> : null}
+      <Disclosure flush title="Show the change" summary={plural(files.length, 'file')}>
+        <Flow gap={16}>
+          <Flow as="ul" gap={4} aria-label="Files it changes">
+            {files.map((f) => (
+              <ListRow key={f.path} layout="stacked" title={f.path.split('/').pop()} description={fileLine(f)} />
+            ))}
+          </Flow>
+          {files.map((f) => (
+            <Flow key={f.path} gap={8}>
+              <Flow direction="row">
+                <Button variant="tertiary" size="sm" onClick={() => setTour(tour === f.path ? null : f.path)}>
+                  Help me understand
+                </Button>
+              </Flow>
+              {tour === f.path ? <Tour steps={diffSteps(f)} onClose={() => setTour(null)} /> : null}
+              <CodeBlock code={f.body} language="diff" title={f.path} copy />
+            </Flow>
+          ))}
+        </Flow>
+      </Disclosure>
+    </Flow>
+  );
+}
+
+/* The agent's notes, in the chat answer's shape (her 21 Nov: "follow the pattern from history and
+   chat"; Figma Flow 12 Agent notes): its first sentence as the verdict with the key phrase bold, at
+   most three bullets (what it asks first, under its own bold label), a chip to say yes to it,
+   and the whole note folded. Everything is the agent's own words, cut, never rewritten. */
+function shapeNotes(t) {
+  const text = String(t ?? '').trim();
+  if (!text) return null;
+  const [lead = '', ...rest] = text.split(/\n\s*\n/);
+  const sentences = lead.replace(/`/g, '').split(/(?<=[.!?])\s+/).filter(Boolean);
+  const verdict = sentences[0] ?? '';
+  const points = [];
+  const questions = [];
+  for (const block of rest) {
+    for (const line of block.split('\n')) {
+      const m = line.replace(/`/g, '').match(/^\s*-\s*\*\*(.+?)\*\*\s*(.*)$/);
+      if (!m) continue;
+      const label = m[1].replace(/[.:]$/, '');
+      const first = m[2].split(/(?<=[.!?])\s+/)[0];
+      if (/your say|want you|should I|\?\s*$/i.test(m[2])) questions.push({ label, line: first });
+      else points.push(`${label}: ${first}`);
+    }
+  }
+  // the words that say the outcome, by the same rule as History (the marker marks what matters, 22 Nov)
+  const key = keyPhrases(verdict, { max: 1 })[0];
+  const bold = key ? `${verdict.slice(0, key.at)}**${key.text}**${verdict.slice(key.at + key.text.length)}` : verdict;
+  const asks = questions.map((q) => `${q.label}: ${q.line}`);
+  return { verdict: bold, bullets: [...asks, ...points, ...sentences.slice(1)].slice(0, 3), questions, all: text };
+}
+
+function Notes({ summary, onAnswer }) {
+  const n = shapeNotes(summary);
+  if (!n) return null;
+  return (
+    <Flow gap={8}>
+      <SectionHead title="Agent notes" titleLevel={3} />
+      <AnswerLines shaped={n} />
+      {n.questions.length && onAnswer ? (
+        <Flow direction="row" gap={8} wrap aria-label="Add what the agent asked">
+          {n.questions.map((q) => (
+            <ActionChip key={q.label} onClick={() => onAnswer(q)}>
+              {n.questions.length === 1 ? 'Yes, add it' : `Add: ${q.label}`}
+            </ActionChip>
+          ))}
+        </Flow>
+      ) : null}
+      <Disclosure flush title="All the agent’s notes">
+        <Flow gap={8}>
+          {n.all.split(/\n\s*\n/).map((para) => (
+            <TextStack key={para} body={<Words text={para.replace(/^\s*-\s*/gm, '').replace(/\n/g, ' ')} />} />
+          ))}
+        </Flow>
+      </Disclosure>
+    </Flow>
+  );
+}
+
+/* A fix waiting on a reviewer, from a check (review card) or an agent run. */
+function useItem(item, tick) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    if (!item || item.kind === 'terminal' || item.kind === 'push') return undefined;
+    let live = true;
+    setError(null);
+    fetch(item.kind === 'run' ? `/runs/${encodeURIComponent(item.id)}` : `/review/${encodeURIComponent(item.check)}`)
+      .then(said)
+      .then((d) => live && setData(d))
+      .catch((e) => live && setError(e.message));
+    return () => {
+      live = false;
+    };
+  }, [item, tick]);
+  return { data, error };
+}
+
+/* The drawer's words and actions for one fix, in one shape for checks and runs. */
+function shapeOf(item, d) {
+  if (item.kind === 'run') {
+    const waiting = d.status === 'passed';
+    const failed = d.status === 'failed' || d.status === 'login';
+    return {
+      title: d.title,
+      status: ['Agent', d.from ? `from ${d.from}` : null, d.startedAt ? `ran ${when(d.startedAt)}` : null].filter(Boolean).join(' · '),
+      // the outcome in one plain line: a gate stop names its tests and file; the agent's notes fold, whole
+      outcome: failed ? (d.gate && d.gate.passed === false ? gateReason(d).line : `Stopped: ${String(d.error ?? 'The run stopped before it finished').replace(/\.$/, '')}. **Nothing was kept.**`) : d.status === 'kept' ? 'Accepted: **the branch is kept**.' : d.status === 'passed' ? (firstLine(d.summary) ? `**Gate passed**: ${firstLine(d.summary)}` : '**The gate passed.**') : d.step || 'Working.',
+      gate: d.gate?.passed ? `Gate passed · ${d.sha ? '1 commit' : 'no commit'}` : failed && d.gate && d.gate.passed === false ? gateReason(d).facts : null,
+      notes: d.summary ?? null,
+      // what the change shows, in one line: what the agent wrote and what the gate made of it
+      proves: `The agent ${failed ? 'wrote' : 'made'} ${plural(parseDiff(d.diff).length, 'file')}${d.gate ? (d.gate.passed ? '; BELLA’s gate ran on them and passed.' : '; BELLA’s gate didn’t pass them, so none of it is kept.') : '.'}`,
+      again: failed && d.brief ? { brief: d.brief, title: d.title, from: d.from } : null,
+      diff: d.diff ?? null,
+      branch: d.branch,
+      can: waiting ? 'decide' : ['starting', 'running'].includes(d.status) ? 'stop' : null,
+      kept: d.status === 'kept',
+      after: afterSteps(d),
+    };
+  }
+  const decide = d.state === 'accepted' && !d.kept;
+  return {
+    title: d.title ?? d.check,
+    status: ['From CHIP’s checks', d.ranAt ? `ran ${when(d.ranAt)}` : null].filter(Boolean).join(' · '),
+    // CHIP never merges: the primary keeps the branch for a maintainer to merge (audit, 21 Nov)
+    merge: decide,
+    gate: d.state === 'accepted' ? `Gate passed · ${d.sha ? '1 commit' : 'no commit'}` : null,
+    outcome: decide ? `**The gate passed.** The fix is on its own branch, ${d.branch}.` : d.state === 'accepting' ? 'Making the fix on its own branch. About 3 minutes.' : d.failure ?? d.summary ?? null,
+    why: d.why ?? null,
+    change: d.change?.sentence ?? null,
+    files: d.change?.files ?? [],
+    branch: d.branch,
+    can: decide ? 'decide' : (d.state === 'failed' || d.state === 'improve') && d.change ? 'run' : null,
+    kept: !!d.kept,
+    thisWill: d.thisWill,
+  };
+}
+
+function FixDrawer({ item, onClose, onNotice, onChanged, onAccepted }) {
+  const [tick, setTick] = useState(0);
+  const [busy, setBusy] = useState(null);
+  const { data, error } = useItem(item, tick);
+  // a run that is going is read again every 3 s, so its step and its Stop stay current
+  // after her Accept it keeps reading until the last after-Accept step (specs, docs, commit, Storybook, Figma, sync)
+  const going = item.kind === 'run' && (['starting', 'running', 'gate'].includes(data?.status) || afterSteps(data)?.state === 'working');
+  useEffect(() => {
+    if (!going) return undefined;
+    const t = setInterval(() => setTick((n) => n + 1), 3000);
+    return () => clearInterval(t);
+  }, [going]);
+  const shell = (label, status, body, footer, footerNote) => (
+    <ReadingDrawer open onClose={onClose} label={label} status={status} footer={footer} footerNote={footerNote}>
+      {/* one left edge with the sheet's title (audit 4, item 5) */}
+      <Flow inset>{body}</Flow>
+    </ReadingDrawer>
+  );
+  if (error) return shell('Fix', undefined, <EmptyState size="lane" title="Couldn’t open this one" line="CHIP didn’t answer just now. Close it and try again." />);
+  if (!data) return shell('Fix', undefined, <EmptyState size="lane" title="Opening it" line="Reading the fix from CHIP." />);
+  const s = shapeOf(item, data);
+  const act = async (verb, done) => {
+    setBusy(verb);
+    try {
+      const base = item.kind === 'run' ? `/runs/${encodeURIComponent(item.id)}` : `/review/${encodeURIComponent(item.check)}`;
+      await said(await fetch(`${base}/${verb}`, POST));
+      onNotice({ tone: 'success', title: done.title, message: done.message });
+      // Accept: the drawer closes and the card leaves the board (motion item 6)
+      // Accept on a run: the drawer stays open on its after-Accept steps; anything else leaves the board
+      if (verb === 'keep' && onAccepted && item.kind !== 'run') return onAccepted();
+      onChanged();
+      setTick((t) => t + 1);
+    } catch (e) {
+      onNotice({ tone: 'danger', title: 'That didn’t go through', message: `${e.message}. Nothing changed.` });
+    } finally {
+      setBusy(null);
+    }
+  };
+  // a failed run goes again with its own brief: its plan opens first (approve, edit or close), then a new run
+  const again = async (a) => {
+    setBusy('again');
+    try {
+      const run = await planRun({ ...a, subtitle: 'Run again · the same brief, on a new branch' });
+      if (run) {
+        onChanged();
+        onClose();
+      }
+    } catch (e) {
+      if (!e.shown) onNotice({ tone: 'danger', title: 'Not started', message: `${e.message}.` });
+    } finally {
+      setBusy(null);
+    }
+  };
+  const footer =
+    s.can === 'decide' ? (
+      <>
+        <Button variant="secondary" disabled={!!busy} onClick={() => act('undo', { title: 'Undone', message: `The branch ${s.branch} is gone; nothing else changed.` })}>
+          {busy === 'undo' ? 'Undoing…' : 'Undo'}
+        </Button>
+        <Button variant="primary" disabled={!!busy} onClick={() => act('keep', { title: s.merge ? 'Kept for merging' : 'Accepted', message: `${s.branch} is kept. Merging it is a maintainer’s step in git.` })}>
+          {busy === 'keep' ? (s.merge ? 'Keeping…' : 'Accepting…') : s.merge ? 'Keep branch' : 'Accept'}
+        </Button>
+      </>
+    ) : s.can === 'stop' ? (
+      // a running run always has Stop: nothing is kept, the branch stays for a look
+      <>
+        <Button variant="secondary" disabled={!!busy} onClick={() => act('stop', { title: 'Stopped', message: `${s.title}: the agent stopped. Nothing was kept.` })}>
+          {busy === 'stop' ? 'Stopping…' : 'Stop'}
+        </Button>
+      </>
+    ) : s.again ? (
+      <Button variant="primary" disabled={!!busy} onClick={() => again(s.again)}>
+        {busy === 'again' ? 'Starting…' : 'Run again'}
+      </Button>
+    ) : s.can === 'run' ? (
+      <>
+        <Button variant="primary" disabled={!!busy} onClick={() => act('accept', { title: 'Started', message: 'CHIP is making the fix on its own branch. It shows here when the gate has passed.' })}>
+          {busy === 'accept' ? 'Starting…' : 'Run the fix'}
+        </Button>
+      </>
+    ) : null;
+  // what the footer's action does, at the left of its row (23 Nov evening: drawer actions in the footer, one row)
+  const footerNote =
+    s.can === 'decide'
+      ? `${s.merge ? 'Keep branch' : 'Accept'} keeps the branch; Undo deletes it.`
+      : s.can !== 'stop' && s.again
+        ? 'Opens the same plan; nothing runs until you approve it.'
+        : undefined;
+  // Add it: a new run on the same brief with the agent's question and her answer added
+  const answer = item.kind === 'run' && data.brief ? (q) => again({ title: `${data.title}: ${q.label}`, from: data.from, brief: `${data.brief}\n\n---\nThe last run asked: ${q.label}. ${q.line}\nElleta's answer: add it.` }) : undefined;
+  return shell(s.title, s.status, <FixBody s={s} onAnswer={answer} />, footer ?? undefined, footer ? footerNote : undefined);
+}
+
+/* The approved drawer's order (Flow 12, 791:264033): the outcome in one strong line with its facts
+   under it, what changed, then the agent's notes. */
+function FixBody({ s, onAnswer }) {
+  return (
+    <Flow gap={24}>
+      {s.outcome ? (
+        <Flow gap={4}>
+          <TextStack body={<Words text={s.outcome} />} />
+          {s.gate ? <TextStack subtitle={s.gate} /> : null}
+        </Flow>
+      ) : null}
+      {s.kept ? <TextStack body={`Kept on ${s.branch}. Merging and pushing stay with a maintainer.`} /> : null}
+      {s.after ? (
+        // after Accept: what CHIP does next, live, one numbered step each, until the last one
+        <Flow gap={8}>
+          <Progress label={s.after.state === 'done' ? `All ${s.after.total} after-Accept steps done` : s.after.state === 'error' ? `Stopped at step ${s.after.done + 1} of ${s.after.total}` : `${s.after.done} of ${s.after.total} after-Accept steps done`} fill={Math.round((100 * s.after.done) / Math.max(s.after.total, 1))} tone={s.after.state === 'error' ? 'danger' : s.after.state === 'done' ? 'success' : 'info'} />
+          <Flow as="ol" gap={0} aria-label="After Accept">
+            {[
+              ...s.after.finished.map((t) => ({ t, state: 'done' })),
+              ...(s.after.state !== 'done' && s.after.now ? [{ t: s.after.now, state: s.after.state === 'error' ? 'failed' : 'current' }] : []),
+              ...(s.after.state === 'working' ? s.after.left.map((t) => ({ t, state: 'pending' })) : []),
+            ].map((x, i, all) => (
+              <Step key={i} layout="vertical" number={i + 1} title={x.t} state={x.state} selected={x.state === 'current'} showLineAbove={i > 0} showConnector={i < all.length - 1} />
+            ))}
+          </Flow>
+        </Flow>
+      ) : null}
+      {s.why ? (
+        <Flow gap={8}>
+          <SectionHead title="Why" titleLevel={3} />
+          <TextStack body={s.why} />
+        </Flow>
+      ) : null}
+      {s.change ? (
+        <Flow gap={8}>
+          <SectionHead title="What changed" titleLevel={3} />
+          <TextStack body={s.change} subtitle={s.files?.length ? s.files.join(' · ') : undefined} />
+        </Flow>
+      ) : null}
+      {s.diff ? <Change diff={s.diff} proves={s.proves} branch={s.branch} /> : null}
+      {s.notes ? <Notes summary={s.notes} onAnswer={onAnswer} /> : null}
+      {s.merge ? <TextStack subtitle="CHIP doesn’t merge. Keep branch marks it ready for a maintainer to merge in git; Undo deletes it." /> : null}
+      {s.can === 'run' && s.thisWill ? <TextStack subtitle={`Run the fix will ${s.thisWill}`} /> : null}
+    </Flow>
+  );
+}
+
+// CHIP never types a push: a push is outward-facing, so she types it herself (click test, 22 Nov)
+const NO_TYPE = /\bgit\s+push\b/;
+
+/* area = the words before the first colon of the subject; commits with none go under "Other" */
+const TONES = ['info', 'attention', 'success', 'strong'];
+function commitGroups(commits) {
+  const by = new Map();
+  for (const c of commits) {
+    const m = c.subject.match(/^([^:]{2,40}):\s/);
+    const area = m ? m[1] : 'Other';
+    if (!by.has(area)) by.set(area, []);
+    by.get(area).push(c);
+  }
+  return [...by.entries()].sort((x, y) => (x[0] === 'Other') - (y[0] === 'Other') || y[1].length - x[1].length).map(([name, cs], i) => ({
+    name,
+    tone: name === 'Other' ? 'neutral' : TONES[i % TONES.length],
+    items: cs.map((c) => ({ key: c.sha, title: m_rest(c.subject, name), state: 'Waiting', line: `${c.sha} · ${when(c.date)}` })),
+  }));
+}
+const m_rest = (subject, area) => (area === 'Other' ? subject : subject.slice(area.length + 1).trim());
+
+/* What a push would send (Needs you's push card): the branch, where it goes, each commit GitHub
+   hasn't seen and the files. Open a shell gives a plain shell in that repo with nothing typed. */
+function PushDrawer({ item, onClose }) {
+  const [p, setP] = useState(null);
+  const [error, setError] = useState(null);
+  const [shell, setShell] = useState(false);
+  const [status, setStatus] = useState('connecting');
+  useEffect(() => {
+    fetch(`/push/${encodeURIComponent(item.repo)}`)
+      .then(said)
+      .then(setP)
+      .catch((e) => setError(e.message));
+  }, [item.repo]);
+  const n = p?.commits.length ?? 0;
+  return (
+    <ReadingDrawer
+      open
+      onClose={onClose}
+      label={p ? `Save ${p.name} to GitHub?` : 'Save to GitHub'}
+      status={p ? `${p.name} · ${n} ${n === 1 ? 'change' : 'changes'} GitHub doesn’t have yet` : undefined}
+      footer={
+        shell ? undefined : (
+          <Button variant="secondary" disabled={!p} onClick={() => setShell(true)}>
+            Open a shell
+          </Button>
+        )
+      }
+      footerNote={shell ? undefined : 'A shell in its folder, nothing typed.'}
+    >
+      <Flow inset gap={16}>
+        {/* the shell opens at the top, in view; the commits stay under it */}
+        {shell ? (
+          <Flow gap={8}>
+            <TextStack subtitle={status === 'open' ? `A shell in ${p.name}’s folder, nothing typed. Type git push to send it.` : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…'} />
+            <TermScreen t={{ id: `push-${item.repo}`, repo: item.repo, kind: 'shell', typed: null }} active onStatus={setStatus} onActivity={() => {}} register={() => {}} />
+          </Flow>
+        ) : null}
+        {error ? <EmptyState size="lane" title="Couldn’t read it" line={`${error}. Close this and try again.`} /> : null}
+        {!p && !error ? <EmptyState size="lane" title="Reading it" line="Asking git what a push would send." /> : null}
+        {p ? (
+          <>
+            {/* the amount first, then short bullets with the few key words marked, then the commits on request (Elleta, 23 Nov: a drawer is a reading surface) */}
+            <StatCard icon="GitBranch" tone="warning" title="Waiting to save" value={n} unit={n === 1 ? 'change' : 'changes'} context={`${p.files} ${p.files === 1 ? 'file' : 'files'}`} chart="none" />
+            <AnswerLines
+              shaped={{
+                verdict: `**GitHub** would get ${n === 1 ? 'this commit' : `these ${n} commits`}.`,
+                bullets: [`**Other people** see ${n === 1 ? 'it' : 'them'} and **CI** runs.`, '**You** type git push: CHIP never pushes.'],
+              }}
+              onPin={() => {}}
+            />
+            {/* commits grouped by the area their subject names ("Side menu: ..."), from the commits themselves */}
+            <ReadingGroups single openFirst label="Commits a push would send, by area" groups={commitGroups(p.commits)} />
+          </>
+        ) : null}
+      </Flow>
+    </ReadingDrawer>
+  );
+}
+
+function TermDrawer({ item, onClose, onFloat }) {
+  const [status, setStatus] = useState('connecting');
+  const [floating, setFloating] = useState(false);
+  const command = item.command && !NO_TYPE.test(item.command) ? item.command : null;
+  const t = { id: `drawer-${item.repo}`, repo: item.repo, kind: 'shell', typed: command };
+  // the shell is drawn once into a host element that moves between the drawer and the floating window, so
+  // detaching and docking never restart it (23 Nov: "watch an agent and still use the page")
+  const host = useMemo(() => document.createElement('div'), []);
+  const mount = (el) => {
+    if (el && host.parentNode !== el) el.appendChild(host);
+  };
+  const line = status === 'open' ? (command ? `${command} is typed, not run. Press Return in the terminal to run it.` : `A shell in ${item.repo}’s folder.`) : status === 'closed' ? 'The shell stopped. Close this and open it again.' : 'Starting the shell…';
+  const body = (
+    <Flow gap={8}>
+      <TextStack subtitle={line} />
+      <div ref={mount} />
+    </Flow>
+  );
+  return (
+    <>
+      {createPortal(<TermScreen t={t} active onStatus={setStatus} onActivity={() => {}} register={() => {}} />, host)}
+      {/* the drawer stays mounted and only closes while detached, so docking opens it again the way it first opened */}
+      <Drawer open={!floating} onClose={() => (floating ? undefined : onClose())} side="right" size="lg" label="Terminal" status={`${item.repo} · ${item.title ?? 'a shell'}`} action={<Button variant="secondary" size="sm" onClick={() => (setFloating(true), onFloat?.(true))}>Detach</Button>}>
+        {floating ? null : body}
+      </Drawer>
+      {floating ? (
+        <FloatingPanel title="Terminal" status={status === 'open' ? 'Running' : status === 'closed' ? 'Stopped' : 'Starting'} statusTone={status === 'open' ? 'success' : 'info'} onDock={() => (setFloating(false), onFloat?.(false))} onClose={() => (onFloat?.(false), onClose())}>
+          {body}
+        </FloatingPanel>
+      ) : null}
+    </>
+  );
+}
+
+/* A session's whole plan, behind the short card (Work board, 22 Nov): steps done, the step running now and
+   what's left, read from its saved record (server/lib/lanes.mjs). Read only: the session is the Claude app's. */
+const STEP_STATE = { completed: 'done', in_progress: 'current', pending: 'pending' };
+function SessionDrawer({ item, onClose }) {
+  const c = item.card;
+  const steps = c.steps ?? [];
+  const p = c.progress;
+  return (
+    <ReadingDrawer open onClose={onClose} label={c.title} status={c.line}>
+      <Flow gap={16} inset>
+        {p?.total ? <Progress label={`${p.done} of ${p.total} steps done`} fill={Math.round((100 * p.done) / p.total)} tone={p.state === 'done' ? 'success' : 'info'} /> : null}
+        {steps.length ? (
+          <Flow as="ol" gap={0} aria-label="Steps">
+            {steps.map((s, i) => (
+                <Step key={i} layout="vertical" number={i + 1} title={s.text} state={STEP_STATE[s.status] ?? 'pending'} selected={s.status === 'in_progress'} tag={<Tag variant="line" tone={s.status === 'completed' ? 'success' : s.status === 'in_progress' ? 'info' : 'default'}>{s.status === 'completed' ? 'Done' : s.status === 'in_progress' ? 'Now' : 'Left'}</Tag>} showLineAbove={i > 0} showConnector={i < steps.length - 1} />
+            ))}
+          </Flow>
+        ) : (
+          <EmptyState size="lane" mark="📝" title="No steps yet" line="This session hasn’t listed its plan. Its steps show here once it does." />
+        )}
+        <TextStack subtitle="Read from the session’s own plan in the Claude app. CHIP shows it; it can’t stop or steer the session." />
+      </Flow>
+    </ReadingDrawer>
+  );
+}
+
+/** item: { kind: 'session', card } | { kind: 'review', check } | { kind: 'run', id } | { kind: 'terminal', repo, command, title }; null = closed. */
+export default function WorkDrawer({ item, onClose, onNotice, onChanged, onAccepted, onFloat }) {
+  if (!item) return null;
+  if (item.kind === 'session') return <SessionDrawer key={item.card.id} item={item} onClose={onClose} />;
+  if (item.kind === 'push') return <PushDrawer key={item.repo} item={item} onClose={onClose} />;
+  if (item.kind === 'terminal') return <TermDrawer key={`${item.repo}-${item.command}`} item={item} onClose={onClose} onFloat={onFloat} />;
+  return <FixDrawer key={item.id ?? item.check} item={item} onClose={onClose} onNotice={onNotice} onChanged={onChanged} onAccepted={onAccepted} />;
+}

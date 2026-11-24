@@ -1,0 +1,107 @@
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import '@bella/fonts.css';
+import '@bella/tokens.css';
+import './kit/tokens.css';
+import './app.css';
+import NotAgain from './pages/NotAgain.jsx';
+import Playground from './pages/Playground.jsx';
+import History from './pages/History.jsx';
+import Connectors from './pages/Connectors.jsx';
+import SystemMap from './pages/SystemMap.jsx';
+import Foundations from './pages/Foundations.jsx';
+import Docs from './pages/Docs.jsx';
+import Team from './pages/Team.jsx';
+import Health from './pages/Health.jsx';
+import AuditReports from './pages/AuditReports.jsx';
+import Work from './pages/Work.jsx';
+import Components from './pages/Components.jsx';
+import Present from './pages/Present.jsx';
+import { warmPages } from './templates/useCached.js';
+import { openAtTop, focusPageTitle } from './templates/Screen.jsx';
+import RunPlanHost from './templates/RunPlan.jsx';
+import PageGuard from './templates/PageGuard.jsx';
+import { canon } from './templates/routes.js';
+
+// Pages on the CHIP / Screen template. The retired app (App.jsx) and the Kit are no longer reachable: every
+// other address opens its current page (templates/routes.js canon, checked by scripts/route-check.mjs). The Playground lists these too
+// (server/lib/projects.mjs reads NEW_PAGES).
+const NEW_PAGES = [
+  { id: 'not-again', label: 'Not again' },
+  { id: 'playground', label: 'Playground' },
+  { id: 'team', label: 'Team' },
+  { id: 'health', label: 'Health' },
+  { id: 'work', label: 'Work' },
+  { id: 'components', label: 'Components' },
+  { id: 'history', label: 'History' },
+  { id: 'connectors', label: 'Connectors' },
+  { id: 'system-map', label: 'System map' },
+  { id: 'foundations', label: 'Foundations' },
+];
+
+function Page({ hash }) {
+  // a new page opens at its top; a part, query or view inside the same page
+  // (#/components/Button, #/history?…) keeps its place
+  const page = hash.match(/^#\/(system\/[\w-]+|[\w-]+)/)?.[1] ?? '';
+  useLayoutEffect(openAtTop, [page]);
+  // the first page of a visit keeps the browser's own start; every later page change hands focus to its title
+  const firstPage = useRef(true);
+  useEffect(() => {
+    if (firstPage.current) firstPage.current = false;
+    else focusPageTitle();
+  }, [page]);
+  // Work and Health are their own items (her pick B, 23 Nov); Components, Foundations and History are one System place
+  // (Elleta, 23 Nov). The old addresses redirect in Root (templates/routes.js), so only new ones arrive here.
+  const at = hash.split('?')[0];
+  if (at === '#/not-again') return <NotAgain />;
+  if (at === '#/playground') return <Playground />;
+  if (at === '#/team') return <Team />;
+  if (at === '#/health') return <Health />;
+  if (at === '#/health/audits') return <AuditReports />;
+  if (at === '#/work') return <Work />;
+  if (at === '#/present' || at.startsWith('#/present/')) return <Present />;
+  if (at === '#/system/history') return <History />;
+  if (at === '#/connectors') return <Connectors />;
+  if (at === '#/system-map') return <SystemMap />;
+  if (at === '#/system/foundations') return <Foundations />;
+  if (at === '#/system/docs') return <Docs />;
+  if (at === '#/system/components' || at.startsWith('#/system/components/')) return <Components />;
+  // canon() in Root sends every other address to a current page, so nothing else arrives here
+  return <Work />;
+}
+
+/* Every page sits in a guard (an error shows in place, never a white app) beside the one
+   plan host (any run opens its plan first). The guard resets when the page changes. */
+function Root() {
+  // an old address (#/home, #/work, #/components/Button?x) opens its new place, same part and query
+  const settle = () => {
+    const to = canon(window.location.hash);
+    if (to !== window.location.hash) window.history.replaceState(null, '', to);
+    return to;
+  };
+  const [hash, setHash] = useState(settle);
+  useEffect(() => {
+    const on = () => setHash(settle());
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  const page = hash.match(/^#\/(system\/[\w-]+|[\w-]+)/)?.[1] ?? '';
+  return (
+    <>
+      <PageGuard key={page}>
+        <Page hash={hash} />
+      </PageGuard>
+      <RunPlanHost />
+    </>
+  );
+}
+
+warmPages();
+// The app draws once its fonts are in (Elleta, 23 Nov evening: text flashed in a fallback font on refresh): Lexend for
+// words, Geist Mono for numbers, both preloaded by index.html. Until then the frame's outline holds the window
+// (index.html, .chip-boot). After 3 seconds it draws anyway, so a missing font never leaves the window empty.
+const FACES = ['400 16px Lexend', '600 16px Lexend', '400 16px "Geist Mono"', '600 16px "Geist Mono"'];
+const fonts = document.fonts ? Promise.all(FACES.map((f) => document.fonts.load(f))) : Promise.resolve();
+Promise.race([fonts, new Promise((r) => setTimeout(r, 3000))])
+  .catch(() => {})
+  .then(() => createRoot(document.getElementById('root')).render(<Root />));
