@@ -1,17 +1,17 @@
 // Audit reports: the one full report of all audits (CHIP rule 23 Nov), built from the approved mock
 // docs/reference/screens/2026-11-23-audit-reports/ part by part. Every number is read from the saved files by
 // /audit-reports (server/lib/audit-reports.mjs) and each chart's grey line names the file. BELLA parts and the
-// template's Flow only; no page CSS. Address: #/health/audits?filter=real|none|first&report=<audit id>[:<day>]|bench|ready.
+// template's Flow only; no page CSS. Address: #/health/audits?audit=<id>&report=<audit id>[:<day>]|bench|ready.
 //
 // Which READ FIRST line each part meets (CLAUDE.md, 23 Nov): a drawer is a reading surface (title, one plain line,
 // the picture, then the facts, the action at the right edge); nothing sends her out of CHIP (Report opens a
 // drawer, a run opens its saved report in one); a report is explained (AuditReading: meaning, what to do first).
 import { useEffect, useMemo, useState } from 'react';
 import Card from '@bella/components/Card/Card';
+import Disclosure from '@bella/components/Disclosure/Disclosure';
 import SectionHead from '@bella/components/SectionHead/SectionHead';
 import TextStack from '@bella/components/TextStack/TextStack';
 import Marker from '@bella/components/Marker/Marker';
-import Stat from '@bella/components/Stat/Stat';
 import ScoreTile from '@bella/components/ScoreTile/ScoreTile';
 import StatusDot from '@bella/components/StatusDot/StatusDot';
 import Button from '@bella/components/Button/Button';
@@ -26,14 +26,12 @@ import Flow from '../templates/Flow.jsx';
 import useCached from '../templates/useCached.js';
 import ReadingDrawer, { Inset } from '../templates/ReadingDrawer.jsx';
 import ResultsBar from '../templates/ResultsBar.jsx';
-import NoResults from '../templates/NoResults.jsx';
 import { planRun } from '../templates/RunPlan.jsx';
 import AuditReading from './AuditReading.jsx';
 import { markOf } from '../templates/marks.js';
 import Loading from '../templates/Loading.jsx';
-import { AUDIT_NAME, FILTERS, buildReport, changeTone, changeWord, counts, dayWords, sgn } from './auditReportsModel.js';
+import { AUDIT_NAME, buildReport, counts, dayWords, sgn } from './auditReportsModel.js';
 
-const DOT = { success: 'success', danger: 'danger', warning: 'attention', neutral: 'neutral', info: 'info' };
 const q = () => new URLSearchParams(window.location.hash.split('?')[1] ?? '');
 const NOTE = 'When BELLA has no part for a job, AGENTS.md tells the agent to stop and ask. The Open Design System Benchmark scores that as zero. This is intended (decided 12 Nov).';
 // proposals only, nothing started (benchmark-answers-2026-11-23.md, section 7)
@@ -104,31 +102,49 @@ function BenchmarkCard({ b, onReport, pick, onPick }) {
     const lone = b.runs.filter((r) => r.bare == null).map((r) => dayWords(r.day));
     return `AGENTS.md was behind no file on ${[...new Set(behindRuns)].join(' and ')}${b.runs.some((r) => r.bare != null && r.md - r.bare >= 3) ? ', ahead on some' : ''}${lone.length ? `. The ${lone.join(', ')} run had no no-file run, so it has one dot.` : '.'}`;
   })();
+  // the one sentence that says what the four scores mean (her verdict, 24 Nov: look at the data and understand it)
+  const g10 = Math.round((b.all10.md - b.all10.bare) * 10) / 10;
+  const g8 = Math.round((b.eight.md - b.eight.bare) * 10) / 10;
+  const say = (g) => (g <= -3 ? `${Math.abs(g)} lower` : g >= 3 ? `${g} higher` : 'level');
+  const meaning = (
+    <>
+      With AGENTS.md BELLA scores <Marker>{say(g10)}</Marker> on all {b.jobs.length} jobs{b.stopped ? `, because ${b.stopped} jobs stop to ask` : ''}; on the {b.eight.n} jobs BELLA can do it is <Marker>{say(g8)}</Marker>.
+    </>
+  );
+  // the charts sit behind Details, closed (her rule, 24 Nov: never first); picking a score tile opens them to show its part
+  const [details, setDetails] = useState(false);
+  useEffect(() => {
+    if (pick) setDetails(true);
+  }, [pick]);
   return (
     <Card>
       <Flow gap={24}>
         <SectionHead
-          icon="Activity"
-          iconTone="info"
           title="Benchmark: AGENTS.md against no file"
           showInfo={false}
           description="The same ten jobs, run once with the file in the folder and once without."
           action={<Button variant="secondary" size="sm" onClick={onReport}>Report</Button>}
         />
-        <Note>{NOTE}</Note>
         <Pairs b={b} pick={pick} onPick={onPick} />
-        <Flow gap={8} id="bench-run-by-run">
-          <TextStack title="Run by run" titleAs="h3" />
-          <Note>{runsSum}</Note>
-          <GapChart label="AGENTS.md against no file, by run" rows={runRows} baseLabel="No file" valueLabel="AGENTS.md" highlight={lightOf(pick)} />
-        </Flow>
-        <Source>{`Source: Open Design System Benchmark runs of ${dirs}, results.json of each. One run per job, so a hint, not proof. Last run ${dayWords(b.day)}.`}</Source>
+        <TextStack body={meaning} />
+        <Disclosure title="Details: run by run, each job, which checks cost the points" open={details} onToggle={setDetails}>
+          <Flow gap={24}>
+            <Note>{NOTE}</Note>
+            <Flow gap={8} id="bench-run-by-run">
+              <TextStack title="Run by run" titleAs="h3" />
+              <Note>{runsSum}</Note>
+              <GapChart label="AGENTS.md against no file, by run" rows={runRows} baseLabel="No file" valueLabel="AGENTS.md" highlight={lightOf(pick)} />
+            </Flow>
+            <JobsDetail b={b} pick={pick} />
+            <Source>{`Source: Open Design System Benchmark runs of ${dirs}, results.json of each. One run per job, so a hint, not proof. Last run ${dayWords(b.day)}.`}</Source>
+          </Flow>
+        </Disclosure>
       </Flow>
     </Card>
   );
 }
 
-function JobsCard({ b, pick }) {
+function JobsDetail({ b, pick }) {
   const behind = b.jobs.filter((j) => j.gap <= -3).length;
   const level = b.jobs.filter((j) => Math.abs(j.gap) < 3).length;
   const ahead = b.jobs.filter((j) => j.gap >= 3).length;
@@ -136,52 +152,58 @@ function JobsCard({ b, pick }) {
   const rows = b.jobs.map((j) => ({ id: j.id, name: j.name, base: j.bare, value: j.md, gap: j.gap, word: j.word, tone: j.tone, why: j.why ?? undefined }));
   const sh = b.checks.map((c) => ({ id: c.id, name: c.name, detail: `${c.bare} to ${c.md}, ${Math.round(c.weight * 100)}% of the score`, share: c.share, tone: Math.abs(c.md - c.bare) < 3 ? 'neutral' : c.md < c.bare ? 'danger' : 'success' }));
   return (
-    <Card>
-      <Flow gap={24}>
-        <SectionHead icon="CheckCircle" iconTone="info" title={`The ${b.jobs.length} jobs, one by one`} showInfo={false} description={`Sorted from most behind to most ahead. ${behind} jobs are behind by 3 or more, ${level} are level, ${ahead} are ahead. The agent's own words are behind each Why button.`} />
+    <>
+      <Flow gap={8}>
+        <TextStack title={`The ${b.jobs.length} jobs, one by one`} titleAs="h3" />
+        <Note>{`Sorted from most behind to most ahead: ${behind} behind by 3 or more, ${level} level, ${ahead} ahead. The agent's own words are behind each Why button.`}</Note>
         <GapChart label="Each job, no file against AGENTS.md" rows={rows} baseLabel="No file" valueLabel="AGENTS.md" highlight={lightOf(pick)} />
-        <Flow gap={12}>
-          <TextStack title="Which checks cost the points" titleAs="h3" />
-          <Note>{`Each bar is a check's weighted share of the ${sgn(gap)} gap between ${b.all10.bare} and ${b.all10.md}. Worst first; zero in the middle. Bar length is the weighted share; colour follows the raw score change, grey under 3 points.`}</Note>
-          <Flow direction="row" gap={24} wrap>
-            <Stat label="No file" value={b.all10.bare} />
-            <Stat label="AGENTS.md" value={b.all10.md} />
-            <Stat label="The gap" value={sgn(gap)} />
-          </Flow>
-          <ShareBars label="Each check's share of the gap" rows={sh} highlight={lightOf(pick) === 'value' ? sh.filter((x) => x.share < 0).map((x) => x.id) : null} />
-        </Flow>
-        <Source>{`Source: results.json of the ${dayWords(b.day)} run (scores, compiler errors) and each job's transcript.jsonl (the agent's words). "Quality of the result" is the model-graded check.`}</Source>
       </Flow>
-    </Card>
+      <Flow gap={8}>
+        <TextStack title="Which checks cost the points" titleAs="h3" />
+        <Note>{`Each bar is a check's weighted share of the ${sgn(gap)} gap. Worst first; zero in the middle; grey under 3 points.`}</Note>
+        <ShareBars label="Each check's share of the gap" rows={sh} highlight={lightOf(pick) === 'value' ? sh.filter((x) => x.share < 0).map((x) => x.id) : null} />
+        <Source>{`Source: results.json of the ${dayWords(b.day)} run and each job's transcript.jsonl. "Quality of the result" is the model-graded check.`}</Source>
+      </Flow>
+    </>
   );
 }
 
-function ChangedCard({ rows, rd }) {
-  const c = rd.composite.p;
-  const fell = c.length > 2 ? Math.round((c[c.length - 2][1] - c[c.length - 1][1]) * 10) / 10 : null;
-  const prev = c[c.length - 2];
-  const last = c[c.length - 1];
+/* One audit, read at a glance (her rule, 24 Nov): its name as the card's title, the score big in a ScoreTile with its
+   state word, one plain sentence on what moved, and Do next with its plan at the card foot's right edge. Any chart is
+   behind Details, closed. State is the status dot and word only; no side bar. */
+const STATE = (pct) => (pct == null ? ['neutral', 'Not measured'] : pct >= 85 ? ['success', 'Healthy'] : pct >= 50 ? ['attention', 'Needs work'] : ['danger', 'Failing']);
+const pctOf = (value, unit) => {
+  if (value == null || Number.isNaN(Number(value))) return null;
+  const of = /of (\d+) checks/.exec(unit ?? '');
+  return of ? (Number(value) / Number(of[1])) * 100 : Number(value);
+};
+// the tile's label in plain words, from the report's own unit
+const labelOf = (unit) => {
+  const checks = /of (\d+) checks/.exec(unit ?? '');
+  if (checks) return `Checks healthy, of ${checks[1]}`;
+  const avg = /average of (\d+) screens/.exec(unit ?? '');
+  if (avg) return `Average of ${avg[1]} screens, out of 100`;
+  return 'Score out of 100';
+};
+const movedOf = (c) =>
+  !c ? 'Not measured yet.' : c.kind === 'first' ? `First run, ${dayWords(c.day)}; nothing to compare yet.` : c.kind === 'none' ? `No real change since ${dayWords(c.from)} (${sgn(c.delta)}).` : `${c.delta > 0 ? 'Up' : 'Down'} ${Math.abs(c.delta)} since ${dayWords(c.from)}.`;
+function AuditCard({ title, value, unit, change, next, onReport, onPlan, details }) {
+  const [tone, word] = STATE(pctOf(value, unit));
   return (
-    <Card>
+    <Card footerAction={next ? <Button variant="secondary" size="sm" onClick={onPlan}>See the plan</Button> : undefined}>
       <Flow gap={16}>
-        <SectionHead icon="Activity" iconTone="info" title="What changed since the last run" showInfo={false} description="Different scores, so no shared chart. Moves under 3 points are grey: no real change." />
-        {rows.length ? (
-          <ListRowGroup ariaLabel="What changed since the last run">
-            {rows.map((r) => (
-              <ListRow
-                key={r.id}
-                layout="stacked"
-                title={r.name}
-                meta={r.kind === 'first' ? `${dayWords(r.day)}` : `${dayWords(r.from)} to ${dayWords(r.to)}`}
-                value={r.kind === 'first' ? (r.value ?? '') : `${r.delta > 0 ? '+' : r.delta < 0 ? '−' : ''}${Math.abs(r.delta)}`}
-                tag={<StatusDot tone={DOT[changeTone(r)]} label={changeWord(r)} />}
-              />
-            ))}
-          </ListRowGroup>
-        ) : null}
-        {fell != null && prev && last ? (
-          <Note>{`Readiness score (with the agent run) ${fell > 0 ? 'fell' : 'rose'} ${Math.abs(fell)} from ${dayWords(prev[0])} (${prev[1]}) to ${dayWords(last[0])} (${last[1]}), but the two are not like for like${rd.note ? `: on ${dayWords(rd.note.at)} the run was ${rd.note.text}` : ''} (SUMMARY.md). How much of the drop each part caused: Not measured.`}</Note>
-        ) : null}
+        <SectionHead title={title} showInfo={false} action={<Button variant="tertiary" size="sm" onClick={onReport}>Report</Button>} />
+        {/* what moved and what to do on the left, the score at the right edge as in the approved mock */}
+        <Flow direction="row" gap={24} wrap grow="first" align="center">
+          <Flow gap={8}>
+            <TextStack body={movedOf(change)} />
+            <TextStack body={next ? <><Marker>Do next</Marker>: {next}.</> : 'No work order in the saved report.'} />
+          </Flow>
+          <Flow aside>
+            <ScoreTile label={labelOf(unit)} value={value ?? 'Not measured'} tone={tone} word={word} />
+          </Flow>
+        </Flow>
+        {details ? <Disclosure title="Details">{details}</Disclosure> : null}
       </Flow>
     </Card>
   );
@@ -198,113 +220,7 @@ function Mini({ title, p, line, target, summary }) {
   );
 }
 
-function AuditsCard({ d, rows, line, onReport, onPlan, filter, only }) {
-  const by = Object.fromEntries(rows.map((r) => [r.id, r]));
-  const show = (ids, group) => (!only || only === group) && (!filter || ids.some((i) => by[i]?.kind === filter));
-  const b = d.bench;
-  const benchWord = by['bench-md'];
-  const sources = (a) => `Source: ${a.file ? `the saved ${a.title} report of ${dayWords(a.ran)}` : 'no saved report'}`;
-  const rd = d.readiness;
-  // state is BELLA's status dot and its word (her review, 24 Nov: one status mark, lighter than the left bar)
-  const tagOf = (c) => <StatusDot tone={DOT[changeTone(c)]} label={c.kind === 'real' ? `${changeWord(c)}, ${c.delta > 0 ? '+' : '−'}${Math.abs(c.delta)}` : changeWord(c)} />;
-  const actions = (a, plan = true) => (
-    <Flow direction="row" gap={8} wrap justify="end">
-      <Button variant="secondary" onClick={() => onReport(a)}>Report</Button>
-      {plan ? <Button variant="tertiary" onClick={() => onPlan(a)}>See the plan</Button> : null}
-    </Flow>
-  );
-  const items = [];
-  const wrap = (key, row, acts) => (
-    <Flow as="li" key={key} gap={8}>
-      {row}
-      {acts}
-    </Flow>
-  );
-  if (show(['bench-md', 'bench-bare'], 'bench')) {
-    const gap = Math.round((b.all10.md - b.all10.bare) * 10) / 10;
-    items.push(wrap("bench",
-      <ListRow
-          as="div"
-        layout="stacked"
-        title="Benchmark (AGENTS.md against no file)"
-        value={b.all10.md}
-        meta="out of 100"
-        valueLabel={dayWords(b.day)}
-        tag={tagOf(benchWord)}
-        description={<><strong>Top finding:</strong> {b.stopped} of {b.jobs.length} jobs wrote nothing because BELLA has no part for them.</>}
-        body={
-          <Flow gap={8}>
-            <Flow as="ol" gap={4} bullets>
-              {PROPOSALS.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </Flow>
-            <Source>Proposals only, nothing started. Source: the benchmark answers note of 23 Nov, section 7.</Source>
-          </Flow>
-        }
-      />,
-actions({ id: 'bench', title: 'Benchmark', proposals: PROPOSALS, gap })));
-  }
-  if (show(['ready-composite', 'ready-static'], 'ready')) {
-    const cmp = rd.composite.p;
-    const top = rd.failures[0]?.replace(/^[^:]+: /, '') ?? null;
-    items.push(wrap("ready",
-      <ListRow
-          as="div"
-        layout="stacked"
-        title="Readiness score (with the agent run)"
-        value={cmp[cmp.length - 1]?.[1]}
-        meta="out of 100"
-        valueLabel={dayWords(cmp[cmp.length - 1][0])}
-        tag={tagOf(by['ready-composite'])}
-        description={top ? <><strong>Top finding:</strong> {top.replace(/\.$/, '')}{rd.parts?.['Enablement surface'] != null ? ` (surface check scores ${rd.parts['Enablement surface']}).` : '.'}</> : undefined}
-        body={
-          <Flow gap={24} cards>
-            <Mini title="Readiness score (with the agent run)" p={rd.composite.p} line={line} target={rd.target} summary={rd.note ? `${dayWords(rd.note.at)}: ${rd.note.text}` : undefined} />
-            <Mini title="Readiness score (files only)" p={rd.static.p} line={line} />
-          </Flow>
-        }
-      />,
-actions({ id: 'ready', title: 'Readiness score', orders: rd.failures })));
-  }
-  for (const a of d.audits.filter((x) => x.ran)) {
-    const c = by[`audit-${a.id}`];
-    if (!show([`audit-${a.id}`], a.id)) continue;
-    const same = (a.runs ?? []).filter((r) => r.unit === a.unit);
-    items.push(wrap(a.id,
-      <ListRow
-          as="div"
-        layout="stacked"
-        title={AUDIT_NAME[a.id] ?? a.title}
-        value={a.value}
-        meta={a.unit}
-        valueLabel={dayWords(a.ran)}
-        tag={tagOf(c)}
-        description={a.orders[0] ? <><strong>Top finding:</strong> {a.orders[0]}.</> : 'No work order in the saved report.'}
-        body={
-          <Flow gap={8}>
-            {a.unit === 'of 100' && same.length > 1 ? (
-              <Flow gap={16} cards>
-                <Mini title={AUDIT_NAME[a.id] ?? a.title} p={same.map((r) => [r.day, r.value])} line={line} />
-              </Flow>
-            ) : null}
-            <Source>{sources(a)}</Source>
-          </Flow>
-        }
-      />,
-actions(a)));
-  }
-  return (
-    <Card>
-      <Flow gap={16}>
-        <SectionHead icon="ShieldCheck" iconTone="info" title="Every audit and what to do next" showInfo={false} description="One line each: its score, what moved, the top finding and the plan to read first." />
-        {items.length ? <Flow as="ul" gap={24} aria-label="Every audit and what to do next">{items}</Flow> : null}
-      </Flow>
-    </Card>
-  );
-}
-
-function RunsCard({ d, filter, onOpen, kinds, only }) {
+function RunsCard({ d, onOpen, kinds, only }) {
   const rows = useMemo(() => {
     const out = [];
     for (const a of d.audits) for (const r of a.runs ?? []) out.push({ key: `${a.id}:${r.day}`, day: r.day, audit: AUDIT_NAME[a.id] ?? a.title, score: `${r.value} ${r.unit ?? ''}`.trim(), kind: kinds[`audit-${a.id}`], sort: r.day });
@@ -312,7 +228,7 @@ function RunsCard({ d, filter, onOpen, kinds, only }) {
     d.readiness.composite.p.forEach(([day, v]) => out.push({ key: `ready:${day}`, day, audit: 'Readiness score (with the agent run)', score: `${v} out of 100`, kind: kinds['ready-composite'], sort: day }));
     return out.sort((x, y) => y.sort.localeCompare(x.sort));
   }, [d, kinds]);
-  const shown = rows.filter((r) => (!filter || r.kind === filter) && (!only || r.key.split(':')[0] === only));
+  const shown = rows.filter((r) => !only || r.key.split(':')[0] === only);
   const [more, setMore] = useState(10);
   const list = shown.slice(0, more);
   return (
@@ -402,18 +318,16 @@ function ReadyDrawer({ open, onClose, d }) {
 export default function AuditReportsContent() {
   const { data, error } = useCached(['/audit-reports'], { live: true });
   const d = data?.[0] ?? null;
-  const [filter, setFilter] = useState(() => (FILTERS.some((f) => f.id === q().get('filter')) ? q().get('filter') : null));
   const [open, setOpen] = useState(() => q().get('report'));
   const [how, setHow] = useState(false);
   const [auditAsked, setAudit] = useState(() => q().get('audit'));
   useEffect(() => {
     const p = q();
-    filter ? p.set('filter', filter) : p.delete('filter');
     open ? p.set('report', open) : p.delete('report');
     auditAsked ? p.set('audit', auditAsked) : p.delete('audit');
     const s = p.toString();
     window.history.replaceState(null, '', `#/health/audits${s ? `?${s}` : ''}`);
-  }, [filter, open, auditAsked]);
+  }, [open, auditAsked]);
   const rep = useMemo(() => (d?.ok ? buildReport(d) : null), [d]);
   // a picked score tile (her idea, 24 Nov): a second click or Esc clears it; the chart it lights scrolls into view when it
   // is out of view, at once under reduced motion
@@ -433,15 +347,11 @@ export default function AuditReportsContent() {
   if (!d.ok) return <EmptyState size="lane" {...markOf('📄')} title="Not measured" line={d.why} />;
 
   const { changes, line } = rep;
-  const n = counts(changes);
   const kinds = Object.fromEntries(changes.map((c) => [c.id, c.kind]));
-  const groupOf = (c) => (c.id.startsWith('bench') ? 'bench' : c.id.startsWith('ready') ? 'ready' : c.group);
   const audits = [{ id: 'bench', label: 'Benchmark' }, { id: 'ready', label: 'Readiness' }, ...d.audits.filter((a) => a.ran).map((a) => ({ id: a.id, label: a.id === 'figma' ? 'Figma screens' : a.title }))];
   // an audit the address names that has no report reads as All
   const audit = audits.some((x) => x.id === auditAsked) ? auditAsked : null;
-  const shownChanges = changes.filter((c) => (!filter || c.kind === filter) && (!audit || groupOf(c) === audit));
   const b = d.bench;
-  const stopsStory = b.all10.md < b.all10.bare && b.stopped > 0;
 
   const plan = (a) => {
     const orders = a.proposals ?? a.orders ?? [];
@@ -460,60 +370,82 @@ export default function AuditReportsContent() {
   const auditOf = openId ? d.audits.find((x) => x.id === openId) : null;
   const runOf = auditOf && openDay ? (auditOf.runs ?? []).find((r) => r.day === openDay) : null;
 
+  // the headline (her rule, 24 Nov: one line in plain words, then the chips): how many audits are healthy, need work or
+  // fail, and the one to start with (the lowest score)
+  const scored = d.audits.filter((a) => a.ran).map((a) => ({ a, pct: pctOf(a.value, a.unit) }));
+  const tally = { Healthy: 0, 'Needs work': 0, Failing: 0 };
+  for (const x of scored) if (x.pct != null) tally[STATE(x.pct)[1]] += 1;
+  const low = scored.filter((x) => x.pct != null).sort((p, q) => p.pct - q.pct)[0]?.a;
+  const words = [tally.Healthy && `${tally.Healthy} healthy`, tally['Needs work'] && `${tally['Needs work']} need work`, tally.Failing && `${tally.Failing} failing`].filter(Boolean).join(', ');
+  const rd = d.readiness;
+  const cmp = rd.composite.p;
+  const changeOf = (id) => changes.find((c) => c.id === id);
+  const show = (id) => !audit || audit === id;
+  const onReport = (id) => (id === 'bench' ? setOpen('bench') : id === 'ready' ? setOpen('ready') : setOpen(id));
+
   return (
     <Flow span={12} gap={24}>
       <Flow gap={12}>
-        <TextStack
-          body={
-            stopsStory ? (
-              <>
-                <Marker>{`AGENTS.md scores ${b.all10.md} against ${b.all10.bare} for no file, because ${b.stopped} of ${b.jobs.length} jobs wrote nothing`}</Marker>: BELLA has no part for them and the file says to stop and ask. On the {b.eight.n} jobs BELLA can do, AGENTS.md is ahead, {b.eight.md} to {b.eight.bare}.
-              </>
-            ) : (
-              <>
-                <Marker>{`AGENTS.md scores ${b.all10.md} against ${b.all10.bare} for no file`}</Marker> on all {b.jobs.length} jobs; on the {b.eight.n} jobs BELLA can do, {b.eight.md} to {b.eight.bare}.
-              </>
-            )
-          }
-        />
         <Flow direction="row" gap={8} wrap align="center">
-          <TextStack subtitle={`Read from the saved reports and benchmark runs at ${new Date(d.read).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}.`} />
+          <TextStack body={<><Marker>{`BELLA's audits: ${words || 'none measured'}`}</Marker>{low ? `; start with ${AUDIT_NAME[low.id] ?? low.title}.` : '.'}</>} />
           <Button variant="tertiary" size="sm" onClick={() => setHow(true)}>How was this measured?</Button>
         </Flow>
-        {/* one audit at a time (her review, 24 Nov): chips filter, one on at a time, as History and Processes do */}
-        <Flow direction="row" gap={8} swipe role="group" aria-label="Audit">
-          <FilterChip pressed={!audit} onClick={() => setAudit(null)}>All audits</FilterChip>
+        {/* one chip row with counts, one at a time (the 23 Nov search-and-filter pattern); what is on shows only when on */}
+        <Flow direction="row" gap={8} swipe role="group" aria-label="Show one audit">
+          <FilterChip pressed={!audit} onClick={() => setAudit(null)}>{`All ${audits.length}`}</FilterChip>
           {audits.map((x) => (
-            <FilterChip key={x.id} pressed={audit === x.id} onClick={() => (setAudit(audit === x.id ? null : x.id), setFilter(null))}>{x.label}</FilterChip>
+            <FilterChip key={x.id} pressed={audit === x.id} onClick={() => setAudit(audit === x.id ? null : x.id)}>{x.label}</FilterChip>
           ))}
         </Flow>
-        {!audit ? (
-          <Flow direction="row" gap={8} swipe role="group" aria-label="Change">
-            <FilterChip pressed={!filter} onClick={() => setFilter(null)}>{`All ${n.all}`}</FilterChip>
-            {FILTERS.map((f) => (
-              <FilterChip key={f.id} pressed={filter === f.id} onClick={() => setFilter(filter === f.id ? null : f.id)}>{`${f.label} ${n[f.id]}`}</FilterChip>
-            ))}
-          </Flow>
-        ) : null}
-        <ResultsBar
-          applied={[filter && { key: 'f', label: FILTERS.find((f) => f.id === filter).label, onRemove: () => setFilter(null) }, audit && { key: 'a', label: audits.find((x) => x.id === audit)?.label ?? audit, onRemove: () => setAudit(null) }].filter(Boolean)}
-          shown={shownChanges.length}
-          total={n.all}
-          onClearAll={() => (setFilter(null), setAudit(null))}
-        />
+        {audit ? <ResultsBar applied={[{ key: 'a', label: audits.find((x) => x.id === audit)?.label ?? audit, onRemove: () => setAudit(null) }]} shown={1} total={audits.length} onClearAll={() => setAudit(null)} /> : null}
       </Flow>
 
-      {filter && !shownChanges.length ? (
-        <NoResults noun="audits" on={[{ key: 'f', label: FILTERS.find((f) => f.id === filter).label, would: n.all, onRemove: () => setFilter(null) }]} onClearAll={() => setFilter(null)} />
-      ) : null}
+      {show('bench') ? <BenchmarkCard b={b} onReport={() => setOpen('bench')} pick={pick} onPick={setPick} /> : null}
 
-      {/* the approved mock's order (her review, 24 Nov: the charts read as gone when the audit list led); one audit at a
-          time with the audit chips instead of scrolling past the rest */}
-      {!filter && (!audit || audit === 'bench') ? <BenchmarkCard b={b} onReport={() => setOpen('bench')} pick={pick} onPick={setPick} /> : null}
-      {!filter && (!audit || audit === 'bench') ? <JobsCard b={b} pick={pick} /> : null}
-      {shownChanges.length && !audit ? <ChangedCard rows={shownChanges} rd={d.readiness} /> : null}
-      {shownChanges.length ? <AuditsCard d={d} rows={changes} line={line} onReport={(a) => (a.id === 'bench' ? setOpen('bench') : a.id === 'ready' ? setOpen('ready') : report(a))} onPlan={plan} filter={filter} only={audit} /> : null}
-      {shownChanges.length ? <RunsCard d={d} filter={filter} kinds={kinds} only={audit} onOpen={(k) => (k.startsWith('bench') ? setOpen('bench') : k.startsWith('ready') ? setOpen('ready') : openRun(k))} /> : null}
+      <Flow gap={24}>
+        {show('ready') && cmp.length ? (
+          <AuditCard
+            title="Readiness score (with the agent run)"
+            value={cmp[cmp.length - 1][1]}
+            unit="out of 100"
+            change={changeOf('ready-composite')}
+            next={rd.failures[0]?.replace(/^[^:]+: /, '').replace(/\.$/, '')}
+            onReport={() => onReport('ready')}
+            onPlan={() => plan({ id: 'ready', title: 'Readiness score', orders: rd.failures })}
+            details={
+              <Flow gap={24}>
+                <Mini title="Readiness score (with the agent run)" p={rd.composite.p} line={line} target={rd.target} summary={rd.note ? `${dayWords(rd.note.at)}: ${rd.note.text}` : undefined} />
+                <Mini title="Readiness score (files only)" p={rd.static.p} line={line} />
+              </Flow>
+            }
+          />
+        ) : null}
+        {d.audits
+          .filter((a) => a.ran && show(a.id))
+          .map((a) => {
+            const same = (a.runs ?? []).filter((r) => r.unit === a.unit);
+            return (
+              <AuditCard
+                key={a.id}
+                title={AUDIT_NAME[a.id] ?? a.title}
+                value={a.value}
+                unit={a.unit}
+                change={changeOf(`audit-${a.id}`)}
+                next={a.orders[0]?.replace(/\.$/, '')}
+                onReport={() => onReport(a.id)}
+                onPlan={() => plan(a)}
+                details={
+                  <Flow gap={8}>
+                    {a.unit === 'of 100' && same.length > 1 ? <Mini title={AUDIT_NAME[a.id] ?? a.title} p={same.map((r) => [r.day, r.value])} line={line} /> : null}
+                    <Source>{`Source: ${a.file ? `the saved ${a.title} report of ${dayWords(a.ran)}` : 'no saved report'}`}</Source>
+                  </Flow>
+                }
+              />
+            );
+          })}
+      </Flow>
+
+      <RunsCard d={d} kinds={kinds} only={audit} onOpen={(k) => (k.startsWith('bench') ? setOpen('bench') : k.startsWith('ready') ? setOpen('ready') : openRun(k))} />
 
       <BenchDrawer open={open === 'bench'} onClose={() => setOpen(null)} d={d} />
       <ReadyDrawer open={open === 'ready'} onClose={() => setOpen(null)} d={d} />
