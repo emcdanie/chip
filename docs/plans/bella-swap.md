@@ -7,7 +7,7 @@ Status: audit done, nothing built, waiting for Elleta. Measured on :3126 at `fda
 One coordinator in `~/DEV/chip`. One working session at a time, each reviewed by Elleta before the next starts.
 
 1. Commit the switch removal and merge `claude/mock-shell-26b6e6` into `chip-2.0` (local, nothing pushed). All 18 worktree branches are already in the app branch.
-2. Archive the CHIP sessions, this one last. Fabrik's stay. Archiving can be undone, and it stops :3126 and :3121.
+2. Archive the CHIP sessions, this one last. Sessions for other projects stay. Archiving can be undone, and it stops :3126 and :3121.
 3. Clear the 18 CHIP worktrees and their servers. Their only uncommitted files are generated data, apart from step 1's change.
 4. New coordinator starts :3126 from `chip-2.0` and runs the sessions below.
 
